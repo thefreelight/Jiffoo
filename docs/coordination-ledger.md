@@ -24,7 +24,8 @@ is a Git-conflict-avoidance measure only; it is not a seniority relation.
 ## 0. The state of the line
 
 **Measured on:** 2026-10-31, against the tree of the branch of record. The open items were extended
-on 2026-11-01 (§5zw); the other rows are the measurement of 2026-10-31 and were not re-measured.
+on 2026-11-01 (§5zw, §5zy); the other rows are the measurement of 2026-10-31 and were not
+re-measured.
 
 ### The branches
 
@@ -79,6 +80,7 @@ that were open when it was written; §5w names all four.
 | the bridge is not published, so a downstream plugin carries a tarball | §5zw | open as of 2026-11-01; the repository declares no publish path for `@jiffoo/plugin-bridge` |
 | the product-to-credit mapping the purchase path needs | §5zw | open as of 2026-11-01; no product variant exists, so `cart.add` has no valid `variantId` |
 | the imagic page code in a real browser | §5zw | open as of 2026-11-01; the Core mechanism is proven by the browser E2E, the plugin's own page is not |
+| the update acceptance of the deployment update | §5zy | fixed in the tree on 2026-11-01; the deployment environment now carries the test-signing configuration, and the update jobs of CI are its check |
 
 The items §5o lists as closed are closed: `callContract` moved into the neutral runtime module
 with the rest of the gateway, the cross-domain reads go through the public projections, the guard
@@ -226,6 +228,7 @@ of that day.
 | 5zv | The ledger reconciled with the code | `ed6ec9c5a` |
 | 5zw | The imager line's first P-3 integration batch, reviewed | `6d3dee635` |
 | 5zx | The documentation set, consolidated | `6da9ab1a4` |
+| 5zy | The update acceptance of the deployment update | `a7104938e` |
 
 ## 6. The archive
 

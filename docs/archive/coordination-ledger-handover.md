@@ -3846,5 +3846,118 @@ The bold lead-ins of the rule file before the cut of section 5zs were searched i
 the rule file and 2 are in the verification document, which now holds the three documents that
 were merged into it.
 
+## 5zy. The update acceptance of the deployment update
+
+**Baseline SHA:** `a7104938e`. **Commits:** (the commits of this batch).
+
+### The failure
+
+The CI run of the batch that added the deployment variables to the Compose file failed in its two
+update jobs, `update-no-migration` and `update-migration`, and in the summary job that requires
+them. Every other job of that run was green: the four API shards, the browser E2E, the backup
+acceptance, the Compose acceptance, the release verification and the quality job.
+
+Both update jobs stopped at the same check, "Seed merchant and theme configuration through real
+API", with:
+
+```
+AssertionError [ERR_ASSERTION]: {"success":false,"error":{"code":"UNTRUSTED_PUBLISHER_CERTIFICATE","message":"Untrusted publisher certificate."}}
+  at upload (file:///app/deploy/compose/update-scenario.mjs:57:199)
+```
+
+### The cause
+
+The update acceptance builds a plugin package whose publisher certificate is signed with its own
+root key, and it bakes that capability into the signed backend image:
+
+```
+FROM <project>-old-backend
+ENV EXTENSION_TEST_SIGNING_MODE=true JIFFOO_TEST_PLUGIN_ROOT_PUBLIC_KEY=<the fixture root>
+COPY keys.json /app/deploy/compose/update-fixture-keys.json
+```
+
+The batch that reached the deployment variables added three entries to the shared backend
+environment of the Compose file, among them `EXTENSION_TEST_SIGNING_MODE:
+${EXTENSION_TEST_SIGNING_MODE:-false}` and `JIFFOO_TEST_PLUGIN_ROOT_PUBLIC_KEY:
+${JIFFOO_TEST_PLUGIN_ROOT_PUBLIC_KEY:-}`.
+
+A Compose `environment:` entry always overrides the image's `ENV`, whatever its value. The
+acceptance's deployment environment file did not carry either variable, so the interpolation
+produced `false` and an empty key, the containers started with the mode off, and
+`trustedRootKeys()` of `packages/shared/src/plugin-signing.ts` trusted only the official root. The
+fixture's publisher certificate had no trusted root, and the upload was refused.
+
+A local Compose probe confirmed the three behaviours that the fix rests on: an `environment:`
+entry with a value overrides the image's `ENV`; an `environment:` entry without a value removes
+the variable from the container instead of letting the image keep it; and a value in the
+`--env-file` reaches the container through the interpolation.
+
+### The decision
+
+The deployment environment file carries the test-signing configuration. That is the path an
+operator uses, and it is the path the three new Compose entries read.
+
+`scripts/verify-update.mjs` now writes `EXTENSION_TEST_SIGNING_MODE=true` and
+`JIFFOO_TEST_PLUGIN_ROOT_PUBLIC_KEY=<the fixture root public key>` into the deployment
+environment file that the acceptance generates for the old release and for every target
+generation. The Compose entries interpolate them, and the containers of both the current and the
+target deployment run with the capability their signed packages need.
+
+The image `ENV` line stays as it was. It documents that the release image carries the capability;
+the deployment agrees with it.
+
+The change is confined to `scripts/verify-update.mjs`. The Compose file, the release files, the
+image builds and the rest of the acceptance are untouched.
+
+### The local evidence
+
+The baseline SHA is `a7104938e`. The changed input is `scripts/verify-update.mjs` and this ledger
+section: no source, no test, no schema, no dependency. The planner therefore adds no suite.
+
+No local test covers this file: the update acceptance and `scripts/update.test.mjs` are CI-only,
+and the runner rejects them locally by design. The certifying local run is therefore the audited
+script test of the verification tooling, `scripts/verify-selection.test.mjs`, which is what
+`--test-files` accepts locally.
+
+The run was:
+
+```
+DATABASE_URL_TEST=postgresql://postgres:postgres@localhost:5432/jiffoo_core_test \
+PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=<the owner's consent to reset jiffoo_core_test> \
+pnpm verify:quick --test-files=scripts/verify-selection.test.mjs
+```
+
+The summary of that run, printed from `verify-summary.txt`:
+
+```
+=== Final test summary ===
+Scope: scripts
+Lane: integration
+Database: not used
+Planner added suites: none
+Run script tests:
+Node test start time: 2026-11-01T11:08:26.360Z
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 280.0271
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Run script tests | PASS | 0.33s |
+```
+
+The browser E2E did not run locally: it belongs to CI, and this batch changed no product code.
+
+### What is left to CI
+
+The proof of this change is the update job of CI: `update-no-migration` and `update-migration` are
+the only jobs that exercise the update acceptance. The local run above certifies that the
+verification tooling is intact; it cannot certify the acceptance that only CI can run.
+
 
 
