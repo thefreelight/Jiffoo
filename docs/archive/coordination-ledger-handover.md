@@ -1,0 +1,3850 @@
+# Coordination ledger — the handover evidence
+
+The handover evidence of every batch of the line, kept as it was written: what the batch changed,
+the contract changes it registered, the reviews it went through, the gate output of its run and
+what it left open. The sections keep their numbers, so a reference of the form "5zi" still names
+the same section.
+
+This file is the archive. The live ledger is `docs/coordination-ledger.md`, and it
+carries the state of the line, the rules that still bind and an index of these sections.
+
+The gate outputs inside are the outputs of the runs of their day. The complete gate of every push
+is in GitHub Actions, and every commit of the line is in the history of the branch of record.
+
+A path named in a section below may have moved since that day. The live documents are the ones the
+section 8 of the rule file and the section 8 of the live ledger name.
+
+## 5b. Handover evidence — B-BOUND-B (order domain single owner)
+
+**Commit:** `6a99ec298` on `codex/lane-orders`. 8 files changed, +674 / −389, plus the new
+`apps/api/src/core/payment/service.ts` (262 lines). No schema change, no migration, no route,
+envelope, error-code or status-code change, no test file touched.
+
+**Table ownership after this package (verified by the orchestrator, independently of the executor):**
+
+| Table | Writers found by `grep -rnE "\b(tx\|prisma)\.<table>\.(create\|update\|updateMany\|delete\|deleteMany\|upsert)"` |
+|---|---|
+| `orders` | `core/order/service.ts` only (11 sites) |
+| `order_items`, `order_shipping_addresses` | nested create inside `core/order/service.ts` `tx.order.create` |
+| `order_status_history` | `core/order/status-history.ts` only |
+| `shipments`, `shipment_items` | `core/order/service.ts` only |
+| `payments` | `core/payment/{observations,reconciliation,service,session}.ts` |
+| `payment_ledgers` | `core/payment/{reconciliation,service,session}.ts` |
+| `refunds`, `refund_ledgers` | `core/payment/service.ts` only (were admin-only) |
+
+`core/admin/order-management/service.ts` writes **none** of them. The parallel order state machine
+in the admin module is gone. `core/payment/**` imports **no** order-internal helper.
+
+**New public API**
+- `core/payment/service.ts` → `PaymentService.cancelPendingForOrder`,
+  `getOrderPaymentSummary`, `refundOrder`, `resolveRefundRequiredPayment`
+- `core/order/service.ts` → `OrderService.applyPaymentSucceeded`, `applyPaymentFailed`,
+  `recordPaymentAttempt`, `markRefunded`, `shipOrder`, `deliverOrder`, `cancelOrderByAdmin`,
+  `getOrderProjection`, `catalogSnapshotView`
+
+**Status-history actor identity preserved exactly** (a nullable column; the old rows store NULL):
+ship / deliver / admin cancel still write `actorType: 'admin'` with no `actorId`; the admin refund
+still writes the administrator id and `metadata: { refundId }`.
+
+**Gate** (lane `orders`, `jiffoo_core_test_orders`, Redis DB 12):
+
+```
+=== Final test summary ===
+Scope: default
+Lane: orders
+Database: jiffoo_core_test_orders
+Planner added suites: none
+Run API tests:
+   Start at  15:32:25
+ Test Files  21 passed (21)
+      Tests  323 passed (323)
+Run Admin tests:
+   Start at  15:38:55
+ Test Files  3 passed (3)
+      Tests  26 passed (26)
+Run Shop tests:
+   Start at  15:38:57
+ Test Files  2 passed (2)
+      Tests  3 passed (3)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check API, Admin, Shop and shared | PASS | 15.67s |
+| Lint Shop | PASS | 10.62s |
+| Reset test database | PASS | 3.99s |
+| Run API tests | PASS | 389.33s |
+| Run Admin tests | PASS | 2.31s |
+| Run Shop tests | PASS | 1.71s |
+```
+
+Exit code 0. The planner added 13 authentication suites (the changed file
+`core/payment/session.ts` matches its `/session/i` rule) and they ran and passed.
+
+**Executor-reported deviations from the task contract (all accepted, none behavioural):**
+`PaymentStatus` is a const object, not a type — the type is `PaymentStatusType`; the admin
+"NOT_CHARGED" review resolution has no slot in the mandated `PaymentService` shape, so
+`recordPaymentNotCharged` was added as a public export of the payment module; `getSellableCatalog`
+had to switch from a `select` shape to `include: { variants: true }` plus a second translations
+query because `tests/core/order-service.test.ts` asserts the exact product read — the projection now
+costs two queries; `apps/api/openapi.json` (a gitignored artifact) had to be generated with
+`pnpm --filter api export:openapi` for the state-machine suite; `tests/core/event-delivery.test.ts`
+→ "measures the real claim query over 100000 due rows" timed out in one of three runs and passed
+in the other two (a load-dependent performance test, unrelated to this change).
+
+## 5c. Handover evidence — B-BOUND-C (neutral layer + dependency direction)
+
+**Commit:** `add8de45b` on `codex/lane-orders`.
+
+**What moved (renames, not copies):**
+- `core/payment/locks.ts` → `core/shared/locks.ts` (the order row lock was owned by the payment module)
+- `core/payment/minor-units.ts` → `core/shared/money.ts`
+- `core/order/current-pricing.ts` → `core/shared/pricing.ts`
+- `core/admin/system-settings/{service,schemas}.ts` → `core/settings/`
+- `core/admin/extension-installer/{utils,types,errors,version-utils}.ts` → `core/extensions/shared/`
+- new `core/extensions/registry/` owns the read-only extension provider queries
+  (`listProviders`, `resolveSingleProvider`, `getAllPluginPackages`, `getDefaultInstance`)
+
+Every old path keeps a re-export shim, so no consumer import and no test import had to change.
+The only test edits were nine lines across three files: the `vi.mock` paths and the matching
+`import` paths for the two moved modules. The state-audit allowlist changed by exactly seven
+renames, in place, not re-sorted.
+
+**Orchestrator-verified after the merge:**
+- no module under `apps/api/src/core/` outside `core/admin/**` imports
+  `@/core/admin/system-settings/**` or `@/core/admin/plugin-management/**` — **the commerce → admin
+  dependency inversion is gone**
+- `core/extensions/**` has no import of `@/core/admin/extension-installer/**`
+- the three test files changed by exactly 9 lines, all of them mock/import paths
+
+**Gate:** API 26 files / 464 tests passed, Admin 3 files / 26 tests passed, Shop 2 files / 3 tests
+passed; all steps PASS; exit code 0.
+
+**Residual found by the orchestrator after the merge** (folded into B-BOUND-D1): `core/extensions/
+shared/utils.ts` still reached `extension-installer/security` through a **dynamic** `import()` —
+a static import scan misses it. Closed in `a65695b70`.
+
+## 5d. Handover evidence — B-BOUND-D1 (audit outlet + dead user module + last core→admin edge)
+
+**Commit:** `a65695b70` on `codex/lane-orders`.
+
+- new `core/audit/service.ts` — `AuditService.write(tx, entry)` is now the **only** place that
+  writes an admin audit event (orchestrator-verified: the only remaining
+  `adminAuditEvent.create` / `adminAuditEvent.upsert` calls in `apps/api/src` are the three inside
+  that file). 21 write sites across 12 files now call it.
+- `core/admin/audit-events/records.ts` → `core/audit/records.ts`, **byte-identical** (same git
+  blob `5deda49c`), with a shim at the old path; the admin HTTP surface stays put.
+- `writePluginAudit` and the theme runtime's `audit()` keep their exported names and behaviour
+  (including the `writePluginAudit` test barrier); only the final write delegates.
+- `apps/api/src/core/user/` deleted — it had no consumer at all.
+- `core/admin/extension-installer/security.ts` → `core/extensions/shared/security.ts` (shim kept),
+  so `core/extensions/**` no longer imports the installer folder **at all**, dynamic import
+  included.
+- The state-audit allowlist changed by exactly four lines: two keys renamed, two dead `core/user`
+  keys removed.
+
+**Gate:** API 22 files / 350 tests passed, Admin 3 files / 26 tests passed, Shop 2 files / 3 tests
+passed; all steps PASS; exit code 0.
+
+## 5e. Handover evidence — B-BOUND-D2 (the boundary guard)
+
+**Commit:** `2c2a40e24`. New `apps/api/tests/core/module-boundary-audit.test.ts` (650 lines, 8
+assertions) and `apps/api/tests/core/builtin-plugin-slug-parity.test.ts`.
+
+The guard has two independent static checks over `apps/api/src/core/**`:
+1. **cross-module import graph** — every `@/core/...` import is resolved to the module it reaches
+   and compared with an explicit allowlist of legal edges (each with a reason); an import that does
+   not bind to a **public export** of the target module is rejected by a separate assertion.
+2. **cross-domain table writes** — table ownership is derived from the Prisma schema; a write to a
+   table from a module that does not own it is a violation. Reads are not violations.
+
+Every residual is listed in a `knownViolations` array anchored to file, table/module, reason and
+owning batch, and the list is required to stay anchored to real violations so it cannot go stale.
+
+**The guard was verified non-vacuous** (orchestrator): a temporary probe file in `core/cart/` that
+imported another module's private helper and wrote a foreign domain's table made **three** of its
+assertions fail; deleting the probe restored green. The probe was removed — no tracked file was
+touched by the probe.
+
+Also in this commit: `BUILTIN_PLUGIN_SLUGS` consolidated into `@jiffoo/shared` (installer, upload
+validator and SDK scaffold now share one constant, SDK still self-contained); the
+`PluginContext.database` comment made precise; a `Plugin Trust Model in V1` note added to the
+charter §3, stating the accepted in-process model and pointing at the concrete code locations.
+
+**Gate:** API PASS, Admin PASS, Shop PASS; all steps PASS; exit code 0.
+
+## 5f. Handover evidence — B-BOUND-D3 (last mechanical audit-outlet gap)
+
+**Commit:** `b55714018`. `admin/storefront-code/service.ts` now imports `AuditService` from
+`@/core/audit/service` instead of the `audit` helper that lived in the theme runtime, so the
+`admin/storefront-code -> admin/extension-installer` edge is gone and the guard's
+`knownViolations` list loses that entry.
+
+**Gate:** API PASS (13.70s); all steps PASS; exit code 0.
+
+## 5g. The boundary audit result — what is still open
+
+The list in this section is the list of the Tier 2 cleanup. Section 0 carries the register as it is
+now: four registered violations, of which this section names the two that were open at the time.
+
+**State after batches B-BOUND-A … B-BOUND-E3 and the Tier 2 cleanup (WP-F2): 23 known violations → 2.** The five that were registered after B-BOUND-F were the ones the guard could see. B-BOUND-F (§5k) closed the three stray writers among them and, in the same batch, removed the guard's blind spot — so the list became **5 registered violations again, but a different five**, and every one of them was real, registered, and anchored to a file and a table.
+
+The Tier 2 cleanup (WP-F2) corrected that raw-SQL pattern once more. A raw write is a write to a **Core** table only when the matched path is unqualified (the Core connection resolves it in `public`) or qualified with the literal schema `public`. A path qualified with any other schema — the marker reclaim writes into the plugin's own namespace schema — is a write into that namespace, not into a Core table, so those entries were never violations. The list is now **2 registered violations**, and both of them are real, registered, and anchored to a file and a table.
+
+| # | File | Table | Nature | Owner / next step |
+|---|---|---|---|---|
+| 1 | `admin/extension-installer/plugin-migration-executor.ts` | `admin_audit_events` | **legitimate exception** — raw SQL inside a manual `pg` transaction that provisions a plugin schema; a Prisma-based outlet cannot join it | keep registered |
+| 2 | `inventory/service.ts` | `product_variants` | **column-level ownership split** — the product domain owns the variant row, the inventory domain owns the `stock` column; a table-level owner map cannot express that | either accept the split explicitly or give the stock column its own owner |
+
+Items 1–3 of the old list (the migration gate, the recovery sweep and the migration executor
+writing `plugin_operation_leases` and `core_processes` directly) were the same shape as the work
+already done and **are closed in B-BOUND-F**: the three writes now go through the storage lease
+API and the infra process registry.
+
+Items 3–5 of the B-BOUND-F list were **invisible to the old guard**. Its raw-SQL pattern required the
+table to be spelled `public.<table>`, so an unqualified `UPDATE plugin_operation_leases …` and a
+schema given as a template variable (`DELETE FROM "${schema}".plugin_operation_leases`) were never
+reported. B-BOUND-F broadened the pattern to take the last identifier of any qualified path, which
+registered those three entries — but the broadened pattern also reported writes into a plugin's own
+namespace schema as writes to a Core table. They are not: the marker reclaim deletes the lease rows
+and confirms the dead process rows of the **plugin namespace**, and the charter explicitly allows
+that ("the package-derived default schema is a naming convention, not a permission boundary"). The
+corrected pattern skips every path that is qualified with a schema other than `public`, so those
+three entries are withdrawn and the two entries above are what remains.
+
+**B-BOUND-G is withdrawn with them.** That registered follow-up batch existed to route the three
+marker-reclaim writes through their owning modules. They were never violations — they write into
+the plugin's own namespace schema — so there is nothing left for the batch to do. It is closed
+without ever being started (§3, §5m).
+
+Item 2 is the one remaining **decision**: does the `stock` column belong to the product domain or
+to the inventory domain? The current code and the guard both put the row in the product domain and
+the column in the inventory domain. **Recommendation: keep the split and record it in the guard's
+owner map as a column-level exception**, because the inventory module is the only writer of
+`stock` and the product module is the only writer of the rest of the row, and both behaviours are
+correct.
+
+**What is tracked now.** Every remaining violation is in the guard with a reason and an owner, so
+it is visible in CI and cannot silently grow. The pattern now sees the unqualified and the
+`public`-qualified raw writes and skips the writes into a plugin namespace schema, so a new stray
+writer of either shape fails the guard instead of slipping through.
+
+## 5h. Handover evidence — B-BOUND-E1 (one public owner for `users` and `auth_tokens`)
+
+**Commit:** `41d30671c`.
+
+**Decision taken, and the change from the earlier recommendation.** The ledger previously
+recommended a new `core/user` module. The guard's own `TABLE_OWNERS` already declared
+`users: 'auth'` and `auth_tokens: 'auth'` — the auth module is where identity, credentials and
+sessions already live. Creating a separate `core/user` module would have meant relocating the
+most security-sensitive writes in the repository (login, registration, email verification,
+password reset, token issuance) for a naming benefit only, with no change in the number of
+modules or in the single-owner rule. The smaller, safer change that satisfies the same rule was
+taken instead: **`core/auth` is the one public owner**, and it now exposes the row operations the
+other modules need.
+
+- new `apps/api/src/core/auth/identity-service.ts` → `AuthIdentityService` with
+  `updateProfile`, `removeAvatar`, `changeEmail`, `deactivateCustomer`, `createCustomer`,
+  `updateCustomer`, `deleteCustomer`, `createStaff`, `removeStaff`, `reinviteStaff`,
+  `revokeStaffInvites`, `createBootstrapAdmin` — each performing exactly the Prisma write it
+  replaces.
+- `core/account`, `core/admin/user-management`, `core/admin/staff-management` and `core/install`
+  call that API. Every `where` guard is preserved (customer update and delete stay scoped to
+  `role: 'USER'`, staff token revocation stays scoped to the `STAFF_INVITE` purpose).
+- `core/auth`'s own flows are unchanged.
+
+**Orchestrator-verified:** after the change, the only modules writing `users` or `auth_tokens` are
+under `core/auth/**`. The guard's known-violations list lost five entries (23 → 18).
+
+**Gate:** API PASS (80.40s), Admin PASS, Shop PASS; exit code 0.
+
+## 5i. Handover evidence — B-BOUND-E2 (the last three table owners)
+
+**Commit:** `ede8a7f3b`.
+
+- `system_settings` → owned by `core/settings`. The api-token module and the installer now call
+  public settings operations; the api-token read-modify-write on the settings blob (including its
+  `JSON.stringify` and the cache invalidation that follows) is preserved exactly.
+- `notifications` → owned by `core/notifications`. The admin **resend** operation moved into the
+  notifications module as a public method that performs the same create + dedup-key update in the
+  same order; the route's HTTP behaviour is unchanged.
+- `admin_staff_audit_logs` → owned by `core/audit`. The audit outlet now covers the legacy staff
+  audit table as well, and the four writers that reached around it (builtin sync, theme service,
+  staff management, account recovery) call the outlet. Each call site keeps writing exactly the
+  fields it wrote before — the admin audit API unions the two tables, so a renamed field would
+  change the admin history. The two tables are not merged.
+
+**Orchestrator-verified:** `system_settings` is written only by `core/settings/service.ts`,
+`notifications` only by `core/notifications/service.ts`, `admin_staff_audit_logs` only by
+`core/audit/service.ts`. The guard's known-violations list lost eight entries (18 → 10).
+
+**Gate:** API PASS (96.46s), Admin PASS, Shop PASS; exit code 0.
+
+## 5j. Handover evidence — B-BOUND-E3 (the guard becomes domain-aware)
+
+**Commit:** the last commit on `codex/lane-orders`.
+
+The guard's owner map gave every table one owning module. That is right for the commerce domain
+and wrong for the extension domain, which is deliberately split across the installer, plugin
+management and the durable task engine — producing eight known violations that were a granularity
+mismatch, not defects.
+
+- `TABLE_OWNERS` may now name a **domain**. `DOMAIN_MEMBERS.extensions` = the three extension
+  modules; `DOMAIN_TABLES.extensions` records which tables the domain owns, so it cannot silently
+  acquire a table it does not own.
+- `plugin_installations`, `plugin_installs` and `plugin_task_execution_slots` are now owned by the
+  domain. `plugin_operation_leases` stays owned by `storage` and `core_processes` by `infra`:
+  their remaining cross-module writers are **real** violations, so they keep a module owner and
+  stay registered.
+- A new assertion, `keeps the domain model safe and free of loopholes`, fails the guard if a
+  domain has no members, if a member is not a real module, if a member is a commerce module, if a
+  table is assigned to a domain it does not declare, if a declared table is owned by something
+  else, or if a domain member writes a table the domain does not own.
+
+**Orchestrator-verified non-vacuous twice** (temporary probe files, removed afterwards):
+a cart write from the order module, and an order write from the `plugins` domain member, were
+both rejected with the owning module named — the second one by the write check **and** by the new
+loophole assertion.
+
+**Gate:** API PASS (5.90s); exit code 0.
+
+## 5k. Handover evidence — B-BOUND-F (the guard's blind spot and the stale references)
+
+**State:** committed as `eddea4a9e` on `codex/lane-orders` (lane gate green, §5k).
+
+**Superseded in part.** The raw-SQL pattern described in §1 below was corrected again by
+B-BOUND-H (§5m): a write into a plugin namespace schema is not a write to a Core table. §5g
+carries the current list.
+
+**1 — the guard's blind spot (`apps/api/tests/core/module-boundary-audit.test.ts`).**
+The raw-SQL pattern required the table to be spelled `public.<table>`, so an unqualified
+`UPDATE plugin_operation_leases …` and a schema given as a template variable
+(`DELETE FROM "${schema}".plugin_operation_leases`) were invisible. The pattern now takes an
+optional schema qualifier (`public`, `"public"`, `"${schema}"`, or none) and extracts the **last**
+identifier of the qualified name as the table; the `if (!tables.has(table)) continue;` filter is
+kept, so a word that is not a table (`UPDATE SET`, a column name) is still ignored. The
+`raw SQL against public.<table>` label and the reported file/line are unchanged.
+
+**2 — the three stray writers are now routed through their owners.**
+
+| Write | New owner operation | Caller |
+|---|---|---|
+| `plugin-migration-executor.ts` — `UPDATE plugin_operation_leases …` | `renewPluginOperationLease(client, …)` in `core/storage/plugin-operation-lease.ts` | `renewPluginMigrationLease` |
+| `plugin-migration-gate.ts` — `INSERT INTO public.plugin_operation_leases …` | `insertPluginOperationLease(client, …)` in `core/storage/plugin-operation-lease.ts` | `withPluginMigrationGate` |
+| `plugin-recovery.ts` — `DELETE FROM public.core_processes p …` | `pruneCoreProcesses(client, limit)` in `apps/api/src/infra/core-process.ts` | `sweepPluginRecovery` |
+
+The owner operations take the client the caller already has, so the write stays inside the
+caller's transaction, and they keep the SQL exactly as it was (same columns, same predicates, same
+row counts, same ordering). The two `plugin_operation_leases` model writes that the installer
+performed directly — the lease release in `updateOwnedPluginMigrationOperation`, the marker release
+in `withPluginMigrationGate` and the lease release in `recoverPluginOperation` — now go through
+`releasePluginOperationLeaseWith(client, …)` in the storage module as well, because the
+`plugin_operation_leases` entries could only be removed once no write of that table was left in
+the installer.
+
+**3 — the known-violation list.** The three entries for `plugin_operation_leases` (gate) and
+`core_processes` (recovery) are gone; they no longer match a real violation. The
+`admin_audit_events` entry (the raw-SQL migration executor) and the `product_variants` entry stay.
+The guard still requires every remaining entry to be anchored to a real violation, so the list
+cannot go stale.
+
+**4 — the stale references.** The ledger's §3 batch rows now carry all nine cells; `AGENTS.md`
+names `core/shared/locks.ts` (the real home of the row locks) instead of the one-line re-export
+shim `core/payment/locks.ts`; the guard's commerce module list no longer names the deleted
+`core/user` module; the guard uses the shared `apiSourceFiles` helper instead of a hand-copied
+walk and no longer asserts filler thresholds; the `payment.succeeded` payload throws
+`ApiError('NOT_FOUND')` instead of degrading a missing order into `userId: ''`; a cart line whose
+variant is not in the catalog is an error instead of a free line; and
+`core/extensions/registry/service.ts` no longer validates the constant `'default'` against
+itself.
+
+**Deviation — one thing the task description did not anticipate.**
+The task expected the fixed pattern to surface exactly three writes. It surfaces **six**: the
+three above and three more in `admin/extension-installer/plugin-marker-reclaim.ts`
+(`DELETE FROM "${schema}".plugin_operation_leases`, `UPDATE "${schema}".core_processes`,
+`INSERT INTO "${schema}".admin_audit_events`). Those are the writes of the operator-driven marker
+reclaim, which runs on a dedicated `pg` connection in its own manual transaction and therefore
+cannot join the Prisma transaction of the storage, infra or audit owner — the same shape as the
+`admin_audit_events` exception that was already registered. The file is outside this batch's
+allowed file set, so the three writes are **registered** as known violations with a reason and an
+owner (B-BOUND-G) instead of being routed. The registered list is therefore 5 entries again, but
+a different five; §5g carries the new table.
+
+**Gate** (lane `orders`, `jiffoo_core_test_orders`, Redis DB 12):
+
+```
+=== Final test summary ===
+Scope: default
+Lane: orders
+Database: jiffoo_core_test_orders
+Planner added suites: none
+Run API tests:
+   Start at  10:42:13
+ Test Files  8 passed (8)
+      Tests  153 passed (153)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check API, Admin, Shop and shared | PASS | 3.38s |
+| Lint Shop | PASS | 10.04s |
+| Reset test database | PASS | 3.25s |
+| Run API tests | PASS | 116.43s |
+```
+
+Exit code 0. `Planner added suites: none` — no foreign change expanded the selection.
+
+**Non-vacuity probe.** With the three raw writes temporarily put back into the three installer
+files, the guard failed with exactly this output (probe removed afterwards, no tracked file was
+left changed):
+
+```
+admin/extension-installer/plugin-migration-executor.ts:63 writes "plugin_operation_leases" (raw SQL against public.plugin_operation_leases) but the table is owned by "storage"
+admin/extension-installer/plugin-migration-gate.ts:77 writes "plugin_operation_leases" (raw SQL against public.plugin_operation_leases) but the table is owned by "storage"
+admin/extension-installer/plugin-recovery.ts:76 writes "core_processes" (raw SQL against public.core_processes) but the table is owned by "infra"
+```
+
+The first line is the write that the old pattern could not see at all.
+
+## 5m. Handover evidence — B-BOUND-H (the Tier 2 cleanup: wrappers, dead inputs, one contract catalogue)
+
+**Commit:** `7a95368e1`. **State:** committed on `codex/lane-orders`, **not pushed**. The merge is
+the P-3/P-4 main line's job.
+
+**1 — where this batch came from.** Two fresh-context, read-only reviewers ran over
+`git diff 49dc5ff1a..HEAD` of this branch: a **deslop** pass (15 findings) and a **verbosity**
+pass (13 findings). The decision was to apply only the findings worth doing now — Tier 1 and
+Tier 2 — and to leave the optional ones alone. The batch below is exactly that set; the
+executor's task book was `tmp/wp-f2-task.md` (F2-1 … F2-13).
+
+**2 — what was applied.**
+
+| # | Change | Where |
+|---|---|---|
+| 1 | The registry publishes its four reads once: the `PluginManagementService` class that only delegated to the four module functions is gone, and the four commerce callers import the functions | `core/extensions/registry/service.ts`, `core/{checkout,order,notifications,payment}/**` |
+| 2 | The one-line `incrementPluginRegistryVersion` wrapper is deleted; its call sites call the settings service that owns the `system_settings` row | `core/admin/extension-installer/plugin-registry-version.ts` (deleted), `plugin-fs-installer.ts`, `admin/plugin-management/service.ts`, `tests/core/startup-plugin-prewarm.test.ts` |
+| 3 | The notifications module no longer reads the `users` table for the recipient address; it consumes the order module's `getOrderRecipient` projection, which keeps the `customerEmail → account email → ''` precedence | `core/notifications/service.ts`, `core/order/service.ts` |
+| 4 | The capability-contract catalogue is published once, from the shared package; the registry and the contract runtime read the version from it | `packages/shared/src/extensions/plugin-contract.ts`, `core/extensions/registry/service.ts`, `core/admin/extension-installer/contract-v1-runtime.ts` |
+| 5 | The copy-pasted refund idempotency preamble is one private helper | `core/payment/service.ts` |
+| 6 | The two dead inputs of `refundOrder` are gone; the audit metadata that is written is unchanged | `core/payment/service.ts`, `core/admin/order-management/service.ts` |
+| 7 | The dead members of the structural transaction types are gone; the two that are used became their own intersection type (`OrderTransitionTx`, `PaymentAuditTx`), so the member list still catches a typo | `core/{order,payment,inventory}/service.ts` |
+| 8 | The audit outlet has two methods instead of a control flag inside the data type | `core/audit/service.ts`, `core/admin/extension-installer/plugin-audit.ts` |
+| 9 | The comment that was repeated three times is kept once | `core/admin/product-management/service.ts` |
+| 10 | The settings payload is built once, and the single-use transaction type is replaced by the module's own client type | `core/settings/service.ts` |
+| 11 | The single-use helper with the hand-rolled count is one expression | `core/order/service.ts` |
+| 12 | The guard drops the check that another check already makes, the dead `knownEdges` list and the doc comment that did not match the code | `tests/core/module-boundary-audit.test.ts` |
+| 13 | The raw-SQL pattern no longer reports a plugin-namespace write as a Core write; the three entries it had registered for the marker reclaim are withdrawn | `tests/core/module-boundary-audit.test.ts`, §5g |
+
+**3 — what was deliberately NOT applied, and why.**
+
+| Finding | Disposition |
+|---|---|
+| the `getVariantStockMap` helper is a one-line pass-through | **rejected — factually wrong**: the helper has four call sites, so inlining it removes nothing |
+| replace the `args: any` transaction bags with `Pick<Prisma.TransactionClient, …>` | **deferred — it does not compile**: Prisma's `InternalArgs` and `DefaultArgs` do not match the extended client |
+| one catalog query instead of two | **deferred — blocked**: `tests/core/order-service.test.ts:254` asserts the exact `findMany({ include: { variants: true } })` shape |
+| the parity test's literal slug list | **intentional**: the literal list is the test's independent oracle; a shared constant would make the assertion tautological |
+| the deeper type remedy, the commit-message length, the charter/comment duplication | **declined as optional** |
+
+**4 — the guard's state.** Two registered violations remain (§5g): the raw-SQL `admin_audit_events`
+write in `plugin-migration-executor.ts` and the `product_variants` stock-column split in
+`inventory/service.ts`. The ownership check is unchanged: every table has exactly one writing
+module, and `product_variants` has the two that the recorded column-level decision allows.
+
+**5 — the gate** (lane `orders`, `jiffoo_core_test_orders`, Redis DB 12):
+
+```
+=== Final test summary ===
+Scope: default
+Lane: orders
+Database: jiffoo_core_test_orders
+Run API tests:
+   Start at  13:38:29
+ Test Files  164 passed (164)
+      Tests  2374 passed | 2 skipped (2376)
+Run Admin tests:
+   Start at  14:17:17
+ Test Files  58 passed (58)
+      Tests  570 passed (570)
+Run Shop tests:
+   Start at  14:17:45
+ Test Files  32 passed (32)
+      Tests  240 passed (240)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check selected scope and shared | PASS | 3.44s |
+| Lint Shop | PASS | 9.87s |
+| Reset test database | PASS | 3.89s |
+| Run API tests | PASS | 2328.54s |
+| Run Admin tests | PASS | 28.36s |
+| Run Shop tests | PASS | 27.13s |
+```
+
+Exit code 0. The planner expanded the selection because `packages/shared` changed, so the API
+suite ran in full (164 files) next to the admin and shop suites.
+
+**Two earlier attempts failed on one timing-sensitive fixture, not on a defect.**
+`tests/core/plugin-recovery.test.ts` waits with a 15-second wall-clock deadline for a forked child
+process to reach a migration barrier. Both failures were that deadline
+(`Recovery fixture timed out waiting for plugin-migration-barrier`), and both happened while the
+P-3/P-4 integration tree was running its own `verify.mjs --quick` on the same machine
+(12:51–13:37). The third attempt, on an idle machine, passed the whole suite. **Do not run the
+two gates at the same time**; this fixture needs the machine.
+
+**6 — one integration hazard.** This batch deletes
+`apps/api/src/core/admin/extension-installer/plugin-registry-version.ts` and repoints its call
+sites to `systemSettingsService.incrementPluginRegistryVersion(tx)`. The P-3/P-4 main line still
+imports that module in `plugin-fs-installer.ts`, `admin/plugin-management/service.ts` and
+`tests/core/startup-plugin-prewarm.test.ts`, so those three files must be repointed the same way
+during the merge — otherwise the merged tree does not compile. That is also why this batch touches
+`apps/api/src/core/admin/plugin-management/service.ts` and
+`apps/api/tests/core/startup-plugin-prewarm.test.ts`, which are otherwise P-3's files: the change
+there is mechanical (the import of the deleted module and its call sites), not a design change.
+
+**7 — what is still open.** The notifications module still reads the `users` table for the
+recipient **locale** (`createNotification`). That is a read and not a write, so the guard does not
+see it; routing it through a public auth projection is a follow-up, not part of this batch.
+
+## 5n. Handover evidence — B-BOUND-I (the step 1 review follow-up: projections, dead shims, cycles)
+
+**Commit:** `76b4aa807`. **State:** committed on `codex/lane-orders`, **not pushed**.
+
+**1 — where this batch came from.** A read-only review of the whole branch
+(`git diff 49dc5ff1a..HEAD`, the "step 1 architecture review") produced a four-item acceptance table:
+0 FAIL, 3 WARN, 1 PASS. This batch applies the part that is safe to do now — the registry stops
+publishing database rows, the contract catalogue is no longer repeated at the call sites, the dead
+relocation shims are gone, and the guard can see a module dependency cycle. The rest is registered as
+the open debt in §5o.
+
+**2 — what was applied** (73 files, +495/−230).
+
+- `core/extensions/registry` publishes explicit projections (`ProviderProjection`,
+  `PluginPackageProjection`, `InstalledPluginPackageProjection`, `PluginInstanceProjection`). Every
+  query names its fields in a `select` instead of pulling the row with `include: { plugin: true }`,
+  and no Prisma entity type appears in a public signature. The admin installer listing reads its own
+  projection through the new `listInstalledPluginPackages`, so the commerce readers keep the narrow
+  one. The filter, the order, the `includeDeleted` and the `null` semantics are unchanged, and the
+  projection still happens after the contract test.
+- The twelve `callContract` call sites take their version from `PLUGIN_CONTRACT_VERSIONS`, and
+  `callContract` is generic over the contract name, so a call that passes the wrong version for its
+  contract does not compile.
+- `checkout` and the payment routes use `declaresContract` instead of repeating the contract test.
+- Twelve dead files are gone: the relocation shims under `core/admin/extension-installer`,
+  `core/admin/system-settings`, `core/payment` and `core/order`, plus `core/order/hooks.ts`, which no
+  production code imported. The call sites now import the real module.
+- `PluginManagementService` no longer re-exports the four reads that `core/extensions/registry`
+  already publishes.
+- The guard registers the three new module edges and drops the three the relocation removed, and it
+  now detects module dependency cycles. **There are twenty-three cycles in the tree**, in the
+  commerce family and in the extension family; every one of them is registered with a reason, and a
+  registration that no longer matches the tree fails as well. The assertion therefore catches a *new*
+  cycle, not the existing ones.
+
+**3 — the gate.** (lane `orders`, `jiffoo_core_test_orders`, Redis DB 12)
+
+```
+=== Final test summary ===
+Scope: default
+Lane: orders
+Database: jiffoo_core_test_orders
+Run API tests:
+   Start at  17:23:47
+ Test Files  28 passed (28)
+      Tests  587 passed | 2 skipped (589)
+Run Admin tests:
+   Start at  17:27:02
+ Test Files  3 passed (3)
+      Tests  26 passed (26)
+Run Shop tests:
+   Start at  17:27:04
+ Test Files  2 passed (2)
+      Tests  3 passed (3)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check selected scope and shared | PASS | 10.43s |
+| Lint Shop | PASS | 5.76s |
+| Reset test database | PASS | 3.25s |
+| Run API tests | PASS | 195.08s |
+| Run Admin tests | PASS | 2.23s |
+| Run Shop tests | PASS | 1.67s |
+```
+
+Exit code 0. A wider affected-suite run (`vitest --changed`, 117 files) ran before it and caught one
+real regression: the payment routes read the declared contract through `declaresContract` now, and
+the registry mock in the payment routes test did not provide it, so the route answered 500. The mock
+keeps the real implementation now, so the declared contract of the package is still checked.
+
+**4 — the merge hazard grew.** This batch deletes twelve modules that the P-3/P-4 main line still
+imports: `core/admin/extension-installer/{utils,errors,types,security,version-utils}`,
+`core/admin/system-settings/service`, `core/payment/{locks,minor-units}`, `core/order/current-pricing`,
+`core/order/hooks` and `core/admin/audit-events/records` — about **43 import sites** in roughly thirty
+files on that branch. Those call sites must be repointed at the real modules during the merge, exactly
+like the `plugin-registry-version` import of §5m. The main line also still uses the `admin/system-settings`
+shim in eighteen places, so that path disappears with this batch.
+
+**5 — the gate is too long, and now we know why.** The API suite is 164 files / 2376 tests and takes
+about 38 minutes locally, while `apps/api/vitest.config.ts` runs it with `singleFork: true` and
+`fileParallelism: false` — one file at a time, because the files share one PostgreSQL database. CI
+already solves this with infrastructure: `.github/workflows/ci.yml` runs the same suite as four
+parallel matrix jobs, each with its own PostgreSQL and Redis service and `vitest --shard=N/4`. So the
+local full-suite run is the only place that pays the serial price, and it pays it again on every
+commit. The scoped gate for this batch took **195 seconds** against **2328 seconds** for the full
+suite. §5p records the decision.
+
+## 5o. The open debt of the step 1 review — what this branch does NOT fix
+
+**Status after WP-SC (§5w):** items **2, 3, 4, 5 and 6 are closed**; item **1 is closed for the
+commerce modules** by WP-SA (§5v) and stays open for the helpers of the installer that the neutral
+runtime module still imports; item **7 stays open**. §5q carries the evidence of item 5, §5v the
+evidence of item 1, and §5w the evidence of items 2, 3, 4 and 6.
+
+These are the review findings that stay open on purpose. They are registered here so that they are
+not mistaken for done work.
+
+| # | Finding | Why it stays open |
+|---|---|---|
+| 1 | **W2 — the gateway still lives in the admin layer.** `callContract`, `ContractCallError`, `getPluginTimeoutMs` and `recordPluginFailure` are still imported from `core/admin/extension-installer/**` by `order`, `checkout`, `payment`, `notifications` and `storage`, although `core/extensions/**` exists as the neutral home. | **Closed for the commerce modules by WP-SA (§5v):** the plugin runtime, the migration gate, the signing policy, the database test control and the storage admission service moved into `core/extensions/runtime/**`, and the commerce modules import the gateway from there. What stays open is the other direction: the neutral runtime module imports the plugin lifecycle service of `admin/plugin-management` and the private helpers of the installer. |
+| 2 | **W4 — cross-domain reads still bypass the owning module.** `core/notifications/service.ts` reads the `users` table for the recipient locale, `core/order/service.ts` reads `user.email` and `user.locale` through the order relation, and `plugin-pages/asset-routes.ts` reads `plugin_installations` directly. | **Closed.** The reads go through public projections: the notification service takes the recipient locale from the auth identity projection (`notifications -> auth`), the order module takes the account from the same projection (`order -> auth`), and the plugin-page asset routes take the installation from the read-only registry (`plugin-pages -> extensions/registry`). The retarget of the admin audit events and the admin dashboard closes the last two of this family (`admin/audit-events -> auth`, `admin/dashboard -> auth`, §5w). |
+| 3 | **W5 — the guard only scans `src/core`.** `src/infra/**` and `src/jobs/**` are outside it, and `infra/core-process.ts`, `infra/shared-protection.ts` and `infra/events/delivery.ts` depend on `core/admin/extension-installer/**` — including the platform circuit-breaker configuration that reuses the plugin gateway's constants. | **Closed.** The scan roots of the guard are `src/core`, `src/infra` and `src/jobs` (`SCAN_ROOTS` in `apps/api/tests/core/module-boundary-audit.test.ts`; the infra and job layers are file-scoped modules, so a file is its own module). The platform circuit-breaker configuration moved into the neutral `core/shared` module, and WP-SA (§5v) closed the last infra-to-admin edge: `infra/events/delivery` hands the installation event to the neutral runtime module and its known violation was removed. |
+| 4 | **The inventory ledger is invisible on the order path.** `InventoryService.decrementStock` and `incrementStock` write the stock column but no `inventory_adjustments` row, while `applyDesiredStock`, `adjustStock` and `setStockById` do write one. | **Closed.** `InventoryService.decrementStock` and `InventoryService.incrementStock` write the `inventory_adjustments` row in the caller's transaction (`core/inventory/service.ts`), and the order path uses exactly those two methods (`core/order/pipeline.ts`, `core/order/service.ts`). `apps/api/tests/core/inventory-ledger.test.ts` drives the real order flow and reads the ledger rows back. |
+| 5 | **`core/shared/money.ts` throws the native `Error`.** `decimalToMinor` and `minorToDecimal` are called from the order and checkout main flows, so a bad amount escapes as a 500 instead of a 4xx. | **Closed:** the money module throws `MoneyError` with its reason and its detail (§5q), and WP-SA (§5v) answers a bad amount with the validation error of the repository in the order placement and in the checkout quote, with a test that asserts the status. |
+| 6 | **`core/upload/service.ts` takes a Fastify `MultipartFile`.** A framework type reaches the business layer. | **Closed.** The upload service takes its own framework-neutral `UploadInput` (`filename`, `mimetype`, `content`); the multipart parsing and the stream reading stay in the route layer (`core/upload/service.ts`). |
+| 7 | **The registered module cycles.** The guard now sees them and registers them, but they are not removed. The register holds **600** rings after the widened scan and the retarget of this wave (§5w); §5s recorded the count of 446 at its merge. | They are real and they are documented; removing them means restructuring the commerce and extension families, which is larger than a cleanup batch. |
+
+## 5p. The local gate decision — scope locally, full suite in CI
+
+**Measured on this branch** (lane `orders`, `jiffoo_core_test_orders`):
+
+| Gate | Scope | Wall clock |
+|---|---|---|
+| `pnpm verify:quick` with `--test-files` | 17 affected suites + the planner's mandatory suites | **195 s** (API 28 files / 587 tests) |
+| `pnpm verify:quick` without `--test-files` | `vitest --changed` | 1872 s (117 files / 1951 tests) |
+| `pnpm verify:quick` with the full selection | 164 files / 2376 tests | **2329 s** (38.8 min) |
+| the same suite in CI | four parallel shards, own PostgreSQL and Redis per shard | ~10 min per shard, in parallel |
+
+The full local run is the only place that pays the serial price, and it pays it on every commit. The
+decision for this lane:
+
+1. **The local pre-commit gate is the scoped one.** `AGENTS.md` already says the scope and the
+   `--test-files` selection come from the lane advisor; that is the default, and a batch records the
+   scope it used in its handover section.
+2. **The full suite belongs to CI**, which already runs it sharded and in parallel with isolated
+   services. A lane that does not push gets its full-suite evidence at integration time.
+3. **A local full-suite run stays possible** for the batches that want it (a risky batch, a release
+   candidate), and the ledger records that it happened.
+
+**Still open:** the suite itself is serial because the files share one database, so a local full-suite
+run stays 38 minutes. The fix is a local sharded gate — four parallel shards, each with its own
+database and Redis — which needs a shard-aware lane configuration (`scripts/lane-config.*` is on the
+serial overlap set, §4) and a Redis database allocation per shard. That is a separate batch with the
+P-3/P-4 main line.
+
+## 5q. Handover evidence — B-BOUND-J (the step 1 review follow-up: neutral layer, cross-domain reads, inventory ledger, local sharded gate)
+
+**Commit:** `f58c6b49b`. **State:** committed on `codex/lane-orders`, **not pushed**; the merge is the
+P-3/P-4 main line's job.
+
+**1 — what this batch did.** Five blocks, all of them the "safe now" part of the step 1 review:
+
+- **The neutral layer grew.** The plugin gateway's leaf pieces moved out of
+  `core/admin/extension-installer/**` into `core/extensions/runtime/**` (contract errors, contract
+  versions, failure recording, gateway protection parameters); the platform-wide circuit-breaker
+  parameters moved into `core/shared/config.ts`; the plugin recovery test-control module moved into
+  `src/infra/recovery-test-control.ts`. Every admin-side path became a **re-export**, so the
+  P-3/P-4 main line's imports keep working and no export surface shrank. `src/infra/**` no longer
+  depends on `core/admin/**` except for one deliberate leftover (`deliverInstallationEvent`, which
+  belongs to the `callContract` batch).
+- **Cross-domain reads go through the owner.** `core/auth/identity-service.ts` gained a public
+  identity projection (`readProfile` / `requireProfile`, a neutral DTO, no Prisma entity type in the
+  signature); the order service and the notification service read the user through it instead of
+  reading `users` directly.
+- **The inventory ledger is visible on the order path.** `decrementStock` and `incrementStock` now
+  write an `inventory_adjustments` row with the same columns and the same signed-quantity convention
+  as the three paths that already wrote one, and the stock write itself is unchanged.
+- **The money module speaks a neutral error.** `core/shared/money.ts` throws `MoneyError` with a
+  diagnostic reason, and the API error boundary maps it to `VALIDATION_ERROR`. **This is a contract
+  change: an invalid amount answers 4xx where it used to answer 5xx.** It is registered here and
+  covered by `tests/core/money-error-mapping.test.ts`.
+- **A local sharded gate and the rules that go with it.** `scripts/verify-lane-shards.mjs` runs the
+  API suite in four parallel shards, each in its own PostgreSQL and Redis container on a
+  dynamically published port, with the same database name and Redis DB the lane configuration already
+  validates. It checks the executed file set against the catalogue, reports the test verdict and the
+  resource-cleanup verdict separately, and says in its own output that it is **not** wired into the
+  approved runner and that its result is **not** delivery evidence. `AGENTS.md` carries the gate
+  policy and a new `## Agent Orchestration` section. **The gate owners of both sides approved the
+  integration**, so the sharded run is now part of the approved runner: `pnpm verify:quick --shards=N`
+  keeps every step of the quick gate (type check, lint, database reset, the admin and shop suites)
+  and replaces only the API suite step with the sharded run. The end-to-end measurement: four shards,
+  166 of 166 catalogue files covered, 2389 tests, 443 suites, `API PASS / cleanup PASS`, and every
+  container it created removed by id.
+
+**2 — the review loop.** Two independent reviewers worked read-only over the whole diff, one on the
+horizontal contract and the vertical isolation, one on zero regression, cohesion and the gate tool.
+They returned no FAIL from the first and three blocking findings from the second; all three were
+fixed by the worker that owned the files (resume, not a new worker): the money contract change had
+no test and no registration, the inventory ledger had no behaviour test at all, and `AGENTS.md`
+contradicted both the current rules and the script's own behaviour. The medium findings were fixed
+too: four consumers still imported the relocated modules from the admin layer, the new transaction
+type used `any`, the upload helper was duplicated, the expected file set was the assigned subset
+rather than the catalogue, a single-shard run could report a pass, the catalogue was collected
+outside the shard environment, the upload storage containers were not identified, and the destructive
+migration ran without a `current_database()` check.
+
+**3 — the gate** (lane `orders`, `jiffoo_core_test_orders`, Redis DB 12):
+
+```
+=== Final test summary ===
+Scope: default
+Lane: orders
+Database: jiffoo_core_test_orders
+Run API tests:
+   Start at  21:19:13
+ Test Files  59 passed (59)
+      Tests  1001 passed | 2 skipped (1003)
+Run Admin tests:
+   Start at  21:32:22
+ Test Files  3 passed (3)
+      Tests  26 passed (26)
+Run Shop tests:
+   Start at  21:32:24
+ Test Files  2 passed (2)
+      Tests  3 passed (3)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check selected scope and shared | PASS | 10.93s |
+| Lint Shop | PASS | 8.12s |
+| Reset test database | PASS | 2.88s |
+| Run API tests | PASS | 788.97s |
+| Run Admin tests | PASS | 2.22s |
+| Run Shop tests | PASS | 2.21s |
+```
+
+Exit code 0. The selection was the fifty suites this batch touches; the planner expanded it to
+fifty-nine API files. The guard's ten assertions pass, including the module-cycle detection and the
+edge set. One known flake is recorded: `tests/core/plugin-recovery.test.ts` waits on a fifteen-second
+wall-clock deadline for a forked child, and it fails when the machine is loaded; it passes on an idle
+machine (measured: nine files, 115 tests, all green).
+
+**4 — what is still open, and who owns it.**
+
+| Item | Owner |
+|---|---|
+| `core/plugin-pages/asset-routes.ts` still reads `plugin_installations` directly. The neutral projection `getInstallationById` is in place; the file belongs to the P-3/P-4 main line and the two trees have diverged, so the one-line change is left to the main line. | main line |
+| `apps/api/src/server.ts` and `apps/api/src/worker-runtime.ts` still import `pluginSecretsKey` from the admin layer. Both are entry points on the serial overlap set (§4). | main line |
+| `callContract` itself did not move: the charter names `plugin-runtime.ts` as the gateway's home and it drags the runtime lifecycle with it. Commerce now depends on the admin layer for **that one symbol only**. | next batch |
+| **The sharded gate is approved and wired into the runner.** `pnpm verify:quick --shards=N` keeps the whole quick gate and replaces only the API suite step; `--shards` and `--test-files` are mutually exclusive; the no-argument mode and the `--test-files` mode behave exactly as before, and CI's own path (`ciSteps`, the four shards, the `jiffoo_core_test` guard, the isolated-service preflight) is unchanged. The script's own unit test is registered in `scripts/verify-selection.mjs`, so a gate can run it. | closed |
+| **The shards are not balanced.** The split is by file count, not by measured time: the four shards took 428 s, 928 s, 725 s and 684 s, so the wall clock is the slowest shard, about 928 s against 2328 s serial — 2.5×, not 4×. Splitting by the historical duration of each test file is the next lever, and it is the item the main line already asked for. | next batch |
+| The inventory adjustment `type` vocabulary gained `sale`; the admin request enum was left unchanged. A database enum for that column would be a separate migration. | next batch |
+| The guard now registers **thirty-one** module cycles (twenty-three before this batch). They are real and documented, but the number grows as the neutral layer is introduced; reducing them is its own work. | next batch |
+| `core/auth/identity-service.ts` is on the serial overlap set (§4); this batch only added to it. | merge |
+
+**5 — what the P-3/P-4 main line asked for, and what it got.** The main line reviewed this material
+read-only and accepted the method with conditions. Its corrections are taken: the sharded gate is a
+tool rather than a delivery gate until both sides' gate owners agree; the script says so in its own
+output; the model tiers and tool budgets are written as runner-specific observations; "a serial full
+run buys nothing" was withdrawn as too absolute; "two gates are never a duplicate" became "the same
+scope over the same frozen input is never a duplicate". It also required the executed-file
+comparison, the separate resource-cleanup verdict, the timeout as an unfinished handover, and the
+catalogue from the same frozen snapshot with the same exclusions — all four are implemented and
+visible in the script's summary.
+
+**6 — the lessons that became rules, and the ones that cost time.** A workflow script that is
+malformed fails **silently at evaluation time** and starts no child at all: it is syntax-checked
+before dispatch. A subagent inherits a thirty-minute ceiling that can kill a half-written change:
+every dispatch sets an explicit `timeoutMs`. A running gate must not overlap source edits: an
+orphaned test process from a killed worker read the same database and crashed a run, which cost a
+clean-up cycle (processes terminated gracefully, then forcibly, and the lane's own containers removed
+by id). And the coordinator's own mistake: a pre-flight gate over the same tree as the real gate
+wasted half an hour and is now forbidden by name.
+
+## 5r. The merge attempt into the main line — what happened, what is preserved, what is next
+
+**Status: the merge is prepared but NOT completed, and nothing was pushed.** The main line is back at
+`8893e9504` with a clean tree, and the P-3/P-4 main line's own in-flight work is preserved in
+`stash@{0}` (`mainline-wip-2026-10-24T00:35`, 26 files) with a second copy in
+`%TEMP%\mainline-wip-2026-10-24.patch`.
+
+**What was done.** `git merge --no-ff codex/lane-orders` into `codex/core-extension-boundary` produced
+**seven** conflicting files (not the sixteen the changed-file intersection suggested, because the main
+line's own edits to those files were one to twenty-one lines each). All nine conflict hunks were
+resolved, with the rule that the main line's product behaviour and the boundary line's ownership
+changes both survive. The three resolutions that matter were checked by hand: the account service now
+does `AuthIdentityService.deactivateCustomer` **and** keeps the main line's
+`PluginPageService.revokePrincipalSessions`; the recovery path writes the staff audit row through
+`AuditService.writeStaffAudit` and keeps the main line's session revocation; the script-test
+catalogue keeps both entries. One type repair was needed on top: `core/shared/locks.ts` required
+`LockClient` to be `Pick<Prisma.TransactionClient, '$queryRaw'>`, which the boundary line's own
+transaction surface does not satisfy, so the requirement is now structural
+(`{ $queryRaw: (...args: any[]) => Promise<any> }`) and both callers type-check. The merged tree then
+type-checked clean (2 of 2 tasks).
+
+**The gate on the merged tree.** `pnpm verify:quick --shards=4` ran the whole thing with the local
+sharded gate: **168 of 168 catalogue files covered**, every container removed by id, cleanup `PASS` —
+and **5 test files failed** (15 tests): the boundary guard, the new inventory-ledger test, the plugin
+installer test, the order state machine test and the theme runtime test. The guard failure is expected
+and mechanical: it was calibrated on the boundary branch, and the main line's own new modules add
+module edges, so its edge and cycle registers have to be recalculated for the merged tree. The other
+four are merge artefacts, where the main line's new behaviour and the boundary line's refactored
+behaviour have to be reconciled rather than one side winning.
+
+**Why it was not finished.** A worker was dispatched to fix the five files; it rewrote parts of two
+test files (adding concurrency coverage for the main line's new row locks) and changed nine files in
+total, but its verification run crashed and the re-run was still unverified when it ran out of budget.
+Meanwhile **the P-3/P-4 main line's own session became active in that worktree again**. Continuing to
+write in a tree another agent is working in violates the occupancy rule in §2, and pushing a merge
+whose suite has never been observed green would violate the rule that a push needs a green local
+check. So the merge was rolled back and nothing was pushed.
+
+**What is preserved, and where.**
+- The boundary branch itself is complete and green: `codex/lane-orders` at `88ccdb0e7`, 29 commits ahead
+  of `49dc5ff1a`, working tree clean, and the last scoped gate on it was green.
+- The merged tree, exactly as it stood: `%TEMP%\merge-attempt-2026-10-24T0300-merged-tree.patch`
+  (the whole merge result against the old main-line tip).
+- The worker's follow-up changes on top of that: `%TEMP%\merge-attempt-2026-10-24T0300-worker-unstaged.patch`.
+- The file-by-file state of the merge: `%TEMP%\merge-attempt-2026-10-24T0300-status.txt`.
+- The main line's in-flight work: `stash@{0}` in the main tree, plus
+  `%TEMP%\mainline-wip-2026-10-24.patch`.
+
+**The next step, in order.**
+1. Recalibrate the guard for the merged tree (edge and cycle registers) — mechanical, and the
+   recalculation is the same procedure the boundary branch used.
+2. Reconcile the four remaining test files as merge artefacts, keeping both sides' behaviour.
+3. Re-run `pnpm verify:quick --shards=4` in the main tree until it is green.
+4. Commit the merge, push `codex/core-extension-boundary`, and let the four CI shards run.
+5. Only then re-apply `stash@{0}` on top of the merged tree, and settle the overlaps by hand.
+
+This needs a **coordinated window** on the main tree, because the P-3/P-4 line works there.
+
+## 5s. Convergence — the state of the boundary work and of the two branches
+
+This is the closing record of the boundary remediation line. It says what was delivered, what each
+branch holds now, and what is still open with an owner.
+
+### 1. What landed
+
+The boundary remediation line (`codex/lane-orders`, base `49dc5ff1a`) became the main line
+(`codex/core-extension-boundary`) in three merges, each with a green local gate and a green CI run:
+
+| Merge | Content |
+|---|---|
+| `d52120afd` | B-BOUND-A … B-BOUND-J: the table ownership model, the neutral layer, the extension leaf modules, the boundary guard, the auth read projection, the inventory ledger on the order path, the money error contract, the upload adapter, the local sharded gate, and the gate policy and orchestration rules in `AGENTS.md` |
+| `be29e4d79` | the shard gate balanced by measured duration, and the guard widened to `src/infra` and `src/jobs` |
+| `d97763dd3` | the guard's registers recalculated **for the tree it runs in** |
+
+Both branches are green on CI: `codex/lane-orders` at `4d6eb5356` and `codex/core-extension-boundary` at
+`d97763dd3`.
+
+### 2. What each branch is now
+
+- **`codex/core-extension-boundary`** is the integration branch and the **authoritative** copy: CI runs it,
+  and the boundary guard's registers are calibrated for it. The P-3/P-4 main line's own in-flight work sits
+  in its working tree, uncommitted, exactly as it was.
+- **`codex/lane-orders`** is the historical development branch. Its own guard registers are correct for the
+  lane tree but **not** for the main tree, so the lane branch must not be evolved further on its own: the next
+  boundary change goes on the main line, where the guard is calibrated. A later merge of the lane branch into
+  the main line would collide in the guard file; when it happens, take the main line's version and recalculate.
+
+### 3. The guard's registers are a fingerprint, not a filter
+
+With the scan widened to `src/infra` and `src/jobs`, the tree has **446 registered module cycles**. The
+cycle check therefore no longer means "the tree is acyclic"; it means **the module graph's cycle set may
+only change through an explicit registration with a reason** — a new cycle fails, and a registered cycle that
+disappears fails too. That is worth keeping, and it is also the honest description of what it is.
+
+The cycle count is the debt that grows whenever the scan widens. Reducing it is real work: the long rings
+reach for a shared piece, and that piece belongs in a neutral module rather than in one of the ring members.
+
+### 4. Open items, with their owner
+
+| Item | Owner |
+|---|---|
+| `callContract` itself did not move: the charter names `plugin-runtime.ts` as the gateway's home, and it drags the runtime lifecycle with it. Commerce now depends on the admin layer for that one symbol only. | next batch, with a charter decision |
+| `infra/events/delivery.ts` still reaches into `admin/extension-installer` for `deliverInstallationEvent` — the last infra-to-admin edge. | next batch, with the `callContract` move |
+| One real cross-domain table write was found by the widened scan. It is registered as a tracked exception, not as a legal edge. | next batch |
+| The known-cycle count is 446 and the guard's cycle check is a fingerprint rather than a filter. | next batch |
+| The shard gate is wired into the approved runner and its own unit test is registered, but the runners of both sides should agree on the policy before it becomes the default way to run the local full suite. | both gate owners |
+| The P-3/P-4 main line's in-flight work sits uncommitted in the integration tree; it overlaps with the merged tree in three places and needs a human pass. | P-3/P-4 main line |
+| The `plugin_installations` read in the plugin page asset route now goes through the registry's projection on this branch; the main line's own copy of that file was merged from the branch, so it needs the same change if it diverges again. | P-3/P-4 main line |
+
+### 5. What the method turned out to be
+
+The verification cost of this repository is dominated by one fact: the API suite's files share one
+database, so they run one at a time and a local full run takes about forty minutes. Everything else followed
+from that:
+
+- the **scoped** gate (the affected suites plus the planner's mandatory ones) is the local default — 195 s
+  against 2328 s;
+- the **sharded** gate makes a local full run four parallel shards with their own containers — 865 s, and
+  571 s for the slowest shard once the split follows the measured durations;
+- the **boundary guard** turns the architecture rules into a check that fails on the next commit;
+- the **ledger** and the **orchestration rules** keep two lines from stepping on each other, and every gate
+  result is written down with the scope it covered.
+
+## 5t. Handover evidence — B-ARCH-1 (step 2 remediation: the orchestration and the extension seams)
+
+**Baseline:** `69e8056cb`. **Commits:** `fa355244f` (checkpoint of the inherited repair-bootstrap batch),
+`3f94cda2e` (two inherited red tests repaired), `ed11de9da` (order policy), `52fc77c8c` (order placement
+pipeline and fulfilment policy), `e1102ce1a` (event, payment status and notification registries).
+
+**No contract change.** The batch changed no HTTP status code, no error code, no message, no response
+shape and no route contract, so §4 needs no entry. The three independent reviews confirmed this.
+
+### What the batch delivers
+
+| Goal | Where |
+|---|---|
+| one published policy surface for the order vocabulary and the order status predicates | `apps/api/src/core/order/policy.ts`; the vocabulary is derived from the Prisma enums in `apps/api/src/core/order/types.ts` |
+| the order placement as ordered named stages | `apps/api/src/core/order/pipeline.ts` (14 stages); `OrderService.createOrder` is a thin runner |
+| a fulfilment policy strategy | `apps/api/src/core/shared/fulfillment-policy.ts`; the default policy reproduces the previous behaviour exactly |
+| explicit registries instead of hardcoded branches | `apps/api/src/infra/events/core-subscribers.ts`, `apps/api/src/core/payment/session.ts`, `apps/api/src/core/notifications/service.ts` |
+
+### The two inherited red tests, and why they were red
+
+- `apps/api/tests/core/module-boundary-audit.test.ts` failed three assertions because the inherited
+  batch had put the repair-bootstrap service into `admin/plugin-management`, which created the edges
+  `admin/plugin-management -> auth` and `admin/plugin-management -> audit` and about fifty unregistered
+  module rings. The two methods moved to `admin/extension-installer/repair-bootstrap.ts`, the module
+  that owns the route and already holds those two approved edges, so the edge set and the ring set are
+  unchanged and the registers stay untouched.
+- `apps/api/tests/routes/plugin-repair-bootstrap.test.ts` expected five rejection audit rows and found
+  four, because the row was written from the route `onResponse` hook, which Fastify runs after the reply
+  has already been flushed, so the last rejection committed its row after the caller could observe the
+  response. The audit now runs from the route `onSend` hook, before the payload leaves the process.
+
+### Two more inherited defects, and the one the batch inherited without knowing
+
+- `apps/api/tests/routes/test-signing-policy.test.ts` needed the builtin shipping and payment providers
+  to be enabled, but `syncBuiltinPlugins` only installs a builtin plugin that is missing or changed and
+  does not re-enable an already installed one. The test now enables what it needs and restores the rows
+  it found. The same fragility was in the new order pipeline test.
+- `apps/admin/tests/settings-page.test.tsx` timed out after 5 seconds in the full admin suite while it
+  passed in isolation. The commit before this batch, `69e8056cb`, fails the admin suite with exactly the
+  same test and the same timeout, so the defect predates the batch; it was never seen because the gate
+  of that commit aborted on the API step before it reached the admin suite. The first mount of the whole
+  settings page in jsdom is CPU bound and cost about 2.8 seconds under the load of the rest of the suite,
+  and the three save cycles of the test pushed it past the default budget. The test now has a budget that
+  covers the first mount and the save rounds; no assertion was changed, weakened or skipped.
+
+### The open items of the first round, and how they were closed
+
+Every open item of the §5t review round was closed in a second wave:
+
+| Open item | How it was closed |
+|---|---|
+| the fulfilment policy registry had no production caller | the catalogue of the known policies, a selection that the store settings carry, a boot hook in the API process and in the worker, and the settings module that applies the selection |
+| the checkout quote always listed the shipping providers | the quote consults the plan of the cart and offers no shipping option when the plan needs none |
+| the address requirement was split over two flags | one rule in the neutral shared layer, used by the cart line and by the order plan |
+| the order and payment status literals outside the policy | every remaining site now reads the published vocabulary |
+| the shipment vocabulary was not published | the policy publishes the shipment and the item fulfilment vocabulary |
+| the payment session decided the replay rules with literals | the payment attempt status decisions are table driven |
+| the policy and the transition table imported each other | the table moved into the policy module, the transition module re-exports it |
+| the core subscriber registry was rebuilt per lookup | it is a frozen module scope constant, registered in the module state allowlist |
+| the neutral infra layer read the orders table | the notification module resolves the recipient through the order projection |
+| the notification vocabulary was a hand written union | the union is derived from the copy table |
+
+The second wave also repaired three test suite defects of the same kind, each reproduced at the
+commit before the batch: two tests that timed out under the load of the full suite, and two shop
+tests whose real HTTP round trips exceeded the default budget of their files.
+
+### The verification economics, for the next batch
+
+While `packages/shared/**` was dirty the verification planner expanded every scoped gate to the whole
+api, admin and shop catalogue, so a worker's feedback loop was a thirty eight minute serial run. The
+checkpoint commit `fa355244f` makes `git diff HEAD` isolate the batch, and a scoped gate over two files
+then takes about 75 seconds. Two gates must never run against `jiffoo_core_test` at the same time: the
+database reset of one run corrupts the other. The workers of a parallel wave therefore verify with the
+type check and the lint only, and the coordinator runs one gate over the combined tree.
+
+### The open items the batch deliberately leaves
+
+- the fulfilment policy is authoritative for the order and the cart flow; the checkout quote path still
+  lists the shipping providers of the installed shipping plugins, and the per product type quote
+  requirement is enforced by the order placement;
+- a new order state still needs a Prisma enum change and a migration;
+- the shipment vocabulary is derived from Prisma but is not published by the policy module yet;
+- the payment session still decides the idempotent replay and the previous attempt rules with literal
+  payment statuses next to the new error table.
+
+## 5. Handover evidence — B-BOUND-A
+
+**Diff:** 4 files, +333 / −64.
+
+| File | Change |
+|---|---|
+| `apps/api/src/core/inventory/service.ts` | `InventoryService.applyDesiredStock(tx, variantId, desiredQuantity, details, options?)` — normalise → conditional `updateMany({ where: { id, stock: priorStock } })` with bounded retry → `inventory_adjustments` ledger row → `product.updated` event → product cache version bump. Idempotent: equal desired level ⇒ no write, no ledger row, no event. New structural tx shape `InventoryLedgerTx`; extracted `InventoryAdjustmentDetails`. |
+| `apps/api/src/core/admin/product-management/service.ts` | Removed both direct `product_variants.stock` writes (variant create + variant update); now calls `applyDesiredStock(..., { publishProductChange: false })` so exactly one `product.updated` per product change remains. |
+| `apps/api/src/core/cart/service.ts` | New `CartService.consumePurchasedItems(tx, userId, purchasedLines)` (WP-B call site); **zero** direct product-table reads remain in the cart module (a third read inside `getCartFromDatabase` was found and routed through the projection as well). |
+| `apps/api/src/core/product/service.ts` | New product-domain read projection owning "which variants are sellable and at what price". |
+
+**Gate** (`DATABASE_URL_TEST=…/jiffoo_core_test`, `pnpm verify:quick --test-files=…`, planner-expanded):
+
+```
+Run API tests:
+   Start at  12:23:39
+ Test Files  163 passed (163)
+      Tests  2383 passed | 2 skipped (2385)
+Run Admin tests:
+   Start at  12:55:18
+ Test Files  58 passed (58)
+      Tests  572 passed (572)
+Run Shop tests:
+   Start at  12:55:34
+ Test Files  1 failed | 32 passed (33)
+      Tests  2 failed | 251 passed (253)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check selected scope and shared | PASS | 2.87s |
+| Lint Shop | PASS | 6.38s |
+| Reset test database | PASS | 2.40s |
+| Check Prisma migration drift | PASS | 1.14s |
+| Run API tests | PASS | 1898.78s |
+| Run Admin tests | PASS | 16.57s |
+| Run Shop tests | FAIL | 19.89s |
+```
+
+**The single failing step is owned by B-P3P4, not by B-BOUND-A.**
+`apps/shop/tests/checkout-contract.test.ts` asserts that every `apps/shop/app/**/page.tsx` appears in
+its hard-coded `pageClasses` map. B-P3P4's untracked route
+`apps/shop/app/(storefront)/[locale]/apps/[slug]/[[...path]]/page.tsx` is not classified yet:
+
+```
+- Expected: "/[locale]/apps/[slug]/[[...path]]"
+```
+
+**B-P3P4 owns the fix** (add the route classification to `apps/shop/tests/checkout-contract.test.ts`).
+B-BOUND-A does not touch `apps/shop/**`.
+
+**Unfinished / known gap carried into B-BOUND-B.** The product read projection deliberately does
+not expose `product_translations`, which `createCatalogSnapshot(product, variant)` needs at
+`core/order/service.ts:338`. B-BOUND-B must either extend the projection with translations (the
+product domain owns `product_translations`) or keep that single read. B-BOUND-B call sites to
+adopt: `core/order/service.ts:403-413` (cart consumption), `:204` and `:338` (product reads),
+`:456` (variant count).
+
+**First gate run** additionally failed on a flaky `apps/admin/tests/settings-page.test.tsx` 5 s
+timeout (unrelated React UI test); it passed in the two subsequent runs.
+
+**Re-verification in the isolated lane — GREEN (this is the merge-ready evidence).**
+The block above was produced in the shared integration worktree on `jiffoo_core_test` before
+isolation existed. B-BOUND-A was re-verified after extraction, in
+`worktrees/jiffoo-lane-orders` on lane `orders` (`jiffoo_core_test_orders`, Redis DB 12),
+against the 8 owned suites plus `event-coverage.test.ts` and `module-state-audit.test.ts`:
+
+```
+=== Final test summary ===
+Scope: default
+Lane: orders
+Database: jiffoo_core_test_orders
+Planner added suites: none
+Run API tests:
+   Start at  13:18:43
+ Test Files  10 passed (10)
+      Tests  121 passed (121)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 4.62s |
+| Type-check API, Admin, Shop and shared | PASS | 19.85s |
+| Lint Shop | PASS | 10.17s |
+| Reset test database | PASS | 2.36s |
+| Run API tests | PASS | 36.03s |
+```
+
+Exit code 0. `Planner added suites: none` — the lane tree contains only this batch's changes, so
+no foreign change expanded the selection. The Shop step is absent because the lane selection is
+API-only; the Shop contract failure in §5 is a B-P3P4 artifact and does not exist in this tree
+(its untracked storefront route is not present here).
+
+**B-BOUND-A is merge-ready.** The 4-file diff is committed on `codex/lane-orders`; it is *not* in
+the integration worktree any more (extracted, see §9).
+
+## 5v. Handover evidence — WP-SA (the plugin gateway moves to the neutral layer)
+
+**Baseline:** `091fcc83a`. **Branch:** `codex/core-extension-boundary` / `worktrees/jiffoo-core-extension-boundary`.
+**Test DB:** `jiffoo_core_test` (the integration worktree, no lane). **Executor:** `wp-sa`.
+
+### The seven files that moved
+
+| From `core/admin/extension-installer/` | To |
+|---|---|
+| `plugin-runtime.ts` | `core/extensions/runtime/plugin-runtime.ts` |
+| `plugin-database-test-control.ts` | `core/extensions/runtime/plugin-database-test-control.ts` |
+| `plugin-signing-policy.ts` | `core/extensions/runtime/plugin-signing-policy.ts` |
+| `plugin-migration-gate.ts` | `core/extensions/runtime/plugin-migration-gate.ts` |
+| `storage-admission-service.ts` | `core/extensions/runtime/storage-admission-service.ts` |
+| `page-declarations-service.ts` | `core/plugin-pages/page-declarations-service.ts` |
+| `theme-validator.ts` | `core/storage/theme-validator.ts` |
+
+The move is a move: the exported names, the contents and the behaviour are unchanged, and **the old
+paths are gone** — there is no re-export shim at `core/admin/extension-installer/**`, so the admin
+layer no longer offers the gateway. The consumers of the moved modules are retargeted in the whole
+tree, in the source and in the tests: `core/{checkout,order,payment,notifications,plugins,plugin-pages,plugin-storage,storage}/**`,
+`core/admin/{health-monitoring,order-management,plugin-management}/**`, the remaining files of
+`core/admin/extension-installer/**`, `infra/events/delivery.ts`, `server.ts` and `worker-runtime.ts`.
+
+**What the move closes.** The commerce modules import the gateway from the neutral layer again:
+`checkout -> extensions/runtime`, `order -> extensions/runtime`, `payment -> extensions/runtime`,
+`notifications -> extensions/runtime`, `plugins -> extensions/runtime`, `plugin-pages -> extensions/runtime`
+and `plugin-storage -> extensions/runtime` replace the seven edges that pointed into
+`admin/extension-installer`. The neutral infrastructure layer follows: `infra/events/delivery` hands the
+installation event to the neutral plugin runtime, so the registered known violation of
+`infra/events/delivery -> admin/extension-installer` (§5o, item 3) is closed and removed.
+
+**What the move does not close.** The neutral runtime module now imports the plugin lifecycle service
+of `admin/plugin-management` and the private helpers of the installer (`plugin-module-loader`,
+`plugin-compatibility`, `contract-v1-runtime`, `plugin-database`, `plugin-registry-freshness`,
+`payment-webhook-wire`). Those are the remaining edges of the neutral layer into the admin layer
+(`extensions/runtime -> admin/extension-installer` and `extensions/runtime -> admin/plugin-management`);
+they are registered with their reasons, and closing them needs the plugin lifecycle and the loader to
+move into the neutral layer as well, which is outside this batch.
+
+### The register changes
+
+- `LEGAL_EDGES`: the seven edges of the commerce modules into `admin/extension-installer` and the edge
+  `storage -> admin/extension-installer` are gone; `extensions/runtime -> {admin/extension-installer,
+  admin/plugin-management, extensions/registry, infra/core-process, infra/shared-protection,
+  infra/worker-shutdown, plugin-pages, plugins, storage}` and `plugin-pages -> extensions/runtime`,
+  `plugin-storage -> extensions/runtime`, `admin/{health-monitoring,order-management,plugin-management}
+  -> extensions/runtime` are new. The reasons of the edges whose content changed were rewritten.
+- `KNOWN_CYCLES`: the module rings follow the edges. The register holds the rings of the tree of this
+  batch; the rings that used to close on the installer close on the neutral runtime module instead.
+- `TABLE_OWNERS` / `DOMAIN_TABLES`: `plugin_migration_operations` and `plugin_migration_attempts` move
+  from the module `admin/extension-installer` to the `extensions` domain, because the migration gate
+  that writes them moved into the neutral runtime module, which is a member of that domain.
+- `KNOWN_VIOLATIONS`: the entry for `infra/events/delivery -> admin/extension-installer` is removed;
+  the violation itself no longer exists.
+- `apps/api/tests/core/module-state-audit.test.ts`: the allowlist entries of the moved files carry
+  their new paths, and the rebuild file of the two plugin runtime entries points at the new location.
+
+**The guard register file is owned by the next package of this phase.** It adds the two approved edges
+and the registered module rings of the admin audit events retarget of the parallel package
+(`admin/audit-events -> auth` and `admin/dashboard -> auth`, the first of which closes 144 further
+rings). Until that package registers them, the boundary audit of the combined tree reports exactly
+those two unapproved edges and the rings that follow from them; every edge and every ring of this
+batch matches the register exactly. WP-SC is that package: it registered the two edges and the 144
+rings (§5w).
+
+### The money error contract
+
+A bad amount is a validation failure, not an internal error. The money module keeps its domain
+diagnostic — `MoneyError` with its `reason` and its `detail`, without HTTP semantics in the neutral
+layer — and the two main flows that convert amounts answer it with the validation error of the
+repository:
+
+- `core/checkout/service.ts`: every amount conversion of the quote is wrapped, so the quote answers a
+  bad amount with `ApiError('VALIDATION_ERROR')`.
+- `core/order/pipeline.ts`: the placement answers a bad amount with `ApiError('VALIDATION_ERROR')`.
+
+The API error boundary keeps its mapping of `MoneyError` to `VALIDATION_ERROR` (§5q), so the HTTP
+answer of the order placement and of the checkout quote is **400 `VALIDATION_ERROR`** where a bad
+amount used to escape as a 500. **This is an HTTP contract change** and it is covered by
+`apps/api/tests/routes/money-error-status.test.ts`, which asserts the status of a bad amount on the
+order placement and on the checkout quote. Every other caller of the money helpers keeps its current
+behaviour.
+
+### The cross domain reads of the plugin installation table
+
+`core/payment/provider-account.ts`, `core/payment/reconciliation.ts` and `core/payment/webhook-routes.ts`
+read the `plugin_installations` table of the extensions domain directly. They now read it through the
+public projection of the extensions registry: `getDefaultInstallationRow` and
+`getDefaultInstallationRowWithPackage` in `core/extensions/registry/service.ts`. The queries and the
+results are the ones the readers had before, so no produced SQL text changes. The `payment ->
+extensions/registry` edge was already approved.
+
+`core/plugins/task-worker.ts` was **not** retargeted: routing it through the registry needs a new edge
+`plugins -> extensions/registry`, which this batch is not allowed to add, and the plugins module is a
+member of the `extensions` domain that owns the table, so its reads are not a cross domain read.
+
+### The gate evidence
+
+- `pnpm --filter api type-check` — exit 0.
+- `pnpm --filter api lint` — exit 0.
+- The narrow gate of the approved runner over the two audits, the order policy, the order pipeline,
+  the orders route, the checkout provider containment and the new money error test:
+  `DATABASE_URL_TEST=postgresql://postgres:postgres@localhost:5432/jiffoo_core_test pnpm verify:quick --test-files=apps/api/tests/core/module-boundary-audit.test.ts,apps/api/tests/core/module-state-audit.test.ts,apps/api/tests/core/order-policy.test.ts,apps/api/tests/core/order-pipeline.test.ts,apps/api/tests/routes/orders.test.ts,apps/api/tests/routes/checkout-provider-containment.test.ts,apps/api/tests/routes/money-error-status.test.ts`.
+  The planner expanded the selection to the whole API catalogue (175 files), because the parallel
+  package of the wave changed the shared package; the step table of the run is `Prisma generate PASS`,
+  `Type-check selected scope and shared PASS (12.30s)`, `Lint Shop PASS (7.65s)`,
+  `Reset test database PASS (2.80s)`, `Run API tests FAIL (1851.68s)`, with
+  `Test Files 44 failed | 131 passed (175)` and `Tests 354 failed | 2125 passed | 64 skipped (2543)`.
+  The run is **not a verdict of this batch**: the gate of the parallel package was still running
+  against the same `jiffoo_core_test` when this run started, which `AGENTS.md` forbids, and the two
+  suites deleted each other's fixtures. The failures are the authentication and the fixture errors
+  that follow from that (`Fixture uninstall failed: UNAUTHORIZED`), not the behaviour of the moved
+  modules. What the run shows for this batch:
+  - `tests/routes/money-error-status.test.ts` — **2 passed** (the checkout quote and the order
+    placement answer a bad amount with 400 `VALIDATION_ERROR`);
+  - `tests/core/module-state-audit.test.ts` — **2 passed** (the allowlist of the moved files matches);
+  - `tests/core/module-boundary-audit.test.ts` — 3 of 10 failed, and the three failures name **only**
+    the two edges of the parallel package (`admin/audit-events -> auth`,
+    `admin/dashboard -> auth`) and the module rings that follow from the first of them. Every edge and
+    every ring of this batch matches the register.
+  The coordinator runs the gate over the combined tree, alone.
+- The sharded gate is not run by this batch: the coordinator runs it over the combined tree.
+
+## 5x. Handover evidence — the settlement wave (the harness races and the last defects)
+
+Four defects of the test harness and of the boot path were found by the gate of this phase and repaired.
+None of them is an application defect, and each of them was reproduced before it was repaired.
+
+| Defect | Cause | Repair |
+|---|---|---|
+| the plugin SDK build deleted its own published output while a consumer was using it | `packages/plugin-sdk/scripts/build.mjs` removed the whole `dist` before it compiled the new one, so a consumer that spawns the SDK command during the build finds no `cli.js` | the build stages the new output and swaps it in; 130 consumer spawns during the build now fail 0 times, against 57 of 182 with the old build, and the published artefact is byte identical |
+| two publishes of the same plugin raced and one of them lost its staging directory | the publisher staged under a shared temporary root and removed it in its cleanup, whatever it held | the publish stages per publish, never removes a staging directory that another publish owns, and treats a package that is already published as a no-op; the builtin sync republishes a builtin whose package is missing or incomplete |
+| the four shards of the local gate shared one runtime package cache | `scripts/verify-lane-shards.mjs` isolated the database and the Redis of every shard but not the package cache, so the cleanup of one shard removed the builtin packages another shard was reading | every shard gets its own cache directory, named in the evidence of the run and removed with the rest of the artefacts of the run |
+| the admin settings page could not render in the admin tests | the new fulfilment policy section renders a Radix component that measures its size, and jsdom has no `ResizeObserver` | the admin test environment provides one, for every admin test file, and cleans it up between the tests |
+
+Two more defects of the same family were repaired earlier in this phase: the admin settings page test that
+ran out of its 5 second budget under the load of the full suite, and the two shop tests whose real HTTP
+round trips exceeded the budget of their files.
+
+### The gate of the settlement wave
+
+  pnpm verify:quick --shards=4
+  -> 176/176 API catalogue files in 4 shards, every shard green, API PASS / cleanup PASS;
+     admin 59 files 592 tests PASS; shop 38 files 266 tests PASS; type check PASS; lint PASS.
+
+## 5w. Handover evidence — WP-SC (the boundary guard closes its registers over the widened scan)
+
+**Baseline:** `091fcc83a`. **Branch:** `codex/core-extension-boundary` / `worktrees/jiffoo-core-extension-boundary`.
+**Test DB:** `jiffoo_core_test` (the integration worktree, no lane). **Executor:** `wp-sc`.
+**Files:** `apps/api/tests/core/module-boundary-audit.test.ts`, `docs/coordination-ledger.md`.
+
+### What the guard covers now
+
+The scan roots of the guard are the three layers of the API source: `src/core/**`, `src/infra/**` and
+`src/jobs/**` (`SCAN_ROOTS` in `apps/api/tests/core/module-boundary-audit.test.ts`). The Core tree
+keeps its directory-per-module naming (`core/order/service.ts` is the module `order`); the infra and
+the job layers are **file-scoped**, so every file below `src/infra` and `src/jobs` is its own module
+(`infra/core-process`, `infra/events/emit`, `jobs/payment-reconciliation`). The widening itself landed
+with `be29e4d79` (§5s); what was missing was a register that is consistent with the widened graph,
+and that is what this batch closes.
+
+The guard keeps its shape: an unregistered edge fails, an unregistered ring fails, a registered edge or
+ring that no longer exists fails, an import that does not bind to a public export fails, and a
+cross-domain table write fails. The registers are a **graph fingerprint**, not a filter: the ring
+count is debt that grows whenever the scan widens.
+
+### The two new edges
+
+The parallel package of this wave retargeted the cross domain reads of the `users` table through the
+public identity projection of the auth module, so the tree has two edges that the register did not
+list:
+
+| Edge | Reason |
+|---|---|
+| `admin/audit-events -> auth` | the admin audit events module reads the actor accounts through the public identity projection of the auth module. |
+| `admin/dashboard -> auth` | the admin dashboard module counts the accounts through the public identity projection of the auth module. |
+
+Both are registered in `LEGAL_EDGES` in the sorted place of the map. No entry of the register was
+removed: the edges that WP-SA retired were already gone, and the edges of the moved modules keep their
+entries.
+
+### The 144 new rings
+
+`admin/audit-events -> auth` closes the ring through the plugin pages and the plugin management, and
+because the audit events module also reaches the outbox, the notifications, the orders and the payment,
+the single new edge opens **144** rings. The shortest one is the ring that the coordinator named:
+
+```
+admin/audit-events -> auth -> plugin-pages -> extensions/runtime -> admin/plugin-management -> plugin-storage
+```
+
+with the reason that the audit events module reads the actor accounts through the auth identity
+projection, which closes the ring through the plugin pages and the plugin management. Every one of the
+144 rings is registered in `KNOWN_CYCLES` with a reason that names the approved edges of the ring, in
+the style of the neighbouring rings. The register holds **600** rings in total (456 before this batch);
+the growth is the documented debt of the widened scan (§5o, item 7).
+
+### The known violations
+
+The section is unchanged: the four entries are still open and still anchored to a real violation (the
+migration executor's raw `admin_audit_events` write, the second writer of `product_variants.stock`, the
+second writer of `admin_audit_events`, and the `plugin_installations` write of the infra event
+delivery). The widened scan finds no violation that is not already registered, so no entry was added and
+no source file was touched.
+
+### The gate evidence
+
+- `pnpm --filter api type-check` — **exit 0**.
+- The audit is a static, database-free check. It was executed over the combined tree with the
+  TypeScript compiler API outside vitest (the same analysis the test performs, with the assertions
+  unchanged): **10 of 10 assertions pass** — the table owners, the reasons, the exact edge set, the
+  exact ring set, the unapproved imports, the public exports, the cross-domain writes, the domain model,
+  the anchored known violations and the scanned file set.
+- The sharded gate over the combined tree is **the coordinator's**: this batch does not run
+  `pnpm verify:quick` and does not run vitest, because two gates must never share the database.
+
+## 5y. Handover evidence — WP-F1B (the core calls the fulfilment contract and records the fulfilment on the shipment)
+
+**Baseline:** `e7f73487cf`. **Branch:** `codex/core-extension-boundary` / `worktrees/jiffoo-core-extension-boundary`.
+**Test DB:** `jiffoo_core_test` (the integration worktree, no lane). **Executor:** `wp-f1b`.
+**Files:** `apps/api/src/core/order/service.ts`, `apps/api/src/core/admin/order-management/{service,schemas}.ts`,
+`apps/api/tests/core/order-fulfillment-contract.test.ts`, `apps/api/prisma/schema/commerce.prisma`,
+`apps/api/prisma/migrations/20261026135338_order_fulfillment/migration.sql`, `docs/coordination-ledger.md`.
+
+### The schema change and the migration
+
+The `shipments` table carries two new **nullable** columns and one new index:
+
+| Column | Type | Meaning |
+|---|---|---|
+| `fulfillmentId` | `TEXT` (nullable) | the identifier of the fulfilment the provider created for the order |
+| `fulfillmentStatus` | `TEXT` (nullable) | the status the provider reported for that fulfilment |
+
+plus `CREATE INDEX "shipments_fulfillmentId_idx" ON "shipments"("fulfillmentId")`.
+
+The migration is `apps/api/prisma/migrations/20261026135338_order_fulfillment/migration.sql`: two
+`ALTER TABLE "shipments" ADD COLUMN` statements and the index. Both columns are nullable, so the
+migration is additive and a store that never installs a fulfilment provider keeps its rows unchanged.
+The gate applies it when it resets the test database.
+
+### The public method of the order module
+
+`OrderService.requestFulfilment(orderId)` in `apps/api/src/core/order/service.ts`:
+
+- it resolves the provider with `resolveSingleProvider('fulfillment')` from the read-only registry and
+  answers `null` when the store has no fulfilment provider;
+- it calls the contract with `callContract(provider.pluginSlug, 'fulfillment',
+  PLUGIN_CONTRACT_VERSIONS.fulfillment, 'createFulfillment', { orderId, items, address, idempotencyKey })`,
+  where the items carry the `orderItemId`, the `variantId` and the `quantity` of the order items, the
+  address is the shipping address of the order and the idempotency key is `fulfillment:<orderId>`;
+- it answers the fulfilment identifier and status of the provider, plus its carrier, tracking number and
+  tracking url when the provider answers them;
+- it runs **outside** every database transaction.
+
+The admin order module calls it **before** it opens its own transaction and passes the result into
+`OrderService.shipOrder`, which writes `fulfillmentId` and `fulfillmentStatus` on the shipment row. The
+carrier and the tracking number of the shipment stay the ones the administrator supplied; the extra
+values of the provider that the shipment does not carry go into the existing `metadata` column of the
+shipment (`fulfillmentCarrier`, `fulfillmentTrackingNumber`, `fulfillmentTrackingUrl`).
+
+### The two new optional fields of the admin order detail
+
+The admin order detail response gains two optional, nullable fields on every shipment:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `fulfillmentId` | `string \| null` | the identifier of the fulfilment the provider created |
+| `fulfillmentStatus` | `string \| null` | the status the provider reported for the fulfilment |
+
+They are additive: no HTTP status, no error code and no message of an existing path changes, and the
+fields are not in the `required` list of the shipment schema. `apps/api/openapi.json` was regenerated
+with `pnpm --filter api export:openapi` and carries exactly these two fields.
+
+### The degradation rule
+
+A fulfilment provider is an extension, and an extension never blocks the core flow:
+
+- a store without a fulfilment provider ships exactly as before, and the two columns stay `NULL`;
+- a provider that is disabled, that times out, that answers an invalid response or that fails is
+  recorded with `recordPluginFailure` and the method answers `null`; the shipment is still created with
+  the carrier and the tracking number of the administrator, and the order still moves to `SHIPPED`;
+- the provider call runs outside the transaction of the shipment, so a slow provider never holds a
+  database transaction open.
+
+The builtin manual fulfilment answers a pending fulfilment and nothing else, so a store that has it
+installed sees the same order flow, the same shipment, the same carrier, the same tracking number and
+the same statuses; the two new columns are the new information that is recorded.
+
+### The verification of this batch
+
+- `pnpm --filter api type-check` — **exit 0**.
+- `pnpm --filter api lint` — **exit 0** (487 warnings, 0 errors; the warnings are pre-existing).
+- `pnpm --filter api export:openapi` — **exit 0**, `apps/api/openapi.json` regenerated.
+- `pnpx prisma format --schema apps/api/prisma/schema` — run; the formatting of the schema directory is
+  **not** clean at the baseline either, so only the `Shipment` model was realigned and the other models
+  and the other schema files were left byte-identical to the baseline.
+- The gate is **the coordinator's**: this batch does not run `pnpm verify:quick` and does not run
+  vitest, because two gates must never share the database. The new test file
+  `apps/api/tests/core/order-fulfillment-contract.test.ts` is part of the gate.
+
+## 6. Handover evidence — B-ORCH
+
+`.pi/settings.json` (pi-subagents tiering: `defaultThinking: medium`, `maxThinking: high`,
+`scout: low`, `worker: medium`, `reviewer: medium`, `oracle: high`, model
+`minimax/MiniMax-M3.1-Flash`), `.gitignore` (`.pi/*` + `!.pi/settings.json`),
+`AGENTS.md` (`## Architecture Guardrails`, 4 rules), and this ledger.
+
+## 7. Executor register
+
+| Executor ID | Agent / model | Worktree | May change | May use DB | Commits? |
+|---|---|---|---|---|---|
+| `wp-a-cart-inventory` | worker / `minimax/MiniMax-M3.1-Flash:medium` | `worktrees/jiffoo-lane-orders` | B-BOUND-A file set | `jiffoo_core_test_orders` | no |
+| `wp-f1-guard-blind-spot` | worker / `minimax/MiniMax-M3.1-Flash:medium` | `worktrees/jiffoo-lane-orders` | B-BOUND-F file set | `jiffoo_core_test_orders` | no |
+| `p3-p4 coordinator` | p3-p4 orchestrator | `worktrees/jiffoo-core-extension-boundary` | B-P3P4 file set | `jiffoo_core_test` | its own policy |
+
+New executors must be added here before launch. A coordinator may not start a child that is not
+registered.
+
+## 8. Open questions for the P-3/P-4 main line
+
+1. **B-BOUND-B contract.** Confirm that WP-B may restructure `core/order/service.ts` freely as
+   long as P-3's `bindPurchaseOrigin(tx, data.pluginPurchaseOriginId, userId, created.id)` call
+   stays inside the order-creation transaction, and P-3's `response.pluginReturnTarget` lookup
+   stays in `getOrderById`.
+2. **B-BOUND-C scope.** `core/admin/system-settings` → `core/settings` and
+   `core/admin/plugin-management` + `extension-installer` → `core/extensions` is a large mechanical
+   move that touches B-P3P4's `core/admin/extension-installer/**` and `core/admin/plugin-management/**`.
+   Either it runs after B-P3P4 lands, or the move is deferred.
+3. **Shared-tree hygiene.** The integration worktree currently holds both sides' uncommitted
+   drafts. B-BOUND-A is extracted to `codex/lane-orders`; confirm whether B-P3P4 also intends to
+   extract its draft to `codex/lane-plugins` before either side commits.
+4. **Shop gate fix.** The failing `checkout-contract.test.ts` classification is B-P3P4's; it blocks
+   a green Shop step for **both** sides until fixed.
+5. **The `users` / `auth_tokens` owner (Q1) — RESOLVED.** The guard registered four writers of the
+   `users` table and one writer of `auth_tokens`. The AGENTS.md rule says each of those tables has
+   exactly one owning module. **Decision taken: `core/auth` is the single public owner** of both
+   tables, and it now exposes the row operations the other modules need
+   (`core/auth/identity-service.ts`). The earlier suggestion of a separate `core/user` module was
+   **not** taken: it would have relocated the most security-sensitive writes in the repository
+   (login, registration, email verification, password reset, token issuance) for a naming benefit
+   only, without changing the number of modules or the single-owner rule. If the owner prefers the
+   separate module, that is a separate reviewed batch over the identity flows.
+6. **Three stray plugin-domain writers (Q6) — RESOLVED.** `plugin_operation_leases` is owned by
+   `core/storage` and `core_processes` by `core/infra`, but the extension installer wrote them in
+   three places. Same shape as the work already done — a short batch, no decision needed.
+   **Closed in B-BOUND-F (§5k):** the three writes now go through the storage lease API and the
+   infra process registry, and the guard's raw-SQL pattern was widened at the same time, so an
+   unqualified or schema-qualified raw write can no longer slip through.
+7. **The `stock` column split (Q7).** `product_variants` is owned by the product domain, but the
+   `stock` column is written only by the inventory domain. **Recommendation: keep the split and
+   record it as a column-level exception in the guard's owner map.**
+
+## 9. Extraction record — B-BOUND-A
+
+| Item | Value |
+|---|---|
+| Extracted from | `worktrees/jiffoo-core-extension-boundary` (uncommitted draft) |
+| Extracted to | `worktrees/jiffoo-lane-orders` / `codex/lane-orders` |
+| Base SHA | `49dc5ff1a` (identical to the integration branch tip) |
+| Transport | `git diff` over the 4 owned files → `git apply --3way` in the lane tree, applied cleanly to all 4 |
+| Integration tree after extraction | the 4 files were reverted to `49dc5ff1a` content, so the integration tree carries **only** B-P3P4 drafts |
+| Lane DB | `jiffoo_core_test_orders` (registered lane `orders`, Redis DB 12) |
+| Commits | `6c838d865` — B-ORCH (`.gitignore`, `.pi/settings.json`, `AGENTS.md`, `docs/coordination-ledger.md`)<br>`4d83fa2c6` — B-BOUND-A (the 4 owned code files)<br>One commit per batch, no cross-batch mixing. Base `49dc5ff1a`. Nothing pushed. |
+
+`AGENTS.md`, `.gitignore` and `.pi/settings.json` exist in **both** trees with **identical
+content** (the guardrails are meant to be active for every worker on both sides). The lane branch
+carries them as a commit; the integration worktree keeps them as an uncommitted working copy. If
+the integration side commits them, the merge sees the same blob and is conflict-free; if it
+prefers a clean tree, discard the working copy and take them from the lane branch.
+
+## 5z. Handover evidence — S3-DATA (the step 3 data-reliability remediation)
+
+**Commit:** `cccbae535`.
+
+### What the batch changed
+
+| Area | Before | After |
+|---|---|---|
+| API token storage | the token records were a JSON array inside `system_settings.settings`, and every operation on them was a read-modify-write of that whole blob | the records live in the new `api_tokens` table, owned by `core/auth`; a create, a revoke and the usage stamp are single-row conditional writes |
+| API token revocation | a concurrent usage write could carry the pre-revocation `revokedAt` back and resurrect the token | the usage stamp carries the `revokedAt: null` predicate, so it can never undo a revocation |
+| API token entropy | `sha256(Date.now() + Math.random())` | `crypto.randomBytes(32)` |
+| `users.username` | no unique constraint, so the registration check was a check-then-act | the registration serialises on a transaction-scoped advisory lock and re-checks inside the lock |
+| cart quantity | `existing + n` read-modify-write, outside a transaction | an atomic `{ increment: n }` on the line the compound unique key identifies |
+| cart line identity | nothing stopped two rows for one `(cartId, variantId)` | `@@unique([cartId, variantId])`, and the write goes through it |
+| cart write boundary | three independent statements | one transaction for the cart, its line and the quota rows |
+| `removeFromCart` | the `userId` argument was ignored, so any customer could delete any cart line | the delete is scoped to the cart of the caller and answers `NOT_FOUND` |
+| payment verification | reachable without credentials; it called the provider and wrote the payments table | it requires a JWT, is scoped to the owner of the order, and is rate-limited per customer and per payment |
+| reconciliation attempt budget | the verification endpoint ran the reconciler's budget branch | that branch is gated on the reconciliation claim, so only the background reconciler spends it |
+| order state machine | read-then-write; the safety came only from the caller's row lock | every transition carries the state it read as its own predicate and re-reads on a lost race |
+| admin cancellation | relied on its caller to hold the order lock | it takes the order lock itself |
+| order list cache | the customer-facing order writes never invalidated the cached admin list | the version is bumped after the transaction, and it is captured once so a bump during a query cannot poison the new key |
+| catalogue stock read | the stock was read through the global client, even inside a transaction | the catalogue reads it through the caller's transaction |
+| transaction boundaries | the outbox sweep, the plugin task claim and recovery, the plugin storage admission and the builtin sync held a transaction open across unbounded work | each is bounded, the filesystem and packaging work is outside the transaction, and no Redis call is left inside a transaction |
+| N+1 paths | the plugin list, the extension installer list, the plugin page declarations, the admin order detail and the generated SKU resolution queried per row | they are batched |
+
+### The contract changes this batch registers
+
+1. `GET /api/v1/payments/verify/:paymentId` — the success body is unchanged, and the route now also answers `401` without credentials, `404` for a payment that is not the caller's, `429` when a request budget is exhausted and `503` when shared protection is unavailable. The storefront reaches it through the shop BFF, which forwards the access token.
+2. `DELETE /api/v1/cart/items/:itemId` — a line that belongs to another customer now answers `404` instead of deleting it silently.
+3. `DELETE /api/v1/admin/api-tokens/:tokenId` — the shape is unchanged; the revocation now also records the administrator that made it, in `revokedBy`.
+4. The plugin task transition has a loud bound: an installation with more than 1000 active tasks answers `409 PLUGIN_TASK_LIMIT_CONFLICT` instead of running an unbounded transaction.
+
+### The table ownership this batch registers
+
+- `api_tokens` — owner `core/auth`. The api-token module no longer reaches the `system_settings` row of `core/settings` for the token list, so the `auth -> settings` edge of the boundary register is gone with it.
+
+### The gate evidence
+
+`pnpm verify:quick` on the integration lane (`jiffoo_core_test`), the planner-driven selection, against the tree of `cccbae535`:
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Run changed API tests:
+   Start at:  20:05:06
+ Test Files  129 passed (129)
+      Tests  1947 passed (1947)
+Run Shop tests:
+   Start at:  20:26:12
+ Test Files  38 passed (38)
+      Tests  266 passed (266)
+Run API tests:
+   Start at:  20:26:32
+ Test Files  18 passed (18)
+      Tests  414 passed | 2 skipped (416)
+Run Admin tests:
+   Start at:  20:28:14
+ Test Files  4 passed (4)
+      Tests  37 passed (37)
+Run Shop tests:
+   Start at:  20:28:17
+ Test Files  2 passed (2)
+      Tests  3 passed (3)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check API, Admin, Shop and shared | PASS | 2.66s |
+| Lint Shop | PASS | 5.95s |
+| Reset test database | PASS | 2.29s |
+| Check Prisma migration drift | PASS | 1.20s |
+| Run changed API tests | PASS | 1270.10s |
+| Run Shop tests | PASS | 20.06s |
+| Run API tests | PASS | 102.26s |
+| Run Admin tests | PASS | 2.37s |
+| Run Shop tests | PASS | 1.71s |
+```
+
+The three new migrations apply cleanly on a fresh database, and the Prisma migration drift gate passes, so the datamodel and the database agree on every index the batch added.
+
+### The two review passes and what they changed
+
+- The P0/P1 review found one P1 and five P2. The P1 was a cache-version TOCTOU in the admin order list: the reader read the version before the query and again at write time, so a bump during the query stored the pre-write snapshot under the post-write key. The version is now captured once and threaded into the write.
+- The performance and transaction-boundary review found one P1 and five P2. The P1 was the builtin sync: the install branch still ran inside the outer transaction while the installer wrote through the global client, so a failure rolled the blob and the audit row back and left the install row and the published directory behind. The sync now holds a session-scoped advisory lock on its own connection and writes the install outside the transaction.
+- The coordinator arbitrated one conflict between two packages of this batch: making `consumePurchasedItems` join the per-cart advisory lock broke a pre-existing product test that requires a concurrent cart edit to be applied while the order still commits completely. The consumption keeps the line row lock - it runs inside the order transaction, which already holds the stock row lock, and the order must never wait for the cart.
+
+### What is still open
+
+- The plugin task transition bound of 1000 active tasks per installation is a behaviour change that the batch accepts deliberately: the alternative is the unbounded transaction the review forbids.
+- `apps/api/tests/core/plugin-tasks.test.ts` failed once in a serial full run with a load-sensitive timing assertion ("the task eventually succeeds") and passed in isolation and in the next full run. It is a flake of the existing test, not a defect of this batch, but it is worth a look.
+- The `api_tokens` table carries a `revokedBy` column that records the administrator that revoked the token; an installation that predates the migration has no value in it, which is the expected state for a null column.
+
+## 5za. Handover evidence — S3-DATA-2 (the step 3 data-reliability remediation, part two)
+
+**Baseline SHA:** `7174b2458`. **Commit:** `38cce1eac`.
+
+### What the batch changed
+
+| Area | Before | After |
+|---|---|---|
+| The currency of an order | the order create never wrote a currency, so every order and every order line fell back to the schema default `USD` while the payment charged `order.currency` | the order and every line store the currency of the store, and the order response reports the currency stored on the order |
+| The amount of an order | the subtotal, the tax lines and the total were IEEE-754 doubles, so a basket whose prices do not sum exactly (`79.99 + 19.99 = 99.97999999999999`) was refused with `400 VALIDATION_ERROR` | every amount of the placement is computed in the minor units of the currency and derived from them, so the basket is placed and the total agrees with the quote exactly |
+| A price that is not a price | a negative price reached the write of the order and was answered with `409 QUOTE_CHANGED`, or with an unhandled validation error of the event payload | the price is refused in the price stage with `400 VALIDATION_ERROR`, and the admin product API refuses a negative price as well |
+| The idempotency key of an order | a global unique key: two customers could not use the same key | the key is unique per customer (`@@unique([userId, idempotencyKey])`) |
+| A plugin amount of a shipping or tax quote | a negative amount was written into the order | a negative or non-finite amount is a `VALIDATION_ERROR` |
+| The stock of a variant | an absolute write that overwrote a concurrent sale | the ledgered conditional write with an optional `expectedStock` |
+| A negative stock adjustment | the level could go below zero | the write is refused with `409 INSUFFICIENT_STOCK` |
+| The cart line | read-modify-write without the lock of the line | every writer of a line holds the row lock of the line, in the order of the database |
+| The catalogue read of a cart add | the catalogue was read twice per add, and the two reads could disagree about the answer | the catalogue is read once and the stock of the variant is read through a narrow projection of the product module |
+| The payment webhook | one transaction per fact | the facts of one request are prepared outside the transaction and applied in one transaction, sorted by the request key |
+| The refund of a capture | a second refund of the same capture with another key was silently ignored | it is a `PAYMENT_IDEMPOTENCY_CONFLICT` |
+| The provider account of a payment | the binding opened a second connection inside the caller's transaction | the binding joins the caller's transaction |
+| The builtin sync | the install ran inside the outer transaction while the installer wrote through the global client | the sync prepares, commits the install and the audit in one short transaction, and warms the runtime outside every transaction |
+| The builtin theme sync | a 120 second transaction around the filesystem work | only the pointer switch and the audit are inside a transaction |
+| The registry reads | every request read the plugin tables | the reads are served from the shared cache under a key that names the plugin cache version and the freshness of the two plugin tables |
+| A plugin package in a cold package store | a builtin package could only be resolved by the process that had published it, so a process with a private or empty package store answered `503 PLUGIN_PACKAGE_UNAVAILABLE` for a builtin the database names | the package store is a cache of the bytes the database holds: every package, the builtins included, is materialized from the database blob when the store holds no published copy |
+| The hot paths of the admin | a count query per table and a cache key without the version | one aggregate, and the version in the key |
+
+### The contract changes this batch registers
+
+1. `POST /api/v1/orders` — the idempotency key is scoped to the customer: two customers may use the same key, and each of them gets their own order. Before, the second customer answered `409 ORDER_IDEMPOTENCY_CONFLICT`.
+2. `POST /api/v1/orders` — a basket whose prices do not sum exactly as binary floats is now placed (`201`). Before, it was answered with `400 VALIDATION_ERROR`, because the amount of the placement was a binary float.
+3. `POST /api/v1/orders` — a line whose price is negative is answered with `400 VALIDATION_ERROR`. Before, it was answered with `409 QUOTE_CHANGED`, or with an unhandled validation error of the event payload.
+4. `PATCH /api/v1/cart/items/:itemId` — a line that a concurrent order already consumed answers `404 NOT_FOUND` instead of a `500` from a Prisma `P2025`.
+5. `POST /api/v1/admin/inventory/adjust` — an adjustment that would drive the stock below zero answers `409 INSUFFICIENT_STOCK` instead of storing a negative level.
+6. `POST /api/v1/admin/inventory/:variantId/stock` — the optional `expectedStock` makes the write a compare-and-set: a mismatch answers `409 CONFLICT`. The answer carries the stored level, not the level that was asked for.
+7. `PUT /api/v1/admin/products/:id` and `POST /api/v1/admin/products` — a variant with a negative price (`salePrice` or the legacy `basePrice`) answers `400 VALIDATION_ERROR` instead of being stored.
+8. `POST /api/v1/admin/orders/:orderId/refund` — a second refund of a capture that already carries a completed refund answers `409 PAYMENT_IDEMPOTENCY_CONFLICT` unless it carries the key of that refund.
+9. The admin manual payment of a payment that is already resolved answers `409 PAYMENT_REVIEW_ALREADY_RESOLVED`.
+10. A plugin package that the database names is now materialized from the database blob when the local package store holds no published copy, the builtins included. The answer is the same package; a missing blob still answers `503 PLUGIN_PACKAGE_UNAVAILABLE`.
+11. The order response reports the currency stored on the order instead of the live currency of the store.
+
+### The migration
+
+`apps/api/prisma/migrations/20261028031500_data_reliability_indexes/` adds the scoped unique key of the idempotency key, 23 btree indexes on the hot filter, join and sort columns, seven trigram indexes for the `ILIKE '%term%'` searches, one partial index for the refunds that still owe a refund, and three check constraints (`product_variants_stock_nonnegative`, `orders_amounts_nonnegative`, `auth_tokens_attempts_nonnegative`). It also drops the four single column indexes that a composite index replaces. The scoped unique key is created before the global one is dropped, so the table never loses its uniqueness.
+
+**Deployment note:** the migration takes an `ACCESS EXCLUSIVE` lock on the hot tables while it runs. `CONCURRENTLY` is forbidden by `validateCoreMigrationSql`, so the lock window is the run time of the migration. The migration also creates the `pg_trgm` extension, so the role that applies the migration needs the `CREATE` right on the database; `pg_trgm` is a trusted extension, so the owner of the database is enough.
+
+### The gate evidence
+
+`pnpm verify:quick --shards=4` on the integration lane (`jiffoo_core_test`), the whole API catalogue in four parallel shards with their own PostgreSQL and Redis containers, plus the admin and the shop suite:
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: not applicable (the shard mode runs the full API catalogue and the full Admin and Shop suites, covering 9 planner-mandated suite(s))
+Mode: shard mode (--shards=4)
+Run API tests in 4 shards:
+Shards: 1, 2, 3, 4 of 4 (4-shard run)
+Run scope: full catalogue (4 shard(s))
+Scope coverage: 185/185 files covered
+Totals: Test Files 185 files, 185 passed | Tests 2603 tests, 2601 passed, 2 pending | Suites 496 suites, 496 passed
+Test conclusion: PASS
+Cleanup conclusion: PASS
+Delivery status: API PASS / cleanup PASS
+Run Admin tests:
+   Start at:  19:56:03
+ Test Files  59 passed (59)
+      Tests  592 passed (592)
+Run Shop tests:
+   Start at:  19:56:34
+ Test Files  38 passed (38)
+      Tests  266 passed (266)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check API, Admin, Shop and shared | PASS | 12.92s |
+| Lint Shop | PASS | 8.47s |
+| Reset test database | PASS | 2.51s |
+| Check Prisma migration drift | PASS | 1.24s |
+| Run API tests in 4 shards | PASS | 618.16s |
+| Run Admin tests | PASS | 31.27s |
+| Run Shop tests | PASS | 33.25s |
+```
+
+The shard mode is not the complete gate on its own: the browser E2E and the serial full-suite run are not part of it, and CI runs the same API catalogue as four parallel shards of its own.
+
+### The review passes and what they changed
+
+- The independent architecture review of the whole batch found one real defect and three warnings. The defect: a variant with a negative `salePrice` was not refused by the placement, so the order was answered with a misleading `409 QUOTE_CHANGED` or with an unhandled validation error of the event payload, while the new check constraint of the schema would have answered it with a database error. The price is now refused in the price stage with `400 VALIDATION_ERROR`, and the admin product API refuses a negative price as well.
+- The warning about the order lines was that they still carried the float price while everything else carried the exact minor amount; the lines are now written from the minor amount.
+- The warning about the cart was that the catalogue was read twice per add and that the two reads could disagree about the answer; the catalogue is read once now and the stock of the variant is read through a narrow projection of the product module.
+- The warning about the new tests was that the case "three lines of 79.99 in USD" was no longer pinned anywhere after the money error test moved to a currency that cannot express the price; it is pinned again by `order-amount-precision.test.ts`.
+- The second review, which covered the new test files and the two static audits, confirmed that every new test fails without the change it covers, and that no test file leaks a row that would break the next file of the shard.
+
+### The two defects the remediation found beyond the audit
+
+- **The currency of the order was never written.** The audit of the step 3 did not find it: the order create wrote no currency, so every order and every line fell back to the schema default `USD`, while the payment session charges `order.currency`. A store that is not in USD therefore charged its customers in EUR and labelled the amount USD, and the payment webhook rejected the capture with `currency_mismatch`.
+- **The amount of the order was a binary float.** The checkout quote computes its amounts in the minor units of the currency, but the placement summed the prices as doubles, so the two paths disagreed and a valid basket of `79.99 + 19.99` could never be ordered.
+
+### What is still open
+
+- The cart response still carries a float `subtotal` (`apps/api/src/core/cart/service.ts`), because the cart does not know the currency of the store. The storefront formats it, and the money decisions of the quote and of the placement read the exact amounts, so this is a display imprecision and not a money defect.
+- The admin product API accepted a negative price before this batch and still accepts a negative `costPrice`; only the price a customer is charged is bounded now.
+- `apps/shop/tests/storefront-code.test.ts` failed once in the sharded gate ("expected TypeError: fetch failed to match object { status: 500 }", the mock server of the test got a port that the fetch of Node refused) and passed in isolation and in every other run. It is a flake of the existing test, not a defect of this batch.
+- The `pg_trgm` extension of the migration needs the `CREATE` right on the database for the role that applies it; the deployment note above records it.
+
+
+## 5zb. Handover evidence — S3-DATA-3 (the remaining items of the step 3 batch)
+
+**Baseline SHA:** `38cce1eac`. **Commit:** `2a432138a`.
+
+### What the batch changed
+
+| Area | Before | After |
+|---|---|---|
+| The amounts of the cart | the subtotal of a line was a float product and the total of the cart the float sum of those subtotals, so a basket of 79.99 and 19.99 reported `99.97999999999999` | the amounts of the cart are exact decimal arithmetic, so the same basket reports `99.98` |
+| The cost price of a variant | the admin product API accepted a negative cost price | a negative cost price is refused with `400 VALIDATION_ERROR` |
+| The currency of the request | a dead field: a client could name a currency and the order was placed in the currency of the store, silently | the field is an assertion: a request that names another currency than the store is refused with `400 VALIDATION_ERROR` |
+| The trigram extension of the migration | a deployment prerequisite that nothing checked | the verification asserts that the extension is installed, so a deployment without it fails loudly and early |
+| The ports of the mock servers of the suite | the operating system hands out the ports of its dynamic range, and that range reaches the blocked port `10080`, which the request of Node refuses | every mock that a request reaches binds a port the request can carry |
+
+### The contract changes this batch registers
+
+1. `POST /api/v1/orders` — a request that names a currency different from the currency of the store is refused with `400 VALIDATION_ERROR`. Before, the field was ignored and the order was placed in the currency of the store without a word.
+2. `POST /api/v1/admin/products` and `PUT /api/v1/admin/products/:id` — a variant with a negative `costPrice` is refused with `400 VALIDATION_ERROR`.
+
+### The flake this batch closes
+
+`apps/shop/tests/storefront-code.test.ts` failed once in a sharded gate run with `TypeError: fetch failed` and the cause `Error { message: 'bad port' }`, and passed in isolation and in every other run.
+
+The cause is the environment, not the test: the request of Node refuses the ports that the specification blocks for a browser request, and that list ends with `10080`. The TCP dynamic port range of this host is `10000-65535` (`netsh int ipv4 show dynamicport tcp`), so the operating system hands out `10080` once in a while — roughly one bind in fifty-five thousand — and the request of the mock then fails before it reaches the mock.
+
+Every test of the three suites that binds an ephemeral port and then sends a request to it carried the same exposure, and one of them (the child process of `apps/api/tests/helpers/protection-child.ts`) owned its own listener. The batch gives the suites a helper (`apps/api/tests/helpers/mock-server-port.ts`, `apps/shop/tests/helpers/mock-server-port.ts`, `apps/admin/tests/mock-server-port.ts`) that listens again when the operating system handed out a blocked port, and that reserves a port of its own for a server that cannot listen twice.
+
+### What is still open
+
+- Nothing of the five items the previous section listed is open any more. The deployment note of the `pg_trgm` extension stays: the role that applies the migration needs the `CREATE` right on the database, and the verification now says so by asserting that the extension is installed.
+
+### The gate evidence
+
+`pnpm verify:quick --shards=4` on the integration lane (`jiffoo_core_test`), the whole API catalogue in four parallel shards with their own PostgreSQL and Redis containers, plus the admin and the shop suite:
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: not applicable (the shard mode runs the full API catalogue and the full Admin and Shop suites, covering 3 planner-mandated suite(s))
+Mode: shard mode (--shards=4)
+Run API tests in 4 shards:
+Shards: 1, 2, 3, 4 of 4 (4-shard run)
+Run scope: full catalogue (4 shard(s))
+Scope coverage: 185/185 files covered
+Totals: Test Files 185 files, 185 passed | Tests 2607 tests, 2605 passed, 2 pending | Suites 496 suites, 496 passed
+Test conclusion: PASS
+Cleanup conclusion: PASS
+Delivery status: API PASS / cleanup PASS
+Run Admin tests:
+   Start at:  21:29:17
+ Test Files  59 passed (59)
+      Tests  592 passed (592)
+Run Shop tests:
+   Start at:  21:29:35
+ Test Files  38 passed (38)
+      Tests  266 passed (266)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check API, Admin, Shop and shared | PASS | 3.44s |
+| Lint Shop | PASS | 9.68s |
+| Reset test database | PASS | 3.06s |
+| Run API tests in 4 shards | PASS | 702.95s |
+| Run Admin tests | PASS | 18.33s |
+| Run Shop tests | PASS | 21.42s |
+```
+
+The shards: 46/46, 45/45, 47/47, 47/47 files, no failed file in any of them; 185/185 files covered, none missing, none extra, no cross-shard duplicate, no empty shard; the cleanup verdict is PASS. The step table has no drift step because this batch changed no file under `apps/api/prisma` — the datamodel and the database still agree, and the drift step of the previous batch proved it.
+
+The browser E2E and the serial full-suite run are not part of the shard mode; CI runs the same API catalogue as four parallel shards of its own.
+
+## 5zc. Handover evidence — S3-DATA-4 (the step 3 review remediation)
+
+**Baseline SHA:** `6efe2ae67`. **Commit:** `99eac5dc`.
+
+### What the review was
+
+The batch of `2a432138a` was reviewed by three independent read-only reviewers, one for each axis of the step 3: the validity of the anti-duplicate and anti-oversell protections, the purity of the transaction boundaries and the order of the commit, and the safety of the schema migration with the zero-regression gate. The first pass raised thirteen warnings and no failure. Every finding went back to the worker that owned the module; the second pass over the repaired diff raised eight more findings, one of them a defect the repair itself had introduced; a third pass confirmed all eight closed.
+
+### The thirteen findings of the first pass
+
+| # | Finding | Before | After |
+|---|---|---|---|
+| 1 | the batch add of the cart had no stock ceiling | the batch wrote a line that no stock covered | the ceiling of every line is checked before any line is written, and the quantities of the lines that share a variant are summed first |
+| 2 | the unguarded stock write absorbed a concurrent sale | the write set the absolute level again after its retry, so the sold units vanished from the stock | the change is a conditional increment on the level the change is based on; a level that moved under the write is a conflict |
+| 3 | the admin variant write was last-writer-wins | two concurrent admin edits of one variant overwrote each other | the variants of a product are locked before they are read |
+| 4 | the order path and the admin path locked the variants in different orders | two writers of the same rows could deadlock | both take the rows in the ascending order of the variant id |
+| 5 | a unique violation of any constraint was reported as "already applied" | the webhook answered 200 for a payment that was never recorded | only the payment ledger and the outbox of the event mean "already applied"; every other violation is rethrown |
+| 6 | a unique violation was swallowed inside the transaction of the caller | the caller's transaction stayed aborted and its next statement failed with 25P02 | the caller-owned path rethrows and the transaction rolls back cleanly |
+| 7 | the registry read opened a second connection inside the transaction of the caller | the read was outside the snapshot of the caller | the read joins the transaction of the caller, and the cache is not used on that path |
+| 8 | the write transactions ran on the Prisma defaults | a write of a payment or of a stock level could be cut off after five seconds | the payment, inventory, theme, plugin and notification transactions carry explicit bounds |
+| 9 | the guard against a provider replacement inside the transaction of the caller lived only in a private wrapper | an external caller could still trip the hole | the plan refuses unless the caller declares that it owns no transaction |
+| 10 | the migration was never executed | the migration was only read as text | the verification executes it through the real migration executor |
+| 11 | the check constraints were asserted by one column | a rule that covered fewer columns passed | all four rules are compared exactly |
+| 12 | the raw indexes of the migration were not registered | the register did not know them | eight rows, and the prose of the register is true |
+| 13 | the cart batch did not declare its conflict response | the OpenAPI surface did not match the route | the route declares the 409 |
+
+### The two false alarms
+
+- The allocation of the order number is atomic: the statement is `INSERT ... ON CONFLICT (day) DO UPDATE SET last_value = last_value + 1 RETURNING last_value`, so two concurrent placements cannot take the same number.
+- The unique index `refunds_one_completed_per_capture` exists: `apps/api/prisma/migrations/20261010120922_payment_contract_v2/migration.sql` creates it.
+
+### The contract changes this batch registers
+
+1. `POST /api/v1/cart/items/batch` — a batch that exceeds the stock ceiling of a variant is refused with `409 INSUFFICIENT_STOCK`. Before, the batch wrote the line and the order placement refused the sale.
+2. `POST /api/v1/cart/items/batch` — a product that is not sellable is refused with `400 BAD_REQUEST`. Before, it was `500 INTERNAL_SERVER_ERROR`.
+3. `PUT /api/v1/admin/products/:id` — an admin product edit whose stock moved under the write is refused with `409 CONFLICT`. Before, the edit silently absorbed the concurrent sale and answered 200. The route already declared the 409.
+
+### The deployment note
+
+The migration `20261028031500_data_reliability_indexes` of the batch before runs in ONE transaction, with `lock_timeout='5s'` and `statement_timeout='600s'` (`deploy/release/core-migrations.mjs`). It creates its indexes without `CONCURRENTLY` and adds the check constraints, so it holds a share lock on the hot tables and an access exclusive lock on the altered ones for the whole migration. Those locks block no writer: the release applies the migrations against a stack it has already quiesced — `deploy/release/update.mjs:397-402` proves the maintenance before the migrations run and again when the migration announces its intent, and the proof requires that every container of the project except PostgreSQL is stopped (`deploy/release/backup.mjs:36-44`) and that no other database session holds work. The cost is therefore the duration of the deployment, not a window in which the store cannot sell. An operator who applies a migration by hand has to quiesce the store the same way. The lock timeout makes the migration fail fast instead of queueing behind a long transaction, and because it is one transaction a failure rolls the whole migration back, so it can be retried. Splitting it is not an option: the validator forbids `CONCURRENTLY`, and an existing migration must never be edited.
+
+### The selection basis of the local gate
+
+The baseline is `6efe2ae67` and the changed input is the tree of `99eac5dc`: sixteen source files and six test files. The scoped gate selected the fifty files of the touched modules — the order, cart, inventory, product, payment, theme, plugin, notification and event suites, the two module audits, the migration executor suite and the three contract suites. The planner added nothing, because the selection already held the contract suites that the change of the cart schema makes mandatory. The full shard gate then ran the whole catalogue.
+
+### What is still open
+
+- The admin order search still matches the id of the order with `contains`, and no trigram index serves it, so the disjunction over the id forces a sequential scan of the orders table even though the order number, the email and the user name are indexed. Closing it needs a second migration, so it is not part of this batch.
+- When the engine reports no target for a unique violation, a violation of the partial index `payment_ledger_one_accepted_capture_per_order` cannot be told apart from a violation of the capture keys. It is reported as "already applied", which is the right answer for the capture keys and for the partial index as well (the order already carries an accepted capture), but a semantic re-check would make the distinction explicit.
+- The browser E2E is not part of the local gate; CI runs it.
+
+### The gate evidence
+
+The scoped gate over the fifty selected files (`pnpm verify:quick --test-files=…`, the integration lane `jiffoo_core_test`):
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: none
+Run API tests:
+   Start at:  12:15:05
+ Test Files  50 passed (50)
+      Tests  809 passed | 2 skipped (811)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check API, Admin, Shop and shared | PASS | 13.41s |
+| Lint Shop | PASS | 7.89s |
+| Reset test database | PASS | 3.22s |
+| Run API tests | PASS | 548.47s |
+```
+
+The full shard gate over the whole catalogue (`pnpm verify:quick --shards=4`, the integration lane `jiffoo_core_test`):
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: not applicable (the shard mode runs the full API catalogue and the full Admin and Shop suites, covering 3 planner-mandated suite(s))
+Mode: shard mode (--shards=4)
+Gate note: the API suite ran in parallel shards. The Prisma generate, the type check, the Lint Shop step, the test database reset, the Admin suite and the Shop suite ran as well.
+Gate note: this mode is not the complete gate: the browser E2E and the serial full-suite run are not part of it.
+Run API tests in 4 shards:
+Shards: 1, 2, 3, 4 of 4 (4-shard run)
+Run scope: full catalogue (4 shard(s))
+Scope coverage: 187/187 files covered
+Totals: Test Files 187 files, 187 passed | Tests 2627 tests, 2625 passed, 2 pending | Suites 499 suites, 499 passed
+Test conclusion: PASS
+Cleanup conclusion: PASS
+Delivery status: API PASS / cleanup PASS
+--- File coverage ---
+Catalogue files (vitest list --filesOnly, same exclusions, same environment as the shards): 187
+Expected set (the full catalogue, not the assigned subset): 187
+Assigned to this run: 187
+Executed (union over all shards): 187
+Shard 1: 47 files
+Shard 2: 46 files
+Shard 3: 47 files
+Shard 4: 47 files
+Missing files: none
+Extra files: none
+Cross-shard duplicates: none
+Empty shards: none
+Coverage verdict: PASS
+--- Shard results ---
+| Shard | Exit | Duration | Start at | Test Files | Tests | Failed files |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | 0 | 685.8s | 12:26:14 | 47 files, 47 passed | 724 tests, 724 passed | none |
+| 2 | 0 | 525.8s | 12:26:15 | 46 files, 46 passed | 452 tests, 452 passed | none |
+| 3 | 0 | 561.5s | 12:26:16 | 47 files, 47 passed | 742 tests, 740 passed, 2 pending | none |
+| 4 | 0 | 589.9s | 12:26:17 | 47 files, 47 passed | 709 tests, 709 passed | none |
+Run Admin tests:
+   Start at:  12:37:35
+ Test Files  59 passed (59)
+      Tests  592 passed (592)
+Run Shop tests:
+   Start at:  12:37:56
+ Test Files  38 passed (38)
+      Tests  266 passed (266)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check API, Admin, Shop and shared | PASS | 3.34s |
+| Lint Shop | PASS | 9.08s |
+| Reset test database | PASS | 3.54s |
+| Check Prisma migration drift | PASS | 1.43s |
+| Run API tests in 4 shards | PASS | 700.76s |
+| Run Admin tests | PASS | 21.39s |
+| Run Shop tests | PASS | 23.70s |
+```
+
+The shards: 47/47, 46/46, 47/47, 47/47 files, no failed file in any of them; 187/187 files covered, none missing, none extra, no cross-shard duplicate, no empty shard; the cleanup verdict is PASS. The drift step ran this time, because the batch changed a file under `apps/api/prisma` (the register of the raw indexes), and the datamodel and the database still agree.
+
+The browser E2E and the serial full-suite run are not part of the shard mode; CI runs the same API catalogue as four parallel shards of its own.
+
+## 5zd. Handover evidence — S3-DATA-5 (the registered items of the step 3 batch)
+
+**Baseline SHA:** `99eac5dc`. **Commit:** `f39f79e0`.
+
+### The registered items this batch closes
+
+The ledger of the batch before registered four open items. All four are closed here, and the four shard run of the acceptance gate found two more (the order of the lines of the cart, and the timing of the plugin task waits), both of which are closed here as well.
+
+| The registered item | Before | After |
+|---|---|---|
+| The admin order search matches the id of the order with `contains` and no index serves it | the disjunction over the id forced a sequential scan of the orders table | the migration `20261029061832_orders_id_trgm_index` adds the partial trigram index `orders_id_trgm_idx` on the id, the way the order number, the email and the user name are already served |
+| The violation of the partial index `payment_ledger_one_accepted_capture_per_order` could not be told apart from the violation of the capture keys | every violation of the payment ledger was reported as "already applied" when the engine reported no target | the catch site asks the ledger: a row of this capture means the capture was recorded, an accepted capture of the order means the fact is not applicable, and every other constraint is rethrown |
+| The cart response carried a float `subtotal` | the cart answered "99.97999999999999" for a basket of 79.99 and 19.99 | the cart answers the exact decimal strings, the way the quote of the checkout answers its amounts |
+| `plugin-tasks.test.ts` failed once in a serial full run with a load-sensitive timing assertion | the wait ceiling of 20 s sat below the runner timeout of 30 s, and the fixture of the OS worker leased its task for 250 ms | the shared ceiling is 60 s, the waits that need more carry their own ceiling, the test timeouts cover the ceilings of their waits, and the fixture leases its task for 5 s with a renewal every 250 ms |
+| The order of the lines of the cart was decided by the database | the answer of the cart and the order of the lines of the order changed between environments | all three reads of the lines order them by their identifier |
+
+### The cause of the plugin task flake
+
+The OS worker fixture leased its task for 250 ms and renewed the lease every 50 ms. The renewal is a database transaction, so in a loaded shard it can take longer than the lease itself: the lease expires while the worker is still executing, the next renewal fails its claim assertion, and the renewal aborts the execution — so the task never reaches "succeeded" and the wait for it runs out its ceiling. The production defaults are unaffected: the lease is 60 s and the renewal 15 s (apps/api/src/core/plugins/task-worker.ts:173 and :215). The fixture now leases for 5 s and renews every 250 ms, which keeps nineteen renewal opportunities per lease.
+
+### The contract changes this batch registers
+
+1. `GET /api/v1/cart` — the amounts of the cart are exact decimal strings: `data.items[].price`, `data.items[].subtotal`, `data.subtotal` and `data.total`. Before, they were numbers, and the sum of the lines of a basket could carry a float error. The tax and the shipping of the cart stay numbers, because the cart computes neither.
+2. `GET /api/v1/cart` — the order of the lines is the ascending order of their identifiers. Before, the database decided it.
+3. The storefront reads the new shape. `formatPrice` already accepted a string, so the rendered amount does not change.
+
+### The deployment note
+
+The new migration creates one index without `CONCURRENTLY` and runs in one transaction, so it holds a share lock on the orders table while it builds. That lock blocks no writer either, for the same reason as the migration of the batch before: the release path quiesces the stack before it applies the migrations (`deploy/release/update.mjs:397-402` and `deploy/release/backup.mjs:36-44`). The role that applies it needs the `CREATE` right on the database for `pg_trgm`, which the migration of the batch before already needed.
+
+### What is still open
+
+- The scale of the prices and the exponent of the currency: `currencyExponent` supports the three decimal currencies (BHD, JOD, KWD, OMR, TND) and the zero decimal ones (JPY, KRW, VND), but the price columns are `Decimal(18, 2)`. A store in a zero decimal currency that prices an item at `100.50` stores the price and then the quote refuses it: `decimalToMinor` raises `TOO_MANY_DECIMAL_PLACES` (`apps/api/src/core/checkout/service.ts:59`). The defect is older than this batch — the cart carried the same price as a float — and it is a money model question with a schema and a validation surface, so it is registered here and not fixed here.
+- The cart answers its amounts with the scale of the arithmetic (the sum of "20" and "11" is "31"), while the quote answers with the scale of the currency ("31.00"). The values are equal; the scale is not. The cart does not know the currency of the store, so it cannot pad.
+- The browser E2E is not part of the local gate; CI runs it.
+
+### The gate evidence
+
+The scoped gate over the sixty selected files (`pnpm verify:quick --test-files=…`, the integration lane `jiffoo_core_test`):
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: apps/api/tests/core/admin-removal-migration.test.ts (Prisma schema or migration changed); apps/api/tests/core/order-item-snapshot-migration.test.ts (Prisma schema or migration changed); apps/api/tests/core/order-number-migration.test.ts (Prisma schema or migration changed); apps/api/tests/core/product-code-migration.test.ts (Prisma schema or migration changed); apps/api/tests/routes/plugin-migrations.test.ts (Prisma schema or migration changed)
+Run API tests:
+   Start at:  20:39:35
+ Test Files  57 passed (57)
+      Tests  955 passed | 2 skipped (957)
+Run Shop tests:
+   Start at:  20:51:18
+ Test Files  3 passed (3)
+      Tests  20 passed (20)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check selected scope and shared | PASS | 3.11s |
+| Lint Shop | PASS | 7.15s |
+| Reset test database | PASS | 3.14s |
+| Check Prisma migration drift | PASS | 1.32s |
+| Run API tests | PASS | 703.73s |
+| Run Shop tests | PASS | 1.76s |
+```
+
+The full shard gate over the whole catalogue (`pnpm verify:quick --shards=4`, the integration lane `jiffoo_core_test`):
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: not applicable (the shard mode runs the full API catalogue and the full Admin and Shop suites, covering 10 planner-mandated suite(s))
+Mode: shard mode (--shards=4)
+Gate note: the API suite ran in parallel shards. The Prisma generate, the type check, the Lint Shop step, the test database reset, the Admin suite and the Shop suite ran as well.
+Gate note: this mode is not the complete gate: the browser E2E and the serial full-suite run are not part of it.
+Run API tests in 4 shards:
+Shards: 1, 2, 3, 4 of 4 (4-shard run)
+Run scope: full catalogue (4 shard(s))
+Scope coverage: 187/187 files covered
+Totals: Test Files 187 files, 187 passed | Tests 2632 tests, 2630 passed, 2 pending | Suites 499 suites, 499 passed
+Test conclusion: PASS
+Cleanup conclusion: PASS
+Delivery status: API PASS / cleanup PASS
+--- File coverage ---
+Catalogue files (vitest list --filesOnly, same exclusions, same environment as the shards): 187
+Expected set (the full catalogue, not the assigned subset): 187
+Assigned to this run: 187
+Executed (union over all shards): 187
+Shard 1: 47 files
+Shard 2: 46 files
+Shard 3: 47 files
+Shard 4: 47 files
+Missing files: none
+Extra files: none
+Cross-shard duplicates: none
+Empty shards: none
+Coverage verdict: PASS
+--- Shard results ---
+| Shard | Exit | Duration | Start at | Test Files | Tests | Failed files |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | 0 | 663.0s | 20:26:42 | 47 files, 47 passed | 726 tests, 726 passed | none |
+| 2 | 0 | 509.8s | 20:26:43 | 46 files, 46 passed | 452 tests, 452 passed | none |
+| 3 | 0 | 556.8s | 20:26:44 | 47 files, 47 passed | 745 tests, 743 passed, 2 pending | none |
+| 4 | 0 | 569.6s | 20:26:45 | 47 files, 47 passed | 709 tests, 709 passed | none |
+Run Admin tests:
+   Start at:  20:37:41
+ Test Files  59 passed (59)
+      Tests  592 passed (592)
+Run Shop tests:
+   Start at:  20:38:16
+ Test Files  38 passed (38)
+      Tests  266 passed (266)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.02s |
+| Type-check API, Admin, Shop and shared | PASS | 14.49s |
+| Lint Shop | PASS | 31.21s |
+| Reset test database | PASS | 18.44s |
+| Check Prisma migration drift | PASS | 1.30s |
+| Run API tests in 4 shards | PASS | 678.96s |
+| Run Admin tests | PASS | 35.55s |
+| Run Shop tests | PASS | 32.24s |
+```
+
+The shards: 47/47, 46/46, 47/47, 47/47 files, no failed file in any of them; 187/187 files covered, none missing, none extra, no cross-shard duplicate, no empty shard; the cleanup verdict is PASS. The drift step ran, because the batch added a migration under `apps/api/prisma`, and the datamodel and the database still agree.
+
+The browser E2E and the serial full-suite run are not part of the shard mode; CI runs the same API catalogue as four parallel shards of its own.
+
+## 5ze. Handover evidence — the money model of the step 3 batch (the registered items)
+
+**Baseline SHA:** `efe0087d7`. **Commit:** `d86d84769`.
+
+### The registered items this batch closes
+
+The ledger of the batch before (§5zd) left two money items open: the scale of the prices against the exponent of the currency, and the scale of the answer of the cart. Both are closed here. The batch closes the door the first of them left open as well: the currency of the store itself.
+
+| The registered item | Before | After |
+|---|---|---|
+| A store in a zero decimal currency that prices an item at `100.50` stores the price, and the quote refuses it: `decimalToMinor` raises `TOO_MANY_DECIMAL_PLACES` | the money module refused every amount of a zero decimal currency that carried a fraction, including the trailing zeros of a stored `100.00` | the money module reads the trailing zeros as the whole amount (`100.00` JPY is 100 minor units), and the admin write refuses a price the currency of the store cannot represent before the write, so the price that breaks the quote never reaches the database |
+| The cart answers its amounts with the scale of the arithmetic (the sum of "20" and "11" is "31"), while the quote answers with the scale of the currency ("31.00") | the cart did not know the currency of the store, so it could not pad | the cart reads the currency of the store and answers every amount with its scale, so the cart and the quote answer one amount with the same string |
+| (the door the first item left open) the currency of the store was any string the merchant wrote | a three decimal currency was rounded by the `Decimal(18, 2)` price columns, so the customer was charged a different amount than the merchant entered | the settings write refuses a currency the Core does not support as the currency of the store (`UNSUPPORTED_CURRENCY`), and a currency that is stored today stays writable |
+
+### The contract changes this batch registers
+
+1. `POST /api/v1/admin/products` and `PUT /api/v1/admin/products/:id` — a price the currency of the store cannot represent is refused with `400 VALIDATION_ERROR`. `details.issues[0].path` names the field (`price`, `variants.<n>.salePrice`, `variants.<n>.basePrice`, `variants.<n>.costPrice`) and `details.issues[0].code` is `PRICE_NOT_REPRESENTABLE_IN_<CUR>`. The refusal happens before the transaction, so no row is left behind. The admin product form shows the refusal under the price input of the variant, with the currency named.
+2. `PUT /api/v1/admin/settings/batch` — a currency the price columns cannot hold exactly is refused with `400 VALIDATION_ERROR`: `details.issues[0].path` is `localization.currency` and `details.issues[0].code` is `UNSUPPORTED_CURRENCY`. The stored currency never changes when the write is refused, and a currency that is stored today stays writable.
+3. `GET /api/v1/cart` — the four money amounts carry the scale of the currency of the store: `data.items[].price`, `data.items[].subtotal`, `data.subtotal` and `data.total`. Before, they carried the scale of the arithmetic ("31"). The rendered amount of the storefront does not change: the currency format of the browser already pads it.
+4. The quote of the checkout answers a price of a zero decimal currency that carries only trailing zeros: `100.00` JPY is 100 minor units and no longer raises `TOO_MANY_DECIMAL_PLACES`.
+
+### The maintenance window of the new migrations
+
+The two batches before add migrations (`20261028031500_data_reliability_indexes` and `20261029061832_orders_id_trgm_index`). They need no window of their own, because the release path quiesces the stack before it applies them: `deploy/release/update.mjs:392-406` runs `maintenance(...)` before `executeCoreMigrations(...)` and again on the intent of every migration, and `maintenance` (`:207-238`) requires that every project container except PostgreSQL and Redis is stopped, that every Core boot is `QUIESCENT` or `DEAD_CONFIRMED`, that the database has no other session, and that no prepared transaction and no in-flight plugin operation is open. The guard of the backup path (`deploy/release/backup.mjs:36-44`) requires the same of every project container except PostgreSQL. The share lock an index build holds therefore blocks no writer on the release path; a manual application of the migrations must quiesce the store the same way, and an application that does not is the only way that lock can block a writer.
+
+### What is still open
+
+- The currency the merchant selects in the settings page and the catalogue of the shared package do not agree: the settings page offers USD, EUR, GBP, CNY, HKD and TWD (`apps/admin/app/[locale]/(themed)/settings/page.tsx:23`), the shared catalogue offers USD, EUR, GBP, JPY, CNY and KRW (`packages/shared/src/utils/constants.ts:98`). The API accepts the union of the two, which is the list of the currencies the Core supports as the currency of the store; the formatter of the shared package falls back to a bare amount for a currency it does not know (HKD and TWD). Unifying the two lists is a product decision that belongs to its own batch.
+- A store that changes its currency to a zero decimal one while its prices carry fractions: the settings page warns that the prices are not converted, and the quote of the checkout then refuses the price. The merchant has to re-price the products; from then on the admin write refuses a fraction, and the refusal names the field and the currency.
+- The browser E2E is not part of the local gate; CI runs it.
+
+### The gate evidence
+
+Two gates ran against this batch, both on the integration lane `jiffoo_core_test` with the `postgres`/`postgres` account.
+
+The first one is the scoped gate (`pnpm verify:quick --test-files=…`). The planner widened its scope to the whole catalogue, because a shared package changed and the API contract surface changed (284 planner-mandated suites: the whole API catalogue and the whole Admin and Shop suites). It ran the catalogue serially and it failed on exactly one file, the module boundary audit: the two new cross-module edges (`admin/product-management -> shared` and `cart -> settings`) were not registered yet. Every other file of the catalogue passed. The two edges are registered now, with their reasons, and the gate was run again.
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: the whole API catalogue and the whole Admin and Shop suites (284 planner-mandated suites: the shared package changed, and the API contract surface changed)
+Run API tests:
+   Start at:  21:50:08
+ Test Files  1 failed | 186 passed (187)
+      Tests  2 failed | 2640 passed | 2 skipped (2644)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check selected scope and shared | PASS | 19.96s |
+| Lint Shop | PASS | 9.22s |
+| Reset test database | PASS | 3.95s |
+| Run API tests | FAIL | 1717.29s |
+```
+
+The second gate is the shard gate over the whole catalogue (`pnpm verify:quick --shards=4`, the integration lane `jiffoo_core_test`), on the tree that carries the registration of the two edges:
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: not applicable (the shard mode runs the full API catalogue and the full Admin and Shop suites, covering 284 planner-mandated suite(s))
+Mode: shard mode (--shards=4)
+Gate note: the API suite ran in parallel shards. The Prisma generate, the type check, the Lint Shop step, the test database reset, the Admin suite and the Shop suite ran as well.
+Gate note: this mode is not the complete gate: the browser E2E and the serial full-suite run are not part of it.
+Run API tests in 4 shards:
+Shards: 1, 2, 3, 4 of 4 (4-shard run)
+Run scope: full catalogue (4 shard(s))
+Scope coverage: 187/187 files covered
+Totals: Test Files 187 files, 187 passed | Tests 2644 tests, 2642 passed, 2 pending | Suites 500 suites, 500 passed
+Test conclusion: PASS
+Cleanup conclusion: PASS
+Delivery status: API PASS / cleanup PASS
+--- File coverage ---
+Catalogue files (vitest list --filesOnly, same exclusions, same environment as the shards): 187
+Expected set (the full catalogue, not the assigned subset): 187
+Assigned to this run: 187
+Executed (union over all shards): 187
+Shard 1: 47 files
+Shard 2: 46 files
+Shard 3: 47 files
+Shard 4: 47 files
+Missing files: none
+Extra files: none
+Cross-shard duplicates: none
+Empty shards: none
+Coverage verdict: PASS
+--- Shard results ---
+| Shard | Exit | Duration | Start at | Test Files | Tests | Failed files |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | 0 | 667.5s | 22:32:17 | 47 files, 47 passed | 731 tests, 731 passed | none |
+| 2 | 0 | 517.6s | 22:32:18 | 46 files, 46 passed | 453 tests, 453 passed | none |
+| 3 | 0 | 547.9s | 22:32:20 | 47 files, 47 passed | 745 tests, 743 passed, 2 pending | none |
+| 4 | 0 | 581.2s | 22:32:21 | 47 files, 47 passed | 715 tests, 715 passed | none |
+Run Admin tests:
+   Start at:  22:43:20
+ Test Files  59 passed (59)
+      Tests  593 passed (593)
+Run Shop tests:
+   Start at:  22:43:36
+ Test Files  38 passed (38)
+      Tests  266 passed (266)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check API, Admin, Shop and shared | PASS | 16.14s |
+| Lint Shop | PASS | 10.57s |
+| Reset test database | PASS | 4.55s |
+| Run API tests in 4 shards | PASS | 682.17s |
+| Run Admin tests | PASS | 16.07s |
+| Run Shop tests | PASS | 21.50s |
+```
+
+The shards: 47/47, 46/46, 47/47, 47/47 files, no failed file in any of them; 187/187 files covered, none missing, none extra, no cross-shard duplicate, no empty shard; the cleanup verdict is PASS. The Admin suite carries the new case of the admin form (593 tests, one more than the 592 of the batch before) and the Shop suite is unchanged at 266 tests.
+
+The browser E2E and the serial full-suite run are not part of the shard mode; CI runs the same API catalogue as four parallel shards of its own. The serial run of the whole catalogue is the first gate of this section: it passed every file but the module boundary audit, and the shard gate above covers the same 187 files on the tree that carries the registration of the two edges.
+
+## 5zf. Handover evidence — the CI repair of the money model batch (the admin shell E2E)
+
+**Baseline SHA:** `89ae18741`. **Commit:** `903ab9bca`.
+
+### What the CI found
+
+The push of the money model batch (`d86d84769`, `89ae18741`) ran the complete gate in GitHub Actions (run 40899108753). Every job was green except the browser E2E: two tests of the project `38-admin-shell` failed, and both failures reproduce in the local E2E run, so neither of them is a flake of the runner.
+
+| The failing test | The cause |
+|---|---|
+| `U2 Overview shows real attention counts and opens the Orders review deep link` | the badge of the sidebar ("N payments awaiting review") was missing while the dashboard counted the payment. The admin order statistics are cached under the order cache version (the cache is new in this batch), and the test writes its orders directly into the database, so the version was never bumped and the admin served the statistics of the state before the write |
+| `U1c Orders filters, compact cards and review banner use real data in both modes` | the selection of the rows was gone before the test could clear it. The search input of the admin list applies its value after 300 ms (`apps/admin/components/list/index.tsx`, `ListSearch`), and the test selected the rows before the filter landed; when the filter landed, the list state changed and the selection was dropped with it |
+
+### The repairs
+
+- The E2E invalidates the cached admin order data the way an API write does: it increments the order cache version in Redis (`order:version`) after its direct writes. Every write that goes through the API bumps that version, so the admin recomputes its order list and its order statistics; the test writes around the API, so it has to bump the version itself.
+- The U1c test waits for the search filter to be applied before it selects the rows: it asserts that the URL carries the search term, the same pattern `e2e/08-orders.spec.ts` uses for the page size.
+
+No assertion was weakened and no step was dropped.
+
+### The gate evidence
+
+The local browser E2E over the whole catalogue (`pnpm verify:e2e`, the integration lane `jiffoo_core_test`, the `postgres`/`postgres` account): the six tests of the admin shell project pass, the two that failed in CI among them.
+
+```
+Playwright results: 112 passed, 0 failed, 0 skipped
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Preflight upload storage before database reset | PASS | 1.56s |
+| Check observed browser contexts | PASS | 0.79s |
+| Clear dedicated E2E Redis database | PASS | 0.22s |
+| Reset test database | PASS | 3.22s |
+| Build shared package | PASS | 1.47s |
+| Build plugin SDK | PASS | 3.47s |
+| Build API | PASS | 10.59s |
+| Build Admin | PASS | 17.19s |
+| Build Shop | PASS | 13.40s |
+| Start local marketplace | PASS | 3.63s |
+| Start API, worker, Admin and Shop | PASS | 0.10s |
+| Wait for health | PASS | 2.87s |
+| Run Playwright | PASS | 709.64s |
+| Stop E2E child processes | PASS | 0.12s |
+Total duration: 769.03s
+```
+
+The shard gate over the whole catalogue (`pnpm verify:quick --shards=4`, the integration lane `jiffoo_core_test`), on the tree that carries the repair:
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: not applicable (the shard mode runs the full API catalogue and the full Admin and Shop suites, covering 0 planner-mandated suite(s))
+Mode: shard mode (--shards=4)
+Run API tests in 4 shards:
+Shards: 1, 2, 3, 4 of 4 (4-shard run)
+Run scope: full catalogue (4 shard(s))
+Scope coverage: 187/187 files covered
+Totals: Test Files 187 files, 187 passed | Tests 2644 tests, 2642 passed, 2 pending | Suites 500 suites, 500 passed
+Test conclusion: PASS
+Cleanup conclusion: PASS
+Delivery status: API PASS / cleanup PASS
+Missing files: none
+Extra files: none
+Cross-shard duplicates: none
+Empty shards: none
+Coverage verdict: PASS
+Run Admin tests: 59 passed (59), 593 tests passed
+Run Shop tests: 38 passed (38), 266 tests passed
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check API, Admin, Shop and shared | PASS | 11.98s |
+| Lint Shop | PASS | 8.25s |
+| Reset test database | PASS | 4.20s |
+| Run API tests in 4 shards | PASS | 668.84s |
+| Run Admin tests | PASS | 38.35s |
+| Run Shop tests | PASS | 29.11s |
+```
+
+### What is still open
+
+- Two observations of this repair, neither of them a defect of the product: a write that bypasses the API (a migration, a backfill) leaves the cached admin order data stale for at most the 30 s of its time to live, and a selection that a merchant makes within the 300 ms of the search input is dropped when the filter lands, because the selection is scoped to the filter and the list changes in that moment.
+- The items the money model batch carries over are unchanged: the currency the merchant selects in the settings page and the catalogue of the shared package do not agree, and a store that changes its currency to a zero decimal one while its prices carry fractions has to re-price them.
+
+## 5zg. Handover evidence — the step 4 batch (disconnect tolerance, timeouts, circuit breaking, dead letter fallback)
+
+**Baseline SHA:** `398dc79a8`. **Commit:** `4495bfac8`.
+
+### What the audit found and what this batch closes
+
+The read-only audit of step 4 (2026-10-30) found 24 findings, six of them P0, and scored the platform 6 of 10 for the question "what happens when the external network drops at any moment, a third-party API hangs for 30 seconds and a peripheral plugin throws an unhandled exception". The batch closes the findings in ten packages, each with its own tests:
+
+| The finding | The fix |
+|---|---|
+| P0: a plugin whose `register()` never resolves holds the caller forever | the registration is raced against a deadline (`PLUGIN_REGISTER_TIMEOUT_MS`, five seconds, shortened by the plugin's own `timeoutMs`); the failure is a `PLUGIN_TIMEOUT` with a redacted message |
+| P0: a plugin runtime that fails to load is not counted by the circuit breaker | the setup failure is recorded as a plugin failure and reported to the breaker (`sharedProtection.result(permit, false)`), in the contract path and in the gateway path |
+| P0: a contract route that answers with a body that is not JSON throws an unmapped error | the body is parsed defensively; a non-JSON body answers `CONTRACT_RESPONSE_INVALID` (502) and is counted by the breaker |
+| P0: a failing tax provider breaks the whole quote and lets the placement charge an unknown tax | the tax provider is isolated like the shipping and the payment providers: the quote answers with an unknown tax and a marker, the placement refuses the order with 502 or 504 and writes nothing |
+| P0: the order confirmation notification is written inside the payment transaction | the event is written inside the transaction, the notification row by a core subscriber after the commit; a failing notification can no longer roll back a payment session |
+| P0: a killed worker keeps its plugin task slots occupied forever | the death of a core process is confirmed (a stale heartbeat and no database session), the slots of a dead owner are released, and a slot that stopped being observed is released as well |
+| P0: the Core database client has no deadline | the Core URL carries the connect timeout, the socket timeout, the bounds of the pool and the server-side statement deadlines; the cache client carries its own connect and command timeouts and never queues a command while it is offline |
+| P0: an upload route accepts an unbounded body | every upload route declares its own limit, the global multipart ceiling is 32 MiB, and the part is consumed through its own stream with a byte budget |
+| P1: the entry points are not bounded | the rate limiter bounds the login per account, the exports and the uploads per signed-in identity, and the health probes; the health budget is sized for a node that runs many replicas |
+| P1: an edge call to the Core has no deadline | every call from the Admin and the Shop toward the Core carries a deadline that covers the body of the answer, and the token refresh of the shared client can no longer hang |
+| P1: a retry has no backoff and no dead letter | the notification reclaim waits on the delivery ladder, the payment reconciliation and the event delivery back off with a bounded jitter, and the plugin file cleanup reaches a terminal `DEAD` state that the operator sees |
+| P1: the shutdown has no hard deadline and an audit write can roll back a money transaction | the shutdown ends the process when the drain never settles, and the audit writes of the money paths run inside a savepoint, so a failing audit insert cannot undo a payment or a refund |
+
+### The contract changes this batch registers
+
+1. A new event key `order.confirmed` v1 with the payload `{ id, orderId, instructions }`, aggregated by the order id (`packages/shared/src/events/registry.ts`). The payload carries only the fields an order always has, so an order that was written directly into the database cannot break the payment session.
+2. A new core subscriber `order.confirmed -> notifyOrderConfirmed` (`apps/api/src/infra/events/core-subscribers.ts`). The recipient and the order number are resolved through the order projection, the way every other order notification resolves them.
+3. The `order_confirmation` notification is written after the payment transaction commits. A failing notification no longer rolls back the payment session and no longer fails the customer request; the failure is recorded in `event_deliveries.lastError` and retried with the backoff. The HTTP contract of the payment session does not change.
+4. The quote response gains the optional boolean `taxUnavailable` (`apps/api/src/core/checkout/schemas.ts`). A degraded quote carries the marker and no `tax`, no `taxInclusive` and no `total`; the quote of the builtin zero tax provider keeps `tax: '0'` and carries no marker, so the two answers stay distinguishable on the wire.
+5. A plugin whose registration times out answers `PLUGIN_TIMEOUT` (504) instead of `CONTRACT_CALL_FAILED` (502); the message of the load failure is redacted with the plugin configuration, the way every other load failure was.
+6. A contract route that answers with a body that is not JSON answers `CONTRACT_RESPONSE_INVALID` (502) instead of an unmapped 500.
+7. The plugin recovery listing gains `items[].deadCleanupCount`, `items[].deadCleanups[]` and the top level `orphanedDeadCleanups[]` (`apps/api/src/core/admin/extension-installer/routes.ts`).
+8. A new migration `20261030045337_plugin_file_cleanup_status` adds the column `plugin_file_cleanup.status` (the values `PENDING` and `DEAD`).
+
+### The decisions this batch makes on purpose
+
+1. A plugin task that exceeded its declared runtime loses its execution slot even when its owner is alive. The plugin task contract fences the writes, so a re-run cannot corrupt the first one, and the alternative is that one blocked worker stops the whole platform.
+2. A core process is presumed dead when its heartbeat is stale for the suspect window (30 seconds, three missed beats) and it holds no database session any more. A frozen but living process keeps its sessions, so it is never condemned on a heartbeat alone.
+3. The budget of a plugin entry module load cannot preempt a blocking `require`: it turns an abnormally slow load into a recorded failure of that plugin. A worker-thread sandbox is out of scope for this batch.
+4. The edge answers 503 when the Core does not answer in time. A request that never ends is worse than a failed one, and the idempotency keys of the Core make a retry of a mutating request safe.
+5. The payment reconciliation keeps the 60 second cadence for a provider that answered "still pending" - that is a business decision. Only a provider that failed backs off, and the backoff survives the release of the lease.
+6. An audit row may be lost when the database refuses to write it. The money state is the truth that must not be undone; the loss is logged and the savepoint keeps the enclosing transaction usable.
+
+### What the gate found
+
+Two failures of the first gate runs were not defects of the product but of the test environment, and both are fixed in the repository:
+
+- The regenerated Prisma client (Prisma 6.19.1, the version the lockfile pins) resolves its entry point through the `#main-entry-point` subpath import of its own package. When the test runner transforms those CommonJS packages instead of loading them natively, the named exports of `@prisma/client` are not always available, and two test files failed while they were being loaded. The runner now loads the Prisma packages natively (`apps/api/vitest.config.ts`).
+- The platform refuses to disable or to remove the last enabled provider of a contract (`assertNotLastEnabledProvider`). A store therefore always keeps one enabled tax provider, so the "a store without a tax provider" state is not reachable by disabling one. The degradation test asserts the state the platform allows instead: the builtin zero tax provider answers the zero tax and no marker.
+
+### What is still open
+
+- The storefront does not read `taxUnavailable` yet: a degraded quote shows an empty total and the checkout needs a total, so the customer cannot place the order. The store should say that the tax is being calculated instead.
+- A dead plugin file cleanup row still holds the storage quota of its plugin. The operator sees the object key, the file id and the size that is stuck; releasing the quota stays a manual action.
+- A statement-level audit failure inside a money transaction is protected by the savepoint. A failure that happens outside the savepoint (the connection dies) still ends the transaction.
+- The audit found the plugin task slot of a live owner whose task passed its runtime as a finding. The batch resolves it the way the plugin task contract requires (see the decisions), not by changing the rule.
+
+### The gate evidence
+
+The shard gate over the whole catalogue (`pnpm verify:quick --shards=4`, the integration lane `jiffoo_core_test`, the `postgres`/`postgres` account), on the tree that carries the batch (`4495bfac8`):
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: not applicable (the shard mode runs the full API catalogue and the full Admin and Shop suites, covering 301 planner-mandated suite(s))
+Mode: shard mode (--shards=4)
+Gate note: the API suite ran in parallel shards. The Prisma generate, the type check, the Lint Shop step, the test database reset, the Admin suite and the Shop suite ran as well.
+Run API tests in 4 shards:
+Shards: 1, 2, 3, 4 of 4 (4-shard run)
+Run scope: full catalogue (4 shard(s))
+Scope coverage: 201/201 files covered
+Totals: Test Files 201 files, 201 passed | Tests 2708 tests, 2706 passed, 2 pending | Suites 527 suites, 527 passed
+Test conclusion: PASS
+Cleanup conclusion: PASS
+Delivery status: API PASS / cleanup PASS
+Missing files: none
+Extra files: none
+Cross-shard duplicates: none
+Empty shards: none
+Coverage verdict: PASS
+Run Admin tests: 61 passed (61), 601 tests passed
+Run Shop tests: 39 passed (39), 274 tests passed
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check API, Admin, Shop and shared | PASS | 12.66s |
+| Lint Shop | PASS | 7.84s |
+| Reset test database | PASS | 2.77s |
+| Check Prisma migration drift | PASS | 1.16s |
+| Run API tests in 4 shards | PASS | 651.16s |
+| Run Admin tests | PASS | 37.19s |
+| Run Shop tests | PASS | 31.02s |
+```
+
+### The browser E2E of the batch
+
+The first push of the batch failed the browser E2E of GitHub Actions (run `41023125361`): three tests of `e2e/07-products.spec.ts` failed with the admin sign-in screen showing "Too many sign-in attempts. Please try again later.". The per-account login budget of the batch (ten attempts per fifteen minutes) was exhausted by the suite itself: the Playwright workers sign in with the same owner account in parallel, so the legitimate sign-ins of one account locked that account out. The repair is in the same package as the budget.
+
+The budget is now 120 attempts per fifteen minutes (eight per minute). The per-address budget of the login (20 per 5 minutes) is unchanged, and the account budget still caps the aggregate of the attempts against one account no matter how many addresses they come from - an attacker that spreads the attempts gets eight a minute for that account instead of four a minute and address. The rate-limit case of the browser E2E now also deletes the account bucket it filled, so it leaves no state behind for the later specs.
+
+The local browser E2E over the whole catalogue (`pnpm verify:e2e`, the integration lane `jiffoo_core_test`, the `postgres`/`postgres` account), on the tree that carries the repair:
+
+```
+Playwright start time: 2026-10-30T09:24:01.349Z
+Playwright results: 112 passed, 0 failed, 0 skipped
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Preflight upload storage before database reset | PASS | 2.22s |
+| Check observed browser contexts | PASS | 0.83s |
+| Clear dedicated E2E Redis database | PASS | 8.41s |
+| Reset test database | PASS | 3.01s |
+| Build shared package | PASS | 1.46s |
+| Build plugin SDK | PASS | 3.16s |
+| Build API | PASS | 16.97s |
+| Build Admin | PASS | 26.64s |
+| Build Shop | PASS | 16.89s |
+| Start local marketplace | PASS | 3.65s |
+| Start API, worker, Admin and Shop | PASS | 0.06s |
+| Wait for health | PASS | 3.60s |
+| Run Playwright | PASS | 825.05s |
+| Stop E2E child processes | PASS | 0.12s |
+| Total duration: 912.87s |
+```
+
+## 5zh. Handover evidence — the step 4 acceptance review remediation (the disaster-tolerance line)
+
+**Baseline SHA:** `ac9fea59e` (the repair of the login budget of the batch) and `97448b322` (the ledger commit of the step 4 batch). **Commit:** `af265acf6`.
+
+### Why this section exists
+
+The step 4 batch (section 5zg) went through an owner-driven acceptance review before the wrap-up. Four independent read-only reviewers read the diff of the batch against four bottom lines: a timeout that really releases the resource, a retry that is safe, a degradation that is observable, and a dead letter that closes with a green gate. Every module produced findings. This batch closes them, in ten packages, each with its own tests.
+
+Two findings the reviewers reported were false positives, and they were checked against the source before they were closed:
+
+- The payment reconciliation was reported to never increment its attempt counter, so its backoff would stay at sixty seconds. The increment lives in the claim statement of `core/payment/lease.ts:30` (`attempts = p.attempts + 1`), so the counter does grow. Not a defect.
+- The unique index of the notification dedup key was reported to be unverified. It exists (`system.prisma:124`, `dedupKey String? @unique`). Not a defect.
+
+The review also produced three findings that no reviewer had reported, found while the coordinator verified the batch against the source: the composition root wrote the tables of two other modules (the guardrail of the module ownership), the failure of the compensating write of a lifecycle hook was swallowed by an empty catch, and the peer liveness criterion of the forced shutdown contradicted the two-observation death confirmation of the process registry.
+
+### The findings of the review and what this batch closes
+
+| The finding | The fix |
+|---|---|
+| P0: the setup of a plugin runtime and its first invocation shared one deadline, so a slow cold start took the budget of the call away from a healthy plugin | the setup has its own budget (`PLUGIN_SETUP_TIMEOUT_MS`, the sum of the module load budget and the registration budget plus a second) and the invocation budget starts once the setup succeeded |
+| P0: a candidate runtime instance that never became the active runtime was never closed, so every failed setup leaked a Fastify instance | the candidate is closed on every path that does not hand it over, the close is idempotent, it is bounded by `PLUGIN_CANDIDATE_CLOSE_TIMEOUT_MS`, and a failing close is recorded as `plugin_candidate_close_failed` |
+| P0: a contract route that answers with a body that is not JSON lost the reason of the failure, and the body itself was dropped without a record | the failure is recorded as `plugin_contract_error_body_invalid` with the name of the error and no part of the body |
+| P0: a plugin failure that the throttle dropped was invisible, and the record had neither the installation nor the stack | the throttled drop is recorded as `plugin_failure_throttled`, and the failure record carries the installation id and the stack |
+| P0: a payment session committed its fact in one transaction and its order confirmation event in a second one, so a committed session could have no event, and the replay of the session returned early without writing the missing event | the fact and the event are applied in one transaction, and the replay of a committed session writes the missing event through `repairOrderConfirmationEvent` |
+| P0: the failure of the session creation was swallowed, so an unknown outcome and a request that never left the Core were indistinguishable | the failure is classified (`creation_not_sent` for the codes that are raised before the dispatch, `creation_outcome_unknown` for the rest), written to the audit trail and to the structured log with a redacted message |
+| P0: an audit write that failed could roll back the money transaction it belonged to, and the rollback of the savepoint was reported as a graceful degradation | the savepoint operations return their outcome, a failing rollback is recorded and the money transaction fails explicitly, and the write of the audit is separated from the write of the money |
+| P0: the shutdown had no hard deadline, and the forced path cut the database sessions off without releasing the rows that were in flight | the forced shutdown closes the connections with a bounded wait (`API_FORCED_SHUTDOWN_CLOSE_TIMEOUT_MS`) and expires the lease of the rows it owns |
+| P0: the forced shutdown took the rows of a peer that was still alive, because its liveness criterion was a heartbeat that had expired | the criterion is the state model of the process registry (`CORE_PROCESS_ALIVE_STATES`, in which a suspect process counts as alive), and the release lives in the modules that own the rows |
+| P0: a crashed core process was condemned on its heartbeat alone, so a single pause of the event loop freed the slots of a process that was still running | the death needs two observations: the first marks the row `SUSPECT`, the second confirms it. A process that holds a session or that refreshes its heartbeat is alive, and its row returns to the live state |
+| P0: a plugin task whose declaration is invalid, or whose circuit breaker is open, walked the whole retry ladder | the deterministic failures (`PLUGIN_TASK_DECLARATION_INVALID`, `PLUGIN_CIRCUIT_OPEN`) end the task at once |
+| P0: the lease of an event delivery expired while the plugin handler was still running, so the recovery took the row and the event was handed to the plugin a second time | the lease is renewed every third of its length, and the renewal is fenced by the claim token of the delivery |
+| P0: a failure of the renewal of the lease was swallowed, so the fence degraded into a double delivery without a trace | the failure is recorded as `event_delivery_lease_renewal_failed`, once per delivery per minute |
+| P0: the notification retry ladder had no jitter, so a fleet of instances that failed together retried together | the ladder carries a jitter of twenty percent, which only delays a retry and never shortens it |
+| P1: the cache client queued its commands while it was offline and answered zero when it was not connected | the client carries a connect budget, it never queues a command while it is offline, and the invalidation that could not be applied is deferred and completed when the client is ready again |
+| P1: the list of the orders was cached for ten minutes, so a customer could read a stale list after a payment | the list is cached for two minutes, and the version bump of the order cache is applied inside the transaction of the caller, with a context that names the scope and the reference of the bump |
+| P1: the built-in package sync waited for the advisory lock before the server listened, so an instance that lost the race was killed and started again | the wait for the lock is bounded by fifteen seconds, the timeout is recorded, and the install stays before the listen so the built-in packages are in place when the API serves its first request |
+| P1: the edge read the body of the request without a limit and answered 503 without a record | the body is read within a limit, an oversized body answers 413, and every degradation of the edge is recorded as `edge_core_degraded` with the surface, the reason, the path and the elapsed time |
+| P1: the shutdown of the built-in packages was not bounded, so a connection that did not close held the process | the close of the connections is awaited with a bounded wait, and the release of the in-flight leases is bounded as well |
+| P1: the login account budget counted every attempt, so a legitimate sign-in of a busy account was refused | the account dimension counts the failed attempts only; a credential answer that is neither a success nor a rejection counts as nothing |
+| P1: a plugin file cleanup that reached its terminal state was never shown to the operator beyond the first fifty rows | the listing is paged, it reports the total, the orphans and whether the list was truncated |
+| P1: a tax provider that failed without a contract error broke the whole quote | the failure is mapped to `CONTRACT_CALL_FAILED` (502), a timeout keeps `PLUGIN_TIMEOUT` (504), and the provider is excluded with one log event |
+| P1: the log of the cache client used emoji and no fields | the records are structured JSON with the fields of the failure |
+| P1: the records of the limit hits of the rate limiter had no subject and no policy | every hit is recorded as `RATE_LIMITED` with the policy, the hashed subject, the wait and the route |
+| P1: the failure of the compensating write of a lifecycle hook was swallowed by an empty catch, so the operator saw neither the failure ledger nor the warning on the installation | the failure is recorded with the slug, the installation, the hook and the stage that failed, and the outcome of the hook does not change |
+| P1: the observation of a plugin task slot, the move to the lingering state, the release of the settled slots and the settlement of a task were all swallowed | the four failures are recorded, once per task or slot per minute, with the task, the slot, the installation and the reason |
+| P2: the composition root wrote the `event_deliveries` and the `notifications` rows directly, so the tables of two modules had a second writer | the release lives in the modules that own the rows (`releaseEventDeliveryLeases`, `releaseNotificationLeases`), and the composition root calls them |
+
+### The contract changes this batch registers
+
+1. The account dimension of the login is a circuit breaker over the failed attempts, not a fixed window over every attempt. The key family is new: `jiffoo:protection:rl:login-account:account:<sha256 of the identifier>`. The window is sixty seconds, ten samples are needed before the breaker can open, the rate that opens it is one half, and it stays open for thirty seconds. The per-address budget of the login (twenty attempts per five minutes, `RateLimitPresets.login`) is unchanged.
+2. A refused login answers `429` with the code `RATE_LIMITED` and a `Retry-After` of thirty seconds. The code and the shape of the answer are the ones the fixed window already used, so only the wait changes.
+3. The exemption of the shared protection is narrowed to the liveness probe (`/health/live`). The other health routes are bounded by their own budget and are answered from their own dependency probes, so an unavailable protection no longer masks the real state of the service.
+4. An upload that exceeds its limit answers `413` with the code `PAYLOAD_TOO_LARGE`. The details of the answer carry `maxBytes`, and the whitelist of the details of the error answers (`utils/api-errors.ts`) was extended with that code.
+5. The edge of the Shop answers the code `CORE_RESPONSE_TOO_LARGE` (503) when the answer of the Core exceeds sixteen mebibytes.
+6. The plugin recovery listing gains `deadCleanupTotal`, `orphanedDeadCleanupTotal`, `deadCleanupPage` (with `limit`, `offset`, `returned` and `hasMore`) and, on every item, `deadCleanupsTruncated`. The count on an item is the total of the dead cleanups of the slug, not the number of the rows of the page. The route accepts `deadCleanupLimit` (one to five hundred) and `deadCleanupOffset`.
+7. The log event names of the batch: `provider_excluded` (one event for the tax, the shipping and the payment provider), `edge_core_degraded` (every degradation of the Admin and the Shop), `RATE_LIMITED` (every limit hit), `shared_protection_redis_error` (the failure of the shared protection), `plugin_failure_throttled`, `plugin_candidate_close_failed`, `plugin_contract_error_body_invalid`, `event_delivery_lease_renewal_failed`, `plugin_task_slot_observation_failed`, `plugin_task_slot_lingering_failed`, `plugin_task_slot_release_failed`, `plugin_task_settle_failed`, `plugin_task_degraded_record_failed`, `payment-audit-savepoint-rollback-failed`, `payment-audit-write-failed`, `api-shutdown-deadline`, `api-shutdown-lease-release-failed`, `builtin_plugin_sync_lock_timeout` and `builtin_plugin_sync_connection_error`.
+8. The environment variables of the edge deadlines are new: the header deadline, the body deadline and the maximum request size of the Admin and of the Shop, in `apps/api/.env.example`, `apps/shop/.env.example`, `deploy/compose/.env.example`, `deploy/compose/compose.yml` and `docs/deployment-env.md`.
+9. The bump of the cached order version takes a context (`scope` and `reference`) and can answer `null` when the cache is unreachable. The callers that discard the answer are the payment session, the payment observation, the placement of an order, the order service and the order management of the admin. The repository compiles with `strict: false`, so the null is a runtime contract and not a compile-time one; the context is what makes a lost bump traceable.
+10. Six module-level states and one cross-module edge were added to the two audit registries of the repository: `core/payment/session.ts:failureCodesBeforeDispatch`, `core/plugins/tasks.ts:DETERMINISTIC_TASK_FAILURES`, `infra/core-process.ts:CORE_PROCESS_ALIVE_STATES`, `CORE_PROCESS_DEAD_STATES`, `CORE_PROCESS_RUNNING_STATES`, `plugins/rate-limiter.ts:loginPermits`, and the edge `infra/shared-protection -> logger`.
+
+### The decisions this batch makes on purpose
+
+1. The JavaScript of an in-process plugin cannot be cancelled by a timeout. The deadline of the call answers the caller, the lease of the row is renewed while the handler runs, and the row is fenced by its claim token, so a handler that outlives its lease cannot corrupt the state of the first one. A worker-thread sandbox is out of scope for this batch.
+2. The budget of the load of the entry module of a plugin cannot preempt a blocking `require`. It turns an abnormally slow load into a recorded failure of that plugin.
+3. A plugin task that exceeded its declared runtime loses its execution slot even when its owner is alive. The plugin task contract fences the writes, so a re-run cannot corrupt the first one, and the alternative is that one blocked worker stops the whole platform.
+4. A peer whose heartbeat is stale is not condemned on the heartbeat alone. The death of a core process needs two observations, and the forced shutdown of an instance does not take the rows of a peer that may still be alive: it expires the lease of the rows it owns and leaves the rows of the peers to the sweep that confirms their death.
+5. The built-in packages are installed and prewarmed before the API listens. The contract of the platform is that an API that is up serves the built-in plugins and themes; a background install would leave a window in which the API answers without them, and it would hold the theme operation lease against the traffic of the first requests. The wait for the advisory lock is bounded by fifteen seconds per sync, so the worst case of the start is about thirty seconds instead of the four minutes of the unbounded wait it replaced, and the compose healthcheck (`interval 5s`, `retries 60`, `start_period 30s`) tolerates a slow start. The two syncs stay serial: the theme sync installs through the installer path, which writes the shared plugin installation rows and advances the plugin registry version, the same rows the plugin sync touches.
+6. An audit row may be lost when the database refuses to write it, but the money state is the truth that must not be undone. The write of the audit runs inside a savepoint, a failing rollback ends the money transaction explicitly, and both facts are recorded.
+7. The plugin failure log is throttled. A plugin that fails in a loop must not fill the log, so the dropped records are counted and reported as `plugin_failure_throttled`. The same rule applies to the renewal of an event lease and to the four failure points of the plugin task worker: one record per delivery, task or slot per minute.
+8. A part that is above its limit is read to its end and answered with `413`. The bytes over the limit are never buffered, and the rest of the body is consumed before the answer leaves the process, so the client receives the answer instead of a reset and the connection can be reused.
+
+### What the gate found
+
+The first run of the gate over the whole catalogue (`pnpm verify:quick --shards=4`) failed with fourteen failing files, and the failures were of the batch itself, not of the environment:
+
+- Nine files failed because the built-in package sync had been moved behind the listen of the API. The contract of the platform is that an API that is up serves the built-in plugins and themes, and the child-process tests of the themes assert exactly that: the built-in themes were not installed yet, the background sync held the theme operation lease against the requests of the tests (`THEME_OPERATION_IN_PROGRESS`), and the background sync advanced the plugin registry version a second time, which invalidated the memo of a corrupt package and read its blob twice. The sync is back before the listen.
+- One file failed because a test disconnected the Prisma client of the shard in its cleanup and the next file started against an engine that was still coming back (`Engine is not yet connected`). The client is connected before every case now. The weakness was in the test, not in the product, but the new test files of the batch changed the composition of the shards and exposed it.
+- One file failed because the stub of the login in the test helper read the request body in the `onRequest` hook, where Fastify has not parsed the body yet, so a wrong credential was answered with 200 and the failure counting of the new account breaker was never exercised.
+- One file failed because the unit test of the upload limit pinned the old contract of the reader (it stops at the cap) while the reader now consumes the part to its end so the body can be drained. The test pins the new contract: the part is read to its end, nothing over the limit is ever buffered, and the answer is `TOO_LARGE`.
+- Two files failed because the new module states and the new cross-module edge were not yet registered in the two audit registries of the repository.
+- Two files failed because the test of the notification retry policy passed its parameter as an array to a raw query (so PostgreSQL received a `text[]` against a `text` column), and because a test pinned the SQL of the retry ladder from before the jitter was added. Both tests now pin the contract instead of a literal.
+
+### The gate evidence
+
+The shard gate over the whole catalogue (`pnpm verify:quick --shards=4`, the integration lane `jiffoo_core_test`, the `postgres`/`postgres` account), on the tree that carries the batch:
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: not applicable (the shard mode runs the full API catalogue and the full Admin and Shop suites, covering 20 planner-mandated suite(s))
+Mode: shard mode (--shards=4)
+Gate note: the API suite ran in parallel shards. The Prisma generate, the type check, the Lint Shop step, the test database reset, the Admin suite and the Shop suite ran as well.
+Gate note: this mode is not the complete gate: the browser E2E and the serial full-suite run are not part of it.
+Run API tests in 4 shards:
+Shards: 1, 2, 3, 4 of 4 (4-shard run)
+Run scope: full catalogue (4 shard(s))
+Scope coverage: 208/208 files covered
+Totals: Test Files 208 files, 208 passed | Tests 2763 tests, 2761 passed, 2 pending | Suites 546 suites, 546 passed
+Test conclusion: PASS
+Cleanup conclusion: PASS
+Delivery status: API PASS / cleanup PASS
+Missing files: none
+Extra files: none
+Cross-shard duplicates: none
+Empty shards: none
+Coverage verdict: PASS
+| Shard | Exit | Duration | Start at | Test Files | Tests | Failed files |
+| 1 | 0 | 689.2s | 19:36:42 | 51 files, 51 passed | 662 tests, 662 passed | none |
+| 2 | 0 | 563.1s | 19:36:43 | 52 files, 52 passed | 791 tests, 791 passed | none |
+| 3 | 0 | 573.6s | 19:36:44 | 53 files, 53 passed | 663 tests, 663 passed | none |
+| 4 | 0 | 675.9s | 19:36:45 | 52 files, 52 passed | 647 tests, 645 passed, 2 pending | none |
+Run Admin tests: 61 passed (61), 605 tests passed
+Run Shop tests: 39 passed (39), 277 tests passed
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check API, Admin, Shop and shared | PASS | 16.64s |
+| Lint Shop | PASS | 9.96s |
+| Reset test database | PASS | 3.56s |
+| Run API tests in 4 shards | PASS | 703.23s |
+| Run Admin tests | PASS | 24.66s |
+| Run Shop tests | PASS | 25.92s |
+```
+
+The step for the drift of the Prisma schema is not in the table because the runner only runs it when the Prisma directory changed, and this batch changed no schema and no migration. The last migration of the repository is still `20261030045337_plugin_file_cleanup_status` of the batch of section 5zg.
+
+The browser E2E over the whole catalogue (`pnpm verify:e2e`, the integration lane `jiffoo_core_test`, the `postgres`/`postgres` account), on the same tree:
+
+```
+Playwright start time: 2026-10-30T11:55:21.266Z
+Playwright results: 112 passed, 0 failed, 0 skipped
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Preflight upload storage before database reset | PASS | 1.49s |
+| Check observed browser contexts | PASS | 0.70s |
+| Clear dedicated E2E Redis database | PASS | 0.21s |
+| Reset test database | PASS | 2.83s |
+| Build shared package | PASS | 2.11s |
+| Build plugin SDK | PASS | 3.40s |
+| Build API | PASS | 12.11s |
+| Build Admin | PASS | 16.94s |
+| Build Shop | PASS | 14.71s |
+| Start local marketplace | PASS | 3.11s |
+| Start API, worker, Admin and Shop | PASS | 0.05s |
+| Wait for health | PASS | 2.84s |
+| Run Playwright | PASS | 734.74s |
+| Stop E2E child processes | PASS | 0.11s |
+| Total duration: 795.98s |
+```
+
+The commits of the batch of section 5zg that this section closes were `4495bfac8` (the batch), `ac9fea59e` (the repair of the login budget that the first browser E2E of GitHub Actions demanded, run `41023125361`) and `97448b322` (the ledger commit of the batch). The evidence of the local browser E2E of that batch is in section 5zg; the evidence of this batch is above.
+
+The GitHub Actions run of the commit `af265acf6802eb74c90725ebb0110401c54e3bfe` (run `41053898258`, https://github.com/thefreelight/Jiffoo/actions/runs/41053898258) concluded with `success`. All twelve jobs passed: `api (1)`, `api (2)`, `api (3)`, `api (4)`, `e2e`, `backup`, `compose`, `quality`, `release-verify`, `update-migration`, `update-no-migration` and `summary`. The merged summary artifact is `verify-merged-summary` (`Jiffoo/Jiffoo/verify-summary.txt`), and its verdict is:
+
+```
+Run API tests: 213 passed (213) test files, 2767 passed | 2 skipped (2769) tests
+Run API tests (shard 1/4): 54 passed (54), 512 passed (512)
+Run API tests (shard 2/4): 53 passed (53), 668 passed (668)
+Run API tests (shard 3/4): 53 passed (53), 759 passed (759)
+Run API tests (shard 4/4): 53 passed (53), 828 passed | 2 skipped (830)
+Playwright start time: 2026-10-30T12:17:19.067Z
+Playwright results: 112 passed, 0 failed, 0 skipped
+Backup results: 32 passed, 0 failed, 0 skipped
+API shard file coverage (213/213) PASS
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Install dependencies | PASS | 10.91s |
+| Validate and generate Prisma client | PASS | 21.72s |
+| Build shared package | PASS | 24.13s |
+| Build admin application | PASS | 21.28s |
+| Build Shop application | PASS | 18.05s |
+| Build plugin SDK | PASS | 28.31s |
+| Type-check workspace | PASS | 25.27s |
+| Lint Shop | PASS | 7.17s |
+| Export OpenAPI | PASS | 25.67s |
+| Reset test database | PASS | 14.38s |
+| Check Prisma migration drift | PASS | 8.48s |
+| Run API tests | PASS | 1555.53s |
+| Run Admin tests | PASS | 39.58s |
+| Run Shop tests | PASS | 42.27s |
+| Run browser E2E | PASS | 643.99s |
+| Build API | PASS | 12.76s |
+| Run Docker Compose acceptance | PASS | 201.72s |
+| Run release verification acceptance | PASS | 158.53s |
+| Run backup and restore acceptance | PASS | 302.78s |
+| Run no-migration update acceptance | PASS | 515.53s |
+| Run migration update acceptance | PASS | 517.28s |
+```
+
+The catalogue of GitHub Actions holds five more files than the local catalogue (213 against 208), because the local catalogue excludes the delivery suites that the local runner cannot run. The drift check of the schema is part of every GitHub Actions run and passed, so the tree of the batch carries no drift.
+
+### What is still open
+
+- The storefront does not read the marker of a degraded tax quote yet. It was already open in section 5zg and this batch does not change it: a degraded quote shows an empty total, so the customer cannot place the order.
+- A dead plugin file cleanup row still holds the storage quota of its plugin. The operator now sees the total, the orphans and the truncation of the list, but releasing the quota stays a manual action.
+- An audit row may be lost when the database refuses to write it. The savepoint protects the money transaction, and a failing rollback now ends that transaction explicitly, but the row itself is still lost.
+- The JavaScript of an in-process plugin cannot be cancelled. The deadline answers the caller and the lease of the row is renewed, but the plugin keeps running until it returns.
+
+## 5zi. The conflict surface of this line against `main` (measured, not merged)
+
+**Measured on:** 2026-10-30, from the commit `5819ffda3`. **Merge base with `main`:** `7522a4f6d` (PR #319). The line stands on `codex/core-extension-boundary` and is not merged into `main`; the owner decided on 2026-10-30 that the line continues to grow on the branch. This section records the measurement so it survives the closing of the pull request that was opened to take it.
+
+A pull request from the branch into `main` was opened and closed again without a merge, only to let GitHub compute the conflict surface. It reported `CONFLICTING`, and the local merge of the two trees (read only, `git merge-tree`) reports 629 files that differ in the merged result, of which 293 are real conflicts.
+
+**260 modify/delete conflicts.** The line deleted these files and `main` changed them afterwards.
+
+- Eight of them carry the release pipeline of `main`: `.env.production.example`, `.release/self-hosted/.env.production.example`, `.release/self-hosted/install.sh`, `.github/workflows/pr-quality-gates.yml`, `.github/workflows/publish-oss-release-images.yml`, `.github/workflows/publish-self-hosted-update-feed.yml`, `LICENSE-EXCEPTIONS.md` and `README.md`. The line removed the OSS publication machinery on purpose in September 2026 (`dd32cb6c5`, `f79fdff99`). Keeping the version of `main` here restores that machinery, so this is a release strategy decision and not a conflict to resolve mechanically.
+- The other 252 are the pages of the Admin and the components of the Admin. The line moved them into the route group `(themed)` of Next.js, which does not change the URL, and `main` has no such group. Keeping the files of `main` at the old paths would put two parallel pages on the same URL, and the Admin build would fail on it. `main` changed 21 of those pages after the move (the theme market page, the product, inventory, order and customer lists, the localized forgot password page and its retry, the storefront description, the login audit baseline and the user provenance, the native orders and the Odoo catalogue, the shared page shell, the dashboard redesign). That work has to be carried into the new paths rather than dropped.
+
+**33 content conflicts.** Both sides changed them.
+
+- The ones that need a decision: `apps/api/prisma/schema/system.prisma` (the merged schema matches neither side, so a new migration is required), `pnpm-lock.yaml`, `package.json`, `apps/api/.env.example`, `apps/admin/package.json`, `apps/shop/package.json`, `apps/shop/next.config.js`, `apps/shop/tsconfig.json` and `apps/shop/vitest.config.mts`.
+- The product code: `apps/api/src/core/auth/routes.ts`, `apps/api/src/core/auth/service.ts`, `apps/api/src/core/admin/user-management/service.ts`, `apps/api/src/core/admin/plugin-management/config-secrets.ts`, `apps/api/src/routes/index.ts`, `packages/shared/api/client.ts`, `packages/shared/src/proxy/index.ts`, six files of the Admin and five files of the internationalization.
+- The tests: `apps/api/tests/core/auth-service.test.ts`, `apps/api/tests/core/plugin-config-secrets.test.ts`, `apps/api/tests/core/plugin-gateway-baseline.test.ts`, `apps/api/tests/routes/auth.test.ts` and `apps/api/tests/setup.ts`.
+
+**The 336 files that merge cleanly** are the body of the line: the plugin SDK, the plugin runtime, the plugin task queue, the money model and the disaster tolerance. `main` holds none of it: the plugin runtime, the plugin task worker, the schema of the plugin tasks and the charter of the plugin pages do not exist there.
+
+**The two lines run different workflows.** The line runs `ci.yml`, `release.yml` and `update-full.yml`. `main` runs eight others, among them the release images, the self-hosted update feed, the release draft and the pull request quality gates. A merge needs one decision first: which pipeline `main` keeps. The resolution of the 33 content conflicts follows from it, because the product code of the line is the newer one.
+
+**The Cloudflare Pages checks fail on `main` as well** (commit `286df71a5`), so they are a condition of the repository and not of this line.
+
+### What the line still owes its own branch
+
+Two commits of `codex/lane-core-uiux` were never merged into the branch and are not part of it: `0a701e94e` (the priority Admin and Shop UX defects) and `659fccbf7` (the admin-authorized plugin repair bootstrap). The merge of that lane into the branch has five conflicts, and every one of them is in a file that this batch changed: `apps/api/src/core/admin/extension-installer/routes.ts` (the paged recovery listing), `apps/api/src/core/plugins/tasks.ts` (the deterministic task failures), `apps/api/tests/core/module-boundary-audit.test.ts` (the registered edges), `apps/api/tests/routes/admin-products.test.ts` and `apps/api/tests/routes/plugin-repair-bootstrap.test.ts` (added on both sides). The lane needs its own gate before it joins. **The lane has joined since; section 5zj registers that merge, its five conflicts and its gate.**
+
+## 5zj. Handover evidence — the merge of the lane `codex/lane-core-uiux` into the line
+
+**Baseline SHA:** `cf87809a3`. **Merged branch:** `origin/codex/lane-core-uiux`, the two commits `0a701e94e` (the priority Admin and Shop UX defects) and `659fccbf7` (the admin-authorized plugin repair bootstrap). **Commit:** `b0119494b`.
+
+### Why this section exists
+
+The lane `codex/lane-core-uiux` was opened on 2026-10-19 for the user interface closeout. It was never merged into this line, so two of its commits stayed outside while the line grew by three hundred commits. Section 5zi records that this line is not merged into `main` and what the conflict surface against `main` is; this section records the merge of the lane into the line, which was the work the line still owed itself.
+
+### What the merge brings
+
+The UX commit closes the priority defects of the Admin and the Shop: the customers, orders, products, product categories, profile, staff and settings pages of the Admin, the panel of the API tokens, the error utilities of the Admin, the cart sheet of the Shop, and the category and product write paths of the API, with the tests that hold them (the focus return of a dialog, the error utilities, the list kit, the order list, the products, the profile page, the admin products, the product cache ordering, the products routes, the focus of the cart sheet).
+
+The repair-bootstrap commit is the interesting one: **the feature it carries already existed on this line.** The line had implemented the admin-authorized repair bootstrap in the module that owns it (`apps/api/src/core/admin/extension-installer/repair-bootstrap.ts`, with the rejection audit written inside the `onSend` hook, so the audit is written before the answer leaves the process), while the lane had implemented the same feature inside `apps/api/src/core/admin/plugin-management/service.ts`, with the rejection audit written inside the `onResponse` hook, after the answer may already be on the wire. The merge therefore had to choose one home for the feature.
+
+### The conflicts of the merge and how they were resolved
+
+The merge of the lane into the line had five conflicts, and every one of them was in a file that the step 4 remediation had changed.
+
+| The conflict | The resolution |
+|---|---|
+| `apps/api/src/core/admin/extension-installer/routes.ts` (three blocks): the audit of the rejection was written in `onSend` on this line and in `onResponse` on the lane, and the lane called the service instead of the module that owns the route | the line keeps its three blocks. The rejection audit is written before the answer leaves the process, because an answer that is already on the wire cannot be audited afterwards, and the route calls the module that owns the admission |
+| `apps/api/src/core/plugins/tasks.ts` (one block): the line has the bound of a transition transaction and the set-based projection of a task list, the lane has nothing there because its branch is older | the line keeps its block, and the bound and the projection stay used |
+| `apps/api/tests/core/module-boundary-audit.test.ts` (one block): the lane had registered about seventy-eight dependency rings for its own implementation of the repair bootstrap | the line keeps its registry, and the two edges that only existed for the removed implementation (`admin/plugin-management -> audit` and `admin/plugin-management -> auth`) are deleted |
+| `apps/api/tests/routes/admin-products.test.ts` (one block): the line imported the settings service, the lane imported the product management service | both imports are kept: the merged file uses both (eight and nine uses) |
+| `apps/api/tests/routes/plugin-repair-bootstrap.test.ts` (added on both sides): the lane's file tested the implementation that was removed | the line's file is kept. Every case drives the HTTP route and the runtime helpers that stayed, so no assertion referred to the removed service |
+
+The duplicate implementation of the lane in `apps/api/src/core/admin/plugin-management/service.ts` was merged cleanly and therefore carried no conflict marker, but it was removed together with the imports that only it used (`AuthService`, `AuditService`, `prepareRepairBootstrap`, the type of the request and the symbols of the task module). The two import paths that the lane had rewritten to the older location were put back to the paths of this line, because the plugin runtime moved from the extension installer to the neutral runtime module.
+
+The audit of the module boundary was checked against the merged tree with the logic of the audit itself: **192 edges in the tree, 192 registered, none missing and none extra.** The module state audit needed no change, because the merge had already replaced the older registry of the lane with the newer one of this line.
+
+### The decision this merge makes on purpose
+
+The repair bootstrap belongs to the extension installer, and it stays there. The lane put it into the plugin management service, which added a cross-domain edge from the extension installer to the plugin management, and that edge in turn dragged the auth module, the audit module, the task module and the runtime into a dependency ring of about seventy-eight entries that the module boundary audit then had to approve one by one. The feature is the same in both, but the home of the feature decides the shape of the module graph of the platform, and the installer owns the plugin runtime, the durable task API and the stored manifest of an installation. The audit of the rejection also stays in the `onSend` hook: an answer that is already on the wire cannot be audited afterwards.
+
+### The gate evidence
+
+The shard gate over the whole catalogue (`pnpm verify:quick --shards=4`, the integration lane `jiffoo_core_test`, the `postgres`/`postgres` account), on the tree that carries the merge:
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: not applicable (the shard mode runs the full API catalogue and the full Admin and Shop suites, covering 310 planner-mandated suite(s))
+Mode: shard mode (--shards=4)
+Gate note: the API suite ran in parallel shards. The Prisma generate, the type check, the Lint Shop step, the test database reset, the Admin suite and the Shop suite ran as well.
+Gate note: this mode is not the complete gate: the browser E2E and the serial full-suite run are not part of it.
+Run API tests in 4 shards:
+Shards: 1, 2, 3, 4 of 4 (4-shard run)
+Run scope: full catalogue (4 shard(s))
+Scope coverage: 208/208 files covered
+Totals: Test Files 208 files, 208 passed | Tests 2777 tests, 2775 passed, 2 pending | Suites 547 suites, 547 passed
+Test conclusion: PASS
+Cleanup conclusion: PASS
+Delivery status: API PASS / cleanup PASS
+Missing files: none
+Extra files: none
+Cross-shard duplicates: none
+Empty shards: none
+Coverage verdict: PASS
+| Shard | Exit | Duration | Start at | Test Files | Tests | Failed files |
+| 1 | 0 | 615.7s | 00:44:34 | 51 files, 51 passed | 674 tests, 674 passed | none |
+| 2 | 0 | 458.6s | 00:44:35 | 52 files, 52 passed | 791 tests, 791 passed | none |
+| 3 | 0 | 481.9s | 00:44:36 | 53 files, 53 passed | 665 tests, 665 passed | none |
+| 4 | 0 | 571.3s | 00:44:37 | 52 files, 52 passed | 647 tests, 645 passed, 2 pending | none |
+Run Admin tests: 62 passed (62), 664 tests passed
+Run Shop tests: 40 passed (40), 285 tests passed
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check API, Admin, Shop and shared | PASS | 13.49s |
+| Lint Shop | PASS | 6.50s |
+| Reset test database | PASS | 3.28s |
+| Run API tests in 4 shards | PASS | 628.42s |
+| Run Admin tests | PASS | 15.28s |
+| Run Shop tests | PASS | 19.85s |
+```
+
+The Admin suite holds one file and fifty-nine tests more than before the merge, and the Shop suite one file and eight tests more: they are the tests of the UX commit of the lane.
+
+The browser E2E over the whole catalogue (`pnpm verify:e2e`, the integration lane `jiffoo_core_test`, the `postgres`/`postgres` account), on the same tree:
+
+```
+Playwright start time: 2026-10-30T17:00:11.374Z
+Playwright results: 112 passed, 0 failed, 0 skipped
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Preflight upload storage before database reset | PASS | 1.42s |
+| Check observed browser contexts | PASS | 0.73s |
+| Clear dedicated E2E Redis database | PASS | 0.22s |
+| Reset test database | PASS | 2.95s |
+| Build shared package | PASS | 1.31s |
+| Build plugin SDK | PASS | 2.92s |
+| Build API | PASS | 9.16s |
+| Build Admin | PASS | 14.04s |
+| Build Shop | PASS | 11.58s |
+| Start local marketplace | PASS | 3.61s |
+| Start API, worker, Admin and Shop | PASS | 0.04s |
+| Wait for health | PASS | 3.38s |
+| Run Playwright | PASS | 627.82s |
+| Stop E2E child processes | PASS | 0.10s |
+| Total duration: 679.90s |
+```
+
+The GitHub Actions run of the merge commit `b0119494bff03496ec50589fbeb0169e72c951c9` (run `41097500061`, https://github.com/thefreelight/Jiffoo/actions/runs/41097500061) concluded with `success`. All twelve jobs passed: `api (1)`, `api (2)`, `api (3)`, `api (4)`, `e2e`, `backup`, `compose`, `quality`, `release-verify`, `update-migration`, `update-no-migration` and `summary`. The merged summary artifact is `verify-merged-summary`, and its verdict is:
+
+```
+Run API tests: 213 passed (213) test files, 2781 passed | 2 skipped (2783) tests
+Run API tests (shard 1/4): 54 passed (54), 512 passed (512)
+Run API tests (shard 2/4): 53 passed (53), 669 passed (669)
+Run API tests (shard 3/4): 53 passed (53), 760 passed (760)
+Run API tests (shard 4/4): 53 passed (53), 840 passed | 2 skipped (842)
+Run Admin tests: 62 passed (62), 664 tests passed
+Playwright results: 112 passed, 0 failed, 0 skipped
+Backup results: 32 passed, 0 failed, 0 skipped
+API shard file coverage (213/213) PASS
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Install dependencies | PASS | 9.53s |
+| Validate and generate Prisma client | PASS | 19.90s |
+| Build shared package | PASS | 21.67s |
+| Build admin application | PASS | 20.10s |
+| Build Shop application | PASS | 17.51s |
+| Build plugin SDK | PASS | 25.22s |
+| Type-check workspace | PASS | 24.29s |
+| Lint Shop | PASS | 6.85s |
+| Export OpenAPI | PASS | 21.74s |
+| Reset test database | PASS | 13.15s |
+| Check Prisma migration drift | PASS | 7.54s |
+| Run API tests | PASS | 1410.92s |
+| Run Admin tests | PASS | 40.11s |
+| Run Shop tests | PASS | 66.60s |
+| Run browser E2E | PASS | 649.06s |
+| Build API | PASS | 12.28s |
+| Run Docker Compose acceptance | PASS | 194.74s |
+| Run release verification acceptance | PASS | 123.94s |
+| Run backup and restore acceptance | PASS | 313.44s |
+| Run no-migration update acceptance | PASS | 522.78s |
+| Run migration update acceptance | PASS | 464.97s |
+```
+
+The two Cloudflare Pages checks fail on this run, and they fail on `main` as well (see section 5zi), so they are a condition of the repository and not of this line.
+
+## 5zl. The frozen notification detail of the Admin (a real defect the browser E2E found)
+
+**Baseline SHA:** `8fe872a0d`. **Commit:** (the commit of this batch).
+
+### What happened
+
+The GitHub Actions run `41110230704` failed its browser E2E on one case: `e2e/08-orders.spec.ts`, "record payment, ship a Shop checkout order, and resend its notification", which timed out after the 120 seconds of its own budget. Every other job of the run passed.
+
+The trace of the failed case carries the reason. The action log of the click on the **Resend** button of the notification sheet of the Admin reads:
+
+```
+2026-10-30T18:54:13.443Z waiting for getByRole('button', { name: 'Resend' })
+2026-10-30T18:54:13.447Z   locator resolved to <button disabled ...>Resend</button>
+2026-10-30T18:54:13.448Z attempting click action
+2026-10-30T18:54:13.453Z   element is not enabled
+2026-10-30T18:54:13.453Z retrying click action
+```
+
+and the same three lines repeat for the whole two minutes (886 records). The button was disabled from the very first attempt. Nothing on the API side was wrong: the log of the run holds no error and no slow request, and the dump of the notifications that the runner takes at the end shows all four notifications of the case as `SENT`. The notification was delivered; the sheet never learned it.
+
+### The cause
+
+The notification sheet of the Admin (`apps/admin/app/[locale]/(themed)/notifications/page.tsx`) polls the **list** every two seconds, but it reads the **detail** exactly once, when a row is opened:
+
+```ts
+async function openDetail(id: string) {
+  const request = ++detailId.current; setOpen(true); setSelected(null); ...
+  try { const item = unwrapApiResponse(await notificationsApi.getById(id)); if (request === detailId.current) setSelected(item); }
+  ...
+}
+```
+
+The background poll only writes `items`. So the sheet holds a **snapshot** of the notification taken when the row was clicked, and the button of the sheet is derived from that snapshot:
+
+```tsx
+<Button className="w-full" disabled={resending || !!blocked} onClick={() => void resend()}>{c('resend')}</Button>
+```
+
+with
+
+```ts
+const blocked = selected?.type === 'password_reset' ? 'passwordHint'
+  : selected && ['PENDING', 'SENDING'].includes(selected.status) ? 'pendingHint'
+  : selected && ['staff_invite', 'email_verification'].includes(selected.type) && !selected.recipientUserId ? 'recipientMissing'
+  : null;
+```
+
+For an order confirmation the button is disabled exactly while the notification is `PENDING` or `SENDING`. An operator who opens the sheet of a notification that is still being sent therefore sees a button that stays disabled for good, even after the delivery has finished: the state that decides it is frozen at the moment the row was clicked, and the only way to see the new state is to close the sheet and open it again. The rows of the list are not frozen, because the list is what the poll refreshes, so the sheet and the list can disagree.
+
+### The fix
+
+The sheet now follows the same rhythm as the list: while it is open and the notification it shows is still `PENDING` or `SENDING`, so while its status can still change, the sheet reads that notification again every two seconds and updates it. The read reuses the existing endpoint and the existing request sequence, and it writes only when the sheet still shows the same notification, so a sheet that moved on is never written over. A failed read keeps the sheet and its content and only reports that the status may be out of date. The timer stops when the sheet closes, when another notification is opened, when the status becomes final, and when the page is unloaded.
+
+**The rule did not change.** A notification that is still being sent cannot be resent; what changed is that the sheet no longer holds a stale snapshot of that rule. The rows of the list and the sheet now differ by at most one poll cycle and come from the same endpoint.
+
+Two unit tests of the Admin hold the state machine down: one opens a notification that is still being sent and asserts that the button stays disabled while the status is `SENDING`, that it becomes usable once the read returns `SENT`, and that the reads stop at the final status; the other asserts that the reads stop when the sheet is closed.
+
+The browser E2E case needed no change: it opens the sheet, clicks Resend and waits for the answer, and Playwright waits for the button to become usable.
+
+### The gate evidence
+
+The shard gate over the whole catalogue (`pnpm verify:quick --shards=4`, the integration lane `jiffoo_core_test`, the `postgres`/`postgres` account), on the tree that carries the fix:
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Mode: shard mode (--shards=4)
+Run API tests in 4 shards:
+Shards: 1, 2, 3, 4 of 4 (4-shard run)
+Scope coverage: 208/208 files covered
+Totals: Test Files 208 files, 208 passed | Tests 2777 tests, 2775 passed, 2 pending | Suites 547 suites, 547 passed
+Test conclusion: PASS
+Cleanup conclusion: PASS
+Delivery status: API PASS / cleanup PASS
+Missing files: none
+Extra files: none
+Cross-shard duplicates: none
+Empty shards: none
+Coverage verdict: PASS
+Run Admin tests: 62 passed (62), 666 tests passed
+Run Shop tests: 40 passed (40), 285 tests passed
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check API, Admin, Shop and shared | PASS | 13.38s |
+| Lint Shop | PASS | 6.22s |
+| Reset test database | PASS | 3.09s |
+| Run API tests in 4 shards | PASS | 597.41s |
+| Run Admin tests | PASS | 14.82s |
+| Run Shop tests | PASS | 21.38s |
+```
+
+The browser E2E over the whole catalogue (`pnpm verify:e2e`, the integration lane `jiffoo_core_test`, the `postgres`/`postgres` account), on the same tree:
+
+```
+Playwright start time: 2026-10-30T19:30:56.519Z
+Playwright results: 112 passed, 0 failed, 0 skipped
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Preflight upload storage before database reset | PASS | 1.26s |
+| Check observed browser contexts | PASS | 0.74s |
+| Clear dedicated E2E Redis database | PASS | 0.21s |
+| Reset test database | PASS | 2.65s |
+| Build shared package | PASS | 1.23s |
+| Build plugin SDK | PASS | 2.86s |
+| Build API | PASS | 12.35s |
+| Build Admin | PASS | 16.51s |
+| Build Shop | PASS | 13.55s |
+| Start local marketplace | PASS | 3.14s |
+| Start API, worker, Admin and Shop | PASS | 0.05s |
+| Wait for health | PASS | 2.82s |
+| Run Playwright | PASS | 691.21s |
+| Stop E2E child processes | PASS | 0.11s |
+| Total duration: 749.36s |
+```
+
+The GitHub Actions run of the commit `1f33924a84d11bdc621549adfe0e20468cf3cc5a` (run `41118054386`, https://github.com/thefreelight/Jiffoo/actions/runs/41118054386) concluded with `success`. All twelve jobs passed, among them the four API shards (213 of 213 files, 2781 tests), the browser E2E (112 tests), the backup and restore acceptance (32 tests), the two update acceptances, the compose acceptance and the drift check of the Prisma schema. The merged summary artifact is `verify-merged-summary`, and its verdict is:
+
+```
+| Step | Result | Duration |
+| --- | --- | --- |
+| Install dependencies | PASS | 8.91s |
+| Validate and generate Prisma client | PASS | 18.83s |
+| Build shared package | PASS | 20.57s |
+| Build admin application | PASS | 15.74s |
+| Build Shop application | PASS | 13.51s |
+| Build plugin SDK | PASS | 24.11s |
+| Type-check workspace | PASS | 18.37s |
+| Lint Shop | PASS | 5.33s |
+| Export OpenAPI | PASS | 18.52s |
+| Reset test database | PASS | 12.49s |
+| Check Prisma migration drift | PASS | 7.15s |
+| Run API tests | PASS | 1341.67s |
+| Run Admin tests | PASS | 29.47s |
+| Run Shop tests | PASS | 49.26s |
+| Run browser E2E | PASS | 832.25s |
+| Build API | PASS | 9.60s |
+| Run Docker Compose acceptance | PASS | 173.36s |
+| Run release verification acceptance | PASS | 148.23s |
+| Run backup and restore acceptance | PASS | 299.90s |
+| Run no-migration update acceptance | PASS | 486.80s |
+| Run migration update acceptance | PASS | 447.52s |
+| API shard file coverage (213/213) | PASS | 0.00s |
+```
+
+The two Cloudflare Pages checks fail on this run as well, and they fail on `main` as well (see section 5zi), so they are a condition of the repository and not of this line.
+
+## 5zk. The intermittent failure of the browser E2E of the theme media upload
+
+**Baseline SHA:** `12aee01d7`. **Commit:** (the commit of this batch).
+
+### What happened
+
+The GitHub Actions run of the ledger commit of the merge (`41100370689`) failed its browser E2E on one case: `e2e/37-uploaded-storage.spec.ts`, "G theme media upload saves a canonical URL and renders in Shop after reload". The run of the merge commit before it (`41097500061`) had passed the same case, the source of the two commits is identical (the ledger commit changed a markdown file only), and the re-run of the failed job of `41100370689` passed. The failure was therefore intermittent, and the line had two local browser E2E runs of one hundred and twelve green tests behind it.
+
+### The cause
+
+The cause was in the test, not in the product.
+
+The case waited for the save of the theme settings with `await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();`. The save button of the theme editor is `disabled={!dirty || busy || conflict}` (`apps/admin/components/themes/ThemeEditor.tsx:76`), so it is disabled **while the save runs and once the save is complete**. The assertion could not tell the two states apart, so it usually passed while the save was still in flight, and the case opened the page of the Shop before the settings had landed. The Shop then rendered the previous image, and the comparison of the optimizer target failed.
+
+The comparison itself was sampled once: the first assertion of the helper `expectOptimizedSource` only checks the shape of the source (`/_next/image?`), which the previous image satisfies as well, and the second assertion compared the `url` parameter of the optimizer once, without waiting.
+
+There is no defect in the product on this path. The editor resets its `dirty` flag only in `accept()`, which runs after the response of the save, so the editor's own "Unsaved changes" indicator is a sound signal that the save landed. The read path of the theme has no cache that could serve a stale setting: the Shop reads it with `cache: 'no-store'` (`apps/shop/lib/core-transport.ts:223`), the Core answers `GET /store/theme` with `Cache-Control: no-store`, and the resolver reads the active theme, the theme and its configuration inside a transaction on every request.
+
+### The fix
+
+The case now waits for the save itself instead of for the shape of the button: it asserts that the editor is dirty before the save, waits for the request that saves the configuration (`PUT .../extensions/themes/<slug>/config`) and asserts that it answered 200, and then asserts that the editor is clean again. The helper `expectOptimizedSource` polls the optimizer target until it equals the expected source. **The strength of the assertion did not change**: the parameter of the optimizer still has to equal the source exactly, only the sampling became a wait. The other case that uses the helper, the uploaded product image, is covered by the same change; its own signal, the navigation to the edit page of the product, already happens after the response of the save.
+
+### The gate evidence
+
+The browser E2E over the whole catalogue (`pnpm verify:e2e`, the integration lane `jiffoo_core_test`, the `postgres`/`postgres` account), on the tree that carries the fix:
+
+```
+Playwright start time: 2026-10-30T18:34:46.225Z
+Playwright results: 112 passed, 0 failed, 0 skipped
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Preflight upload storage before database reset | PASS | 1.82s |
+| Check observed browser contexts | PASS | 0.75s |
+| Clear dedicated E2E Redis database | PASS | 0.23s |
+| Reset test database | PASS | 3.33s |
+| Build shared package | PASS | 1.26s |
+| Build plugin SDK | PASS | 2.89s |
+| Build API | PASS | 10.31s |
+| Build Admin | PASS | 15.48s |
+| Build Shop | PASS | 12.50s |
+| Start local marketplace | PASS | 3.10s |
+| Start API, worker, Admin and Shop | PASS | 0.04s |
+| Wait for health | PASS | 2.83s |
+| Run Playwright | PASS | 708.23s |
+| Stop E2E child processes | PASS | 0.11s |
+| Total duration: 763.51s |
+```
+
+The change touches one file of the browser E2E and no file of the product, so the browser E2E is the gate that covers it; the shard gate of the API, the Admin and the Shop suites does not reach a Playwright specification and was not run again for it.
+
+## 5zm. The OpenAPI annotation debt of the business JSON operations
+
+**Baseline SHA:** `bbf7fdfb6`. **Commit:** (the commit of this batch).
+
+### What the debt was
+
+`apps/api/tests/contract/api-standards.test.ts` carried two skipped cases: the business JSON envelope rule and the PageResult rule. Both were skipped because the rule was failing, not because the rule was wrong. The generated document (`apps/api/openapi.json`, produced by `pnpm --filter api export:openapi`) held 174 operations, 157 of them business JSON operations, and the envelope rule reported **29 violations over 18 operations**; 139 business operations were compliant. The PageResult rule reported **0 violations** — that case had never been a real debt.
+
+### The nine declarations
+
+Nine operations already answered the envelope at runtime and only lacked the declaration. Their `data` is now declared as the truth: the account summary and the token record as typed objects, `null` for the two verification answers (both really answer `data: null`), the paged inventory list and the nullable database-audit summary.
+
+`GET /api/v1/account`, `GET /api/v1/admin/api-tokens/`, `POST /api/v1/admin/api-tokens/`, `DELETE /api/v1/admin/api-tokens/{tokenId}`, `GET /api/v1/auth/verify-email`, `POST /api/v1/auth/verify-email/code`, `GET /api/v1/admin/inventory/`, `GET /api/v1/extensions/plugin/database-audit`, `POST /api/v1/extensions/plugin/database-audit`.
+
+### The contract change: the three install operations
+
+`GET /api/v1/install/status`, `GET /api/v1/install/check-database` and `POST /api/v1/install/complete` answered a **bare object** and now answer `{ success: true, data: … }`. This is a contract change, and it is registered here.
+
+The consumers were inside this repository: `apps/admin/components/auth/auth-screen.tsx` and `apps/admin/app/[locale]/install/page.tsx`. Both now read the envelope; the install page unwraps `result.data` in one place, so `status.isInstalled`, `connected` and the completion summary keep their types. The error envelopes, the status codes, and the reachability of the three routes before the platform is installed are unchanged — they must stay reachable, because the Admin decides whether to show the install screen from `GET /install/status`.
+
+The change is covered by `apps/api/tests/routes/install-envelope.test.ts` (one case per endpoint) and by the two existing install test files, whose assertions now read `json().data`.
+
+### The rule itself
+
+The rule excluded nothing before, so every operation without an `application/json` success schema counted as a violation — including the operations whose success body is deliberately not JSON. The exclusion is now driven by the **declared media type** of the success response:
+
+- a success response that declares at least one content type and **none** of them is `application/json` (the three CSV exports declare `text/csv`) is out of the scope of the JSON envelope rule;
+- a success response whose `application/json` payload is a **binary string** (`type: 'string', format: 'binary'`) is out of scope as well, because that is the shape the generator emits for the three file downloads — a file body is not a JSON document;
+- a success response that is **not declared at all**, or that declares `application/json` with a wrong envelope, or whose `data` is an empty `{}`, is still a violation. The rule was not weakened into "skip whatever is undeclared".
+
+The exclusion is a property of the declared media type, not a list of paths, so a new file route or export is excluded by itself.
+
+Both cases are live again. A unit test over the helper (`apps/api/tests/contract/api-standards-helpers.test.ts`) pins the eight shapes with synthetic operations: only `text/csv` excluded, only `application/octet-stream` excluded, a binary string payload excluded, no declared content still a violation, a JSON response without `required: ['success','data']` still a violation, an empty `data` still a violation, a compliant operation clean, and a missing success response still a violation.
+
+### The measurement
+
+Before: 29 violations over 18 operations, 139 compliant business operations.
+After: **12 violations over 6 operations** — exactly the six non-JSON operations (the three file downloads and the three CSV exports) — and **151 compliant business operations**.
+
+## 5zn. The per-user saved views and custom columns of the list pages
+
+**Baseline SHA:** `bbf7fdfb6`. **Commit:** (the commit of this batch).
+
+### What was built
+
+A saved view is a named, per-user snapshot of a list's current query state (filters, sort, page). A custom column set is a per-user, per-list ordered set of visible columns. Both apply to the **orders**, **products** and **customers** lists.
+
+The authoritative catalogue of the list keys and of the column keys lives in the shared package (`packages/shared/src/admin-list-preferences.ts`), so the API validates a stored column key against the same list the Admin renders its picker from: a column that the page cannot render can never be stored.
+
+### The data model
+
+Two new tables, owned by the new module `apps/api/src/core/admin/list-preferences/`:
+
+- `admin_list_views` (`userId`, `listKey`, `name`, `query`, timestamps; unique on `(userId, listKey, name)`),
+- `admin_list_column_preferences` (`userId`, `listKey`, `columns`, timestamps; unique on `(userId, listKey)`).
+
+Both cascade from `users`. The migration is `20261031062716_admin_list_views`; its SQL creates the two tables, their indexes and their foreign keys and touches nothing else.
+
+### The API
+
+| Method | Path | Request | Success data |
+| --- | --- | --- | --- |
+| GET | `/api/v1/admin/list-views` | `?list=orders` | `{ views: [{ id, listKey, name, query, createdAt, updatedAt }] }` |
+| POST | `/api/v1/admin/list-views` | `{ list, name, query }` | the created view |
+| PUT | `/api/v1/admin/list-views/:id` | `{ name?, query? }` | the updated view |
+| DELETE | `/api/v1/admin/list-views/:id` | — | `null` |
+| GET | `/api/v1/admin/list-preferences` | `?list=orders` | `{ listKey, columns }` |
+| PUT | `/api/v1/admin/list-preferences` | `{ list, columns }` | `{ listKey, columns }` |
+
+Every read and write is scoped to the authenticated administrator: the server derives the owner from the session, the client never sends a user id, and a view of another user is answered as **not found** rather than as a permission error, so its existence does not leak. A duplicate name is answered with `LIST_VIEW_NAME_TAKEN` (409) and never as a raw unique-constraint crash.
+
+### The Admin side
+
+Each of the three pages declares its own columns, the picker hides the optional ones and keeps the always-visible one, and the preference is read on mount and persisted on every toggle. Applying a saved view **navigates the URL** with the view's query, so the existing `useListState` machinery picks it up; no second state store was introduced.
+
+The default visible columns and their order are exactly the ones of the day before. The browser E2E locates the column headers by name (`getByRole('columnheader', { name: 'Amount', exact: true })`, `{ name: 'Price' }`, `{ name: 'Products' }`), so the column labels keep pointing at the original message namespace rather than at a new one.
+
+### Two defects the review found, and their repairs
+
+Both were found by reading the diff against the browser E2E, not by the unit tests.
+
+1. **The "last order" cell of the customers table lost its accessible name.** The refactor to a column-definition array moved the `aria-label` from the `<td>` onto an inner `<span>`. An accessible name belongs to the element that owns the role, and the `<td>` is the element with the role `cell`, so the E2E locator `row.getByRole('cell', { name: 'Last order: …' })` no longer matched. The column definition now carries the cell's label and the `<td>` receives it. The same refactor had dropped the `title` of the "paid total" cell; it is back.
+2. **The naming input of the saved views lost the focus while typing.** The input is rendered inside the Radix dropdown, and `@radix-ui/react-menu` runs a typeahead over every printable key on the menu content; when a menu item's text starts with the typed characters, the menu moves the focus to that item. The menu items are the saved view names and "Save current view", so typing a name that starts with the same letter handed the focus away mid-word. The input now stops the keystroke from reaching the menu and takes the focus when it appears.
+
+## 5zo. The bulk print of the selected orders
+
+**Baseline SHA:** `bbf7fdfb6`. **Commit:** (the commit of this batch).
+
+### The API
+
+`POST /api/v1/admin/orders/print` resolves an order selection — explicit ids, or the list's filter with its excluded ids — into a printable payload. The selection is resolved exactly the way the CSV export of the same module resolves it (`orderWhere`, `orderSort`, the same `OrderExportSelection`), so a print job covers the orders the operator saw selected.
+
+The payload of one order carries the order number, the date, the status, the payment status, the payment method, the customer, the shipping address, the items (product name, variant name, quantity, unit price, line total), the amounts (subtotal, shipping, tax, the tax-inclusive flag, the total, in the order's own currency), the latest shipment, and whether a payment awaits review. The product and variant names are read from the item's catalog snapshot through the order module's public projection, so a printed order shows the names the order was placed with.
+
+The result is capped at **200 orders**: a print job renders in the operator's browser, and an unbounded selection would be a denial of service on that browser. The payload reports the real number of matching orders and whether the list was truncated.
+
+### The Admin side
+
+The orders list gained a **Print** button in its bulk bar. It opens `/<locale>/orders/print`, which carries the selection: the ids as a comma separated parameter, or the list's own query string plus `match=1` and the excluded ids. The print page rebuilds the filter from the URL with `orderListQuery`, separates the sort from the filter, posts the selection, and renders one block per order in a print-optimized document with a **Print** button that calls `window.print()`. The print stylesheet is a scoped `<style>` block in the page; the global stylesheet is untouched. The page works when it is opened directly, not only when it is navigated to from the list.
+
+### The defect the first gate found, and its repair
+
+The first run of the gate answered **500** on `POST /api/v1/install/complete` (not this feature, but the contract change of 5zm): the route declared the envelope schema while the handler still sent the raw result, and the response serializer refuses to write a body without a required property. The handler now sends the envelope. The same gate found that the print test asserted a payment awaiting review on an order that its own selection did not contain; the fixture and the implementation were both right and the selection was wrong, so the test now selects the order that really carries the review payment.
+
+## 5zp. The bulk price edit of the selected products
+
+**Baseline SHA:** `bbf7fdfb6`. **Commit:** (the commit of this batch).
+
+### The data model
+
+There was no compare-at price in the repository. `ProductVariant` gained a nullable `compareAtPrice Decimal @db.Decimal(18,2)`; the migration `20261031074641_admin_product_compare_at_price` contains the single `ALTER TABLE` and nothing else. The column is nullable, so the existing rows and the read paths of the Shop are unaffected.
+
+### The API
+
+`POST /api/v1/admin/products/bulk-prices` applies one price edit to the variants of the selected products. The selection is the module's `ProductSelection` (ids, or a filter with excluded ids), the same one the existing product bulk action uses. The edit is either an absolute **amount** or a **percentage** of the current value, for the sale price, for the compare-at price, or both; the compare-at price can also be cleared. A dry run computes and reports everything without writing.
+
+The money rules are exact, and they are the heart of the feature:
+
+- the store currency decides the minor units, and **every** computation happens in those minor units (`decimalToMinor`, `minorToDecimal`);
+- the percentage is parsed from its **decimal text** into a `bigint` scaled by one hundred — never through a double — so `12.5` is exactly twelve and a half percent;
+- the new amount is `roundHalfAwayFromZero(currentMinor × (10000 + pctScaled) / 10000)` computed with `BigInt`. `100.00` plus ten percent is `110.00`; `99.99` minus ten percent is `89.99` and never `89.991`;
+- a price the currency of the store cannot hold is **refused, never rounded** — a store whose currency has no fraction cannot store a fraction of a unit;
+- the strike-through price of a variant is never below its sale price; a variant that would break that rule is skipped as a whole, so a variant is never half applied.
+
+The write is a conditional update that carries the price it was computed from, inside one transaction per product that holds the variant row lock, so a price that was computed from a value that is no longer current matches no row and the variant is skipped as changed concurrently instead of being overwritten. Only the two price columns are written. The product cache version is bumped once for the whole batch.
+
+The result reports the matched and processed products, the written and skipped variants with their reasons, and the changes with the previous and the new prices.
+
+### The Admin side
+
+The products list gained an **Edit prices** button in its bulk bar. The dialog offers the sale price and the compare-at price, each with an amount or a percentage, and a way to clear the compare-at price. It is a two-step action: the first call is a dry run that shows what would change — the products, the variants, the previous and the new price, and the skipped entries with their reasons — and the second call applies it. The apply button stays disabled until a preview succeeded.
+
+### The defect the second gate found, and its repair
+
+The Admin suite failed on two cases of the new print page. The page's fetch effect listed the translation function in its dependency array, and the translation function of the test's mock was a new arrow function on every render, so the effect re-ran after every state update it caused and the page fetched forever. The effect does not depend on the language — the payload is the same in every language and the locale only shapes the rendering — so the dependency was removed and the error message is now resolved while rendering, the way the other pages do it. The mock was made faithful to the real hook, which is a stable `useCallback`.
+
+The third failure was in the test of the saved views: the case opened the menu a second time to find the delete button, but the menu was still open after saving a view (the naming panel keeps it open), and the trigger is a toggle, so the second press closed the menu and unmounted the button. The helper that opens the menu is now idempotent.
+
+## 5zq. The gate evidence of this batch
+
+**Baseline SHA:** `bbf7fdfb6`. **Commits:** (the commits of this batch).
+
+### The selection basis
+
+The batch touches the API contract surface (twelve route modules), the Prisma schema and two migrations, the shared package (the error-code catalogue, the shared column catalogue, two i18n namespaces and three registrations) and the Admin application. The verification planner therefore widened the scope to the whole catalogue, and the run was the local full gate in shard mode (`pnpm verify:quick --shards=4`), which covers the whole API catalogue, the whole Admin suite, the whole Shop suite, the type check of all four packages, the lint of the Shop, the reset of the test database and the migration drift check. The browser E2E ran afterwards on the same tree.
+
+The changed inputs were the 57 files of the batch; the selected test files were the whole API catalogue (213 files), the whole Admin suite (65 files) and the whole Shop suite (40 files).
+
+### The shard gate
+
+```
+Scope coverage: 213/213 files covered
+Totals: Test Files 213 files, 213 passed | Tests 2818 tests, 2818 passed | Suites 556 suites, 556 passed
+Test conclusion: PASS
+Cleanup conclusion: PASS
+Delivery status: API PASS / cleanup PASS
+```
+
+| Shard | Exit | Duration | Start at | Test Files | Tests | Failed files |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | 0 | 631.0s | 16:55:11 | 53 files, 53 passed | 697 tests, 697 passed | none |
+| 2 | 0 | 482.1s | 16:55:12 | 52 files, 52 passed | 545 tests, 545 passed | none |
+| 3 | 0 | 548.7s | 16:55:13 | 54 files, 54 passed | 772 tests, 772 passed | none |
+| 4 | 0 | 626.8s | 16:55:13 | 54 files, 54 passed | 804 tests, 804 passed | none |
+
+```
+Run Admin tests:
+   Start at  17:05:38
+ Test Files  65 passed (65)
+      Tests  684 passed (684)
+Run Shop tests:
+   Start at  17:05:55
+ Test Files  40 passed (40)
+      Tests  285 passed (285)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check API, Admin, Shop and shared | PASS | 3.89s |
+| Lint Shop | PASS | 7.15s |
+| Reset test database | PASS | 3.04s |
+| Check Prisma migration drift | PASS | 1.63s |
+| Run API tests in 4 shards | PASS | 643.30s |
+| Run Admin tests | PASS | 17.31s |
+| Run Shop tests | PASS | 21.69s |
+```
+
+### The browser E2E
+
+```
+Playwright start time: 2026-10-31T09:10:59.971Z
+Playwright results: 112 passed, 0 failed, 0 skipped
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Preflight upload storage before database reset | PASS | 1.47s |
+| Check observed browser contexts | PASS | 0.71s |
+| Clear dedicated E2E Redis database | PASS | 0.93s |
+| Reset test database | PASS | 3.48s |
+| Build shared package | PASS | 1.56s |
+| Build plugin SDK | PASS | 3.24s |
+| Build API | PASS | 9.67s |
+| Build Admin | PASS | 16.39s |
+| Build Shop | PASS | 12.39s |
+| Start local marketplace | PASS | 4.12s |
+| Start API, worker, Admin and Shop | PASS | 0.04s |
+| Wait for health | PASS | 3.93s |
+| Run Playwright | PASS | 615.96s |
+| Stop E2E child processes | PASS | 0.09s |
+Total duration: 674.65s
+```
+
+### The two gate runs before this one
+
+The first run of the gate over this batch failed on six files: the install completion answered 500 (5zm), the two module audits did not know the new module and its 23 new module-level constants, and the print test asserted on an order its selection did not contain. The second run failed on three Admin cases (5zo, 5zp). Both failures were repaired by the packages that own the files, and the run above is the result over the tree that was committed.
+
+## 5zr. The diagnosis loop of the verification: a diagnostic run and a filtered browser E2E
+
+**Baseline SHA:** `2b51c5740`. **Commit:** `f0d07b85f`.
+
+### The problem
+
+The batch that closed the OpenAPI debt and the second wave of the Admin features took about four and a half hours, and the code was the smaller part of it. The verification loop was the reason:
+
+- The planner widens every selection to the whole catalogue when the batch touched `packages/shared/`, the API contract surface, the schema or authentication, and the API catalogue runs serially inside one database (`singleFork`, `fileParallelism: false`). A widened selection therefore costs about thirty minutes.
+- The first gate of that batch failed on six files. Locating the three failing Admin cases of the second run cost another whole gate — fourteen minutes to read three error messages, because the planner dragged the entire API catalogue into a run that needed three files.
+- The browser E2E runs the whole catalogue: about eleven minutes for 112 cases.
+
+The gate did its job: it caught six real defects, three of them product defects that no unit test could see (the accessible name of a table cell, a menu that stole the focus of an input, a fetch effect that looped forever). But its unit price is what made the loop expensive.
+
+### The change
+
+**A diagnostic run.** `pnpm verify:quick --diagnostic` runs exactly the requested selection, prints the suites the planner would add for the certifying gate together with their reasons, and marks its own summary as a diagnostic run. It is a localisation tool and never a gate: the run that certifies a commit is the widened one, and without `--diagnostic` the planner's mandatory suites are still added and still run. It is refused without `--quick`, together with `--shards=`, and without a selection.
+
+**A filtered browser E2E.** `pnpm verify:e2e --area=<substring>` runs the chain of projects the target depends on, then the target area, and skips the areas after it. `--grep=<pattern>` narrows the cases inside the target area and needs the area to name.
+
+### What the E2E filter had to learn about the suite
+
+The first implementation ran the target area alone, and the three cases of `08-orders` failed with `prisma.user.findUniqueOrThrow()` finding no user. The reason is the shape of the suite: `e2e/playwright.config.ts` declares every project as depending on the previous one (`dependencies: index ? [areas[index - 1]] : []`), so the forty projects are one chain, and the earlier projects' **tests** are the step that creates the fixtures — the administrator account, the products, the store settings — that the later cases read. Dropping the chain drops the fixtures with it.
+
+A filtered run therefore replays the chain: the groups before the last target area run their full cases without a title filter, the target area runs with the filter, and the groups after it are skipped. The saving is the tail, and the summary says so: it names the target areas, the chain it replayed and the areas it skipped. An area in the last position has no saving at all, and the summary shows that too.
+
+The filtered run also broke the browser context guard on the way: the guard evaluates a slice of the runner's own source in a sandbox, so a new module-level identifier in that slice has to be mirrored in the sandbox. The guard now carries that contract in a comment.
+
+### The measurements
+
+| | before | after |
+| --- | --- | --- |
+| locate three failing Admin cases | about 14 min (a whole gate) | **21 s** (`pnpm verify:quick --scope=admin --diagnostic`, 65 files, 684 tests) |
+| re-run the browser E2E of one area | about 11 min (674 s, 112 cases) | **210 s** (`pnpm verify:e2e --area=08-orders`, 15 cases: the seven areas of the chain plus the target) |
+
+### The rules that came with it
+
+`AGENTS.md` now states that a diagnostic run localises a failure and only the widened gate certifies; that the certifying gate of a widened batch is the shard mode; that the local gate covers the change while the complete gate belongs to CI; that a filtered browser E2E localises a case; and that a worker is briefed with the decision already made.
+
+### The local evidence
+
+This batch touched only `scripts/` and `AGENTS.md`, so the planner adds no suite and the certifying local run is the script tests:
+
+```
+=== Run script tests ===
+ℹ tests 19
+ℹ pass 19
+ℹ fail 0
+| Run script tests | PASS | 0.37s |
+```
+
+The diagnostic run and the filtered E2E are the evidence of the two new modes:
+
+```
+Scope: admin (diagnostic run; this is not the certifying gate)
+Delivery status: DIAGNOSTIC (this run is not the certifying gate and is never delivery evidence)
+ Test Files  65 passed (65)
+      Tests  684 passed (684)
+```
+
+```
+E2E target areas: 08-orders, 09-customers
+E2E fixture chain: 01-install, 02-login, 03-password, 04-language, 05-settings, 06-health-plugins, 07-products
+Playwright results: 15 passed, 0 failed, 0 skipped (filtered by area 08-orders; this run is NOT the certifying E2E gate)
+Total duration: 210.45s
+```
+
+The complete gate is the CI gate, which runs on every push; its evidence is registered in the section that follows this one.
+
+## 5zs. The rule file, cut down to the working agreement
+
+**Baseline SHA:** `e7cd2f66b`. **Commits:** (the commits of this batch).
+
+### What the owner asked
+
+The owner read the rule file and found it long and scattered: many rules, in an order that gave no map of them, and details mixed with the rules themselves. The approved cuts were four — **A** move the browser E2E runbook detail into `docs/`, **B** delete the explanatory sentences of the local gate, **C** drop the rationale sentences of the worker section, **D** move the command table out — and the file was also to be measured against the official Codex definition of `AGENTS.md`.
+
+### What the official definition says
+
+The authoritative pages are the Codex documentation on `AGENTS.md` and the `agents.md` convention itself. They define the file's **mechanics**, not a length:
+
+- Codex builds one instruction chain per run: the global file first (`~/.codex/AGENTS.md`, or `AGENTS.override.md`), then the project scope, walking from the project root toward the current working directory and concatenating from the root down, so the nearest file wins. Empty files are skipped, and the combined size defaults to 32 KiB (`project_doc_max_bytes`).
+- The recommended shape is descriptive Markdown headings: working agreements at the global scope, repository-wide expectations at the root, service-specific rules in the file nearest the code they govern.
+- There is **no** length limit in the definition. The "500 to 2,000 characters" figure in circulation comes from a third-party guide, not from OpenAI, and is not a rule to follow.
+- The one explicit exclusion is about code-review rules: formatting and lint checks are best left to CI when CI already runs them.
+
+Two consequences follow for this repository. First, 32 KiB is the ceiling and the file was never near it, so "too long" was never a technical problem — the complaint was about **structure**, and the structure is what the cuts address. Second, the convention's advice to move specialized rules next to the code does not apply here: Codex walks from the project root toward the **current working directory**, and every session in this worktree runs from the worktree root, so a nested `apps/api/AGENTS.md` would be silently skipped. The architecture boundaries therefore stay in the root file, where they are always read.
+
+### The cuts
+
+| | before | after |
+| --- | --- | --- |
+| `AGENTS.md` | 23,201 bytes, 329 lines | **19,552 bytes, 281 lines** |
+| bold lead-ins in the root file | 37 | 35 |
+| bold lead-ins in the root file plus `docs/` | 37 | 37 |
+
+What moved, and where:
+
+| Cut | From | To |
+| --- | --- | --- |
+| A | the leftover-process cleanup procedure, the visual capture procedure, the failure-evidence procedure | `docs/verification-runbook.md` |
+| B | the sentences explaining why a full run takes 38 minutes and why the shard mode takes 13 | deleted |
+| C | the rationale sentences of the worker section | deleted |
+| D | the command table (Appendix A) | `docs/verification-runbook.md` |
+
+The structure followed the convention's headings: a table of contents that says what each section binds, the owner's decisions first, and a closing section that names where the detail lives.
+
+### The check that no rule was lost
+
+The cut is mechanical, so it is verified mechanically: every bold lead-in of the previous file (37 of them) is searched in the new `AGENTS.md` and the three `docs/` files it now points at, first as an exact string and then as a token overlap. The result is `missing (token overlap < 0.75): 0`.
+
+Where the 37 landed: 28 are verbatim in the new root file, 6 were reworded but stayed there, and 3 became the section headings of `docs/verification-runbook.md` ("What to run." became "The commands", "Investigating a failure." became "Investigating a browser E2E failure", "Visual captures" kept its name). The root file therefore holds 34 of them and the runbook 3.
+
+The check reads the pre-cut revision as its input, not the working copy, so that it cannot compare the new file with itself: the old text comes from `git show HEAD~1:AGENTS.md` after the cut is committed, and from `git show HEAD:AGENTS.md` before it. The script is a throwaway in the session's temporary directory, not a file of the repository, and the method is stated here so that the next cut can be checked the same way.
+
+### The local evidence
+
+The baseline SHA is `e7cd2f66b`. The changed inputs are `AGENTS.md`, the new `docs/verification-runbook.md` and this ledger section: no source, no test, no schema, no dependency. The planner therefore adds no suite, and the certifying local run is the selection of the script test that covers the verification selection logic, `scripts/verify-selection.test.mjs`. It is a database-free and container-free audited script test, which is what `--test-files` accepts locally.
+
+The run was:
+
+```
+DATABASE_URL_TEST=postgresql://postgres:postgres@localhost:5432/jiffoo_core_test \
+PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=<the owner's consent to reset jiffoo_core_test> \
+pnpm verify:quick --test-files=scripts/verify-selection.test.mjs
+```
+
+The summary of that run, printed from `verify-summary.txt`:
+
+```
+=== Final test summary ===
+Scope: scripts
+Lane: integration
+Database: not used
+Planner added suites: none
+Run script tests:
+Node test start time: 2026-10-31T11:36:32.649Z
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 263.7322
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Run script tests | PASS | 0.31s |
+```
+
+The run above is the second one of this batch. The first, at `2026-10-31T11:33:18.002Z`, ran the same selection over the same tree and reported the same 16 passing tests; it was repeated because the counts of this section were corrected after it, and a result covers only the input it ran against. The line that quotes this summary was written after the run and changes no executable input.
+
+Sixteen tests, not the nineteen of the previous section: the selection here is a single file, while the selection of section 5zr also covered `scripts/check-e2e-contexts.test.mjs`, which carries three more. The two numbers are therefore the same sixteen tests plus three, not a smaller suite that lost a case.
+
+The browser E2E did not run locally: it belongs to CI (section 4 of `AGENTS.md`), and this batch changed no product code. The complete gate is the CI gate, which runs on every push to this branch.
+
+## 5zt. The rule file states rules, not facts
+
+**Baseline SHA:** `e42b3dfee`. **Commits:** (the commits of this batch).
+
+### What the owner asked
+
+The owner read the rule file, saw the architecture section full of project specifics, and asked the question the file should have answered itself: why does a rule file carry the business of the project at all? The review that followed compared the file with the official Codex definition of `AGENTS.md` and then with the code.
+
+### The official definition
+
+The official pages define the mechanics, not a length. Codex reads the global file first, then walks from the project root down to the current working directory, takes at most one file per directory, and concatenates them root-down, so the file nearest the working directory wins. The combined size stops at `project_doc_max_bytes`, 32 KiB by default, and the official remedy for a chain that reaches the cap is to raise the setting or divide the guidance among nested directories. The recommended shape is a `## Working agreements` section in the profile directory, a `## Repository expectations` section in the repository root, and **service-specific checks in a nested file**, placed as close to the specialized work as possible. The two example entries of the root section are "Run `npm run lint` before opening a pull request" and "Document public utilities in `docs/` when you change behavior": both are behaviors, and neither describes what the code currently looks like.
+
+### What was found
+
+The rule file is read once, at the start of a session, and never refreshed. A fact copied into it is a second copy of the codebase, and it decays silently: a reader cannot tell a stale rule from a current one.
+
+Four facts in the file were already stale, a day after it was rewritten:
+
+| The rule said | The code says |
+| --- | --- |
+| the isolated Fastify gateway sits in the extension installer | it sits in the neutral runtime module; the extension installer no longer holds it, and every caller imports it from there |
+| the plugin context surface is `plugin`, `config`, `database`, `logger`, `http`, `events`, `contracts` | the surface also carries the task queue and the private storage |
+| an internal helper of the order module is `core/order/current-pricing.ts` | that file was moved to the neutral shared layer and its shim was deleted |
+| the durable plugin tasks and the core-mediated plugin services are not implemented | the durable tasks are implemented — their tables, the task worker, the SDK queue and the scaffold all exist; only the services are not |
+
+The test of the category is the product charter. The charter names three paths, once, in the section that explains why the trust model is what it is, and all three are still correct. The rule file named paths as illustrations inside four different rules, and four of them had rotted. The difference is not that one document mentions paths and the other does not; it is that a document whose subject is a decision can afford to name what the decision is about, while a document whose subject is the working rules cannot afford to restate the code.
+
+### The decision
+
+**The rule file states rules, not facts.** A decision belongs there, with its reason. A fact the repository can answer by inspection — a path, a table name, a version, a member list — does not: the copy decays silently, and the decay is invisible to every reader, including the one who wrote it. Facts live in the code, in a registry a test checks, or in `docs/`. The principle is now written at the head of the file, so the next edit keeps it.
+
+The architecture section therefore keeps every rule and loses every fact. What replaces the facts:
+
+- The module graph, the approved module edges, the owner of every table and the registered exceptions are already held by the boundary audit, which runs in CI and fails on a new edge, a new dependency ring and a new cross-domain write. Section 7 now says that in one sentence, and section 8 points at the audit by role. The rule file no longer carries a second, unchecked copy of a registry that CI already checks.
+- The capability contracts, the version in force of each and the plugin context surface are held by the shared contract catalogue; section 8 points at it by role.
+- The version of a capability is a release artifact, not a rule: it moves, so it does not belong in the file. The names of the capabilities are a product decision recorded in the charter, so they stay.
+
+The pointer table of section 8 now covers every document of `docs/`, including two that no rule reached before: the execution plan of the acceptance scenarios and the owner's approved design baseline.
+
+### The evidence that no rule was lost
+
+The bold lead-ins of the previous file are searched in the new one and in the `docs/` files it points at, first as an exact string and then as a token overlap: `missing (token overlap < 0.75): 0`, for the 35 lead-ins of the previous file and for the 37 of the file before the cut of section 5zs.
+
+Two passes were made. The first removed the facts and completed the pointer table: 19,552 bytes and 281 lines became 20,799 bytes and 298 lines, and the growth was the principle paragraph at the head and the table at the foot. The owner read that result and asked for more: the file was still too long, and prose had survived inside the rules. The second pass rewrote every rule as one imperative, merged the rules that said one thing in two places, flattened the worker section, cut the pointer table to a paragraph, and dropped the illustrative enumeration of the commerce semantics. The result is **14,246 bytes and 214 lines**, thirty-five per cent below the file the owner first read.
+
+The shape of the file is the evidence of that pass: every entry is an imperative with its object, and the entries that carried a reason, an illustration or a second rule inside one bullet are gone. The principles that carried them did not go with them; they moved to the documents that own them.
+
+### The last pass: what is left is not a fact about the code
+
+The owner then put the principle in one sentence: the rule file does not record what the code currently looks like; it is the development norms. The file was audited against that sentence, item by item, and three statements did not survive it:
+
+| The statement | Why it is a fact |
+| --- | --- |
+| Core calls a plugin through the contracts `payment`, `shipping`, `tax`, `fulfillment`, `notification` | a set that grows; the charter holds the decision and the catalogue holds the names |
+| the durable plugin tasks are implemented and the core-mediated plugin services are not | a statement about the state of the code, true today and wrong the day a batch lands |
+| the boundary audit runs in CI | a statement about the pipeline, not about a rule |
+
+The first is a judgment call that was made this way: the names are the product vocabulary, but the vocabulary belongs to the charter and the catalogue, and a rule file that lists a set that can grow is the shape that rots. The second is the strongest case for the principle: a rule file that says nothing about what is implemented cannot be wrong about what is implemented.
+
+What is left in the file is one of four things, and nothing else: a command or a flag of a tool the rules constrain, a pointer to a place the detail lives, an identifier of the environment, or an external API that the rules are written against. The workspace layout, the branch names, the lane database names and the Prisma and Playwright calls are conventions that do not rot. **There is no statement left in the file about what the code currently looks like.**
+
+### The local evidence
+
+The baseline SHA is `e42b3dfee`. The changed inputs are `AGENTS.md` and this ledger section: no source, no test, no schema, no dependency. The planner therefore adds no suite, and the certifying local run is the selection of the audited script test that covers the verification selection logic, `scripts/verify-selection.test.mjs`.
+
+```
+=== Final test summary ===
+Scope: scripts
+Lane: integration
+Database: not used
+Planner added suites: none
+Run script tests:
+Node test start time: 2026-10-31T14:09:15.518Z
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 261.4738
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Run script tests | PASS | 0.31s |
+```
+
+The browser E2E did not run locally: it belongs to CI (section 4 of `AGENTS.md`), and this batch changed no product code. The line of this section that quotes the summary was written after the run and changes no executable input.
+
+## 5zu. The documents reconciled with the code
+
+**Baseline SHA:** `ab241efcc`. **Commits:** (the commits of this batch).
+
+### Why
+
+After the rule file was cut down to the development norms, the owner asked for the documents of `docs/` to be checked against the state of the code. The same reason applies: a document that states a fact about the code is a copy of the code, and the copy decays the way the rule file decayed — it becomes wrong and nobody notices, because a reader cannot tell a stale document from a current one.
+
+### What was checked, and what was wrong
+
+Every factual claim of the ten documents was checked against the tree. Most of them hold. The ones that did not are these:
+
+| Document | The claim | The code |
+| --- | --- | --- |
+| the product charter | the V1 events are ten, and `order.confirmed` is not among them | the registry carries eleven; `order.confirmed` is the one the step 4 batch added |
+| the plugin design | P-1 is implemented and the rest is not | P-2, P-3, P-4 and G1 are implemented as well; G4, G4-R and P-5 are not |
+| the plugin design | the archive caps of the baseline are the current ones | the numbers are right, the word was wrong: they are the caps of the merge the baseline names |
+| the plugin design | the tables of that section are planned migrations | the rows of P-3, P-4 and G1 are in the schema and in the migrations; the rows of G4 and G4-R are still planned |
+| the plugin design | the error catalogue lists the new codes | eighteen of the twenty-eight are in the shared catalogue; the ten that are not belong to G4 |
+| the execution plan | the local gate runs on the directly relevant test files | a widened batch is certified in the shard mode, and one failing case is localised with the diagnostic mode |
+| the visual document | the capture covers 14 Admin pages and 40 images | 15 Admin pages and 42 images |
+| the visual document | the visual project runs after 19-themes | it runs after 19-themes **and** after the page-boundary and payment-CSP areas, and before 20-admin-theme |
+| the visual document | the visual specification has four cases | it has four standard cases and eight header-diagnosis cases, and it writes a new `s3-*` family |
+| the E2E document | the runner is `pnpm verify:e2e` | it also takes `--area` and `--grep` for a filtered run, and the document never mentioned them |
+| the verification runbook | `--test-files` runs exactly those files | the planner adds its mandatory suites on top of them |
+
+The claims that were checked and hold: the theme format matches the validator exactly, down to the last limit and every token role; the thirty-nine evidence files of the execution plan all exist; the branch names, the lane database names, the ports of the three applications, the host commands, the trial scripts and the trial state directory are as the documents say; the release Compose file the operator guide names is generated by the release preparation, and the host tool really has the four subcommands the guide uses.
+
+### What was changed, and what was left
+
+- The mirror rule in the preamble of this ledger contradicted section 5s: it named the lane branch as the canonical copy and the integration worktree as a read-only mirror, while section 5s made the branch of record the authoritative one. The preamble was older than the merge that decided it. It now states where the file lives, and the section 5s decision is the one that is followed.
+- The dated measurements inside the visual document — the header diagnosis, the capture-noise log and the reconciliation table of that batch — are records of what was measured then, and they are left as they are. What was corrected is the description of the coverage as it is today.
+
+### The gap that was on the code side, and what closed it
+
+The deployment document tells the operator to set `EXTENSION_MARKETPLACE_URL`, `EXTENSION_TEST_SIGNING_MODE` and `JIFFOO_TEST_PLUGIN_ROOT_PUBLIC_KEY`. The API and the worker read all three, and the document is right about what each of them does. Two things were missing on the code side, and both are closed:
+
+- none of the three was in `apps/api/.env.example` or in `deploy/compose/.env.example`, so an operator who follows the document had to know the names without a sample to copy them from;
+- the Compose deployment never passed any of them to the containers. The backend environment anchor of `deploy/compose/compose.yml` is inherited by `api-1`, `api-2`, `worker-1` and `worker-2`, and it carried none of the three, so an operator who set them in the copied `.env` saw them ignored.
+
+A worker added the three to both samples and to the backend environment anchor, with optional defaults so that an unset value stays optional and the deployment still starts. The samples are the ones the operator copies; the anchor is the one the containers inherit.
+
+### The local evidence
+
+The baseline SHA is `ab241efcc`. The changed inputs are seven documents of `docs/`: no source, no test, no schema, no dependency. The planner therefore adds no suite, and the certifying local run is the selection of the audited script test that covers the verification selection logic, `scripts/verify-selection.test.mjs`.
+
+```
+=== Final test summary ===
+Scope: scripts
+Lane: integration
+Database: not used
+Planner added suites: none
+Run script tests:
+Node test start time: 2026-10-31T14:23:55.138Z
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 262.8023
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Run script tests | PASS | 0.31s |
+```
+
+The browser E2E did not run locally: it belongs to CI, and this batch changed no product code. The line of this section that quotes the summary was written after the run and changes no executable input.
+
+### Still open
+
+- The official definition puts the working agreements in the profile directory, so that every repository inherits them. Sections 3, 5 and 6 of the rule file are working agreements with this repository's own commands, lanes and ledger mixed into them. The part that is generic could move to the profile file; the part that names `verify:quick`, the lane databases and the coordination ledger could not. This is a decision of the owner, not a cut that was made here.
+
+## 5zv. The ledger reconciled with the code
+
+**Baseline SHA:** `ed6ec9c5a`. **Commits:** (the commits of this batch).
+
+### What was wrong with this file
+
+This ledger does three jobs at once: it is the record of the decisions, the board of the current
+state, and the log of the measurements. The first two have to be current; the third has to be
+archived. Mixed in one file, the current part drifts, and it drifts in the direction that misleads:
+a reader of section 3 learns that the merge has not happened yet, and a reader of section 5g
+learns that two violations are open when four are.
+
+The fix is not to rewrite the history. The history is right for the day it names. The fix is to say
+which is which, and to carry the current state in one place.
+
+### What changed
+
+- **Section 0 is new** and carries the state of the line as of 2026-10-31: the branches and what
+  each of them is, the three registers of the boundary audit, what is implemented, and the open
+  items with their state.
+- **The preamble now says how to read the numbers.** Every handover section is the record of its
+  day; section 0 is the current one; when they disagree, section 0 is the current one.
+- **Section 2 and section 3 are marked as what they are**: the occupancy and the batch registry of
+  the merge, as they stood on 2026-10-22. Their tables are untouched, so the record survives.
+- **Section 5g carries a pointer** to section 0 for the register as it is now.
+
+### What was measured, and what the numbers are
+
+| What | The number |
+| --- | --- |
+| approved module edges (`LEGAL_EDGES`) | 192 |
+| registered dependency rings (`KNOWN_CYCLES`) | 600 |
+| registered violations (`KNOWN_VIOLATIONS`) | 4 |
+| the conflict surface against `main` | 629 files differ in the merged result, 293 are real conflicts |
+| the merge base with `main` | `7522a4f6d`, unchanged |
+
+The conflict surface was re-measured on 2026-10-31 with the same read-only `git merge-tree` the
+section 5zi measurement used. It has not moved since 2026-10-30: the same 629 and the same 293.
+
+### The open items, checked one by one
+
+| Item | State on 2026-10-31 |
+| --- | --- |
+| the registered dependency rings | open; 600, unchanged |
+| the currency catalogue of the settings page against the shared catalogue | open; the page offers USD, EUR, GBP, CNY, HKD and TWD, the shared catalogue offers USD, EUR, GBP, JPY, CNY and KRW |
+| the storefront does not read the marker of a degraded tax quote | open; the Shop reads no such marker |
+| `callContract` still lives in the admin layer | closed; it moved into the neutral runtime module with the rest of the gateway |
+| a dead plugin file cleanup row holds the storage quota | open; the quota is released only on the successful cleanup path, so a row that exhausts its attempt budget keeps its reservation |
+| the shard gate is balanced by measured duration | closed (§5s) |
+
+### The claims of the other documents that were checked and hold
+
+The theme format matches the validator exactly: the archive limits, the eighteen core token roles,
+the twenty-six shop extras and the seven admin extras, and the eight section types, which are all
+rendered by the Shop. The task and storage interfaces of the plugin SDK carry exactly the methods
+the plugin design names. The routes the plugin design names all exist, and two that it described in
+prose but left out of its table are now in it. The backup carries exactly the files the operator
+guide lists, and the manifest states that Redis is empty on restore. The acceptance scenarios hold:
+the tax is calculated before the order is persisted, the event delivery claims with `SKIP LOCKED`
+under a sixty second lease, the Compose deployment runs two API and two worker instances, the API is
+served only under `/api/v1`, and scenario 11 is still deferred because the line has not been merged
+into `main`.
+
+### The local evidence
+
+The baseline SHA is `ed6ec9c5a`. The changed inputs are the ledger, five documents of `docs/`, and
+the three deployment files a worker changed: `apps/api/.env.example`,
+`deploy/compose/.env.example` and `deploy/compose/compose.yml`. The planner adds no suite for any of
+them. The certifying local run is the selection that covers the change: the five API tests that
+assert the signing and marketplace environment rules, and the two script tests that validate the
+packaged deployment files.
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: none
+Run script tests:
+Node test start time: 2026-10-31T14:44:07.072Z
+ℹ tests 15
+ℹ suites 0
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 162.2942
+Run API tests:
+   Start at  22:44:20
+ Test Files  5 passed (5)
+      Tests  73 passed (73)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Run script tests | PASS | 0.20s |
+| Prisma generate | PASS | 0.01s |
+| Type-check selected scope and shared | PASS | 2.49s |
+| Lint Shop | PASS | 6.82s |
+| Reset test database | PASS | 2.92s |
+| Run API tests | PASS | 165.73s |
+```
+
+The Docker Compose acceptance needs Docker and is CI-only; it is not part of the local gate. The
+browser E2E did not run locally either: it belongs to CI, and this batch changed no product code.
+
+## 5zw. The imager line's first P-3 integration batch, reviewed
+
+**Baseline SHA:** `6d3dee635`. **Commits:** (the commits of this batch).
+
+### What was reviewed
+
+The imager line delivered its first P-3 integration batch on 2026-10-23: a read-only `imagic`
+plugin with three pages, a consumption of the alpha.4 bridge, and a package for Core to install.
+The delivery is commit `18d74a98` in `C:/Personal Develop/imager-core`; the package is
+`artifacts/imagic-i7.zip`; it was built against the Core commit `2a507cfe`, whose CI run
+`39765774526` is green in twelve jobs.
+
+The review read the Core tree at that commit and at the branch of record, and read the delivered
+package and its sources. What holds is listed below. Three findings and one external dependency
+are registered.
+
+### The claims that were checked and hold
+
+| The claim | How it was checked |
+| --- | --- |
+| the Core commit and its CI run | `git cat-file` on `2a507cfe`; `gh run view 39765774526` reports `success`, its `headSha` is that commit, and its twelve jobs are all successful |
+| the package | the SHA256 of `artifacts/imagic-i7.zip` is `104ca0ca9ed42faa6af5e1358f838f314e13a7e9799a5a0302356eeeac6043e6`, the value the report states; the archive holds exactly the seven files it lists; `migrations/001_generations.sql` hashes to `888bff09dffa97162982e6f591e2fcd5334dcbfc348c62eb3e0d05a68fd27aa9`, which is the value its own manifest declares |
+| the commit | `18d74a98` holds exactly the twenty-four files the report lists |
+| the role contract | the gateway injects the database role (`apps/api/src/core/extensions/runtime/plugin-runtime.ts:422`), the page session's principal type is `CUSTOMER`/`ADMIN`/`GUEST` (`apps/api/src/core/plugin-pages/sessions.ts:99`), and the task worker's own SQL reads `principalType='CUSTOMER' AND u.role='USER'` |
+| the action contracts | `packages/shared/src/plugin-pages/shell.tsx:118-130` — `cart.add` takes exactly `{variantId,quantity}` with `^c[a-z0-9]{24}$` and 1..999, `auth.signIn` takes no argument, `checkout.open` binds a purchase origin to the page before the navigation |
+| the manifest, the asset index and the migration declaration | `packages/shared/src/extensions/plugin-contract.ts`, `packages/shared/src/plugin-ui-assets.ts`, `apps/api/src/core/plugin-pages/asset-routes.ts` — the delivered manifest and the seven-file archive satisfy every validator |
+| the gateway URL inside the opaque frame | the frame is served from the storefront origin, `apps/shop/next.config.js:19` rewrites `/api/v1/:path*` to Core, `apps/shop/proxy.ts:11` keeps the null-origin exception for the gateway path, and `apps/api/src/core/plugin-pages/origin-policy.ts:8` admits it with the plugin token and no cookie |
+
+### The first finding: the role vocabulary was documented nowhere
+
+The plugin's first version assumed the gateway forwards `x-user-role: CUSTOMER`, the value of the
+page session's principal type. It forwards `USER`, the database role. The plugin found this by
+reading the Core source, not from a failing test, and corrected itself without a compatibility
+branch — which is the right call, because a plugin that accepts both values is a plugin whose
+authorization rests on a guess.
+
+The defect was Core's, not the plugin's. Three vocabularies were in play: the principal type
+(`CUSTOMER`, `ADMIN`, `GUEST`), the header role (`USER`, `ADMIN`, `guest`) and the SDK's task
+principal type (`customer`, `admin`). Only the middle one is in a header, and the mapping between
+them appeared in one SQL predicate in the task worker. Nothing in `docs/` or in `packages/` stated
+it, and no test pinned it.
+
+What this batch changed:
+
+- `docs/agentra-004-plugin-pages-and-services.md` §4 now states the vocabulary, names the value
+  that is not a role value, and says that a plugin treats any other value as no role.
+- `apps/api/tests/core/plugin-runtime.test.ts` pins the three values: a customer session carries
+  `USER` and never `CUSTOMER`, an admin session carries `ADMIN`, an anonymous call carries
+  `guest`.
+
+The contract surface is unchanged, so no plugin contract version moves.
+
+### The second finding: the bridge version the plugin links is not the one the tree builds
+
+The plugin links `@jiffoo/plugin-bridge` `1.0.0-alpha.4`, carried as a vendored tarball. The
+branch of record declares `1.0.0-alpha.1` in `packages/plugin-bridge/package.json`; that file has
+one commit on every branch, so the version has never been anything else, and no commit anywhere
+in the tree carries the string `1.0.0-alpha.4`. The report's stated evidence source
+(`imager-deps/`) does not exist on this machine. A version that no tree builds is not a version a
+consumer can resolve.
+
+The bytes, however, are the tree's. Building `packages/plugin-bridge` from the branch of record
+and comparing it with the vendored archive gives four identical files:
+
+| File | SHA256 of the tree's build and of the vendored archive |
+| --- | --- |
+| `dist/index.js` | `80ad14b195f20d5615b0df495113b000312a16c5cfeed657f341c1d7e51eb442` |
+| `dist/protocol.js` | `48c35ed409f52a5e918b5cbdae7467b4b53841ce4dac04513b0f525972010987` |
+| `dist/index.d.ts` | `6232b116244540d9ae04b88a76177f7fec2e95b8ac84434db10d6b5984bfba4e` |
+| `dist/protocol.d.ts` | `219d710b7b91035bc6d64fc61df916e04d3719519cd70ae77c59f4dcc2c61531` |
+
+So this batch carries no runtime risk, and the finding is one of traceability: the label says
+alpha.4, the tree builds alpha.1, and CI builds alpha.1.
+
+The rule this registers: a downstream plugin may link only a bridge version that a named Core
+commit builds, and the vendored archive's bytes must match that commit's build. The imager line
+re-pins to the version the tree declares and re-vendors from the tree; the Core line publishes
+the bridge, so that a downstream plugin installs it by version instead of carrying a tarball
+across a repository boundary.
+
+What the imager line does, exactly:
+
+1. In the Core tree at a named commit, build the bridge with `pnpm --filter @jiffoo/plugin-bridge
+   build` and pack it from `packages/plugin-bridge`.
+2. Install that tarball with `--save-exact`, and let the lock file name the version.
+3. Record the Core commit and the tarball's SHA256 beside the vendored file, so that the bytes
+   are traceable to a tree.
+
+What the Core line does: publish `@jiffoo/plugin-bridge` so that step 1 becomes a version
+resolution instead of a hand-carried artifact. The repository declares no publish path for that
+package today, and the registry is a mirror, so this is a decision about the release line and not
+a command.
+
+### The third finding: the browser E2E already proves the mechanism, and the plugin's own page is not proven
+
+The first reading of this batch said that no plugin page had run in a real browser. That was wrong
+about the Core, and the correction matters, because it moves the obligation to where the unproven
+part is.
+
+`e2e/40-plugin-page-shells.spec.ts` already proves, in a real browser, the shop surface of the
+mechanism the imagic plugin depends on: the opaque frame (`sandbox="allow-scripts allow-forms"`,
+without `allow-same-origin`), the bridge handshake, the identity inside the frame, a relative
+gateway URL resolved against the frame's document URL with `credentials:'omit'` and the plugin
+token, the admission, `cart.add`, `checkout.open`, the sign-out revocation and the uninstall
+revocation. The fixture that drives it is `e2e/plugin-page-package.ts`, which builds and signs a
+real package whose page imports `@jiffoo/plugin-bridge` from the tree.
+
+What is not proven is the imagic plugin's own page code: its base URL derivation, its
+identity-change handling, its error and retry rendering and its owner-scoped reads. That is the
+imager line's obligation, and Core cannot discharge it for a plugin it does not own — the
+plugin-page design records that no imagic exception exists, and the plugin's package lives in
+another repository, so the CI of this tree cannot install it.
+
+What the imager line proves, exactly:
+
+1. Install the delivered package into a running Core through the admin upload, the way the
+   browser E2E installs its own fixture package.
+2. Sign in as a customer and open `/{locale}/apps/imagic/history`.
+3. Assert that the page renders that customer's own history, and that it renders no history for
+   another customer.
+4. Sign out, and assert that the page shows the sign-in entry and no history.
+5. Locate the UI only with accessible locators, as AGENTS.md §6 requires.
+
+`e2e/40-plugin-page-shells.spec.ts` is the reference for the shape of such a case; the case
+itself belongs to the plugin's own repository.
+
+### The dependency that blocks the next batch
+
+`cart.add` needs a real product variant: the identifier is `^c[a-z0-9]{24}$`, and Core has no
+product or variant the imagic line can name. The plugin therefore does not expose the purchase
+button, which is correct — a button that cannot succeed is a defect. But until the product-to-
+credit mapping is delivered, the purchase path cannot be exercised at all, and credit cannot be
+inferred from a cart or from a checkout navigation.
+
+This is a Core deliverable. It is the next item on the critical path of the plugin line, and it
+is not the plugin line's to build.
+
+### The open items of this section
+
+| Item | Owner | State on 2026-11-01 |
+| --- | --- | --- |
+| the bridge version a downstream plugin links | Core line, then the imager line | open; the tree builds `1.0.0-alpha.1` and the imager package links a tarball labelled `1.0.0-alpha.4` whose four dist files are byte-identical to the tree's build |
+| the bridge is not published, so a downstream plugin carries a tarball | Core line | open; the repository declares no publish path for `@jiffoo/plugin-bridge` |
+| the product-to-credit mapping the purchase path needs | Core line | open; no product variant exists, so `cart.add` has no valid `variantId` |
+| the imagic page code in a real browser | imager line | open; the Core mechanism is proven by the E2E, the plugin's own page is not |
+
+### The local evidence
+
+The changed inputs are this ledger, `docs/agentra-004-plugin-pages-and-services.md` and
+`apps/api/tests/core/plugin-runtime.test.ts`. The planner adds no suite for a document, and the
+test file is the API suite that covers the gateway header injection, so the selection is that one
+file. The block below is the summary of the run that certified the document and the test; it was
+appended after that run, and appending it changed no source, no test and no configuration.
+
+The baseline SHA is `6d3dee635`. The selected test file is
+`apps/api/tests/core/plugin-runtime.test.ts`, because the change it makes is the injection of the
+identity headers into the plugin gateway, and that file is the suite that exercises the
+injection. The diagnostic run before it reported that the planner adds no suite: a document and a
+test file are not a contract, a shared package, an authentication or a schema change.
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: none
+Run API tests:
+   Start at  18:52:53
+ Test Files  1 passed (1)
+      Tests  7 passed (7)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check API, Admin, Shop and shared | PASS | 3.48s |
+| Lint Shop | PASS | 7.54s |
+| Reset test database | PASS | 3.17s |
+| Run API tests | PASS | 6.29s |
+```
+
+The browser E2E did not run locally: it belongs to CI, and this batch changed no product code.
+The Docker Compose acceptance needs Docker and is CI-only.
+
+## 5zx. The documentation set, consolidated
+
+**Baseline SHA:** `6da9ab1a4`. **Commits:** (the commits of this batch).
+
+### What the owner asked
+
+The owner read the documents of `docs/` and asked whether so many documents were necessary, and
+asked for the set to be cut down.
+
+### What the set was
+
+Eleven top-level documents, of which four held one subject in pieces and one held the evidence of
+every batch of the line together with the state of the line.
+
+| Document | Subject |
+| --- | --- |
+| `agentra-001-core-v1-product-charter.md` | the core product charter |
+| `agentra-002-v1-execution-plan.md` | the acceptance scenarios and their status |
+| `agentra-003-theme-format.md` | the theme package format, read by a test by path |
+| `agentra-004-plugin-pages-and-services.md` | the plugin pages, the private storage, the durable tasks and the core-mediated services |
+| `coordination-ledger.md` | 3,883 lines: the state of the line and the handover evidence of every batch |
+| `deployment-env.md` | the proxy trust, the edge deadlines, the processes and the marketplace variables |
+| `e2e-verification.md` | the browser E2E runner |
+| `local-trial.zh-Hans.md` | the local trial harness, in Chinese |
+| `operator-guide.md` | the deployment on a host |
+| `verification-runbook.md` | the commands of the gate, the cleanup, the failure evidence |
+| `visual-verification.md` | the visual baseline and its dated diagnosis |
+
+Beside them: `docs/archive/` and `docs/design/`, the design boards of the Admin and the Shop.
+
+### The cut
+
+Four documents became one. The dated records moved to the archive. Nothing was deleted.
+
+| Before | After |
+| --- | --- |
+| `verification-runbook.md` + `e2e-verification.md` + `visual-verification.md` | `docs/verification.md` — the commands, the cleanup of a leftover process, the failure evidence, the browser runner and the visual baseline |
+| the dated sections of `visual-verification.md`: the mobile header diagnosis, the coverage reconciliation, the known changes, the capture noise | `docs/archive/visual-verification-diagnosis.md` |
+| `deployment-env.md` | four sections of `docs/operator-guide.md`: the proxy trust, the edge deadlines towards Core, the processes, the extension marketplace |
+| `coordination-ledger.md`, 3,883 lines | the live ledger, 238 lines, and `docs/archive/coordination-ledger-handover.md`, which holds the 46 handover sections verbatim with their numbers |
+| `agentra-002-v1-execution-plan.md` | `docs/archive/agentra-002-v1-execution-plan.md`; its 17 scenario rows became the status table of the charter, and the six the plugin line added became rows 18 to 23 |
+
+`docs/agentra-003-theme-format.md` keeps its path, because
+`apps/api/tests/core/theme-format-doc.test.ts` reads it by that path.
+
+### The set now
+
+| Document | Subject |
+| --- | --- |
+| `agentra-001-core-v1-product-charter.md` | the core product charter, with the status of the 23 acceptance scenarios |
+| `agentra-003-theme-format.md` | the theme package format |
+| `agentra-004-plugin-pages-and-services.md` | the plugin pages, the private storage, the durable tasks and the core-mediated services |
+| `coordination-ledger.md` | the state of the line, the rules that bind, the index of the handover sections |
+| `local-trial.zh-Hans.md` | the local trial harness |
+| `operator-guide.md` | the deployment on a host, the environment variables, the processes |
+| `verification.md` | the gate commands, the cleanup procedure, the browser E2E, the visual baseline |
+
+Eleven top-level documents became seven. The rule file names the set in its section 8, and the
+archive has its own table in the section 6 of the live ledger.
+
+### The local evidence
+
+The baseline SHA is `6da9ab1a4`. The changed inputs are `AGENTS.md`, the documents of `docs/` and
+the archive: no source, no test, no schema, no dependency. The planner therefore adds no suite,
+and the certifying local run is the selection of the script test that covers the verification
+selection logic, `scripts/verify-selection.test.mjs`. It is a database-free and container-free
+audited script test, which is what `--test-files` accepts locally.
+
+The run was:
+
+```
+DATABASE_URL_TEST=postgresql://postgres:postgres@localhost:5432/jiffoo_core_test \
+PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=<the owner's consent to reset jiffoo_core_test> \
+pnpm verify:quick --test-files=scripts/verify-selection.test.mjs
+```
+
+The summary of that run, printed from `verify-summary.txt`:
+
+```
+=== Final test summary ===
+Scope: scripts
+Lane: integration
+Database: not used
+Planner added suites: none
+Run script tests:
+Node test start time: 2026-11-01T11:02:59.856Z
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 274.7089
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Run script tests | PASS | 0.32s |
+```
+
+The run above is the second one of this batch. The first, at `2026-11-01T11:01:48.785Z`, ran the
+same selection over the same tree and reported the same 16 passing tests; it was repeated because
+this section and the ledger rows of the index were written after it, and a result covers only the
+input it ran against. Those lines changed no executable input.
+
+Sixteen tests: the selection is one file. Section 5zr's nineteen were the same sixteen plus the
+three of `scripts/check-e2e-contexts.test.mjs`.
+
+The change to `docs/operator-guide.md` is read by `scripts/local-trial.test.mjs`, which is CI-only
+and cannot run through the local quick verification. CI covers it, and CI runs the complete gate on
+every push to this branch. The local run above covers the selection the planner named; the merge of
+the three verification documents changed no executable input.
+
+The browser E2E did not run locally: it belongs to CI, and this batch changed no product code.
+
+### The rule check
+
+The bold lead-ins of the rule file before the cut of section 5zs were searched in the new
+`AGENTS.md` and in `docs/verification.md`, first as an exact string and then as a token overlap:
+`missing (token overlap < 0.75): 0`, for the 37 lead-ins of that file. 35 of them are verbatim in
+the rule file and 2 are in the verification document, which now holds the three documents that
+were merged into it.
+
+
+

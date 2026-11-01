@@ -143,7 +143,7 @@ part of the local gate. The runner refuses to run when `LANE_ID` is set.
 - In the visual capture specification, read-only `page.evaluate` may inspect `document.fonts.ready`
   and computed CSS. UI interaction still uses accessible locators and Playwright keyboard actions.
 - **A lane never touches another lane's resources.** The cleanup procedure is in
-  `docs/verification-runbook.md`.
+  `docs/verification.md`.
 
 ## 7. The architecture boundaries
 
@@ -208,7 +208,8 @@ registered exceptions live. Do not restate them here: they are code, and they ch
 
 ## 8. Where the detail lives
 
-`docs/` holds the product charter, the acceptance plan, the theme format, the plugin pages and
-services, the operator guide, the deployment variables, the local trial and the design baseline.
-The coordination ledger holds the decisions and the registered verification runs; the verification
-runbook holds the commands.
+`docs/` holds the product charter, the theme format, the plugin pages and services, the operator
+guide, the verification procedures, the local trial and the design baseline. The coordination
+ledger holds the decisions and the registered verification runs. `docs/archive/` holds the dated
+records: the handover evidence of every batch, the acceptance plan before it became the status
+table of the charter, and the dated visual measurements.
