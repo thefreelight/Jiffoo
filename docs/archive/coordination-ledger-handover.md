@@ -3959,5 +3959,90 @@ The proof of this change is the update job of CI: `update-no-migration` and `upd
 the only jobs that exercise the update acceptance. The local run above certifies that the
 verification tooling is intact; it cannot certify the acceptance that only CI can run.
 
+## 5zz. The charter and the plugin design, cut down
+
+**Baseline SHA:** `e7b05fa6b`. **Commits:** (the commits of this batch).
+
+### What the owner asked
+
+The owner read the two remaining large documents of `docs/` and asked for them to be cut down: the
+process detail of the delivered batches into the archive, the body holding what the line still
+owes. The estimate that came with the request was about four tenths of both files.
+
+### What the cut is
+
+| Document | Before | After | The archive |
+| --- | ---: | ---: | --- |
+| `agentra-001-core-v1-product-charter.md` | 773 lines | 740 lines | 105 lines: the dated notes of the charter and the assessment of its twenty-three scenarios |
+| `agentra-004-plugin-pages-and-services.md` | 1,367 lines | 1,248 lines | 187 lines: the baseline of the source, the delivered tables and error codes, the batch plan, the acceptance of the delivered batches, the revision history |
+
+What left the charter: the nine dated notes, whose dates and commit SHAs became plain statements
+of what holds, and the status table of the twenty-three scenarios, which the coordination ledger
+already carries in section 0.
+
+What left the plugin design: the table of the source the design was read against, the rows of the
+tables of P-3, P-4 and G1, the sixteen error codes of the delivered task, page, UI and file paths,
+the plan of the eight batches with the scope, the worktree and the risk of each, the acceptance of
+the delivered batches, and the revision history. The decisions that the revision history carried
+are stated in section 11 as rules.
+
+### What the cut is not, and why
+
+The estimate of four tenths was too high, and reading the two documents showed why. What remains
+in them is the specification that binds every plugin: the manifest, the shell and its origin
+policy, the bridge and the scoped tokens, the private storage, the durable task engine, and the
+services and the paid-order reconciliation that are still owed. The work of G4, G4-R and P-5 is
+built on the first five, and the imager line builds on them now. A document that held only the
+unbuilt half would not be the specification of the plugin line, and its remaining sections would
+have to restate the foundations.
+
+What the documents were restating from the tree is not in either body any more: the delivered
+tables are in the schema and the migrations, and the delivered error codes are in the shared
+catalogue. Both documents point at them.
+
+### The local evidence
+
+The baseline SHA is `e7b05fa6b`. The changed inputs are `AGENTS.md`, the two documents, the two
+new files of the archive and this ledger section: no source, no test, no schema, no dependency.
+The planner therefore adds no suite, and the certifying local run is the audited script test of
+the verification selection logic, `scripts/verify-selection.test.mjs`.
+
+The run was:
+
+```
+DATABASE_URL_TEST=postgresql://postgres:postgres@localhost:5432/jiffoo_core_test \
+PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=<the owner's consent to reset jiffoo_core_test> \
+pnpm verify:quick --test-files=scripts/verify-selection.test.mjs
+```
+
+The summary of that run, printed from `verify-summary.txt`:
+
+```
+=== Final test summary ===
+Scope: scripts
+Lane: integration
+Database: not used
+Planner added suites: none
+Run script tests:
+Node test start time: 2026-11-01T12:49:30.767Z
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 279.9447
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Run script tests | PASS | 0.33s |
+```
+
+This section and the rows of the index were written after that run, and they changed no
+executable input.
+
+The browser E2E did not run locally: it belongs to CI, and this batch changed no product code.
+
 
 

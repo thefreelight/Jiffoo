@@ -211,5 +211,5 @@ registered exceptions live. Do not restate them here: they are code, and they ch
 `docs/` holds the product charter, the theme format, the plugin pages and services, the operator
 guide, the verification procedures, the local trial and the design baseline. The coordination
 ledger holds the decisions and the registered verification runs. `docs/archive/` holds the dated
-records: the handover evidence of every batch, the acceptance plan before it became the status
-table of the charter, and the dated visual measurements.
+records: the handover evidence of every batch, the acceptance plan and the dated records of the
+charter, the delivery record of the plugin design, and the dated visual measurements.

@@ -63,7 +63,7 @@ that were open when it was written; §5w names all four.
 | the core-mediated plugin services and the paid-order reconciliation | not implemented (G4 and G4-R) |
 | the diagnostic gate mode and the filtered browser E2E | implemented (§5zr) |
 | the rule file | reduced to the development norms, with no code fact in it (§5zs, §5zt, §5zu) |
-| the documentation set | seven live documents and an archive of the dated records (§5zx) |
+| the documentation set | seven live documents and an archive of the dated records (§5zx, §5zz) |
 
 ### The open items
 
@@ -229,6 +229,7 @@ of that day.
 | 5zw | The imager line's first P-3 integration batch, reviewed | `6d3dee635` |
 | 5zx | The documentation set, consolidated | `6da9ab1a4` |
 | 5zy | The update acceptance of the deployment update | `a7104938e` |
+| 5zz | The charter and the plugin design, cut down | `e7b05fa6b` |
 
 ## 6. The archive
 
@@ -237,6 +238,8 @@ of that day.
 | `docs/archive/coordination-ledger-handover.md` | the handover evidence of every batch, with its section numbers |
 | `docs/archive/agentra-002-v1-execution-plan.md` | the execution plan of the acceptance scenarios, before it became the status table of the charter |
 | `docs/archive/visual-verification-diagnosis.md` | the dated diagnosis of the mobile header and the capture-noise log |
+| `docs/archive/agentra-001-dated-records.md` | the dated records of the charter and the assessment of its twenty-three scenarios |
+| `docs/archive/agentra-004-delivery-record.md` | the baseline, the delivered tables and codes, the batch plan, the delivered acceptance and the revision history of the plugin design |
 
 Nothing in the archive is deleted. It is what the live documents were before they were cut down,
 and it is read when a question needs the day a measurement was taken on. The text of the four
