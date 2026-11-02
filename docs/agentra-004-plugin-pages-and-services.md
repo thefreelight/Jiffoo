@@ -627,7 +627,9 @@ its granted permissions, its own database tables and rows, and its stored
 files; an upgrade is not an uninstall followed by an install. The Admin plugin
 detail page offers the entry: the package is uploaded, checked and confirmed
 like an installation, and the server decides that the operation is an upgrade.
-The package of another plugin is refused before it can be published.
+The entry pins the plugin whose package is replaced, and the Admin refuses the
+package of another plugin at the preview, so an update never installs another
+plugin.
 
 The version of the new package must be higher than the installed version. A
 package with the same version and the same content is the idempotent

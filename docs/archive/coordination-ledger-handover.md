@@ -5309,7 +5309,7 @@ The run covered the whole API catalogue, the Admin suite and the Shop suite.
 Scope: default
 Lane: integration
 Database: jiffoo_core_test
-Planner added suites: not applicable (the shard mode runs the full API catalogue and the full Admin and Shop suites, covering 248 planner-mandated suite(s))
+Planner added suites: not applicable (the shard mode runs the full API catalogue and the full Admin and Shop suites, covering 247 planner-mandated suite(s))
 Mode: shard mode (--shards=4)
 Gate note: the API suite ran in parallel shards. The Prisma generate, the type check, the Lint Shop step, the test database reset, the Admin suite and the Shop suite ran as well.
 Gate note: this mode is not the complete gate: the browser E2E and the serial full-suite run are not part of it.
@@ -5338,28 +5338,28 @@ Coverage verdict: PASS
 --- Shard results ---
 | Shard | Exit | Duration | Start at | Test Files | Tests | Failed files |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | 0 | 686.8s | 19:59:26 | 54 files, 54 passed | 687 tests, 687 passed | none |
-| 2 | 0 | 651.7s | 19:59:27 | 55 files, 55 passed | 759 tests, 759 passed | none |
-| 3 | 0 | 651.2s | 19:59:28 | 56 files, 56 passed | 743 tests, 743 passed | none |
-| 4 | 0 | 692.2s | 19:59:29 | 55 files, 55 passed | 689 tests, 689 passed | none |
+| 1 | 0 | 762.5s | 20:37:00 | 54 files, 54 passed | 687 tests, 687 passed | none |
+| 2 | 0 | 720.5s | 20:37:01 | 55 files, 55 passed | 759 tests, 759 passed | none |
+| 3 | 0 | 722.8s | 20:37:03 | 56 files, 56 passed | 743 tests, 743 passed | none |
+| 4 | 0 | 764.6s | 20:37:02 | 55 files, 55 passed | 689 tests, 689 passed | none |
 Run Admin tests:
-   Start at  20:10:58
+   Start at  20:49:44
  Test Files  65 passed (65)
       Tests  688 passed (688)
 Run Shop tests:
-   Start at  20:11:19
+   Start at  20:50:07
  Test Files  41 passed (41)
       Tests  287 passed (287)
 
 | Step | Result | Duration |
 | --- | --- | --- |
 | Prisma generate | PASS | 0.01s |
-| Type-check API, Admin, Shop and shared | PASS | 2.78s |
-| Lint Shop | PASS | 8.83s |
-| Reset test database | PASS | 3.44s |
-| Run API tests in 4 shards | PASS | 711.50s |
-| Run Admin tests | PASS | 20.51s |
-| Run Shop tests | PASS | 24.21s |
+| Type-check API, Admin, Shop and shared | PASS | 17.21s |
+| Lint Shop | PASS | 9.92s |
+| Reset test database | PASS | 3.53s |
+| Run API tests in 4 shards | PASS | 781.94s |
+| Run Admin tests | PASS | 22.41s |
+| Run Shop tests | PASS | 23.16s |
 ```
 
 ### What the next reader should know
@@ -5370,5 +5370,28 @@ Run Shop tests:
 - The refusal of a plugin is a refusal of the request, not a failure of the plugin: it is not
   recorded as a plugin failure and it does not open the breaker. An unexpected exception is still
   a failure of the plugin and still reaches the operator as the sanitised PLUGIN_ERROR.
+- The refusal of a plugin only stays a refusal if its details match the `errorDetails` schema the
+  method declares. A refusal whose details do not match is a failure of the provider, so a plugin
+  declares every detail it refuses with. The wallet of the imager declares `balance`, `required`
+  and `reference` for the debit, and its other refusals carry details that its schema does not
+  name.
+- The pin of the plugin whose package is replaced lives in the Admin entry. The API reads the
+  operation of a package on its own, so a second entry (a script, the marketplace) has to pin the
+  plugin itself.
+- The service path of a plugin service records only failures at the breaker. The failure history of
+  a provider therefore never slides out of the window, and a probe that succeeds never closes the
+  circuit. The contract path and the gateway path record the success; the service path does not.
+  It is registered as an open item and it is not a regression of this batch.
 - The currency of a store is one list now. A currency outside it is refused by the API, and the
   settings page offers exactly the list.
+
+### The review of the batch
+
+An independent reviewer read the diff of the three commits against the goals of the change and
+found no blocking finding. The findings it raised were answered in the follow-up commit: the
+wording of the update dialog speaks of the update instead of the installation, the SDK says that
+a refusal needs a declared `errorDetails` schema, the marker of a refusal is documented as a claim
+and not as a valid refusal, the catalogue test asserts that the catalogue names every store
+currency instead of binding the two lists together, the packaged SDK is checked for the new
+export, and the refusal of a provider records the success at the breaker, so a refusal never
+leaves the circuit half-open.

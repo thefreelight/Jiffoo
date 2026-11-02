@@ -9,8 +9,8 @@ export const CURRENCY_EXPONENTS: Record<string, number> = { JPY: 0, KRW: 0, VND:
  * the storefront read the same codes. The money model reads every currency of
  * it exactly: the two decimal ones keep their two decimal places and the zero
  * decimal ones (JPY, KRW) are whole units that `decimalToMinor` reads
- * exactly. A currency outside the list cannot be stored exactly: the three
- * decimal ones (BHD, JOD, KWD, OMR, TND) would be rounded by the database and
+ * exactly. A currency outside the list cannot be stored exactly: the three-decimal
+ * ones (BHD, JOD, KWD, OMR, TND) would be rounded by the database and
  * an unknown code has no minor unit at all.
  */
 export const STORE_CURRENCIES = STORE_CURRENCY_CODES;

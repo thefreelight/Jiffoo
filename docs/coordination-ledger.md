@@ -75,6 +75,7 @@ that were open when it was written; §5w names all four.
 | the currency catalogue of the settings page against the shared catalogue | §5ze, §5zai | closed on 2026-11-02; the shared package owns the list of the store currencies, the money module, the settings page and the presentation catalogue read it, and a test keeps the list and the catalogue equal |
 | the storefront does not read the marker of a degraded tax quote | §5zg, §5zai | closed on 2026-11-02; the storefront reads the marker and says that the tax is being calculated instead of showing an empty total |
 | a dead plugin file cleanup row holds the storage quota of its plugin | §5zg | open; the quota is released only on the successful cleanup path, so a row that exhausts its attempt budget keeps its reservation |
+| a successful service call does not record a success sample at the breaker | §5zai | open as of 2026-11-02; the service path records only failures, so the failure history of a provider never slides out of the window and a probe that succeeds never closes the circuit; the contract path and the gateway path record the success, the service path does not |
 | a store that moves to a zero-decimal currency with fractional prices | §5ze | open; the merchant has to re-price |
 | an audit row may be lost when the database refuses the write | §5zg, §5zh | open by decision; the money state is the truth that must not be undone |
 | the conflict surface against `main` | §5zi | measured and unchanged; it is not resolved here |

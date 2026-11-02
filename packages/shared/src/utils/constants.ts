@@ -112,8 +112,8 @@ export const CURRENCIES = {
  * Every currency of the list is exactly representable in the `Decimal(18, 2)`
  * price columns: the two decimal ones keep their two decimal places and the
  * zero decimal ones (JPY, KRW) are whole units that the money model reads
- * exactly. A currency outside the list cannot be stored exactly: the three
- * decimal ones (BHD, JOD, KWD, OMR, TND) would be rounded by the database
+ * exactly. A currency outside the list cannot be stored exactly: the three-decimal
+ * ones (BHD, JOD, KWD, OMR, TND) would be rounded by the database
  * and an unknown code has no minor unit at all.
  *
  * The list is the one catalogue of the product: the API accepts these codes,

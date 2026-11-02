@@ -1216,6 +1216,9 @@ export async function callService(
       // failure of the provider and falls through to the crash path.
       const rejection = providerRejection(providerOutcomeToResult({ ok: false, error: { code: error.code, message: error.message, details: error.details ?? null } }, registration.schemas));
       if (rejection) {
+        // The provider answered, so the breaker sees a call that worked: a
+        // refusal never opens it and closes a probe that was open.
+        await sharedProtection.result(permit, true);
         if (handle) {
           if (!await settleServiceCall(handle, rejection)) return lostClaimOutcome(handle.callId, request);
         }

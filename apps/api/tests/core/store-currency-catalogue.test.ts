@@ -15,7 +15,12 @@ describe('The catalogue of the store currencies', () => {
   });
 
   it('names every currency of the list in the presentation catalogue', () => {
-    expect(Object.keys(CURRENCIES).sort()).toEqual([...STORE_CURRENCIES].sort());
+    // The catalogue may know more currencies than a store may select, but it
+    // has to name every one of them.
+    for (const currency of STORE_CURRENCIES) {
+      expect(CURRENCIES).toHaveProperty(currency);
+      expect(CURRENCIES[currency as keyof typeof CURRENCIES].code).toBe(currency);
+    }
   });
 
   it('holds only currencies the money model stores exactly', () => {

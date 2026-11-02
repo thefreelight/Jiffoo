@@ -174,7 +174,14 @@ export class PluginBusinessError extends Error {
   }
 }
 
-/** Whether an exception is a deliberate business rejection of a plugin. */
+/**
+ * Whether an exception is a deliberate business rejection of a plugin.
+ *
+ * The marker says that the exception claims to be a refusal; it does not make
+ * the refusal valid. A marked exception without a code and a message is
+ * checked against the declared schema like every other refusal, and a refusal
+ * that does not match it is a failure of the provider.
+ */
 export function isPluginBusinessError(error: unknown): error is PluginBusinessError {
   return !!error && typeof error === 'object' && (error as Record<symbol, unknown>)[PLUGIN_BUSINESS_ERROR] === true;
 }

@@ -1,4 +1,5 @@
-// Runtime capabilities are supplied by Core; this entry point exports authoring types only.
+// Runtime capabilities are supplied by Core; this entry point exports the authoring types and the
+// error classes a plugin raises.
 export { TaskPermanentError } from '../../shared/src/extensions/plugin-contract';
 // The deliberate rejection of a plugin. A plugin raises it instead of a
 // system failure when it refuses a request it understands, and Core keeps its

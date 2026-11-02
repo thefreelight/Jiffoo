@@ -50,6 +50,14 @@ export async function verifyStandaloneSdk() {
     const publicSdk = consumerRequire('@jiffoo-core/plugin-sdk');
     assert.equal(new publicSdk.TaskPermanentError('RENDER_REJECTED', 'Rendering rejected').name, 'TaskPermanentError');
     assert.throws(() => new publicSdk.TaskPermanentError('invalid-code', 'Invalid'), /Invalid permanent task error/);
+    // The deliberate refusal of a plugin travels with the package: a consumer
+    // that installs the tarball can raise it.
+    const rejection = new publicSdk.PluginBusinessError('INSUFFICIENT_BALANCE', 'The customer does not have enough points.', { balance: 0 });
+    assert.equal(rejection.name, 'PluginBusinessError');
+    assert.equal(rejection.code, 'INSUFFICIENT_BALANCE');
+    assert.equal(publicSdk.isPluginBusinessError(rejection), true);
+    assert.equal(publicSdk.isPluginBusinessError(new Error('plain')), false);
+    assert.throws(() => new publicSdk.PluginBusinessError('invalid-code', 'Invalid'), /Invalid business rejection/);
     await assert.rejects(() => publicSdk.drainPluginTasks({ installationIds: ['unattached'], deadlineMs: 100, includeFinalFailure: true }), /not attached|NODE_ENV=test/);
     const cli = consumerRequire.resolve('@jiffoo-core/plugin-sdk/cli');
     assert.equal(cli, path.join(installed, 'dist/cli.js'));

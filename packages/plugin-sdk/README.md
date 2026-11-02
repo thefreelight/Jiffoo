@@ -65,6 +65,11 @@ failure: it is not recorded as one and it does not open the breaker. Every
 other exception stays a failure of the plugin and keeps the sanitised
 PLUGIN_ERROR of Core.
 
+A refusal only stays a refusal if its details match the `errorDetails` schema
+the method declares. The details of a refusal that does not match the declared
+schema are a failure of the provider, so declare every detail the method can
+refuse with.
+
 For task development use `jiffoo-plugin dev --worker`, an already-running
 loopback Core API, and JIFFOO_DEV_WORKER_ENTRY pointing to the matching compiled
 Core worker entry. Explicit DATABASE_URL_TEST and REDIS_URL select the dedicated
