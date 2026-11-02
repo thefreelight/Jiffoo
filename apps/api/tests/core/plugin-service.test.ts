@@ -8,7 +8,7 @@ import { deleteAllTestUsers } from '../helpers/auth';
 import { getTestPrisma } from '../helpers/db';
 import { publishTestPlugin, clearTestPluginCache } from '../helpers/plugin-cache';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
-import { validateServicePayload, validateServiceSchemaDocument, serviceSchemaDigest } from '@jiffoo/shared';
+import { validateServicePayload, validateServiceSchemaDocument, serviceSchemaDigest, getPluginManifestIssues } from '@jiffoo/shared';
 
 /**
  * The core-mediated plugin service contract of G4.
@@ -64,14 +64,19 @@ describe('Plugin service contract', () => {
       description: 'offers the wallet service', category: 'integration',
       runtimeType: 'internal-fastify', hostProtocol: 'internal-fastify-v1',
       entryModule: 'server/index.js', permissions: [],
-      services: [{ name: 'wallet', version: 1, methods: [{ name: 'debit', idempotencyRequired: false, schema: 'services/debit.json' }] }],
+      services: [{ name: 'wallet', version: 1, methods: [
+        { name: 'debit', idempotencyRequired: false, schema: 'services/debit.json' },
+        { name: 'refuse', idempotencyRequired: false, schema: 'services/refuse.json' },
+      ] }],
     };
     const providerDirectory = await pluginDirectory({
       'manifest.json': JSON.stringify(providerManifest),
       'services/debit.json': JSON.stringify(schema),
+      'services/refuse.json': JSON.stringify(schema),
       'server/index.js': `module.exports = { register(ctx) {
         ctx.services.provide('wallet', 1, {
           debit: async (input) => ({ ok: true, data: { debited: input.amount >= 0 } }),
+          refuse: async (input) => ctx.services.businessError({ code: 'INSUFFICIENT_FUNDS', message: 'Not enough funds', details: { required: input.amount } }),
         });
       } };`,
     });
@@ -82,7 +87,7 @@ describe('Plugin service contract', () => {
       description: 'calls the wallet service', category: 'integration',
       runtimeType: 'internal-fastify', hostProtocol: 'internal-fastify-v1',
       entryModule: 'server/index.js', permissions: [],
-      serviceDependencies: [{ plugin: providerSlug, service: 'wallet', version: 1, methods: ['debit'] }],
+      serviceDependencies: [{ plugin: providerSlug, service: 'wallet', version: 1, methods: ['debit', 'refuse'] }],
     };
     const consumerDirectory = await pluginDirectory({
       'manifest.json': JSON.stringify(consumerManifest),
@@ -94,6 +99,14 @@ describe('Plugin service contract', () => {
         ctx.http.route({ method: 'POST', path: '/ungranted', handler: async (request) => ctx.services.call({
           plugin: ${JSON.stringify(providerSlug)}, service: 'wallet', version: 1, method: 'debit',
           input: { amount: 1 }, idempotencyKey: 'key-2',
+        }) });
+        ctx.http.route({ method: 'POST', path: '/refused', handler: async (request) => ctx.services.call({
+          plugin: ${JSON.stringify(providerSlug)}, service: 'wallet', version: 1, method: 'refuse',
+          input: { amount: request.body.amount }, idempotencyKey: request.body.key,
+        }) });
+        ctx.http.route({ method: 'POST', path: '/undeclared', handler: async (request) => ctx.services.call({
+          plugin: ${JSON.stringify(providerSlug)}, service: 'wallet', version: 1, method: 'missing',
+          input: { amount: 1 }, idempotencyKey: request.body.key,
         }) });
       } };`,
     });
@@ -148,5 +161,49 @@ describe('Plugin service contract', () => {
     expect(body.ok).toBe(false);
     expect(body.source).toBe('core');
     expect(body.error.code).toBe('PLUGIN_SERVICE_PERMISSION_DENIED');
+    await PluginManagementService.updateInstance(consumerInstallationId, {
+      grantedPermissions: [`service:${providerSlug}:wallet.v1.debit`, `service:${providerSlug}:wallet.v1.refuse`],
+    });
+  });
+
+  it('passes the business rejection of the provider through unchanged', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/extensions/plugin/${consumerSlug}/api/refused`,
+      payload: { amount: 7, key: 'key-refused' },
+    });
+    expect(response.statusCode).toBe(200);
+    // The provider answered: the rejection is its own, not a failure of Core.
+    expect(response.json()).toEqual({
+      ok: false,
+      source: 'provider',
+      error: { code: 'INSUFFICIENT_FUNDS', message: 'Not enough funds', details: { required: 7 } },
+    });
+  });
+
+  it('refuses a method the caller does not declare before the provider is entered', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/extensions/plugin/${consumerSlug}/api/undeclared`,
+      payload: { amount: 1, key: 'key-undeclared' },
+    });
+    expect(response.statusCode).toBe(200);
+    const body = response.json();
+    expect(body.ok).toBe(false);
+    expect(body.source).toBe('core');
+    expect(body.error.code).toBe('PLUGIN_SERVICE_DEPENDENCY_INVALID');
+  });
+
+  it('refuses a manifest that names a wildcard provider', () => {
+    const manifest = {
+      schemaVersion: 1, slug: 'wildcard-consumer', name: 'Wildcard consumer', version: '1.0.0',
+      description: 'calls any provider', category: 'integration',
+      runtimeType: 'internal-fastify', hostProtocol: 'internal-fastify-v1',
+      entryModule: 'server/index.js', permissions: [],
+      serviceDependencies: [{ plugin: '*', service: 'wallet', version: 1, methods: ['debit'] }],
+    };
+    const issues = getPluginManifestIssues(manifest);
+    expect(issues.length).toBeGreaterThan(0);
+    expect(issues.some(issue => issue.code === 'PLUGIN_SERVICE_DEPENDENCY_INVALID')).toBe(true);
   });
 });

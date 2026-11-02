@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { getTestPrisma } from '../helpers/db';
 import { createTestUser, deleteAllTestUsers } from '../helpers/auth';
@@ -157,5 +157,112 @@ describe('The paid-order read of G4-R', () => {
     await expect(listPaidOrders(installationId, { from: wide, to })).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
     const future = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
     await expect(listPaidOrders(installationId, { from, to: future })).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+  });
+
+  it('refuses a cursor whose signature was tampered with', async () => {
+    const first = await listPaidOrders(installationId, { from, to, limit: 1 });
+    const body = first.nextCursor!.split('.')[0];
+    // The signature is a base64url HMAC of 32 bytes: a well formed cursor with
+    // the wrong signature is refused.
+    await expect(listPaidOrders(installationId, { from, to, limit: 1, cursor: `${body}.${'A'.repeat(43)}` }))
+      .rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+  });
+
+  it('refuses a cursor whose hour has passed', async () => {
+    const first = await listPaidOrders(installationId, { from, to, limit: 1 });
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(Date.now() + 2 * 60 * 60 * 1000);
+      await expect(listPaidOrders(installationId, { from, to, limit: 1, cursor: first.nextCursor }))
+        .rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('refuses the read while the installation is disabled', async () => {
+    await prisma.pluginInstallation.update({ where: { id: installationId }, data: { enabled: false } });
+    await expect(listPaidOrders(installationId, { from, to })).rejects.toMatchObject({ code: 'PLUGIN_DISABLED' });
+    await prisma.pluginInstallation.update({ where: { id: installationId }, data: { enabled: true } });
+  });
+
+  it('spends the page budget of the installation', async () => {
+    // The budget belongs to the installation, so the second installation has its
+    // own and the other suites of this file keep theirs.
+    const installation = await prisma.pluginInstallation.create({
+      data: {
+        pluginSlug: slug, instanceKey: 'budget', enabled: true, configJson: JSON.stringify({}),
+        grantedPermissions: JSON.stringify(['commerce:orders.read']),
+      },
+    });
+    try {
+      for (let page = 0; page < 30; page += 1) await listPaidOrders(installation.id, { from, to });
+      await expect(listPaidOrders(installation.id, { from, to })).rejects.toMatchObject({ code: 'RATE_LIMITED' });
+    } finally {
+      await prisma.pluginInstallation.delete({ where: { id: installation.id } });
+    }
+  });
+
+  it('reports an order that was refunded later with its current status and no second capture', async () => {
+    const account = await prisma.paymentProviderAccount.create({
+      data: { namespace: `commerce-refund-${slug}`, merchantAccount: 'test', environment: 'test' },
+    });
+    const order = await createTestOrder({ userId, total: 20 });
+    await createTestOrderItem({ orderId: order.id, productId, price: 20 });
+    await prisma.order.update({ where: { id: order.id }, data: { paymentStatus: 'REFUNDED' } });
+    await acceptedCapture(order.id, 20, account);
+    // The second capture needs a refund: it is not a paid moment, and the
+    // order stays discoverable through its accepted first capture.
+    const second = await prisma.payment.create({
+      data: { orderId: order.id, attemptNumber: 2, paymentMethod: 'test', providerKey: account.providerKey, amount: 20, currency: 'USD', status: 'SUCCEEDED', idempotencyKey: randomUUID() },
+    });
+    await prisma.paymentLedger.create({
+      data: {
+        paymentId: second.id, orderId: order.id, eventType: 'SUCCEEDED', amount: 20, currency: 'USD',
+        providerKey: account.providerKey, providerPaymentId: `capture-${randomUUID()}`, refundRequired: true,
+        createdAt: new Date(Date.now() - 30_000),
+      },
+    });
+    try {
+      const page = await listPaidOrders(installationId, { from, to });
+      const matches = page.items.filter(item => item.orderId === order.id);
+      expect(matches).toHaveLength(1);
+      expect(matches[0].paymentStatus).toBe('REFUNDED');
+    } finally {
+      await prisma.paymentLedger.deleteMany({ where: { orderId: order.id } });
+      await prisma.payment.deleteMany({ where: { orderId: order.id } });
+      await prisma.paymentProviderAccount.delete({ where: { namespace_merchantAccount_environment: { namespace: `commerce-refund-${slug}`, merchantAccount: 'test', environment: 'test' } } });
+      await prisma.orderItem.deleteMany({ where: { orderId: order.id } });
+      await prisma.order.delete({ where: { id: order.id } });
+    }
+  });
+
+  it('reports the line of the catalogue as it was when the order was placed', async () => {
+    const renamed = await createTestProduct({ name: 'catalogue product at order time', price: 30, stock: 2 });
+    const order = await createTestOrder({ userId, total: 30 });
+    await createTestOrderItem({ orderId: order.id, productId: renamed.id, price: 30 });
+    await prisma.order.update({ where: { id: order.id }, data: { paymentStatus: 'PAID' } });
+    const account = await prisma.paymentProviderAccount.create({
+      data: { namespace: `commerce-gone-${slug}`, merchantAccount: 'test', environment: 'test' },
+    });
+    await acceptedCapture(order.id, 30, account);
+    // The catalogue changes after the order: the line keeps the snapshot of the
+    // moment of the order, never the current catalogue.
+    await prisma.product.update({ where: { id: renamed.id }, data: { name: 'renamed after the order' } });
+    try {
+      const page = await listPaidOrders(installationId, { from, to });
+      const item = page.items.find(entry => entry.orderId === order.id)!;
+      expect(item).toBeTruthy();
+      expect(item.items).toHaveLength(1);
+      expect(item.items[0].productName).toBe('catalogue product at order time');
+    } finally {
+      await prisma.paymentLedger.deleteMany({ where: { orderId: order.id } });
+      await prisma.payment.deleteMany({ where: { orderId: order.id } });
+      await prisma.paymentProviderAccount.delete({ where: { namespace_merchantAccount_environment: { namespace: `commerce-gone-${slug}`, merchantAccount: 'test', environment: 'test' } } });
+      await prisma.orderItem.deleteMany({ where: { orderId: order.id } });
+      await prisma.order.delete({ where: { id: order.id } });
+      await prisma.productVariant.deleteMany({ where: { productId: renamed.id } });
+      await prisma.product.delete({ where: { id: renamed.id } });
+    }
   });
 });

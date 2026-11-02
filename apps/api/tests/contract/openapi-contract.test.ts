@@ -25,6 +25,14 @@ const app: FastifyInstance = await createTestApp({ enableSwagger: true });
 setOpenApiSpec(app.swagger() as ReturnType<typeof loadOpenApiSpec> & {});
 
 describe('OpenAPI Contract Tests', () => {
+  it('publishes no browser route for the paid-order read of the plugin service contract', () => {
+    // The paid-order read is a plugin context capability: it is reachable from
+    // the server context of a plugin with the commerce permission and from no
+    // browser route of Core.
+    const paths = Object.keys(loadOpenApiSpec().paths);
+    expect(paths.some(path => /commerce|paid[-_]?order/i.test(path))).toBe(false);
+  });
+
   it('publishes product availability filters, counts and price ranges and accepts partial updates', () => {
     const paths = loadOpenApiSpec().paths;
     const list = paths['/api/v1/admin/products/'].get!;

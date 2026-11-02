@@ -680,7 +680,7 @@ are demonstrated:
 
 ### The state of the scenarios
 
-Twenty of the twenty-three scenarios of this section are complete. The twenty-first is the
+Twenty of the twenty-three scenarios of this section are complete. The eleventh is the
 exact-release verification, which the owner deferred on 2026-10-12 because the line is not merged
 into the release branch and no release is declared. The twenty-second and the twenty-third are
 delivered on the Core side: the core-mediated service, its method grants, the durable call
