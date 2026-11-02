@@ -2,6 +2,29 @@ import { localQuickVitestExclusions } from './verify-selection.mjs';
 
 export const apiBuildStep = ['Build API', [['--filter', 'api', 'build']]];
 
+/**
+ * The number of API suites above which a scoped selection runs in parallel shards.
+ *
+ * One serial Vitest process spends most of its time waiting for the database, so a selection of
+ * many suites costs the sum of their durations. The same selection in shards, each against its
+ * own database, costs the slowest shard. Below the threshold the containers of the shards cost
+ * more than the serial run saves, so the selection stays serial.
+ */
+export const parallelApiThreshold = 24;
+
+/**
+ * The parallel plan of a scoped API selection, or null when the selection stays serial.
+ *
+ * The shard count follows the size of the selection: two shards pay for the containers from
+ * about two dozen suites, and four shards are the widest the approved runner uses.
+ */
+export function parallelApiPlan(apiFiles) {
+  const files = [...new Set((apiFiles ?? []).filter(Boolean))];
+  if (files.length < parallelApiThreshold) return null;
+  const shards = Math.min(4, Math.max(2, Math.ceil(files.length / 25)));
+  return { shards, files };
+}
+
 // Keep pnpm's workspace environment while avoiding the Windows Vitest CMD shim.
 export function executableStepArgs(args, resolveVitestEntry, nodeExecutable = process.execPath) {
   if (args[0] !== '--filter' || args[2] !== 'exec' || args[3] !== 'vitest') return args;

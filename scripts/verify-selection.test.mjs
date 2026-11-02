@@ -5,7 +5,7 @@ import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { parseSelection, quickRequirements, mandatorySuites, mandatoryAdditions, plannedSuiteLines, ciOnlyScriptTests, ciOnlyVitestWrappers, localQuickVitestExclusions } from './verify-selection.mjs';
-import { localSteps, executableStepArgs } from './verify-steps.mjs';
+import { localSteps, executableStepArgs, parallelApiPlan, parallelApiThreshold } from './verify-steps.mjs';
 
 test('Vitest execution uses the real Node executable and retains long selections verbatim', () => {
   const files = Array.from({ length: 169 }, (_, index) => `tests/core/long-command-selection-with-workspace-spaces-${index}.test.ts`);
@@ -157,6 +157,20 @@ test('existing default quick and explicit application catalogues are unchanged',
   const plan = localSteps('url', true, ['selected'], files);
   assert.deepEqual(plan.at(-1), ['Run API tests', [['--filter', 'api', 'exec', 'vitest', 'run', ...localQuickVitestExclusions('api'), 'tests/example.test.ts']]]);
   assert.deepEqual(quickRequirements(select([])), { apps: ['api', 'admin', 'shop'], database: true, scriptOnly: false });
+});
+test('a wide API selection runs in parallel shards and a narrow one stays serial', () => {
+  const narrow = Array.from({ length: parallelApiThreshold - 1 }, (_, index) => `tests/core/example-${index}.test.ts`);
+  assert.equal(parallelApiPlan(narrow), null);
+  assert.equal(parallelApiPlan([]), null);
+  assert.equal(parallelApiPlan(undefined), null);
+  const wide = Array.from({ length: parallelApiThreshold }, (_, index) => `tests/core/example-${index}.test.ts`);
+  const plan = parallelApiPlan(wide);
+  assert.equal(plan.shards, 2);
+  assert.equal(plan.files.length, parallelApiThreshold);
+  // The same file named twice is one suite.
+  assert.equal(parallelApiPlan([...wide, wide[0]]).files.length, parallelApiThreshold);
+  assert.equal(parallelApiPlan(Array.from({ length: 100 }, (_, index) => `tests/core/example-${index}.test.ts`)).shards, 4);
+  assert.equal(parallelApiPlan(Array.from({ length: 217 }, (_, index) => `tests/core/example-${index}.test.ts`)).shards, 4);
 });
 test('existing invocation catalogues retain their committed behavior', async () => {
   const original = execFileSync('git', ['show', 'HEAD:scripts/verify-steps.mjs'], { encoding: 'utf8' });

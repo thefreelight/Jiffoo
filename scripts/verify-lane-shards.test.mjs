@@ -46,6 +46,7 @@ import {
   partitionCatalogue,
   partitionFiles,
   partitionFilesByDuration,
+  readShardFileList,
   replaySummaryTitle,
   resolveShardTarget,
   removeExtensionsCache,
@@ -71,12 +72,12 @@ import {
 const apiFile = name => resolve('apps/api/tests', name);
 
 test('arguments accept one shard count or one shard index and reject anything else', () => {
-  assert.deepEqual(parseShardArgs([]), { shards: 4, shard: undefined, keep: false, replay: false, recordDurations: false });
-  assert.deepEqual(parseShardArgs(['--shards=4']), { shards: 4, shard: undefined, keep: false, replay: false, recordDurations: false });
-  assert.deepEqual(parseShardArgs(['--shards=1', '--keep']), { shards: 1, shard: undefined, keep: true, replay: false, recordDurations: false });
-  assert.deepEqual(parseShardArgs(['--shard=2']), { shards: 4, shard: 2, keep: false, replay: false, recordDurations: false });
-  assert.deepEqual(parseShardArgs(['--replay']), { shards: 4, shard: undefined, keep: false, replay: true, recordDurations: false });
-  assert.deepEqual(parseShardArgs(['--record-durations']), { shards: 4, shard: undefined, keep: false, replay: false, recordDurations: true });
+  assert.deepEqual(parseShardArgs([]), { shards: 4, shard: undefined, keep: false, replay: false, recordDurations: false, files: '' });
+  assert.deepEqual(parseShardArgs(['--shards=4']), { shards: 4, shard: undefined, keep: false, replay: false, recordDurations: false, files: '' });
+  assert.deepEqual(parseShardArgs(['--shards=1', '--keep']), { shards: 1, shard: undefined, keep: true, replay: false, recordDurations: false, files: '' });
+  assert.deepEqual(parseShardArgs(['--shard=2']), { shards: 4, shard: 2, keep: false, replay: false, recordDurations: false, files: '' });
+  assert.deepEqual(parseShardArgs(['--replay']), { shards: 4, shard: undefined, keep: false, replay: true, recordDurations: false, files: '' });
+  assert.deepEqual(parseShardArgs(['--record-durations']), { shards: 4, shard: undefined, keep: false, replay: false, recordDurations: true, files: '' });
   assert.throws(() => parseShardArgs(['--shards=4', '--shard=2']), /cannot be combined/);
   assert.throws(() => parseShardArgs(['--shards=0']), /between 1 and 8/);
   assert.throws(() => parseShardArgs(['--shards=9']), /between 1 and 8/);
@@ -86,6 +87,34 @@ test('arguments accept one shard count or one shard index and reject anything el
   assert.throws(() => parseShardArgs(['--replay', '--record-durations']), /--replay cannot be combined/);
   assert.throws(() => parseShardArgs(['--record-durations', '--shards=2']), /--record-durations cannot be combined/);
   assert.throws(() => parseShardArgs(['--unknown']), /Unknown argument/);
+  assert.equal(parseShardArgs(['--files=tmp/selection.json']).files, 'tmp/selection.json');
+  assert.throws(() => parseShardArgs(['--files=a.json', '--files=b.json']), /Only one --files/);
+});
+
+test('a named selection is the catalogue of the run, in the paths of the repository', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'jiffoo-shard-selection-'));
+  try {
+    const selection = join(directory, 'selection.json');
+    writeFileSync(selection, JSON.stringify([
+      'apps/api/tests/core/example.test.ts',
+      'tests/core/relative.test.ts',
+      { file: 'apps/api/tests/routes/other.test.ts' },
+      'apps/api/tests/core/example.test.ts',
+    ]), 'utf8');
+    assert.deepEqual(readShardFileList(selection), [
+      'apps/api/tests/core/example.test.ts',
+      'apps/api/tests/routes/other.test.ts',
+      'apps/api/tests/core/relative.test.ts',
+    ].sort());
+    const lines = join(directory, 'selection.txt');
+    writeFileSync(lines, 'apps/api/tests/core/example.test.ts\napps/api/tests/routes/other.test.ts\n', 'utf8');
+    assert.deepEqual(readShardFileList(lines), ['apps/api/tests/core/example.test.ts', 'apps/api/tests/routes/other.test.ts']);
+    const empty = join(directory, 'empty.json');
+    writeFileSync(empty, '[]', 'utf8');
+    assert.throws(() => readShardFileList(empty), /empty/);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
 });
 
 test('the published port of a dynamically mapped container is read back from the docker output', () => {

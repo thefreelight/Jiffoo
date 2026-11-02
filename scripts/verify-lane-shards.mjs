@@ -112,9 +112,11 @@ export const stepsNotCovered = Object.freeze([
 export function parseShardArgs(argv = []) {
   const shardsArgument = argv.filter(arg => arg.startsWith('--shards='));
   const shardArgument = argv.filter(arg => arg.startsWith('--shard='));
+  const filesArgument = argv.filter(arg => arg.startsWith('--files='));
   if (shardsArgument.length > 1 || shardArgument.length > 1) throw new Error('Only one --shards and one --shard argument are accepted.');
   if (shardsArgument.length && shardArgument.length) throw new Error('--shard cannot be combined with --shards.');
-  const unknown = argv.filter(arg => arg !== '--keep' && arg !== '--replay' && arg !== '--record-durations' && !arg.startsWith('--shards=') && !arg.startsWith('--shard='));
+  if (filesArgument.length > 1) throw new Error('Only one --files argument is accepted.');
+  const unknown = argv.filter(arg => arg !== '--keep' && arg !== '--replay' && arg !== '--record-durations' && !arg.startsWith('--shards=') && !arg.startsWith('--shard=') && !arg.startsWith('--files='));
   if (unknown.length) throw new Error(`Unknown argument: ${unknown[0]}`);
   const replay = argv.includes('--replay');
   const recordDurations = argv.includes('--record-durations');
@@ -137,7 +139,7 @@ export function parseShardArgs(argv = []) {
     shard = Number(shardArgument[0].slice('--shard='.length));
     if (!Number.isInteger(shard) || shard < 1 || shard > defaultShards) throw new Error(`--shard must be an integer between 1 and ${defaultShards}.`);
   }
-  return { shards, shard, keep: argv.includes('--keep'), replay, recordDurations };
+  return { shards, shard, keep: argv.includes('--keep'), replay, recordDurations, files: filesArgument.length ? filesArgument[0].slice('--files='.length) : '' };
 }
 
 // A Docker published port line looks like "127.0.0.1:18151"; several lines mean several mappings.
@@ -516,6 +518,36 @@ export function parseVitestListFiles(payload) {
     .filter(Boolean)
     .map(file => normalizeTestFilePath(file))
     .sort();
+}
+
+// The catalogue of a run whose selection the caller named.
+//
+// The scoped run asks for a selection of suites; when that selection is wide enough to pay for
+// the containers, the same selection runs in the shards instead of in one serial process. The
+// expected set of the run is then exactly the selection, and the coverage verdict still holds:
+// every selected file has to be executed exactly once.
+export function readShardFileList(path) {
+  const text = readFileSync(path, 'utf8');
+  let entries;
+  try { entries = JSON.parse(text); }
+  catch { entries = text.split(/\r?\n/); }
+  if (!Array.isArray(entries)) throw new Error('The selected file list is not an array.');
+  const files = entries
+    .map(entry => (typeof entry === 'string' ? entry : entry?.file))
+    .filter(Boolean)
+    .map(file => {
+      const value = String(file).trim();
+      if (!value) return '';
+      // A path of the repository and a path of the API package are both accepted, because the
+      // caller of the scoped run names the suites the way the catalogue names them.
+      const absolute = isAbsolute(value)
+        ? value
+        : value.startsWith('apps/api/') ? resolve(repositoryRoot, value) : resolve(apiDirectory, value);
+      return relative(repositoryRoot, absolute).split(sep).join('/');
+    })
+    .filter(Boolean);
+  if (!files.length) throw new Error('The selected file list is empty.');
+  return [...new Set(files)].sort();
 }
 
 // The authoritative per-shard numbers come from the Vitest JSON reporter, not from the log
@@ -1426,7 +1458,7 @@ function containerState(containerId) {
 async function main() {
   const startedAt = Date.now();
   const startedAtIso = new Date(startedAt).toISOString();
-  const { shards, shard, keep, replay, recordDurations } = parseShardArgs(process.argv.slice(2));
+  const { shards, shard, keep, replay, recordDurations, files } = parseShardArgs(process.argv.slice(2));
   const resultsDirectory = resolve('tmp', 'lane-shards');
   mkdirSync(resultsDirectory, { recursive: true });
   if (recordDurations) {
@@ -1519,9 +1551,10 @@ async function main() {
     }
 
     // The catalogue snapshot is collected with the same environment and the same exclusion rules
-    // as the shards that run against it.
+    // as the shards that run against it. A run whose selection the caller named uses that
+    // selection as its catalogue, and the expected set of the run is exactly that selection.
     const catalogueEnvironment = catalogueSnapshotEnvironment(baseEnvironment, plan[0]);
-    const catalogue = listExpectedApiFiles(resultsDirectory, catalogueEnvironment);
+    const catalogue = files ? readShardFileList(files) : listExpectedApiFiles(resultsDirectory, catalogueEnvironment);
     const durationTable = readDurationTable(durationFixturePath);
     const partition = partitionCatalogue(catalogue, plan[0].shards, durationTable);
     for (const entry of plan) entry.files = partition.shards[entry.index - 1] ?? [];
@@ -1669,7 +1702,9 @@ async function main() {
     const totals = sumShardReports(outcomes.map(outcome => outcome.report));
     const reportsRead = outcomes.filter(outcome => outcome.report).length;
     const coverageLines = [
-      `Catalogue files (vitest list --filesOnly, same exclusions, same environment as the shards): ${catalogue.length}`,
+      files
+        ? `Catalogue files (the selection the caller named): ${catalogue.length}`
+        : `Catalogue files (vitest list --filesOnly, same exclusions, same environment as the shards): ${catalogue.length}`,
       `Expected set (the full catalogue, not the assigned subset): ${coverage.expectedCount}`,
       `Assigned to this run: ${assigned.length}`,
       `Executed (union over all shards): ${coverage.unionSize}`,
@@ -1687,7 +1722,7 @@ async function main() {
       `Database: ${target.databaseName}`,
       `Redis DB: ${target.redisDb}`,
       `Shards: ${plan.map(entry => entry.index).join(', ')} of ${plan[0].shards} (${plan.length}-shard run)`,
-      `Run scope: ${scope.partial ? `PARTIAL (single shard ${shard} of ${shards})` : `full catalogue (${plan.length} shard(s))`}`,
+      `Run scope: ${scope.partial ? `PARTIAL (single shard ${shard} of ${shards})` : files ? `the selected catalogue (${plan.length} shard(s))` : `full catalogue (${plan.length} shard(s))`}`,
       `Scope coverage: ${scope.note}`,
       `Totals: Test Files ${formatCountSummary(totals.testFiles, 'files')} | Tests ${formatCountSummary(totals.tests, 'tests')} | Suites ${formatCountSummary(totals.suites, 'suites')}`,
       `Shard results JSON read back: ${reportsRead}/${outcomes.length}`,

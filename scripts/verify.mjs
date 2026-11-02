@@ -1,11 +1,11 @@
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { appendFileSync, existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, relative, resolve } from 'node:path';
 import { startUploadTestStorage } from './upload-test-storage.mjs';
 import { resetTestPluginSchemas } from './reset-test-plugin-schemas.mjs';
-import { localSteps, ciSteps, localShardSteps, executableStepArgs } from './verify-steps.mjs';
+import { localSteps, ciSteps, localShardSteps, executableStepArgs, parallelApiPlan } from './verify-steps.mjs';
 import { parseShardArgs } from './verify-lane-shards.mjs';
 import { laneConfig, validateDatabaseUrl, validateRedisUrl } from './lane-config.mjs';
 import { parseSelection, mandatorySuites, mandatoryAdditions, plannedSuiteLines, quickRequirements } from './verify-selection.mjs';
@@ -275,6 +275,31 @@ if (!shardMode && quick && !selection.explicit && added.length) {
     : localSteps(databaseUrl, true);
   if (stepOptions.drift && !steps.some(([name]) => name === 'Check Prisma migration drift')) steps.splice(4, 0, ...localSteps(databaseUrl, true, ['mandatory'], selectedFiles, stepOptions).filter(([name]) => name === 'Check Prisma migration drift'));
   steps.push(...localSteps(databaseUrl, true, ['mandatory'], selectedFiles, stepOptions).filter(([name]) => name.startsWith('Run ')));
+}
+
+// A wide API selection runs in parallel shards.
+//
+// One serial Vitest process spends most of its time waiting for the database, so a selection of
+// many suites costs the sum of their durations. The same selection in shards, each against its
+// own database, costs the slowest shard. The selection is the same in both runs, so the coverage
+// of the gate does not change; only the wall clock does.
+const parallelPlan = !shardMode && quick ? parallelApiPlan(selectedFiles.api) : null;
+if (parallelPlan && !dockerAvailable()) {
+  console.log('Docker is not available, so the API selection runs in one serial process.');
+} else if (parallelPlan) {
+  const selectionPath = resolve('tmp', 'verify-api-selection.json');
+  mkdirSync(dirname(selectionPath), { recursive: true });
+  writeFileSync(selectionPath, `${JSON.stringify(parallelPlan.files.map(file => `apps/api/${file}`), null, 2)}\n`, 'utf8');
+  steps = steps.map(step => (step[0] === 'Run API tests'
+    ? [`Run API tests in ${parallelPlan.shards} shards`, [['__lane_shards__', `--shards=${parallelPlan.shards}`, `--files=${selectionPath}`]]]
+    : step));
+  console.log(`The API selection of ${parallelPlan.files.length} suite(s) runs in ${parallelPlan.shards} parallel shards.`);
+}
+
+/** Whether the container runtime of the parallel shards is reachable. */
+function dockerAvailable() {
+  const result = spawnSync('docker', ['version', '--format', '{{.Server.Version}}'], { encoding: 'utf8', windowsHide: true, timeout: 60_000 });
+  return result.status === 0;
 }
 
 function readShardSummary() {
