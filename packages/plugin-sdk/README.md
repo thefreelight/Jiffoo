@@ -1,12 +1,12 @@
 # @jiffoo-core/plugin-sdk
 
-Extension authoring CLI and canonical Core types, version 1.0.0-alpha.3.
+Extension authoring CLI and canonical Core types, version 1.0.0-alpha.4.
 Supported runtime: Node.js >=24.13.1 <25, matching Core's Node 24 CI runtime.
 
 Install the SDK tarball attached to the matching Core release:
 
 ```sh
-npm i ./jiffoo-core-plugin-sdk-1.0.0-alpha.3.tgz
+npm i ./jiffoo-core-plugin-sdk-1.0.0-alpha.4.tgz
 npx jiffoo-plugin create --slug my-extension --name "My extension" --output my-extension
 ```
 
@@ -60,7 +60,10 @@ Import `PluginBusinessError` to refuse a request you understand. Thrown inside
 `ctx.database.transaction`, it rolls that transaction back and reaches your own
 service layer with its code, so you answer with
 `ctx.services.businessError({code,message,details})` and the consumer sees a
-provider rejection instead of a system failure. A refusal is not a plugin
+provider rejection instead of a system failure. The class, its marker and the
+guard that reads the marker are published with the package, in the runtime
+export and in the type snapshot, so a plugin raises the refusal without
+declaring the marker itself. A refusal is not a plugin
 failure: it is not recorded as one and it does not open the breaker. Every
 other exception stays a failure of the plugin and keeps the sanitised
 PLUGIN_ERROR of Core.

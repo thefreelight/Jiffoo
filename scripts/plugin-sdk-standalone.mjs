@@ -37,7 +37,7 @@ export async function verifyStandaloneSdk() {
     const packed = JSON.parse(run(npm, ['pack', sdk, '--json', '--pack-destination', temporary]));
     assert.equal(packed.length, 1);
     assert.equal(packed[0].name, '@jiffoo-core/plugin-sdk');
-    assert.equal(packed[0].version, '1.0.0-alpha.3');
+    assert.equal(packed[0].version, '1.0.0-alpha.4');
     assert(packed[0].files.every(file => /^(package\.json|dist\/|types\/|README\.md$|LICENSE$)/.test(file.path)));
     const tarball = path.join(temporary, packed[0].filename);
     await writeFile(path.join(temporary, 'package.json'), '{"private":true}\n');
@@ -57,6 +57,7 @@ export async function verifyStandaloneSdk() {
     assert.equal(rejection.code, 'INSUFFICIENT_BALANCE');
     assert.equal(publicSdk.isPluginBusinessError(rejection), true);
     assert.equal(publicSdk.isPluginBusinessError(new Error('plain')), false);
+    assert.equal(publicSdk.PLUGIN_BUSINESS_ERROR, Symbol.for('jiffoo.plugin.businessError'));
     assert.throws(() => new publicSdk.PluginBusinessError('invalid-code', 'Invalid'), /Invalid business rejection/);
     await assert.rejects(() => publicSdk.drainPluginTasks({ installationIds: ['unattached'], deadlineMs: 100, includeFinalFailure: true }), /not attached|NODE_ENV=test/);
     const cli = consumerRequire.resolve('@jiffoo-core/plugin-sdk/cli');
@@ -112,6 +113,10 @@ export async function verifyStandaloneSdk() {
     await writeFile(path.join(temporary, 'consumer.ts'), "import { walletClient } from './wallet-client.js';\nimport type { PluginContext } from '@jiffoo-core/plugin-sdk';\ndeclare const ctx: PluginContext;\nconst wallet = walletClient(ctx);\nvoid wallet.debit({ amount: 1, customer: { address: { city: 'Lisbon' } } }, { idempotencyKey: 'k' });\n");
     run(consumerRequire.resolve('typescript/bin/tsc'), ['--noEmit', '--strict', '--target', 'ES2022', '--module', 'Node16', '--moduleResolution', 'Node16', 'consumer.ts']);
     await writeFile(path.join(temporary, 'consumer.ts'), "import { TaskPermanentError, drainPluginTasks, type PluginContext, type PluginUiDeclaration, type PluginTaskDeclaration } from '@jiffoo-core/plugin-sdk';\ndeclare const ctx: PluginContext;\nconst slug: string = ctx.plugin.slug;\ndeclare const ui: PluginUiDeclaration;\ndeclare const task: PluginTaskDeclaration;\nctx.tasks.handle('render', 1, async input => { const fence: string = input.fence; input.signal.throwIfAborted(); await input.heartbeat({done:true}); return {fence}; }, {concurrency:1,maxAttempts:3,maxRuntimeSeconds:300,onFinalFailure:{maxRuntimeSeconds:30,handler:async input => { const principal = input.principal; void principal; }}});\nconst error = new TaskPermanentError('RENDER_REJECTED','Rendering rejected');\nvoid [slug, ui, task, error, drainPluginTasks];\n");
+    run(consumerRequire.resolve('typescript/bin/tsc'), ['--noEmit', '--strict', '--target', 'ES2022', '--module', 'Node16', '--moduleResolution', 'Node16', 'consumer.ts']);
+    // The published types carry the deliberate refusal, so a plugin raises it
+    // without declaring the marker itself.
+    await writeFile(path.join(temporary, 'consumer.ts'), "import { PluginBusinessError, isPluginBusinessError, PLUGIN_BUSINESS_ERROR } from '@jiffoo-core/plugin-sdk';\nclass Refusal extends PluginBusinessError {}\nconst refusal = new Refusal('INSUFFICIENT_BALANCE', 'The customer does not have enough points.', { balance: 0 });\nconst code: string = refusal.code;\nconst marked: boolean = isPluginBusinessError(refusal);\nconst marker: symbol = PLUGIN_BUSINESS_ERROR;\nvoid [code, refusal.details, marked, marker];\n");
     run(consumerRequire.resolve('typescript/bin/tsc'), ['--noEmit', '--strict', '--target', 'ES2022', '--module', 'Node16', '--moduleResolution', 'Node16', 'consumer.ts']);
     console.log('Standalone SDK: npm pack/install, installed bin create/pack/migrations, scaffold build and public types passed');
   } finally {

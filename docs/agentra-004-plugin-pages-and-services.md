@@ -861,7 +861,10 @@ the refusal is the outcome of the work and not an exception of the plugin:
 `throw new PluginBusinessError(code, message, details)`. Core rolls that
 transaction back and hands the refusal to the provider's own service layer
 unchanged, so the provider answers with `ctx.services.businessError(...)` and
-the consumer sees a provider rejection with its code. The refusal is not a
+the consumer sees a provider rejection with its code. The class, its marker
+and the guard that reads the marker are published with the SDK, in its runtime
+export and in its type snapshot, so a plugin raises the refusal without
+declaring the marker itself. The refusal is not a
 failure of the plugin: it is not recorded as a plugin failure, it does not
 open the breaker, and it settles the service call as a durable rejection. The
 refusal of a transaction that does not match the declared errorDetails schema
@@ -1168,7 +1171,7 @@ UI-asset validation modules, without workspace dependencies or Core application
 imports. Pre-release versions use `1.0.0-alpha.N`, starting at alpha.1. npm
 publishing comes later, after the owner supplies an npm organisation; set
 publishConfig.access to public at that time. Consumers can install the release
-asset with `npm i ./jiffoo-core-plugin-sdk-1.0.0-alpha.3.tgz` and import
+asset with `npm i ./jiffoo-core-plugin-sdk-1.0.0-alpha.4.tgz` and import
 `PluginContext` from `@jiffoo-core/plugin-sdk`.
 
 The browser-side client is `@jiffoo/plugin-bridge`, the counterpart of the SDK for

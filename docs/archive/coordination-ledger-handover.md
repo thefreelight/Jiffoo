@@ -5642,3 +5642,101 @@ handover section of this batch is written before the commit, so the row of the b
 names a file the batch really changes. The reviewer also noted that the case with the frozen clock
 cannot fail against the old implementation and that the optional force is a pre-existing shape; both
 are recorded above.
+
+## 5zal. The published types of the SDK carry the deliberate refusal of a plugin
+
+**Baseline SHA:** `d29b18d1f`. **Commit:** recorded in the index of the ledger.
+
+### What the imager line found
+
+The wallet of the imager raises its refusals with a class of its own:
+
+```ts
+// wallet/src/ledger.ts
+export class WalletError extends PluginBusinessError { ... }
+```
+
+imported as `import { PluginBusinessError } from '@jiffoo-core/plugin-sdk';`. Its build failed: the
+published types of the SDK do not declare the class.
+
+### The cause
+
+The runtime export of the SDK has carried the class since the batch of the business rejection, but
+the types a consumer compiles against are the generated type snapshot of the package
+(`packages/plugin-sdk/dist/template-types/index.d.ts`). The generator
+(`packages/plugin-sdk/scripts/generate-types.mjs`) copies a fixed list of declarations from the
+canonical contracts, and the class was not in that list: the snapshot declared the interface
+`PluginBusinessErrorResponse` and nothing else. The standalone script checked the runtime export
+of the installed tarball, so the gap between the runtime and the types stayed invisible.
+
+### The decision
+
+- The snapshot declares the marker, the class and the guard that reads the marker, so a plugin
+  raises the refusal without declaring the marker itself.
+- The runtime export carries the marker as well, so the types and the runtime agree.
+- The standalone script compiles a consumer against the installed tarball that extends the class
+  and uses the marker, so the published types cannot lose it again.
+- The SDK is `1.0.0-alpha.4`, because its published bytes changed.
+
+### The local evidence
+
+The change is in the SDK and its script test, so the gate is a scoped one: the audited standalone
+script test and the six API suites that drive the SDK.
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: none
+Run script tests:
+Node test start time: 2026-11-02T19:46:00.933Z
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 18053.7484
+Run API tests:
+   Start at  03:46:36
+ Test Files  6 passed (6)
+      Tests  67 passed (67)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Run script tests | PASS | 18.10s |
+| Prisma generate | PASS | 0.01s |
+| Type-check selected scope and shared | PASS | 3.04s |
+| Lint Shop | PASS | 10.20s |
+| Reset test database | PASS | 3.57s |
+| Run API tests | PASS | 117.87s |
+```
+
+### What the next reader should know
+
+- A plugin raises a refusal with `throw new PluginBusinessError(code, message, details)` inside its
+  transaction and answers with `ctx.services.businessError({code, message, details})`.
+- The SDK tarball of the tree is `1.0.0-alpha.4`. The older tarball exports the class at runtime
+  but does not declare it in its types, so a plugin that links it cannot extend the class and has
+  to declare the class itself.
+- The refusal only stays a refusal when its details match the `errorDetails` schema the method
+  declares. The wallet's schemas declare the details it raises, so its refusals reach the consumer
+  as provider rejections.
+- The tarball of that commit is `jiffoo-core-plugin-sdk-1.0.0-alpha.4.tgz`. A consumer that
+  vendors it records the Core commit it came from and the SHA256 the standalone script prints.
+
+### The review of the batch
+
+An independent reviewer read the diff against the goals of the change and found no blocking defect.
+It verified the published declaration against the canonical class, the validity of the ambient
+`unique symbol` and the computed property, the agreement of the types and the runtime export, and
+the fact that the new check compiles a consumer against the installed tarball, so the class cannot
+leave the snapshot again unnoticed. Its findings of less weight were answered in the follow-up of
+the batch: the declaration now names the `name` member and the literal type of the marker, the way
+the canonical class declares them; the generator checks that the canonical class still has the
+members the hand-written declaration names, so the two cannot drift apart; the row of the ledger
+and the section of this batch say that the tarball the imager links carries the service types and
+the client generator but not the published class of the refusal; and the ledger names the package
+of each pre-release, so the bridge and the SDK are not confused with each other.

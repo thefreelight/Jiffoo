@@ -53,6 +53,19 @@ export function generateSnapshot() {
   for (const name of ['PluginFileReference', 'PluginStorageOptions', 'PluginStorage']) lines.push(declaration(files[0], name).getFullText().trim());
   for (const name of ['TaskPrincipal', 'TaskInput', 'TaskFinalFailureInput', 'TaskHandlerOptions', 'TaskStatus', 'PluginTasks', 'PluginDatabaseJson', 'PluginDatabaseParameter', 'PluginDatabaseOptions', 'PluginDatabaseResult', 'PluginDatabaseTransaction', 'PluginDatabase', 'PluginContext', 'PluginEntryModule', 'PluginBusinessErrorResponse', 'PluginMigrationDeclaration', 'PluginDatabaseDeclaration']) lines.push(declaration(files[0], name).getFullText().trim());
   lines.push('export declare class TaskPermanentError extends Error { readonly code: string; constructor(code: string, message: string); }');
+  // The deliberate refusal of a plugin. The marker is a global symbol, so a
+  // plugin that bundles its own copy of the class marks the error the way Core
+  // recognises it. The declaration is hand-written, so the generator checks that
+  // the canonical class still has exactly the members it names.
+  const refusal = declaration(files[0], 'PluginBusinessError');
+  const canonicalMembers = refusal.members.map(member => ts.isConstructorDeclaration(member) ? 'constructor' : member.name?.getText() ?? '');
+  if ([...canonicalMembers].sort().join(',') !== '[PLUGIN_BUSINESS_ERROR],constructor,name') throw new Error(`The canonical refusal class changed: ${canonicalMembers.join(', ')}`);
+  const refusalConstructor = refusal.members.find(member => ts.isConstructorDeclaration(member));
+  const refusalParameters = refusalConstructor ? refusalConstructor.parameters.map(parameter => parameter.name.getText()) : [];
+  if (refusalParameters.join(',') !== 'code,message,details') throw new Error(`The canonical refusal constructor changed: ${refusalParameters.join(', ')}`);
+  lines.push('export declare const PLUGIN_BUSINESS_ERROR: unique symbol;');
+  lines.push('export declare class PluginBusinessError extends Error { readonly code: string; readonly details?: unknown; readonly [PLUGIN_BUSINESS_ERROR]: true; name: string; constructor(code: string, message: string, details?: unknown); }');
+  lines.push('export declare function isPluginBusinessError(error: unknown): error is PluginBusinessError;');
   lines.push('export declare function drainPluginTasks(options: { installationIds: string[]; deadlineMs: number; includeFinalFailure: true; advanceDueTo?: string }): Promise<{ completed: number; failed: number; cancelled: number; pending: number; future: number; unknownHooks: number }>;');
   for (const name of ['PluginRuntimeType', 'PluginHostProtocol', 'PluginCategory', 'PluginContractDeclaration'])
     lines.push(`export type ${name} = ${render(checker.getTypeAtLocation(declaration(files[0], name).name))};`);
