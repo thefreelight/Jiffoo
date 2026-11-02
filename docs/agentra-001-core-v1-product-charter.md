@@ -683,8 +683,11 @@ are demonstrated:
 Twenty of the twenty-three scenarios of this section are complete. The twenty-first is the
 exact-release verification, which the owner deferred on 2026-10-12 because the line is not merged
 into the release branch and no release is declared. The twenty-second and the twenty-third are
-the two the plugin line still owes: the core-mediated service and the paid-order reconciliation
-of the plugin design.
+delivered on the Core side: the core-mediated service, its method grants, the durable call
+ledger, the service graph and the permissioned paid-order read are built, reviewed and green.
+What the two scenarios still need is a consumer of that contract: the tree holds no plugin that
+exports a wallet service, so the debit, the enqueue, the compensation and the reconciliation
+credit of the two scenarios belong to the plugin that consumes the contract.
 
 The current state of the line is in `docs/coordination-ledger.md`, section 0. The assessment of
 each scenario, the commits that carry it and the evidence that holds it are in
