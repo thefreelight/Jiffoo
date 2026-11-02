@@ -1,7 +1,7 @@
 import { prisma } from '@/config/database';
 import { systemSettingsService } from '@/core/settings/service';
 import { csvCell, csvTimestamp, csvFilename, csvStream } from '@/utils/csv';
-import { getAllMessages } from 'shared/src/i18n';
+import { recordLabels } from 'shared/src/i18n/messages/admin-record-labels';
 import type { Locale } from 'shared/src/i18n/config';
 import { orderWhere, orderSort, type OrderExportSelection, type OrderSort } from './list-query';
 import { PaymentStatus } from '@/core/order/policy';
@@ -11,13 +11,12 @@ export async function createOrderExport(selection: OrderExportSelection, sort: O
   const where = { AND: [filter, selection.mode === 'ids'
     ? { id: { in: selection.ids } } : { id: { notIn: selection.excludeIds ?? [] } }] };
   const timezone = await systemSettingsService.getTimezone();
-  const messages = getAllMessages(locale).merchant!;
-  const orders = messages.orders as Record<string, string | Record<string, string>>;
-  const labels = orders.list as Record<string, string>;
+  const record = recordLabels(locale);
+  const orders = record.order as Record<string, string>;
   const timestamp = (value: Date | null) => csvTimestamp(value, timezone);
-  const yesNo = (value: boolean) => labels[value ? 'yes' : 'no'];
+  const yesNo = (value: boolean) => orders[value ? 'yes' : 'no'];
   async function* rows() {
-    yield '\uFEFF' + labels.csvHeaders.split('|').map(csvCell).join(',') + '\r\n';
+    yield '\uFEFF' + record.csv.orders.split('|').map(csvCell).join(',') + '\r\n';
     let cursor: string | undefined;
     while (true) {
       const batch = await prisma.order.findMany({ where, orderBy: orderSort(sort), take: 500,
@@ -29,7 +28,7 @@ export async function createOrderExport(selection: OrderExportSelection, sort: O
       });
       for (const order of batch) {
         const address = order.shippingAddress, shipment = order.shipments[0];
-        const paymentLabel = order.paymentStatus === PaymentStatus.PAID ? orders.paid : order.paymentStatus === PaymentStatus.REFUNDED ? orders.refunded : labels.unpaid;
+        const paymentLabel = order.paymentStatus === PaymentStatus.PAID ? orders.paid : order.paymentStatus === PaymentStatus.REFUNDED ? orders.refunded : orders.unpaid;
         yield [order.orderNumber, timestamp(order.createdAt), timezone, orders[order.status.toLowerCase()], paymentLabel,
           yesNo(order.payments.length > 0), order.user.email, order.user.username,
           order.items.length, order.items.reduce((sum, item) => sum + item.quantity, 0),

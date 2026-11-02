@@ -2,7 +2,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/config/database';
 import { systemSettingsService } from '@/core/settings/service';
 import { csvCell, csvTimestamp, csvFilename, csvStream } from '@/utils/csv';
-import { getAllMessages } from 'shared/src/i18n';
+import { recordLabels } from 'shared/src/i18n/messages/admin-record-labels';
 import type { Locale } from 'shared/src/i18n/config';
 import { customerBase, customerConditions, customerSort, customerStatus, type CustomerQuery, type CustomerRow, type CustomerSelection } from './list-query';
 
@@ -12,10 +12,10 @@ export async function createCustomerExport(selection: CustomerSelection, sort: C
   const selected = selection.mode === 'ids' ? Prisma.sql`AND id IN (${Prisma.join(selection.ids)})`
     : selection.excludedIds?.length ? Prisma.sql`AND id NOT IN (${Prisma.join(selection.excludedIds)})` : Prisma.empty;
   const timezone = await systemSettingsService.getTimezone(), currency = await systemSettingsService.getShopCurrency();
-  const customers = getAllMessages(locale).merchant!.customers as Record<string, unknown>;
-  const labels = customers.workspace as Record<string, string>;
+  const record = recordLabels(locale);
+  const labels = record.customer as Record<string, string>;
   async function* rows() {
-    yield '\uFEFF' + labels.csvHeaders.split('|').map(csvCell).join(',') + '\r\n';
+    yield '\uFEFF' + record.csv.customers.split('|').map(csvCell).join(',') + '\r\n';
     let offset = 0;
     while (true) {
       const batch = await prisma.$queryRaw<CustomerRow[]>(Prisma.sql`WITH customers AS (${customerBase(conditions)}) SELECT * FROM customers WHERE true ${customerStatus(filters)} ${selected} ORDER BY ${customerSort(sort)} LIMIT 500 OFFSET ${offset}`);

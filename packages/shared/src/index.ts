@@ -36,7 +36,44 @@ export * from './utils/validation';
 // i18n - Internationalization
 // Note: React components require 'use client' directive
 // For server-side use, import config/messages directly from './i18n/config' or './i18n/messages'
-export * from './i18n';
+//
+// The barrel carries the locale configuration, the types and the middleware, but not the message
+// catalogue. The catalogue is assembled per locale, so a consumer of the barrel that carried it
+// would reach every label of every namespace, and a change to one label of one namespace would
+// select every suite of every application. A consumer that reads a label imports the module of
+// that label.
+export {
+  LOCALES,
+  DEFAULT_LOCALE,
+  LOCALE_CONFIG,
+  isSupportedLocale,
+  mapBrowserLanguageToLocale,
+  getLocaleFromAcceptLanguage,
+  normalizeLocale,
+  type Locale,
+} from './i18n/config';
+export type {
+  AppName,
+  MessageNamespace,
+  MessageObject,
+  Messages,
+  TranslationFunction,
+  I18nProviderProps,
+  I18nContextValue,
+  MallContextLocaleFields,
+  LocaleParams,
+  LocaleLayoutProps,
+  LocalePageProps,
+  LanguageSwitcherItem,
+} from './i18n/types';
+export {
+  getLocaleFromPathname,
+  shouldSkipLocaleHandling,
+  getLocaleRedirectUrl,
+  removeLocaleFromPathname,
+  addLocaleToPathname,
+  localeMiddlewareConfig,
+} from './i18n/middleware';
 
 // Logger - Not exported here, choose based on environment:
 // - Browser environment: import from 'shared/src/logger/index.browser'

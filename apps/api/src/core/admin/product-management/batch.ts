@@ -4,7 +4,7 @@ import { CacheService } from '@/core/cache/service';
 import { AdminProductService } from './service';
 import { productCount, productIds, type ProductSelection, type ProductSort } from './list-query';
 import { systemSettingsService } from '@/core/settings/service';
-import { getAllMessages } from 'shared/src/i18n';
+import { recordLabels } from 'shared/src/i18n/messages/admin-record-labels';
 import type { Locale } from 'shared/src/i18n/config';
 import { csvFilename, csvRow, csvStream, csvTimestamp } from '@/utils/csv';
 
@@ -63,11 +63,12 @@ export async function bulkProducts(body: ProductBulkRequest) {
 
 export async function createProductExport(selection: ProductSelection, sort: ProductSort, locale: Locale) {
   const timezone = await systemSettingsService.getTimezone();
-  const catalog = getAllMessages(locale).merchant!.catalog as Record<string, string>;
+  const record = recordLabels(locale);
+  const catalog = record.product as Record<string, string>;
   const filter = selection.mode === 'filter' ? selection.filter : {};
   const matched = await productCount(filter, selection);
   async function* rows() {
-    yield '\uFEFF' + csvRow(catalog.csvHeaders.split('|'));
+    yield '\uFEFF' + csvRow(record.csv.catalog.split('|'));
     for (let offset = 0; ; offset += 500) {
       const ids = await productIds(filter, sort, 500, offset, selection);
       const products = await prisma.product.findMany({ where: { id: { in: ids } }, include: { category: true, variants: { orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }] } } });

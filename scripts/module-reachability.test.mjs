@@ -80,3 +80,27 @@ test('the workspace graph resolves every TypeScript import of the applications a
   assert.deepEqual(unresolvedTypescript, []);
   assert.ok(graph.files.length > 500);
 });
+
+test('the API reads the record labels and not the assembled message catalogue', { timeout: 600_000 }, () => {
+  const graph = buildImportGraph(workspace);
+  const importers = new Map();
+  for (const [file, targets] of graph.imports) {
+    for (const target of targets) {
+      const set = importers.get(target) ?? new Set();
+      set.add(file);
+      importers.set(target, set);
+    }
+  }
+  // The catalogue is assembled per locale, so a source file that imports it reaches every label of
+  // every namespace. The API reads the labels of the records it exports through a module of their
+  // own, so a change to a merchant label does not select the suites that boot the API.
+  for (const target of ['packages/shared/src/i18n/index.ts', 'packages/shared/src/i18n/messages/index.ts']) {
+    const apiImporters = [...(importers.get(target) ?? [])].filter(file => file.startsWith('apps/api/src/')).sort();
+    assert.deepEqual(apiImporters, [], `the API must not import ${target}`);
+  }
+  // The label module of the exported records is read by the API directly.
+  const readers = [...(importers.get('packages/shared/src/i18n/messages/admin-record-labels.ts') ?? [])].sort();
+  assert.ok(readers.includes('apps/api/src/core/admin/order-management/export.ts'));
+  assert.ok(readers.includes('apps/api/src/core/admin/product-management/batch.ts'));
+  assert.ok(readers.includes('apps/api/src/core/admin/user-management/export.ts'));
+});
