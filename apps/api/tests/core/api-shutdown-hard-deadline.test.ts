@@ -50,7 +50,7 @@ describe('the hard deadline of the API shutdown', () => {
   });
 
   it('exits with 0 when the drain settled in time', () => {
-    expect(decideApiShutdown({ drainSettled: true, drainFailed: false, elapsedMs: 10, hardDeadlineMs: 45_000 })).toEqual({
+    expect(decideApiShutdown({ drainSettled: true, drainFailed: false, hardDeadlinePassed: false })).toEqual({
       hardDeadlinePassed: false,
       exitCode: 0,
       forced: false,
@@ -58,7 +58,13 @@ describe('the hard deadline of the API shutdown', () => {
   });
 
   it('exits with 1 and does not force the plugin work when the drain failed', () => {
-    expect(decideApiShutdown({ drainSettled: false, drainFailed: true, elapsedMs: 10, hardDeadlineMs: 45_000 })).toEqual({
+    expect(decideApiShutdown({ drainSettled: false, drainFailed: true, hardDeadlinePassed: false })).toEqual({
+      hardDeadlinePassed: false,
+      exitCode: 1,
+      forced: false,
+    });
+    // The failed drain is not the forced path, whatever the hard deadline says.
+    expect(decideApiShutdown({ drainSettled: false, drainFailed: true, hardDeadlinePassed: true })).toEqual({
       hardDeadlinePassed: false,
       exitCode: 1,
       forced: false,
@@ -66,12 +72,7 @@ describe('the hard deadline of the API shutdown', () => {
   });
 
   it('exits with 1 and forces the plugin work when the drain missed the hard deadline', () => {
-    expect(decideApiShutdown({ drainSettled: false, drainFailed: false, elapsedMs: 45_000, hardDeadlineMs: 45_000 })).toEqual({
-      hardDeadlinePassed: true,
-      exitCode: 1,
-      forced: true,
-    });
-    expect(decideApiShutdown({ drainSettled: false, drainFailed: false, elapsedMs: 46_000, hardDeadlineMs: 45_000 })).toEqual({
+    expect(decideApiShutdown({ drainSettled: false, drainFailed: false, hardDeadlinePassed: true })).toEqual({
       hardDeadlinePassed: true,
       exitCode: 1,
       forced: true,
@@ -79,7 +80,7 @@ describe('the hard deadline of the API shutdown', () => {
   });
 
   it('does not force the plugin work while the drain is still inside the hard deadline', () => {
-    expect(decideApiShutdown({ drainSettled: false, drainFailed: false, elapsedMs: 44_999, hardDeadlineMs: 45_000 })).toEqual({
+    expect(decideApiShutdown({ drainSettled: false, drainFailed: false, hardDeadlinePassed: false })).toEqual({
       hardDeadlinePassed: false,
       exitCode: 1,
       forced: false,
@@ -255,6 +256,62 @@ describe('the wiring of the shutdown handlers', () => {
     await waitFor(() => exitCode !== null);
 
     expect(forced).toEqual(['forced']);
+    expect(exitCode).toBe(1);
+  });
+
+  it('takes the forced path when the hard deadline fires, whatever the clock measures', async () => {
+    const listeners: Record<string, () => void> = {};
+    const once = vi.spyOn(process, 'once').mockImplementation(((event: string, listener: () => void) => {
+      listeners[event] = listener;
+      return process;
+    }) as never);
+    const forced: string[] = [];
+    let exitCode: number | null = null;
+    try {
+      registerApiShutdownHandlers({
+        stop: () => new Promise<void>(() => {}),
+        force: async () => { forced.push('forced'); },
+      }, {
+        hardDeadlineMs: 5,
+        // The clock stands still, so the elapsed of the shutdown never reaches
+        // the deadline. A timer can fire a fraction of a millisecond before the
+        // deadline it was given, and the decision must not read the clock: the
+        // timer that armed the deadline is the authority on it.
+        now: () => 0,
+        exit: code => { exitCode = code; },
+      });
+    } finally {
+      once.mockRestore();
+    }
+
+    listeners.SIGTERM();
+    await waitFor(() => exitCode !== null);
+
+    expect(forced).toEqual(['forced']);
+    expect(exitCode).toBe(1);
+  });
+
+  it('exits with 1 and does not force the plugin work when the drain fails', async () => {
+    const listeners: Record<string, () => void> = {};
+    const once = vi.spyOn(process, 'once').mockImplementation(((event: string, listener: () => void) => {
+      listeners[event] = listener;
+      return process;
+    }) as never);
+    const forced: string[] = [];
+    let exitCode: number | null = null;
+    try {
+      registerApiShutdownHandlers({
+        stop: async () => { throw new Error('The drain failed'); },
+        force: async () => { forced.push('forced'); },
+      }, { hardDeadlineMs: 5_000, exit: code => { exitCode = code; } });
+    } finally {
+      once.mockRestore();
+    }
+
+    listeners.SIGINT();
+    await waitFor(() => exitCode !== null);
+
+    expect(forced).toEqual([]);
     expect(exitCode).toBe(1);
   });
 

@@ -650,21 +650,24 @@ export type ApiShutdownDecision = {
  * when the hard deadline passes is forced: the plugin work is stopped the
  * way the forced path of the drain stops it, and the process exits with a
  * non-zero code.
+ *
+ * The decision reads three facts and measures nothing. The hard deadline is
+ * reported by the timer that arms it, because a timer can fire a fraction of
+ * a millisecond before the deadline it was given: a measured elapsed would
+ * then read below the deadline and skip the forced path the timer promised.
  */
 export function decideApiShutdown(input: {
   /** Whether the drain settled before the hard deadline. */
   drainSettled: boolean;
   /** Whether the drain failed. */
   drainFailed: boolean;
-  /** The milliseconds the shutdown has been running. */
-  elapsedMs: number;
-  /** The outer bound of the shutdown. */
-  hardDeadlineMs: number;
+  /** Whether the hard deadline passed while the drain was still running. */
+  hardDeadlinePassed: boolean;
 }): ApiShutdownDecision {
   if (input.drainSettled) return { hardDeadlinePassed: false, exitCode: 0, forced: false };
   if (input.drainFailed) return { hardDeadlinePassed: false, exitCode: 1, forced: false };
-  const hardDeadlinePassed = input.elapsedMs >= input.hardDeadlineMs;
-  return { hardDeadlinePassed, exitCode: 1, forced: hardDeadlinePassed };
+  if (input.hardDeadlinePassed) return { hardDeadlinePassed: true, exitCode: 1, forced: true };
+  return { hardDeadlinePassed: false, exitCode: 1, forced: false };
 }
 
 /**
@@ -678,6 +681,8 @@ export type ApiShutdownOptions = {
   hardDeadlineMs?: number;
   /** The code the process exits with; `process.exit` by default. */
   exit?: (code: number) => void;
+  /** The clock that measures the shutdown for the record; `performance.now` by default. */
+  now?: () => number;
 };
 
 export function registerApiShutdownHandlers(
@@ -685,17 +690,19 @@ export function registerApiShutdownHandlers(
   options: ApiShutdownOptions = {},
 ): void {
   const exit = options.exit ?? ((code: number) => process.exit(code));
+  const now = options.now ?? (() => performance.now());
   let stopping = false;
   const shutdown = async (signal: string) => {
     if (stopping) return;
     stopping = true;
     LoggerService.logSystem(`Received ${signal}, shutting down gracefully`);
-    // The elapsed time is measured with a monotonic clock: Date.now() truncates
-    // to the millisecond, so a deadline that fires on its boundary would measure
-    // one millisecond short and skip the forced path.
-    const startedAt = performance.now();
+    // The elapsed time is measured with a monotonic clock, for the record of
+    // the hard deadline. The decision does not read it: the timer that arms
+    // the deadline is the authority on the deadline.
+    const startedAt = now();
     const hardDeadlineMs = options.hardDeadlineMs ?? apiShutdownHardDeadlineMs();
     let hardTimer: NodeJS.Timeout | undefined;
+    let hardTimerFired = false;
     // The drain settles on its own inner deadline. The hard deadline is the
     // outer bound of the shutdown: a drain that never settles ends the
     // process here, instead of waiting for the orchestrator to kill it.
@@ -706,17 +713,21 @@ export function registerApiShutdownHandlers(
     const outcome = await Promise.race([
       drain,
       new Promise<{ settled: false; failed: false; error: undefined }>(resolve => {
-        hardTimer = setTimeout(() => resolve({ settled: false, failed: false, error: undefined }), hardDeadlineMs);
+        hardTimer = setTimeout(() => {
+          hardTimerFired = true;
+          resolve({ settled: false, failed: false, error: undefined });
+        }, hardDeadlineMs);
       }),
     ]).finally(() => clearTimeout(hardTimer));
-    const elapsedMs = performance.now() - startedAt;
+    const elapsedMs = now() - startedAt;
     const decision = decideApiShutdown({
       drainSettled: outcome.settled && !outcome.failed,
       drainFailed: outcome.failed,
-      elapsedMs,
-      hardDeadlineMs,
+      hardDeadlinePassed: hardTimerFired,
     });
     if (decision.hardDeadlinePassed) {
+      // The elapsed is the record of the shutdown, not its criterion: the timer
+      // that armed the deadline is the authority on the deadline.
       console.error(JSON.stringify({ event: 'api-shutdown-hard-deadline', hardDeadlineMs, elapsedMs, bootNonce: coreProcessIdentity.bootNonce }));
       // The forced path closes the connections with a bounded wait, so the
       // exit follows it instead of cutting the sessions off.

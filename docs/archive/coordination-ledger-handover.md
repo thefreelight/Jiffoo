@@ -5525,3 +5525,120 @@ and not as a valid refusal, the catalogue test asserts that the catalogue names 
 currency instead of binding the two lists together, the packaged SDK is checked for the new
 export, and the refusal of a provider records the success at the breaker, so a refusal never
 leaves the circuit half-open.
+
+## 5zak. The hard deadline of the shutdown is decided by the timer that arms it
+
+**Baseline SHA:** `f1d461d50`. **Commit:** recorded in the index of the ledger.
+
+### The failure
+
+The CI run of the token refresh batch failed in the job `api (3)`, with one failed test and every
+other job of the run green:
+
+```
+FAIL tests/core/api-shutdown-hard-deadline.test.ts > the wiring of the shutdown handlers >
+  takes the forced path when a termination signal arrives and the drain does not settle
+AssertionError: expected [] to deeply equal [ 'forced' ]
+```
+
+The changes of that run were the token refresh and its follow-ups, none of which touches the
+shutdown, so the failure is not their doing.
+
+The same test had failed before, in the run 41308469187. Commit `ec94041c6` was the fix for that
+failure: the elapsed of the shutdown was measured with `Date.now()`, which truncates to the
+millisecond, so a deadline that fires exactly on its boundary could measure one millisecond short.
+The fix read the elapsed from the monotonic clock and kept the boundary semantics of the pure
+decision.
+
+The failure came back in the run 41448376720 and in the run 41505590231 of the tree of this batch:
+three failures in four runs, two of them after the monotonic clock. The fix of 2026-11-01 narrowed
+the window; it did not close it.
+
+### The cause
+
+`registerApiShutdownHandlers` of `apps/api/src/server.ts` arms a timer at the hard deadline and
+races it against the drain. When the timer wins, the handler measures how long the shutdown has
+been running and asks the pure function `decideApiShutdown` whether the hard deadline passed. The
+measurement was `performance.now() - startedAt` and the question was `elapsedMs >= hardDeadlineMs`.
+
+A timer is not exact. libuv keeps the clock of its event loop in whole milliseconds, so the
+timeout it computes is truncated against a truncated clock, and a timer can fire a fraction of a
+millisecond before the deadline it was given. The measured elapsed then reads below the deadline,
+the decision says that the hard deadline did not pass, the forced close is skipped, and the handler
+exits with code 1 without it. The test sees the exit code set and the forced close missing, which
+is exactly what the log shows.
+
+The window is only reachable with a deadline of a few milliseconds, which is what the test asks
+for. It is invisible on Windows, where the timer granularity is about 15.6 ms: every timer fires
+late, so the measured elapsed is above the deadline and the case passes. The CI runner is Linux,
+where the granularity is a millisecond, so the window is open. The local gate ran the case on
+Windows and passed every time.
+
+### The decision
+
+The timer that arms the hard deadline is the authority on the deadline: when it fires, the deadline
+passed.
+
+- The pure decision reads three facts and measures nothing: the drain settled, the drain failed,
+  the hard deadline passed. Its input shape changed, its behaviour did not: a settled drain exits
+  with 0, a failed drain exits with 1 without forcing, a passed deadline forces the plugin work
+  and exits with 1.
+- The handler records that the timer fired and passes that as the third fact. The measured elapsed
+  stays in the record of the event, with the note that it is the record and not the criterion.
+- The clock is injectable (`now`), the way the exit code was, so the wiring can be driven with a
+  clock that stands still.
+
+The default deadline, the exit codes, the graceful path and the failed drain path are untouched.
+
+### The local evidence
+
+The gate of the batch is a scoped one: the change is in the API's server, its own suite and the
+suites that spawn a process that registers the shutdown handlers. The planner added no suite: the
+change touches no route, no schema, no shared package and no authentication.
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: none
+Run API tests:
+   Start at  03:15:48
+ Test Files  10 passed (10)
+      Tests  103 passed (103)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check API, Admin, Shop and shared | PASS | 12.79s |
+| Lint Shop | PASS | 9.30s |
+| Reset test database | PASS | 3.99s |
+| Run API tests | PASS | 240.42s |
+```
+
+### What the next reader should know
+
+- The hard deadline of the shutdown is decided by the timer that arms it, never by a measured
+  elapsed. A test with a deadline of a few milliseconds is a boundary test: it passes on a coarse
+  clock and fails on a precise one.
+- The case with the frozen clock is not the reproduction of the CI failure: the old implementation
+  hardcoded `performance.now()` and ignored the injected clock, so the case would have passed on
+  the old tree on Windows. It is the forward invariant, that the decision does not read the clock.
+  The case that reproduces the CI failure is the existing one, and it is deterministic now.
+- The optional `runtime.force?.()` is the one place where the deadline can pass without a forced
+  close: a runtime that offers no force stops the plugin work the graceful way. The real runtime of
+  the API offers one.
+
+### The review of the batch
+
+An independent reviewer read the diff against the goals of the change and found no blocking
+defect. It confirmed that the flag of the timer and the winner of the race agree in both
+directions, that the exit codes, the graceful path, the failed drain path, the default deadline and
+the record of the event are unchanged, that the real process and the test child take the default
+clock, and that the change touches no boundary of §7 of the rules. Its findings of less weight were
+answered in the follow-up of the batch: the record of the event says that the elapsed is not the
+criterion, the wiring now covers the failed drain (it exits with 1 and does not force), and the
+handover section of this batch is written before the commit, so the row of the batch registry
+names a file the batch really changes. The reviewer also noted that the case with the frozen clock
+cannot fail against the old implementation and that the optional force is a pre-existing shape; both
+are recorded above.
