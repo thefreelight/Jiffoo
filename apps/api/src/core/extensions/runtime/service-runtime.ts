@@ -41,10 +41,14 @@ export interface ServiceMethodRegistration {
 
 export type ServiceRegistrationTable = Map<string, ServiceMethodRegistration>;
 
-/** The permission a merchant grants for one method of one provider. */
-export function servicePermission(slug: string, service: string, version: number, method: string): string {
-  return `service:${slug}:${service}.v${version}.${method}`;
-}
+/**
+ * The permission a merchant grants for one method of one provider.
+ *
+ * The registry owns the name of the grant, so the grant the merchant gives and
+ * the grant the runtime checks are the same string: the registry reads the
+ * declarations of both sides of a service call.
+ */
+export { servicePermission } from '@/core/extensions/registry';
 
 export function serviceKey(service: string, version: number, method: string): string {
   return `${service}.v${version}.${method}`;

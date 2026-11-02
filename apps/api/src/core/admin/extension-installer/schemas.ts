@@ -231,6 +231,10 @@ export const extensionInstallerSchemas = {
           items: { type: 'string' },
           description: 'Updated granted permissions',
         },
+        confirmation: {
+          type: 'string',
+          description: 'The confirmation of a disable that strands a dependent',
+        },
       },
     },
     response: { ...createTypedUpdateResponses(pluginInstanceSchema), 409: errorResponseSchema, 503: errorResponseSchema },

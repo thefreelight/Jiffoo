@@ -75,6 +75,13 @@ export interface PluginInstanceProjection {
   deletedAt: Date | null;
   configJson: unknown;
   protectionGeneration: bigint;
+  /**
+   * The derived availability of the installation.
+   *
+   * The service dependency graph publishes it: the installation cannot run
+   * while one of the providers it depends on is unavailable.
+   */
+  taskDependencyUnavailable: boolean;
 }
 
 /**
@@ -110,6 +117,13 @@ export interface PluginInstallationProjection {
   enabled: boolean;
   deletedAt: Date | null;
   protectionGeneration: bigint;
+  /**
+   * The derived availability of the installation.
+   *
+   * The service dependency graph publishes it: the installation cannot run
+   * while one of the providers it depends on is unavailable.
+   */
+  taskDependencyUnavailable: boolean;
   package: PluginPackageInstallProjection;
 }
 
@@ -442,6 +456,7 @@ export async function getDefaultInstance(slug: string): Promise<PluginInstancePr
       deletedAt: true,
       configJson: true,
       protectionGeneration: true,
+      taskDependencyUnavailable: true,
     },
   });
 
@@ -454,6 +469,7 @@ export async function getDefaultInstance(slug: string): Promise<PluginInstancePr
     deletedAt: installation.deletedAt,
     configJson: installation.configJson,
     protectionGeneration: installation.protectionGeneration,
+    taskDependencyUnavailable: installation.taskDependencyUnavailable,
   };
 }
 
@@ -478,6 +494,7 @@ export async function getInstallationById(installationId: string, zipHash: strin
       enabled: true,
       deletedAt: true,
       protectionGeneration: true,
+      taskDependencyUnavailable: true,
       plugin: {
         select: {
           slug: true,
@@ -500,6 +517,7 @@ export async function getInstallationById(installationId: string, zipHash: strin
     enabled: installation.enabled,
     deletedAt: installation.deletedAt,
     protectionGeneration: installation.protectionGeneration,
+    taskDependencyUnavailable: installation.taskDependencyUnavailable,
     package: {
       slug: installation.plugin.slug,
       version: installation.plugin.version,

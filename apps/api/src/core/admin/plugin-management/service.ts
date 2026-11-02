@@ -32,7 +32,16 @@ import { writePluginAudit } from '@/core/admin/extension-installer/plugin-audit'
 import { inspectPluginUpload } from '@/core/admin/extension-installer/plugin-upload';
 import { createHash } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
-import { declaresContract, getDefaultInstance, type PluginInstanceProjection } from '@/core/extensions/registry';
+import {
+  assertNoEnabledDependents,
+  assertServiceDependenciesSatisfied,
+  assertServiceDisableConfirmed,
+  declaresContract,
+  getDefaultInstance,
+  lockServiceGraph,
+  type PluginInstanceProjection,
+} from '@/core/extensions/registry';
+import { publishServiceAvailability } from './service-availability';
 
 type UpdatedInstance = PluginInstallation & { replacedPlugins: string[] };
 type Transaction = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
@@ -403,6 +412,14 @@ async function planInstanceUpdate(
     config?: Record<string, unknown>;
     grantedPermissions?: string[];
     replacingProvider?: boolean;
+    /**
+     * The confirmation of a disable that strands a dependent.
+     *
+     * The digest binds the dependents the disable affects and the revision of
+     * the graph they were read from. It is checked again under the graph lock
+     * before the disable is written.
+     */
+    confirmation?: string;
   },
   options?: InstanceUpdatePlanOptions,
 ): Promise<InstanceUpdatePlan> {
@@ -498,6 +515,25 @@ async function planInstanceUpdate(
     await assertNotLastEnabledProvider(existing.pluginSlug, existing.enabled, pluginPackage.manifestJson);
   }
 
+  // The service dependency graph decides whether the plugin may run. An
+  // activation without its providers, without the merchant's grants for the
+  // methods it calls, or with a dependency cycle, is refused.
+  if (isEnabling) {
+    await assertServiceDependenciesSatisfied({
+      slug: existing.pluginSlug,
+      manifest,
+      grantedPermissions: updates.grantedPermissions ?? existing.grantedPermissions,
+    });
+  }
+
+  // A disable that strands an enabled dependent needs the confirmation of the
+  // merchant. A replacement of a contract provider is not a merchant decision,
+  // so it is refused while a dependent is enabled instead of being confirmed.
+  if (isDisabling) {
+    if (updates.replacingProvider) await assertNoEnabledDependents(existing.pluginSlug);
+    else await assertServiceDisableConfirmed(existing.pluginSlug, updates.confirmation);
+  }
+
   const updateData: any = {};
 
   if (updates.enabled !== undefined) {
@@ -572,6 +608,23 @@ async function planInstanceUpdate(
     commit: async (tx: Transaction) => {
       const scheduler = await lockTaskScheduler(tx);
       await tx.$queryRaw`SELECT id FROM public.plugin_installations WHERE id = ${installationId} FOR UPDATE`;
+      // The confirmation of a disable is checked again under the graph lock:
+      // the dependents it names have to be the dependents of the graph the
+      // transaction commits.
+      if (isDisabling && !updates.replacingProvider) {
+        await assertServiceDisableConfirmed(existing.pluginSlug, updates.confirmation, tx);
+      }
+      // The requirements of an activation are checked again under the graph
+      // lock as well: a provider that was uninstalled between the plan and
+      // this transaction would leave the activation without its service.
+      if (isEnabling) {
+        await assertServiceDependenciesSatisfied({
+          slug: existing.pluginSlug,
+          manifest,
+          grantedPermissions: updates.grantedPermissions ?? existing.grantedPermissions,
+          client: tx,
+        });
+      }
       if (isEnabling) assertTaskPolicy(manifest.tasks ?? [], scheduler.policy);
       if (isDisabling || updates.config !== undefined && existing.enabled) await transitionInstallationTasks(tx, installationId, isDisabling ? 'PAUSE' : 'UPDATE', isDisabling ? 'plugin-disabled' : 'CONFIG_UPDATED', manifest.tasks ?? []);
       if (isDisabling && !updates.replacingProvider && declaresContract(pluginPackage.manifestJson, 'payment')) {
@@ -583,6 +636,9 @@ async function planInstanceUpdate(
       if (updates.enabled !== undefined || updates.config !== undefined) {
         await PluginPageService.revokeInstallationSessions(tx, installationId);
       }
+      // The graph changed with the row, so the derived availability of every
+      // installation is published from the state this transaction commits.
+      await publishServiceAvailability(tx);
       return Object.assign(next, { replacedPlugins });
     },
     // The post-commit work. It runs after the transaction that wrote the row
@@ -622,6 +678,7 @@ async function updateInstance(
     config?: Record<string, unknown>;
     grantedPermissions?: string[];
     replacingProvider?: boolean;
+    confirmation?: string;
   },
   options?: InstanceUpdateOptions,
 ): Promise<UpdatedInstance> {
@@ -754,6 +811,11 @@ export async function uninstallPlugin(slug: string, actorId = 'system'): Promise
   // Soft delete: set deletedAt on package and disable all non-deleted instances
   await prisma.$transaction(async (tx) => {
     await lockTaskScheduler(tx);
+    // A provider that an enabled dependent calls may not be uninstalled: the
+    // dependent would lose the service it depends on. The check runs under
+    // the graph lock, so an activation that is about to commit cannot slip
+    // between it and the uninstall.
+    await assertNoEnabledDependents(slug, tx);
     const taskInstallations = await tx.pluginInstallation.findMany({ where: { pluginSlug: slug }, orderBy: { id: 'asc' } });
     for (const instance of taskInstallations) {
       await tx.$queryRaw`SELECT id FROM public.plugin_installations WHERE id = ${instance.id} FOR UPDATE`;
@@ -781,6 +843,9 @@ export async function uninstallPlugin(slug: string, actorId = 'system'): Promise
     await systemSettingsService.incrementPluginRegistryVersion(tx);
     await PluginPageService.revokePluginSessions(tx, slug);
     await writePluginAudit(tx, actorId, 'PLUGIN_UNINSTALLED', slug, { slug, version: pluginPackage.version });
+    // The provider left the graph, so the availability of the installations
+    // that called it is published from the state this transaction commits.
+    await publishServiceAvailability(tx);
   }, { maxWait: TRANSACTION_MAX_WAIT_MS, timeout: UNINSTALL_TRANSACTION_TIMEOUT_MS });
 
   // Files are preserved by the package store for safety and re-installation.
@@ -836,6 +901,9 @@ export async function restorePlugin(slug: string, actorId = 'system'): Promise<v
   readStoredPluginManifest(pluginPackage);
   await prisma.$transaction(async (tx) => {
     await fencePluginOperationLease(tx, slug, token);
+    // The graph lock comes before the rows it protects: the publication at
+    // the end of this transaction reads and writes the same rows.
+    await lockServiceGraph(tx);
     await tx.pluginInstall.update({
       where: { slug },
       data: { deletedAt: null },
@@ -862,6 +930,9 @@ export async function restorePlugin(slug: string, actorId = 'system'): Promise<v
     }
     await systemSettingsService.incrementPluginRegistryVersion(tx);
     await writePluginAudit(tx, actorId, 'PLUGIN_RESTORED', slug, { slug, version: pluginPackage.version, enabled: false });
+    // The provider is back in the graph, so the availability of the
+    // installations that call it is published from the committed state.
+    await publishServiceAvailability(tx);
   }, { maxWait: TRANSACTION_MAX_WAIT_MS, timeout: RESTORE_TRANSACTION_TIMEOUT_MS });
 
   await CacheService.delete('plugins:installed');
@@ -904,6 +975,9 @@ export async function purgePlugin(slug: string, confirmationSlug?: string, actor
   await prisma.$transaction(async (tx) => {
     await fencePluginOperationLease(tx, slug, token);
     await lockTaskScheduler(tx);
+    // The purge removes the provider for good, so an enabled dependent still
+    // blocks it.
+    await assertNoEnabledDependents(slug, tx);
     const taskInstallations = await tx.pluginInstallation.findMany({ where: { pluginSlug: slug }, orderBy: { id: 'asc' } });
     for (const instance of taskInstallations) {
       await tx.$queryRaw`SELECT id FROM public.plugin_installations WHERE id = ${instance.id} FOR UPDATE`;
@@ -918,6 +992,7 @@ export async function purgePlugin(slug: string, confirmationSlug?: string, actor
     await tx.pluginInstall.delete({ where: { slug } });
     await systemSettingsService.incrementPluginRegistryVersion(tx);
     await writePluginAudit(tx, actorId, 'PLUGIN_PURGED', slug, { slug, version: pluginPackage.version });
+    await publishServiceAvailability(tx);
   }, { maxWait: TRANSACTION_MAX_WAIT_MS, timeout: PURGE_TRANSACTION_TIMEOUT_MS });
 
   await CacheService.delete('plugins:installed');
@@ -955,6 +1030,11 @@ export const PluginManagementService = {
   uninstallPlugin,
   restorePlugin,
   purgePlugin,
+
+  // The publication of the derived availability of the service dependency
+  // graph. The installer publishes it after a package change, because a new
+  // package version changes the graph as well.
+  publishServiceAvailability,
 
   // Validation helpers
   validateInstanceKey,

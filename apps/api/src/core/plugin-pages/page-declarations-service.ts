@@ -16,8 +16,10 @@ export class PluginPageDeclarationService {
     const installation = await tx.pluginInstallation.findUnique({ where: { pluginSlug_instanceKey: { pluginSlug: slug, instanceKey: 'default' } }, include: { plugin: true } });
     if (!installation?.enabled || installation.deletedAt || installation.plugin.deletedAt || !installation.plugin.zipHash || pluginSigningError(installation.plugin)) throw new ApiError('NOT_FOUND');
     const manifest = readStoredPluginManifest(installation.plugin);
-    // Until G4 owns graph admission, declared dependencies never execute.
-    if (manifest.serviceDependencies?.length || installation.taskDependencyUnavailable) throw new ApiError('NOT_FOUND');
+    // The service dependency graph publishes the derived availability of the
+    // installation: a page of a plugin whose provider is unavailable is not
+    // served.
+    if (installation.taskDependencyUnavailable) throw new ApiError('NOT_FOUND');
     const page = (surface === 'shop' ? manifest.ui?.storefrontPages : manifest.ui?.adminPages)?.find(candidate => candidate.id === pageId);
     if (!page) throw new ApiError('NOT_FOUND');
     if (await tx.pluginMigrationOperation.findFirst({ where: { slug, phase: { in: ['PAUSING', 'MIGRATING', 'PUBLISHING', 'NEEDS_RECOVERY'] } }, select: { id: true } })) throw new ApiError('PLUGIN_MAINTENANCE');
@@ -38,7 +40,6 @@ export class PluginPageDeclarationService {
     for (const installation of installations) {
       if (!installation.plugin.zipHash || pluginSigningError(installation.plugin) || installation.taskDependencyUnavailable) continue;
       const manifest = readStoredPluginManifest(installation.plugin);
-      if (manifest.serviceDependencies?.length) continue;
       eligible.push({ installation, manifest });
     }
     // One maintenance probe covers every declared plugin. A plugin without a

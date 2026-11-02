@@ -101,8 +101,10 @@ export async function pluginAssetRoutes(app: FastifyInstance) {
       const manifest: unknown = JSON.parse(entry.content.toString('utf8'));
       if (!isPluginManifest(manifest) || manifest.slug !== installation.pluginSlug
         || manifest.version !== installation.package.version || !manifest.ui) return missing();
-      // G4 supplies authoritative dependency admission; an unknown graph is not operational.
-      if (manifest.serviceDependencies?.length) return missing();
+      // The service dependency graph publishes the derived availability of the
+      // installation: the assets of a plugin whose provider is unavailable are
+      // not served.
+      if (installation.taskDependencyUnavailable) return missing();
       const root = entry.path.slice(0, -'manifest.json'.length);
       const files = entries.filter(file => !file.path.endsWith('/')).map(file => ({
         ...file, path: root && file.path.startsWith(root) ? file.path.slice(root.length) : file.path,

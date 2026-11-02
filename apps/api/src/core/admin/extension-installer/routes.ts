@@ -544,6 +544,7 @@ onSend: async (request, reply, payload) => {
       enabled?: boolean;
       config?: Record<string, unknown>;
       grantedPermissions?: string[];
+      confirmation?: string;
     };
   }>('/plugin/:slug/instances/:installationId', {
     schema: {
@@ -559,11 +560,12 @@ onSend: async (request, reply, payload) => {
       enabled?: boolean;
       config?: Record<string, unknown>;
       grantedPermissions?: string[];
+      confirmation?: string;
     };
   }>, reply: FastifyReply) => {
     try {
       const { slug, installationId } = request.params;
-      const { enabled, config, grantedPermissions } = request.body;
+      const { enabled, config, grantedPermissions, confirmation } = request.body;
 
       // Verify the installation belongs to this plugin
       const existing = await PluginManagementService.getInstanceById(installationId);
@@ -582,6 +584,7 @@ onSend: async (request, reply, payload) => {
         enabled,
         config,
         grantedPermissions,
+        confirmation,
       });
       const adminConfig = sanitizePluginConfigForAdmin(readStoredPluginManifest(pluginPackage), parseJsonObject(instance.configJson));
 

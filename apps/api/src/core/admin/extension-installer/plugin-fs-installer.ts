@@ -45,6 +45,8 @@ import {
   executeLifecycleHook,
   hasLifecycleHook,
 } from '@/core/admin/plugin-management/lifecycle-hooks';
+import { PluginManagementService } from '@/core/admin/plugin-management/service';
+import { assertProviderUpdateKeepsDependents, lockServiceGraph } from '@/core/extensions/registry';
 import { syncEventSubscriptions } from '@/infra/events/emit';
 import { decryptPluginConfig } from '@/core/admin/plugin-management/config-crypto';
 import { redactPluginFailure } from './plugin-failure';
@@ -219,6 +221,9 @@ export class PluginFsInstaller implements IPluginInstaller {
         await prisma.$transaction(async (tx) => {
           if (lease) await fencePluginOperationLease(tx, lease.slug, lease.token);
           if (snapshot !== undefined) await assertUploadSnapshot(tx, manifest.slug, snapshot);
+          // The graph lock comes before the rows it protects: the publication
+          // at the end of this transaction reads and writes the same rows.
+          await lockServiceGraph(tx);
           await pluginPackageBlobStore.put(tx, manifest.slug, zipHash, bytes);
           await pluginPackageBlobStore.deleteExcept(tx, manifest.slug, zipHash);
           await tx.pluginInstall.update({ where: { slug: manifest.slug }, data: {
@@ -235,6 +240,8 @@ export class PluginFsInstaller implements IPluginInstaller {
           await writePluginInstallAudit(tx, options!.actorUserId!, 'PLUGIN_INSTALLED', inspection!, operation, existingByHash.version, options?.source ?? 'local-zip');
           await publishPluginMigrationOperation(tx, options?.operationId);
           await systemSettingsService.incrementPluginRegistryVersion(tx);
+          // The installation joined the service dependency graph.
+          await PluginManagementService.publishServiceAvailability(tx);
         });
       }
       if (options?.operationId) await recoveryTestBarrier('publication-committed', options.operationId);
@@ -319,6 +326,12 @@ export class PluginFsInstaller implements IPluginInstaller {
             }
             if (lease) await fencePluginOperationLease(tx, lease.slug, lease.token);
             if (snapshot !== undefined) await assertUploadSnapshot(tx, manifest.slug, snapshot);
+            // A new version of a provider changes what its dependents get. A
+            // version outside the range a dependent asks for would strand that
+            // dependent, so the upgrade is refused while it is enabled.
+            if (existingBySlug.version !== manifest.version) {
+              await assertProviderUpdateKeepsDependents(manifest.slug, manifest.version, tx);
+            }
             {
               await pluginPackageBlobStore.put(tx, manifest.slug, zipHash, bytes);
               await pluginPackageBlobStore.deleteExcept(tx, manifest.slug, zipHash);
@@ -366,6 +379,9 @@ export class PluginFsInstaller implements IPluginInstaller {
             if (inspection && options?.actorUserId) await writePluginInstallAudit(tx, options.actorUserId, operation === 'upgrade' ? 'PLUGIN_UPGRADED' : 'PLUGIN_INSTALLED', inspection, operation, existingBySlug.version, options?.source ?? 'local-zip');
             await publishPluginMigrationOperation(tx, options?.operationId);
             await systemSettingsService.incrementPluginRegistryVersion(tx);
+            // The version of the package changed, so the service dependency
+            // graph changed with it.
+            await PluginManagementService.publishServiceAvailability(tx);
             return updatedInstall;
           });
 
@@ -439,6 +455,10 @@ export class PluginFsInstaller implements IPluginInstaller {
           const result = await prisma.$transaction(async (tx) => {
             if (lease) await fencePluginOperationLease(tx, lease.slug, lease.token);
             if (snapshot !== undefined) await assertUploadSnapshot(tx, manifest.slug, snapshot);
+            // The graph lock comes before the rows it protects: the
+            // publication at the end of this transaction reads and writes the
+            // same rows.
+            await lockServiceGraph(tx);
             const install = await tx.pluginInstall.create({
               data: {
                 slug: manifest.slug,
@@ -480,6 +500,8 @@ export class PluginFsInstaller implements IPluginInstaller {
             if (inspection && options?.actorUserId) await writePluginInstallAudit(tx, options.actorUserId, 'PLUGIN_INSTALLED', inspection, operation, null, options?.source ?? 'local-zip');
             await publishPluginMigrationOperation(tx, options?.operationId);
             await systemSettingsService.incrementPluginRegistryVersion(tx);
+            // The installation joined the service dependency graph.
+            await PluginManagementService.publishServiceAvailability(tx);
 
             return install;
           });

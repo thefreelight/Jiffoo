@@ -1022,6 +1022,9 @@ export async function callService(
   const instance = await getDefaultInstance(request.plugin);
   if (!pkg || !instance) return serviceCoreError('PLUGIN_SERVICE_DEPENDENCY_UNAVAILABLE', `The provider ${request.plugin} is not installed`);
   if (!instance.enabled || instance.deletedAt) return serviceCoreError('PLUGIN_SERVICE_DEPENDENCY_UNAVAILABLE', `The provider ${request.plugin} is not enabled`);
+  // The provider is only operational while the services it depends on are
+  // available. The graph publishes that state on the installation.
+  if (instance.taskDependencyUnavailable) return serviceCoreError('PLUGIN_SERVICE_DEPENDENCY_UNAVAILABLE', `The provider ${request.plugin} is not operational`);
   let providerManifest: PluginManifest;
   try {
     providerManifest = await readPluginManifest(pkg);
@@ -1423,7 +1426,11 @@ export async function validateCandidateRuntime(slug: string, zipHash: string, ma
   const app = Fastify({ logger: false });
   try {
     const instance = await prisma.pluginInstallation.findUniqueOrThrow({ where:{id:installationId} });
-    await registerContractV1Runtime(app, entry, { slug, installationId, generation:instance.protectionGeneration, zipHash, version: manifest.version, config, configSchema: manifest.configSchema, declaredContracts: manifest.contracts || [], subscriptions: manifest.subscriptions || [], tasks: manifest.tasks || [] });
+    // A provider registers its methods during the validation as well: the
+    // candidate has to prove that it provides exactly what its manifest
+    // declares, with a readable schema for every method.
+    const serviceSchemas = await readServiceSchemas(pkg, manifest);
+    await registerContractV1Runtime(app, entry, { slug, installationId, generation:instance.protectionGeneration, zipHash, version: manifest.version, config, configSchema: manifest.configSchema, declaredContracts: manifest.contracts || [], subscriptions: manifest.subscriptions || [], tasks: manifest.tasks || [], declaredServices: manifest.services || [], serviceSchemas });
     await app.ready();
   } finally { await app.close(); }
   } catch (error) {

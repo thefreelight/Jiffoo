@@ -326,6 +326,18 @@ export function safeIssues(issues: unknown): Array<{ path: string; message: stri
   });
 }
 
+/**
+ * The plain strings of a service dependency answer.
+ *
+ * The reasons of the graph and the slugs of the dependents are part of the
+ * answer: the administrator has to know which provider is missing and which
+ * plugin would lose its service.
+ */
+function safeStrings(values: unknown): string[] {
+  if (!Array.isArray(values)) return [];
+  return values.slice(0, 50).filter((value): value is string => typeof value === 'string' && value.length > 0 && value.length <= 200);
+}
+
 function detailsFor(error: ApiError): unknown {
   if (error.code === 'PLUGIN_SERVICE_DEPENDENCY_UNAVAILABLE') {
     const seconds = (error.safeDetails as { retryAfterSeconds?: unknown } | undefined)?.retryAfterSeconds;
@@ -333,6 +345,19 @@ function detailsFor(error: ApiError): unknown {
   }
   if (!error.safeDetails || typeof error.safeDetails !== 'object' || errorCatalog[error.code].status >= 500) return undefined;
   const input = error.safeDetails as Record<string, unknown>;
+  if (error.code === 'PLUGIN_SERVICE_DISABLE_CONFIRMATION_REQUIRED') {
+    return {
+      affectedDependents: safeStrings(input.affectedDependents),
+      graphRevision: typeof input.graphRevision === 'string' ? input.graphRevision : undefined,
+      confirmation: typeof input.confirmation === 'string' ? input.confirmation : undefined,
+    };
+  }
+  if (error.code === 'PLUGIN_SERVICE_DEPENDENTS_ENABLED') {
+    return { affectedDependents: safeStrings(input.affectedDependents) };
+  }
+  if (error.code === 'PLUGIN_SERVICE_DEPENDENCY_INVALID') {
+    return { reasons: safeStrings(input.reasons), affectedDependents: safeStrings(input.affectedDependents) };
+  }
   if (error.code === 'PLUGIN_TASK_LIMIT_CONFLICT' && typeof input.taskId === 'string' && /^[a-zA-Z0-9_-]{1,128}$/.test(input.taskId)) return {taskId:input.taskId};
   if (['SPU_CODE_TAKEN', 'SKU_CODE_TAKEN', 'INVALID_PRODUCT_CODE'].includes(error.code)) {
     return { ...(typeof input.name === 'string' ? { name: input.name } : {}),
