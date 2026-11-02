@@ -255,7 +255,7 @@ of that day.
 | 5zag | The admin surface, the SDK's client generator, the deployment secret and the parallel local gate | `f497ffaad`, `38fd9451e` |
 | 5zah | The message catalogue is read through the labels of its own module | `dc996bcee` |
 | 5zab | The hard deadline of the shutdown is measured with a monotonic clock | `668fbcb7b` |
-| 5zai | The in-place upgrade entry of a plugin package, the business rejection of a plugin service, the catalogue of the store currencies and the storefront marker of a degraded tax | `695cda0a6`, `faedad700` |
+| 5zai | The in-place upgrade entry of a plugin package, the business rejection of a plugin service, the catalogue of the store currencies and the storefront marker of a degraded tax | `695cda0a6`, `faedad700`, `1fa3ad9b7` |
 
 ## 6. The archive
 
