@@ -4878,3 +4878,197 @@ One shard run before this one failed on `tests/core/notification-lease-fencing.t
 that starts real worker processes and waits for their deadlines; the suite passes on its own
 (`Test Files 1 passed (1)`, `Tests 11 passed (11)`), and the shard run above is green over the whole
 catalogue.
+
+## 5zag. The admin surface, the SDK's client generator, the deployment secret and the parallel local gate
+
+**Baseline SHA:** `32784ebf6`. **Commits:** `f497ffaad`, `38fd9451e`.
+
+### What the design asks for, and what this batch delivers
+
+The design's sections 7 and 10 name three remaining pieces of G4 and G4-R: the merchant has to see
+the permissions the called methods need, the consumer has to be able to compile against the schema
+of a provider without a shared runtime, and the cursor of the paid-order read has to be signed with
+a key of the deployment that belongs to nothing else. The batch also answers the efficiency
+complaint of the owner: a local gate that widens to the whole catalogue has to stay affordable.
+
+This batch delivers:
+
+- **The admin surface.** The plugin detail carries the declared permissions of the package and the
+  permissions of the services it calls, one per called method, and names which of them are
+  granted. The install preview shows the two lists apart from each other. The disable impact names
+  the plugins that lose a service, the revision of the graph they were read from and the digest of
+  the confirmation the disable needs. The lifecycle audit records the granted declaration, its
+  digest, the affected dependents and the graph revision.
+- **The SDK's client generator.** `jiffoo-plugin services generate-client --package <package.zip>
+  --service <name> --version <major> --output <file.ts>` reads a provider package through the
+  normal verifier, renders the JSON Schema subset of the package into TypeScript and emits a
+  types-only declaration plus a typed wrapper whose runtime delegates exclusively to
+  `ctx.services.call`. The generated file names the provider, the service, the exact major, the
+  schema digest and the trust of the package.
+- **The deployment secret.** `PLUGIN_COMMERCE_CURSOR_SECRET` is a dedicated base64 key of at least
+  32 bytes. It is declared in the environment of the API, in the compose stack and in the local
+  verification scripts, and it may not repeat another signing key of the deployment: the other keys
+  are compared as they are written and as the bytes they decode to.
+- **The parallel local gate.** A scoped run whose API selection is wide now runs in parallel
+  shards, each against its own database, instead of in one serial Vitest process.
+
+### What the review found, and what this batch changed because of it
+
+The independent review of the wave (an arch-reviewer against `32784ebf6`) found eight points, and
+a second review of the fix batch (`f497ffaad`) confirmed six of them and raised three further
+questions. All of them are answered in the tree:
+
+1. **The generator threw the publisher identity away.** `verifyPluginZip` answers with the identity
+   of the publisher, or with null for a package that carries no signature at all, and the generator
+   discarded it. The generated file now names the trust of the package it was generated from, so a
+   consumer compiles against the schemas of a package whose publisher it can see.
+2. **A definition that referenced another definition produced an undeclared type.** The
+   definitions are now rendered until no new name appears, so a `$defs` that references a second
+   `$defs` is declared too.
+3. **A provider update that removed the schema file of a called method passed the guard.** The
+   guard now refuses a method whose new schema is missing or unparsable, and the refusal names the
+   remedy for a method that is no longer exported.
+4. **The refusal of a dropped method contradicted the remedy.** The message now names the remedy:
+   publish a new version and let the consumers move to it first. The behaviour stays: an export an
+   enabled dependent requires may not be removed.
+5. **The instance-update transaction ran under the default timeout.** The route restores the
+   connection wait and the timeout the module was sized for, because the transaction holds the
+   graph lock and the row locks of the instance.
+6. **The audit recorded the plugin's own service permissions and not the impact.** The audit now
+   records the affected dependents and the graph revision.
+7. **The install preview never showed the permissions.** The preview renders the permissions of the
+   package and the permissions of the services it calls, apart from each other.
+8. **The secret comparison read the raw value only.** The comparison now also compares the decoded
+   bytes and reads the other secrets from the typed environment as well as from the live one.
+
+The three further questions of the second review are answered as well:
+
+- **The recorded impact was not the confirmed impact.** The plan read the graph once to compute the
+  impact and the transaction read it again to check the confirmation, so the audit could record a
+  list the merchant never confirmed. The check now answers with the impact it validated, the
+  transaction keeps it, and the audit records exactly that.
+- **The i18n labels that were removed had no remaining reference.** The whole tree was searched;
+  the two labels that replaced them are the ones in use.
+- **The new schema guard is stricter than the old one.** A method the old manifest never declared
+  and whose new schema is unreadable is now refused instead of skipped, and a test covers it.
+
+### The efficiency of the local gate
+
+The owner measured the local gate and found it slow. The measurement explains why.
+
+The reachability rule of §5zac works: a change of `packages/shared/src/error-codes.ts` selects 164
+suites of the 328 of the catalogue, not all of them. But a change of
+`packages/shared/src/i18n/messages/admin-plugins.ts` — a label only the merchant surface reads —
+selected 217 suites, 165 of them API suites. The reason is a runtime assembly: the message
+catalogue is aggregated per locale, the API's three export modules read the merchant namespace out
+of it, and the API's route registry reaches those modules, so every API suite that boots the app
+reaches every admin label. The file-level import graph cannot tell that the API reads three keys
+of that namespace and nothing else.
+
+Two answers were possible. The precise one is to extract the slices the API needs into their own
+message modules, so the API reaches three modules instead of the whole catalogue; that moves about
+1800 lines of labels across three locales and is not done. The cheap one is to keep the selection
+as it is and make the run of it affordable, which this batch does: the scoped run hands a wide
+selection to the shard runner, each shard against its own database, and the coverage verdict holds
+the run to exactly the selection the planner computed.
+
+The measured effect on the run that certified this batch: the API step of the same selection of
+171 suites took 1666 seconds in one serial process and 597 seconds in four shards. The whole local
+gate of a shared-package change is about eleven minutes instead of about twenty-eight.
+
+### The local evidence
+
+The baseline SHA is `32784ebf6`. The changed inputs are the admin surface of the extension
+installer, the plugin management module and its plan, the service graph, the commerce query, the
+provider schema guard, the SDK's generator, the admin preview, the shared i18n labels, the SDK
+standalone script test and the four gate scripts. The scoped run selects the suites that cover
+those inputs; the planner widened the selection with the suites that reach the changed shared
+module, and the run executed that widened selection in four shards.
+
+```
+DATABASE_URL_TEST=postgresql://postgres:postgres@localhost:5432/jiffoo_core_test \
+PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=<the owner's consent to reset jiffoo_core_test> \
+pnpm verify:quick --test-files=apps/api/tests/routes/plugin-service-permissions.test.ts,apps/api/tests/core/plugin-service-graph.test.ts,apps/api/tests/core/plugin-service.test.ts,apps/api/tests/core/plugin-commerce-query.test.ts,apps/api/tests/core/plugin-fs-installer.test.ts,apps/api/tests/routes/plugin-upload-preview.test.ts,apps/api/tests/routes/plugin-removal.test.ts,apps/api/tests/core/module-boundary-audit.test.ts,apps/api/tests/core/module-state-audit.test.ts,apps/admin/tests/plugin-upload.test.tsx,apps/admin/tests/plugin-workspace.test.tsx,apps/admin/tests/admin-plugins-copy.test.ts,scripts/plugin-sdk-standalone.test.mjs,scripts/verify-selection.test.mjs,scripts/verify-lane-shards.test.mjs,scripts/module-reachability.test.mjs
+```
+
+The summary of that run, printed from `verify-summary.txt`:
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Run script tests:
+Node test start time: 2026-11-02T08:02:31.000Z
+ℹ tests 84
+ℹ suites 0
+ℹ pass 84
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 17327.295
+Run API tests in 4 shards:
+Shards: 1, 2, 3, 4 of 4 (4-shard run)
+Run scope: the selected catalogue (4 shard(s))
+Scope coverage: 171/171 files covered
+Totals: Test Files 171 files, 171 passed | Tests 2427 tests, 2427 passed | Suites 467 suites, 467 passed
+Test conclusion: PASS
+Cleanup conclusion: PASS
+Delivery status: API PASS / cleanup PASS
+--- File coverage ---
+Catalogue files (the selection the caller named): 171
+Expected set (the full catalogue, not the assigned subset): 171
+Assigned to this run: 171
+Executed (union over all shards): 171
+Shard 1: 43 files
+Shard 2: 42 files
+Shard 3: 43 files
+Shard 4: 43 files
+Missing files: none
+Extra files: none
+Cross-shard duplicates: none
+Empty shards: none
+Coverage verdict: PASS
+--- Shard results ---
+| Shard | Exit | Duration | Start at | Test Files | Tests | Failed files |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | 0 | 585.1s | 16:04:53 | 43 files, 43 passed | 753 tests, 753 passed | none |
+| 2 | 0 | 483.0s | 16:04:55 | 42 files, 42 passed | 661 tests, 661 passed | none |
+| 3 | 0 | 552.3s | 16:04:54 | 43 files, 43 passed | 406 tests, 406 passed | none |
+| 4 | 0 | 547.7s | 16:04:56 | 43 files, 43 passed | 607 tests, 607 passed | none |
+Run Admin tests:
+   Start at  16:14:34
+ Test Files  39 passed (39)
+      Tests  535 passed (535)
+Run Shop tests:
+   Start at  16:14:56
+ Test Files  17 passed (17)
+      Tests  122 passed (122)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Run script tests | PASS | 17.37s |
+| Prisma generate | PASS | 0.01s |
+| Type-check selected scope and shared | PASS | 14.47s |
+| Lint Shop | PASS | 11.98s |
+| Reset test database | PASS | 4.70s |
+| Run API tests in 4 shards | PASS | 597.34s |
+| Run Admin tests | PASS | 21.50s |
+| Run Shop tests | PASS | 3.62s |
+```
+
+The run before this one, of the same selection in one serial process, took 1666 seconds for the API
+step and failed one suite: `tests/core/plugin-tasks.test.ts` asserts the number of progress
+renewals of a real 45-second invocation and counted three instead of nine under the load of the
+serial run. The suite is timing sensitive and passes in the shard run of the same catalogue.
+
+### What the next reader should know
+
+- The G4 contract and the G4-R read are complete on the Core side. The provider plugin, the
+  consumer's own intent ledger, the AI call and the image storage are outside Core.
+- The consumer of the service contract compiles against a generated file, so the SDK tarball of the
+  consumer has to be the one of this tree: the tarball the imager package links carries neither the
+  service types nor the generator.
+- The narrowed selection of §5zag's efficiency section is still open. It is a move of labels, not
+  of behaviour, and it would take the shared-package change from eleven minutes to about four.
