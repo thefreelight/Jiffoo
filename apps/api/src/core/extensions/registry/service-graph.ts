@@ -317,6 +317,34 @@ export function serviceUnavailableReasons(graph: ServiceGraph, slug: string): st
 }
 
 /**
+ * The permissions a plugin needs for the services it calls.
+ *
+ * The list is the merchant's view of a package: every method the plugin calls
+ * has its own permission, and there is no wildcard. The permission is the
+ * same string the runtime checks when the method is called.
+ */
+export function declaredServicePermissions(manifest: unknown): string[] {
+  const shape = graphShape(manifest);
+  const permissions = new Set<string>();
+  for (const requirement of shape.requires) {
+    for (const method of requirement.methods) {
+      permissions.add(servicePermission(requirement.provider, requirement.service, requirement.version, method));
+    }
+  }
+  return [...permissions].sort();
+}
+
+/**
+ * The digest of a granted declaration.
+ *
+ * The audit records it, so the grant that the merchant approved can be
+ * compared with the grant that is in force later.
+ */
+export function grantedPermissionDigest(permissions: readonly string[]): string {
+  return createHash('sha256').update([...permissions].sort().join('\n'), 'utf8').digest('hex').slice(0, 32);
+}
+
+/**
  * The dependents of a provider: the installations that call it, directly or
  * through another dependent.
  */
@@ -338,6 +366,31 @@ export function serviceDependents(graph: ServiceGraph, slug: string): string[] {
 /** The enabled dependents of a provider. */
 function enabledDependents(graph: ServiceGraph, slug: string): string[] {
   return serviceDependents(graph, slug).filter(dependent => Boolean(graph.entries.get(dependent)?.enabled));
+}
+
+/**
+ * The services an enabled dependent requires of a provider.
+ *
+ * The answer is what a provider update has to keep: the service, the version
+ * and the methods that its consumers call.
+ */
+export function requiredServicesOf(
+  graph: ServiceGraph,
+  provider: string,
+): Array<{ service: string; version: number; methods: string[] }> {
+  const required = new Map<string, { service: string; version: number; methods: Set<string> }>();
+  for (const dependent of enabledDependents(graph, provider)) {
+    for (const requirement of graph.entries.get(dependent)?.requires ?? []) {
+      if (requirement.provider !== provider) continue;
+      const key = `${requirement.service}.v${requirement.version}`;
+      const entry = required.get(key) ?? { service: requirement.service, version: requirement.version, methods: new Set<string>() };
+      for (const method of requirement.methods) entry.methods.add(method);
+      required.set(key, entry);
+    }
+  }
+  return [...required.values()]
+    .map(entry => ({ service: entry.service, version: entry.version, methods: [...entry.methods].sort() }))
+    .sort((left, right) => left.service.localeCompare(right.service) || left.version - right.version);
 }
 
 /**

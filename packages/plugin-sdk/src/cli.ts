@@ -8,6 +8,7 @@ import { getPluginManifestIssues } from '../../shared/src/extensions/plugin-cont
 import { createPlugin } from './create';
 import { uploadZip, formatSdkError, redact, SdkError } from './upload';
 import { dev } from './dev';
+import { generateServiceClient } from './services';
 import {
   CERT_PATH, SIGNATURE_PATH, extensionMaxFileSize, getPluginFileViolation, isPathWithinExtensionBase, PLUGIN_MAX_ZIP_SIZE, readPluginZipEntries,
   signPackage, verifyPublisherCertificate, validatePluginZipPaths,
@@ -17,6 +18,7 @@ import {
 } from '../../shared/src/plugin-signing';
 
 const HELP = `jiffoo-plugin create --slug <slug> --name <name> --output <dir> [--category integration|shipping|payment]
+jiffoo-plugin services generate-client --package <verified-provider-package.zip> --service <name> --version <major> [--output <file.ts>]
 jiffoo-plugin keygen --out <private.pem>
 jiffoo-plugin pack --input <dir> --output <zip>
 jiffoo-plugin migrations --input <dir>
@@ -124,6 +126,15 @@ async function main() {
     else await dev(enable, confirmMigrations, worker);
   } else if (command === 'create') {
     await createPlugin(options(args, ['--slug', '--name', '--output'], ['--category']));
+  } else if (command === 'services') {
+    const [subcommand, ...serviceArgs] = args;
+    if (subcommand !== 'generate-client') failure('UNKNOWN_COMMAND');
+    const flags = options(serviceArgs, ['--package', '--service', '--version'], ['--output']);
+    const version = Number(flags['--version']);
+    if (!Number.isSafeInteger(version) || version < 1) failure('INVALID_ARGUMENTS');
+    const client = await generateServiceClient({ packagePath: flags['--package'], service: flags['--service'], version });
+    if (flags['--output']) await fs.writeFile(path.resolve(flags['--output']), client.source, 'utf8');
+    else console.log(client.source);
   } else if (command === 'keygen') {
     const flags = options(args, ['--out']);
     const { privateKey, publicKey } = generateKeyPairSync('ed25519');

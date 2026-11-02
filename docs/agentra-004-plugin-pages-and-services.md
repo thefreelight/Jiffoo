@@ -1005,8 +1005,10 @@ and G1 are in the schema and in the migrations of the tree: the page sessions
 and the purchase origins, the files, the quotas and the file cleanup, the
 principal registry, the tasks, the attempts, the final failures, the execution
 slots, the scheduler and the fairness rows; their design is in
-`docs/archive/agentra-004-delivery-record.md`. The rows of G4 and G4-R are still
-planned. IDs use the Core
+`docs/archive/agentra-004-delivery-record.md`. The row of G4, the durable service
+call ledger, is in the schema and in the migrations of the tree
+(`apps/api/prisma/schema/plugin-services.prisma`); G4-R adds the index of the
+accepted captures. IDs use the Core
 ID convention (text), claims/boot nonces UUID, timestamps TIMESTAMPTZ(3) UTC,
 hashes lowercase SHA-256, JSON JSONB with explicit size checks. Every mutable
 row has createdAt/updatedAt, except the principal registry whose canonical

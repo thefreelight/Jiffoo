@@ -77,6 +77,8 @@ export function PluginWorkspace({ slug }: { slug: string }) {
   const persisted = { ...(selected?.config ?? {}) };
   if (schema) for (const [field, descriptor] of Object.entries(schema.properties)) if (descriptor.sensitive && meta?.secretFields?.[field]?.configured) persisted[field] = 'configured';
   const missing = schema ? validatePluginConfig(schema, persisted).filter(issue => issue.message === 'Required field is missing').map(issue => issue.path.slice(7)) : [];
+  const servicePermissions = data?.servicePermissions ?? [];
+  const grantedPermissions = selected?.grantedPermissions ?? [];
   async function save() {
     if (!selected || submitting.current) return false;
     submitting.current = true; setBusy(true); setFailed(false); setErrors({});
@@ -97,10 +99,10 @@ export function PluginWorkspace({ slug }: { slug: string }) {
       firstError.current = Object.keys(fields)[0] ?? null; setErrors(fields); return false;
     } finally { submitting.current = false; setBusy(false); }
   }
-  async function toggle() {
+  async function toggle(confirmation?: string) {
     if (!selected || submitting.current) return;
     submitting.current = true; setBusy(true);
-    try { await mutation.mutateAsync({ slug, installationId: selected.installationId, enabled: !selected.enabled }); }
+    try { await mutation.mutateAsync({ slug, installationId: selected.installationId, enabled: !selected.enabled, confirmation }); }
     catch {
       // The mutation hook presents the localized transition error.
     }
@@ -123,6 +125,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
         return <div key={field} className="max-w-[460px] space-y-1.5"><Label htmlFor={id}>{label}{required && <span aria-hidden="true" className="text-destructive"> *</span>}</Label>{descriptor.description && <p className="text-xs text-faint">{descriptor.description}</p>}{descriptor.type === 'boolean' ? <Switch id={id} aria-label={label} checked={Boolean(value)} onCheckedChange={change} /> : descriptor.type === 'string' && descriptor.enum ? <Select value={typeof value === 'string' ? value : ''} onValueChange={change}><SelectTrigger className="bg-ground" id={id} aria-label={label} aria-invalid={Boolean(error)}><SelectValue /></SelectTrigger><SelectContent>{descriptor.enum.map(option => <SelectItem key={option} value={option}>{option}</SelectItem>)}</SelectContent></Select> : <Input className="bg-ground" id={id} aria-label={label} aria-required={required} min={descriptor.minimum} max={descriptor.maximum} minLength={descriptor.minLength} maxLength={descriptor.maxLength} aria-invalid={Boolean(error)} aria-describedby={error ? id + '-error' : undefined} type={descriptor.sensitive ? 'password' : descriptor.type === 'integer' || descriptor.type === 'number' ? 'number' : 'text'} autoComplete={descriptor.sensitive ? 'new-password' : undefined} step={descriptor.type === 'integer' ? 1 : descriptor.type === 'number' ? 'any' : undefined} value={typeof value === 'string' || typeof value === 'number' ? String(value) : ''} placeholder={descriptor.sensitive && meta?.secretFields?.[field]?.configured ? c('secret') : undefined} onChange={event => change(descriptor.type === 'integer' || descriptor.type === 'number' ? event.target.value === '' ? undefined : Number(event.target.value) : event.target.value)} />}{error && <p id={id + '-error'} role="alert" className="text-xs text-destructive">{error}</p>}</div>;
       }) : <p className="text-muted-foreground">{c('noConfig')}</p>}</fieldset></form>
       <LastRecordedError lastFailureAt={data.lastFailureAt} lastFailureMessage={data.lastFailureMessage} />
+      <section aria-labelledby="plugin-services" className="overflow-hidden rounded-lg border border-border"><h2 id="plugin-services" className="border-b border-border px-4 py-3 font-semibold">{c('services')}</h2><div className="space-y-2 px-4 py-3"><p className="text-xs text-faint">{c('servicesNote')}</p>{servicePermissions.length ? <ul className="space-y-1">{servicePermissions.map(permission => <li key={permission} className="flex flex-wrap items-baseline gap-x-3 gap-y-1"><code className="font-mono text-xs">{permission}</code><span className={`text-xs ${grantedPermissions.includes(permission) ? 'text-faint' : 'text-attention'}`}>{grantedPermissions.includes(permission) ? c('servicesGranted') : c('servicesMissing')}</span></li>)}</ul> : <p className="text-muted-foreground">{c('servicesNone')}</p>}</div></section>
       <DeclaredPluginNavigation slug={slug} locale={locale} enabled={selected?.enabled ?? false} />
       <section aria-labelledby="plugin-about" className="overflow-hidden rounded-lg border border-border"><h2 id="plugin-about" className="border-b border-border px-4 py-3 font-semibold">{c('about')}</h2><dl className="divide-y divide-border px-4 py-1">{(['description', 'version', 'slug', 'signature', 'capabilities', 'category'] as const).map(key => <div key={key} className="flex flex-wrap gap-x-4 gap-y-1 py-2"><dt className="w-24 text-muted-foreground">{c(key)}</dt><dd className="min-w-0 flex-1 basis-[280px] break-words">{key === 'signature' ? <>{status.data && <PluginTrustLabel plugin={data} testSigningMode={status.data.testSigningMode} />}</> : key === 'capabilities' ? <>{capabilityLabels.join(', ') || c('none')}<p className="text-xs text-faint">{c('capabilityNote')}</p></> : <span className={key === 'slug' || key === 'version' ? 'font-mono text-xs' : undefined}>{key === 'slug' ? slug : key === 'category' && data.category ? pluginCategoryLabel(locale, data.category) ?? c('none') : data[key] || c('none')}</span>}</dd></div>)}</dl></section>
     </div>

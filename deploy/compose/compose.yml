@@ -18,6 +18,7 @@ x-backend: &backend
     PLUGIN_SECRETS_KEY: ${PLUGIN_SECRETS_KEY:?Generate plugin secrets key}
     PLUGIN_PAGE_TOKEN_SECRET: ${PLUGIN_PAGE_TOKEN_SECRET:?Generate dedicated plugin page token key}
     PLUGIN_FILE_URL_SECRET: ${PLUGIN_FILE_URL_SECRET:?Generate dedicated plugin file URL key}
+    PLUGIN_COMMERCE_CURSOR_SECRET: ${PLUGIN_COMMERCE_CURSOR_SECRET:?Generate dedicated plugin commerce cursor key}
     PLUGIN_UPLOAD_MAX_BYTES: ${PLUGIN_UPLOAD_MAX_BYTES:-10485760}
     STOREFRONT_URL: ${STOREFRONT_URL:?Set HTTPS Shop origin}
     ADMIN_URL: ${ADMIN_URL:?Set HTTPS Admin origin}

@@ -1,6 +1,7 @@
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/config/database';
+import { env } from '@/config/env';
 import { ApiError } from '@/utils/api-errors';
 import { eventRegistry, type PaidOrder } from '@jiffoo/shared';
 import { sharedProtection } from '@/infra/shared-protection';
@@ -77,6 +78,12 @@ function cursorSecret(): Buffer | null {
   if (!raw) return null;
   const key = Buffer.from(raw, 'base64');
   if (key.length < 32) throw new Error('PLUGIN_COMMERCE_CURSOR_SECRET requires a dedicated strong base64 key of at least 32 bytes');
+  // The cursor is signed with a dedicated key: reusing the key of another
+  // signing surface would make the two signatures interchangeable.
+  const reused = [env.JWT_SECRET, env.PLUGIN_SECRETS_KEY, process.env.PLUGIN_PAGE_TOKEN_SECRET, process.env.PLUGIN_FILE_URL_SECRET]
+    .filter(Boolean)
+    .some(other => other === raw || other === key.toString('utf8'));
+  if (reused) throw new Error('PLUGIN_COMMERCE_CURSOR_SECRET requires a dedicated strong base64 key of at least 32 bytes');
   return key;
 }
 

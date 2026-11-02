@@ -105,4 +105,12 @@ describe('Plugin detail configuration', () => {
     mocks.config.mockReturnValue(state === 'loading' ? { isLoading: true } : state === 'error' ? { error: new Error('Failed') } : { data: { name: 'No fields' } });
     await mount(); expect(container.textContent).toContain(state === 'loading' ? en.plugins.loadingPluginDetails : state === 'error' ? en.plugins.failedToLoadDetails : 'No configuration fields.');
   });
+  it('lists the permissions the services it calls need and marks the ones that are not granted', async () => {
+    mocks.config.mockReturnValue({ data: { name: 'Service fixture', category: 'integration', source: 'installed', servicePermissions: ['service:wallet-provider:wallet.v1.debit'] } });
+    mocks.instances.mockReturnValue({ data: { items: [{ installationId: 'one', instanceKey: 'default', enabled: false, config: {}, grantedPermissions: [] }] } });
+    await mount();
+    expect(container.textContent).toContain('Services this plugin calls');
+    expect(container.textContent).toContain('service:wallet-provider:wallet.v1.debit');
+    expect(container.textContent).toContain('Not granted');
+  });
 });

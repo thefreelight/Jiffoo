@@ -14,7 +14,7 @@ import { extensionInstallerSchemas, repairBootstrapBodySchema, repairBootstrapVa
 import { errorResponseSchema } from '@/utils/schema-helpers';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
 import { recordRepairBootstrapRejection, repairBootstrap } from './repair-bootstrap';
-import { getDefaultInstance } from '@/core/extensions/registry';
+import { declaredServicePermissions, getDefaultInstance, grantedPermissionDigest, serviceDisableConfirmation } from '@/core/extensions/registry';
 import { handlePluginGateway, PluginGatewayError } from '@/core/extensions/runtime/plugin-runtime';
 import { sanitizePluginConfigForAdmin } from '@/core/admin/plugin-management/config-secrets';
 import { InvalidStoredManifestError, readStoredPluginManifest } from './stored-manifest';
@@ -32,6 +32,7 @@ import { listPluginRecovery } from './plugin-recovery';
 import { pluginDatabaseAuditRoutes } from './plugin-database-audit-routes';
 import { installMarketplacePlugin, previewMarketplacePlugin } from './marketplace-install';
 import { previewPluginUpload, PluginUploadError } from './plugin-upload';
+import { writePluginAudit } from './plugin-audit';
 import { startPluginInstallOperation, getPluginInstallOperation, retryPluginInstallOperation } from './plugin-migration-operation';
 import { sendKnownError } from '@/utils/api-errors';
 
@@ -438,8 +439,13 @@ onSend: async (request, reply, payload) => {
               success: { type: 'boolean', enum: [true] },
               data: {
                 type: 'object',
-                required: ['pendingPaymentOrders'],
-                properties: { pendingPaymentOrders: { type: 'integer' } },
+                required: ['pendingPaymentOrders', 'serviceDependents', 'graphRevision', 'disableConfirmation'],
+                properties: {
+                  pendingPaymentOrders: { type: 'integer' },
+                  serviceDependents: { type: 'array', items: { type: 'string' } },
+                  graphRevision: { type: 'string' },
+                  disableConfirmation: { type: 'string' },
+                },
               },
             },
           },
@@ -470,7 +476,16 @@ onSend: async (request, reply, payload) => {
           },
         })
         : 0;
-      return sendSuccess(reply, { pendingPaymentOrders });
+      // The service dependents are the plugins that lose a service when this
+      // provider is disabled. The confirmation binds that set and the revision
+      // of the graph, so a confirmation of another state is refused.
+      const confirmation = await serviceDisableConfirmation(plugin.slug);
+      return sendSuccess(reply, {
+        pendingPaymentOrders,
+        serviceDependents: confirmation.affected,
+        graphRevision: confirmation.revision,
+        disableConfirmation: confirmation.digest,
+      });
     });
 
   // ============================================================================
@@ -580,12 +595,31 @@ onSend: async (request, reply, payload) => {
         return sendError(reply, 404, 'NOT_FOUND', `Plugin "${slug}" not found`);
       }
 
-      const instance = await PluginManagementService.updateInstance(installationId, {
+      // The update runs in three phases, so the audit of the granted
+      // declaration is written in the same transaction as the row it describes.
+      const plan = await PluginManagementService.planInstanceUpdate(installationId, {
         enabled,
         config,
         grantedPermissions,
         confirmation,
+      }, { callerOwnsTransaction: false });
+      await plan.prepare();
+      const instance = await prisma.$transaction(async (tx) => {
+        const updated = await plan.commit(tx);
+        if (enabled !== undefined) {
+          const granted = parseJsonArray(updated.grantedPermissions);
+          await writePluginAudit(tx, request.user!.id, enabled ? 'PLUGIN_ENABLED' : 'PLUGIN_DISABLED', slug, {
+            slug,
+            version: pluginPackage.version,
+            installationId,
+            grantedPermissions: granted,
+            grantedPermissionDigest: grantedPermissionDigest(granted),
+            servicePermissions: declaredServicePermissions(pluginPackage.manifestJson),
+          });
+        }
+        return updated;
       });
+      await plan.finalize();
       const adminConfig = sanitizePluginConfigForAdmin(readStoredPluginManifest(pluginPackage), parseJsonObject(instance.configJson));
 
       return sendSuccess(reply, {

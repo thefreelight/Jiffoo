@@ -1250,11 +1250,26 @@
         "data": {
           "type": "object",
           "required": [
-            "pendingPaymentOrders"
+            "pendingPaymentOrders",
+            "serviceDependents",
+            "graphRevision",
+            "disableConfirmation"
           ],
           "properties": {
             "pendingPaymentOrders": {
               "type": "integer"
+            },
+            "serviceDependents": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "graphRevision": {
+              "type": "string"
+            },
+            "disableConfirmation": {
+              "type": "string"
             }
           }
         }
@@ -1555,6 +1570,20 @@
                   "type": "string",
                   "nullable": true,
                   "description": "Extension runtime type"
+                },
+                "permissions": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "The permissions the package asks for"
+                },
+                "servicePermissions": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "The permissions the services this plugin calls need; one per called method"
                 },
                 "trustLevel": {
                   "type": "string",

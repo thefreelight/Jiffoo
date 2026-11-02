@@ -46,7 +46,20 @@ import {
   hasLifecycleHook,
 } from '@/core/admin/plugin-management/lifecycle-hooks';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
-import { assertProviderUpdateKeepsDependents, lockServiceGraph } from '@/core/extensions/registry';
+import { assertProviderUpdateKeepsDependents, declaredServicePermissions, lockServiceGraph, requiredServicesOf, serviceGraph } from '@/core/extensions/registry';
+import { assertProviderSchemasUnchanged } from './plugin-service-schemas';
+
+/**
+ * The permissions an installation receives when it is created.
+ *
+ * The package declares the permissions it asks for, and every method of every
+ * service it calls has a permission of its own. The merchant sees both lists
+ * at the preview and approves the package; the grant of a later upgrade is not
+ * renewed silently, because an upgrade does not touch the grant.
+ */
+function grantedPermissionsOf(manifest: PluginManifest): string[] {
+  return [...new Set([...(manifest.permissions ?? []), ...declaredServicePermissions(manifest)])].sort();
+}
 import { syncEventSubscriptions } from '@/infra/events/emit';
 import { decryptPluginConfig } from '@/core/admin/plugin-management/config-crypto';
 import { redactPluginFailure } from './plugin-failure';
@@ -233,7 +246,7 @@ export class PluginFsInstaller implements IPluginInstaller {
           } });
           await tx.pluginInstallation.upsert({
             where: { pluginSlug_instanceKey: { pluginSlug: manifest.slug, instanceKey: 'default' } },
-            create: { pluginSlug: manifest.slug, instanceKey: 'default', enabled: false, configJson: {}, grantedPermissions: manifest.permissions ?? [] },
+            create: { pluginSlug: manifest.slug, instanceKey: 'default', enabled: false, configJson: {}, grantedPermissions: grantedPermissionsOf(manifest) },
             update: { protectionGeneration: { increment: 1 } },
           });
           await PluginPageService.revokePluginSessions(tx, manifest.slug);
@@ -328,9 +341,26 @@ export class PluginFsInstaller implements IPluginInstaller {
             if (snapshot !== undefined) await assertUploadSnapshot(tx, manifest.slug, snapshot);
             // A new version of a provider changes what its dependents get. A
             // version outside the range a dependent asks for would strand that
-            // dependent, so the upgrade is refused while it is enabled.
+            // dependent, so the upgrade is refused while it is enabled. The
+            // schema of a required method may not change either: a consumer
+            // compiled against it.
             if (existingBySlug.version !== manifest.version) {
               await assertProviderUpdateKeepsDependents(manifest.slug, manifest.version, tx);
+              const required = requiredServicesOf(await serviceGraph(tx), manifest.slug);
+              if (required.length) {
+                const oldPackage = existingBySlug.zipHash
+                  ? await resolveCurrentPluginPackage(manifest.slug, existingBySlug.zipHash).catch(() => null)
+                  : null;
+                await assertProviderSchemasUnchanged({
+                  slug: manifest.slug,
+                  version: manifest.version,
+                  required,
+                  oldManifest: existingBySlug.manifestJson,
+                  newManifest: manifest,
+                  oldPackage,
+                  newFiles: new Map(inspection.files.map(file => [file.path, file.content])),
+                });
+              }
             }
             {
               await pluginPackageBlobStore.put(tx, manifest.slug, zipHash, bytes);
@@ -372,7 +402,7 @@ export class PluginFsInstaller implements IPluginInstaller {
             await syncEventSubscriptions(tx, manifest.slug, manifest.subscriptions);
             await tx.pluginInstallation.upsert({
               where: { pluginSlug_instanceKey: { pluginSlug: manifest.slug, instanceKey: 'default' } },
-              create: { pluginSlug: manifest.slug, instanceKey: 'default', enabled: false, configJson: {}, grantedPermissions: manifest.permissions ?? [] },
+              create: { pluginSlug: manifest.slug, instanceKey: 'default', enabled: false, configJson: {}, grantedPermissions: grantedPermissionsOf(manifest) },
               update: { protectionGeneration: { increment: 1 } },
             });
             await PluginPageService.revokePluginSessions(tx, manifest.slug);
@@ -492,7 +522,7 @@ export class PluginFsInstaller implements IPluginInstaller {
                 instanceKey: 'default',
                 enabled: false,
                 configJson: null,
-                grantedPermissions: manifest.permissions ?? null,
+                grantedPermissions: grantedPermissionsOf(manifest),
               },
             });
 

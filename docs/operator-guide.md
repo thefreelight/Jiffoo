@@ -20,7 +20,11 @@ Copy `deploy/compose/.env.example` to `deploy/compose/.env` inside the release
 directory. Replace every placeholder. Generate separate cryptographically
 random URL-safe secrets for JWT, database password, S3 root credentials and S3
 application credentials. Generate the plugin encryption key as exactly 32 random
-bytes encoded as base64. Keep the S3 application credentials separate from root
+bytes encoded as base64. The plugin page token key, the plugin file URL key and
+the plugin commerce cursor key are three separate base64 keys of at least 32
+random bytes each, and none of them may repeat another secret of the
+deployment: the cursor key signs the pages of the permissioned paid-order read
+and is shared by every API instance. Keep the S3 application credentials separate from root
 credentials: the configured bucket grants only ListBucket, GetObject and
 PutObject. Use absolute TLS file paths, HTTPS origins in `STOREFRONT_URL` and
 `ADMIN_URL`, the full source commit in `REVISION`, a unique project name, and an

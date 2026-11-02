@@ -14,6 +14,7 @@ import { checkPluginApiCompatibility } from './plugin-compatibility';
 import { compareVersions } from '@/core/extensions/shared/version-utils';
 import type { PluginManifest } from '@/core/extensions/shared/types';
 import { writePluginAudit } from './plugin-audit';
+import { declaredServicePermissions } from '@/core/extensions/registry';
 
 export class PluginUploadError extends ApiError {
   constructor(code: ErrorCode, _statusCode: number, _message: string = code) { super(code); }
@@ -111,7 +112,9 @@ export async function previewPluginUpload(bytes: Buffer, actorId: string) {
   const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
   return {
     package: { slug: inspection.manifest.slug, name: inspection.manifest.name, version: inspection.manifest.version, hash: inspection.hash,
-      trust: inspection.trust, publisher: inspection.publisher, declaredCapabilities: inspection.manifest.contracts?.map((contract) => contract.name) ?? [] },
+      trust: inspection.trust, publisher: inspection.publisher, declaredCapabilities: inspection.manifest.contracts?.map((contract) => contract.name) ?? [],
+      permissions: inspection.manifest.permissions ?? [],
+      servicePermissions: declaredServicePermissions(inspection.manifest) },
     current: { version: current?.version ?? null, hash: current?.zipHash ?? null, state: current ? current.deletedAt ? 'uninstalled' : 'installed' : 'not-installed' },
     operation, compatibility, migrationPlan: migrations, requiresUnsignedConfirmation: inspection.trust === 'unsigned', expiresAt: new Date(expiresAt).toISOString(),
     previewToken: `${body}.${mac(body).toString('base64url')}`,

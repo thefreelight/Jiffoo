@@ -49,6 +49,11 @@ const extensionMetaSchema = {
     signingRoot: { type: 'string', enum: ['official', 'test'], nullable: true },
     publisherCertificateFingerprint: { type: 'string', nullable: true },
     source: { type: 'string', nullable: true, description: 'Extension source' },
+    permissions: { type: 'array', items: { type: 'string' }, description: 'The permissions the package asks for' },
+    servicePermissions: {
+      type: 'array', items: { type: 'string' },
+      description: 'The permissions the services this plugin calls need; one per called method',
+    },
     manifestJson: {
       description: 'Raw or parsed manifest JSON payload',
       anyOf: [

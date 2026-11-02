@@ -63,7 +63,7 @@ export async function installFixturePlugin(
   category: 'shipping' | 'tax' | 'payment' | 'notification' | 'integration',
   contracts: FixtureContract[],
   source: string,
-  eventOptions: { subscriptions?: EventSubscription[]; config?: Record<string, unknown>; configSchema?: Record<string, unknown>; lifecycle?: Record<string, boolean>; version?: string; enable?: boolean; migrations?: Array<{ id: string; path: string; sql: string }> } = {},
+  eventOptions: { subscriptions?: EventSubscription[]; config?: Record<string, unknown>; configSchema?: Record<string, unknown>; lifecycle?: Record<string, boolean>; version?: string; enable?: boolean; migrations?: Array<{ id: string; path: string; sql: string }>; permissions?: string[]; services?: Array<{ name: string; version: number; methods: Array<{ name: string; idempotencyRequired: boolean; schema: string }> }>; serviceDependencies?: Array<{ plugin: string; service: string; version: number; methods: string[] }>; files?: Record<string, string> } = {},
 ): Promise<void> {
   const rootDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'checkout-fixture-'));
   const sourceDirectory = path.join(rootDirectory, 'package');
@@ -79,15 +79,22 @@ export async function installFixturePlugin(
     runtimeType: 'internal-fastify',
     hostProtocol: 'internal-fastify-v1',
     entryModule: 'server/index.js',
-    permissions: [],
+    permissions: eventOptions.permissions ?? [],
     contracts,
     subscriptions: eventOptions.subscriptions ?? [],
+    ...(eventOptions.services ? { services: eventOptions.services } : {}),
+    ...(eventOptions.serviceDependencies ? { serviceDependencies: eventOptions.serviceDependencies } : {}),
     ...(eventOptions.configSchema ? { configSchema: eventOptions.configSchema } : {}),
     ...(eventOptions.lifecycle ? { lifecycle: eventOptions.lifecycle } : {}),
     ...(eventOptions.migrations ? { database: { apiVersion: 1, migrations: eventOptions.migrations.map((file, index) => ({ id: file.id, order: index + 1, path: file.path, sha256: createHash('sha256').update(Buffer.from(file.sql)).digest('hex') })) } } : {}),
   };
   await fs.writeFile(path.join(sourceDirectory, 'manifest.json'), JSON.stringify(manifest), 'utf8');
   await fs.writeFile(path.join(sourceDirectory, 'server', 'index.js'), source, 'utf8');
+  for (const [relativePath, content] of Object.entries(eventOptions.files ?? {})) {
+    const target = path.join(sourceDirectory, relativePath);
+    await fs.mkdir(path.dirname(target), { recursive: true });
+    await fs.writeFile(target, content, 'utf8');
+  }
   for (const migration of eventOptions.migrations ?? []) {
     await fs.mkdir(path.dirname(path.join(sourceDirectory, migration.path)), { recursive: true });
     await fs.writeFile(path.join(sourceDirectory, migration.path), migration.sql, 'utf8');

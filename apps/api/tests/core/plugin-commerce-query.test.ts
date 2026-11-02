@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { randomBytes, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { getTestPrisma } from '../helpers/db';
 import { createTestUser, deleteAllTestUsers } from '../helpers/auth';
 import { createTestProduct, createTestOrder, createTestOrderItem, deleteAllTestProducts, deleteAllTestOrders } from '../helpers/fixtures';
@@ -43,7 +43,6 @@ describe('The paid-order read of G4-R', () => {
   }
 
   beforeAll(async () => {
-    process.env.PLUGIN_COMMERCE_CURSOR_SECRET = randomBytes(32).toString('base64');
     const user = await createTestUser({});
     userId = user.id;
     const product = await createTestProduct({ name: 'commerce read product', price: 20, stock: 5 });
@@ -101,7 +100,6 @@ describe('The paid-order read of G4-R', () => {
     await deleteAllTestOrders();
     await deleteAllTestProducts();
     await deleteAllTestUsers();
-    delete process.env.PLUGIN_COMMERCE_CURSOR_SECRET;
   });
 
   it('reports the paid orders of the window with their published items', async () => {

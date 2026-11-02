@@ -153,6 +153,7 @@ const testDefaults = {
   PLUGIN_SECRETS_KEY: Buffer.alloc(32, 17).toString('base64'),
   PLUGIN_PAGE_TOKEN_SECRET: Buffer.from(Array.from({ length: 32 }, (_, index) => index + 1)).toString('base64'),
   PLUGIN_FILE_URL_SECRET: Buffer.from(Array.from({ length: 32 }, (_, index) => index + 65)).toString('base64'),
+  PLUGIN_COMMERCE_CURSOR_SECRET: Buffer.from(Array.from({ length: 32 }, (_, index) => index + 97)).toString('base64'),
 };
 
 if (needsDatabase && !databaseUrl) {

@@ -186,6 +186,8 @@ export interface PluginState {
   runtimeType?: 'internal-fastify'
   enabledAt?: string
   disabledAt?: string
+  /** The permissions the services this plugin calls need. */
+  servicePermissions?: string[]
 }
 
 export interface PluginConfigMeta {

@@ -485,6 +485,8 @@ export interface UpdateInstanceRequest {
   enabled?: boolean;
   config?: Record<string, unknown>;
   grantedPermissions?: string[];
+  /** The confirmation of a disable that strands a dependent. */
+  confirmation?: string;
 }
 
 const DEFAULT_PLUGIN_INSTANCE_KEY = 'default';
@@ -543,6 +545,7 @@ function toPluginState(slug: string, detail: any, instance: PluginInstance | nul
     packageState: detail?.packageState,
     uninstalled: Boolean(detail?.deletedAt),
     declaredCapabilities: parsedManifest?.contracts?.map((contract: { name: string }) => contract.name) ?? [],
+    servicePermissions: Array.isArray(detail?.servicePermissions) ? detail.servicePermissions : [],
     lastFailureAt: detail?.lastFailureAt ?? null,
     lastFailureMessage: detail?.lastFailureMessage ?? null,
     enabled: instance?.enabled ?? false,
@@ -615,9 +618,9 @@ function toApiErrorPayload(
 
 // Plugin Management API
 export const pluginsApi = {
-  getDisableImpact: async (slug: string): Promise<{ pendingPaymentOrders: number }> => {
+  getDisableImpact: async (slug: string): Promise<{ pendingPaymentOrders: number; serviceDependents: string[]; graphRevision: string; disableConfirmation: string }> => {
     const response = await apiClient.get(`/extensions/plugin/${slug}/disable-impact`);
-    return unwrapApiResponse(response as ApiResponse<{ pendingPaymentOrders: number }>);
+    return unwrapApiResponse(response as ApiResponse<{ pendingPaymentOrders: number; serviceDependents: string[]; graphRevision: string; disableConfirmation: string }>);
   },
   getInstalled: async (page = 1, limit = 20, state: 'active' | 'removed' = 'active'): Promise<ApiResponse<PageResult<PluginMetaWithState>>> => {
     const response = await apiClient.get('/extensions/plugin', { params: { page, limit, state } }) as ApiResponse<PageResult<any>>;

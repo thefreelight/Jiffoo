@@ -23,6 +23,7 @@ import { prisma } from '@/config/database';
 import { redactPluginFailure } from './plugin-failure';
 import { getPluginManifestIssues, isPluginManifest } from '@jiffoo/shared';
 import { listInstalledPluginPackages, type InstalledPluginPackageProjection } from '@/core/extensions/registry';
+import { declaredServicePermissions } from '@/core/extensions/registry';
 
 // Re-export types
 export * from '@/core/extensions/shared/types';
@@ -200,6 +201,7 @@ export class ExtensionInstaller implements IExtensionInstaller {
             ? null : await redactPluginFailure(pkg.slug, recorded.lastFailureMessage, recorded.id),
           deletedAt: pkg.deletedAt,
           permissions: parseJsonArray(pkg.permissions),
+          servicePermissions: declaredServicePermissions(pkg.manifestJson),
           author: pkg.author || undefined,
           authorUrl: pkg.authorUrl || undefined,
           installedAt: pkg.installedAt,
@@ -246,6 +248,7 @@ export class ExtensionInstaller implements IExtensionInstaller {
           ...await lastRecordedError(pkg.slug),
           deletedAt: pkg.deletedAt,
           permissions: parseJsonArray(pkg.permissions),
+          servicePermissions: declaredServicePermissions(pkg.manifestJson),
           author: pkg.author || undefined,
           authorUrl: pkg.authorUrl || undefined,
           installedAt: pkg.installedAt,

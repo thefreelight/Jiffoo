@@ -100,6 +100,14 @@ export interface InstalledPlugin {
   source: ExtensionSource;
   fsPath?: string;
   permissions?: string[];
+  /**
+   * The permissions the services this plugin calls need.
+   *
+   * Every method the plugin calls has its own permission; there is no
+   * wildcard. The list is what the merchant approves at preview, install and
+   * enable.
+   */
+  servicePermissions?: string[];
   author?: string;
   authorUrl?: string;
   zipHash?: string;            // SHA-256 hash of the installed ZIP file

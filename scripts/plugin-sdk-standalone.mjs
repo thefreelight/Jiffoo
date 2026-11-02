@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
@@ -63,6 +63,34 @@ export async function verifyStandaloneSdk() {
     assert((await readFile(path.join(temporary, 'plugin.zip'))).length > 0);
     const migrations = JSON.parse(command(['migrations', '--input', project]));
     assert.deepEqual(migrations, JSON.parse(await readFile(path.join(project, 'manifest.json'), 'utf8')).database);
+    // The service client generator reads a verified provider package and emits
+    // a typed client whose runtime delegates to ctx.services.call.
+    const provider = path.join(temporary, 'provider');
+    await mkdir(path.join(provider, 'services'), { recursive: true });
+    await mkdir(path.join(provider, 'server'), { recursive: true });
+    await writeFile(path.join(provider, 'manifest.json'), JSON.stringify({
+      schemaVersion: 1, slug: 'wallet-provider', name: 'Wallet provider', version: '1.0.0',
+      description: 'offers the wallet service', category: 'integration', runtimeType: 'internal-fastify',
+      hostProtocol: 'internal-fastify-v1', entryModule: 'server/index.js', permissions: [],
+      services: [{ name: 'wallet', version: 1, methods: [{ name: 'debit', idempotencyRequired: true, schema: 'services/debit.json' }] }],
+    }) + '\n');
+    await writeFile(path.join(provider, 'services/debit.json'), JSON.stringify({
+      input: { type: 'object', properties: { amount: { type: 'integer', minimum: 0 } }, required: ['amount'], additionalProperties: false },
+      result: { type: 'object', properties: { debited: { type: 'boolean' } }, required: ['debited'], additionalProperties: false },
+      errorDetails: { type: 'object', additionalProperties: true },
+    }) + '\n');
+    await writeFile(path.join(provider, 'server/index.js'), 'module.exports = { register(ctx) {} };\n');
+    const providerZip = path.join(temporary, 'provider.zip');
+    command(['pack', '--input', provider, '--output', providerZip]);
+    const client = path.join(temporary, 'wallet-client.ts');
+    command(['services', 'generate-client', '--package', providerZip, '--service', 'wallet', '--version', '1', '--output', client]);
+    const generated = await readFile(client, 'utf8');
+    assert(generated.includes('provider: wallet-provider | service: wallet | version: 1'));
+    assert(generated.includes('export function walletClient(ctx: PluginContext): WalletClient'));
+    assert(generated.includes('idempotencyKey: string'));
+    assert(generated.includes('amount: number;'));
+    await writeFile(path.join(temporary, 'consumer.ts'), "import { walletClient } from './wallet-client.js';\nimport type { PluginContext } from '@jiffoo-core/plugin-sdk';\ndeclare const ctx: PluginContext;\nconst wallet = walletClient(ctx);\nvoid wallet.debit({ amount: 1 }, { idempotencyKey: 'k' });\n");
+    run(consumerRequire.resolve('typescript/bin/tsc'), ['--noEmit', '--strict', '--target', 'ES2022', '--module', 'Node16', '--moduleResolution', 'Node16', 'consumer.ts']);
     await writeFile(path.join(temporary, 'consumer.ts'), "import { TaskPermanentError, drainPluginTasks, type PluginContext, type PluginUiDeclaration, type PluginTaskDeclaration } from '@jiffoo-core/plugin-sdk';\ndeclare const ctx: PluginContext;\nconst slug: string = ctx.plugin.slug;\ndeclare const ui: PluginUiDeclaration;\ndeclare const task: PluginTaskDeclaration;\nctx.tasks.handle('render', 1, async input => { const fence: string = input.fence; input.signal.throwIfAborted(); await input.heartbeat({done:true}); return {fence}; }, {concurrency:1,maxAttempts:3,maxRuntimeSeconds:300,onFinalFailure:{maxRuntimeSeconds:30,handler:async input => { const principal = input.principal; void principal; }}});\nconst error = new TaskPermanentError('RENDER_REJECTED','Rendering rejected');\nvoid [slug, ui, task, error, drainPluginTasks];\n");
     run(consumerRequire.resolve('typescript/bin/tsc'), ['--noEmit', '--strict', '--target', 'ES2022', '--module', 'Node16', '--moduleResolution', 'Node16', 'consumer.ts']);
     console.log('Standalone SDK: npm pack/install, installed bin create/pack/migrations, scaffold build and public types passed');

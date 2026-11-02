@@ -1020,17 +1020,20 @@ export function useUpdatePluginInstance() {
       enabled,
       config,
       grantedPermissions,
+      confirmation,
     }: {
       slug: string;
       installationId: string;
       enabled?: boolean;
       config?: Record<string, unknown>;
       grantedPermissions?: string[];
+      confirmation?: string;
     }) => {
       const response = await pluginsApi.updateInstance(slug, installationId, {
         enabled,
         config,
         grantedPermissions,
+        confirmation,
       });
       return unwrapApiResponse(response);
     },

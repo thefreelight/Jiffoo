@@ -10,6 +10,9 @@ export function pluginLifecycleErrorKey(error: unknown): string {
     PLUGIN_PACKAGE_MATERIALIZATION_TIMEOUT: 'packageUnavailable', [ApiErrorCodes.PLUGIN_REINSTALL_CONFLICT]: 'reinstallRequired',
     [ApiErrorCodes.PLUGIN_TEST_SIGNING_CONFLICT]: 'testSigningDisabled', LAST_PROVIDER_REQUIRED: 'lastProvider',
     PLUGIN_OPERATION_IN_PROGRESS: 'busy', PLUGIN_OPERATION_LEASE_LOST: 'busy',
+    PLUGIN_SERVICE_DEPENDENCY_INVALID: 'serviceDependencyInvalid',
+    PLUGIN_SERVICE_DISABLE_CONFIRMATION_REQUIRED: 'serviceDisableConfirmationRequired',
+    PLUGIN_SERVICE_DEPENDENTS_ENABLED: 'serviceDependentsEnabled',
   };
   return isApiErrorCode(code) ? keys[code] ?? 'failed' : 'failed';
 }
