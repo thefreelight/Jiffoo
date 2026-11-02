@@ -4692,3 +4692,189 @@ Run Shop tests:
 
 The shard run itself reports `Test conclusion: PASS`, `Cleanup conclusion: PASS` and
 `Coverage verdict: PASS` over the whole API catalogue.
+
+## 5zaf. The service dependency graph of the plugin registry
+
+**Baseline SHA:** `72f42301c`. **Commits:** `e22ad537e`, `e6aa17886`.
+
+### What the design asks for, and what this batch delivers
+
+The design's section 7 gives the lifecycle of a service dependency: an install and an enable
+refuse a missing, disabled, removed, non-operational or out-of-range provider, a missing method
+and a cycle; a disable of a provider needs a separate merchant confirmation of the listed
+transitive dependents, and the confirmed request binds the digest of that impact; an uninstall or
+a purge is blocked while an enabled dependent exists; a provider update cannot remove or change an
+export an enabled dependent requires; one transaction-scoped graph advisory lock guards every graph
+decision, consistently before the ordered installation row locks; and after a confirmed disable the
+transitive dependents become operationally unavailable without their enabled flag being rewritten.
+
+This batch delivers:
+
+- **The graph.** `apps/api/src/core/extensions/registry/service-graph.ts` projects the live
+  installations and their stored manifests into a graph of the declared services: what a provider
+  exports, what a consumer calls, and the package range the consumer asks of its provider. The
+  availability of an installation is derived from that graph. A provider that is not installed, is
+  disabled, is removed, does not export the called service and version, does not export the called
+  method, is outside the declared package range or is itself not operational makes its consumer
+  unavailable, transitively.
+- **The activation.** An enable is refused when a requirement is unmet, when the merchant has not
+  granted the permission of a called method, or when the dependency is a cycle. The check runs
+  before the plan and again inside the transaction that writes the row, under the graph lock, so a
+  provider that was uninstalled between the two cannot leave the activation without its service.
+- **The disable.** A provider with enabled dependents cannot be disabled without a confirmation.
+  The confirmation is a digest over the affected dependents and the revision of the graph; it is
+  checked before the plan and again under the graph lock before the row is written, so a stale
+  confirmation is refused with the current impact.
+- **The removal.** An uninstall and a purge are refused while an enabled dependent calls the
+  provider, and the automatic replacement of a contract provider is refused for the same reason:
+  a replacement is not a merchant decision, so it cannot be confirmed.
+- **The provider update.** A new version of a provider that falls outside the package range an
+  enabled dependent asks for is refused.
+- **The publication.** The derived availability is written onto the installation rows inside the
+  transaction of the lifecycle change. The runtime, the page routes, the asset route, the gateway,
+  the event delivery, the contract resolution and the durable-task worker read that one flag
+  instead of rebuilding the graph on every request. The publication pauses the pending tasks of an
+  installation that lost its provider and revokes its page sessions in the same transaction.
+- **The tests.** `apps/api/tests/core/plugin-service-graph.test.ts` publishes three real plugins — a
+  provider, a consumer and a plugin that depends on the consumer — and drives the lifecycle: the
+  projection of the declarations, the refusal of an activation while the provider is disabled or
+  not operational, the confirmation and its staleness, the transitive unavailability, the refusal
+  of an uninstall and the refusal of a provider version outside the range.
+
+### What the review found, and what this batch changed because of it
+
+The independent review of the graph commit (an arch-reviewer against `e22ad537e`) found seven
+points. Four were defects and are fixed in `e6aa17886`:
+
+1. **An unreadable manifest was read as a plugin without dependencies.** The projection returned
+   empty declarations for a manifest that does not pass the manifest validation, so such an
+   installation was published as satisfied and ran against a provider it never named. A manifest
+   the validation refuses now makes the installation not operational.
+2. **The caret did not pin the leftmost non-zero part of the range.** `^0.1.0` allowed `0.9.0`,
+   because the check compared the major only. The caret now follows the semver rule: `^1.2.3`
+   allows every `1.x`, `^0.2.3` every `0.2.x` and `^0.0.3` exactly `0.0.3`.
+3. **The key of the graph lock was written twice.** The durable-task scheduler and the graph
+   module each carried the literal `jiffoo:plugin-service-graph`, so requirement 6 held by
+   coincidence. The key now has one home in the neutral `core/shared/locks.ts`, and both take it
+   from there.
+4. **The publication and the graph disagreed about an installation.** The graph calls a removed or
+   disabled installation unavailable, while the publication wrote the availability of its
+   requirements. The two notions are now named apart: the flag answers whether the services an
+   installation depends on are available, and the enabled state stays with the lifecycle.
+
+Three findings were not defects but named gaps in the coverage, and the tests cover them now: an
+activation refused because the provider is disabled, an activation refused because the provider is
+not operational, and a confirmation that was issued for another revision of the graph.
+
+### Two findings of this batch that are worth the next reader
+
+- **A provider could never be enabled.** The candidate validation of the runtime registered the
+  plugin without its declared services, so a plugin that provided a service was refused with
+  "provides undeclared service" — a gap of the call path of §5zae that the graph exposed, because
+  a provider is the first plugin a consumer needs. The candidate validation now reads the declared
+  services and their schemas.
+- **The three dependency gates were placeholders.** The storage admission, the page declarations
+  and the asset route refused every plugin that declared a service dependency, whatever the state
+  of its provider. They now read the published availability, so a plugin whose provider is missing
+  is refused and a plugin whose provider is available is served.
+
+### One decision that the module graph forces
+
+The graph lives in the registry module and the publication lives in the plugin management module.
+The publication writes the derived availability through the public durable-task API, which owns the
+`taskDependencyUnavailable` flag and the pause of the pending tasks; the registry cannot reach the
+durable-task module, because `plugins -> extensions/runtime -> extensions/registry` is already a
+ring. The publication therefore reads the graph from the registry and writes through the durable
+task API, and the plugin management module owns both calls. The key of the graph lock has one home
+in the neutral shared layer, which both the registry and the durable-task module may read.
+
+### The local evidence
+
+The baseline SHA is `72f42301c`. The changed inputs are the graph module, the registry projections,
+the plugin management module and its new publication module, the runtime's call path, the gateway
+and the event delivery, the three dependency gates, the shared lock helpers, the error details of
+the catalog and the new test file. The scoped run selects the suites that cover those inputs:
+
+```
+DATABASE_URL_TEST=postgresql://postgres:postgres@localhost:5432/jiffoo_core_test \
+PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=<the owner's consent to reset jiffoo_core_test> \
+pnpm verify:quick --test-files=apps/api/tests/core/plugin-service-graph.test.ts,apps/api/tests/core/plugin-service-ledger.test.ts,apps/api/tests/core/plugin-service.test.ts,apps/api/tests/core/plugin-pages.test.ts,apps/api/tests/core/plugin-lifecycle-hooks.test.ts,apps/api/tests/core/plugin-lifecycle-reconciliation.test.ts,apps/api/tests/core/plugin-fs-installer.test.ts,apps/api/tests/core/plugin-runtime.test.ts,apps/api/tests/core/plugin-tasks.test.ts,apps/api/tests/core/contract-v1-runtime.test.ts,apps/api/tests/core/event-delivery.test.ts,apps/api/tests/core/module-boundary-audit.test.ts,apps/api/tests/core/module-state-audit.test.ts,apps/api/tests/routes/plugin-page-assets.test.ts,apps/api/tests/routes/plugin-page-sessions.test.ts,apps/api/tests/routes/plugin-private-storage.test.ts,apps/api/tests/routes/disabled-plugin-isolation.test.ts,apps/api/tests/routes/plugin-removal.test.ts
+```
+
+The summary of that run, printed from `verify-summary.txt`:
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: apps/api/tests/contract/api-standards-helpers.test.ts (API contract surface changed); apps/api/tests/contract/api-standards.test.ts (API contract surface changed); apps/api/tests/contract/oa2-success-envelope.test.ts (API contract surface changed); apps/api/tests/contract/openapi-contract.test.ts (API contract surface changed)
+Run API tests:
+   Start at  12:51:26
+ Test Files  22 passed (22)
+      Tests  526 passed (526)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check selected scope and shared | PASS | 2.69s |
+| Lint Shop | PASS | 7.57s |
+| Reset test database | PASS | 2.81s |
+| Run API tests | PASS | 245.54s |
+```
+
+The batch changes the lifecycle of every plugin and the API contract surface of the error details,
+so the certifying run is the shard mode. Its summary, printed from `verify-summary.txt`:
+
+```
+Run scope: full catalogue (4 shard(s))
+Scope coverage: 217/217 files covered
+Totals: Test Files 217 files, 217 passed | Tests 2852 tests, 2852 passed | Suites 564 suites, 564 passed
+Test conclusion: PASS
+Cleanup conclusion: PASS
+Delivery status: API PASS / cleanup PASS
+--- File coverage ---
+Catalogue files (vitest list --filesOnly, same exclusions, same environment as the shards): 217
+Expected set (the full catalogue, not the assigned subset): 217
+Assigned to this run: 217
+Executed (union over all shards): 217
+Shard 1: 54 files
+Shard 2: 53 files
+Shard 3: 55 files
+Shard 4: 55 files
+Missing files: none
+Extra files: none
+Cross-shard duplicates: none
+Empty shards: none
+Coverage verdict: PASS
+--- Shard results ---
+| Shard | Exit | Duration | Start at | Test Files | Tests | Failed files |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | 0 | 607.3s | 13:13:43 | 54 files, 54 passed | 715 tests, 715 passed | none |
+| 2 | 0 | 490.8s | 13:13:44 | 53 files, 53 passed | 555 tests, 555 passed | none |
+| 3 | 0 | 514.6s | 13:13:45 | 55 files, 55 passed | 770 tests, 770 passed | none |
+| 4 | 0 | 616.0s | 13:13:45 | 55 files, 55 passed | 812 tests, 812 passed | none |
+Run Admin tests:
+   Start at  13:23:59
+ Test Files  65 passed (65)
+      Tests  684 passed (684)
+Run Shop tests:
+   Start at  13:24:18
+ Test Files  40 passed (40)
+      Tests  285 passed (285)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check API, Admin, Shop and shared | PASS | 2.62s |
+| Lint Shop | PASS | 6.80s |
+| Reset test database | PASS | 2.87s |
+| Run API tests in 4 shards | PASS | 630.38s |
+| Run Admin tests | PASS | 19.25s |
+| Run Shop tests | PASS | 23.40s |
+```
+
+One shard run before this one failed on `tests/core/notification-lease-fencing.test.ts`, a suite
+that starts real worker processes and waits for their deadlines; the suite passes on its own
+(`Test Files 1 passed (1)`, `Tests 11 passed (11)`), and the shard run above is green over the whole
+catalogue.
