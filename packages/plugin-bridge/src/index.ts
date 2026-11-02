@@ -24,6 +24,11 @@ function isContext(value: Plain | undefined): value is Plain & PageContext {
     && Array.isArray(value.capabilities) && value.capabilities.every(capability => typeof capability === 'string');
 }
 
+/** The lifetime of a page token, as Core issues it. */
+const TOKEN_TTL_MS = 120_000;
+/** A token is refreshed before it expires, not after it failed. */
+const TOKEN_REFRESH_MARGIN_MS = 30_000;
+
 /** One client per iframe document. Core credentials never enter this client. */
 export function createPluginBridge() {
   const shellOrigin = new URL(location.href).searchParams.get('shellOrigin');
@@ -31,6 +36,7 @@ export function createPluginBridge() {
   let binding: { sessionId: string; nonce: string } | undefined;
   let closed = false;
   let token = '';
+  let tokenExpiresAt = 0;
   let context: PageContext | undefined;
   let revision = -1;
   const acceptRate = messageBudget();
@@ -60,6 +66,12 @@ export function createPluginBridge() {
     listeners.clear();
   }
 
+  function rememberToken(value: string, expiresAt: unknown) {
+    token = value;
+    const parsed = typeof expiresAt === 'string' ? Date.parse(expiresAt) : NaN;
+    tokenExpiresAt = Number.isFinite(parsed) ? parsed : Date.now() + TOKEN_TTL_MS;
+  }
+
   function receive(event: MessageEvent) {
     if (closed || event.source !== parent || event.origin !== shellOrigin || !acceptRate()) return;
     const message = parseEnvelope(event.data);
@@ -69,7 +81,7 @@ export function createPluginBridge() {
       if (!message.sessionId || !message.nonce || !payload || typeof payload.pluginToken !== 'string'
         || !isContext(payload.context)) return;
       binding = { sessionId: message.sessionId, nonce: message.nonce };
-      token = payload.pluginToken;
+      rememberToken(payload.pluginToken, payload.expiresAt);
       context = payload.context as unknown as PageContext;
       clearTimeout(welcomeTimer);
       clearInterval(helloTimer);
@@ -112,6 +124,13 @@ export function createPluginBridge() {
       parent.postMessage(message, shellOrigin!);
     });
   }
+  async function refreshToken(): Promise<string> {
+    const result = await request('token.refresh') as Record<string, Plain>;
+    if (closed) throw new Error('Bridge closed');
+    if (typeof result.pluginToken !== 'string') throw new Error('Invalid token response');
+    rememberToken(result.pluginToken, result.expiresAt);
+    return token;
+  }
   return {
     ready, request,
     context: async () => { await ready; if (closed) throw new Error('Bridge closed'); return context!; },
@@ -124,14 +143,16 @@ export function createPluginBridge() {
       if (closed) throw new Error('Bridge closed');
       return () => { listeners.delete(listener); };
     },
-    token: async () => { await ready; if (closed) throw new Error('Bridge closed'); return token; },
-    refreshToken: async () => {
-      const result = await request('token.refresh') as Record<string, Plain>;
+    token: async () => {
+      await ready;
       if (closed) throw new Error('Bridge closed');
-      if (typeof result.pluginToken !== 'string') throw new Error('Invalid token response');
-      token = result.pluginToken;
+      // A token lives two minutes. The bridge refreshes it when it is about to
+      // expire, so a plugin that asks for a token on every request spends one
+      // refresh of the budget of the session instead of one per request.
+      if (Date.now() + TOKEN_REFRESH_MARGIN_MS >= tokenExpiresAt) await refreshToken();
       return token;
     },
+    refreshToken,
     close: async () => { try { await request('bridge.close'); } finally { dispose(); } },
   };
 }

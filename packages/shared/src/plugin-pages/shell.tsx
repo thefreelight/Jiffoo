@@ -20,6 +20,36 @@ function exact(value: Record<string, Plain>, keys: string[]) {
   if (Object.keys(value).some(key => !keys.includes(key))) throw new Error('VALIDATION_ERROR');
 }
 
+/**
+ * The refresh failures that end the page.
+ *
+ * A revoked session, a forbidden origin and a token Core no longer accepts end
+ * the page: the frame cannot work without them. Every other failure is
+ * transient — a rate limit, a network error, a Core that is busy — and the
+ * page keeps its session, its frame and the state the customer entered.
+ */
+const fatalRefreshCodes = new Set([
+  'PLUGIN_PAGE_SESSION_REVOKED', 'SESSION_REVOKED', 'INVALID_TOKEN', 'FORBIDDEN', 'PLUGIN_PAGE_ORIGIN_FORBIDDEN',
+]);
+
+/** Whether a failed refresh ends the page or only the refresh. */
+export function refreshFailureEndsPage(error: unknown): boolean {
+  const code = error instanceof Error ? error.message : typeof error === 'string' ? error : '';
+  return fatalRefreshCodes.has(code);
+}
+
+/** Whether Core refused the refresh because the budget of the session is spent. */
+export function refreshWasRateLimited(error: unknown): boolean {
+  const code = error instanceof Error ? error.message : typeof error === 'string' ? error : '';
+  return code === 'RATE_LIMITED';
+}
+
+/** The code the plugin sees for a failed action. */
+function actionErrorCode(error: unknown): string {
+  const code = error instanceof Error ? error.message : typeof error === 'string' ? error : '';
+  return /^[A-Z][A-Z0-9_]{0,63}$/.test(code) ? code : 'PLUGIN_PAGE_ACTION_FAILED';
+}
+
 /** The frame exists only within this dedicated page component. */
 export function PluginPageShell(props: Props) {
   const frame = useRef<HTMLIFrameElement>(null);
@@ -83,7 +113,18 @@ export function PluginPageShell(props: Props) {
     }
     async function refresh(expected: typeof binding) {
       if (!active || !expected) throw new Error('SESSION_REVOKED');
-      const result = await currentProps.current.transport(path('/refresh'), 'POST', auth()) as { pluginToken: string; expiresAt: string; context: ShellSession['context'] };
+      let result: { pluginToken: string; expiresAt: string; context: ShellSession['context'] };
+      try {
+        result = await currentProps.current.transport(path('/refresh'), 'POST', auth()) as { pluginToken: string; expiresAt: string; context: ShellSession['context'] };
+      } catch (error) {
+        // A spent budget does not cost the plugin its token: the token the
+        // shell holds is still valid, so the shell answers with it and the
+        // plugin keeps working. The next refresh may answer with a new one.
+        if (refreshWasRateLimited(error) && active.expiresAt && Date.parse(active.expiresAt) > Date.now() + 5_000) {
+          return { pluginToken: active.pluginToken, expiresAt: active.expiresAt };
+        }
+        throw error;
+      }
       if (disposed || binding !== expected || frame.current?.contentWindow !== expected.source) throw new Error('SESSION_REVOKED');
       active.pluginToken = result.pluginToken;
       active.expiresAt = result.expiresAt;
@@ -164,9 +205,12 @@ export function PluginPageShell(props: Props) {
       pendingIds.add(message.id);
       let timer: ReturnType<typeof setTimeout>;
       const timeout = new Promise<never>((_resolve, reject) => { timer = setTimeout(() => reject(new Error('ACTION_TIMEOUT')), 10_000); });
-      void Promise.race([action(message), timeout]).then(result => post({ id: message.id, type: message.type, result }, expected), () => {
-        post({ id: message.id, type: message.type, error: { code: 'PLUGIN_PAGE_ACTION_FAILED', message: 'The action could not be completed.' } }, expected);
-        if (message.type === 'token.refresh') stop(true);
+      void Promise.race([action(message), timeout]).then(result => post({ id: message.id, type: message.type, result }, expected), (error: unknown) => {
+        post({ id: message.id, type: message.type, error: { code: actionErrorCode(error), message: 'The action could not be completed.' } }, expected);
+        // A refused refresh does not end the page: the plugin keeps its
+        // session and its state, and the next refresh may answer. Only a
+        // revoked session does.
+        if (message.type === 'token.refresh' && refreshFailureEndsPage(error)) stop(true);
       }).finally(() => { clearTimeout(timer); outstanding--; pendingIds.delete(message.id); });
     }
     const observer = new MutationObserver(changed);
@@ -177,7 +221,11 @@ export function PluginPageShell(props: Props) {
     window.addEventListener('message', receive);
     const signOut = () => stop();
     window.addEventListener('jiffoo:identity-changing', signOut);
-    const refreshTimer = setInterval(() => { if (binding) void refresh(binding).catch(() => stop(true)); }, 60_000);
+    // The shell keeps the token of the page alive. A refresh that Core
+    // refuses for a while — a rate limit, a network error — leaves the page
+    // running: the session, the frame and the state of the customer survive,
+    // and the next tick tries again.
+    const refreshTimer = setInterval(() => { if (binding) void refresh(binding).catch((error: unknown) => { if (refreshFailureEndsPage(error)) stop(true); }); }, 60_000);
     control.current = { loaded: () => { if (++loadCount > 1) stop(true); }, changed, save: async reference => {
       const expected = binding;
       if (!active || !expected) return;

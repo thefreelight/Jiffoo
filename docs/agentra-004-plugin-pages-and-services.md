@@ -144,7 +144,18 @@ Shell POST requests use JSON and exact Origin checks, rejecting absent Origin
 in browser issuance; trusted SSR initial loads consume declarations only, and
 the browser shell issues sessions. Guest shell secrets stay outside the iframe
 and do not grant customer identity. Rate-limit issuance by installation/IP and
-refresh by session. Only session-specific context responses contain email.
+refresh by session. The refresh budget of a session is thirty refreshes a
+minute and a page token lives two minutes, so a client that refreshes when
+the token is about to expire spends one refresh a minute: the budget protects
+the API from a client that refreshes on every request. A refresh beyond the
+budget is answered with 429 RATE_LIMITED, and that answer does not end the
+page. The shell answers the plugin with the token it still holds, the page
+keeps its frame, its session and the state the customer entered, and the next
+refresh may answer with a new token. Only a revoked session, a forbidden
+origin or a token Core no longer accepts ends the page. The bridge refreshes
+the token of the frame when it is about to expire, so a plugin that asks for a
+token on every request spends one refresh of the budget and not one per
+request. Only session-specific context responses contain email.
 
 Navigation is rendered by Core from enabled declarations in header, account
 menu and footer, with translated titles. Links to login-required pages remain
@@ -1158,7 +1169,7 @@ The browser-side client is `@jiffoo/plugin-bridge`, the counterpart of the SDK f
 the plugin page shell. Each Core release attaches it as a release asset next to
 the SDK tarball. It has no dependencies, no Core application imports and no
 workspace references, and its published `dist` bytes are the tree's build. A
-consumer installs it with `npm i ./jiffoo-plugin-bridge-1.0.0-alpha.1.tgz` and
+consumer installs it with `npm i ./jiffoo-plugin-bridge-1.0.0-alpha.2.tgz` and
 imports `createPluginBridge` from `@jiffoo/plugin-bridge`. A consumer that
 vendors the tarball records the Core commit it came from and the tarball's
 SHA256 beside the file, so that the bytes stay traceable to a tree. The

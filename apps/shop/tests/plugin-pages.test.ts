@@ -62,6 +62,36 @@ describe('bounded plugin bridge boundary', () => {
     handlers.get('pagehide')?.();
     await expect(bridge.token()).rejects.toThrow('Bridge closed');
   });
+  it('refreshes the token only when it is about to expire', async () => {
+    vi.useFakeTimers();
+    const handlers = new Map<string, (event?: unknown) => void>();
+    const parent = { postMessage: vi.fn() };
+    const window = { addEventListener: (name: string, handler: (event?: unknown) => void) => handlers.set(name, handler),
+      removeEventListener: (name: string) => handlers.delete(name) };
+    vi.stubGlobal('parent', parent); vi.stubGlobal('window', window);
+    vi.stubGlobal('location', { href: 'https://shop.example/api/v1/plugin-assets/id/hash/index.html?shellOrigin=https%3A%2F%2Fshop.example' });
+    const bridge = createPluginBridge();
+    const welcome = { channel: 'jiffoo.plugin', version: 1, id: 'welcome', type: 'bridge.welcome', sessionId: 'session', nonce: 'a'.repeat(64),
+      payload: { context: { customer: null, admin: null, locale: 'en', currency: 'USD', colorMode: 'light',
+        themeTokens: {}, store: { id: 'system', name: 'Store', url: 'https://shop.example' }, page: { id: 'studio', path: '/studio' }, capabilities: [] },
+        pluginToken: 'scoped-token', expiresAt: new Date(Date.now() + 120_000).toISOString() } };
+    const send = (data: unknown) => handlers.get('message')?.({ source: parent, origin: 'https://shop.example', data });
+    const refreshes = () => parent.postMessage.mock.calls.filter(call => (call[0] as { type: string }).type === 'token.refresh').length;
+    send(welcome); await bridge.ready;
+    // A token that is fresh is used as it is: the budget of the session is
+    // not spent on a refresh that is not needed.
+    expect(await bridge.token()).toBe('scoped-token');
+    expect(refreshes()).toBe(0);
+    await vi.advanceTimersByTimeAsync(100_000);
+    const pending = bridge.token();
+    for (let index = 0; index < 5; index += 1) await Promise.resolve();
+    const request = parent.postMessage.mock.calls.map(call => call[0] as { type: string }).filter(message => message.type === 'token.refresh').at(-1)!;
+    expect(request).toBeTruthy();
+    send({ ...request, result: { pluginToken: 'fresh-token', expiresAt: new Date(Date.now() + 120_000).toISOString() } });
+    expect(await pending).toBe('fresh-token');
+    expect(await bridge.token()).toBe('fresh-token');
+    expect(refreshes()).toBe(1);
+  });
   it('expires an unanswered handshake after ten seconds', async () => {
     vi.useFakeTimers();
     vi.stubGlobal('parent', { postMessage: vi.fn() });

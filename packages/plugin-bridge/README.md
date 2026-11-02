@@ -1,13 +1,13 @@
 # @jiffoo/plugin-bridge
 
-The browser-side client of the Core plugin page shell, version 1.0.0-alpha.1.
+The browser-side client of the Core plugin page shell, version 1.0.0-alpha.2.
 It runs in the storefront's browser; the build and the verification run on
 Node.js >=24.13.1 <25, matching Core's Node 24 CI runtime.
 
 Install the bridge tarball attached to the matching Core release:
 
 ```sh
-npm i ./jiffoo-plugin-bridge-1.0.0-alpha.1.tgz
+npm i ./jiffoo-plugin-bridge-1.0.0-alpha.2.tgz
 ```
 
 ```typescript
@@ -20,6 +20,15 @@ from the frame URL that Core generated, completes the `bridge.hello` and
 `context()`, `subscribe()`, `token()`, `refreshToken()` and `close()`. No Core
 credential ever enters the frame: the shell sends a short-lived scoped token
 and the frame asks the shell for a fresh one.
+
+A page token lives two minutes. `token()` returns the token the frame holds
+and refreshes it from the shell when it is about to expire, so a plugin that
+asks for a token on every request spends one refresh of the budget of the
+session instead of one per request. `refreshToken()` asks for a new token
+without that check: use it when the frame knows that the token it holds is
+gone. The budget of a session is thirty refreshes a minute; a refresh beyond
+it is answered with `RATE_LIMITED`, which does not end the page — the shell
+answers with the token it still holds and the plugin keeps working.
 
 The package ships the compiled bridge and its type declarations. It has no
 dependencies, no Core application runtime imports and no workspace references.

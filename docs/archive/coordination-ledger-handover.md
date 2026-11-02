@@ -5385,6 +5385,117 @@ Run Shop tests:
 - The currency of a store is one list now. A currency outside it is refused by the API, and the
   settings page offers exactly the list.
 
+## 5zaj. The refresh of the token of a live plugin page
+
+**Baseline SHA:** `3d371758f`. **Commit:** recorded in the index of the ledger.
+
+### What the report named
+
+The imagic page polls a running generation. Every poll ended in
+`POST /api/v1/plugin-pages/imagic/sessions/{id}/refresh` with 429, and the host
+then put the whole plugin page into its unavailable state: the frame was
+destroyed, the session was revoked, and the files the customer had chosen and
+the task the page was showing were gone. A slow single generation reproduced
+it, because the reproduction needs the polling and not the number of images.
+
+### The read of the tree
+
+- **The budget.** `apps/api/src/core/plugin-pages/routes.ts` limits the refresh of
+  a session to thirty a minute (`limit('refresh:${id}', 30)`), so a refresh
+  beyond that is answered with 429 RATE_LIMITED.
+- **The lifetime.** A page token lives two minutes
+  (`apps/api/src/core/plugin-pages/sessions.ts`: `exp = issued + 120`).
+- **The shell.** `packages/shared/src/plugin-pages/shell.tsx` refreshes the token
+  every sixty seconds, which is one refresh a minute and inside the budget.
+- **The bridge.** `packages/plugin-bridge/src/index.ts` handed out the token it
+  held and never refreshed it on demand, so the frame could only get a fresh
+  token by asking for one.
+- **The host.** Every failed refresh ended the page: the periodic refresh
+  called `stop(true)`, and a refused `token.refresh` did the same. A rate limit
+  is a transient refusal, not a revocation.
+- **The plugin.** The gateway of the imager refreshed the token before every
+  request (`imager-core/ui-src/gateway.ts`), so a poll every second or two
+  spent the whole budget of the session: the refresh was the polling, not the
+  need for a new token.
+
+### What the batch changes
+
+- The shell ends the page only for a revoked session, a forbidden origin and a
+  token Core no longer accepts. A rate limit, a network error and a busy Core
+  leave the page, its frame and the state of the customer untouched, and the
+  next tick tries again.
+- A refused refresh does not cost the plugin its token: the shell answers with
+  the token it still holds, and the plugin keeps working.
+- The bridge refreshes the token of the frame when it is about to expire, thirty
+  seconds before the two minutes are up, so a plugin that asks for a token on
+  every request spends one refresh of the budget and not one per request.
+- The contract is written down: the budget of thirty a minute, the lifetime of
+  two minutes, the recovery of a refused refresh, and the difference between
+  `token()` and `refreshToken()`.
+
+The bridge is `1.0.0-alpha.2` now, because its behaviour changed.
+
+### The gate
+
+The batch is a widened one: the shared package changed, so the certifying run
+is the shard mode. It covered the whole API catalogue, the Admin suite and the
+Shop suite.
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: not applicable (the shard mode runs the full API catalogue and the full Admin and Shop suites, covering 3 planner-mandated suite(s))
+Mode: shard mode (--shards=4)
+Gate note: the API suite ran in parallel shards. The Prisma generate, the type check, the Lint Shop step, the test database reset, the Admin suite and the Shop suite ran as well.
+Gate note: this mode is not the complete gate: the browser E2E and the serial full-suite run are not part of it.
+Run API tests in 4 shards:
+Shards: 1, 2, 3, 4 of 4 (4-shard run)
+Run scope: full catalogue (4 shard(s))
+Scope coverage: 220/220 files covered
+Totals: Test Files 220 files, 220 passed | Tests 2878 tests, 2878 passed | Suites 570 suites, 570 passed
+Test conclusion: PASS
+Cleanup conclusion: PASS
+Delivery status: API PASS / cleanup PASS
+| Shard | Exit | Duration | Start at | Test Files | Tests | Failed files |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | 0 | 664.4s | 02:14:19 | 54 files, 54 passed | 687 tests, 687 passed | none |
+| 2 | 0 | 628.3s | 02:14:19 | 55 files, 55 passed | 759 tests, 759 passed | none |
+| 3 | 0 | 625.2s | 02:14:20 | 56 files, 56 passed | 743 tests, 743 passed | none |
+| 4 | 0 | 664.8s | 02:14:21 | 55 files, 55 passed | 689 tests, 689 passed | none |
+Run Admin tests:
+   Start at  02:25:23
+ Test Files  65 passed (65)
+      Tests  688 passed (688)
+Run Shop tests:
+   Start at  02:25:43
+ Test Files  42 passed (42)
+      Tests  291 passed (291)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check API, Admin, Shop and shared | PASS | 3.04s |
+| Lint Shop | PASS | 8.22s |
+| Reset test database | PASS | 3.43s |
+| Run API tests in 4 shards | PASS | 683.62s |
+| Run Admin tests | PASS | 20.12s |
+| Run Shop tests | PASS | 23.88s |
+```
+
+### What the next reader should know
+
+- A plugin that polls asks the bridge for a token (`bridge.token()`), not for a
+  refresh (`bridge.refreshToken()`). The bridge refreshes when the token is
+  about to expire.
+- The imager's plugin refreshes before every request. It has to switch to
+  `bridge.token()` and to vendor the bridge of this tree, or its polls keep
+  spending the budget of the session.
+- A page that survives a refused refresh is the rule of the shell. A plugin
+  that needs the page to end has to revoke the session, not to exhaust the
+  budget.
+
 ### The review of the batch
 
 An independent reviewer read the diff of the three commits against the goals of the change and
