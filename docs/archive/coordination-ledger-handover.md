@@ -5208,3 +5208,167 @@ Run Shop tests:
 - The remaining wide selection is the record labels, because the export modules belong to the
   route registry. Narrowing that one needs a different shape of the API's routes, not a different
   message module.
+
+## 5zai. The in-place upgrade entry, the business rejection of a plugin, the catalogue of the store currencies and the storefront marker of a degraded tax
+
+**Baseline SHA:** `7a95927aa`. **Commits:** `695cda0a6`, `faedad700`.
+
+### The upgrade contract, confirmed by reading the tree
+
+The Core API replaced the package of an installed plugin in place before this batch. The read of
+the tree:
+
+- **The entry.** `POST /api/v1/extensions/plugin/preview` reads a ZIP and answers with the
+  operation (`install`, `upgrade` or `unchanged`), the compatibility verdict, the migration plan and
+  a preview token. `POST /api/v1/extensions/plugin/install` takes the ZIP with that token and
+  answers `202` with an operation id; `GET /api/v1/extensions/plugin/operations/:id?wait=true`
+  follows it, and `POST /api/v1/extensions/plugin/operations/:id/retry` republishes a retained
+  package.
+- **What the upgrade keeps.** The `PluginInstall` row is updated by slug, so its id stays. The
+  default `PluginInstallation` row is upserted and only its `protectionGeneration` moves: the
+  installation id, the configuration and the granted permissions stay, and the grant of an upgrade
+  is not renewed silently. The tables of the plugin's own schema and their rows stay, and the
+  stored files are keyed by the installation id, so they stay too.
+- **The version rules.** A downgrade is refused (PLUGIN_DOWNGRADE_NOT_SUPPORTED), a package of the
+  same version with other content is refused (PLUGIN_VERSION_CONTENT_CHANGED) and the same version
+  with the same content is the idempotent re-publish. A signed plugin is not upgraded with an
+  unsigned package, and the publisher of a signed plugin cannot change.
+- **The migrations.** The migrations of the package are declared in the manifest with their id,
+  order, path and SHA-256, and they run before the publication, one transaction per file, in the
+  declared order. A migration that fails is rolled back; the migrations that already ran are not
+  undone. The package is published only after every migration has run.
+- **The rollback.** A failed migration leaves the old package in place, the new candidate is
+  rolled back and the operation ends in NEEDS_RECOVERY; the operator either republishes the
+  retained package with the retry or restores the database from a backup. A migration that has run
+  is never undone by Core.
+
+**What was missing was the entry.** The Admin plugin detail page offered Disable, Save
+configuration and Uninstall only, and the upload dialog of the plugin list was the only way to
+reach the upgrade. The detail page offers the update now: the dialog is the same one, the slug of
+the plugin whose package is replaced is pinned (the package of another plugin is refused at the
+preview), the preview names the operation, and the dialog states the version rule. The entry is
+not offered for a built-in plugin, whose package the API refuses anyway.
+
+### The business rejection of a plugin service
+
+The wallet refused a debit with a balance of zero, and the refusal arrived as a system failure.
+The read of the tree: the callback of a plugin transaction is wrapped in
+`.catch(error => { throw isPluginDatabaseError(error) ? error : new PluginDatabaseError('PLUGIN_ERROR'); })`,
+so the `WalletError` of the plugin became the sanitised `PLUGIN_ERROR` before the plugin's own
+`catch` could see it. The transaction was rolled back, but the refusal lost its identity; the
+service runtime recorded a plugin failure and answered `PLUGIN_SERVICE_PROVIDER_CRASHED`, and the
+browser saw a 502.
+
+The channel a plugin had for a deliberate refusal was the return value of
+`ctx.services.businessError(...)` and the `reply.code(4xx)` of its own route. Neither can carry a
+refusal raised inside a transaction, because the transaction turns every exception into a failure
+of the plugin.
+
+This batch adds the missing channel:
+
+- **The contract.** `PluginBusinessError` carries a code, a message and optional details, and marks
+  itself with a global symbol, so a plugin that bundles its own copy of the class is recognised.
+  The SDK exports it (1.0.0-alpha.3).
+- **The transaction.** A business rejection leaves the transaction unchanged: the transaction is
+  rolled back and the rejection reaches the plugin's own service layer with its code. Every other
+  exception keeps the sanitised `PLUGIN_ERROR`, so the redaction of an unexpected error did not
+  change and no partial write is committed.
+- **The service runtime.** A provider that raises a refusal answers with it as a provider
+  rejection, checked against the declared `errorDetails` schema like a returned refusal. It is not
+  recorded as a plugin failure, it does not open the breaker, and the service call ledger settles
+  it as a durable rejection.
+- **The regression test.** `apps/api/tests/core/plugin-service-rejection.test.ts` runs the real
+  runtime: a provider with a real namespace writes a row in its own transaction and raises the
+  refusal; the consumer receives `INSUFFICIENT_BALANCE` as a provider rejection, the row is not
+  there and the installation carries no recorded failure.
+
+The plugin side needs one line: the `WalletError` of the wallet extends `PluginBusinessError`, and
+the SDK is vendored again from the tree. The consumer maps the provider rejection to its own
+status instead of a 502.
+
+### The two registered defects
+
+- **The currency catalogue.** The settings page offered six currencies, the shared catalogue
+  offered six others and the API accepted eight: a store whose currency was JPY or KRW could not
+  save the page, and the merchant could not offer HKD or TWD. The shared package owns the list of
+  the store currencies now; the money module, the settings page and the presentation catalogue read
+  it, and `apps/api/tests/core/store-currency-catalogue.test.ts` keeps the list, the catalogue and
+  the money model equal.
+- **The marker of a degraded tax.** The API answers a quote whose tax provider failed with
+  `taxUnavailable`, and the storefront did not read it: the customer saw an empty total and a
+  prompt that read like a missing quote. The storefront reads the marker now, says that the tax is
+  being calculated and keeps the order unplaceable until the tax is known.
+
+### The gate
+
+The batch is a widened one: the shared package changed, so the certifying run is the shard mode.
+The run covered the whole API catalogue, the Admin suite and the Shop suite.
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: not applicable (the shard mode runs the full API catalogue and the full Admin and Shop suites, covering 248 planner-mandated suite(s))
+Mode: shard mode (--shards=4)
+Gate note: the API suite ran in parallel shards. The Prisma generate, the type check, the Lint Shop step, the test database reset, the Admin suite and the Shop suite ran as well.
+Gate note: this mode is not the complete gate: the browser E2E and the serial full-suite run are not part of it.
+Run API tests in 4 shards:
+Shards: 1, 2, 3, 4 of 4 (4-shard run)
+Run scope: full catalogue (4 shard(s))
+Scope coverage: 220/220 files covered
+Totals: Test Files 220 files, 220 passed | Tests 2878 tests, 2878 passed | Suites 570 suites, 570 passed
+Test conclusion: PASS
+Cleanup conclusion: PASS
+Delivery status: API PASS / cleanup PASS
+--- File coverage ---
+Catalogue files (vitest list --filesOnly, same exclusions, same environment as the shards): 220
+Expected set (the full catalogue, not the assigned subset): 220
+Assigned to this run: 220
+Executed (union over all shards): 220
+Shard 1: 54 files
+Shard 2: 55 files
+Shard 3: 56 files
+Shard 4: 55 files
+Missing files: none
+Extra files: none
+Cross-shard duplicates: none
+Empty shards: none
+Coverage verdict: PASS
+--- Shard results ---
+| Shard | Exit | Duration | Start at | Test Files | Tests | Failed files |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | 0 | 686.8s | 19:59:26 | 54 files, 54 passed | 687 tests, 687 passed | none |
+| 2 | 0 | 651.7s | 19:59:27 | 55 files, 55 passed | 759 tests, 759 passed | none |
+| 3 | 0 | 651.2s | 19:59:28 | 56 files, 56 passed | 743 tests, 743 passed | none |
+| 4 | 0 | 692.2s | 19:59:29 | 55 files, 55 passed | 689 tests, 689 passed | none |
+Run Admin tests:
+   Start at  20:10:58
+ Test Files  65 passed (65)
+      Tests  688 passed (688)
+Run Shop tests:
+   Start at  20:11:19
+ Test Files  41 passed (41)
+      Tests  287 passed (287)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check API, Admin, Shop and shared | PASS | 2.78s |
+| Lint Shop | PASS | 8.83s |
+| Reset test database | PASS | 3.44s |
+| Run API tests in 4 shards | PASS | 711.50s |
+| Run Admin tests | PASS | 20.51s |
+| Run Shop tests | PASS | 24.21s |
+```
+
+### What the next reader should know
+
+- The upgrade of a package needs a higher version. A local fix that keeps the version of the
+  installed package is refused with PLUGIN_VERSION_CONTENT_CHANGED, so a plugin that carries a fix
+  raises its version before it is uploaded.
+- The refusal of a plugin is a refusal of the request, not a failure of the plugin: it is not
+  recorded as a plugin failure and it does not open the breaker. An unexpected exception is still
+  a failure of the plugin and still reaches the operator as the sanitised PLUGIN_ERROR.
+- The currency of a store is one list now. A currency outside it is refused by the API, and the
+  settings page offers exactly the list.
