@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
 import { prisma } from '@/config/database';
 import { ApiError } from '@/utils/api-errors';
-import { getPluginManifestIssues, isPluginManifest, type PluginManifest } from '@jiffoo/shared';
+import { isPluginManifest, type PluginManifest } from '@jiffoo/shared';
+import { PLUGIN_SERVICE_GRAPH_LOCK, lockPluginServiceGraph } from '@/core/shared/locks';
 
 /**
  * The service dependency graph of the plugin registry.
@@ -41,6 +42,8 @@ export interface ServiceGraphEntry {
   enabled: boolean;
   /** The package of the installation is removed. */
   deleted: boolean;
+  /** The stored manifest of the installation passes the manifest validation. */
+  manifestValid: boolean;
   version: string;
   exports: ServiceGraphExport[];
   requires: ServiceGraphRequirement[];
@@ -88,8 +91,13 @@ export interface ServiceGraphClient {
   };
 }
 
-/** The advisory lock every graph decision takes, before the installation rows. */
-export const SERVICE_GRAPH_LOCK = 'jiffoo:plugin-service-graph';
+/**
+ * The advisory lock every graph decision takes, before the installation rows.
+ *
+ * The key is shared with the durable-task scheduler: a lifecycle decision and a
+ * task claim never interleave.
+ */
+export const SERVICE_GRAPH_LOCK = PLUGIN_SERVICE_GRAPH_LOCK;
 
 /**
  * Takes the graph lock of a transaction.
@@ -97,15 +105,17 @@ export const SERVICE_GRAPH_LOCK = 'jiffoo:plugin-service-graph';
  * The lock is taken before the installation rows are locked, so two lifecycle
  * decisions never wait for each other in the wrong order.
  */
-export async function lockServiceGraph(tx: { $executeRawUnsafe: (sql: string) => Promise<unknown> }): Promise<void> {
-  await tx.$executeRawUnsafe(`SELECT pg_advisory_xact_lock(hashtextextended('${SERVICE_GRAPH_LOCK}', 0))`);
+export async function lockServiceGraph(tx: { $executeRawUnsafe: (query: string) => Promise<unknown> }): Promise<void> {
+  await lockPluginServiceGraph(tx);
 }
 
 /**
  * Whether a version satisfies one of the ranges the manifest accepts.
  *
  * The manifest validation accepts `^`, `~`, `>=`, `<=`, `>` and `<` with a
- * three-part version, so the check covers exactly those forms.
+ * three-part version, so the check covers exactly those forms. The caret pins
+ * the leftmost non-zero part of the range: `^1.2.3` allows every 1.x, `^0.2.3`
+ * allows every 0.2.x and `^0.0.3` allows exactly 0.0.3.
  */
 export function satisfiesPackageRange(version: string, range: string): boolean {
   const parsed = /^(\d+)\.(\d+)\.(\d+)$/.exec(version);
@@ -116,7 +126,11 @@ export function satisfiesPackageRange(version: string, range: string): boolean {
   const target = [Number(parsed[1]), Number(parsed[2]), Number(parsed[3])];
   const compare = (other: number[]): number => target[0] - other[0] || target[1] - other[1] || target[2] - other[2];
   switch (operator) {
-    case '^': return target[0] === wanted[0] && compare(wanted) >= 0;
+    case '^':
+      if (target[0] !== wanted[0]) return false;
+      if (wanted[0] > 0) return compare(wanted) >= 0;
+      if (wanted[1] > 0) return target[1] === wanted[1] && compare(wanted) >= 0;
+      return target[1] === 0 && target[2] === wanted[2];
     case '~': return target[0] === wanted[0] && target[1] === wanted[1] && compare(wanted) >= 0;
     case '>=': return compare(wanted) >= 0;
     case '<=': return compare(wanted) <= 0;
@@ -163,12 +177,16 @@ function packageRangeOf(dependencies: Record<string, string>, provider: string):
 }
 
 /** The declarations of a manifest, reduced to what the graph reads. */
-export function graphShape(manifest: unknown): { exports: ServiceGraphExport[]; requires: ServiceGraphRequirement[] } {
-  if (!isPluginManifest(manifest) || getPluginManifestIssues(manifest).length) {
-    return { exports: [], requires: [] };
+export function graphShape(manifest: unknown): { exports: ServiceGraphExport[]; requires: ServiceGraphRequirement[]; valid: boolean } {
+  if (!isPluginManifest(manifest)) {
+    // A manifest the validation refuses has no readable declarations. Such an
+    // installation is never operational: a plugin whose declarations cannot be
+    // read must not run against a provider it never named.
+    return { exports: [], requires: [], valid: false };
   }
   const dependencies = (manifest.dependencies ?? {}) as Record<string, string>;
   return {
+    valid: true,
     exports: (manifest.services ?? []).map(declaration => ({
       service: declaration.name,
       version: declaration.version,
@@ -246,7 +264,7 @@ function dependencyReasons(entries: Map<string, ServiceGraphEntry>, slug: string
 /** The digest of the graph: its declarations and its availability. */
 function graphRevision(entries: ServiceGraphEntry[]): string {
   const parts = entries
-    .map(entry => [entry.slug, entry.enabled ? '1' : '0', entry.deleted ? '1' : '0', entry.version,
+    .map(entry => [entry.slug, entry.enabled ? '1' : '0', entry.deleted ? '1' : '0', entry.manifestValid ? '1' : '0', entry.version,
       entry.exports.map(exported => `${exported.service}.v${exported.version}:${exported.methods.join(',')}`).join('|'),
       entry.requires.map(requirement => `${requirement.provider}:${requirement.service}.v${requirement.version}:${requirement.methods.join(',')}:${requirement.packageRange ?? ''}`).join('|'),
       entry.satisfied ? '1' : '0',
@@ -270,6 +288,7 @@ export async function serviceGraph(client: ServiceGraphClient = prisma as unknow
       installationId: row.id,
       enabled: row.enabled,
       deleted: Boolean(row.plugin.deletedAt),
+      manifestValid: shape.valid,
       version: row.plugin.version,
       exports: shape.exports,
       requires: shape.requires,
@@ -279,7 +298,7 @@ export async function serviceGraph(client: ServiceGraphClient = prisma as unknow
   }
   const unavailable = new Map<string, string[]>();
   for (const [slug, entry] of entries) {
-    const reasons = dependencyReasons(entries, slug, []);
+    const reasons = entry.manifestValid ? dependencyReasons(entries, slug, []) : ['the stored manifest of the plugin is invalid'];
     entry.reasons = reasons;
     entry.satisfied = reasons.length === 0;
     const blocked = entry.deleted
@@ -344,6 +363,7 @@ export async function assertServiceDependenciesSatisfied(input: {
     installationId: '',
     enabled: true,
     deleted: false,
+    manifestValid: shape.valid,
     version: input.manifest.version,
     exports: shape.exports,
     requires: shape.requires,

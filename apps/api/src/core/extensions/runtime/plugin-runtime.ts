@@ -1328,6 +1328,10 @@ export async function deliverInstallationEvent(installationId: string, event: Pl
   const instance = await prisma.pluginInstallation.findUnique({ where: { id: installationId }, include: { plugin: true } });
   if (!instance || instance.deletedAt || instance.plugin.deletedAt) return 'deleted';
   if (!instance.enabled) return 'disabled';
+  // An event that occurs while the installation is not operational is not
+  // delivered and not queued for later: the reconciliation read finds the
+  // order instead.
+  if (instance.taskDependencyUnavailable) return 'dependency-unavailable';
   const signingError = pluginSigningError(instance.plugin);
   if (signingError) throw signingError;
   const subscription = await prisma.pluginEventSubscription.findUnique({
@@ -1452,6 +1456,9 @@ async function forwardToInternalFastify(
 ): Promise<void> {
   const installation = await prisma.pluginInstallation.findUnique({ where: { id: ctx.installationId } });
   if (!installation?.enabled || installation.deletedAt || installation.protectionGeneration !== ctx.protectionGeneration) throw new ApiError('PLUGIN_DISABLED');
+  // The gateway of a plugin that is not operational is closed: the graph
+  // publishes that state on the installation.
+  if (installation.taskDependencyUnavailable) throw new ApiError('PLUGIN_SERVICE_DEPENDENCY_UNAVAILABLE');
   const scope = pluginProtectionScope(installation.id, installation.protectionGeneration);
   const limit = await sharedProtection.rate(`${scope}:http`, 60000, 60);
   if (!limit.allowed) {

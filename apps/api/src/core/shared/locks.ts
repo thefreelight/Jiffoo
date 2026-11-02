@@ -25,3 +25,25 @@ export async function lockOrder(tx: LockClient, orderId: string): Promise<void> 
 export async function lockPayment(tx: Pick<Prisma.TransactionClient, '$queryRaw'>, paymentId: string): Promise<void> {
   await tx.$queryRaw`SELECT id FROM public.payments WHERE id = ${paymentId} FOR UPDATE`;
 }
+
+/**
+ * The advisory lock of the plugin service dependency graph.
+ *
+ * The lock is transaction scoped and every graph decision takes it before the
+ * installation rows it protects: the enable, the disable, the uninstall, the
+ * purge, the package update and the publication of the derived availability.
+ * The key is shared with the durable-task scheduler, which takes the same lock
+ * before it claims a task, so a lifecycle decision and a task claim never
+ * interleave.
+ */
+export const PLUGIN_SERVICE_GRAPH_LOCK = 'jiffoo:plugin-service-graph';
+
+/** A client that can take the graph lock. */
+export type GraphLockClient = { $executeRawUnsafe: (query: string) => Promise<unknown> };
+
+/** Takes the graph lock of a transaction. */
+export async function lockPluginServiceGraph(tx: GraphLockClient): Promise<void> {
+  // The statement is a constant of this module: the key of the lock is not
+  // read from a request, a header or a row.
+  await tx.$executeRawUnsafe(`SELECT pg_advisory_xact_lock(hashtextextended('${PLUGIN_SERVICE_GRAPH_LOCK}', 0))`);
+}

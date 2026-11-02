@@ -6,6 +6,7 @@ import { ApiError } from '@/utils/api-errors';
 import type { PluginTasks, PluginTaskDeclaration, TaskPrincipal, TaskStatus } from '@jiffoo/shared';
 import type { PoolClient } from 'pg';
 import { AuditService } from '@/core/audit/service';
+import { lockPluginServiceGraph } from '@/core/shared/locks';
 
 export type TaskTransaction = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 export type TaskPolicy = { globalSlots: number; installationSlots: number; handlerConcurrency: number; attempts: number; runtimeSeconds: number; hookSeconds: number };
@@ -57,7 +58,7 @@ export async function fenceTaskDatabase(client: PoolClient): Promise<void> {
 
 /** Shared lifecycle lock order: graph, scheduler, then ordered installation rows. */
 export async function lockTaskScheduler(tx: TaskTransaction): Promise<{ policy: TaskPolicy; policyVersion: number; roundSequence: bigint }> {
-  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended('jiffoo:plugin-service-graph', 0))`;
+  await lockPluginServiceGraph(tx);
   await tx.pluginTaskScheduler.upsert({ where: { id: 'singleton' }, create: { policy: DEFAULT_TASK_POLICY }, update: {} });
   await tx.$queryRaw`SELECT id FROM public.plugin_task_scheduler WHERE id = 'singleton' FOR UPDATE`;
   const row = await tx.pluginTaskScheduler.findUniqueOrThrow({ where: { id: 'singleton' } });

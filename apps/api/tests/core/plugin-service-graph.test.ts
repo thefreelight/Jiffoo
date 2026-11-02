@@ -30,10 +30,12 @@ describe('The service dependency graph', () => {
   const providerSlug = `graphprov${suffix}`;
   const consumerSlug = `graphcons${suffix}`;
   const downstreamSlug = `graphdown${suffix}`;
+  const blockedSlug = `graphblok${suffix}`;
   const directories: string[] = [];
   let providerInstallationId = '';
   let consumerInstallationId = '';
   let downstreamInstallationId = '';
+  let blockedInstallationId = '';
 
   const methodSchema = {
     input: { type: 'object', properties: { amount: { type: 'integer', minimum: 0 } }, required: ['amount'], additionalProperties: false },
@@ -65,6 +67,15 @@ describe('The service dependency graph', () => {
     runtimeType: 'internal-fastify', hostProtocol: 'internal-fastify-v1',
     entryModule: 'server/index.js', permissions: [],
     serviceDependencies: [{ plugin: consumerSlug, service: 'ledger', version: 1, methods: ['report'] }],
+  };
+
+  /** A consumer that waits for its activation: it is refused while the provider is gone. */
+  const blockedManifest = {
+    schemaVersion: 1, slug: blockedSlug, name: 'Graph blocked', version: '1.0.0',
+    description: 'waits for the wallet service', category: 'integration',
+    runtimeType: 'internal-fastify', hostProtocol: 'internal-fastify-v1',
+    entryModule: 'server/index.js', permissions: [],
+    serviceDependencies: [{ plugin: providerSlug, service: 'wallet', version: 1, methods: ['debit'] }],
   };
 
   async function pluginDirectory(files: Record<string, string>): Promise<string> {
@@ -107,6 +118,22 @@ describe('The service dependency graph', () => {
       ctx.services.provide('ledger', 1, { report: async () => ({ ok: true, data: { ok: true } }) });
     } };`, false);
     downstreamInstallationId = await install(downstreamSlug, downstreamManifest, `module.exports = { register(ctx) {} };`, false);
+    // The blocked consumer is installed with the grant it needs, so the only
+    // thing that can refuse its activation is the state of its provider.
+    await prisma.pluginInstall.create({
+      data: {
+        slug: blockedSlug, name: blockedSlug, version: '1.0.0', description: 'graph test', category: 'integration',
+        runtimeType: 'internal-fastify', entryModule: 'server/index.js', source: 'local-zip',
+        zipHash: 'graph-blocked', manifestJson: blockedManifest, permissions: JSON.stringify([]),
+      },
+    });
+    const blocked = await prisma.pluginInstallation.create({
+      data: {
+        pluginSlug: blockedSlug, instanceKey: 'default', enabled: false, configJson: JSON.stringify({}),
+        grantedPermissions: JSON.stringify([`service:${providerSlug}:wallet.v1.debit`]),
+      },
+    });
+    blockedInstallationId = blocked.id;
 
     // The provider runs first: a consumer may only run once its provider is
     // operational.
@@ -122,8 +149,8 @@ describe('The service dependency graph', () => {
   });
 
   afterAll(async () => {
-    await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: { in: [providerSlug, consumerSlug, downstreamSlug] } } });
-    await prisma.pluginInstall.deleteMany({ where: { slug: { in: [providerSlug, consumerSlug, downstreamSlug] } } });
+    await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: { in: [providerSlug, consumerSlug, downstreamSlug, blockedSlug] } } });
+    await prisma.pluginInstall.deleteMany({ where: { slug: { in: [providerSlug, consumerSlug, downstreamSlug, blockedSlug] } } });
     for (const slug of [providerSlug, consumerSlug, downstreamSlug]) await clearTestPluginCache(slug);
     for (const directory of directories) await fs.rm(directory, { recursive: true, force: true });
   });
@@ -259,7 +286,42 @@ describe('The service dependency graph', () => {
     expect(downstream?.taskDependencyUnavailable).toBe(false);
   });
 
+  it('refuses an activation while the provider is disabled', async () => {
+    const confirmation = await serviceDisableConfirmation(providerSlug);
+    await PluginManagementService.updateInstance(providerInstallationId, { enabled: false, confirmation: confirmation.digest });
+    const failure = await PluginManagementService.updateInstance(blockedInstallationId, { enabled: true })
+      .then(() => null, (error: any) => error);
+    expect(failure?.code).toBe('PLUGIN_SERVICE_DEPENDENCY_INVALID');
+    expect(String((failure?.safeDetails as { reasons?: string[] }).reasons?.[0])).toContain('is disabled');
+    await PluginManagementService.updateInstance(providerInstallationId, { enabled: true });
+  });
+
+  it('refuses an activation while the provider is not operational', async () => {
+    const confirmation = await serviceDisableConfirmation(providerSlug);
+    await PluginManagementService.updateInstance(providerInstallationId, { enabled: false, confirmation: confirmation.digest });
+    // The consumer stays enabled, so it is not operational itself: its own
+    // provider is gone.
+    await PluginManagementService.updateInstance(downstreamInstallationId, { enabled: false });
+    const failure = await PluginManagementService.updateInstance(downstreamInstallationId, { enabled: true })
+      .then(() => null, (error: any) => error);
+    expect(failure?.code).toBe('PLUGIN_SERVICE_DEPENDENCY_INVALID');
+    expect(String((failure?.safeDetails as { reasons?: string[] }).reasons?.[0])).toContain('not operational');
+    await PluginManagementService.updateInstance(providerInstallationId, { enabled: true });
+    await PluginManagementService.updateInstance(downstreamInstallationId, { enabled: true });
+  });
+
   it('refuses a confirmation that was given for another revision of the graph', async () => {
+    const confirmation = await serviceDisableConfirmation(providerSlug);
+    // The graph changes under the confirmation: the dependent is disabled, so
+    // the affected set and the revision are different.
+    await PluginManagementService.updateInstance(downstreamInstallationId, { enabled: false });
+    const failure = await PluginManagementService.updateInstance(providerInstallationId, { enabled: false, confirmation: confirmation.digest })
+      .then(() => null, (error: any) => error);
+    expect(failure?.code).toBe('PLUGIN_SERVICE_DISABLE_CONFIRMATION_REQUIRED');
+    await PluginManagementService.updateInstance(downstreamInstallationId, { enabled: true });
+  });
+
+  it('refuses a confirmation that was never issued', async () => {
     const failure = await assertServiceDisableConfirmed(providerSlug, 'not-the-digest')
       .then(() => null, (error: any) => error);
     expect(failure?.code).toBe('PLUGIN_SERVICE_DISABLE_CONFIRMATION_REQUIRED');
@@ -294,5 +356,10 @@ describe('The service dependency graph', () => {
     expect(satisfiesPackageRange('1.2.0', '1.2.0')).toBe(true);
     expect(satisfiesPackageRange('1.2.0', '1.2.1')).toBe(false);
     expect(satisfiesPackageRange('1.2.0', '^1.0')).toBe(false);
+    // The caret pins the leftmost non-zero part of the range.
+    expect(satisfiesPackageRange('0.1.9', '^0.1.0')).toBe(true);
+    expect(satisfiesPackageRange('0.2.0', '^0.1.0')).toBe(false);
+    expect(satisfiesPackageRange('0.0.3', '^0.0.3')).toBe(true);
+    expect(satisfiesPackageRange('0.0.4', '^0.0.3')).toBe(false);
   });
 });

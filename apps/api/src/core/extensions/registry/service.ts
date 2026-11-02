@@ -148,6 +148,8 @@ const REGISTRY_CACHE_TTL_SECONDS = 30;
 interface RegistryInstallationRow {
   pluginSlug: string;
   manifestJson: unknown;
+  /** The installation is not operational: one of the services it depends on is unavailable. */
+  taskDependencyUnavailable?: boolean;
 }
 
 /**
@@ -249,11 +251,12 @@ async function readEnabledInstallations(): Promise<RegistryInstallationRow[]> {
 
   const installations = await prisma.pluginInstallation.findMany({
     where: { enabled: true, deletedAt: null, plugin: { deletedAt: null } },
-    select: { pluginSlug: true, plugin: { select: { manifestJson: true } } },
+    select: { pluginSlug: true, taskDependencyUnavailable: true, plugin: { select: { manifestJson: true } } },
   });
   const rows = installations.map((installation) => ({
     pluginSlug: installation.pluginSlug,
     manifestJson: installation.plugin.manifestJson,
+    taskDependencyUnavailable: installation.taskDependencyUnavailable,
   }));
   await writeRegistryEntry(generation, 'enabled-installations', rows);
   return rows;
@@ -262,13 +265,15 @@ async function readEnabledInstallations(): Promise<RegistryInstallationRow[]> {
 export async function listProviders(contract: 'payment' | 'shipping'): Promise<ProviderProjection[]> {
   const installations = await readEnabledInstallations();
   return installations
-    .filter((installation) => declaresContract(installation.manifestJson, contract))
+    .filter((installation) => declaresContract(installation.manifestJson, contract) && !installation.taskDependencyUnavailable)
     .map((installation) => ({ pluginSlug: installation.pluginSlug }));
 }
 
 export async function resolveSingleProvider(contract: 'tax' | 'fulfillment' | 'notification'): Promise<ProviderProjection | null> {
   const installations = await readEnabledInstallations();
-  const provider = installations.find((installation) => declaresContract(installation.manifestJson, contract));
+  // A provider that is not operational cannot serve the contract: the
+  // service dependency graph publishes that state on the installation.
+  const provider = installations.find((installation) => declaresContract(installation.manifestJson, contract) && !installation.taskDependencyUnavailable);
   return provider ? { pluginSlug: provider.pluginSlug } : null;
 }
 

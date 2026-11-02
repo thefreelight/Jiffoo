@@ -157,21 +157,18 @@ it('checks archive integrity before returning conditional bytes', async () => {
     await peer.pluginPackageBlob.update({ where: { pluginSlug_zipHash: { pluginSlug: slug, zipHash: hash } }, data: { bytes: original.bytes } });
   }
 });
-it('fails closed on dependency operational state until G4 provides authoritative admission', async () => {
-  const dependent = { ...manifest, serviceDependencies: [{ plugin: 'missing-provider', service: 'wallet', version: 1, methods: ['debit'] }] };
-  const bytes = await pageZip(pageFiles(dependent));
-  const dependentHash = createHash('sha256').update(bytes).digest('hex');
-  await peer.pluginPackageBlob.create({ data: { pluginSlug: slug, zipHash: dependentHash, bytes, sizeBytes: bytes.length } });
-  await peer.pluginInstall.update({ where: { slug }, data: { zipHash: dependentHash } });
+it('fails closed when the published availability says the plugin is not operational', async () => {
+  // The service dependency graph publishes the derived availability of an
+  // installation. A plugin whose provider is unavailable is not operational,
+  // and its assets are not served.
+  await prisma.pluginInstallation.update({ where: { id: installationId }, data: { taskDependencyUnavailable: true } });
   try {
     for (const path of ['index.html', 'assets/app.js']) {
-      const response = await app.inject({ url: `/api/v1/plugin-assets/${installationId}/${dependentHash}/${path}`,
-        headers: { host: 'localhost:3003', 'if-none-match': '*' } });
+      const response = await app.inject({ url: url(path), headers: { host: 'localhost:3003', 'if-none-match': '*' } });
       expect(response.statusCode).toBe(404);
     }
   } finally {
-    await peer.pluginInstall.update({ where: { slug }, data: { zipHash: hash } });
-    await peer.pluginPackageBlob.delete({ where: { pluginSlug_zipHash: { pluginSlug: slug, zipHash: dependentHash } } });
+    await prisma.pluginInstallation.update({ where: { id: installationId }, data: { taskDependencyUnavailable: false } });
   }
 });
 it('supports HEAD and conditional requests only after shared database lifecycle checks', async () => {
