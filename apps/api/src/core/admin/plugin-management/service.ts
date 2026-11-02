@@ -115,6 +115,17 @@ export interface InstanceUpdatePlan {
    * committed inside one either.
    */
   replacesProviders: boolean;
+  /**
+   * The impact a disable of a provider has: the dependents that lose a
+   * service, and the revision of the graph they were read from.
+   *
+   * The transaction checks the confirmation against the graph it commits and
+   * answers with the impact it validated, so the value the caller reads after
+   * the commit is the impact the merchant confirmed. The caller records it in
+   * the lifecycle audit. It is null before the commit and for every update
+   * that is not a confirmed disable.
+   */
+  serviceImpact: { affected: string[]; revision: string } | null;
   /** The plugin-facing work. Runs outside every transaction. */
   prepare(): Promise<void>;
   /** The database write. Joins the transaction the caller supplies. */
@@ -132,7 +143,7 @@ const RESERVED_INSTANCE_KEYS = ['default'];
 /**
  * The milliseconds a transaction waits for a free connection of the pool.
  */
-const TRANSACTION_MAX_WAIT_MS = 10_000;
+export const TRANSACTION_MAX_WAIT_MS = 10_000;
 
 /**
  * The milliseconds the instance update transaction may hold its connection.
@@ -141,7 +152,7 @@ const TRANSACTION_MAX_WAIT_MS = 10_000;
  * row per transitioned task, so the timeout is sized for a thousand tasks of
  * an installation.
  */
-const INSTANCE_UPDATE_TRANSACTION_TIMEOUT_MS = 60_000;
+export const INSTANCE_UPDATE_TRANSACTION_TIMEOUT_MS = 60_000;
 
 /**
  * The milliseconds the restore transaction may hold its connection.
@@ -529,6 +540,12 @@ async function planInstanceUpdate(
   // A disable that strands an enabled dependent needs the confirmation of the
   // merchant. A replacement of a contract provider is not a merchant decision,
   // so it is refused while a dependent is enabled instead of being confirmed.
+  //
+  // The impact of the disable is not read here: the plan validates the
+  // confirmation early, and the transaction validates it again under the graph
+  // lock and answers with the impact it validated. That impact is the one the
+  // merchant confirmed, and it is the one the lifecycle audit records.
+  let confirmedImpact: { affected: string[]; revision: string } | null = null;
   if (isDisabling) {
     if (updates.replacingProvider) await assertNoEnabledDependents(existing.pluginSlug);
     else await assertServiceDisableConfirmed(existing.pluginSlug, updates.confirmation);
@@ -560,6 +577,9 @@ async function planInstanceUpdate(
     // its own, so the plan cannot be committed inside a transaction the
     // caller already owns.
     replacesProviders: isEnabling,
+    // The impact of the disable, as the transaction validated it under the
+    // graph lock. It is null until that validation ran.
+    get serviceImpact() { return confirmedImpact; },
     // The plugin-facing work. It runs outside every transaction, so the plugin
     // code never holds a pooled connection while it runs.
     prepare: async () => {
@@ -610,9 +630,11 @@ async function planInstanceUpdate(
       await tx.$queryRaw`SELECT id FROM public.plugin_installations WHERE id = ${installationId} FOR UPDATE`;
       // The confirmation of a disable is checked again under the graph lock:
       // the dependents it names have to be the dependents of the graph the
-      // transaction commits.
+      // transaction commits. The check answers with the impact it validated,
+      // and that impact is the one the lifecycle audit records.
       if (isDisabling && !updates.replacingProvider) {
-        await assertServiceDisableConfirmed(existing.pluginSlug, updates.confirmation, tx);
+        const confirmed = await assertServiceDisableConfirmed(existing.pluginSlug, updates.confirmation, tx);
+        confirmedImpact = { affected: confirmed.affected, revision: confirmed.revision };
       }
       // The requirements of an activation are checked again under the graph
       // lock as well: a provider that was uninstalled between the plan and

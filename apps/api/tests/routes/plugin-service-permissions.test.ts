@@ -5,6 +5,7 @@ import { prisma } from '@/config/database';
 import { createTestApp } from '../helpers/create-test-app';
 import { createAdminWithToken, deleteAllTestUsers } from '../helpers/auth';
 import { installFixturePlugin, removeFixturePlugin } from '../helpers/fixture-plugin';
+import { assertProviderSchemasUnchanged } from '@/core/admin/extension-installer/plugin-service-schemas';
 
 /**
  * The admin surface of the service contract.
@@ -124,10 +125,13 @@ describe('The admin surface of the plugin services', () => {
     const disabled = rows.find(row => row.action === 'PLUGIN_DISABLED' && row.targetId === providerSlug);
     expect(disabled).toBeTruthy();
     expect(disabled?.actorId).toBe(actorId);
-    const disabledSummary = disabled?.summary as { grantedPermissions?: string[]; grantedPermissionDigest?: string; servicePermissions?: string[] };
+    const disabledSummary = disabled?.summary as { grantedPermissions?: string[]; grantedPermissionDigest?: string; servicePermissions?: string[]; affectedDependents?: string[]; graphRevision?: string | null };
     expect(disabledSummary.grantedPermissions).toEqual([]);
     expect(disabledSummary.grantedPermissionDigest).toBeTruthy();
     expect(disabledSummary.servicePermissions).toEqual([]);
+    // The confirmed impact is part of the record.
+    expect(disabledSummary.affectedDependents).toContain(consumerSlug);
+    expect(disabledSummary.graphRevision).toBeTruthy();
 
     const enabled = rows.find(row => row.action === 'PLUGIN_ENABLED' && row.targetId === consumerSlug);
     expect(enabled).toBeTruthy();
@@ -135,5 +139,81 @@ describe('The admin surface of the plugin services', () => {
     expect(enabledSummary.grantedPermissions).toEqual([permission]);
     expect(enabledSummary.grantedPermissionDigest).toBeTruthy();
     expect(enabledSummary.servicePermissions).toEqual([permission]);
+  });
+
+  it('refuses a provider update that removes the schema of a called method', async () => {
+    const manifest = {
+      services: [{ name: 'wallet', version: 1, methods: [{ name: 'debit', idempotencyRequired: true, schema: 'services/debit.json' }] }],
+    };
+    const failure = await assertProviderSchemasUnchanged({
+      slug: providerSlug,
+      version: '1.1.0',
+      required: [{ service: 'wallet', version: 1, methods: ['debit'] }],
+      oldManifest: manifest,
+      newManifest: manifest as never,
+      oldPackage: null,
+      newFiles: new Map(),
+    }).then(() => null, (error: any) => error);
+    expect(failure?.code).toBe('PLUGIN_SERVICE_DEPENDENCY_INVALID');
+    expect(String((failure?.safeDetails as { reasons?: string[] }).reasons?.[0])).toContain('no readable schema');
+  });
+
+  it('refuses a provider update that changes the schema of a called method', async () => {
+    const manifest = {
+      services: [{ name: 'wallet', version: 1, methods: [{ name: 'debit', idempotencyRequired: true, schema: 'services/debit.json' }] }],
+    };
+    const changed = {
+      input: { type: 'object', properties: { amount: { type: 'string' } }, required: ['amount'], additionalProperties: false },
+      result: { type: 'object', properties: { debited: { type: 'boolean' } }, required: ['debited'], additionalProperties: false },
+      errorDetails: { type: 'object', additionalProperties: true },
+    };
+    const failure = await assertProviderSchemasUnchanged({
+      slug: providerSlug,
+      version: '1.1.0',
+      required: [{ service: 'wallet', version: 1, methods: ['debit'] }],
+      oldManifest: manifest,
+      newManifest: manifest as never,
+      oldPackage: { readText: async () => JSON.stringify(schema) },
+      newFiles: new Map([['services/debit.json', Buffer.from(JSON.stringify(changed))]]),
+    }).then(() => null, (error: any) => error);
+    expect(failure?.code).toBe('PLUGIN_SERVICE_DEPENDENCY_INVALID');
+    expect(String((failure?.safeDetails as { reasons?: string[] }).reasons?.[0])).toContain('changed its schema');
+  });
+
+  it('refuses a provider update that drops the method a dependent calls', async () => {
+    const oldManifest = {
+      services: [{ name: 'wallet', version: 1, methods: [{ name: 'debit', idempotencyRequired: true, schema: 'services/debit.json' }] }],
+    };
+    const newManifest = {
+      services: [{ name: 'wallet', version: 2, methods: [{ name: 'debit', idempotencyRequired: true, schema: 'services/debit.json' }] }],
+    };
+    const failure = await assertProviderSchemasUnchanged({
+      slug: providerSlug,
+      version: '2.0.0',
+      required: [{ service: 'wallet', version: 1, methods: ['debit'] }],
+      oldManifest,
+      newManifest: newManifest as never,
+      oldPackage: null,
+      newFiles: new Map(),
+    }).then(() => null, (error: any) => error);
+    expect(failure?.code).toBe('PLUGIN_SERVICE_DEPENDENCY_INVALID');
+    expect(String((failure?.safeDetails as { reasons?: string[] }).reasons?.[0])).toContain('is no longer exported');
+  });
+
+  it('refuses a provider update whose new package has no readable schema for a called method', async () => {
+    const manifest = {
+      services: [{ name: 'wallet', version: 1, methods: [{ name: 'debit', idempotencyRequired: true, schema: 'services/debit.json' }] }],
+    };
+    const failure = await assertProviderSchemasUnchanged({
+      slug: providerSlug,
+      version: '1.1.0',
+      required: [{ service: 'wallet', version: 1, methods: ['debit'] }],
+      oldManifest: { services: [] },
+      newManifest: manifest as never,
+      oldPackage: null,
+      newFiles: new Map(),
+    }).then(() => null, (error: any) => error);
+    expect(failure?.code).toBe('PLUGIN_SERVICE_DEPENDENCY_INVALID');
+    expect(String((failure?.safeDetails as { reasons?: string[] }).reasons?.[0])).toContain('no readable schema');
   });
 });

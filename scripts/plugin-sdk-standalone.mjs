@@ -75,7 +75,15 @@ export async function verifyStandaloneSdk() {
       services: [{ name: 'wallet', version: 1, methods: [{ name: 'debit', idempotencyRequired: true, schema: 'services/debit.json' }] }],
     }) + '\n');
     await writeFile(path.join(provider, 'services/debit.json'), JSON.stringify({
-      input: { type: 'object', properties: { amount: { type: 'integer', minimum: 0 } }, required: ['amount'], additionalProperties: false },
+      input: {
+        type: 'object',
+        properties: { amount: { type: 'integer', minimum: 0 }, customer: { $ref: '#/$defs/Customer' } },
+        required: ['amount'], additionalProperties: false,
+        $defs: {
+          Customer: { type: 'object', properties: { address: { $ref: '#/$defs/Address' } }, required: ['address'] },
+          Address: { type: 'object', properties: { city: { type: 'string' } }, required: ['city'] },
+        },
+      },
       result: { type: 'object', properties: { debited: { type: 'boolean' } }, required: ['debited'], additionalProperties: false },
       errorDetails: { type: 'object', additionalProperties: true },
     }) + '\n');
@@ -86,10 +94,14 @@ export async function verifyStandaloneSdk() {
     command(['services', 'generate-client', '--package', providerZip, '--service', 'wallet', '--version', '1', '--output', client]);
     const generated = await readFile(client, 'utf8');
     assert(generated.includes('provider: wallet-provider | service: wallet | version: 1'));
+    assert(generated.includes('unsigned package; the publisher is not verified'));
     assert(generated.includes('export function walletClient(ctx: PluginContext): WalletClient'));
     assert(generated.includes('idempotencyKey: string'));
     assert(generated.includes('amount: number;'));
-    await writeFile(path.join(temporary, 'consumer.ts'), "import { walletClient } from './wallet-client.js';\nimport type { PluginContext } from '@jiffoo-core/plugin-sdk';\ndeclare const ctx: PluginContext;\nconst wallet = walletClient(ctx);\nvoid wallet.debit({ amount: 1 }, { idempotencyKey: 'k' });\n");
+    // A definition that references another definition is declared as well.
+    assert(generated.includes('export interface Address'));
+    assert(generated.includes('export interface Customer'));
+    await writeFile(path.join(temporary, 'consumer.ts'), "import { walletClient } from './wallet-client.js';\nimport type { PluginContext } from '@jiffoo-core/plugin-sdk';\ndeclare const ctx: PluginContext;\nconst wallet = walletClient(ctx);\nvoid wallet.debit({ amount: 1, customer: { address: { city: 'Lisbon' } } }, { idempotencyKey: 'k' });\n");
     run(consumerRequire.resolve('typescript/bin/tsc'), ['--noEmit', '--strict', '--target', 'ES2022', '--module', 'Node16', '--moduleResolution', 'Node16', 'consumer.ts']);
     await writeFile(path.join(temporary, 'consumer.ts'), "import { TaskPermanentError, drainPluginTasks, type PluginContext, type PluginUiDeclaration, type PluginTaskDeclaration } from '@jiffoo-core/plugin-sdk';\ndeclare const ctx: PluginContext;\nconst slug: string = ctx.plugin.slug;\ndeclare const ui: PluginUiDeclaration;\ndeclare const task: PluginTaskDeclaration;\nctx.tasks.handle('render', 1, async input => { const fence: string = input.fence; input.signal.throwIfAborted(); await input.heartbeat({done:true}); return {fence}; }, {concurrency:1,maxAttempts:3,maxRuntimeSeconds:300,onFinalFailure:{maxRuntimeSeconds:30,handler:async input => { const principal = input.principal; void principal; }}});\nconst error = new TaskPermanentError('RENDER_REJECTED','Rendering rejected');\nvoid [slug, ui, task, error, drainPluginTasks];\n");
     run(consumerRequire.resolve('typescript/bin/tsc'), ['--noEmit', '--strict', '--target', 'ES2022', '--module', 'Node16', '--moduleResolution', 'Node16', 'consumer.ts']);

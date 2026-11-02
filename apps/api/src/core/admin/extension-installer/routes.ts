@@ -12,7 +12,7 @@ import { extensionInstaller, type ExtensionKind } from './index';
 import { sendSuccess, sendError } from '@/utils/response';
 import { extensionInstallerSchemas, repairBootstrapBodySchema, repairBootstrapValidator } from './schemas';
 import { errorResponseSchema } from '@/utils/schema-helpers';
-import { PluginManagementService } from '@/core/admin/plugin-management/service';
+import { PluginManagementService, INSTANCE_UPDATE_TRANSACTION_TIMEOUT_MS, TRANSACTION_MAX_WAIT_MS } from '@/core/admin/plugin-management/service';
 import { recordRepairBootstrapRejection, repairBootstrap } from './repair-bootstrap';
 import { declaredServicePermissions, getDefaultInstance, grantedPermissionDigest, serviceDisableConfirmation } from '@/core/extensions/registry';
 import { handlePluginGateway, PluginGatewayError } from '@/core/extensions/runtime/plugin-runtime';
@@ -615,10 +615,14 @@ onSend: async (request, reply, payload) => {
             grantedPermissions: granted,
             grantedPermissionDigest: grantedPermissionDigest(granted),
             servicePermissions: declaredServicePermissions(pluginPackage.manifestJson),
+            // The impact the merchant confirmed: the dependents that lose a
+            // service, and the revision of the graph they were read from.
+            affectedDependents: plan.serviceImpact?.affected ?? [],
+            graphRevision: plan.serviceImpact?.revision ?? null,
           });
         }
         return updated;
-      });
+      }, { maxWait: TRANSACTION_MAX_WAIT_MS, timeout: INSTANCE_UPDATE_TRANSACTION_TIMEOUT_MS });
       await plan.finalize();
       const adminConfig = sanitizePluginConfigForAdmin(readStoredPluginManifest(pluginPackage), parseJsonObject(instance.configJson));
 

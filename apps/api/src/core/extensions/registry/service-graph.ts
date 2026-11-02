@@ -467,14 +467,17 @@ export async function serviceDisableConfirmation(
  * answers with the set and the digest of the confirmation it expects. The
  * digest is bound to the revision of the graph, so the confirmation is checked
  * again under the graph lock before the disable is written.
+ *
+ * The check answers with the impact it validated, so the caller records the
+ * impact the merchant confirmed and not an impact it read earlier.
  */
 export async function assertServiceDisableConfirmed(
   slug: string,
   confirmation: string | null | undefined,
   client?: ServiceGraphClient,
-): Promise<void> {
+): Promise<{ affected: string[]; digest: string; revision: string }> {
   const expected = await serviceDisableConfirmation(slug, client);
-  if (!expected.affected.length) return;
+  if (!expected.affected.length) return expected;
   if (!confirmation || confirmation !== expected.digest) {
     throw new ApiError('PLUGIN_SERVICE_DISABLE_CONFIRMATION_REQUIRED', {
       affectedDependents: expected.affected,
@@ -482,6 +485,7 @@ export async function assertServiceDisableConfirmed(
       confirmation: expected.digest,
     });
   }
+  return expected;
 }
 
 /**

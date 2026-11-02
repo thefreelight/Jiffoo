@@ -5,6 +5,7 @@ import type { PluginMigrationDeclaration } from 'shared';
 
 export interface PluginUploadPreview {
   package: { slug: string; name: string; version: string; hash: string; trust: 'signed' | 'unsigned'; declaredCapabilities: string[];
+    permissions?: string[]; servicePermissions?: string[];
     publisher: { publisherId: string; publisherName: string; signingRoot: 'official' | 'test' } | null };
   current: { version: string | null; hash: string | null; state: 'installed' | 'uninstalled' | 'not-installed' };
   operation: 'install' | 'upgrade' | 'unchanged';

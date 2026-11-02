@@ -716,13 +716,12 @@ const labels = {
   backup: ['Back up first. Executed changes are not automatically undone.', '建议先备份。改动执行后不会自动撤销。', '建議先備份。變更執行後不會自動復原。'],
   unsigned: ['Unsigned; the publisher cannot be verified', '未签名，无法确认发布者', '未簽章，無法確認發佈者'],
   unsignedWarning: ['This unsigned plugin runs in the same process as the system and can read and write the database. Only install code you trust.', '这个插件没有签名，会和系统在同一个进程里运行，能读写数据库。只安装你信任的代码。', '這個外掛沒有簽章，會與系統在同一個程序裡執行，能讀寫資料庫。只安裝你信任的程式碼。'],
+  permissions: ['Permissions', '权限', '權限'],
   services: ['Services this plugin calls', '此插件调用的服务', '此外掛呼叫的服務'],
   servicesNote: ['Every method has its own permission. A plugin is enabled only when its providers are available and its permissions are granted.', '每个方法都有各自的权限。只有当提供方可用且权限已获准时，插件才能启用。', '每個方法都有各自的權限。只有當提供方可用且權限已獲准時，外掛才能啟用。'],
   servicesNone: ['This plugin calls no service of another plugin.', '此插件不调用其他插件的服务。', '此外掛不呼叫其他外掛的服務。'],
   servicesGranted: ['Granted', '已获准', '已獲准'],
   servicesMissing: ['Not granted', '未获准', '未獲准'],
-  servicesDependents: ['Plugins that lose a service when this one is disabled', '停用此插件后会失去服务的插件', '停用此外掛後會失去服務的外掛'],
-  disableDependentsWarning: ['These plugins call a service of this plugin and will not be able to use it while it is disabled: {plugins}', '以下插件调用此插件的服务，停用后无法继续使用：{plugins}', '以下外掛呼叫此外掛的服務，停用後將無法繼續使用：{plugins}'],
 } as const;
 
 export type PluginLabel = keyof typeof labels;

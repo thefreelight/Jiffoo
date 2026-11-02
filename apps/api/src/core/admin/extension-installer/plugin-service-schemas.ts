@@ -59,13 +59,17 @@ export async function assertProviderSchemasUnchanged(input: {
       const oldDeclaration = oldDeclarations.get(key);
       const newDeclaration = newDeclarations.get(key);
       if (!newDeclaration) {
-        changed.push(`${key} is no longer exported`);
+        changed.push(`${key} is no longer exported; publish a new version and let the consumers move to it first`);
+        continue;
+      }
+      const newDigest = digestOfFile(input.newFiles, newDeclaration.schema);
+      if (newDigest === null) {
+        changed.push(`${key} has no readable schema in the new package`);
         continue;
       }
       if (!oldDeclaration) continue;
       const oldDigest = await digestOf(input.oldPackage, oldDeclaration.schema);
-      const newDigest = digestOfFile(input.newFiles, newDeclaration.schema);
-      if (oldDigest === null || newDigest === null) continue;
+      if (oldDigest === null) continue;
       if (oldDigest !== newDigest) changed.push(`${key} changed its schema`);
     }
   }

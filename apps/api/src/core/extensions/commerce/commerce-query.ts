@@ -79,12 +79,26 @@ function cursorSecret(): Buffer | null {
   const key = Buffer.from(raw, 'base64');
   if (key.length < 32) throw new Error('PLUGIN_COMMERCE_CURSOR_SECRET requires a dedicated strong base64 key of at least 32 bytes');
   // The cursor is signed with a dedicated key: reusing the key of another
-  // signing surface would make the two signatures interchangeable.
-  const reused = [env.JWT_SECRET, env.PLUGIN_SECRETS_KEY, process.env.PLUGIN_PAGE_TOKEN_SECRET, process.env.PLUGIN_FILE_URL_SECRET]
-    .filter(Boolean)
-    .some(other => other === raw || other === key.toString('utf8'));
+  // signing surface would make the two signatures interchangeable. The other
+  // keys are compared as they are written and as the bytes they decode to, so
+  // another base64 spelling of the same key is caught as well.
+  //
+  // Both the typed environment and the live environment are read: the typed one is
+  // the snapshot of the process start, the live one holds a value that was
+  // assigned after it. A key that only one of them knows is still a reused key.
+  const reused = [
+    env.JWT_SECRET, env.PLUGIN_SECRETS_KEY, env.PLUGIN_PAGE_TOKEN_SECRET, env.PLUGIN_FILE_URL_SECRET,
+    process.env.PLUGIN_SECRETS_KEY, process.env.PLUGIN_PAGE_TOKEN_SECRET, process.env.PLUGIN_FILE_URL_SECRET,
+  ]
+    .filter((value): value is string => typeof value === 'string' && value.length > 0)
+    .some(other => other === raw || other === key.toString('utf8') || sameBytes(Buffer.from(other, 'base64'), key));
   if (reused) throw new Error('PLUGIN_COMMERCE_CURSOR_SECRET requires a dedicated strong base64 key of at least 32 bytes');
   return key;
+}
+
+/** Whether two keys are the same bytes. */
+function sameBytes(left: Buffer, right: Buffer): boolean {
+  return left.length === right.length && left.equals(right);
 }
 
 function sign(payload: CursorPayload, key: Buffer): string {
