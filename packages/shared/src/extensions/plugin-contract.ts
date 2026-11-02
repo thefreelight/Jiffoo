@@ -143,6 +143,42 @@ export class TaskPermanentError extends Error {
   }
 }
 
+/**
+ * The marker of a deliberate business rejection.
+ *
+ * The marker is a global symbol, so a plugin that bundles its own copy of the
+ * SDK marks the error the way Core recognises it.
+ */
+export const PLUGIN_BUSINESS_ERROR = Symbol.for('jiffoo.plugin.businessError');
+
+/**
+ * A deliberate rejection of a plugin.
+ *
+ * A plugin raises it when it understands the request and refuses it: the
+ * balance is too low, the address is not served, the quota is spent. The
+ * rejection is not a failure of the plugin, and it carries a code the caller
+ * can act on.
+ *
+ * A rejection raised inside a plugin transaction rolls that transaction back
+ * and reaches the plugin's own service layer unchanged, so the plugin answers
+ * with `ctx.services.businessError(...)` instead of a system failure. Every
+ * other exception is a failure of the plugin and keeps the sanitised
+ * `PLUGIN_ERROR` of Core.
+ */
+export class PluginBusinessError extends Error {
+  readonly [PLUGIN_BUSINESS_ERROR] = true;
+  name = 'PluginBusinessError';
+  constructor(readonly code: string, message: string, readonly details?: unknown) {
+    super(message);
+    if (!/^[A-Z][A-Z0-9_]{0,63}$/.test(code) || !message || message.length > 512 || /[<>\u0000-\u001f]/.test(message)) throw new Error('Invalid business rejection');
+  }
+}
+
+/** Whether an exception is a deliberate business rejection of a plugin. */
+export function isPluginBusinessError(error: unknown): error is PluginBusinessError {
+  return !!error && typeof error === 'object' && (error as Record<symbol, unknown>)[PLUGIN_BUSINESS_ERROR] === true;
+}
+
 export interface PluginFileReference {
   readonly reference: string;
   readonly contentType: 'image/png' | 'image/jpeg' | 'image/webp' | 'application/pdf' | 'text/plain';

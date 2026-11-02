@@ -619,6 +619,36 @@ authority while disabled; trusted backend code or an admitted remote effect
 cannot be forcibly undone. Pausing a normal task never creates or triggers
 onFinalFailure, including on its last budgeted attempt.
 
+### The in-place upgrade of a package
+
+An upgrade replaces the package of an installed plugin without removing the
+installation. The installation keeps its installation ID, its configuration,
+its granted permissions, its own database tables and rows, and its stored
+files; an upgrade is not an uninstall followed by an install. The Admin plugin
+detail page offers the entry: the package is uploaded, checked and confirmed
+like an installation, and the server decides that the operation is an upgrade.
+The package of another plugin is refused before it can be published.
+
+The version of the new package must be higher than the installed version. A
+package with the same version and the same content is the idempotent
+re-publish; a package with the same version and different content is refused
+(PLUGIN_VERSION_CONTENT_CHANGED), because a version names one package. A
+lower version is refused (PLUGIN_DOWNGRADE_NOT_SUPPORTED). The publisher of a
+signed plugin cannot change during an upgrade, and a signed plugin is not
+upgraded with an unsigned package.
+
+The migrations of the new package run before the package is published. Every
+migration file is one transaction, the files run in their declared order, and
+the SHA-256 of each file is checked against the manifest. A migration that
+fails is rolled back; the migrations that already ran are not undone. The
+package is published only after every migration has run, so a failed
+migration leaves the old package in place and the operation needs recovery:
+the retained package is republished with the retry of the operation, and the
+operator restores the database from a backup when the change has to be
+undone. A package that changes the declared schemas of a provider is
+refused, and an enabled dependent whose declared range the new version falls
+outside is refused before anything is published.
+
 ### Disable, enable, uninstall and update
 
 Plugin disable is PAUSE: pending tasks stay PENDING and cannot be claimed;
@@ -806,6 +836,22 @@ timeout and unknown monetary outcome use their own catalogued codes below;
 permission rejection occurs before entering provider code. A plugin's HTTP
 adapter may map these results to its own documented status, preserving source
 and error; Core's service API itself is an SDK result, not an HTTP envelope.
+
+A provider may also raise the refusal from inside its own transaction, where
+the refusal is the outcome of the work and not an exception of the plugin:
+`throw new PluginBusinessError(code, message, details)`. Core rolls that
+transaction back and hands the refusal to the provider's own service layer
+unchanged, so the provider answers with `ctx.services.businessError(...)` and
+the consumer sees a provider rejection with its code. The refusal is not a
+failure of the plugin: it is not recorded as a plugin failure, it does not
+open the breaker, and it settles the service call as a durable rejection. The
+refusal of a transaction that does not match the declared errorDetails schema
+is a failure of the provider, not a refusal. Every other exception of a
+transaction stays a failure of the plugin and keeps the sanitised
+PLUGIN_ERROR, so the redaction of an unexpected error is unchanged. A plugin
+that refuses a request in one of its own HTTP routes answers with its own
+documented status and the business envelope of the route, as it does for a
+returned result.
 
 For methods marked idempotencyRequired (mandatory for money-like operations),
 Core rejects missing keys and persists a service call ledger before invocation.
@@ -1103,7 +1149,7 @@ UI-asset validation modules, without workspace dependencies or Core application
 imports. Pre-release versions use `1.0.0-alpha.N`, starting at alpha.1. npm
 publishing comes later, after the owner supplies an npm organisation; set
 publishConfig.access to public at that time. Consumers can install the release
-asset with `npm i ./jiffoo-core-plugin-sdk-1.0.0-alpha.2.tgz` and import
+asset with `npm i ./jiffoo-core-plugin-sdk-1.0.0-alpha.3.tgz` and import
 `PluginContext` from `@jiffoo-core/plugin-sdk`.
 
 The browser-side client is `@jiffoo/plugin-bridge`, the counterpart of the SDK for

@@ -8,6 +8,7 @@ import Fastify from 'fastify';
 import { PrismaClient } from '@prisma/client';
 import { prisma } from '@/config/database';
 import type { PluginDatabaseTransaction } from '@jiffoo/shared';
+import { PluginBusinessError } from '@jiffoo/shared';
 import { pluginSchemaName } from 'shared/plugin-signing';
 import { createPluginDatabaseTestRuntime, withPluginDatabaseInvocation, withPluginDatabaseHandler } from '@/core/admin/extension-installer/plugin-database';
 import { withPluginDatabaseTestControl } from '@/core/extensions/runtime/plugin-database-test-control';
@@ -64,6 +65,19 @@ describe('Plugin runtime database against real PostgreSQL', () => {
       expect(await f.database.transaction(async tx => { await tx.query('INSERT INTO records VALUES ($1, $2)', ['one', 'committed']); return 7; })).toBe(7);
       await expect(f.database.transaction(async tx => { await tx.query('INSERT INTO records VALUES ($1, $2)', ['two', 'rolled-back']); throw new Error('PRIVATE_CALLBACK_TEXT'); })).rejects.toMatchObject({ code: 'PLUGIN_ERROR', message: 'Plugin request failed' });
       expect((await f.database.query('SELECT id FROM records', [])).rows).toEqual([{ id: 'one' }]);
+    });
+  });
+  it('A keeps the business rejection of the callback and rolls the transaction back', async () => {
+    const f = await fixture();
+    await invoke(f, async () => {
+      // A deliberate rejection is the plugin's own answer, not a failure of the
+      // plugin: it reaches the caller with its code, and the transaction that
+      // raised it is rolled back.
+      await expect(f.database.transaction(async tx => {
+        await tx.query('INSERT INTO records VALUES ($1, $2)', ['three', 'refused']);
+        throw new PluginBusinessError('INSUFFICIENT_BALANCE', 'The customer does not have enough points.', { balance: 0, required: 10 });
+      })).rejects.toMatchObject({ code: 'INSUFFICIENT_BALANCE', message: 'The customer does not have enough points.' });
+      expect((await f.database.query('SELECT id FROM records', [])).rows).toEqual([]);
     });
   });
   it('A rejects nested transactions and top-level queries inside a transaction without deadlock', async () => {

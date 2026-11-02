@@ -146,6 +146,12 @@ export function providerOutcomeToResult(outcome: unknown, schemas: ServiceMethod
   return serviceCoreError('PLUGIN_SERVICE_PROVIDER_CRASHED', 'The provider returned an invalid outcome');
 }
 
+/** The provider's refusal of a result, or null when the result carries none. */
+export function providerRejection(result: ServiceResult<unknown>): Extract<ServiceResult<unknown>, { source: 'provider' }> | null {
+  if (result.ok === true) return null;
+  return result.source === 'provider' ? result : null;
+}
+
 /** The invocation Core hands the provider. The caller never supplies it. */
 export function providerInvocation(input: {
   callId: string; reconcile: boolean; signal: AbortSignal;

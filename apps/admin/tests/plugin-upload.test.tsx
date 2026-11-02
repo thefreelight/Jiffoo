@@ -17,6 +17,17 @@ function fixture(unsigned = false): PluginUploadPreview {
   return { package: { slug: 'upload-fixture', name: 'Upload fixture', version: '2.0.0', hash: 'hash', trust: unsigned ? 'unsigned' : 'signed', declaredCapabilities: ['shipping'], publisher: unsigned ? null : { publisherId: 'publisher', publisherName: 'Publisher', signingRoot: 'test' } }, current: { version: null, hash: null, state: 'not-installed' }, operation: 'install', compatibility: { compatible: true }, requiresUnsignedConfirmation: unsigned, previewToken: 'token', expiresAt: '2030-01-01T00:00:00Z', migrationPlan: { schemaName: 'plugin_upload_fixture', provisionNamespace: true, changesDatabase: true, applied: [], pending: [{ id: 'one', order: 1, path: 'migrations/001.sql', sha256: '0'.repeat(64) }] } };
 }
 
+const button = (name: string) => Array.from(document.getElementsByTagName('button')).find(button => button.textContent === name)!;
+const click = async (name: string) => { await act(async () => button(name).click()); };
+const waitForUI = async (assertion: () => void) => { await vi.waitFor(async () => { await act(async () => {}); assertion(); }); };
+async function preview(trigger = 'Upload plugin') {
+  await click(trigger);
+  const input = document.querySelector<HTMLInputElement>('input[type=file]')!;
+  await act(async () => { Object.defineProperty(input, 'files', { value: [new File(['zip'], 'fixture.zip')], configurable: true }); input.dispatchEvent(new Event('change', { bubbles: true })); });
+  await click('Check package');
+  await waitForUI(() => expect(button('Cancel')?.disabled).toBe(false));
+}
+
 describe('Plugin upload dialog', () => {
   let root: Root, container: HTMLDivElement, client: QueryClient;
   beforeEach(async () => {
@@ -28,16 +39,6 @@ describe('Plugin upload dialog', () => {
     await act(async () => root.render(<QueryClientProvider client={client}><PluginUpload testSigningMode /></QueryClientProvider>));
   });
   afterEach(async () => { await act(async () => root.unmount()); client.clear(); container.remove(); });
-  const button = (name: string) => Array.from(document.getElementsByTagName('button')).find(button => button.textContent === name)!;
-  const click = async (name: string) => { await act(async () => button(name).click()); };
-  const waitForUI = async (assertion: () => void) => { await vi.waitFor(async () => { await act(async () => {}); assertion(); }); };
-  async function preview() {
-    await click('Upload plugin');
-    const input = document.querySelector<HTMLInputElement>('input[type=file]')!;
-    await act(async () => { Object.defineProperty(input, 'files', { value: [new File(['zip'], 'fixture.zip')], configurable: true }); input.dispatchEvent(new Event('change', { bubbles: true })); });
-    await click('Check package');
-    await waitForUI(() => expect(button('Cancel')?.disabled).toBe(false));
-  }
   it('starts with no dialog, then shows the package chooser and disables checking without a file', async () => {
     expect(document.querySelector('[role=dialog]')).toBeNull();
     await click('Upload plugin'); expect(button('Check package').disabled).toBe(true);
@@ -114,5 +115,32 @@ describe('Plugin upload dialog', () => {
     await click(en.plugins.upload.migrationRetry);
     await waitForUI(() => expect(document.body.textContent).toContain('Installation complete'));
     expect(retryApi).toHaveBeenCalledWith('saved-operation', expect.any(Function)); expect(installApi).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('The plugin update entry', () => {
+  let root: Root, container: HTMLDivElement, client: QueryClient;
+  const upgrade = (): PluginUploadPreview => ({ ...fixture(), current: { version: '1.0.0', hash: 'old', state: 'installed' }, operation: 'upgrade' });
+  beforeEach(async () => {
+    (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    container = document.createElement('div'); document.body.appendChild(container); root = createRoot(container);
+    client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+    previewApi.mockReset().mockResolvedValue(upgrade()); installApi.mockReset().mockResolvedValue({ slug: 'upload-fixture', version: '2.0.0', warnings: [] });
+    await act(async () => root.render(<QueryClientProvider client={client}><PluginUpload testSigningMode slug="upload-fixture" /></QueryClientProvider>));
+  });
+  afterEach(async () => { await act(async () => root.unmount()); client.clear(); container.remove(); });
+  it('offers the upgrade of the installed package and states the version rule', async () => {
+    await preview('Update plugin');
+    expect(document.body.textContent).toContain(pluginMessage('en', 'updateNote'));
+    const operation = Array.from(document.getElementsByTagName('dt')).find(node => node.textContent === pluginMessage('en', 'operation'));
+    expect(operation!.nextElementSibling?.textContent).toBe(en.plugins.upload.upgrade);
+    expect(installApi).not.toHaveBeenCalled();
+  });
+  it('refuses the package of another plugin before it can be installed', async () => {
+    previewApi.mockResolvedValue({ ...upgrade(), package: { ...upgrade().package, slug: 'other-fixture' } });
+    await preview('Update plugin');
+    await waitForUI(() => expect(document.body.textContent).toContain('other-fixture'));
+    expect(document.body.textContent).not.toContain('Confirm installation');
+    expect(installApi).not.toHaveBeenCalled();
   });
 });

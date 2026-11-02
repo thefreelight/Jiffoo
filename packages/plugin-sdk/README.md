@@ -1,12 +1,12 @@
 # @jiffoo-core/plugin-sdk
 
-Extension authoring CLI and canonical Core types, version 1.0.0-alpha.2.
+Extension authoring CLI and canonical Core types, version 1.0.0-alpha.3.
 Supported runtime: Node.js >=24.13.1 <25, matching Core's Node 24 CI runtime.
 
 Install the SDK tarball attached to the matching Core release:
 
 ```sh
-npm i ./jiffoo-core-plugin-sdk-1.0.0-alpha.2.tgz
+npm i ./jiffoo-core-plugin-sdk-1.0.0-alpha.3.tgz
 npx jiffoo-plugin create --slug my-extension --name "My extension" --output my-extension
 ```
 
@@ -55,6 +55,15 @@ Disable/dependency loss pauses tasks without a retry charge or refund hook;
 uninstall cancels them. Ignored abort retains physical execution occupancy.
 Handler limits are concurrency 1-16, attempts 1-20, runtime 1-600 seconds;
 shared operator caps may be lower. A final hook has its own 1-60 second budget.
+
+Import `PluginBusinessError` to refuse a request you understand. Thrown inside
+`ctx.database.transaction`, it rolls that transaction back and reaches your own
+service layer with its code, so you answer with
+`ctx.services.businessError({code,message,details})` and the consumer sees a
+provider rejection instead of a system failure. A refusal is not a plugin
+failure: it is not recorded as one and it does not open the breaker. Every
+other exception stays a failure of the plugin and keeps the sanitised
+PLUGIN_ERROR of Core.
 
 For task development use `jiffoo-plugin dev --worker`, an already-running
 loopback Core API, and JIFFOO_DEV_WORKER_ENTRY pointing to the matching compiled

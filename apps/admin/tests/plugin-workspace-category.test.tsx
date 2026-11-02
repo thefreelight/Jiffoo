@@ -10,6 +10,9 @@ vi.mock('shared/src/i18n/react', () => ({ useLocale: () => 'en', useT: () => (ke
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: mocks.push }) }));
 vi.mock('next/link', () => ({ default: ({ children, ...props }: React.PropsWithChildren<{ href: string }>) => <a {...props}>{children}</a> }));
 vi.mock('@/components/extensions/PluginLifecycle', () => ({ PluginLifecycle: () => null }));
+// The update entry is covered by the upload dialog suite: the detail page
+// only offers it.
+vi.mock('@/components/extensions/PluginUpload', () => ({ PluginUpload: ({ slug }: { slug: string }) => <span>update-entry:{slug}</span> }));
 vi.mock('@/lib/marketplace', () => ({ useMarketplaceStatus: () => ({ data: { configured: false, testSigningMode: false } }) }));
 vi.mock('@/lib/hooks/use-api', () => ({ usePluginConfig: mocks.config, usePluginInstances: mocks.instances, useUpdatePluginInstance: () => ({ mutateAsync: vi.fn(), isPending: false }) }));
 

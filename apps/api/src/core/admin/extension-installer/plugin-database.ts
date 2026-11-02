@@ -6,6 +6,7 @@ import { prisma } from '@/config/database';
 import { env } from '@/config/env';
 import { ApiError, isDatabaseUnavailable } from '@/utils/api-errors';
 import type { PluginDatabase, PluginDatabaseOptions, PluginDatabaseParameter, PluginDatabaseResult, PluginDatabaseTransaction } from '@jiffoo/shared';
+import { isPluginBusinessError } from '@jiffoo/shared';
 import { pluginSchemaName } from 'shared/plugin-signing';
 import { processDatabaseUrl } from '@/infra/core-process-identity';
 import { PluginDatabaseQueue } from './plugin-database-queue';
@@ -208,7 +209,14 @@ class PluginDatabaseRuntime {
         const result = run(tx);
         if (pluginDatabaseCallbackDeadline()) { clearTimeout(timer); timer = setTimeout(() => controller.abort(), transactionMs); }
         return result;
-      })).catch(error => { throw isPluginDatabaseError(error) ? error : new PluginDatabaseError('PLUGIN_ERROR'); });
+      })).catch(error => {
+        // A deliberate business rejection is the plugin's own answer, not a
+        // failure of the plugin: it keeps its code and message and reaches the
+        // plugin's service layer, which answers with it. The transaction is
+        // rolled back either way. Every other exception is a failure of the
+        // plugin and keeps the sanitised code.
+        throw isPluginDatabaseError(error) || isPluginBusinessError(error) ? error : new PluginDatabaseError('PLUGIN_ERROR');
+      });
       void callback.catch(() => undefined);
       const result = await Promise.race([callback, interrupted]);
       await Promise.race([tail, interrupted]); check();
@@ -219,6 +227,9 @@ class PluginDatabaseRuntime {
       return result;
     } catch (error) {
       if (signal.aborted && !committing && !(this.closing && !release)) throw new PluginDatabaseError('PLUGIN_TIMEOUT');
+      // A business rejection is not a failure: it leaves the transaction with
+      // its code, so the plugin answers with the refusal it meant.
+      if (isPluginBusinessError(error) && !committing) throw error;
       throw mapped(error, committing);
     } finally {
       open = false; clearTimeout(timer);

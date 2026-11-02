@@ -12,6 +12,9 @@ vi.mock('shared/src/i18n/react', () => ({ useLocale: () => 'en', useT: () => (ke
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: mocks.push }) }));
 vi.mock('next/link', () => ({ default: ({ children, ...props }: React.PropsWithChildren<{ href: string }>) => <a {...props}>{children}</a> }));
 vi.mock('@/components/extensions/PluginLifecycle', () => ({ PluginLifecycle: () => null }));
+// The update entry is covered by the upload dialog suite: the detail page
+// only offers it.
+vi.mock('@/components/extensions/PluginUpload', () => ({ PluginUpload: ({ slug }: { slug: string }) => <span>update-entry:{slug}</span> }));
 vi.mock('@/lib/marketplace', () => ({ useMarketplaceStatus: () => ({ data: { configured: false, testSigningMode: false } }) }));
 vi.mock('@/lib/hooks/use-api', () => ({ usePluginConfig: mocks.config, usePluginInstances: mocks.instances, useUpdatePluginInstance: () => ({ mutateAsync: mocks.update, isPending: false }) }));
 
@@ -30,6 +33,14 @@ describe('Plugin detail configuration', () => {
   async function fill(field: string, text: string) { await act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input(field), text); input(field).dispatchEvent(new Event('input', { bubbles: true })); }); }
   const button = (name: string) => Array.from(document.getElementsByTagName('button')).find(button => button.textContent === name)!;
   async function click(name: string) { await act(async () => button(name).click()); }
+
+  it('offers the update entry of an installed package and not of a built-in one', async () => {
+    await mount();
+    expect(container.textContent).not.toContain('update-entry:');
+    mocks.config.mockReturnValue({ data: { name: 'Config fixture', category: 'payment', source: 'installed', trustLevel: 'unsigned', configSchema: { type: 'object', properties: {} } }, isLoading: false });
+    await mount();
+    expect(container.textContent).toContain('update-entry:fixture');
+  });
 
   it('uses defaults only for unset non-sensitive fields, masks secrets and shows saved time', async () => {
     await mount(); expect(input('instructions').value).toBe('Pay manually.'); expect(input('credential').value).toBe('');

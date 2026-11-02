@@ -42,8 +42,8 @@ import { pluginDatabaseLimit } from './plugin-database-test-control';
 import { registerPluginStateReset } from '@/core/extensions/runtime/plugin-state';
 import { recordPluginFailure, redactPluginFailure } from '@/core/extensions/runtime/failure';
 import { readStoredPluginManifest } from '@/core/extensions/runtime/stored-manifest';
-import { fulfillmentV1Methods, getPluginManifestIssues, isPluginManifest, notificationV1Methods, paymentV2Methods, PLUGIN_CONTRACT_VERSIONS, shippingV1Methods, taxV1Methods, validateServicePayload, validateServicePayloadSize, type BoundPrincipal, type PluginContractName, type PluginEvent, type PluginEventHandler, type PluginServiceCall, type PluginServiceDependencyDeclaration, type ServiceResult } from '@jiffoo/shared';
-import { providerInvocation, providerOutcomeToResult, serviceCoreError, serviceKey, servicePermission, serviceRegistrationsOf, SERVICE_CALL_DEFAULT_TIMEOUT_MS, SERVICE_CALL_MAX_DEPTH, SERVICE_CALL_MAX_TIMEOUT_MS, SERVICE_CALL_MIN_TIMEOUT_MS, type ServiceMethodSchemas } from '@/core/extensions/runtime/service-runtime';
+import { fulfillmentV1Methods, getPluginManifestIssues, isPluginBusinessError, isPluginManifest, notificationV1Methods, paymentV2Methods, PLUGIN_CONTRACT_VERSIONS, shippingV1Methods, taxV1Methods, validateServicePayload, validateServicePayloadSize, type BoundPrincipal, type PluginContractName, type PluginEvent, type PluginEventHandler, type PluginServiceCall, type PluginServiceDependencyDeclaration, type ServiceResult } from '@jiffoo/shared';
+import { providerInvocation, providerOutcomeToResult, providerRejection, serviceCoreError, serviceKey, servicePermission, serviceRegistrationsOf, SERVICE_CALL_DEFAULT_TIMEOUT_MS, SERVICE_CALL_MAX_DEPTH, SERVICE_CALL_MAX_TIMEOUT_MS, SERVICE_CALL_MIN_TIMEOUT_MS, type ServiceMethodSchemas } from '@/core/extensions/runtime/service-runtime';
 import { listPaidOrders } from '@/core/extensions/commerce/commerce-query';
 import { claimServiceCall, fenceNotExecuted, markServiceCallUnknown, releaseServiceCallClaim, settleServiceCall, type ServiceCallHandle, type ServiceCallRow } from '@/core/extensions/runtime/service-ledger';
 import { prisma } from '@/config/database';
@@ -1207,6 +1207,20 @@ export async function callService(
         return lostClaimOutcome(handle.callId, request);
       }
       return serviceCoreError('PLUGIN_SERVICE_TIMEOUT', `The provider ${request.plugin} did not answer within ${timeoutMs}ms`, handle ? unknownOutcomeDetails(handle.callId, request) : undefined);
+    }
+    if (isPluginBusinessError(error)) {
+      // The provider refused the request on purpose. The refusal is the
+      // provider's answer, not a failure of the plugin: it keeps its code, it
+      // is not recorded as a plugin failure, and it is settled as a durable
+      // rejection. A rejection that does not match the declared schema is a
+      // failure of the provider and falls through to the crash path.
+      const rejection = providerRejection(providerOutcomeToResult({ ok: false, error: { code: error.code, message: error.message, details: error.details ?? null } }, registration.schemas));
+      if (rejection) {
+        if (handle) {
+          if (!await settleServiceCall(handle, rejection)) return lostClaimOutcome(handle.callId, request);
+        }
+        return rejection;
+      }
     }
     await recordPluginFailure(request.plugin, error, 'service', instance.id);
     await sharedProtection.result(permit, false);
