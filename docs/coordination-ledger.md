@@ -261,7 +261,7 @@ of that day.
 | 5zab | The hard deadline of the shutdown is measured with a monotonic clock | `668fbcb7b` |
 | 5zai | The in-place upgrade entry of a plugin package, the business rejection of a plugin service, the catalogue of the store currencies and the storefront marker of a degraded tax | `695cda0a6`, `faedad700`, `1fa3ad9b7` |
 | 5zaj | The refresh of the token of a live plugin page: a refused refresh keeps the page, and the bridge refreshes the token when it is about to expire | `33c7487b4`, `be3469f16` |
-| 5zak | The hard deadline of the shutdown is decided by the timer that arms it, not by a measured elapsed | — |
+| 5zak | The hard deadline of the shutdown is decided by the timer that arms it, not by a measured elapsed | `b361ab0eb` |
 
 ## 6. The archive
 
