@@ -5072,3 +5072,139 @@ serial run. The suite is timing sensitive and passes in the shard run of the sam
   service types nor the generator.
 - The narrowed selection of §5zag's efficiency section is still open. It is a move of labels, not
   of behaviour, and it would take the shared-package change from eleven minutes to about four.
+
+## 5zah. The message catalogue is read through the labels of its own module
+
+**Baseline SHA:** `e44eaadef`. **Commit:** `dc996bcee`.
+
+### What this batch changes
+
+The selection of the local gate was wider than the change it covered. A change of one label of the
+merchant namespace selected 217 suites, 165 of them API suites. The reason is a runtime assembly:
+the message catalogue is aggregated per locale, the three export modules of the API read the
+merchant namespace out of it, and the API's route registry reaches those modules, so every API
+suite that boots the app reached every label of every namespace. The file-level import graph cannot
+tell that the API reads three keys of that namespace and nothing else.
+
+This batch removes that false dependency:
+
+- **The labels of the exported records have a module of their own.**
+  `packages/shared/src/i18n/messages/admin-record-labels.ts` holds the order statuses, the product
+  and customer statuses and the three CSV header rows, in all three locales. The merchant namespace
+  composes them, so every string still has exactly one definition and the merchant surface shows
+  the same labels as before.
+- **The API reads that module.** The three export modules import it directly instead of the
+  assembled catalogue.
+- **The shared barrel no longer carries the catalogue.** `packages/shared/src/index.ts` exports the
+  locale configuration, the types and the middleware, but not the message loaders: a consumer of
+  the barrel that carried the catalogue would reach every label of every namespace.
+- **The guard.** `scripts/module-reachability.test.mjs` asserts that no source file of the API
+  imports the catalogue, and that the three export modules read the label module.
+
+### What it did not change
+
+The behaviour. Every moved label was compared against the label it replaced, in all three
+locales, against the committed version of the files; the export tests assert the CSV header rows
+in all three locales, and the parity test asserts that the three locales carry the same keys.
+The merchant surface resolves the same keys as before, because the merchant namespace composes
+the same labels.
+
+### The measured effect
+
+| Changed module | Suites before | Suites after |
+| --- | --- | --- |
+| `packages/shared/src/i18n/messages/admin-plugins.ts` | 217 (165 API) | 53 (2 API) |
+| `packages/shared/src/i18n/messages/en/merchant.ts` | 217 (165 API) | 53 (2 API) |
+| `packages/shared/src/error-codes.ts` | 164 (164 API) | 164 (164 API) |
+
+The error codes keep their 164 suites, because the API really uses them. The record labels select
+162 suites, because the export modules are part of the API's route registry; that dependency is
+real, and the file-level graph is right to keep it.
+
+### The local evidence
+
+The baseline SHA is `e44eaadef`. The changed inputs are the new label module, the three locale
+merchant namespaces, the shared barrel, the three export modules of the API and the reachability
+guard.
+
+```
+DATABASE_URL_TEST=postgresql://postgres:postgres@localhost:5432/jiffoo_core_test \
+PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=<the owner's consent to reset jiffoo_core_test> \
+pnpm verify:quick --test-files=apps/api/tests/core/i18n-key-parity.test.ts,apps/api/tests/routes/admin-order-export.test.ts,apps/api/tests/routes/product-list-bulk-export.test.ts,apps/api/tests/routes/admin-users.test.ts,apps/api/tests/routes/plugin-error-http.test.ts,apps/admin/tests/plugin-workspace.test.tsx,apps/admin/tests/orders-list.test.tsx,apps/admin/tests/products-query.test.tsx,apps/admin/tests/customers-list.test.tsx,scripts/module-reachability.test.mjs
+```
+
+The summary of that run, printed from `verify-summary.txt`:
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Run script tests:
+Node test start time: 2026-11-02T09:34:39.000Z
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 40724.7995
+Run API tests in 4 shards:
+Shards: 1, 2, 3, 4 of 4 (4-shard run)
+Run scope: the selected catalogue (4 shard(s))
+Scope coverage: 167/167 files covered
+Totals: Test Files 167 files, 167 passed | Tests 2402 tests, 2402 passed | Suites 460 suites, 460 passed
+Test conclusion: PASS
+Cleanup conclusion: PASS
+Delivery status: API PASS / cleanup PASS
+--- File coverage ---
+Catalogue files (the selection the caller named): 167
+Expected set (the full catalogue, not the assigned subset): 167
+Assigned to this run: 167
+Executed (union over all shards): 167
+Shard 1: 42 files
+Shard 2: 42 files
+Shard 3: 41 files
+Shard 4: 42 files
+Missing files: none
+Extra files: none
+Cross-shard duplicates: none
+Empty shards: none
+Coverage verdict: PASS
+--- Shard results ---
+| Shard | Exit | Duration | Start at | Test Files | Tests | Failed files |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | 0 | 674.5s | 17:35:35 | 42 files, 42 passed | 489 tests, 489 passed | none |
+| 2 | 0 | 482.6s | 17:35:36 | 42 files, 42 passed | 556 tests, 556 passed | none |
+| 3 | 0 | 589.2s | 17:35:37 | 41 files, 41 passed | 464 tests, 464 passed | none |
+| 4 | 0 | 658.2s | 17:35:38 | 42 files, 42 passed | 893 tests, 893 passed | none |
+Run Admin tests:
+   Start at  17:46:45
+ Test Files  39 passed (39)
+      Tests  539 passed (539)
+Run Shop tests:
+   Start at  17:47:10
+ Test Files  17 passed (17)
+      Tests  122 passed (122)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Run script tests | PASS | 20.93s |
+| Prisma generate | PASS | 0.01s |
+| Type-check selected scope and shared | PASS | 18.72s |
+| Lint Shop | PASS | 13.39s |
+| Reset test database | PASS | 4.89s |
+| Run API tests in 4 shards | PASS | 689.08s |
+| Run Admin tests | PASS | 25.93s |
+| Run Shop tests | PASS | 4.53s |
+```
+
+### What the next reader should know
+
+- The rule of the shared package holds now: a consumer imports the module of the label it reads.
+  The barrel carries the locale configuration, the types and the middleware, and a consumer that
+  needs a message imports the message module itself.
+- The remaining wide selection is the record labels, because the export modules belong to the
+  route registry. Narrowing that one needs a different shape of the API's routes, not a different
+  message module.
