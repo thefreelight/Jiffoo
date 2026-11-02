@@ -32,7 +32,7 @@ describe('the refresh of a plugin page', () => {
     return event;
   }
 
-  async function mount(refreshFailure: string) {
+  async function mount(refreshFailure: unknown) {
     vi.useFakeTimers();
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
     vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
@@ -40,7 +40,7 @@ describe('the refresh of a plugin page', () => {
     document.body.appendChild(container);
     root = createRoot(container);
     const frameUrl = new URL(`/api/v1/plugin-assets/id/${'a'.repeat(64)}/index.html`, location.origin).href;
-    const refresh = vi.fn().mockRejectedValue(new Error(refreshFailure));
+    const refresh = vi.fn().mockRejectedValue(refreshFailure);
     const transport = vi.fn(async (path: string, method: string) => {
       if (path.endsWith('/refresh')) return refresh();
       if (method === 'POST' && path.endsWith('/session')) {
@@ -92,6 +92,25 @@ describe('the refresh of a plugin page', () => {
   it('ends the page when the session is revoked', async () => {
     const { refresh } = await mount('PLUGIN_PAGE_SESSION_REVOKED');
     expect(container!.querySelector('iframe')).not.toBeNull();
+    await act(async () => { await vi.advanceTimersByTimeAsync(60_000); });
+    expect(refresh).toHaveBeenCalled();
+    expect(container!.querySelector('[role=alert]')).not.toBeNull();
+    expect(container!.querySelector('iframe')).toBeNull();
+  });
+
+  it('ends the page when the shell of the admin reports the failure by its code', async () => {
+    // The shell of the admin carries the catalogue code in the code of the
+    // error and a message for the operator.
+    const { refresh } = await mount(Object.assign(new Error('The plugin page session is no longer valid.'), { code: 'PLUGIN_PAGE_SESSION_REVOKED' }));
+    expect(container!.querySelector('iframe')).not.toBeNull();
+    await act(async () => { await vi.advanceTimersByTimeAsync(60_000); });
+    expect(refresh).toHaveBeenCalled();
+    expect(container!.querySelector('[role=alert]')).not.toBeNull();
+    expect(container!.querySelector('iframe')).toBeNull();
+  });
+
+  it('ends the page when the plugin is gone', async () => {
+    const { refresh } = await mount('NOT_FOUND');
     await act(async () => { await vi.advanceTimersByTimeAsync(60_000); });
     expect(refresh).toHaveBeenCalled();
     expect(container!.querySelector('[role=alert]')).not.toBeNull();

@@ -28,7 +28,9 @@ session instead of one per request. `refreshToken()` asks for a new token
 without that check: use it when the frame knows that the token it holds is
 gone. The budget of a session is thirty refreshes a minute; a refresh beyond
 it is answered with `RATE_LIMITED`, which does not end the page — the shell
-answers with the token it still holds and the plugin keeps working.
+answers with the token it still holds and the plugin keeps working. A refresh
+that Core refused does not become a refresh per request either: the bridge
+waits half a minute and keeps the token it holds while that token is valid.
 
 The package ships the compiled bridge and its type declarations. It has no
 dependencies, no Core application runtime imports and no workspace references.

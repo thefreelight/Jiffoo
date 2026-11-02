@@ -84,12 +84,43 @@ describe('bounded plugin bridge boundary', () => {
     expect(refreshes()).toBe(0);
     await vi.advanceTimersByTimeAsync(100_000);
     const pending = bridge.token();
+    // A second caller that asks at the same moment shares the refresh.
+    const second = bridge.token();
     for (let index = 0; index < 5; index += 1) await Promise.resolve();
     const request = parent.postMessage.mock.calls.map(call => call[0] as { type: string }).filter(message => message.type === 'token.refresh').at(-1)!;
     expect(request).toBeTruthy();
     send({ ...request, result: { pluginToken: 'fresh-token', expiresAt: new Date(Date.now() + 120_000).toISOString() } });
     expect(await pending).toBe('fresh-token');
+    expect(await second).toBe('fresh-token');
     expect(await bridge.token()).toBe('fresh-token');
+    expect(refreshes()).toBe(1);
+  });
+  it('keeps the token it holds when the shell cannot rotate it', async () => {
+    vi.useFakeTimers();
+    const handlers = new Map<string, (event?: unknown) => void>();
+    const parent = { postMessage: vi.fn() };
+    const window = { addEventListener: (name: string, handler: (event?: unknown) => void) => handlers.set(name, handler),
+      removeEventListener: (name: string) => handlers.delete(name) };
+    vi.stubGlobal('parent', parent); vi.stubGlobal('window', window);
+    vi.stubGlobal('location', { href: 'https://shop.example/api/v1/plugin-assets/id/hash/index.html?shellOrigin=https%3A%2F%2Fshop.example' });
+    const bridge = createPluginBridge();
+    const welcome = { channel: 'jiffoo.plugin', version: 1, id: 'welcome', type: 'bridge.welcome', sessionId: 'session', nonce: 'a'.repeat(64),
+      payload: { context: { customer: null, admin: null, locale: 'en', currency: 'USD', colorMode: 'light',
+        themeTokens: {}, store: { id: 'system', name: 'Store', url: 'https://shop.example' }, page: { id: 'studio', path: '/studio' }, capabilities: [] },
+        pluginToken: 'scoped-token', expiresAt: new Date(Date.now() + 120_000).toISOString() } };
+    const send = (data: unknown) => handlers.get('message')?.({ source: parent, origin: 'https://shop.example', data });
+    const refreshes = () => parent.postMessage.mock.calls.filter(call => (call[0] as { type: string }).type === 'token.refresh').length;
+    send(welcome); await bridge.ready;
+    await vi.advanceTimersByTimeAsync(100_000);
+    const pending = bridge.token();
+    for (let index = 0; index < 5; index += 1) await Promise.resolve();
+    const request = parent.postMessage.mock.calls.map(call => call[0] as { type: string }).filter(message => message.type === 'token.refresh').at(-1)!;
+    // Core refused the refresh: the budget of the session is spent.
+    send({ ...request, error: { code: 'RATE_LIMITED', message: 'The refresh budget of the session is spent.' } });
+    // The frame keeps the token it holds: it is still valid.
+    expect(await pending).toBe('scoped-token');
+    expect(await bridge.token()).toBe('scoped-token');
+    // A spent budget does not become a refresh per request.
     expect(refreshes()).toBe(1);
   });
   it('expires an unanswered handshake after ten seconds', async () => {

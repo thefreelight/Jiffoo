@@ -152,10 +152,16 @@ budget is answered with 429 RATE_LIMITED, and that answer does not end the
 page. The shell answers the plugin with the token it still holds, the page
 keeps its frame, its session and the state the customer entered, and the next
 refresh may answer with a new token. Only a revoked session, a forbidden
-origin or a token Core no longer accepts ends the page. The bridge refreshes
+origin, a plugin that is gone, a Core in maintenance and a token Core no
+longer accepts end the page. The limit is checked before the session is
+authorized, so that a caller without the shell credentials cannot spend the
+database: a session that was revoked while the budget was spent is therefore
+not seen as revoked until a refresh is answered again. The bridge refreshes
 the token of the frame when it is about to expire, so a plugin that asks for a
 token on every request spends one refresh of the budget and not one per
-request. Only session-specific context responses contain email.
+request. A refresh that Core refused does not become a refresh per request
+either: the bridge waits half a minute and keeps the token it holds while that
+token is valid. Only session-specific context responses contain email.
 
 Navigation is rendered by Core from enabled declarations in header, account
 menu and footer, with translated titles. Links to login-required pages remain

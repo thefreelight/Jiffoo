@@ -23,31 +23,43 @@ function exact(value: Record<string, Plain>, keys: string[]) {
 /**
  * The refresh failures that end the page.
  *
- * A revoked session, a forbidden origin and a token Core no longer accepts end
- * the page: the frame cannot work without them. Every other failure is
- * transient — a rate limit, a network error, a Core that is busy — and the
- * page keeps its session, its frame and the state the customer entered.
+ * A revoked session, a forbidden origin, a token Core no longer accepts, a
+ * plugin that is gone and a Core that is in maintenance end the page: the
+ * frame cannot work without them. Every other failure is transient — a rate
+ * limit, a network error, a Core that is busy — and the page keeps its
+ * session, its frame and the state the customer entered.
  */
 const fatalRefreshCodes = new Set([
   'PLUGIN_PAGE_SESSION_REVOKED', 'SESSION_REVOKED', 'INVALID_TOKEN', 'FORBIDDEN', 'PLUGIN_PAGE_ORIGIN_FORBIDDEN',
+  'NOT_FOUND', 'PLUGIN_MAINTENANCE',
 ]);
+
+/**
+ * The catalogue code of a failure.
+ *
+ * The shell of the storefront puts the code in the message of the error, the
+ * shell of the admin puts it in the code of the error, so both are read.
+ */
+function failureCode(error: unknown): string {
+  const code = error && typeof error === 'object' ? (error as { code?: unknown }).code : undefined;
+  if (typeof code === 'string' && /^[A-Z][A-Z0-9_]{0,63}$/.test(code)) return code;
+  const message = error instanceof Error ? error.message : typeof error === 'string' ? error : '';
+  return /^[A-Z][A-Z0-9_]{0,63}$/.test(message) ? message : '';
+}
 
 /** Whether a failed refresh ends the page or only the refresh. */
 export function refreshFailureEndsPage(error: unknown): boolean {
-  const code = error instanceof Error ? error.message : typeof error === 'string' ? error : '';
-  return fatalRefreshCodes.has(code);
+  return fatalRefreshCodes.has(failureCode(error));
 }
 
 /** Whether Core refused the refresh because the budget of the session is spent. */
 export function refreshWasRateLimited(error: unknown): boolean {
-  const code = error instanceof Error ? error.message : typeof error === 'string' ? error : '';
-  return code === 'RATE_LIMITED';
+  return failureCode(error) === 'RATE_LIMITED';
 }
 
 /** The code the plugin sees for a failed action. */
 function actionErrorCode(error: unknown): string {
-  const code = error instanceof Error ? error.message : typeof error === 'string' ? error : '';
-  return /^[A-Z][A-Z0-9_]{0,63}$/.test(code) ? code : 'PLUGIN_PAGE_ACTION_FAILED';
+  return failureCode(error) || 'PLUGIN_PAGE_ACTION_FAILED';
 }
 
 /** The frame exists only within this dedicated page component. */
@@ -117,6 +129,7 @@ export function PluginPageShell(props: Props) {
       try {
         result = await currentProps.current.transport(path('/refresh'), 'POST', auth()) as { pluginToken: string; expiresAt: string; context: ShellSession['context'] };
       } catch (error) {
+        if (disposed || binding !== expected || frame.current?.contentWindow !== expected.source) throw new Error('SESSION_REVOKED');
         // A spent budget does not cost the plugin its token: the token the
         // shell holds is still valid, so the shell answers with it and the
         // plugin keeps working. The next refresh may answer with a new one.

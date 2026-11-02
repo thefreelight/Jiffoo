@@ -5460,28 +5460,28 @@ Cleanup conclusion: PASS
 Delivery status: API PASS / cleanup PASS
 | Shard | Exit | Duration | Start at | Test Files | Tests | Failed files |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | 0 | 664.4s | 02:14:19 | 54 files, 54 passed | 687 tests, 687 passed | none |
-| 2 | 0 | 628.3s | 02:14:19 | 55 files, 55 passed | 759 tests, 759 passed | none |
-| 3 | 0 | 625.2s | 02:14:20 | 56 files, 56 passed | 743 tests, 743 passed | none |
-| 4 | 0 | 664.8s | 02:14:21 | 55 files, 55 passed | 689 tests, 689 passed | none |
+| 1 | 0 | 654.2s | 02:42:23 | 54 files, 54 passed | 687 tests, 687 passed | none |
+| 2 | 0 | 610.5s | 02:42:24 | 55 files, 55 passed | 759 tests, 759 passed | none |
+| 3 | 0 | 613.5s | 02:42:24 | 56 files, 56 passed | 743 tests, 743 passed | none |
+| 4 | 0 | 647.2s | 02:42:25 | 55 files, 55 passed | 689 tests, 689 passed | none |
 Run Admin tests:
-   Start at  02:25:23
+   Start at  02:53:13
  Test Files  65 passed (65)
       Tests  688 passed (688)
 Run Shop tests:
-   Start at  02:25:43
+   Start at  02:53:33
  Test Files  42 passed (42)
-      Tests  291 passed (291)
+      Tests  294 passed (294)
 
 | Step | Result | Duration |
 | --- | --- | --- |
 | Prisma generate | PASS | 0.01s |
-| Type-check API, Admin, Shop and shared | PASS | 3.04s |
-| Lint Shop | PASS | 8.22s |
-| Reset test database | PASS | 3.43s |
-| Run API tests in 4 shards | PASS | 683.62s |
-| Run Admin tests | PASS | 20.12s |
-| Run Shop tests | PASS | 23.88s |
+| Type-check API, Admin, Shop and shared | PASS | 2.97s |
+| Lint Shop | PASS | 7.95s |
+| Reset test database | PASS | 3.19s |
+| Run API tests in 4 shards | PASS | 666.84s |
+| Run Admin tests | PASS | 20.24s |
+| Run Shop tests | PASS | 21.88s |
 ```
 
 ### What the next reader should know
@@ -5495,6 +5495,25 @@ Run Shop tests:
 - A page that survives a refused refresh is the rule of the shell. A plugin
   that needs the page to end has to revoke the session, not to exhaust the
   budget.
+
+### The review of the batch
+
+An independent reviewer read the diff against the goals of the change and found
+one blocking defect and three findings of less weight. The blocking defect was
+that the classification of a failed refresh read the code of the failure only
+from the message of the error: the shell of the storefront puts the catalogue
+code in the message, the shell of the admin puts it in the code of the error,
+so on the admin surface no revoked session ended the page and the rate limit
+was never recognised. The classification now reads both. The findings of less
+weight were answered as well: a plugin that is gone (NOT_FOUND) and a Core in
+maintenance end the page, the fallback of the shell answers only after the
+binding was checked, the bridge refreshes one token at a time and waits half
+a minute after a refresh that Core refused, so a spent budget does not become
+a refresh per request, and the bridge keeps the token it holds while that
+token is valid. The reviewer also noted that the limit is checked before the
+session is authorized, so a session revoked during a spent budget is not seen
+as revoked until a refresh is answered again; that trade-off is written down
+in the design.
 
 ### The review of the batch
 

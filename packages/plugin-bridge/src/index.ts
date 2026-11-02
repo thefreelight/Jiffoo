@@ -28,6 +28,8 @@ function isContext(value: Plain | undefined): value is Plain & PageContext {
 const TOKEN_TTL_MS = 120_000;
 /** A token is refreshed before it expires, not after it failed. */
 const TOKEN_REFRESH_MARGIN_MS = 30_000;
+/** A spent refresh budget does not become a refresh per request. */
+const TOKEN_REFRESH_BACKOFF_MS = 30_000;
 
 /** One client per iframe document. Core credentials never enter this client. */
 export function createPluginBridge() {
@@ -37,6 +39,8 @@ export function createPluginBridge() {
   let closed = false;
   let token = '';
   let tokenExpiresAt = 0;
+  let lastRefreshAt = 0;
+  let refreshing: Promise<string> | undefined;
   let context: PageContext | undefined;
   let revision = -1;
   const acceptRate = messageBudget();
@@ -125,11 +129,20 @@ export function createPluginBridge() {
     });
   }
   async function refreshToken(): Promise<string> {
-    const result = await request('token.refresh') as Record<string, Plain>;
-    if (closed) throw new Error('Bridge closed');
-    if (typeof result.pluginToken !== 'string') throw new Error('Invalid token response');
-    rememberToken(result.pluginToken, result.expiresAt);
-    return token;
+    // One refresh at a time: a frame that asks for a token from several
+    // places at once spends one refresh of the budget of the session, not one
+    // per call.
+    if (refreshing) return refreshing;
+    lastRefreshAt = Date.now();
+    refreshing = (async () => {
+      const result = await request('token.refresh') as Record<string, Plain>;
+      if (closed) throw new Error('Bridge closed');
+      if (typeof result.pluginToken !== 'string') throw new Error('Invalid token response');
+      rememberToken(result.pluginToken, result.expiresAt);
+      return token;
+    })();
+    try { return await refreshing; }
+    finally { refreshing = undefined; }
   }
   return {
     ready, request,
@@ -148,8 +161,14 @@ export function createPluginBridge() {
       if (closed) throw new Error('Bridge closed');
       // A token lives two minutes. The bridge refreshes it when it is about to
       // expire, so a plugin that asks for a token on every request spends one
-      // refresh of the budget of the session instead of one per request.
-      if (Date.now() + TOKEN_REFRESH_MARGIN_MS >= tokenExpiresAt) await refreshToken();
+      // refresh of the budget of the session instead of one per request. A
+      // refresh that Core refused does not become a refresh per request
+      // either: the bridge waits, and it keeps the token it holds while that
+      // token is still valid.
+      if (refreshing || (Date.now() + TOKEN_REFRESH_MARGIN_MS >= tokenExpiresAt && Date.now() - lastRefreshAt >= TOKEN_REFRESH_BACKOFF_MS)) {
+        try { await refreshToken(); }
+        catch (error) { if (Date.now() >= tokenExpiresAt) throw error; }
+      }
       return token;
     },
     refreshToken,
