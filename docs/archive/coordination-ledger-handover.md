@@ -4659,3 +4659,36 @@ Run API tests:
 | Check Prisma migration drift | PASS | 1.45s |
 | Run API tests | PASS | 166.19s |
 ```
+
+The batch changes the schema and the core runtime, so the certifying run is the shard mode. Its
+summary, printed from `verify-summary.txt`:
+
+```
+| Shard | Exit | Duration | Start at | Test Files | Tests | Failed files |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | 0 | 732.1s | 11:27:23 | 53 files, 53 passed | 665 tests, 665 passed | none |
+| 2 | 0 | 573.8s | 11:27:24 | 54 files, 54 passed | 824 tests, 824 passed | none |
+| 3 | 0 | 616.5s | 11:27:26 | 55 files, 55 passed | 680 tests, 680 passed | none |
+| 4 | 0 | 688.9s | 11:27:25 | 54 files, 54 passed | 666 tests, 666 passed | none |
+Run Admin tests:
+   Start at  11:39:32
+ Test Files  65 passed (65)
+      Tests  684 passed (684)
+Run Shop tests:
+   Start at  11:39:54
+ Test Files  40 passed (40)
+      Tests  285 passed (285)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check API, Admin, Shop and shared | PASS | 13.16s |
+| Lint Shop | PASS | 7.71s |
+| Reset test database | PASS | 3.13s |
+| Run API tests in 4 shards | PASS | 744.09s |
+| Run Admin tests | PASS | 22.52s |
+| Run Shop tests | PASS | 23.83s |
+```
+
+The shard run itself reports `Test conclusion: PASS`, `Cleanup conclusion: PASS` and
+`Coverage verdict: PASS` over the whole API catalogue.
