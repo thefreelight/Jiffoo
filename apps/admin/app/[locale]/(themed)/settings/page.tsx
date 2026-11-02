@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLocale, useT } from 'shared/src/i18n/react';
-import { formatStoreTimestamp, storeTimezones } from 'shared';
+import { formatStoreTimestamp, storeTimezones, STORE_CURRENCIES } from 'shared';
 import { settingsApi, uploadApi, unwrapApiResponse, type SystemSettingsMap } from '@/lib/api';
 import { useStoreDate } from '@/lib/store-time';
 import { registerNavigationGuard } from '@/lib/pending-navigation';
@@ -20,7 +20,8 @@ const policiesKey = 'fulfillment.policies';
 const catalogKey = 'fulfillment.policy_catalog';
 const defaults = ['US', 'CA', 'AU', 'CN', 'GB'];
 const keys = ['orders.number_prefix', 'branding.platform_name', 'branding.store_description', 'branding.logo', 'contact.email', 'contact.phone', 'contact.address', 'localization.locale', 'localization.currency', 'localization.timezone', policiesKey];
-const currencies = ['USD', 'EUR', 'GBP', 'CNY', 'HKD', 'TWD'];
+/** The currencies a store may select, from the catalogue of the product. */
+const currencies = STORE_CURRENCIES as readonly string[];
 const zones = storeTimezones();
 const text = (value: unknown) => typeof value === 'string' ? value : '';
 /** One entry of the catalogue of the fulfilment policies the API publishes. */

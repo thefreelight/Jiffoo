@@ -101,8 +101,26 @@ export const CURRENCIES = {
   GBP: { code: 'GBP', symbol: '£', name: 'British Pound' },
   JPY: { code: 'JPY', symbol: '¥', name: 'Japanese Yen' },
   CNY: { code: 'CNY', symbol: '¥', name: 'Chinese Yuan' },
+  HKD: { code: 'HKD', symbol: 'HK$', name: 'Hong Kong Dollar' },
+  TWD: { code: 'TWD', symbol: 'NT$', name: 'New Taiwan Dollar' },
   KRW: { code: 'KRW', symbol: '₩', name: 'Korean Won' },
 } as const;
+
+/**
+ * The currencies a store may select as its store currency.
+ *
+ * Every currency of the list is exactly representable in the `Decimal(18, 2)`
+ * price columns: the two decimal ones keep their two decimal places and the
+ * zero decimal ones (JPY, KRW) are whole units that the money model reads
+ * exactly. A currency outside the list cannot be stored exactly: the three
+ * decimal ones (BHD, JOD, KWD, OMR, TND) would be rounded by the database
+ * and an unknown code has no minor unit at all.
+ *
+ * The list is the one catalogue of the product: the API accepts these codes,
+ * the Admin offers them and the presentation catalogue above names every one
+ * of them.
+ */
+export const STORE_CURRENCIES = ['USD', 'EUR', 'GBP', 'CNY', 'HKD', 'TWD', 'JPY', 'KRW'] as const;
 
 export const LANGUAGES = {
   EN: { code: 'en-US', name: 'English', nativeName: 'English' },

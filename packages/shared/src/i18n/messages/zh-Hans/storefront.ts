@@ -122,6 +122,8 @@ export const storefront = {
     genericError: '结账暂时不可用，请重试。',
     paymentUnavailable: '此付款方式已不可用，请选择其他方式。',
     shippingUnavailable: '此配送方式已不可用，请选择其他方式。',
+    taxUnavailable: '正在计算税费',
+    taxUnavailableNote: '正在计算税费，因此暂时还不知道总价。税费算出后即可下单。',
     stockAvailable: '可购数量：', confirmation: '订单确认',
     status: '付款状态', orderStatus: '订单状态', items: '商品',
     paymentInstructions: '付款说明', pending: '等待付款',

@@ -234,7 +234,7 @@ export function CheckoutView({ cart, locale, address: initialAddress, countries,
         </fieldset>
         <fieldset disabled={busy || availability.blocked || !!paymentOrderId} className="space-y-3">
           <legend className="mb-3 text-base font-semibold">{t.payment}</legend>
-          {!total && <p className="rounded-lg border border-line p-4 text-[13px] text-subtle">{copy.paymentPrompt}</p>}
+          {!total && <p className="rounded-lg border border-line p-4 text-[13px] text-subtle">{quote?.taxUnavailable ? t.taxUnavailableNote : copy.paymentPrompt}</p>}
           {total && quote?.paymentMethods.map((method) => <label key={method.providerSlug} className="flex cursor-pointer items-center gap-3 rounded-lg border border-[var(--shop-border-strong)] p-4 has-checked:border-ink">
             <input type="radio" name="payment" className="size-4 accent-action" checked={paymentMethod === method.providerSlug} onChange={() => setPaymentMethod(method.providerSlug)} /><span>{method.displayName}</span>
           </label>)}

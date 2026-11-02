@@ -69,6 +69,8 @@ export type Quote = {
   tax?: string;
   taxInclusive?: boolean;
   total?: string;
+  /** The tax of the quote is unknown: the tax provider did not answer. */
+  taxUnavailable?: boolean;
 };
 
 export type Order = {

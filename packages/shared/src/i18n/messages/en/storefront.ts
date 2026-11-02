@@ -122,6 +122,8 @@ export const storefront = {
     genericError: 'Checkout is temporarily unavailable. Please try again.',
     paymentUnavailable: 'This payment method is no longer available. Please choose another.',
     shippingUnavailable: 'This shipping method is no longer available. Please choose another.',
+    taxUnavailable: 'The tax is being calculated',
+    taxUnavailableNote: 'The tax is being calculated, so the total is not known yet. The order can be placed once the tax is known.',
     stockAvailable: 'Available quantity:', confirmation: 'Order confirmation',
     status: 'Payment status', orderStatus: 'Order status', items: 'Items',
     paymentInstructions: 'Payment instructions', pending: 'Payment pending',

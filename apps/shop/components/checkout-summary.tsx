@@ -21,8 +21,10 @@ export function CheckoutSummary({ cart, quote, shippingOptionId, locale, currenc
     <dl className="space-y-2.5 border-t border-line pt-4">
       <div className="flex justify-between gap-3"><dt className="text-subtle">{t.checkout.subtotal}</dt><dd>{money(quote?.subtotal ?? cart.subtotal)}</dd></div>
       <div className="flex justify-between gap-3"><dt className="text-subtle">{t.checkout.shipping}</dt><dd>{shipping ? money(shipping.amount) : t.s4.afterAddress}</dd></div>
-      {quote?.tax !== undefined && <div className="flex justify-between gap-3"><dt className="text-subtle">{t.checkout.tax} ({quote.taxInclusive ? t.checkout.taxInclusive : t.checkout.taxExclusive})</dt><dd>{money(quote.tax)}</dd></div>}
-      <div className="flex justify-between border-t border-line pt-3 text-base font-semibold"><dt>{t.checkout.total}</dt><dd>{quote?.total ? money(quote.total) : '—'}</dd></div>
+      {quote?.taxUnavailable
+        ? <div className="flex justify-between gap-3"><dt className="text-subtle">{t.checkout.tax}</dt><dd className="text-subtle">{t.checkout.taxUnavailable}</dd></div>
+        : quote?.tax !== undefined && <div className="flex justify-between gap-3"><dt className="text-subtle">{t.checkout.tax} ({quote.taxInclusive ? t.checkout.taxInclusive : t.checkout.taxExclusive})</dt><dd>{money(quote.tax)}</dd></div>}
+      <div className="flex justify-between border-t border-line pt-3 text-base font-semibold"><dt>{t.checkout.total}</dt><dd>{quote?.total ? money(quote.total) : quote?.taxUnavailable ? <span className="text-subtle text-sm font-normal">{t.checkout.taxUnavailable}</span> : '—'}</dd></div>
     </dl>
   </div>;
 }

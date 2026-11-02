@@ -1,16 +1,19 @@
+import { STORE_CURRENCIES as STORE_CURRENCY_CODES } from '@jiffoo/shared';
+
 export const CURRENCY_EXPONENTS: Record<string, number> = { JPY: 0, KRW: 0, VND: 0, BHD: 3, JOD: 3, KWD: 3, OMR: 3, TND: 3 };
 
 /**
  * The currencies a store may select as its store currency.
  *
- * Every currency of the list is exactly representable in the `Decimal(18, 2)`
- * price columns: the two decimal ones keep their two decimal places and the
- * zero decimal ones (JPY, KRW) are whole units that `decimalToMinor` reads
+ * The list is the catalogue of the shared package, so the API, the Admin and
+ * the storefront read the same codes. The money model reads every currency of
+ * it exactly: the two decimal ones keep their two decimal places and the zero
+ * decimal ones (JPY, KRW) are whole units that `decimalToMinor` reads
  * exactly. A currency outside the list cannot be stored exactly: the three
  * decimal ones (BHD, JOD, KWD, OMR, TND) would be rounded by the database and
  * an unknown code has no minor unit at all.
  */
-export const STORE_CURRENCIES = ['USD', 'EUR', 'GBP', 'CNY', 'HKD', 'TWD', 'JPY', 'KRW'] as const;
+export const STORE_CURRENCIES = STORE_CURRENCY_CODES;
 
 /**
  * Whether a currency code names a currency a store may select. The comparison
