@@ -1,0 +1,42 @@
+// plugin-services.prisma — the durable service call ledger of the core-mediated
+// plugin service contract. The extensions module owns the table; the row is the
+// stable call ID a provider deduplicates on.
+
+model PluginServiceCall {
+  // The stable call ID. It is the primary key, so a provider's own dedup
+  // record and this ledger agree on one identifier.
+  id                      String   @id @default(uuid())
+  callerInstallationId    String
+  callerSlug              String
+  providerInstallationId  String
+  providerSlug            String
+  service                 String
+  version                 Int
+  method                  String
+  idempotencyKey          String
+  inputHash               String
+  // RUNNING, SUCCEEDED, FAILED or UNKNOWN.
+  status                  String   @default("RUNNING")
+  // The stored terminal outcome, replayed verbatim on an equal key.
+  response                Json?
+  // The safe reason of an unknown outcome. It never carries provider data.
+  safeError               Json?
+  callerGeneration        BigInt
+  providerGeneration      BigInt
+  principalType           String?
+  principalId             String?
+  // The token of the invocation that owns the RUNNING row.
+  claimToken              String   @db.Uuid
+  deadlineAt              DateTime @db.Timestamptz(3)
+  // The exclusive claim of an UNKNOWN row during reconciliation.
+  reconciliationClaimToken String? @db.Uuid
+  reconciliationDeadlineAt DateTime? @db.Timestamptz(3)
+  reconciliationSequence   Int      @default(0)
+  createdAt               DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt               DateTime @updatedAt @db.Timestamptz(3)
+
+  @@unique([callerInstallationId, providerInstallationId, service, version, method, idempotencyKey])
+  @@index([status, deadlineAt])
+  @@map("plugin_service_calls")
+  @@schema("public")
+}

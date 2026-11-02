@@ -2798,6 +2798,7 @@ const TABLE_OWNERS: Record<string, string> = {
   theme_package_blobs: 'storage',
   plugin_principals: 'plugins',
   plugin_tasks: 'plugins',
+  plugin_service_calls: 'extensions/runtime',
   plugin_task_attempts: 'plugins',
   plugin_task_final_failures: 'plugins',
   plugin_task_execution_slots: 'extensions',

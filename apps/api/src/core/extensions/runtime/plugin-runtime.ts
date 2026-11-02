@@ -45,6 +45,7 @@ import { readStoredPluginManifest } from '@/core/extensions/runtime/stored-manif
 import { fulfillmentV1Methods, getPluginManifestIssues, isPluginManifest, notificationV1Methods, paymentV2Methods, PLUGIN_CONTRACT_VERSIONS, shippingV1Methods, taxV1Methods, validateServicePayload, validateServicePayloadSize, type BoundPrincipal, type PluginContractName, type PluginEvent, type PluginEventHandler, type PluginServiceCall, type PluginServiceDependencyDeclaration, type ServiceResult } from '@jiffoo/shared';
 import { providerInvocation, providerOutcomeToResult, serviceCoreError, serviceKey, servicePermission, serviceRegistrationsOf, SERVICE_CALL_DEFAULT_TIMEOUT_MS, SERVICE_CALL_MAX_DEPTH, SERVICE_CALL_MAX_TIMEOUT_MS, SERVICE_CALL_MIN_TIMEOUT_MS, type ServiceMethodSchemas } from '@/core/extensions/runtime/service-runtime';
 import { listPaidOrders } from '@/core/extensions/runtime/commerce-query';
+import { claimServiceCall, fenceNotExecuted, markServiceCallUnknown, settleServiceCall, type ServiceCallHandle } from '@/core/extensions/runtime/service-ledger';
 import { prisma } from '@/config/database';
 import type { PluginInstall } from '@prisma/client';
 import { ensurePluginRegistryFresh } from '@/core/admin/extension-installer/plugin-registry-freshness';
@@ -1033,12 +1034,6 @@ export async function callService(
   if (!declaration || !method) {
     return serviceCoreError('PLUGIN_SERVICE_DEPENDENCY_INVALID', `The provider ${request.plugin} does not declare ${request.service}.v${request.version}.${request.method}`);
   }
-  // The durable service call ledger is the next batch. Until it exists, a method
-  // that requires an idempotent outcome is refused rather than invoked.
-  if (method.idempotencyRequired) {
-    return serviceCoreError('PLUGIN_SERVICE_IDEMPOTENCY_REQUIRED', `The method ${permission} requires an idempotent outcome that this Core cannot record yet`);
-  }
-
   const permit = await sharedProtection.breaker(pluginProtectionScope(instance.id, instance.protectionGeneration));
   if (!permit) return serviceCoreError('PLUGIN_SERVICE_DEPENDENCY_UNAVAILABLE', `The provider ${request.plugin} is not available`);
 
@@ -1061,31 +1056,93 @@ export async function callService(
     return serviceCoreError('PLUGIN_SERVICE_DEPENDENCY_INVALID', `The provider ${request.plugin} does not provide ${request.service}.v${request.version}.${request.method}`);
   }
   const size = validateServicePayloadSize(request.input);
-  if (size.length) return serviceCoreError('PLUGIN_SERVICE_DEPENDENCY_INVALID', size[0].message);
+  if (size.length) {
+    void releaseRuntime(activeRuntime);
+    return serviceCoreError('PLUGIN_SERVICE_DEPENDENCY_INVALID', size[0].message);
+  }
   const inputIssues = validateServicePayload(registration.schemas.input, request.input);
-  if (inputIssues.length) return serviceCoreError('PLUGIN_SERVICE_DEPENDENCY_INVALID', 'The call input does not match the declared schema');
+  if (inputIssues.length) {
+    void releaseRuntime(activeRuntime);
+    return serviceCoreError('PLUGIN_SERVICE_DEPENDENCY_INVALID', 'The call input does not match the declared schema');
+  }
 
   const timeoutMs = Math.min(
     Math.max(typeof request.timeoutMs === 'number' ? Math.trunc(request.timeoutMs) : SERVICE_CALL_DEFAULT_TIMEOUT_MS, SERVICE_CALL_MIN_TIMEOUT_MS),
     SERVICE_CALL_MAX_TIMEOUT_MS,
   );
+
+  // A method that requires an idempotent outcome is recorded before the
+  // provider is invoked. The ledger decides whether this call is a first
+  // execution, a replay of a settled outcome, a reconciliation of an unknown
+  // outcome, or a refusal.
+  let handle: ServiceCallHandle | undefined;
+  if (method.idempotencyRequired) {
+    const claim = await claimServiceCall({
+      callerInstallationId: caller.installationId,
+      callerSlug: caller.slug,
+      providerInstallationId: instance.id,
+      providerSlug: request.plugin,
+      service: request.service,
+      version: request.version,
+      method: request.method,
+      idempotencyKey: request.idempotencyKey,
+      input: request.input,
+      callerGeneration: consumer.protectionGeneration,
+      providerGeneration: instance.protectionGeneration,
+      principalType: caller.principal?.type ?? null,
+      principalId: caller.principal?.id ?? null,
+      timeoutMs,
+    });
+    if (claim.kind === 'conflict') {
+      void releaseRuntime(activeRuntime);
+      return serviceCoreError('PLUGIN_SERVICE_IDEMPOTENCY_CONFLICT', `The idempotency key of ${permission} was already used with a different input`, {
+        originalCallId: claim.row.id,
+      });
+    }
+    if (claim.kind === 'in-progress') {
+      void releaseRuntime(activeRuntime);
+      return serviceCoreError('PLUGIN_SERVICE_CALL_IN_PROGRESS', `The service call ${claim.row.id} is already in progress`, {
+        originalCallId: claim.row.id,
+        retryable: true,
+        retryAfterSeconds: 5,
+        guidance: 'Retry the same method with the same input and the same idempotency key.',
+      });
+    }
+    if (claim.kind === 'replay') {
+      // A stored outcome is only replayed to a caller that is still allowed.
+      const refusal = await servicePrincipalRefusal(caller.principal);
+      if (refusal) {
+        void releaseRuntime(activeRuntime);
+        return refusal;
+      }
+      void releaseRuntime(activeRuntime);
+      return claim.result;
+    }
+    handle = claim.handle;
+    const refusal = await serviceCallAuthorizationRefusal(handle, consumer, instance, caller.principal);
+    if (refusal) {
+      void releaseRuntime(activeRuntime);
+      return refusal;
+    }
+  }
+
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
   let timedOut = false;
+  let timer: NodeJS.Timeout | undefined;
   const deadline = new Promise<never>((_, reject) => {
-    setTimeout(() => { timedOut = true; controller.abort(); reject(new Error('SERVICE_TIMEOUT')); }, timeoutMs);
+    timer = setTimeout(() => { timedOut = true; controller.abort(); reject(new Error('SERVICE_TIMEOUT')); }, timeoutMs);
   });
-  const invocation = providerInvocation({
-    callId: randomUUID(),
-    reconcile: false,
-    signal: controller.signal,
-    caller: {
-      installationId: caller.installationId, slug: caller.slug, version: caller.version,
-      principal: caller.principal, requestId: caller.requestId,
-    },
-  });
-  try {
-    const outcome = await Promise.race([
+  const invokeProvider = async (callId: string, reconcile: boolean): Promise<unknown> => {
+    const invocation = providerInvocation({
+      callId,
+      reconcile,
+      signal: controller.signal,
+      caller: {
+        installationId: caller.installationId, slug: caller.slug, version: caller.version,
+        principal: caller.principal, requestId: caller.requestId,
+      },
+    });
+    return Promise.race([
       // The provider's handler runs in the provider's own database scope: the
       // invocation admits it and the handler scope lets it use its own tables.
       withPluginDatabaseInvocation(request.plugin, instance.id, () => withPluginDatabaseHandler(
@@ -1093,16 +1150,121 @@ export async function callService(
       )),
       deadline,
     ]);
-    return providerOutcomeToResult(outcome, registration.schemas);
+  };
+  try {
+    let outcome = await invokeProvider(handle?.callId ?? randomUUID(), handle?.mode === 'reconcile');
+    if (isNotExecutedOutcome(outcome)) {
+      if (!handle || handle.mode !== 'reconcile') {
+        // A provider that reports a non-execution during a normal execution
+        // breaks the protocol, and the outcome of the call stays unknown.
+        if (handle) await markServiceCallUnknown(handle, { code: 'PLUGIN_SERVICE_PROVIDER_CRASHED', message: 'The provider returned an invalid outcome' });
+        return serviceCoreError('PLUGIN_SERVICE_PROVIDER_CRASHED', 'The provider returned an invalid outcome');
+      }
+      // The provider proved that it committed no effect, so the row returns to
+      // RUNNING once and the normal invocation runs with the same call ID.
+      const fenced = await fenceNotExecuted(handle, timeoutMs);
+      if (!fenced) {
+        return serviceCoreError('PLUGIN_SERVICE_OUTCOME_UNKNOWN', `The outcome of the service call ${handle.callId} is unknown`, unknownOutcomeDetails(handle.callId, request));
+      }
+      handle = fenced;
+      outcome = await invokeProvider(handle.callId, false);
+      if (isNotExecutedOutcome(outcome)) {
+        await markServiceCallUnknown(handle, { code: 'PLUGIN_SERVICE_PROVIDER_CRASHED', message: 'The provider returned an invalid outcome' });
+        return serviceCoreError('PLUGIN_SERVICE_PROVIDER_CRASHED', 'The provider returned an invalid outcome');
+      }
+    }
+    const result = providerOutcomeToResult(outcome, registration.schemas);
+    if (handle) {
+      // A success and a durable business rejection are terminal outcomes. A
+      // Core refusal of the provider's answer is not, and leaves the row
+      // unknown, because the effect may still have committed.
+      if (result.ok === true) await settleServiceCall(handle, result);
+      else if (result.source === 'provider') await settleServiceCall(handle, result);
+      else await markServiceCallUnknown(handle, { code: result.error.code, message: result.error.message });
+    }
+    return result;
   } catch (error) {
-    if (timedOut) return serviceCoreError('PLUGIN_SERVICE_TIMEOUT', `The provider ${request.plugin} did not answer within ${timeoutMs}ms`);
+    if (timedOut) {
+      if (handle) await markServiceCallUnknown(handle, { code: 'PLUGIN_SERVICE_TIMEOUT', message: `The provider ${request.plugin} did not answer within ${timeoutMs}ms` });
+      if (handle?.mode === 'reconcile') {
+        return serviceCoreError('PLUGIN_SERVICE_OUTCOME_UNKNOWN', `The outcome of the service call ${handle.callId} is unknown`, unknownOutcomeDetails(handle.callId, request));
+      }
+      return serviceCoreError('PLUGIN_SERVICE_TIMEOUT', `The provider ${request.plugin} did not answer within ${timeoutMs}ms`, handle ? unknownOutcomeDetails(handle.callId, request) : undefined);
+    }
     await recordPluginFailure(request.plugin, error, 'service', instance.id);
     await sharedProtection.result(permit, false);
-    return serviceCoreError('PLUGIN_SERVICE_PROVIDER_CRASHED', 'The provider failed to answer the service call');
+    if (handle) await markServiceCallUnknown(handle, { code: 'PLUGIN_SERVICE_PROVIDER_CRASHED', message: 'The provider failed to answer the service call' });
+    if (handle?.mode === 'reconcile') {
+      return serviceCoreError('PLUGIN_SERVICE_OUTCOME_UNKNOWN', `The outcome of the service call ${handle.callId} is unknown`, unknownOutcomeDetails(handle.callId, request));
+    }
+    return serviceCoreError('PLUGIN_SERVICE_PROVIDER_CRASHED', 'The provider failed to answer the service call', handle ? unknownOutcomeDetails(handle.callId, request) : undefined);
   } finally {
-    clearTimeout(timer);
+    if (timer) clearTimeout(timer);
     void releaseRuntime(activeRuntime);
   }
+}
+
+/**
+ * The refusals a stored outcome still has to pass. A settled outcome is only
+ * replayed to a caller that is still allowed, and an unknown outcome is only
+ * reconciled while the participating plugins are the ones the call started
+ * with.
+ */
+async function serviceCallAuthorizationRefusal(
+  handle: ServiceCallHandle,
+  consumer: { protectionGeneration: bigint },
+  provider: { protectionGeneration: bigint },
+  principal: BoundPrincipal | null,
+): Promise<ServiceResult<never> | null> {
+  if (handle.mode === 'reconcile'
+    && (consumer.protectionGeneration !== handle.row.callerGeneration
+      || provider.protectionGeneration !== handle.row.providerGeneration)) {
+    return serviceCoreError('PLUGIN_SERVICE_OUTCOME_UNKNOWN', `The outcome of the service call ${handle.callId} is unknown and cannot be reconciled after a change of the participating plugins`, {
+      originalCallId: handle.callId,
+      outcomeUnknown: true,
+    });
+  }
+  return servicePrincipalRefusal(principal);
+}
+
+/** The refusal of a principal that is no longer allowed to act. */
+async function servicePrincipalRefusal(principal: BoundPrincipal | null): Promise<ServiceResult<never> | null> {
+  if (principal && !await servicePrincipalAllowed(principal)) {
+    return serviceCoreError('PLUGIN_SERVICE_PERMISSION_DENIED', 'The principal of this service call is no longer allowed');
+  }
+  return null;
+}
+
+/** Whether the principal of a service call is still an active user of its role. */
+async function servicePrincipalAllowed(principal: BoundPrincipal): Promise<boolean> {
+  const rows = await prisma.$queryRaw<Array<{ id: string }>>`
+    SELECT id FROM users
+    WHERE id = ${principal.id} AND "isActive" AND "removedAt" IS NULL
+      AND role = ${principal.type === 'admin' ? 'ADMIN' : 'USER'}
+    LIMIT 1`;
+  return rows.length > 0;
+}
+
+/** The repair instruction of an unknown outcome. */
+function unknownOutcomeDetails(callId: string, request: PluginServiceCall) {
+  return {
+    originalCallId: callId,
+    outcomeUnknown: true,
+    reconcile: {
+      plugin: request.plugin,
+      service: request.service,
+      version: request.version,
+      method: request.method,
+      idempotencyKey: request.idempotencyKey,
+      instruction: 'Call the same method with the same input and the same idempotency key to reconcile the outcome.',
+    },
+  };
+}
+
+/** Whether a provider proved that it committed no effect. */
+function isNotExecutedOutcome(outcome: unknown): boolean {
+  return outcome !== null && typeof outcome === 'object' && !Array.isArray(outcome)
+    && (outcome as { outcome?: unknown }).outcome === 'NOT_EXECUTED';
 }
 
 /** The granted permissions of an installation, as a plain array. */
