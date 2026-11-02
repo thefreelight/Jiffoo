@@ -222,22 +222,38 @@ export async function claimServiceCall(input: ServiceCallClaimInput): Promise<Se
 /**
  * Settles a claimed call. A success and a durable business rejection are
  * terminal outcomes; a Core refusal is not, and leaves the row unknown.
+ *
+ * The answer is whether the row was settled. A lost claim means that another
+ * caller owns the row now, so the outcome must not be published as settled.
  */
-export async function settleServiceCall(handle: ServiceCallHandle, result: ServiceResult<unknown>): Promise<void> {
+export async function settleServiceCall(handle: ServiceCallHandle, result: ServiceResult<unknown>): Promise<boolean> {
   const status = result.ok ? 'SUCCEEDED' : 'FAILED';
   const response = JSON.stringify(result);
   if (handle.mode === 'execute') {
-    await prisma.$executeRaw`
+    const updated = await prisma.$executeRaw`
       UPDATE plugin_service_calls
       SET status = ${status}, response = ${response}::jsonb, "safeError" = NULL, "updatedAt" = now()
       WHERE id = ${handle.callId} AND status = 'RUNNING' AND "claimToken" = ${handle.token}::uuid`;
-    return;
+    return updated > 0;
   }
-  await prisma.$executeRaw`
+  const updated = await prisma.$executeRaw`
     UPDATE plugin_service_calls
     SET status = ${status}, response = ${response}::jsonb, "safeError" = NULL,
       "reconciliationClaimToken" = NULL, "reconciliationDeadlineAt" = NULL, "updatedAt" = now()
     WHERE id = ${handle.callId} AND status = 'UNKNOWN' AND "reconciliationClaimToken" = ${handle.token}::uuid`;
+  return updated > 0;
+}
+
+/**
+ * Releases a claim of a call that never ran. The row of a first execution is
+ * removed, so the next caller is not told that the call is in progress. An
+ * unknown row keeps its claim and its deadline: the outcome stays unknown.
+ */
+export async function releaseServiceCallClaim(handle: ServiceCallHandle): Promise<void> {
+  if (handle.mode !== 'execute') return;
+  await prisma.$executeRaw`
+    DELETE FROM plugin_service_calls
+    WHERE id = ${handle.callId} AND status = 'RUNNING' AND "claimToken" = ${handle.token}::uuid`;
 }
 
 /**

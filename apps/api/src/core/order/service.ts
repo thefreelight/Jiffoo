@@ -33,6 +33,7 @@ import { OrderStatus, PaymentStatus, ShipmentStatus } from './policy';
 import { recordOrderStatusHistory, type OrderStatusHistoryWriter } from './status-history';
 import { assertOrderTransition } from './transition';
 import { lockOrder } from '@/core/shared/locks';
+import { paidOrderItems } from '@/core/shared/paid-order';
 import { PaymentService } from '@/core/payment/service';
 import { CacheService } from '@/core/cache/service';
 
@@ -978,21 +979,7 @@ export class OrderService {
       customerEmail: order.customerEmail ?? null,
       totalAmount: Number(order.totalAmount),
       currency: order.currency,
-      items: order.items.map((item: any) => {
-        const snapshot = readCatalogSnapshot(item.catalogSnapshot);
-        return {
-          id: item.id,
-          productId: item.productId,
-          variantId: item.variantId,
-          productName: snapshot.productName,
-          variantName: snapshot.variantName,
-          skuCode: snapshot.skuCode ?? undefined,
-          quantity: item.quantity,
-          unitPrice: Number(item.unitPrice),
-          fulfillmentData: parseJsonObject(item.fulfillmentData),
-          productTypeData: parseJsonObject(snapshot.productTypeData),
-        };
-      }),
+      items: paidOrderItems(order.items),
     };
   }
 

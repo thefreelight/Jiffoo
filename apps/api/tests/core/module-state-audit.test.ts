@@ -350,7 +350,7 @@ const runtimeHandles = [
   'core/admin/extension-installer/plugin-registry-freshness.ts:inFlight',
   'core/extensions/runtime/plugin-runtime.ts:contractInvocations',
   'core/extensions/runtime/service-runtime.ts:providerRegistrations',
-  'core/extensions/runtime/commerce-query.ts:itemSchema',
+  'core/extensions/commerce/commerce-query.ts:itemSchema',
   'core/extensions/shared/config-crypto.ts:warned',
   'core/cache/redis.ts:RedisCache.instance',
   'core/cache/redis.ts:RedisCache.redis',

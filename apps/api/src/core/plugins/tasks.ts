@@ -107,6 +107,22 @@ export async function validateTaskPrincipal(tx: TaskTransaction, installationId:
   const recorded = await tx.pluginPrincipal.findUnique({ where: { installationId_principalType_principalId: { installationId, principalType: principal.type.toUpperCase(), principalId: principal.id } } });
   if (!user?.isActive || user.removedAt || (principal.type === 'admin' ? user.role !== 'ADMIN' : user.role !== 'USER') || !recorded) throw new ApiError('PLUGIN_TASK_PRINCIPAL_NOT_ALLOWED');
 }
+/**
+ * Whether a principal is still an allowed principal of an installation.
+ *
+ * The `users` table belongs to the auth module. The durable-task engine
+ * already validates the principals of its own tasks against it, and the
+ * service call path of the plugin runtime reuses that check here instead of
+ * reading the table itself.
+ */
+export async function taskPrincipalAllowed(installationId: string, principal: TaskPrincipal | null): Promise<boolean> {
+  if (!principal) return true;
+  const user = await prisma.user.findUnique({ where: { id: principal.id }, select: { role: true, isActive: true, removedAt: true } });
+  if (!user?.isActive || user.removedAt) return false;
+  if (principal.type === 'admin' ? user.role !== 'ADMIN' : user.role !== 'USER') return false;
+  const recorded = await prisma.pluginPrincipal.findUnique({ where: { installationId_principalType_principalId: { installationId, principalType: principal.type.toUpperCase(), principalId: principal.id } } });
+  return !!recorded;
+}
 export async function recordTaskPrincipal(installationId: string, user: { id: string; role: string } | null, source: 'GATEWAY' | 'PAGE_SESSION' = 'GATEWAY'): Promise<TaskPrincipal | null> {
   if (!user) return null;
   return prisma.$transaction(tx => recordTaskPrincipalInTransaction(tx, installationId, user, source));

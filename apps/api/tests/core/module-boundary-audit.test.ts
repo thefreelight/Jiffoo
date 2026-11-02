@@ -196,8 +196,11 @@ const LEGAL_EDGES: Record<string, string> = {
   'checkout -> settings': 'the checkout service reads system settings through the public settings service.',
   'checkout -> shared': 'the checkout service uses the neutral money helper.',
   'extensions/registry -> cache': 'the registry caches its provider and package reads through the public cache service, keyed by the plugin cache version.',
+  'extensions/commerce -> infra/shared-protection': 'the paid-order read applies the shared page budget of the installation through the public protection helpers.',
+  'extensions/commerce -> shared': 'the paid-order read builds the published line items and the exact monetary amounts through the neutral paid-order helpers.',
   'extensions/runtime -> admin/extension-installer': 'the neutral plugin runtime loads the plugin entry module, checks the plugin compatibility, registers the contract runtime, opens the plugin database, refreshes the plugin registry and encodes the payment webhook through the helpers of the installer, which still owns them.',
   'extensions/runtime -> admin/plugin-management': 'the neutral plugin runtime resolves the plugin package and the plugin instance through the public plugin-management service.',
+  'extensions/runtime -> extensions/commerce': 'the neutral plugin runtime hands the paid-order read of a plugin to the commerce module, which owns its cursor and its page budget.',
   'extensions/runtime -> extensions/registry': 'the neutral plugin runtime resolves the default plugin instance through the read-only registry.',
   'extensions/runtime -> extensions/shared': 'the neutral runtime helpers decrypt the stored plugin configuration through the neutral extension helpers.',
   'extensions/runtime -> infra/core-process': 'the plugin migration gate of the neutral runtime module registers its core process through the public process registry.',
@@ -2837,7 +2840,7 @@ const DOMAIN_MEMBERS: Record<string, string[]> = {
   // lifecycle, the task engine owns the durable task rows, and the neutral
   // runtime module records the plugin failures on the installation rows and
   // owns the migration gate that fences a plugin invocation.
-  extensions: ['admin/extension-installer', 'admin/plugin-management', 'plugins', 'extensions/runtime'],
+  extensions: ['admin/extension-installer', 'admin/plugin-management', 'plugins', 'extensions/runtime', 'extensions/commerce'],
   // The infra domain spans the modules of the neutral infrastructure layer that
   // share the outbox tables and the core-process registry: the process registry
   // owns `core_processes`, the outbox modules own the event records, the event

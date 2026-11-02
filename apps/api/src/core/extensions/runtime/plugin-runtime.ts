@@ -22,7 +22,7 @@
 
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
 import { randomUUID } from 'crypto';
-import { assertTaskClaim, recordTaskPrincipal, withTaskScope, taskDeclarationIdentity, currentTaskPrincipal, type TaskClaim } from '@/core/plugins/tasks';
+import { assertTaskClaim, recordTaskPrincipal, withTaskScope, taskDeclarationIdentity, currentTaskPrincipal, taskPrincipalAllowed, type TaskClaim } from '@/core/plugins/tasks';
 import type { TaskInput, PluginTasks, TaskHandlerOptions } from '@jiffoo/shared';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
 import { getDefaultInstance } from '@/core/extensions/registry';
@@ -44,8 +44,8 @@ import { recordPluginFailure, redactPluginFailure } from '@/core/extensions/runt
 import { readStoredPluginManifest } from '@/core/extensions/runtime/stored-manifest';
 import { fulfillmentV1Methods, getPluginManifestIssues, isPluginManifest, notificationV1Methods, paymentV2Methods, PLUGIN_CONTRACT_VERSIONS, shippingV1Methods, taxV1Methods, validateServicePayload, validateServicePayloadSize, type BoundPrincipal, type PluginContractName, type PluginEvent, type PluginEventHandler, type PluginServiceCall, type PluginServiceDependencyDeclaration, type ServiceResult } from '@jiffoo/shared';
 import { providerInvocation, providerOutcomeToResult, serviceCoreError, serviceKey, servicePermission, serviceRegistrationsOf, SERVICE_CALL_DEFAULT_TIMEOUT_MS, SERVICE_CALL_MAX_DEPTH, SERVICE_CALL_MAX_TIMEOUT_MS, SERVICE_CALL_MIN_TIMEOUT_MS, type ServiceMethodSchemas } from '@/core/extensions/runtime/service-runtime';
-import { listPaidOrders } from '@/core/extensions/runtime/commerce-query';
-import { claimServiceCall, fenceNotExecuted, markServiceCallUnknown, settleServiceCall, type ServiceCallHandle } from '@/core/extensions/runtime/service-ledger';
+import { listPaidOrders } from '@/core/extensions/commerce/commerce-query';
+import { claimServiceCall, fenceNotExecuted, markServiceCallUnknown, releaseServiceCallClaim, settleServiceCall, type ServiceCallHandle, type ServiceCallRow } from '@/core/extensions/runtime/service-ledger';
 import { prisma } from '@/config/database';
 import type { PluginInstall } from '@prisma/client';
 import { ensurePluginRegistryFresh } from '@/core/admin/extension-installer/plugin-registry-freshness';
@@ -1077,6 +1077,13 @@ export async function callService(
   // outcome, or a refusal.
   let handle: ServiceCallHandle | undefined;
   if (method.idempotencyRequired) {
+    // The principal is checked before the call is recorded: a principal that
+    // is no longer allowed must not occupy the ledger row of the call.
+    const principalRefusal = await servicePrincipalRefusal(caller.principal, caller.installationId);
+    if (principalRefusal) {
+      void releaseRuntime(activeRuntime);
+      return principalRefusal;
+    }
     const claim = await claimServiceCall({
       callerInstallationId: caller.installationId,
       callerSlug: caller.slug,
@@ -1109,8 +1116,8 @@ export async function callService(
       });
     }
     if (claim.kind === 'replay') {
-      // A stored outcome is only replayed to a caller that is still allowed.
-      const refusal = await servicePrincipalRefusal(caller.principal);
+      // A stored outcome is replayed to a caller that is still allowed.
+      const refusal = await servicePrincipalRefusal(caller.principal, caller.installationId);
       if (refusal) {
         void releaseRuntime(activeRuntime);
         return refusal;
@@ -1119,8 +1126,11 @@ export async function callService(
       return claim.result;
     }
     handle = claim.handle;
-    const refusal = await serviceCallAuthorizationRefusal(handle, consumer, instance, caller.principal);
+    const refusal = await serviceCallAuthorizationRefusal(handle, consumer, instance, caller.principal, caller.installationId);
     if (refusal) {
+      // The call never ran, so the claim is released and the next caller is
+      // not told that the call is in progress.
+      await releaseServiceCallClaim(handle);
       void releaseRuntime(activeRuntime);
       return refusal;
     }
@@ -1164,7 +1174,7 @@ export async function callService(
       // RUNNING once and the normal invocation runs with the same call ID.
       const fenced = await fenceNotExecuted(handle, timeoutMs);
       if (!fenced) {
-        return serviceCoreError('PLUGIN_SERVICE_OUTCOME_UNKNOWN', `The outcome of the service call ${handle.callId} is unknown`, unknownOutcomeDetails(handle.callId, request));
+        return lostClaimOutcome(handle.callId, request);
       }
       handle = fenced;
       outcome = await invokeProvider(handle.callId, false);
@@ -1178,16 +1188,20 @@ export async function callService(
       // A success and a durable business rejection are terminal outcomes. A
       // Core refusal of the provider's answer is not, and leaves the row
       // unknown, because the effect may still have committed.
-      if (result.ok === true) await settleServiceCall(handle, result);
-      else if (result.source === 'provider') await settleServiceCall(handle, result);
-      else await markServiceCallUnknown(handle, { code: result.error.code, message: result.error.message });
+      if (result.ok === true) {
+        if (!await settleServiceCall(handle, result)) return lostClaimOutcome(handle.callId, request);
+      } else if (result.source === 'provider') {
+        if (!await settleServiceCall(handle, result)) return lostClaimOutcome(handle.callId, request);
+      } else {
+        await markServiceCallUnknown(handle, { code: result.error.code, message: result.error.message });
+      }
     }
     return result;
   } catch (error) {
     if (timedOut) {
       if (handle) await markServiceCallUnknown(handle, { code: 'PLUGIN_SERVICE_TIMEOUT', message: `The provider ${request.plugin} did not answer within ${timeoutMs}ms` });
       if (handle?.mode === 'reconcile') {
-        return serviceCoreError('PLUGIN_SERVICE_OUTCOME_UNKNOWN', `The outcome of the service call ${handle.callId} is unknown`, unknownOutcomeDetails(handle.callId, request));
+        return lostClaimOutcome(handle.callId, request);
       }
       return serviceCoreError('PLUGIN_SERVICE_TIMEOUT', `The provider ${request.plugin} did not answer within ${timeoutMs}ms`, handle ? unknownOutcomeDetails(handle.callId, request) : undefined);
     }
@@ -1195,7 +1209,7 @@ export async function callService(
     await sharedProtection.result(permit, false);
     if (handle) await markServiceCallUnknown(handle, { code: 'PLUGIN_SERVICE_PROVIDER_CRASHED', message: 'The provider failed to answer the service call' });
     if (handle?.mode === 'reconcile') {
-      return serviceCoreError('PLUGIN_SERVICE_OUTCOME_UNKNOWN', `The outcome of the service call ${handle.callId} is unknown`, unknownOutcomeDetails(handle.callId, request));
+      return lostClaimOutcome(handle.callId, request);
     }
     return serviceCoreError('PLUGIN_SERVICE_PROVIDER_CRASHED', 'The provider failed to answer the service call', handle ? unknownOutcomeDetails(handle.callId, request) : undefined);
   } finally {
@@ -1205,44 +1219,60 @@ export async function callService(
 }
 
 /**
- * The refusals a stored outcome still has to pass. A settled outcome is only
- * replayed to a caller that is still allowed, and an unknown outcome is only
+ * The refusals a claimed call still has to pass. An unknown outcome is only
  * reconciled while the participating plugins are the ones the call started
- * with.
+ * with, and only by the principal that started it: the reconciliation may run
+ * the effect, and that effect belongs to one principal.
  */
 async function serviceCallAuthorizationRefusal(
   handle: ServiceCallHandle,
   consumer: { protectionGeneration: bigint },
   provider: { protectionGeneration: bigint },
   principal: BoundPrincipal | null,
+  installationId: string,
 ): Promise<ServiceResult<never> | null> {
-  if (handle.mode === 'reconcile'
-    && (consumer.protectionGeneration !== handle.row.callerGeneration
-      || provider.protectionGeneration !== handle.row.providerGeneration)) {
-    return serviceCoreError('PLUGIN_SERVICE_OUTCOME_UNKNOWN', `The outcome of the service call ${handle.callId} is unknown and cannot be reconciled after a change of the participating plugins`, {
-      originalCallId: handle.callId,
-      outcomeUnknown: true,
-    });
+  if (handle.mode === 'reconcile') {
+    if (consumer.protectionGeneration !== handle.row.callerGeneration
+      || provider.protectionGeneration !== handle.row.providerGeneration) {
+      return serviceCoreError('PLUGIN_SERVICE_OUTCOME_UNKNOWN', `The outcome of the service call ${handle.callId} is unknown and cannot be reconciled after a change of the participating plugins`, {
+        originalCallId: handle.callId,
+        outcomeUnknown: true,
+      });
+    }
+    const mismatch = servicePrincipalMismatch(handle.row, principal);
+    if (mismatch) return mismatch;
   }
-  return servicePrincipalRefusal(principal);
+  return servicePrincipalRefusal(principal, installationId);
+}
+
+/**
+ * The refusal of a principal that does not own the stored operation. A repair
+ * task carries no principal, and it may reconcile an operation that a customer
+ * started; the comparison therefore holds only when both principals are known.
+ */
+function servicePrincipalMismatch(row: ServiceCallRow, principal: BoundPrincipal | null): ServiceResult<never> | null {
+  if (!row.principalType || !principal) return null;
+  if (row.principalType === principal.type && row.principalId === principal.id) return null;
+  return serviceCoreError('PLUGIN_SERVICE_PERMISSION_DENIED', 'The stored operation of this service call belongs to another principal');
 }
 
 /** The refusal of a principal that is no longer allowed to act. */
-async function servicePrincipalRefusal(principal: BoundPrincipal | null): Promise<ServiceResult<never> | null> {
-  if (principal && !await servicePrincipalAllowed(principal)) {
+async function servicePrincipalRefusal(principal: BoundPrincipal | null, installationId: string): Promise<ServiceResult<never> | null> {
+  if (principal && !await servicePrincipalAllowed(principal, installationId)) {
     return serviceCoreError('PLUGIN_SERVICE_PERMISSION_DENIED', 'The principal of this service call is no longer allowed');
   }
   return null;
 }
 
-/** Whether the principal of a service call is still an active user of its role. */
-async function servicePrincipalAllowed(principal: BoundPrincipal): Promise<boolean> {
-  const rows = await prisma.$queryRaw<Array<{ id: string }>>`
-    SELECT id FROM users
-    WHERE id = ${principal.id} AND "isActive" AND "removedAt" IS NULL
-      AND role = ${principal.type === 'admin' ? 'ADMIN' : 'USER'}
-    LIMIT 1`;
-  return rows.length > 0;
+/**
+ * Whether the principal of a service call is still an allowed principal.
+ *
+ * The durable-task engine owns the principal registry of an installation and
+ * already validates the principals of its own tasks, so the check lives there
+ * and the runtime does not read the account table itself.
+ */
+async function servicePrincipalAllowed(principal: BoundPrincipal, installationId: string): Promise<boolean> {
+  return taskPrincipalAllowed(installationId, { type: principal.type, id: principal.id });
 }
 
 /** The repair instruction of an unknown outcome. */
@@ -1259,6 +1289,11 @@ function unknownOutcomeDetails(callId: string, request: PluginServiceCall) {
       instruction: 'Call the same method with the same input and the same idempotency key to reconcile the outcome.',
     },
   };
+}
+
+/** The refusal of a lost claim: another caller owns the ledger row now. */
+function lostClaimOutcome(callId: string, request: PluginServiceCall): ServiceResult<never> {
+  return serviceCoreError('PLUGIN_SERVICE_OUTCOME_UNKNOWN', `The outcome of the service call ${callId} is unknown`, unknownOutcomeDetails(callId, request));
 }
 
 /** Whether a provider proved that it committed no effect. */

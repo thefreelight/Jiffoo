@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { EventPayload } from '@jiffoo/shared';
 import {
   OrderItemFulfillmentStatus as PrismaOrderItemFulfillmentStatus,
   OrderPaymentStatus as PrismaOrderPaymentStatus,
@@ -117,18 +118,13 @@ export interface OrderProjection {
 }
 
 /** The order body of the order.paid event payload. */
-export interface OrderPaidPayloadItem {
-  id: string;
-  productId: string;
-  variantId: string;
-  productName: string;
-  variantName: string;
-  skuCode?: string;
-  quantity: number;
-  unitPrice: number;
-  fulfillmentData: Record<string, unknown> | null;
-  productTypeData: Record<string, unknown>;
-}
+/**
+ * The published line item of a paid order.
+ *
+ * The shape is the one the `order.paid` event publishes, so the event item and
+ * the item of a paid-order read are the same value.
+ */
+export type OrderPaidPayloadItem = EventPayload<'order.paid'>['order']['items'][number];
 
 export interface OrderPaidPayload {
   id: string;

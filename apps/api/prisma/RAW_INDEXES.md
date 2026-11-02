@@ -58,6 +58,7 @@ do not drop them.
 | `users_username_trgm_idx` | `users` | `CREATE INDEX IF NOT EXISTS "users_username_trgm_idx" ON "users" USING gin ("username" gin_trgm_ops) WHERE "username" IS NOT NULL` | `20261028031500_data_reliability_indexes/migration.sql` |
 | `product_variants_skuCode_trgm_idx` | `product_variants` | `CREATE INDEX IF NOT EXISTS "product_variants_skuCode_trgm_idx" ON "product_variants" USING gin ("skuCode" gin_trgm_ops) WHERE "skuCode" IS NOT NULL` | `20261028031500_data_reliability_indexes/migration.sql` |
 | `payment_ledger_succeeded_refund_required_idx` | `payment_ledger` | `CREATE INDEX IF NOT EXISTS "payment_ledger_succeeded_refund_required_idx" ON "payment_ledger" ("orderId") WHERE "eventType" = 'SUCCEEDED' AND "refundRequired" = true` | `20261028031500_data_reliability_indexes/migration.sql` |
+| `payment_ledger_accepted_capture_created_idx` | `payment_ledger` | `CREATE INDEX IF NOT EXISTS "payment_ledger_accepted_capture_created_idx" ON "payment_ledger" ("createdAt", "orderId", "id") WHERE "eventType" = 'SUCCEEDED' AND "refundRequired" = false` | `20261102022750_payment_ledger_accepted_capture_index/migration.sql` |
 | `orders_id_trgm_idx` | `orders` | `CREATE INDEX IF NOT EXISTS "orders_id_trgm_idx" ON "orders" USING gin ("id" gin_trgm_ops) WHERE "id" IS NOT NULL` | `20261029061832_orders_id_trgm_index/migration.sql` |
 
 Every row above was read back from the migration files: each of the seventeen indexes is created by

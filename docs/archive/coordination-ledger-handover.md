@@ -4530,3 +4530,132 @@ Run Shop tests:
 | Run Admin tests | PASS | 17.64s |
 | Run Shop tests | PASS | 20.15s |
 ```
+
+## 5zae. The durable service call ledger, the reviewed call path and the completed paid-order read
+
+**Baseline SHA:** `668fbcb7b`. **Commits:** (the commits of this batch).
+
+### What the design asks for, and what this batch delivers
+
+The plugin design's section 7 gives two rules for a money-like service method (R1 and R2) and one
+rule for the paid-order read (G4-R). The call path of §5zad could not satisfy either rule: a
+method that declared `idempotencyRequired` was refused, and the commerce read had never been
+executed against a database.
+
+This batch delivers:
+
+- **The durable service call ledger.** A method that requires an idempotent outcome is recorded
+  before the provider runs. The row's primary key is the stable call ID a provider deduplicates on,
+  and the row moves through `RUNNING` to `SUCCEEDED` or `FAILED`; a timeout or a crash leaves it
+  `UNKNOWN`, because the effect may still have committed. The unique identity is the caller and the
+  provider installation, the service, the version, the method and the idempotency key. An equal
+  key and an equal input hash returns the stored outcome, a different input hash is
+  `PLUGIN_SERVICE_IDEMPOTENCY_CONFLICT`, and a call that is already running is
+  `PLUGIN_SERVICE_CALL_IN_PROGRESS` without a second invocation.
+- **The reconciliation of an unknown outcome.** The caller repeats the same method with the same
+  input and the same key; Core recognizes the `UNKNOWN` row, rechecks the principal, the grant and
+  the generations of the participating plugins, and exclusively claims the row. The provider
+  receives `{callId: originalCallId, reconcile: true}`; it returns its stored original outcome, or
+  proves that it never executed. A proven non-execution fences the claim and lets exactly one
+  normal invocation run with the same call ID. A lost claim cannot publish: the answer is
+  `PLUGIN_SERVICE_OUTCOME_UNKNOWN` with the original call ID and the repair instruction.
+- **The paid-order read.** The query answers the reconciliation question of a wallet provider:
+  which orders were paid in a window of at most 31 days, with the exact monetary amounts and the
+  published `order.paid` line items. The items are built by the neutral `core/shared/paid-order.ts`
+  helper, which the `order.paid` event payload also uses, so a queried item and the event item of
+  the same order are the same value. The page carries an opaque cursor that binds the
+  installation, the revision of the granted permissions, the generation, the window, the last
+  tuple and an expiry, and the read spends a page budget of 30 pages per minute per installation,
+  shared by every instance of Core.
+- **The tests.** `apps/api/tests/core/plugin-service-ledger.test.ts` publishes two real plugins: a
+  provider that keeps its own dedup record and a consumer that calls it. The cases are the settle
+  and the replay, the conflict, the recovery of an outcome whose effect had committed, the one
+  execution after a proven non-execution, the outcome that stays unknown, and the duplicate that is
+  refused while the first call runs. `apps/api/tests/core/plugin-commerce-query.test.ts` covers the
+  window, the items against the event payload, the late capture of a cancelled order, the pages and
+  the cursor, the missing grant and the windows that are refused.
+
+### What the review found, and what this batch changed because of it
+
+The independent review of the ledger commit (an arch-reviewer against the commit `1748175e5`) found
+five findings. Four were defects and are fixed here:
+
+1. **The runtime read the account table itself.** The principal check read `users` with raw SQL
+   from the extensions runtime. The check now lives in the durable-task module, which owns the
+   principal registry of an installation and already validates the principals of its own tasks
+   (`taskPrincipalAllowed`). The runtime reaches it through the edge that already exists.
+2. **A refusal left the ledger row occupied.** The claim was taken before the authorization
+   checks, so a refused call left a `RUNNING` row that blocked the next caller with
+   `PLUGIN_SERVICE_CALL_IN_PROGRESS` and then turned into an `UNKNOWN` row for a call that never
+   ran. The principal is now checked before the claim, and a claim that is refused afterwards is
+   released.
+3. **The stored principal was never compared.** On the reconciliation path the stored principal and
+   the current one are compared now. The comparison holds only when both are known: a repair task
+   carries no principal and may reconcile an operation that a customer started.
+4. **A lost claim still published an outcome.** The settle and the fence now report whether they
+   changed the row, and a lost claim answers `PLUGIN_SERVICE_OUTCOME_UNKNOWN` instead of a
+   success that the ledger never recorded.
+
+The fifth finding was the reading of "rechecks principal" in R2. The recheck is the validity of the
+current principal and, on the reconciliation path, its identity against the stored one; the replay
+of a settled outcome stays unconditional, as R1 states.
+
+### Two findings of this batch that are worth the next reader
+
+- **The paid-order read read a table that does not exist.** The query of §5zad named
+  `payment_ledgers`; the table is `payment_ledger`. The query had never run, and it also reported
+  the order status where the authoritative value is the payment status. Both are fixed, and the
+  query is now covered by a test.
+- **Prisma reads an aggregate timestamp as a wall-clock value.** `MIN("createdAt")` in a raw query
+  comes back as the local wall clock of the database, not as the instant, because the client cannot
+  infer the type of an aggregate. The paid moment is therefore rendered in the database with
+  `to_char(... AT TIME ZONE current_setting('TimeZone') AT TIME ZONE 'UTC', ...)`, which is the
+  instant, and every other raw query of the tree that aggregates a timestamp deserves the same
+  look.
+
+### One decision that the module graph forces
+
+The paid-order read reaches the order rows, the line items and the payment ledger directly. The
+alternative — a projection of the paid orders from the order module and of the accepted captures
+from the payment module — was measured: the plugin runtime has no acyclic path to the commerce
+domains, so every such edge closes hundreds of new module rings (756 unregistered cycles for the
+two edges of the first attempt) and the ring register of the boundary audit would grow by hundreds
+of entries. The admin read modules of the tree read the same tables the same way. The published
+line items are still built in one place, the neutral `core/shared/paid-order.ts` helper, so the
+event and the query cannot drift apart.
+
+### The local evidence
+
+The changed inputs are the ledger module, the call path, the commerce module, the neutral paid-order
+helper, the order module's payload builder, the durable-task module's principal check, the audit
+registers, the new schema row and the two migrations. The scoped run selects the suites that cover
+those inputs:
+
+```
+DATABASE_URL_TEST=postgresql://postgres:postgres@localhost:5432/jiffoo_core_test \
+PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=<the owner's consent to reset jiffoo_core_test> \
+pnpm verify:quick --test-files=apps/api/tests/core/plugin-service-ledger.test.ts,apps/api/tests/core/plugin-commerce-query.test.ts,apps/api/tests/core/plugin-service.test.ts,apps/api/tests/core/module-boundary-audit.test.ts,apps/api/tests/core/module-state-audit.test.ts,apps/api/tests/core/contract-v1-runtime.test.ts,apps/api/tests/core/order-service.test.ts,apps/api/tests/core/plugin-tasks.test.ts
+```
+
+The summary of that run, printed from `verify-summary.txt`:
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: apps/api/tests/core/admin-removal-migration.test.ts (Prisma schema or migration changed); apps/api/tests/core/core-migrations.test.ts (Prisma schema or migration changed); apps/api/tests/core/data-reliability-migration.test.ts (Prisma schema or migration changed); apps/api/tests/core/order-item-snapshot-migration.test.ts (Prisma schema or migration changed); apps/api/tests/core/order-number-migration.test.ts (Prisma schema or migration changed); apps/api/tests/core/product-code-migration.test.ts (Prisma schema or migration changed); apps/api/tests/routes/plugin-migrations.test.ts (Prisma schema or migration changed)
+Run API tests:
+   Start at  11:22:27
+ Test Files  15 passed (15)
+      Tests  206 passed (206)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check selected scope and shared | PASS | 2.69s |
+| Lint Shop | PASS | 8.19s |
+| Reset test database | PASS | 3.03s |
+| Check Prisma migration drift | PASS | 1.45s |
+| Run API tests | PASS | 166.19s |
+```
