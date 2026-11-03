@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { PluginTrustLabel } from './PluginTrust';
 import { PluginUpload, PluginInstallPreview } from './PluginUpload';
 import { PluginRecovery } from './PluginRecovery';
+import { isPluginPaused } from '@/lib/plugin-runtime-state';
 import { PluginLifecycle } from './PluginLifecycle';
 import { pluginUploadApi, type PluginUploadPreview, type PluginUploadOperation } from '@/lib/plugin-upload';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -75,7 +76,7 @@ export function PluginsManager() {
     })}</div>
     {view === 'market' ? <section aria-label={c('market')} className="overflow-hidden rounded-lg border border-border">{status.isLoading || status.data?.configured && catalog.isLoading ? <p role="status" className="p-4">{t('merchant.plugins.marketplace.loading')}</p> : status.error || catalog.error ? <p role="alert" className="p-4">{t('merchant.plugins.marketplace.loadError')}<Button variant="outline" className="bg-ground" onClick={() => void (status.error ? status.refetch() : catalog.refetch())}>{t('common.actions.retry')}</Button></p> : !status.data?.configured ? <p className="p-4">{t('merchant.plugins.marketplace.notConfigured')}</p> : !catalog.data?.items.length ? <p className="p-4">{c('empty')}</p> : catalog.data.items.map(entry => <MarketplaceRow key={entry.id} entry={entry} testSigningMode={status.data?.testSigningMode === true} />)}<p className="border-t border-border px-4 py-2.5 text-xs text-faint">{c('marketNote')}</p></section> : <section aria-label={c(view === 'removed' ? 'removed' : 'installed')} className="overflow-hidden rounded-lg border border-border">
       {selected.isLoading ? <p role="status" className="p-4">{t('merchant.plugins.loading')}</p> : selected.error ? <p role="alert" className="p-4">{t('merchant.plugins.failedToLoadDetails')}<Button variant="outline" className="bg-ground" onClick={() => void selected.refetch()}>{t('common.actions.retry')}</Button></p> : !selected.data?.items.length ? <p className="p-4">{c('empty')}</p> : selected.data.items.map(plugin => {
-        const paused = Boolean(plugin.packageState?.code) || Boolean(recovery.data?.items.some(item => item.slug === plugin.slug && (item.maintenanceRequired || item.operations.some(operation => ['PAUSING', 'MIGRATING', 'PUBLISHING', 'PUBLISHED', 'NEEDS_RECOVERY'].includes(operation.phase))))), needs = plugin.configRequired && !plugin.configReady;
+        const paused = isPluginPaused(plugin.slug, Boolean(plugin.packageState?.code), recovery.data), needs = plugin.configRequired && !plugin.configReady;
         const state = paused ? 'paused' : plugin.enabled ? 'enabled' : needs ? 'needsConfig' : 'disabled';
         const href = `/${locale}/plugins/${encodeURIComponent(plugin.slug)}`;
         return <article aria-label={plugin.name} key={plugin.slug} className="flex flex-wrap items-center gap-3 border-b border-border px-4 py-3.5 hover:bg-raised">

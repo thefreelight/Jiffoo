@@ -3,6 +3,9 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
+import { pluginUploadApi } from '@/lib/plugin-upload';
+import { isPluginPaused } from '@/lib/plugin-runtime-state';
 import { useLocale, useT } from 'shared/src/i18n/react';
 import { parsePluginConfigSchema, validatePluginConfig, formatStoreTimestamp } from 'shared';
 import { pluginMessage, pluginCategoryLabel, type PluginLabel } from 'shared/src/i18n/messages/admin-plugins';
@@ -33,6 +36,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
   const dialogLayout = usePluginDialogLayout('leave');
   const leave = (key: string) => t('merchant.profileView.' + key);
   const query = usePluginConfig(slug), instances = usePluginInstances(slug), status = useMarketplaceStatus();
+  const recovery = useQuery({ queryKey: ['plugin-recovery'], queryFn: pluginUploadApi.recovery, refetchInterval: 10_000 });
   const mutation = useUpdatePluginInstance(), data = query.data;
   const selected = instances.data?.items.find(item => item.instanceKey === 'default');
   const schema = useMemo(() => data?.configSchema ? parsePluginConfigSchema(data.configSchema).schema : null, [data?.configSchema]);
@@ -116,6 +120,8 @@ export function PluginWorkspace({ slug }: { slug: string }) {
   return <section className="min-w-0 text-[13px]">
     <header className="sticky top-0 z-30 border-b border-border bg-ground"><div className="mx-auto max-w-[760px] space-y-2.5 px-4 pb-3.5 pt-16 min-[769px]:pt-4 sm:px-8"><Link href={`/${locale}/plugins`} className="text-muted-foreground">{c('back')}</Link><div className="flex flex-wrap items-center justify-between gap-3"><div className="flex min-w-0 flex-wrap items-center gap-2.5"><span aria-hidden="true" className="flex size-8 items-center justify-center rounded-lg border border-border bg-raised font-semibold text-muted-foreground">{plugin.name.slice(0, 1)}</span><h1 style={{ fontSize: 22 }} className="min-w-0 max-w-full break-words text-[22px] font-semibold tracking-[-0.02em]">{plugin.name}</h1>{status.data && <PluginTrustLabel compact className="h-[22px] px-2 text-xs" plugin={data} testSigningMode={status.data.testSigningMode} />}<span className={`inline-flex h-[22px] items-center gap-1.5 rounded-md border border-border px-2 text-xs leading-none ${selected?.enabled ? 'text-foreground' : 'text-faint'}`}><span aria-hidden="true" className={`size-[7px] rounded-full border border-current ${selected?.enabled ? 'bg-current' : ''}`} />{c(selected?.enabled ? 'enabled' : 'disabled')}</span></div><div className="flex flex-wrap items-center gap-2"><span className={`text-xs ${dirty ? 'text-attention' : 'text-faint'}`}>{dirty ? c('dirty') : `${c('saved')}${savedAt ? ' · ' + formatStoreTimestamp(savedAt, timezone) : ''}`}</span><PluginLifecycle plugin={plugin} triggerVariant="outline" beforeAction={requestAppNavigation} onUninstalled={() => router.push(`/${locale}/plugins`)} />{plugin.source !== 'builtin' && <PluginUpload testSigningMode={status.data?.testSigningMode === true} slug={slug} />}{selected?.enabled ? <DisablePluginControl slug={slug} pluginName={plugin.name} payment={Boolean(data.declaredCapabilities?.includes('payment'))} label={t('merchant.plugins.marketplace.disable')} disabled={busy} onDisable={toggle} /> : <Button variant="outline" size="sm" className="bg-ground disabled:text-faint disabled:opacity-100" disabled={busy || !selected || missing.length > 0 || Boolean(data.packageState?.code)} title={missing.length ? c('enableTitle') : undefined} onClick={() => void toggle()}>{t('merchant.plugins.marketplace.enable')}</Button>}{dirty && <Button variant="outline" size="sm" className="bg-ground disabled:text-faint disabled:opacity-100" disabled={busy} onClick={() => { setDraft(baseline); setErrors({}); setFailed(false); }}>{c('discard')}</Button>}<Button size="sm" className={!dirty ? 'bg-raised text-faint disabled:opacity-100' : undefined} form="plugin-config" type="submit" disabled={busy || !dirty || !selected}>{c('save')}</Button></div></div><p className="text-xs text-faint">{timezone}</p></div></header>
     <div className="mx-auto max-w-[760px] space-y-5 px-4 pb-16 pt-6 sm:px-8">
+      {isPluginPaused(slug, Boolean(data.packageState?.code), recovery.data) && <p role="alert" className="text-attention">{c('paused')}</p>}
+      {recovery.error && <p role="alert" className="text-attention">{t('merchant.plugins.recovery.loadFailed')}</p>}
       {data.packageState?.code && <p role="alert" className="text-attention">{t(`merchant.plugins.lifecycle.${data.packageState.status === 'corrupt' ? 'packageCorrupt' : 'packageUnavailable'}`)}</p>}
       {missing.length > 0 && <p role="status" className="rounded-lg border border-attention-line bg-attention-soft px-3.5 py-3 text-attention">{c('missing', { count: missing.length, fields: missing.map(field => schema?.properties[field]?.title ?? field).join(c('listSeparator')) })}</p>}
       {(query.error || instances.error) && <p role="alert">{t('merchant.plugins.failedToLoadDetails')}</p>}

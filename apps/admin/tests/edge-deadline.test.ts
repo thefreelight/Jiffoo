@@ -82,6 +82,35 @@ async function closeCore(server: Server): Promise<void> {
 
 afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks(); });
 
+describe('Admin plugin shell authentication boundary', () => {
+  it.each([
+    ['GET', '/admin/plugin-pages/imagic'],
+    ['GET', '/admin/plugin-pages/wallet'],
+    ['POST', '/plugin-pages/imagic/session'],
+    ['POST', '/plugin-pages/imagic/sessions/session-id/refresh'],
+    ['DELETE', '/plugin-pages/imagic/sessions/session-id'],
+  ] as const)('removes ambient login cookies from %s %s while retaining the bearer', async (method, path) => {
+    const received: Array<{ cookie?: string; authorization?: string; origin?: string }> = [];
+    const server = createServer((request, response) => {
+      received.push({ cookie: request.headers.cookie, authorization: request.headers.authorization, origin: request.headers.origin });
+      response.writeHead(200, { 'Content-Type': 'application/json' });
+      response.end(JSON.stringify({ success: true, data: {} }));
+    });
+    const port = await listenOnUsablePort(server);
+    try {
+      vi.stubEnv('API_SERVICE_URL', `http://127.0.0.1:${port}`);
+      vi.stubEnv('ADMIN_URL', 'https://admin.localhost:8444');
+      const response = await routes[method](new NextRequest(`https://admin.localhost:8444/api/v1${path}`, {
+        method, headers: { Cookie: 'admin_session=normal-login; preferences=en', Authorization: 'Bearer admin-token',
+          Origin: 'https://admin.localhost:8444', ...(method === 'GET' ? {} : { 'Content-Type': 'application/json' }) },
+        ...(method === 'GET' ? {} : { body: '{}' }),
+      }));
+      expect(response.status).toBe(200);
+      expect(received).toEqual([{ cookie: undefined, authorization: 'Bearer admin-token', origin: 'https://admin.localhost:8444' }]);
+    } finally { await closeCore(server); }
+  });
+});
+
 describe('the deadline of the Admin edge towards the Core', () => {
   it('answers 503 with the code of an unreachable Core when the Core never answers', async () => {
     const core = await startSilentCore();

@@ -92,6 +92,16 @@ test('upload application policy grants only the three store actions on its confi
   assert.match(backend, /UPLOAD_S3_SECRET_ACCESS_KEY: \$\{SILO_APP_SECRET_ACCESS_KEY/);
 });
 
+test('admin plugin shell requests pass through the cookie-stripping BFF without rerouting opaque plugin calls', () => {
+  const template = readFileSync(new URL('../deploy/compose/edge.conf.template', import.meta.url), 'utf8');
+  const admin = template.slice(template.indexOf('server_name ${EDGE_ADMIN_HOST}'));
+  assert.match(admin, /location ~ \^\/api\/v1\/\(admin\/plugin-pages\/\|plugin-pages\/\) \{ proxy_pass http:\/\/admin:3002; \}/);
+  assert.match(admin, /location \/api\/ \{ proxy_pass http:\/\/api-lb:8080; \}/);
+  const routed = /^\/api\/v1\/(admin\/plugin-pages\/|plugin-pages\/)/;
+  for (const path of ['/api/v1/admin/plugin-pages/imagic', '/api/v1/admin/plugin-pages/wallet', '/api/v1/plugin-pages/imagic/session', '/api/v1/plugin-pages/imagic/sessions/id/refresh']) assert.ok(routed.test(path));
+  for (const path of ['/api/v1/plugin-api/imagic/action', '/api/v1/plugin-assets/id/hash/index.html', '/api/v1/auth/me']) assert.ok(!routed.test(path));
+});
+
 test('edge renders only derived hostname variables and preserves nginx request variables', () => {
   const template = readFileSync(new URL('../deploy/compose/edge.conf.template', import.meta.url), 'utf8');
   assert.ok(!template.includes('shop.local') && !template.includes('admin.local'));
