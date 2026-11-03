@@ -1308,9 +1308,8 @@ the consumer's task and its final-failure hook call the provider's methods
 under the merchant's grant. The navigation entry of a plugin page follows the
 locale of the store in all three locales, and the cart, the checkout, the
 payment and the result pages carry no plugin frame. The page of the SDK's own
-scaffold, which the two example plugins carry, has not been rendered in a
-browser yet; the mechanisms of that page are held with Core's own page
-fixture.
+scaffold, which the two example plugins carry, renders in a real browser in
+all three storefront locales.
 
 ### First consumer flow: imager, using only general contracts
 
@@ -1405,9 +1404,8 @@ coordination ledger names the batch of each. P-5 is covered: the navigation,
 the loading state and the error state in the three locales, the absence of a
 plugin frame on the cart, the checkout, the payment and the result pages, the
 two API instances and the two worker instances over one deployment, and the
-module containers of the charter scenarios 12 and 15. The imager flow, the
-provider plugin's own behaviour and the page of the SDK's scaffold in a browser
-are the plugin line's.
+module containers of the charter scenarios 12 and 15. The imager flow and the
+provider plugin's own behaviour are the plugin line's.
 
 ## 11. Review points and explicit limits
 

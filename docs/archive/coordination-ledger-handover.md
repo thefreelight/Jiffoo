@@ -6481,3 +6481,70 @@ Run Shop tests:
 ```
 
 The browser case is proved by the CI run of the commit `db21adb1b`, in its `e2e` job.
+
+## 5zaw. The page of the SDK's scaffold renders in a real browser
+
+**Baseline SHA:** `55288bf87`. **Commits:** `5d07362a0`, `55288bf87`.
+
+### What the batch adds
+
+The acceptance of the design uses two ordinary test-signed plugins, and the page of the consumer
+is the page of the SDK's own scaffold: the document, the bridge bootstrap, the plugin UI
+stylesheets and the Vite build that `jiffoo-plugin create --pages` writes. That page had never
+been rendered by a browser.
+
+`e2e/40-plugin-page-shells.spec.ts` gains a case that installs both packages through the real
+path, enables both and opens the page of the consumer in the three storefront locales:
+
+| Step | What it holds |
+| --- | --- |
+| the install | the provider comes first, because the consumer declares its dependency on it; the install of the provider confirms its migration and the install of the consumer declares none |
+| the frame | the frame of the plugin carries the localized title of the page: `Studio`, `工作室`, `工作台` |
+| the scaffold | the button of the scaffold, the fixed sentence of the scaffold and the detail that carries the path and the locale of the store are there |
+| the cleanup | every package that was installed is uninstalled and purged, the consumer before the provider |
+
+The fixture of the two packages resolved the repository root from the working directory of the
+process, which only holds for the API suite: the browser runner starts from the repository root,
+and the resolution pointed at the directory above the repository. The fixture now resolves the
+root from the location of its own file, so any runner may load it.
+
+### What the batch does not hold
+
+- The browser runs in CI only. The local gate cannot execute the case, and the case was not run
+  locally.
+- The two example plugins are not run in the compose deployment. The mechanism of the
+  multi-instance deployment is held there with the compose probe plugin.
+
+### The local evidence
+
+The changed inputs are the fixture of the two packages and the browser case. The fixture belongs
+to the API suite, so the planner selected the acceptance suite that loads it.
+
+```
+DATABASE_URL_TEST=postgresql://postgres:postgres@localhost:5432/jiffoo_core_test \
+PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=<the owner's consent to reset jiffoo_core_test> \
+pnpm verify:quick --test-files=apps/api/tests/routes/plugin-acceptance-examples.test.ts
+```
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: none
+Run API tests:
+   Start at  21:10:32
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.02s |
+| Type-check API, Admin, Shop and shared | PASS | 14.03s |
+| Lint Shop | PASS | 13.30s |
+| Reset test database | PASS | 6.99s |
+| Run API tests | PASS | 13.52s |
+```
+
+The browser case is proved by the CI run `41642106578` of the commit `55288bf87`, in its `e2e`
+job: 114 passed, 0 failed, 0 skipped. The run before it held 113, so the new case ran.

@@ -176,12 +176,12 @@ is held by a different kind of evidence:
 | Clause of P-5 | Where it is held |
 | --- | --- |
 | the navigation, the loading state and the error state in all three locales | the browser case of the shop navigation; the loading state of the page shell; the localized error state of the shell |
+| the page of the SDK's own scaffold | the browser case that installs the two ordinary plugins through the real path and opens the page of the consumer in the three storefront locales |
 | no frame on cart/checkout/payment/result | the browser case of the plugin page shells, with the cart asserted while the plugin is enabled |
 | two APIs/two workers share DB, Redis, package blobs and S3 | the compose acceptance: the probe plugin propagates between both API instances, the anonymous budget is shared through Redis, the upload is read from both, and the notification of the worker pool is persisted once |
 | every new module-level registry/cache and every lifecycle rebuild path | the module state audit of the charter scenarios 12 and 15 |
 
-The imager flow, the provider plugin's own behaviour and the page of the SDK's
-scaffold in a browser are the plugin line's.
+The imager flow and the provider plugin's own behaviour are the plugin line's.
 
 ## The revision history
 
