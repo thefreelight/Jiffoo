@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { CHANNEL, VERSION, messageBudget, parseEnvelope, randomNonce, type Envelope, type Plain } from '../../../plugin-bridge/src/protocol';
 import type { PageContext } from '../../../plugin-bridge/src/index';
+import { pluginThemeNeutralName, pluginThemeVariables } from './theme-vars';
 
 export type ShellSession = { sessionId: string; frameUrl: string; pluginToken: string; expiresAt: string;
   guestSecret: string | null; context: Pick<PageContext, 'customer' | 'admin' | 'page'> };
@@ -114,8 +115,20 @@ export function PluginPageShell(props: Props) {
     function context(): PageContext {
       const { locale, currency, store, surface } = currentProps.current;
       const css = getComputedStyle(document.documentElement);
-      const themeTokens = Object.fromEntries(['--background', '--foreground', '--primary', '--primary-foreground', '--shop-primary', '--shop-background', '--shop-text']
-        .map(name => [name, css.getPropertyValue(name).trim().slice(0, 200)]));
+      // The theme of the host page lives in the `:root` of the host document.
+      // A plugin page runs in an opaque frame, so the values are read here and
+      // sent across; every theme variable of the surface travels under its own
+      // name and under its neutral name, so a plugin that serves both surfaces
+      // reads one name for the same role.
+      const themeTokens: Record<string, string> = {};
+      for (const name of ['--background', '--foreground', '--primary', '--primary-foreground'])
+        themeTokens[name] = css.getPropertyValue(name).trim().slice(0, 200);
+      for (const name of pluginThemeVariables(surface)) {
+        const value = css.getPropertyValue(name).trim();
+        if (!value) continue;
+        themeTokens[name] = value.slice(0, 200);
+        themeTokens[pluginThemeNeutralName(name)] = value.slice(0, 200);
+      }
       return { ...active!.context, locale, currency, store: { ...store, url: new URL(store.url, location.origin).href }, themeTokens,
         colorMode: css.colorScheme === 'dark' ? 'dark' : 'light',
         capabilities: ['context.get', 'context.subscribe', 'token.refresh', 'navigate', 'auth.signIn', 'frame.resize', 'toast.show', 'file.download',

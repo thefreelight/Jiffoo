@@ -70,6 +70,9 @@ coverage/
 # Plugin zip artifacts (build products, should not be committed)
 *.zip
 
+# Local plugin package tarballs (build products of scripts/pack-plugin-packages.mjs)
+artifacts/
+
 # API extensions runtime directory (should use EXTENSIONS_PATH env var)
 apps/api/extensions/
 

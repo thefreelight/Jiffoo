@@ -67,6 +67,7 @@ return quick
       ['Build admin application', [['--filter', 'admin', 'build']]],
       ['Build Shop application', [['--filter', 'shop', 'build']]],
       ['Build plugin SDK', [['--filter', '@jiffoo-core/plugin-sdk', 'build']]],
+      ['Build plugin UI', [['--filter', '@jiffoo/plugin-ui', 'build']]],
       ['Type-check workspace', [['exec', 'turbo', 'run', 'type-check', '--continue=always', '--force']]],
       ['Lint Shop', [['--filter', 'shop', 'lint']]],
       ['Export OpenAPI', [['--filter', 'api', 'export:openapi']]],
@@ -104,7 +105,7 @@ export function ciSteps(databaseUrl, group, shard) {
   if (group === 'backup') return [['Run backup and restore acceptance', [['verify:backup']]]];
   if (group === 'update-no-migration') return [['Run no-migration update acceptance', [['verify:update', '--profile=core', '--partition=no-migration']]]];
   if (group === 'update-migration') return [['Run migration update acceptance', [['verify:update', '--profile=core', '--partition=migration']]]];
-  const common = new Set(['Install dependencies', 'Validate and generate Prisma client', 'Build shared package', 'Build plugin SDK', 'Reset test database', 'Check Prisma migration drift']);
+  const common = new Set(['Install dependencies', 'Validate and generate Prisma client', 'Build shared package', 'Build plugin SDK', 'Build plugin UI', 'Reset test database', 'Check Prisma migration drift']);
   const tests = new Set(['Run API tests', 'Run Admin tests', 'Run Shop tests', 'Run browser E2E']);
   return localSteps(databaseUrl).filter(([name]) => common.has(name) || (group === 'api' ? ['Export OpenAPI', 'Run API tests'].includes(name) : group === 'e2e' ? name === 'Run browser E2E' : !tests.has(name) || ['Run Admin tests', 'Run Shop tests'].includes(name)))
     .flatMap(step => group === 'quality' && step[0] === 'Build plugin SDK' ? [step, apiBuildStep] : [step])

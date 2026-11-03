@@ -1,0 +1,112 @@
+/*
+ * The token layer of the plugin UI.
+ *
+ * A plugin page runs in an opaque iframe, so the shop stylesheet of Core does
+ * not reach it. The Core shell sends the theme variables of the surface to the
+ * frame and the bridge writes them onto `:root` of the frame document, under
+ * their neutral names (`--core-ground`, `--extras-primary`, ...). This file
+ * only consumes those neutral names, so the same stylesheet works in the
+ * storefront and in the administration.
+ *
+ * The variables of this file are the only contract between the theme and the
+ * component layer of `styles.css`. A plugin never reads a `--core-*` or an
+ * `--extras-*` variable directly.
+ */
+
+:root {
+  /* The core group exists on every surface, so it never needs a fallback. */
+  --jpu-bg: var(--core-ground);
+  --jpu-surface: var(--core-raised);
+  --jpu-fg: var(--core-foreground);
+  --jpu-muted: var(--core-muted);
+  --jpu-faint: var(--core-faint);
+  --jpu-border: var(--core-border);
+  --jpu-subtle: var(--core-active);
+
+  /* The extras group only exists on the storefront. The fallback of each role
+     lands on a core group value, so the administration renders the same
+     component without a theme of its own. */
+  --jpu-primary: var(--extras-primary, var(--core-foreground));
+  --jpu-primary-fg: var(--extras-primary-foreground, var(--core-ground));
+  --jpu-secondary: var(--extras-secondary, var(--core-raised));
+  --jpu-secondary-fg: var(--extras-secondary-foreground, var(--core-foreground));
+  --jpu-accent: var(--extras-accent, var(--core-active));
+  --jpu-success: var(--extras-success, var(--core-foreground));
+  --jpu-warning: var(--extras-warning, var(--core-foreground));
+
+  /* The destructive roles are core group roles. */
+  --jpu-danger: var(--core-destructive);
+  --jpu-danger-soft: var(--core-destructive-soft);
+  --jpu-danger-line: var(--core-destructive-line);
+
+  /* The attention roles are core group roles. */
+  --jpu-attention: var(--core-attention);
+  --jpu-attention-soft: var(--core-attention-soft);
+
+  --jpu-radius: var(--core-radius-control);
+  --jpu-radius-lg: var(--core-radius-panel);
+  --jpu-card-radius: var(--extras-card-radius, var(--core-radius-panel));
+  --jpu-button-radius: var(--extras-button-radius, var(--core-radius-control));
+
+  --jpu-font: var(--core-font-body);
+  --jpu-font-heading: var(--core-font-heading);
+  --jpu-font-mono: var(--core-font-mono);
+  --jpu-font-size: var(--extras-font-size-base, 1rem);
+
+  --jpu-shadow: var(--extras-card-shadow, none);
+  --jpu-space: var(--extras-section-spacing, 3rem);
+  --jpu-container: var(--extras-container-width, 1280px);
+
+  /*
+   * The spacing scale of the component layer. The scale is not a theme role:
+   * the theme chooses the section spacing, and the scale derives the smaller
+   * steps of it, so a theme that changes the section spacing keeps the
+   * rhythm of the components.
+   */
+  --jpu-space-3xs: calc(var(--jpu-space) / 24);
+  --jpu-space-2xs: calc(var(--jpu-space) / 12);
+  --jpu-space-xs: calc(var(--jpu-space) / 6);
+  --jpu-space-sm: calc(var(--jpu-space) / 4);
+  --jpu-space-md: calc(var(--jpu-space) / 3);
+  --jpu-space-lg: calc(var(--jpu-space) / 2);
+  --jpu-space-xl: calc(var(--jpu-space) * 2 / 3);
+}
+
+/*
+ * The frame paints one frame before the bridge has written the theme
+ * variables. Until the shell marks the document as ready, the literal values
+ * of the default storefront theme of Core hold the place, so the page never
+ * renders an unstyled flash.
+ */
+:root:not([data-plugin-theme-ready]) {
+  --jpu-bg: #FFFFFF;
+  --jpu-surface: #FAFAFA;
+  --jpu-fg: #171717;
+  --jpu-muted: #5C5C5C;
+  --jpu-faint: #737373;
+  --jpu-border: #00000017;
+  --jpu-subtle: #0000000B;
+  --jpu-primary: #171717;
+  --jpu-primary-fg: #FFFFFF;
+  --jpu-secondary: #F4F4F5;
+  --jpu-secondary-fg: #171717;
+  --jpu-accent: #F4F4F5;
+  --jpu-success: #1A7F4B;
+  --jpu-warning: #A15C07;
+  --jpu-danger: #C4281C;
+  --jpu-danger-soft: #FDEEEC;
+  --jpu-danger-line: #F5C7C2;
+  --jpu-attention: #A15C07;
+  --jpu-attention-soft: #FDF6E9;
+  --jpu-radius: 8px;
+  --jpu-radius-lg: 12px;
+  --jpu-card-radius: 12px;
+  --jpu-button-radius: 8px;
+  --jpu-font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  --jpu-font-heading: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  --jpu-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  --jpu-font-size: 1rem;
+  --jpu-shadow: 0px 8px 24px 0px #0000000F;
+  --jpu-space: 3rem;
+  --jpu-container: 1280px;
+}

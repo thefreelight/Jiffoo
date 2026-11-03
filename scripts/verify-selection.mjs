@@ -9,6 +9,7 @@ export const localScriptTests = new Set([
   'scripts/storage-secret.test.mjs',
   'scripts/plugin-sdk-standalone.test.mjs',
   'scripts/plugin-bridge-standalone.test.mjs',
+  'scripts/plugin-ui-standalone.test.mjs',
   'scripts/module-reachability.test.mjs',
   'scripts/maintenance-proof.test.mjs',
   'scripts/verify-lane-shards.test.mjs',

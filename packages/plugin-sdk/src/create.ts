@@ -3,6 +3,7 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { BUILTIN_PLUGIN_SLUGS, getPluginManifestIssues } from '../../shared/src/extensions/plugin-contract';
 import { redact } from './upload';
+import { pageScaffold } from './page-template';
 
 const categories = ['integration', 'shipping', 'payment'] as const;
 const builtins = new Set<string>(BUILTIN_PLUGIN_SLUGS as readonly string[]);
@@ -57,6 +58,40 @@ try {
   await writeFile(path.join(staging, 'index.js'), result.outputFiles[0].contents);
   await writeFile(path.join(staging, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\\n');
   if (manifest.database) await cp(path.join(root, 'migrations'), path.join(staging, 'migrations'), { recursive: true });
+} catch (error) {
+  console.error(error.message);
+  process.exitCode = 1;
+}
+`;
+
+/**
+ * The build script of a plugin that also ships pages. It produces the server
+ * bundle and the page assets in one run, so `npm run build` stays the single
+ * command that fills `dist/package`.
+ */
+const buildScriptWithPages = `import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+try {
+  let build;
+  try { ({ build } = await import('esbuild')); }
+  catch { throw new Error('ESBUILD_NOT_FOUND: install the pinned project devDependency before building; no download was attempted'); }
+  const result = await build({ entryPoints: [path.join(root, 'src/index.ts')], bundle: true, platform: 'node', format: 'cjs', target: 'node24', write: false });
+  const manifest = JSON.parse(await readFile(path.join(root, 'manifest.json'), 'utf8'));
+  const staging = path.join(root, 'dist/package');
+  await rm(staging, { recursive: true, force: true });
+  await mkdir(staging, { recursive: true });
+  await writeFile(path.join(staging, 'index.js'), result.outputFiles[0].contents);
+  await writeFile(path.join(staging, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\\n');
+  if (manifest.database) await cp(path.join(root, 'migrations'), path.join(staging, 'migrations'), { recursive: true });
+  if (manifest.ui) {
+    let vite;
+    try { vite = await import('vite'); }
+    catch { throw new Error('VITE_NOT_FOUND: install the pinned project devDependency before building; no download was attempted'); }
+    await vite.build({ configFile: path.join(root, 'ui/vite.config.mts') });
+  }
 } catch (error) {
   console.error(error.message);
   process.exitCode = 1;
@@ -196,7 +231,7 @@ export function register(ctx: PluginContext): void {
   };
 }
 
-export async function createPlugin(flags: Record<string, string>): Promise<void> {
+export async function createPlugin(flags: Record<string, string>, options: { pages?: boolean } = {}): Promise<void> {
   const category = flags['--category'] ?? 'integration';
   if (!categories.includes(category as typeof categories[number])) throw new Error('UNSUPPORTED_CATEGORY: supported values: integration, shipping, payment');
   const slug = flags['--slug'];
@@ -206,7 +241,9 @@ export async function createPlugin(flags: Record<string, string>): Promise<void>
     ? 'CREATE TABLE payment_requests ("requestKey" TEXT PRIMARY KEY, "sessionId" TEXT NOT NULL UNIQUE, "amountMinor" BIGINT NOT NULL CHECK ("amountMinor" >= 0), currency TEXT NOT NULL, "createdAt" TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp());\n'
     : 'CREATE TABLE integration_records (id TEXT PRIMARY KEY, value TEXT NOT NULL);\n';
   const database = category === 'integration' || category === 'payment' ? { apiVersion: 1, migrations: [{ id: '001_records', order: 1, path: 'migrations/001_records.sql', sha256: createHash('sha256').update(migration).digest('hex') }] } : undefined;
-  const manifest = { ...common, slug, name, description: `${name} plugin`, category, contracts: selected.contracts, configSchema: selected.configSchema, ...(database ? { database } : {}) };
+  const pages = options.pages === true;
+  const scaffold = pages ? pageScaffold(name) : undefined;
+  const manifest = { ...common, slug, name, description: `${name} plugin`, category, contracts: selected.contracts, configSchema: selected.configSchema, ...(database ? { database } : {}), ...(scaffold ? { ui: scaffold.manifestUi } : {}) };
   const issue = getPluginManifestIssues(manifest)[0];
   if (issue) throw new Error(`${issue.code}: ${issue.path}`);
   if (builtins.has(slug)) throw new Error('SLUG_RESERVED: builtin plugin slug');
@@ -217,16 +254,18 @@ export async function createPlugin(flags: Record<string, string>): Promise<void>
   const packageJson = {
     name: slug, version: '1.0.0', private: true,
     scripts: { build: 'node tools/build.mjs', pack: 'node tools/build.mjs && node tools/sdk.mjs pack', sign: 'node tools/sdk.mjs sign', upload: 'node tools/sdk.mjs upload', dev: 'node tools/sdk.mjs dev' },
-    devDependencies: { esbuild: '0.27.2' },
+    ...(scaffold ? { dependencies: { '@jiffoo/plugin-bridge': '1.0.0-alpha.3', '@jiffoo/plugin-ui': '1.0.0-alpha.1' } } : {}),
+    devDependencies: { esbuild: '0.27.2', ...(scaffold ? { vite: '8.3.5', typescript: '5.8.3' } : {}) },
   };
   const files: Record<string, string> = {
     'manifest.json': `${JSON.stringify(manifest, null, 2)}\n`,
     'package.json': `${JSON.stringify(packageJson, null, 2)}\n`,
     'src/index.ts': selected.source, 'types/index.d.ts': types,
     'examples/tasks.ts': taskRecipe,
-    'tools/build.mjs': buildScript, 'tools/sdk.mjs': sdkScript,
+    'tools/build.mjs': scaffold ? buildScriptWithPages : buildScript, 'tools/sdk.mjs': sdkScript,
     '.gitignore': 'node_modules/\ndist/\nartifacts/\n.env\n.env.*\n*.pem\n*.key\n',
     ...(database ? { 'migrations/001_records.sql': migration } : {}),
+    ...(scaffold ? scaffold.files : {}),
   };
   try { await fs.mkdir(output); }
   catch (error) {

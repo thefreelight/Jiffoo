@@ -24,6 +24,73 @@ function isContext(value: Plain | undefined): value is Plain & PageContext {
     && Array.isArray(value.capabilities) && value.capabilities.every(capability => typeof capability === 'string');
 }
 
+/**
+ * The theme of the host page, applied to the document of the frame.
+ *
+ * A plugin page runs in an opaque frame, so the CSS variables of the host
+ * page never cross the document boundary on their own. The shell sends the
+ * values, and the bridge lays them down again on the `:root` of the frame, so
+ * a plugin reads `var(--shop-core-ground)` and follows the theme of the
+ * merchant, its dark mode included.
+ */
+const THEME_STYLE_ATTRIBUTE = 'data-plugin-theme';
+const THEME_STYLE_SELECTOR = `style[${THEME_STYLE_ATTRIBUTE}="true"]`;
+const THEME_NAME_PATTERN = /^--[a-z][a-z0-9-]{0,95}$/;
+const THEME_GROUP_PATTERN = /(^|-)(core|extras)(-|$)/;
+const THEME_VALUE_PATTERN = /[;{}<>\\`]|\/\*|\*\/|url\(|expression\(/i;
+const THEME_CONTROL_PATTERN = /[\u0000-\u001f\u007f]/;
+const THEME_VALUE_LIMIT = 200;
+
+/** The style element of the frame, together with the document it belongs to. */
+let themeStyle: { doc: Document; element: HTMLStyleElement } | undefined;
+
+/** Whether a theme variable name may be written into the frame. */
+function validThemeName(name: string): boolean {
+  return THEME_NAME_PATTERN.test(name) && THEME_GROUP_PATTERN.test(name);
+}
+
+/** Whether a theme variable value may be written into the frame. */
+function validThemeValue(value: string): boolean {
+  if (!value || value.length > THEME_VALUE_LIMIT) return false;
+  if (THEME_VALUE_PATTERN.test(value) || THEME_CONTROL_PATTERN.test(value)) return false;
+  return true;
+}
+
+/**
+ * Write the theme variables of the host page into the document of the frame.
+ *
+ * A frame without a document is not a browser and simply has no theme to
+ * apply, so the call is skipped instead of failing. A variable that does not
+ * pass the checks is skipped on its own; the others are still written.
+ */
+function applyThemeTokens(tokens: Record<string, string>): void {
+  if (typeof document === 'undefined' || !document) return;
+  const doc = document;
+  const declarations: string[] = [];
+  for (const [name, value] of Object.entries(tokens)) {
+    if (typeof value !== 'string' || !validThemeName(name) || !validThemeValue(value)) continue;
+    declarations.push(`${name}:${value};`);
+  }
+  try {
+    let element = themeStyle && themeStyle.doc === doc ? themeStyle.element : undefined;
+    if (!element) {
+      const existing = doc.querySelector?.(THEME_STYLE_SELECTOR) as HTMLStyleElement | null | undefined;
+      element = existing ?? (doc.createElement('style') as HTMLStyleElement);
+      if (!existing) {
+        element.setAttribute(THEME_STYLE_ATTRIBUTE, 'true');
+        const host = doc.head ?? doc.documentElement;
+        host?.appendChild(element);
+      }
+      themeStyle = { doc, element };
+    }
+    element.textContent = `:root{ ${declarations.join(' ')} }`;
+    if (doc.documentElement?.dataset) doc.documentElement.dataset.pluginThemeReady = 'true';
+  } catch {
+    // A frame that refuses the stylesheet keeps the plugin page working
+    // without the theme of the merchant.
+  }
+}
+
 /** The lifetime of a page token, as Core issues it. */
 const TOKEN_TTL_MS = 120_000;
 /** A token is refreshed before it expires, not after it failed. */
@@ -87,6 +154,7 @@ export function createPluginBridge() {
       binding = { sessionId: message.sessionId, nonce: message.nonce };
       rememberToken(payload.pluginToken, payload.expiresAt);
       context = payload.context as unknown as PageContext;
+      applyThemeTokens(context.themeTokens);
       clearTimeout(welcomeTimer);
       clearInterval(helloTimer);
       welcomeResolve();
@@ -99,6 +167,7 @@ export function createPluginBridge() {
       if (payload && typeof payload.revision === 'number' && Number.isSafeInteger(payload.revision) && payload.revision > revision && isContext(payload.context)) {
         revision = payload.revision;
         context = payload.context as unknown as PageContext;
+        applyThemeTokens(context.themeTokens);
         for (const listener of listeners) listener(context);
       }
       return;

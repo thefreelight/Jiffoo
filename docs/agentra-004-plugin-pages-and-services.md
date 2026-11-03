@@ -349,6 +349,24 @@ second per frame. Bad sources/nonce/versions receive no sensitive response.
 | `file.download` | `{reference}` only, no arbitrary URL or filename. Shell displays a localized Core-owned Save button for an explicit user gesture, revalidates the session/plugin/principal, obtains a 60-second signed download grant and starts a same-origin Core attachment download. Bounded bridge request finishes when the prompt is shown, not after file transfer. |
 | `bridge.close`, `bridge.error` | Dispose/revoke or bounded safe errors; never expose stack traces. |
 
+The theme of the host page travels with the context. The shell reads the
+computed value of every theme variable of its surface — the storefront has
+44 of them, the administration 25 — and sends each under its own name
+(`--shop-core-ground`) and under its neutral name (`--core-ground`), so a
+plugin that serves both surfaces reads one name for the same role. The bridge
+lays the values down on the `:root` of the frame document in one
+`<style data-plugin-theme="true">` element and marks the document with
+`data-plugin-theme-ready="true"`. A variable whose name or whose value fails
+the check is dropped on its own and the rest is still written; the frame keeps
+working without the theme of the merchant when it refuses the stylesheet. The
+four shadcn names of the earlier payload (`--background`, `--foreground`,
+`--primary`, `--primary-foreground`) stay in the context for the plugins that
+read them, and the names that never existed in the storefront
+(`--shop-primary`, `--shop-background`, `--shop-text`) are gone. A plugin that
+subscribes to the context follows a theme change while its page is open, since
+the shell publishes the change of the colour scheme; a plugin that does not
+subscribe keeps the theme it received at the handshake.
+
 Purchase attribution uses an opaque `PluginPurchaseOrigin` ID, created by the
 shell through POST `/plugin-pages/:slug/purchase-origins` (strict Core customer
 auth and Shop Origin, body `{pageId,path}`). It stores customer, installation,
@@ -882,6 +900,15 @@ permission rejection occurs before entering provider code. A plugin's HTTP
 adapter may map these results to its own documented status, preserving source
 and error; Core's service API itself is an SDK result, not an HTTP envelope.
 
+The service breaker records provider outcomes, independently of ledger settlement:
+valid results and business refusals are successes; runtime load failures, invalid
+answers, broken non-execution protocol, exceptions other than business refusals,
+and timeouts are failures. A reconciliation proving no effect records success if
+Core loses the claim; a repeated non-execution records failure. Core refusals
+before invocation record nothing. Each permit records at most one sample.
+Accounting never decides the call outcome or changes the durable ledger;
+protection infrastructure failures are recorded without blaming the provider.
+
 A provider may also raise the refusal from inside its own transaction, where
 the refusal is the outcome of the work and not an exception of the plugin:
 `throw new PluginBusinessError(code, message, details)`. Core rolls that
@@ -1197,27 +1224,54 @@ UI-asset validation modules, without workspace dependencies or Core application
 imports. Pre-release versions use `1.0.0-alpha.N`, starting at alpha.1. npm
 publishing comes later, after the owner supplies an npm organisation; set
 publishConfig.access to public at that time. Consumers can install the release
-asset with `npm i ./jiffoo-core-plugin-sdk-1.0.0-alpha.3.tgz` and import
+asset with `npm i ./jiffoo-core-plugin-sdk-1.0.0-alpha.5.tgz` and import
 `PluginContext` from `@jiffoo-core/plugin-sdk`.
 
 The browser-side client is `@jiffoo/plugin-bridge`, the counterpart of the SDK for
 the plugin page shell. Each Core release attaches it as a release asset next to
 the SDK tarball. It has no dependencies, no Core application imports and no
 workspace references, and its published `dist` bytes are the tree's build. A
-consumer installs it with `npm i ./jiffoo-plugin-bridge-1.0.0-alpha.2.tgz` and
+consumer installs it with `npm i ./jiffoo-plugin-bridge-1.0.0-alpha.3.tgz` and
 imports `createPluginBridge` from `@jiffoo/plugin-bridge`. A consumer that
 vendors the tarball records the Core commit it came from and the tarball's
 SHA256 beside the file, so that the bytes stay traceable to a tree. The
 clean-install verification of the bridge is the audited script test
 `scripts/plugin-bridge-standalone.test.mjs`, beside the SDK's.
 
+The stylesheet of a plugin page is `@jiffoo/plugin-ui`, the third package of the
+line. It carries no JavaScript: it exports `./tokens.css` and `./styles.css`
+and nothing else, and it has no dependency. The token layer maps the neutral
+theme variables of the shell onto the `--jpu-*` tokens of the plugin and gives
+every token a literal fallback while `data-plugin-theme-ready` is absent, so a
+page never renders an unstyled flash before the handshake answers. The
+component layer names only `--jpu-*` tokens and carries the classes `jpu-page`,
+`jpu-stack`, `jpu-row`, `jpu-divider`, `jpu-heading`, `jpu-text`, `jpu-code`,
+`jpu-card`, `jpu-btn`, `jpu-field`, `jpu-label`, `jpu-input`, `jpu-textarea`,
+`jpu-hint`, `jpu-error`, `jpu-badge`, `jpu-status`, `jpu-empty` and
+`jpu-spinner`; the spinner is drawn in CSS, because the asset rules reject
+SVG. A plugin that consumes these classes hardcodes no colour, no radius and no
+spacing, and one stylesheet serves the storefront and the administration. The
+clean-install verification of the package is the audited script test
+`scripts/plugin-ui-standalone.test.mjs`, beside the SDK's and the bridge's.
+
+The three packages are built and packed together by
+`scripts/pack-plugin-packages.mjs`, which writes the tarballs and a
+`provenance.txt` with the Core commit, the build commands and the SHA256 of
+every tarball into `artifacts/plugin-packages/`. That directory holds local
+build artifacts; it is not an npm publication.
+
 ### Authoring and acceptance
 
 Server SDK publishes ctx.storage/tasks/services additions in shared types and
 generated scaffold definitions, with handler lifetime and AbortSignal rules.
-`create --pages` adds Vite frontend source/output under ui, pinned build tools,
-relative asset URLs, a bundled WOFF2 font, Shop and Admin entry documents,
-bridge bootstrap and no runtime CDN. Server build stays CommonJS. Pack/sign/
+`create --pages` adds the Vite frontend source under `ui` — `index.html`,
+`entry.ts`, `styles.css` and `vite.config.mts` — with pinned build tools,
+relative asset URLs, Shop and Admin entry documents, the bridge bootstrap, the
+plugin UI stylesheets and no runtime CDN. The manifest gains a `ui`
+declaration, and `npm run build` fills `dist/package/ui` with the page assets
+beside the server bundle. The page takes the font of the theme through the
+token layer; a plugin that needs a font of its own packages a WOFF2 file in its
+asset directory, because SVG is rejected. Server build stays CommonJS. Pack/sign/
 preview/install/dev remain the existing workflow, including trust confirmation;
 UI changes use the existing version/hash update path, never a dev-server
 iframe or an unsigned asset side channel. SDK dev explicitly starts/attaches

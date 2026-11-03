@@ -16,11 +16,11 @@ import path from 'node:path';
  * change to a shared source file is the change the consumers actually see.
  */
 
-const SOURCE_ROOTS = ['apps/api', 'apps/admin', 'apps/shop', 'packages/shared', 'packages/plugin-sdk', 'packages/plugin-bridge'];
+const SOURCE_ROOTS = ['apps/api', 'apps/admin', 'apps/shop', 'packages/shared', 'packages/plugin-sdk', 'packages/plugin-bridge', 'packages/plugin-ui'];
 const IGNORED_DIRECTORIES = new Set(['node_modules', 'dist', 'out', 'coverage', '.next', '.turbo', 'test-results', 'visual-results', '.git']);
 const SOURCE_EXTENSIONS = ['.ts', '.tsx', '.mts', '.cts'];
 const RESOLVE_EXTENSIONS = ['.ts', '.tsx', '.mts', '.cts', '.js', '.mjs', '.cjs', '.jsx', '.json'];
-const PACKAGE_ROOTS = { '@jiffoo/shared': 'packages/shared', '@jiffoo-core/plugin-sdk': 'packages/plugin-sdk', '@jiffoo/plugin-bridge': 'packages/plugin-bridge' };
+const PACKAGE_ROOTS = { '@jiffoo/shared': 'packages/shared', '@jiffoo-core/plugin-sdk': 'packages/plugin-sdk', '@jiffoo/plugin-bridge': 'packages/plugin-bridge', '@jiffoo/plugin-ui': 'packages/plugin-ui' };
 
 function isSource(file) {
   return SOURCE_EXTENSIONS.includes(path.extname(file));

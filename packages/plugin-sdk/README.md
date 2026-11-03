@@ -1,14 +1,93 @@
 # @jiffoo-core/plugin-sdk
 
-Extension authoring CLI and canonical Core types, version 1.0.0-alpha.3.
+Extension authoring CLI and canonical Core types, version 1.0.0-alpha.5.
 Supported runtime: Node.js >=24.13.1 <25, matching Core's Node 24 CI runtime.
 
 Install the SDK tarball attached to the matching Core release:
 
 ```sh
-npm i ./jiffoo-core-plugin-sdk-1.0.0-alpha.3.tgz
+npm i ./jiffoo-core-plugin-sdk-1.0.0-alpha.5.tgz
 npx jiffoo-plugin create --slug my-extension --name "My extension" --output my-extension
 ```
+
+## Plugin pages (`create --pages`)
+
+`jiffoo-plugin create --pages` scaffolds the frontend of a plugin next to the
+server scaffold. The flag takes no value:
+
+```sh
+npx jiffoo-plugin create --slug my-extension --name "My extension" --output my-extension --pages
+```
+
+The generated project gains:
+
+```
+ui/index.html        the page document, the module entry and nothing else
+ui/entry.ts          the bridge connection and the rendered page skeleton
+ui/styles.css        the place for the page specific rules
+ui/vite.config.mts   the Vite build of the page
+```
+
+The `manifest.json` gains a `ui` declaration with `bridgeVersion`, the
+`assetDirectory` (`ui`), a `storefrontPages` entry and an `adminPages` entry.
+The sample page has the id `studio`, the path `/studio` and the entry
+`index.html`. `npm run build` then produces the server bundle and the page
+assets in one run: `tools/build.mjs` bundles the server with esbuild and
+builds `ui/` with Vite into `dist/package/ui/`, so the whole page stays
+inside the declared asset directory.
+
+The page talks to Core through `@jiffoo/plugin-bridge`. `createPluginBridge()`
+opens the connection to the page shell; `bridge.ready` resolves when the shell
+has handed over the page context, and `bridge.context()` returns it. The
+bridge writes the Core theme variables onto `:root` and marks the document
+with `data-plugin-theme-ready="true"`, so the page never hardcodes a color, a
+radius or a spacing.
+
+### Installing the page dependencies
+
+`@jiffoo/plugin-bridge` and `@jiffoo/plugin-ui` are not published to npm yet.
+Install them from the Core release assets as local file dependencies:
+
+```sh
+npm i ./jiffoo-plugin-bridge-1.0.0-alpha.3.tgz ./jiffoo-plugin-ui-1.0.0-alpha.1.tgz
+```
+
+Then change the `dependencies` of the generated `package.json` to the same
+file paths, because the versions in the scaffold are the published coordinates
+of the packages, not a registry entry. The Vite and the TypeScript versions of
+the scaffold are pinned, like every other build input of a generated plugin.
+
+### The plugin UI stylesheet
+
+`@jiffoo/plugin-ui` is a CSS-only package with no dependency. Import the two
+stylesheets from the page entry:
+
+```ts
+import '@jiffoo/plugin-ui/tokens.css';
+import '@jiffoo/plugin-ui/styles.css';
+```
+
+`tokens.css` maps the Core theme variables onto the `--jpu-*` tokens and
+supplies a fallback for every token while `data-plugin-theme-ready` is absent.
+`styles.css` provides the component classes:
+
+- layout: `jpu-page`, `jpu-stack` with `jpu-stack--xs`, `jpu-stack--sm`,
+  `jpu-stack--md` and `jpu-stack--lg`, `jpu-row`, `jpu-divider`
+- text: `jpu-heading`, `jpu-heading--lg`, `jpu-text`, `jpu-text--muted`,
+  `jpu-code`
+- surfaces: `jpu-card`
+- actions: `jpu-btn`, with `jpu-btn--primary`, `jpu-btn--secondary`,
+  `jpu-btn--outline`, `jpu-btn--ghost` and `jpu-btn--danger`, and the sizes
+  `jpu-btn--sm` and `jpu-btn--lg`
+- forms: `jpu-field`, `jpu-label`, `jpu-input`, `jpu-textarea`, `jpu-hint`,
+  `jpu-error`
+- status: `jpu-badge` with `jpu-badge--neutral`, `jpu-badge--success`,
+  `jpu-badge--warning` and `jpu-badge--danger`, `jpu-status`, `jpu-empty`,
+  `jpu-spinner`
+
+A page that uses these classes never writes an inline style and never injects
+markup as a string: the appearance belongs to the Core theme and the text
+belongs to the DOM.
 
 Install the generated project's dependencies and run its build script before
 packing `dist/package` with `jiffoo-plugin pack --input ... --output plugin.zip`.

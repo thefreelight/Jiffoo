@@ -1,13 +1,13 @@
 # @jiffoo/plugin-bridge
 
-The browser-side client of the Core plugin page shell, version 1.0.0-alpha.2.
+The browser-side client of the Core plugin page shell, version 1.0.0-alpha.3.
 It runs in the storefront's browser; the build and the verification run on
 Node.js >=24.13.1 <25, matching Core's Node 24 CI runtime.
 
 Install the bridge tarball attached to the matching Core release:
 
 ```sh
-npm i ./jiffoo-plugin-bridge-1.0.0-alpha.2.tgz
+npm i ./jiffoo-plugin-bridge-1.0.0-alpha.3.tgz
 ```
 
 ```typescript

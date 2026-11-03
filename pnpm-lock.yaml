@@ -408,6 +408,8 @@ importers:
         specifier: ^5.8.3
         version: 5.9.3
 
+  packages/plugin-ui: {}
+
   packages/shared:
     dependencies:
       '@fastify/proxy-addr':

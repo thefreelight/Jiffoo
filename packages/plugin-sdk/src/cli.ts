@@ -17,7 +17,9 @@ import {
   buildPluginUiAssetIndex, type PluginManifest, PLUGIN_MAX_DECOMPRESSED_SIZE, PLUGIN_MAX_ZIP_ENTRIES,
 } from '../../shared/src/plugin-signing';
 
-const HELP = `jiffoo-plugin create --slug <slug> --name <name> --output <dir> [--category integration|shipping|payment]
+const HELP = `jiffoo-plugin create --slug <slug> --name <name> --output <dir> [--category integration|shipping|payment] [--pages]
+create --pages also scaffolds the frontend: ui/index.html, ui/entry.ts, ui/styles.css and ui/vite.config.mts,
+a manifest ui declaration and the Vite build that fills dist/package/ui. The flag takes no value.
 jiffoo-plugin services generate-client --package <verified-provider-package.zip> --service <name> --version <major> [--output <file.ts>]
 jiffoo-plugin keygen --out <private.pem>
 jiffoo-plugin pack --input <dir> --output <zip>
@@ -45,6 +47,24 @@ function options(args: string[], names: string[], optionalNames: string[] = []):
   }
   if (names.some(name => !result[name])) failure('INVALID_ARGUMENTS');
   return result;
+}
+// The pages flag is a switch, not a named option, so it is taken out of the
+// argument list before the strict option parser sees it. The parser keeps its
+// exactness: every remaining argument still has to be a known name with a
+// value.
+function splitPagesFlag(args: string[]): { args: string[]; pages: boolean } {
+  const rest: string[] = [];
+  let pages = false;
+  for (let index = 0; index < args.length; index += 1) {
+    const argument = args[index];
+    if (argument !== '--pages') { rest.push(argument); continue; }
+    if (pages) failure('INVALID_ARGUMENTS');
+    const value = args[index + 1];
+    if (value === 'true' || value === '1') { pages = true; index += 1; continue; }
+    if (value === 'false' || value === '0') { pages = false; index += 1; continue; }
+    pages = true;
+  }
+  return { args: rest, pages };
 }
 function excluded(name: string): boolean {
   return name === '.git' || name === 'node_modules' || name === '.DS_Store' ||
@@ -125,7 +145,8 @@ async function main() {
     if (command === 'upload') { if (!zip) failure('INVALID_ARGUMENTS'); await uploadZip(zip, enable, undefined, confirmMigrations); }
     else await dev(enable, confirmMigrations, worker);
   } else if (command === 'create') {
-    await createPlugin(options(args, ['--slug', '--name', '--output'], ['--category']));
+    const split = splitPagesFlag(args);
+    await createPlugin(options(split.args, ['--slug', '--name', '--output'], ['--category']), { pages: split.pages });
   } else if (command === 'services') {
     const [subcommand, ...serviceArgs] = args;
     if (subcommand !== 'generate-client') failure('UNKNOWN_COMMAND');
