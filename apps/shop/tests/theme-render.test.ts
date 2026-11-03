@@ -98,6 +98,13 @@ describe('T2 Shop theme rendering', () => {
     expect(css).toContain(':root[data-shop-dark-available="true"][data-color-mode="system"]');
     expect(css).toContain('--shop-canvas: var(--shop-core-ground);');
   });
+  it('the body of the storefront takes its font size from the theme token', () => {
+    const css = readFileSync(resolve(__dirname, '../app/globals.css'), 'utf8');
+    // The merchant sets the base font size of the storefront, so the body reads
+    // the token of the theme and never a literal of its own.
+    expect(css).toMatch(/body\s*\{[^}]*font-size:\s*var\(--shop-extras-font-size-base\)/);
+    expect(css).not.toMatch(/body\s*\{[^}]*font-size:\s*\d/);
+  });
   it('B4 font-face accepts hash URLs and rejects semver aliases', () => {
     expect(themeFontFaces(fixture.fonts)).toContain('a'.repeat(64));
     expect(themeFontFaces([{ ...fixture.fonts[0], url: '/api/v1/themes/sample/1.0.0/fonts/brand.woff2' }])).toBe('');

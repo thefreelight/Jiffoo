@@ -70,6 +70,13 @@ font-size-base, radius-sm, radius-lg, button-radius, card-radius,
 section-spacing, container-width (lengths); type-scale (1-2),
 heading-weight (integer 100-900), button-style (solid/outline), card-shadow.
 
+The storefront reads `extras.font-size-base` for the size of the text that
+inherits: the body of the storefront declares no font size of its own, so the
+merchant's setting changes the storefront and the pages of the plugins at the
+same time. The size that carries a role is not derived from it: the storefront
+keeps its own type scale, and the stylesheet of a plugin page keeps the same
+one, so both surfaces render the same hierarchy whatever the merchant sets.
+
 Dark overrides may use only keys explicitly defined in the corresponding
 base token group. All values use the same bounds and references as light values.
 An absent darkTokens means darkAvailable=false; Core does not invent dark colors.

@@ -32,7 +32,7 @@
 --shop-extras-announcement-text: #FFFFFF;
 --shop-extras-price: #171717;
 --shop-extras-sale-price: #C4281C;
---shop-extras-font-size-base: 1rem;
+--shop-extras-font-size-base: 0.875rem;
 --shop-extras-radius-sm: 6px;
 --shop-extras-radius-lg: 12px;
 --shop-extras-button-radius: 8px;
@@ -78,7 +78,7 @@
 --shop-extras-announcement-text: #0A0A0A;
 --shop-extras-price: #EDEDED;
 --shop-extras-sale-price: #FF6B5E;
---shop-extras-font-size-base: 1rem;
+--shop-extras-font-size-base: 0.875rem;
 --shop-extras-radius-sm: 6px;
 --shop-extras-radius-lg: 12px;
 --shop-extras-button-radius: 8px;
@@ -124,7 +124,7 @@
 --shop-extras-announcement-text: #0A0A0A;
 --shop-extras-price: #EDEDED;
 --shop-extras-sale-price: #FF6B5E;
---shop-extras-font-size-base: 1rem;
+--shop-extras-font-size-base: 0.875rem;
 --shop-extras-radius-sm: 6px;
 --shop-extras-radius-lg: 12px;
 --shop-extras-button-radius: 8px;

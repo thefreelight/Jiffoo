@@ -5,6 +5,11 @@
  * this file names no theme variable, no literal color, no literal radius and
  * no literal spacing. A plugin page therefore renders in the theme of the
  * surface it is embedded in, without knowing the surface.
+ *
+ * The size of the text that inherits follows the theme token: `.jpu-page`
+ * takes `--jpu-font-size` from the theme, and `.jpu-text` inherits it. Every
+ * size that carries a role is a fixed rem that matches the Tailwind scale of
+ * the storefront one for one, so both surfaces share one typographic system.
  */
 
 /* Layout ------------------------------------------------------------------ */
@@ -58,13 +63,13 @@
   margin: 0;
   color: var(--jpu-fg);
   font-family: var(--jpu-font-heading);
-  font-size: calc(var(--jpu-font-size) * 1.25);
+  font-size: 1.25rem;
   font-weight: 600;
   line-height: 1.3;
 }
 
 .jpu-heading--lg {
-  font-size: calc(var(--jpu-font-size) * 1.5);
+  font-size: 1.5rem;
 }
 
 .jpu-text {
@@ -83,7 +88,7 @@
   background: var(--jpu-subtle);
   color: var(--jpu-fg);
   font-family: var(--jpu-font-mono);
-  font-size: calc(var(--jpu-font-size) * 0.9);
+  font-size: 0.875rem;
 }
 
 /* Containers -------------------------------------------------------------- */
@@ -109,7 +114,7 @@
   background: var(--jpu-surface);
   color: var(--jpu-fg);
   font-family: var(--jpu-font);
-  font-size: var(--jpu-font-size);
+  font-size: 0.875rem;
   line-height: 1.2;
   text-decoration: none;
   cursor: pointer;
@@ -147,12 +152,12 @@
 
 .jpu-btn--sm {
   padding: var(--jpu-space-2xs) var(--jpu-space-sm);
-  font-size: calc(var(--jpu-font-size) * 0.875);
+  font-size: 0.75rem;
 }
 
 .jpu-btn--lg {
   padding: var(--jpu-space-sm) var(--jpu-space-lg);
-  font-size: calc(var(--jpu-font-size) * 1.125);
+  font-size: 0.875rem;
 }
 
 .jpu-btn:disabled,
@@ -176,7 +181,7 @@
 
 .jpu-label {
   color: var(--jpu-fg);
-  font-size: calc(var(--jpu-font-size) * 0.875);
+  font-size: 0.875rem;
   font-weight: 600;
 }
 
@@ -189,7 +194,7 @@
   background: var(--jpu-bg);
   color: var(--jpu-fg);
   font-family: var(--jpu-font);
-  font-size: var(--jpu-font-size);
+  font-size: 0.875rem;
   line-height: 1.4;
 }
 
@@ -211,12 +216,12 @@
 
 .jpu-hint {
   color: var(--jpu-muted);
-  font-size: calc(var(--jpu-font-size) * 0.8125);
+  font-size: 0.75rem;
 }
 
 .jpu-error {
   color: var(--jpu-danger);
-  font-size: calc(var(--jpu-font-size) * 0.8125);
+  font-size: 0.75rem;
 }
 
 /* States ------------------------------------------------------------------ */
@@ -230,7 +235,7 @@
   border-radius: var(--jpu-radius);
   background: var(--jpu-subtle);
   color: var(--jpu-fg);
-  font-size: calc(var(--jpu-font-size) * 0.8125);
+  font-size: 0.75rem;
   line-height: 1.4;
 }
 
@@ -263,7 +268,7 @@
   align-items: center;
   gap: var(--jpu-space-xs);
   color: var(--jpu-muted);
-  font-size: calc(var(--jpu-font-size) * 0.875);
+  font-size: 0.875rem;
 }
 
 .jpu-empty {

@@ -45,7 +45,7 @@
       "announcement-text": "#ffffff",
       "price": "#18312d",
       "sale-price": "#b83232",
-      "font-size-base": "1rem",
+      "font-size-base": "0.875rem",
       "radius-sm": "0.25rem",
       "radius-lg": "0.5rem",
       "button-radius": "0.375rem",

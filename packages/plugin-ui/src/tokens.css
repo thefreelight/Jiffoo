@@ -51,7 +51,7 @@
   --jpu-font: var(--core-font-body);
   --jpu-font-heading: var(--core-font-heading);
   --jpu-font-mono: var(--core-font-mono);
-  --jpu-font-size: var(--extras-font-size-base, 1rem);
+  --jpu-font-size: var(--extras-font-size-base, 0.875rem);
 
   --jpu-shadow: var(--extras-card-shadow, none);
   --jpu-space: var(--extras-section-spacing, 3rem);
@@ -105,7 +105,7 @@
   --jpu-font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
   --jpu-font-heading: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
   --jpu-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-  --jpu-font-size: 1rem;
+  --jpu-font-size: 0.875rem;
   --jpu-shadow: 0px 8px 24px 0px #0000000F;
   --jpu-space: 3rem;
   --jpu-container: 1280px;

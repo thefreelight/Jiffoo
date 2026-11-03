@@ -1,6 +1,6 @@
 # @jiffoo/plugin-ui
 
-The presentation layer of a Core plugin page, version 1.0.0-alpha.1.
+The presentation layer of a Core plugin page, version 1.0.0-alpha.2.
 
 A plugin page runs in an opaque iframe (`sandbox="allow-scripts allow-forms"`),
 so the stylesheet of Core does not reach it. The Core shell sends the theme
@@ -14,7 +14,7 @@ development dependencies and no workspace references, so it installs outside
 the monorepo like any other stylesheet package.
 
 ```sh
-npm i ./jiffoo-plugin-ui-1.0.0-alpha.1.tgz
+npm i ./jiffoo-plugin-ui-1.0.0-alpha.2.tgz
 ```
 
 ```html
@@ -44,6 +44,11 @@ The tokens are:
 
 The dark mode of Core needs no branch here: the bridge writes the values of
 the mode in force, so the tokens of the frame are already the dark ones.
+
+The size of the text that inherits follows the theme token `--jpu-font-size`,
+which reads `--extras-font-size-base` of the theme. Every size that carries a
+role is a fixed rem that matches the Tailwind scale of the storefront one for
+one, so a plugin page and the storefront share one typographic system.
 
 From the repository, `pnpm --filter @jiffoo/plugin-ui build` publishes the two
 stylesheets into `dist`, and

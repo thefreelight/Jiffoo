@@ -95,7 +95,7 @@
 @utility outline-none { outline: 2px solid transparent; outline-offset: 2px; }
 
 body { background: var(--shop-canvas); color: var(--shop-ink); font-family: var(--shop-font); }
-body { font-size: 14px; line-height: 1.5; }
+body { font-size: var(--shop-extras-font-size-base); line-height: 1.5; }
 html { color-scheme: light; }
 @media (prefers-color-scheme: dark) { html[data-shop-dark-available="true"] { color-scheme: dark; } }
 *:focus-visible { outline: 2px solid var(--shop-action); outline-offset: 2px; }
