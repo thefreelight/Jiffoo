@@ -1039,6 +1039,17 @@ export async function callService(
   }
   const permit = await sharedProtection.breaker(pluginProtectionScope(instance.id, instance.protectionGeneration));
   if (!permit) return serviceCoreError('PLUGIN_SERVICE_DEPENDENCY_UNAVAILABLE', `The provider ${request.plugin} is not available`);
+  let sampleRecorded = false;
+  const recordProviderOutcome = async (success: boolean): Promise<void> => {
+    if (sampleRecorded) return;
+    sampleRecorded = true;
+    try {
+      await sharedProtection.result(permit, success);
+    } catch (error) {
+      if (!(error instanceof SharedProtectionUnavailable)) throw error;
+      console.error(JSON.stringify({ event: 'plugin_service_breaker_record_failed', installationId: instance.id }));
+    }
+  };
 
   const config = decryptPluginConfig(providerManifest, parseJsonObject(instance.configJson));
   let runtime: InternalRuntime | undefined;
@@ -1049,7 +1060,7 @@ export async function callService(
     }, true);
   } catch (error) {
     await recordPluginFailure(request.plugin, error, 'service', instance.id);
-    await sharedProtection.result(permit, false);
+    await recordProviderOutcome(false);
     return serviceCoreError('PLUGIN_SERVICE_DEPENDENCY_UNAVAILABLE', `The provider ${request.plugin} cannot be loaded`);
   }
   const activeRuntime = runtime;
@@ -1168,6 +1179,7 @@ export async function callService(
     let outcome = await invokeProvider(handle?.callId ?? randomUUID(), handle?.mode === 'reconcile');
     if (isNotExecutedOutcome(outcome)) {
       if (!handle || handle.mode !== 'reconcile') {
+        await recordProviderOutcome(false);
         // A provider that reports a non-execution during a normal execution
         // breaks the protocol, and the outcome of the call stays unknown.
         if (handle) await markServiceCallUnknown(handle, { code: 'PLUGIN_SERVICE_PROVIDER_CRASHED', message: 'The provider returned an invalid outcome' });
@@ -1177,16 +1189,19 @@ export async function callService(
       // RUNNING once and the normal invocation runs with the same call ID.
       const fenced = await fenceNotExecuted(handle, timeoutMs);
       if (!fenced) {
+        await recordProviderOutcome(true);
         return lostClaimOutcome(handle.callId, request);
       }
       handle = fenced;
       outcome = await invokeProvider(handle.callId, false);
       if (isNotExecutedOutcome(outcome)) {
+        await recordProviderOutcome(false);
         await markServiceCallUnknown(handle, { code: 'PLUGIN_SERVICE_PROVIDER_CRASHED', message: 'The provider returned an invalid outcome' });
         return serviceCoreError('PLUGIN_SERVICE_PROVIDER_CRASHED', 'The provider returned an invalid outcome');
       }
     }
     const result = providerOutcomeToResult(outcome, registration.schemas);
+    await recordProviderOutcome(result.ok === true || result.source === 'provider');
     if (handle) {
       // A success and a durable business rejection are terminal outcomes. A
       // Core refusal of the provider's answer is not, and leaves the row
@@ -1202,6 +1217,7 @@ export async function callService(
     return result;
   } catch (error) {
     if (timedOut) {
+      await recordProviderOutcome(false);
       if (handle) await markServiceCallUnknown(handle, { code: 'PLUGIN_SERVICE_TIMEOUT', message: `The provider ${request.plugin} did not answer within ${timeoutMs}ms` });
       if (handle?.mode === 'reconcile') {
         return lostClaimOutcome(handle.callId, request);
@@ -1218,7 +1234,7 @@ export async function callService(
       if (rejection) {
         // The provider answered, so the breaker sees a call that worked: a
         // refusal never opens it and closes a probe that was open.
-        await sharedProtection.result(permit, true);
+        await recordProviderOutcome(true);
         if (handle) {
           if (!await settleServiceCall(handle, rejection)) return lostClaimOutcome(handle.callId, request);
         }
@@ -1226,7 +1242,7 @@ export async function callService(
       }
     }
     await recordPluginFailure(request.plugin, error, 'service', instance.id);
-    await sharedProtection.result(permit, false);
+    await recordProviderOutcome(false);
     if (handle) await markServiceCallUnknown(handle, { code: 'PLUGIN_SERVICE_PROVIDER_CRASHED', message: 'The provider failed to answer the service call' });
     if (handle?.mode === 'reconcile') {
       return lostClaimOutcome(handle.callId, request);
