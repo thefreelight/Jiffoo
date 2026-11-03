@@ -55,7 +55,7 @@ test('CI union contains all full steps and every job retains database guards', (
 }));
 
 test('every API shard exports its own OpenAPI spec in full catalogue order before tests', () => inActions(() => {
-  const expected = ['Install dependencies', 'Validate and generate Prisma client', 'Build shared package', 'Build plugin SDK', 'Export OpenAPI', 'Reset test database', 'Check Prisma migration drift', 'Run API tests'];
+  const expected = ['Install dependencies', 'Validate and generate Prisma client', 'Build shared package', 'Build plugin SDK', 'Build plugin UI', 'Export OpenAPI', 'Reset test database', 'Check Prisma migration drift', 'Run API tests'];
   const full = localSteps('test').map(([name]) => name);
   for (const shard of ['1/4', '2/4', '3/4', '4/4']) {
     const plan = ciSteps('test', 'api', shard);

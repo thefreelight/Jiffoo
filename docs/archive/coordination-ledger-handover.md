@@ -6090,3 +6090,93 @@ commit alone. The commit contains the six files and the documents and nothing el
 certification is the complete gate of CI, which runs on the commit itself.
 
 The browser E2E did not run locally: it belongs to CI, and this batch changed no browser path.
+
+## 5zat. The CI step catalogue names the plugin UI build
+
+**Baseline SHA:** `41f1481ba`. **Commits:** (the commits of this batch).
+
+### The failure
+
+The CI runs of the two batches that followed the theme bridge failed in the job `api (4)`:
+
+```
+✖ every API shard exports its own OpenAPI spec in full catalogue order before tests
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal
++   'Build plugin UI',
+```
+
+The theme bridge batch added the `@jiffoo/plugin-ui` package and a `Build plugin UI` step to the CI
+step list of `scripts/verify-steps.mjs`, between `Build plugin SDK` and `Export OpenAPI`. The
+expected list of `scripts/verify-ci.test.mjs` still named the old steps.
+
+That test is CI-only by design, so no local gate saw it: the local gate cannot select it, and the
+local runner rejects it. The first CI run that carried the new step caught it, and every push after
+that inherited the red job.
+
+### The decision
+
+One line: the expected list of the API shard names `Build plugin UI` in the position the runner
+produces it. The step list of the runner is not changed, and no other assertion is touched.
+
+### The local evidence
+
+The changed input is `scripts/verify-ci.test.mjs` and this ledger section: no source, no test, no
+schema, no dependency. The planner adds no suite for it, and the file itself cannot be selected
+locally, so the certifying run is the audited script test of the verification selection logic.
+
+Two local runs of that selection failed before this one, and neither failure was a defect of the
+tree: the first failed `tests/core/event-delivery-lease-renewal.test.ts`, the second failed
+`tests/routes/plugin-migrations.test.ts` with a `504 PLUGIN_TIMEOUT`. Both runs had two gates of
+the same selection alive at the same time on one machine and on one `jiffoo_core_test` database, and
+both suites are timing bound. The run below was made alone.
+
+```
+DATABASE_URL_TEST=postgresql://postgres:postgres@localhost:5432/jiffoo_core_test \
+PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=<the owner's consent to reset jiffoo_core_test> \
+pnpm verify:quick --test-files=scripts/verify-selection.test.mjs
+```
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: the suites that reach the changed shared package of the other session
+Run API tests in 4 shards:
+Scope coverage: 181/181 files covered
+Totals: Test Files 181 files, 181 passed | Tests 2552 tests, 2552 passed
+Test conclusion: PASS
+Cleanup conclusion: PASS
+Delivery status: API PASS / cleanup PASS
+--- File coverage ---
+Catalogue files (the selection the caller named): 181
+Expected set (the full catalogue, not the assigned subset): 181
+Assigned to this run: 181
+Executed (union over all shards): 181
+Missing files: none
+Extra files: none
+Cross-shard duplicates: none
+Empty shards: none
+Coverage verdict: PASS
+--- Shard results ---
+| Shard | Exit | Duration | Start at | Test Files | Tests | Failed files |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | 0 | 655.6s | 17:32:07 | 44 files, 44 passed | 700 tests, 700 passed | none |
+| 2 | 0 | 538.8s | 17:32:08 | 45 files, 45 passed | 581 tests, 581 passed | none |
+| 3 | 0 | 623.9s | 17:32:09 | 47 files, 47 passed | 573 tests, 573 passed | none |
+| 4 | 0 | 643.2s | 17:32:09 | 45 files, 45 passed | 698 tests, 698 passed | none |
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Run script tests | PASS | 0.50s |
+| Prisma generate | PASS | 0.01s |
+| Type-check selected scope and shared | PASS | 3.14s |
+| Lint Shop | PASS | 11.52s |
+| Reset test database | PASS | 4.45s |
+| Run API tests in 4 shards | PASS | 671.99s |
+```
+
+The run was widened by the shared package change of the other session, which is still in the
+working tree. The certification of the one line of this batch is the CI job that runs the test.
+
+The browser E2E did not run locally: it belongs to CI, and this batch changed no product code.
