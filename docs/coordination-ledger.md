@@ -269,8 +269,8 @@ of that day.
 | 5zaj | The refresh of the token of a live plugin page: a refused refresh keeps the page, and the bridge refreshes the token when it is about to expire | `33c7487b4`, `be3469f16` |
 | 5zak | The hard deadline of the shutdown is decided by the timer that arms it, not by a measured elapsed | `b361ab0eb` |
 | 5zal | The published types of the SDK carry the deliberate refusal of a plugin | `1c219ea4c`, `8ead5fe70` |
-| 5zam | The idle window of a page session is renewed by a live shell | — |
-| 5zan | The assertion of the lease renewal is not a millisecond-boundary assertion | — |
+| 5zam | The idle window of a page session is renewed by a live shell | `6338e3536` |
+| 5zan | The assertion of the lease renewal is not a millisecond-boundary assertion | `b72804d18` |
 
 ## 6. The archive
 
