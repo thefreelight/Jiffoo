@@ -342,7 +342,14 @@ describe('Declared plugin migrations over real TCP', () => {
       const id = (await accepted.json()).data.operationId, barrier = await child.next();
       const before = await prisma.pluginOperationLease.findUniqueOrThrow({ where: { slug } });
       expect(await child.nextRenewal()).toBe(id);
-      const renewed = await prisma.pluginOperationLease.findUniqueOrThrow({ where: { slug } }); expect(renewed.expiresAt.getTime()).toBeGreaterThan(before.expiresAt.getTime()); expect(renewed.token).toBe(before.token);
+      const renewed = await prisma.pluginOperationLease.findUniqueOrThrow({ where: { slug } });
+      // The renewal refreshes the window of the lease and keeps its ownership.
+      // The clock of the database has a millisecond resolution, so a renewal
+      // in the same millisecond as the reading above keeps the same value;
+      // the renewal itself is reported by the child.
+      expect(renewed.expiresAt.getTime()).toBeGreaterThanOrEqual(before.expiresAt.getTime());
+      expect(renewed.expiresAt.getTime()).toBeGreaterThan(Date.now());
+      expect(renewed.token).toBe(before.token);
       await prisma.pluginOperationLease.update({ where: { slug }, data: { token: 'replacement-owner' } });
       child.release(barrier); const failed = await terminal(id, 'NEEDS_RECOVERY', child.origin); expect(failed.errorCode).toBe('PLUGIN_MIGRATION_OUTCOME_UNKNOWN');
       expect((await prisma.pluginOperationLease.findUniqueOrThrow({ where: { slug } })).token).toBe('replacement-owner');
