@@ -633,7 +633,7 @@ async function handleStripeWebhook(request: Request, env: CheckoutEnv): Promise<
      VALUES (?1, 'stripe', ?2, ?3)`,
   ).bind(event.id, event.type, now)];
   if (paid) {
-    const row = await env.DB.prepare('SELECT payload FROM native_order_snapshots WHERE id = ?1').bind(orderId).first<{ payload: string }>();
+    const row = await env.DB.prepare('SELECT payload, user_id FROM native_order_snapshots WHERE id = ?1').bind(orderId).first<{ payload: string; user_id: string }>();
     if (row) {
       const order = JSON.parse(row.payload) as Record<string, unknown>;
       // Hosted-checkout sync: when the buyer entered the delivery address on
@@ -669,6 +669,20 @@ async function handleStripeWebhook(request: Request, env: CheckoutEnv): Promise<
           `INSERT INTO native_checkout_outbox (id, event_type, aggregate_id, payload, created_at)
            VALUES (?1, 'payment.succeeded', ?2, ?3, ?4)`,
         ).bind(crypto.randomUUID(), orderId, JSON.stringify({ orderId, sessionId, providerEventId: event.id }), now),
+        // In-app receipt notification: the apps' notifications page is the
+        // buyer's pull channel (no APNs); dedup rides the webhook event-id
+        // guard above, so one settled event yields exactly one notification.
+        env.DB.prepare(
+          `INSERT INTO native_bokmoo_notifications (id, user_id, type, title, body, metadata_json, created_at)
+           VALUES (?1, ?2, 'order', ?3, ?4, ?5, ?6)`,
+        ).bind(
+          crypto.randomUUID(),
+          row.user_id,
+          'Payment confirmed',
+          `Order ${orderId} has been paid. We are preparing it for delivery.`,
+          JSON.stringify({ orderId, sessionId, providerEventId: event.id }),
+          now,
+        ),
       );
     }
   }

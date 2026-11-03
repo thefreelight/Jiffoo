@@ -179,7 +179,7 @@ describe('native PaymentSheet payment intents', () => {
           first: async () => {
             if (sql.includes('FROM native_payment_sessions')) return { id: 'pi_test_1' };
             if (sql.includes('FROM native_payment_events')) return null;
-            if (sql.includes('FROM native_order_snapshots')) return { payload: orderPayload };
+            if (sql.includes('FROM native_order_snapshots')) return { payload: orderPayload, user_id: 'user-1' };
             return null;
           },
           run: async () => ({ success: true }),
@@ -207,5 +207,6 @@ describe('native PaymentSheet payment intents', () => {
     expect(payload.data.applied).toBe(true);
     expect(batched.some((sql) => sql.includes("SET payment_status = 'PAID'"))).toBe(true);
     expect(batched.some((sql) => sql.includes('payment.succeeded'))).toBe(true);
+    expect(batched.some((sql) => sql.includes('INSERT INTO native_bokmoo_notifications'))).toBe(true);
   });
 });
