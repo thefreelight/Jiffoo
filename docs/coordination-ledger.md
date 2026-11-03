@@ -78,7 +78,7 @@ that were open when it was written; §5w names all four.
 | the registered dependency rings | §5o item 7 | open; 600 rings, unchanged |
 | the currency catalogue of the settings page against the shared catalogue | §5ze, §5zai | closed on 2026-11-02; the shared package owns the list of the store currencies, the money module, the settings page and the presentation catalogue read it, and a test keeps the list and the catalogue equal |
 | the storefront does not read the marker of a degraded tax quote | §5zg, §5zai | closed on 2026-11-02; the storefront reads the marker and says that the tax is being calculated instead of showing an empty total |
-| a dead plugin file cleanup row holds the storage quota of its plugin | §5zg | open; the quota is released only on the successful cleanup path, so a row that exhausts its attempt budget keeps its reservation |
+| a dead plugin file cleanup row holds the storage quota of its plugin | §5zg, §5zar | closed on 2026-11-03; an operator can retry the delete or release the row, and the release refuses while the object is still in the store |
 | a successful service call does not record a success sample at the breaker | §5zai | open as of 2026-11-02; the service path records only failures, so the failure history of a provider never slides out of the window and a probe that succeeds never closes the circuit; the contract path and the gateway path record the success, the service path does not |
 | a store that moves to a zero-decimal currency with fractional prices | §5ze | open; the merchant has to re-price |
 | an audit row may be lost when the database refuses the write | §5zg, §5zh | open by decision; the money state is the truth that must not be undone |
@@ -184,6 +184,7 @@ status column is the status of that day, not of today.
 
 | **B-THEME-BRIDGE** — the theme of the store reaches the page of a plugin: the shell sends every theme variable of the surface, the bridge lays them down on the frame document, and a plugin styles itself with the shared plugin UI instead of a palette of its own | Core line (coordinator session) | `codex/core-extension-boundary` / `worktrees/jiffoo-core-extension-boundary` | `d42a7d7ce` | `packages/shared/src/plugin-pages/{theme-vars.ts,shell.tsx}`, `packages/plugin-bridge/{src/index.ts,package.json,README.md}`, `packages/plugin-ui/**`, `packages/plugin-sdk/{package.json,README.md,src/cli.ts,src/create.ts,src/page-template.ts}`, `scripts/{plugin-ui-standalone.mjs,plugin-ui-standalone.test.mjs,pack-plugin-packages.mjs,verify-selection.mjs,verify-steps.mjs,module-reachability.mjs,plugin-sdk-standalone.mjs}`, `apps/shop/tests/plugin-theme-bridge.test.ts`, `docs/agentra-004-plugin-pages-and-services.md`, `docs/coordination-ledger.md` | `jiffoo_core_test` (integration) | coordinator session | **committed, gate green** | §5zap |
 | **B-G4-ACCEPT** — the adversarial acceptance of a plugin service: the grant is enforced in a task handler and in a final-failure hook, and a timed-out call settles the ledger unknown and reconciles without a second effect | Core line (this session) | `codex/core-extension-boundary` / `worktrees/jiffoo-core-extension-boundary` | `d42a7d7ce` | `apps/api/tests/core/plugin-service-grant-paths.test.ts` | `jiffoo_core_test` (integration) | coordinator session (one worker run) | **committed**, gate green | §5zaq |
+| **B-DEAD-CLEANUP** — a dead plugin file cleanup row is resolved by the operator: a retry puts it back to the sweep, and a release frees the quota only once the object store confirms the object is gone | Core line (this session) | `codex/core-extension-boundary` / `worktrees/jiffoo-core-extension-boundary` | `c4fcd02cc` | `packages/shared/src/error-codes.ts`, `apps/api/src/utils/api-errors.ts`, `apps/api/src/core/plugin-storage/service.ts`, `apps/api/src/core/admin/extension-installer/routes.ts`, `apps/api/tests/core/plugin-file-cleanup-dead-letter.test.ts`, `apps/api/tests/routes/plugin-recovery-http.test.ts` | `jiffoo_core_test` (integration) | coordinator session (one worker run) | **committed**, gate green (183 suites, 4 shards) | §5zar |
 
 ## 4. Serial overlap set — never edited by both sides at once
 
@@ -279,6 +280,7 @@ of that day.
 | 5zao | The service path of a plugin service records the outcome of the provider at the breaker | `df280dc59` |
 | 5zap | The theme of the store reaches the page of a plugin: the full token payload, the plugin UI stylesheet and the page scaffold | `d9e7b628b` |
 | 5zaq | The adversarial acceptance of a plugin service: the grant in a task handler and in a failure hook, and the timeout of the call ledger | — |
+| 5zar | The dead cleanup row of the plugin storage is resolved by the operator | — |
 
 ## 6. The archive
 

@@ -29,6 +29,7 @@ import { fetchMarketplaceCatalog, marketplaceUrl, MarketplaceError } from './mar
 import { checkPluginApiCompatibility, PluginLoaderError } from './plugin-compatibility';
 import { compareVersions } from '@/core/extensions/shared/version-utils';
 import { listPluginRecovery } from './plugin-recovery';
+import { pluginStorage } from '@/core/plugin-storage/service';
 import { pluginDatabaseAuditRoutes } from './plugin-database-audit-routes';
 import { installMarketplacePlugin, previewMarketplacePlugin } from './marketplace-install';
 import { previewPluginUpload, PluginUploadError } from './plugin-upload';
@@ -732,6 +733,26 @@ onSend: async (request, reply, payload) => {
   }, async (request, reply) => {
     reply.header('Cache-Control', 'no-store');
     try { return sendSuccess(reply, await listPluginRecovery({ deadCleanupLimit: request.query.deadCleanupLimit, deadCleanupOffset: request.query.deadCleanupOffset })); } catch (error) { return sendMappedError(reply, error); }
+  });
+
+  admin.post<{ Body: { objectKey: string; action: 'retry' | 'release' } }>('/plugin/recovery/dead-cleanups/resolve', {
+    schema: { tags: ['admin-plugins'], summary: 'Retry or release a dead plugin file cleanup', security: [{ bearerAuth: [] }],
+      body: { type: 'object', additionalProperties: false, required: ['objectKey', 'action'], properties: {
+        objectKey: { type: 'string', minLength: 1, maxLength: 512 },
+        action: { type: 'string', enum: ['retry', 'release'] },
+      } },
+      response: { 200: { type: 'object', required: ['success', 'data'], properties: { success: { type: 'boolean', enum: [true] }, data: { type: 'object', additionalProperties: false, required: ['objectKey', 'action', 'status'], properties: {
+        objectKey: { type: 'string' }, action: { type: 'string', enum: ['retry', 'release'] }, status: { type: 'string', enum: ['PENDING', 'RELEASED'] },
+      } } } },
+        400: errorResponseSchema, 401: errorResponseSchema, 403: errorResponseSchema, 404: errorResponseSchema,
+        409: errorResponseSchema, 500: errorResponseSchema, 503: errorResponseSchema } },
+  }, async (request, reply) => {
+    try {
+      const { objectKey, action } = request.body;
+      return sendSuccess(reply, action === 'retry'
+        ? await pluginStorage.retryDeadCleanup(request.user!.id, objectKey)
+        : await pluginStorage.releaseDeadCleanup(request.user!.id, objectKey));
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   admin.get<{ Params: { operationId: string }; Querystring: { wait?: boolean; phase?: string; committedPrefix?: number } }>('/plugin/operations/:operationId', {

@@ -243,6 +243,68 @@ export class PluginStorageService {
       });
     }
   }
+
+  /**
+   * Resets a dead cleanup row so the existing sweep tries the remote delete
+   * again. Only a DEAD row can be retried: a live row is already owned by the
+   * sweep, and a missing row is indistinguishable from a non-dead one.
+   */
+  async retryDeadCleanup(actorId: string, objectKey: string) {
+    return prisma.$transaction(async tx => {
+      await lockTaskScheduler(tx);
+      const rows = await tx.$queryRaw<Array<{ id: string; status: string; fileId: string | null; installationId: string }>>`
+        SELECT id, status, "fileId", "installationId" FROM public.plugin_file_cleanup WHERE "objectKey" = ${objectKey} FOR UPDATE`;
+      const row = rows[0];
+      if (!row || row.status !== 'DEAD') throw new ApiError('PLUGIN_FILE_NOT_FOUND');
+      const now = await taskDatabaseTime(tx);
+      await tx.pluginFileCleanup.update({ where: { id: row.id }, data: {
+        status: 'PENDING', attempts: 0, nextAttemptAt: now, claimToken: null, leaseUntil: null,
+      } });
+      await AdminAuditService.record(tx, { actorId, action: 'PLUGIN_FILE_CLEANUP_RETRIED', targetType: 'plugin', targetId: row.installationId,
+        summary: { objectKey, fileId: row.fileId } });
+      return { objectKey, action: 'retry' as const, status: 'PENDING' };
+    });
+  }
+
+  /**
+   * Releases the quota of a dead cleanup row whose remote object is gone.
+   *
+   * The object store decides: a present object is refused, so the debt is not
+   * written off while the bytes are still stored. An absent object is resolved
+   * with the same quota arithmetic as the successful cleanup path, in one
+   * transaction. The quota is never released when the store cannot answer.
+   */
+  async releaseDeadCleanup(actorId: string, objectKey: string) {
+    const queued = await prisma.pluginFileCleanup.findUnique({ where: { objectKey } });
+    if (!queued || queued.status !== 'DEAD') throw new ApiError('PLUGIN_FILE_NOT_FOUND');
+    let present: { size: number } | null;
+    try {
+      const signal = AbortSignal.timeout(15_000);
+      present = await untilAbort(this.store.head(objectKey, signal), signal);
+    } catch { throw new ApiError('UPLOAD_STORAGE_UNAVAILABLE'); }
+    if (present) throw new ApiError('PLUGIN_FILE_CLEANUP_OBJECT_PRESENT');
+    return prisma.$transaction(async tx => {
+      await lockTaskScheduler(tx);
+      const rows = await tx.$queryRaw<Array<{ id: string; status: string; fileId: string | null; installationId: string }>>`
+        SELECT id, status, "fileId", "installationId" FROM public.plugin_file_cleanup WHERE "objectKey" = ${objectKey} FOR UPDATE`;
+      const row = rows[0];
+      if (!row || row.status !== 'DEAD') throw new ApiError('PLUGIN_FILE_NOT_FOUND');
+      if (row.fileId) {
+        const file = await tx.pluginFile.findUnique({ where: { id: row.fileId } });
+        if (file) {
+          await lockQuotas(tx, file.installationId, file.ownerType, file.ownerId, false);
+          for (const key of [{ installationId: file.installationId, ownerType: 'INSTALLATION', ownerId: '' }, { installationId: file.installationId, ownerType: file.ownerType, ownerId: file.ownerId }]) {
+            await tx.pluginStorageQuota.updateMany({ where: key, data: { reservedBytes: { decrement: file.reservedBytes }, usedBytes: { decrement: file.sizeBytes } } });
+          }
+          await tx.pluginFile.delete({ where: { id: file.id } });
+        }
+      }
+      await tx.pluginFileCleanup.delete({ where: { id: row.id } });
+      await AdminAuditService.record(tx, { actorId, action: 'PLUGIN_FILE_CLEANUP_RELEASED', targetType: 'plugin', targetId: row.installationId,
+        summary: { objectKey, fileId: row.fileId } });
+      return { objectKey, action: 'release' as const, status: 'RELEASED' };
+    });
+  }
 }
 
 export const pluginStorage = new PluginStorageService();

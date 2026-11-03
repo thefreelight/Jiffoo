@@ -20,6 +20,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  await prisma.adminAuditEvent.deleteMany({ where: { targetId: installationId } });
   await prisma.pluginFileCleanup.deleteMany({ where: { installationId } });
   await prisma.pluginFile.deleteMany({ where: { installationId } });
   await prisma.pluginStorageQuota.deleteMany({ where: { installationId } });
@@ -55,6 +56,34 @@ function successfulStore() {
     list: async () => [],
   };
   return { store, deleted };
+}
+
+/** A store whose remote object still exists. */
+function presentStore() {
+  const store: UploadedObjectStore = {
+    initialize: async () => {},
+    put: async () => {},
+    get: async () => null,
+    read: async () => null,
+    delete: async () => {},
+    head: async () => ({ size: 12 }),
+    list: async () => [],
+  };
+  return { store };
+}
+
+/** A store that cannot answer whether the object exists. */
+function unavailableStore() {
+  const store: UploadedObjectStore = {
+    initialize: async () => {},
+    put: async () => {},
+    get: async () => null,
+    read: async () => null,
+    delete: async () => {},
+    head: async () => { throw new Error('object store outage'); },
+    list: async () => [],
+  };
+  return { store };
 }
 
 /** A ready file with its quota reserved and its cleanup row queued. */
@@ -243,3 +272,101 @@ it('the recovery route pages the dead cleanup rows and rejects an out of range p
     await deleteTestUser(admin.user.id);
   }
 });
+
+it('an operator retry returns a dead cleanup row to pending and the sweep claims it again', async () => {
+  const objectKey = `private/${installationId}/CUSTOMER/${randomUUID()}`;
+  const { file, cleanup } = await seed(objectKey, 12);
+  const { store, deleted } = failingStore();
+  const service = new PluginStorageService(store);
+  await driveToDeadLetter(service, cleanup.id);
+  const actorId = randomUUID();
+  const result = await service.retryDeadCleanup(actorId, objectKey);
+  expect(result).toEqual({ objectKey, action: 'retry', status: 'PENDING' });
+  const retried = await prisma.pluginFileCleanup.findUniqueOrThrow({ where: { id: cleanup.id } });
+  expect(retried.status).toBe('PENDING');
+  expect(retried.attempts).toBe(0);
+  expect(retried.claimToken).toBeNull();
+  expect(retried.leaseUntil).toBeNull();
+  expect(retried.lastError).toBe('UPLOAD_STORAGE_UNAVAILABLE');
+  expect(retried.fileId).toBe(file.id);
+  expect(retried.nextAttemptAt.getTime()).toBeGreaterThan(Date.now() - 60_000);
+  // The existing sweep claims the reset row again and counts a fresh attempt.
+  await prisma.pluginFileCleanup.update({ where: { id: cleanup.id }, data: { nextAttemptAt: new Date(0) } });
+  await service.cleanup();
+  const claimed = await prisma.pluginFileCleanup.findUniqueOrThrow({ where: { id: cleanup.id } });
+  expect(claimed.status).toBe('PENDING');
+  expect(claimed.attempts).toBe(1);
+  expect(deleted.filter(key => key === objectKey)).toHaveLength(PLUGIN_FILE_CLEANUP_MAX_ATTEMPTS + 1);
+  const audit = await prisma.adminAuditEvent.findFirst({ where: { actorId, action: 'PLUGIN_FILE_CLEANUP_RETRIED', targetId: installationId } });
+  expect(audit?.summary).toMatchObject({ objectKey, fileId: file.id });
+});
+
+it('an operator release refuses a dead row whose object still exists and changes nothing', async () => {
+  const objectKey = `private/${installationId}/CUSTOMER/${randomUUID()}`;
+  const { file, cleanup } = await seed(objectKey, 12);
+  const { store: failing } = failingStore();
+  await driveToDeadLetter(new PluginStorageService(failing), cleanup.id);
+  const actorId = randomUUID();
+  const service = new PluginStorageService(presentStore().store);
+  await expect(service.releaseDeadCleanup(actorId, objectKey)).rejects.toMatchObject({
+    code: 'PLUGIN_FILE_CLEANUP_OBJECT_PRESENT', statusCode: 409,
+  });
+  const row = await prisma.pluginFileCleanup.findUniqueOrThrow({ where: { id: cleanup.id } });
+  expect(row.status).toBe('DEAD');
+  expect(row.attempts).toBe(PLUGIN_FILE_CLEANUP_MAX_ATTEMPTS);
+  expect(await prisma.pluginFile.findUnique({ where: { id: file.id } })).not.toBeNull();
+  const quotas = await prisma.pluginStorageQuota.findMany({ where: { installationId } });
+  expect(quotas).toHaveLength(2);
+  expect(quotas.every(quota => quota.usedBytes === 12n && quota.reservedBytes === 0n)).toBe(true);
+  expect(await prisma.adminAuditEvent.findFirst({ where: { actorId, action: 'PLUGIN_FILE_CLEANUP_RELEASED' } })).toBeNull();
+});
+
+it('an operator release deletes the file and the cleanup row and zeroes both quota rows when the object is gone', async () => {
+  const objectKey = `private/${installationId}/CUSTOMER/${randomUUID()}`;
+  const { file, cleanup } = await seed(objectKey, 12);
+  const { store: failing } = failingStore();
+  await driveToDeadLetter(new PluginStorageService(failing), cleanup.id);
+  const actorId = randomUUID();
+  const result = await new PluginStorageService(successfulStore().store).releaseDeadCleanup(actorId, objectKey);
+  expect(result).toEqual({ objectKey, action: 'release', status: 'RELEASED' });
+  expect(await prisma.pluginFileCleanup.findUnique({ where: { id: cleanup.id } })).toBeNull();
+  expect(await prisma.pluginFile.findUnique({ where: { id: file.id } })).toBeNull();
+  const quotas = await prisma.pluginStorageQuota.findMany({ where: { installationId } });
+  expect(quotas).toHaveLength(2);
+  expect(quotas.every(quota => quota.usedBytes === 0n && quota.reservedBytes === 0n)).toBe(true);
+  const audit = await prisma.adminAuditEvent.findFirst({ where: { actorId, action: 'PLUGIN_FILE_CLEANUP_RELEASED', targetId: installationId } });
+  expect(audit?.summary).toMatchObject({ objectKey, fileId: file.id });
+});
+
+it('an operator release does not release the quota when the object store cannot answer', async () => {
+  const objectKey = `private/${installationId}/CUSTOMER/${randomUUID()}`;
+  const { file, cleanup } = await seed(objectKey, 12);
+  const { store: failing } = failingStore();
+  await driveToDeadLetter(new PluginStorageService(failing), cleanup.id);
+  await expect(new PluginStorageService(unavailableStore().store).releaseDeadCleanup(randomUUID(), objectKey)).rejects.toMatchObject({
+    code: 'UPLOAD_STORAGE_UNAVAILABLE', statusCode: 503,
+  });
+  expect(await prisma.pluginFileCleanup.findUnique({ where: { id: cleanup.id } })).not.toBeNull();
+  expect(await prisma.pluginFile.findUnique({ where: { id: file.id } })).not.toBeNull();
+  const quotas = await prisma.pluginStorageQuota.findMany({ where: { installationId } });
+  expect(quotas.every(quota => quota.usedBytes === 12n && quota.reservedBytes === 0n)).toBe(true);
+});
+
+it('a cleanup row that is not dead or does not exist answers not found for both operator actions', async () => {
+  const objectKey = `private/${installationId}/CUSTOMER/${randomUUID()}`;
+  const { cleanup } = await seed(objectKey, 12);
+  const service = new PluginStorageService(successfulStore().store);
+  const actorId = randomUUID();
+  for (const action of ['retry', 'release'] as const) {
+    await expect(action === 'retry'
+      ? service.retryDeadCleanup(actorId, objectKey)
+      : service.releaseDeadCleanup(actorId, objectKey)).rejects.toMatchObject({ code: 'PLUGIN_FILE_NOT_FOUND', statusCode: 404 });
+    await expect(action === 'retry'
+      ? service.retryDeadCleanup(actorId, `private/${installationId}/CUSTOMER/${randomUUID()}`)
+      : service.releaseDeadCleanup(actorId, `private/${installationId}/CUSTOMER/${randomUUID()}`)).rejects.toMatchObject({ code: 'PLUGIN_FILE_NOT_FOUND', statusCode: 404 });
+  }
+  const row = await prisma.pluginFileCleanup.findUniqueOrThrow({ where: { id: cleanup.id } });
+  expect(row.status).toBe('PENDING');
+  expect(row.attempts).toBe(0);
+});
+

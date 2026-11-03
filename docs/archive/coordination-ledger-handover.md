@@ -5986,3 +5986,107 @@ Run API tests:
 ```
 
 The browser E2E did not run locally: it belongs to CI, and this batch changed no product code.
+
+## 5zar. The dead cleanup row of the plugin storage is resolved by the operator
+
+**Baseline SHA:** `c4fcd02cc`. **Commits:** (the commits of this batch).
+
+### The defect
+
+The delete of a private plugin file runs through a row of `plugin_file_cleanup`. When the delete
+keeps failing, the row becomes `DEAD` after the attempt budget and is never claimed again. The
+quota was released only on the successful path, so a dead row kept its `plugin_files` row and the
+plugin's `usedBytes` and `reservedBytes` stayed consumed for good. The recovery listing showed the
+row to the operator and gave no way to act on it.
+
+### The decision
+
+One operator action on the surface that already lists the rows:
+`POST /plugin/recovery/dead-cleanups/resolve` with `{ objectKey, action }`.
+
+| Action | What it does |
+| --- | --- |
+| `retry` | only a `DEAD` row: `PENDING`, `attempts` 0, `nextAttemptAt` now, the claim and the lease cleared, the last error kept, so the existing sweep tries the delete again |
+| `release` | only a `DEAD` row: the object store is asked whether the object is still there. Present: refused with `PLUGIN_FILE_CLEANUP_OBJECT_PRESENT` and nothing changes, because the bytes are still stored. Absent: one transaction locks the quotas, applies the arithmetic of the successful cleanup path to both quota rows, deletes the file row and the cleanup row. The store cannot answer: `UPLOAD_STORAGE_UNAVAILABLE` and nothing changes |
+
+A row that is not dead, or does not exist, answers `PLUGIN_FILE_NOT_FOUND`, so the surface answers
+one thing about one row. Both actions record an AdminAuditEvent
+(`PLUGIN_FILE_CLEANUP_RETRIED`, `PLUGIN_FILE_CLEANUP_RELEASED`).
+
+The new code `PLUGIN_FILE_CLEANUP_OBJECT_PRESENT` is a registered contract change: it is in the
+shared catalogue, in the API catalogue and in the plugin design's error table.
+
+The Admin button for the action is not part of this batch; the operator surface is the route.
+
+### The local evidence
+
+The changed inputs are the six files above and the documents. The planner widened the run twice:
+four API contract suites for the route, and every suite that reaches
+`packages/shared/src/error-codes.ts` for the shared catalogue. The runner therefore went to the
+shard mode by itself, which is the certifying form of a widened batch.
+
+```
+DATABASE_URL_TEST=postgresql://postgres:postgres@localhost:5432/jiffoo_core_test \
+PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=<the owner's consent to reset jiffoo_core_test> \
+pnpm verify:quick --test-files=apps/api/tests/core/plugin-file-cleanup-dead-letter.test.ts,apps/api/tests/routes/plugin-recovery-http.test.ts
+```
+
+The summary of that run, printed from `verify-summary.txt`. The planner line names the 183 suites
+one by one and is omitted here for length; the run's own coverage verdict below states the set it
+executed:
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: 183 suites (4 API contract suites for the changed route; the rest reach packages/shared/src/error-codes.ts)
+Run API tests in 4 shards:
+Shards: 1, 2, 3, 4 of 4 (4-shard run)
+Run scope: the selected catalogue (4 shard(s))
+Scope coverage: 183/183 files covered
+Totals: Test Files 183 files, 183 passed | Tests 2565 tests, 2565 passed | Suites 504 suites, 504 passed
+Test conclusion: PASS
+Cleanup conclusion: PASS
+Delivery status: API PASS / cleanup PASS
+--- File coverage ---
+Catalogue files (the selection the caller named): 183
+Expected set (the full catalogue, not the assigned subset): 183
+Assigned to this run: 183
+Executed (union over all shards): 183
+Shard 1: 45 files
+Shard 2: 45 files
+Shard 3: 46 files
+Shard 4: 47 files
+Missing files: none
+Extra files: none
+Cross-shard duplicates: none
+Empty shards: none
+Coverage verdict: PASS
+--- Shard results ---
+| Shard | Exit | Duration | Start at | Test Files | Tests | Failed files |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | 0 | 737.0s | 16:36:26 | 45 files, 45 passed | 667 tests, 667 passed | none |
+| 2 | 0 | 578.0s | 16:36:27 | 45 files, 45 passed | 662 tests, 662 passed | none |
+| 3 | 0 | 653.1s | 16:36:28 | 46 files, 46 passed | 576 tests, 576 passed | none |
+| 4 | 0 | 669.7s | 16:36:29 | 47 files, 47 passed | 660 tests, 660 passed | none |
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check selected scope and shared | PASS | 18.03s |
+| Lint Shop | PASS | 11.86s |
+| Reset test database | PASS | 4.49s |
+| Run API tests in 4 shards | PASS | 750.77s |
+```
+
+### What the run does not cover, and where the commit is certified
+
+The six files of this batch were frozen at 16:28-16:32, before the run started at 16:36:26. During
+the run another session edited files outside this batch (the theme tokens, the plugin-ui
+stylesheet, the Shop global styles). The run's own selection did not include the Shop suite, but
+one of the API suites reads the theme files, so the tree the run saw was not the tree of this
+commit alone. The commit contains the six files and the documents and nothing else, so its
+certification is the complete gate of CI, which runs on the commit itself.
+
+The browser E2E did not run locally: it belongs to CI, and this batch changed no browser path.

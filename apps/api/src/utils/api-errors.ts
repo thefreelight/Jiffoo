@@ -7,6 +7,7 @@ import { SharedProtectionUnavailable } from '@/infra/shared-protection';
 import { MoneyError } from '@/core/shared/money';
 
 export const errorCatalog = {
+  [ApiErrorCodes.PLUGIN_FILE_CLEANUP_OBJECT_PRESENT]: { status: 409, message: 'The stored object still exists; retry its deletion instead of releasing its quota.' },
   [ApiErrorCodes.PLUGIN_FILE_NOT_FOUND]: { status: 404, message: 'Private plugin file not found.' },
   [ApiErrorCodes.PLUGIN_STORAGE_QUOTA_EXCEEDED]: { status: 413, message: 'Private plugin storage quota exceeded.' },
   [ApiErrorCodes.PLUGIN_PAGE_ORIGIN_FORBIDDEN]: { status: 403, message: 'The plugin page shell origin is forbidden.' },

@@ -476,6 +476,15 @@ files for asynchronous deletion and revokes all grants in the purge
 transaction. A durable cleanup outbox retries object deletion; retries cannot
 delete a later installation's files. Reinstall receives a new installation ID.
 
+A row of that outbox that exhausts its attempt budget becomes dead: it is never
+claimed again and it keeps the quota of the plugin. The operator resolves it
+through `POST /plugin/recovery/dead-cleanups/resolve` with `{objectKey, action}`.
+`retry` puts the row back to the sweep with a fresh attempt budget. `release`
+frees the quota, deletes the file metadata and deletes the row, but only after
+the object store confirms the object is gone; a present object is refused with
+`PLUGIN_FILE_CLEANUP_OBJECT_PRESENT` (409), because releasing the quota of bytes
+that are still stored would misreport the store.
+
 ## 6. Durable tasks G1 (plugins lane)
 
 ### Registration, limits and status
@@ -1207,6 +1216,9 @@ when a dependency is unavailable: `PLUGIN_SERVICE_DEPENDENCY_UNAVAILABLE` and
 
 The codes of the delivered task, page, UI and file paths are in the shared error
 catalogue of the tree; their design is in `docs/archive/agentra-004-delivery-record.md`.
+One file code was added after that delivery, with its route:
+`PLUGIN_FILE_CLEANUP_OBJECT_PRESENT` (409), the refusal to release the quota of a
+dead cleanup row whose object the store still holds.
 
 Safe bridge errors use the same code vocabulary where applicable, without
 pretending to be HTTP responses. Existing failure records and AdminAuditEvent
