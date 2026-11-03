@@ -5923,3 +5923,66 @@ The batch is a test-only change, and its gate is the shard run of the batch abov
 file: the API catalogue ran in four shards with 220 files and 2885 tests, the Admin suite and the
 Shop suite ran as well, and the summary is in §5zam.
 
+
+## 5zaq. The adversarial acceptance of a plugin service
+
+**Baseline SHA:** `d42a7d7ce`. **Commits:** (the commits of this batch).
+
+### What was owed
+
+The ledger named three acceptance cases of the plugin service design as owed: the merchant grant
+in a task handler, the merchant grant in a final-failure hook, and the timeout outcome of the call
+ledger. The behaviour existed; no test held it.
+
+### What the tests assert
+
+The new suite is `apps/api/tests/core/plugin-service-grant-paths.test.ts`, three cases:
+
+| Case | What it holds |
+| --- | --- |
+| the grant in a task handler | the task handler calls `ctx.services.call` for a method the merchant did not grant; the Core arm answers `PLUGIN_SERVICE_PERMISSION_DENIED`, and the provider's handler was never entered |
+| the grant in a final-failure hook | the same refusal for a call made from the final-failure hook of a task, which runs through the same runtime and the same grant check |
+| the timeout of the call ledger | a provider that does not answer before the deadline settles the ledger UNKNOWN with the `PLUGIN_SERVICE_TIMEOUT` code; the same key returns `PLUGIN_SERVICE_OUTCOME_UNKNOWN` with the `originalCallId` of the first row, the row stays UNKNOWN, and the provider's business effect was executed once |
+
+### The one difference between the wording and the behaviour
+
+The design says that a timeout is reconciled "without repeating the business effect". The
+reconciliation does re-enter the provider once, with the reconciliation flag set, to ask it what
+it did with that key; that is a question to the provider's own idempotent ledger, not a second
+business effect, and the test asserts the effect counter stays at one. If the reconciliation itself
+times out, the caller receives `PLUGIN_SERVICE_OUTCOME_UNKNOWN` with the original call ID rather
+than a blind retry. Nothing in the product changed for this batch.
+
+### The local evidence
+
+The changed input is the new test file and this ledger section: no source, no schema, no
+dependency. The planner adds no suite, and the scope of the change is the service paths of a
+plugin, so the certifying local run is the new file itself.
+
+```
+DATABASE_URL_TEST=postgresql://postgres:postgres@localhost:5432/jiffoo_core_test \
+PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=<the owner's consent to reset jiffoo_core_test> \
+pnpm verify:quick --test-files=apps/api/tests/core/plugin-service-grant-paths.test.ts
+```
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: none
+Run API tests:
+   Start at  16:23:53
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check API, Admin, Shop and shared | PASS | 14.38s |
+| Lint Shop | PASS | 23.38s |
+| Reset test database | PASS | 8.92s |
+| Run API tests | PASS | 15.31s |
+```
+
+The browser E2E did not run locally: it belongs to CI, and this batch changed no product code.
