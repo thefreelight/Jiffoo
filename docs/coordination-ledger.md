@@ -70,6 +70,7 @@ that were open when it was written; §5w names all four.
 | the local gate selects the suites a shared change reaches | implemented (§5zac) |
 | the rule file | reduced to the development norms, with no code fact in it (§5zs, §5zt, §5zu) |
 | the documentation set | seven live documents and an archive of the dated records (§5zx, §5zz) |
+| the example plugins of the plugin line | implemented on the Core side: the provider and the consumer are installed through the real path, the provider keeps its effect in a table of its own plugin schema, and the consumer calls it from its task and from its final-failure hook (§5zau) |
 
 ### The open items
 
@@ -91,6 +92,7 @@ that were open when it was written; §5w names all four.
 | a shared message label still selects the API suites that boot the app | §5zag, §5zah | closed on 2026-11-02; the labels of the exported records have a module of their own, the API reads that module and the shared barrel no longer carries the catalogue, so a change of a merchant label selects 53 suites instead of 217 |
 | the imagic page code in a real browser | §5zw | open as of 2026-11-01; the Core mechanism is proven by the browser E2E, the plugin's own page is not |
 | the idle page of a real browser | §5zam | open on the imager side as of 2026-11-03; Core renews the idle window of a live session, and the browser validation of a page that idles longer than thirty-five minutes, in the background and in the foreground, belongs to the imager line |
+| the complete acceptance of the plugin line (P-5b) | §5zau | open as of 2026-11-03; the browser acceptance of the two example plugins, the three locales of their navigation, the absence of a plugin frame on the cart, the checkout, the payment and the result pages, and the two API and two worker instances over one deployment are not covered yet |
 | the update acceptance of the deployment update | §5zy | fixed in the tree on 2026-11-01; the deployment environment now carries the test-signing configuration, and the update jobs of CI are its check |
 
 The items §5o lists as closed are closed: `callContract` moved into the neutral runtime module
@@ -188,6 +190,7 @@ status column is the status of that day, not of today.
 | **B-TYPE-SCALE** — the base font size of the storefront comes from the theme token instead of a literal, and the plugin UI keeps the type scale of the storefront, so the inherited text of a plugin page and the hierarchy of both surfaces agree | Core line (coordinator session) | `codex/core-extension-boundary` / `worktrees/jiffoo-core-extension-boundary` | `fde50e39a` | `packages/shared/src/extensions/theme-defaults.json`, `apps/api/builtin-themes/default-shop/theme.json`, `apps/shop/app/{default-tokens.css,globals.css}`, `apps/shop/tests/theme-render.test.ts`, `e2e/fixtures/themes/test-shop-theme/theme.json`, `packages/plugin-ui/{package.json,README.md,src/tokens.css,src/styles.css}`, `docs/agentra-003-theme-format.md`, `docs/coordination-ledger.md` | `jiffoo_core_test` (integration) | coordinator session | **committed, gate green** | §5zas |
 | **B-G4-ACCEPT** — the adversarial acceptance of a plugin service: the grant is enforced in a task handler and in a final-failure hook, and a timed-out call settles the ledger unknown and reconciles without a second effect | Core line (this session) | `codex/core-extension-boundary` / `worktrees/jiffoo-core-extension-boundary` | `d42a7d7ce` | `apps/api/tests/core/plugin-service-grant-paths.test.ts` | `jiffoo_core_test` (integration) | coordinator session (one worker run) | **committed**, gate green | §5zaq |
 | **B-DEAD-CLEANUP** — a dead plugin file cleanup row is resolved by the operator: a retry puts it back to the sweep, and a release frees the quota only once the object store confirms the object is gone | Core line (this session) | `codex/core-extension-boundary` / `worktrees/jiffoo-core-extension-boundary` | `c4fcd02cc` | `packages/shared/src/error-codes.ts`, `apps/api/src/utils/api-errors.ts`, `apps/api/src/core/plugin-storage/service.ts`, `apps/api/src/core/admin/extension-installer/routes.ts`, `apps/api/tests/core/plugin-file-cleanup-dead-letter.test.ts`, `apps/api/tests/routes/plugin-recovery-http.test.ts` | `jiffoo_core_test` (integration) | coordinator session (one worker run) | **committed**, gate green (183 suites, 4 shards) | §5zar |
+| **B-P5-EXAMPLES** — the two example plugins of the design exist on the Core side and work against each other: the provider owns its ledger table through its own migration, the consumer calls it from a task and from a failure hook | Core line (this session) | `codex/core-extension-boundary` / `worktrees/jiffoo-core-extension-boundary` | `26979916d` | `apps/api/tests/fixtures/acceptance-plugins.ts`, `apps/api/tests/routes/plugin-acceptance-examples.test.ts` | `jiffoo_core_test` (integration) | coordinator session (one worker run) | **committed**, gate green | §5zau |
 
 ## 4. Serial overlap set — never edited by both sides at once
 
@@ -286,6 +289,7 @@ of that day.
 | 5zar | The dead cleanup row of the plugin storage is resolved by the operator | — |
 | 5zas | The base font size of the storefront comes from the theme token, and the plugin UI keeps the type scale of the storefront | `24b3a07f1` |
 | 5zat | The label of the SDK moves with its published types | — |
+| 5zau | The example plugins of the plugin line, on the Core side | — |
 
 ## 6. The archive
 

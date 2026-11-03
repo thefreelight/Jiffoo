@@ -1301,6 +1301,14 @@ Studio declares and obtains merchant grants for both. They are generic
 examples, not imagic special cases.
 Provider business effects use fixture-owned tables and SDK database queries.
 
+On the Core side the two example plugins exist and work against each other:
+they are installed through the real path, the provider's ledger is a table of
+the provider's own plugin schema created by the provider's own migration, and
+the consumer's task and its final-failure hook call the provider's methods
+under the merchant's grant. The browser acceptance of the two plugins, the
+three locales of their navigation and the multi-instance deployment of them
+are still owed.
+
 ### First consumer flow: imager, using only general contracts
 
 The customer clicks Generate; a React form onSubmit prevents default and calls

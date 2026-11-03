@@ -6180,3 +6180,105 @@ The run was widened by the shared package change of the other session, which is 
 working tree. The certification of the one line of this batch is the CI job that runs the test.
 
 The browser E2E did not run locally: it belongs to CI, and this batch changed no product code.
+
+## 5zau. The example plugins of the plugin line, on the Core side
+
+**Baseline SHA:** `26979916d`. **Commits:** (the commits of this batch).
+
+### What the design asks for
+
+The plugin design names two ordinary test-signed plugins for the acceptance of the plugin line:
+`page-studio`, the consumer, and `wallet-provider`, the provider of the `wallet` service version 1
+with a `debit` and a `refund`. "Provider business effects use fixture-owned tables and SDK
+database queries." P-5 of the design is "scaffold/examples and complete acceptance"; this batch is
+the Core-side half of it.
+
+### What the batch builds
+
+`apps/api/tests/fixtures/acceptance-plugins.ts` derives both packages from the SDK's own scaffold
+(`createPlugin` of `packages/plugin-sdk/src/create.ts`, with the page scaffold of
+`packages/plugin-sdk/src/page-template.ts`), signs them with the repository's test publisher and
+packs them like any other package. The provider declares a plugin migration with plain `.sql`
+that creates its ledger in the provider's own plugin schema:
+
+```sql
+CREATE TABLE wallet_ledger (
+  "idempotencyKey" TEXT NOT NULL,
+  method TEXT NOT NULL,
+  "amountMinor" BIGINT NOT NULL CHECK ("amountMinor" >= 0),
+  "createdAt" TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
+  PRIMARY KEY ("idempotencyKey", method)
+);
+```
+
+Both of its methods write inside the SDK's transaction with `INSERT ... ON CONFLICT
+("idempotencyKey", method) DO NOTHING` and read the row back, so the deduplication is the
+provider's own and not only Core's call ledger.
+
+`apps/api/tests/routes/plugin-acceptance-examples.test.ts` installs both packages through the real
+path (preview, install with the migration confirmation, the operation to its terminal state) and
+holds three cases:
+
+| Case | What it holds |
+| --- | --- |
+| the debit of a task that succeeded | the task ends `SUCCEEDED`, and the provider's own ledger holds exactly one `debit` row for the key, with the amount |
+| the refund of the final-failure hook | a task that fails permanently runs the hook, the hook ends `SUCCEEDED`, the ledger holds exactly one `refund` row and no `debit` row |
+| a repeated debit with the same key | the two calls answer the same, and the ledger still holds exactly one row |
+
+The merchant grant of both methods is the mechanism of the neighbouring service suites, so the
+cases hold the grant and the provider's ledger at the same time.
+
+### What the batch does not hold
+
+- The pages of the two plugins are installed and validated, but no page session, no bridge
+  handshake and no rendering is asserted; that is the browser batch.
+- The long task is declared with its budget, but no case lets a task run long, so the lease
+  renewal and the fence of a long task stay with the other suites.
+- The repeated debit is answered by the replay of Core's call ledger, so the provider is not
+  entered a second time. The provider's own `ON CONFLICT` is the second line of defence and
+  cannot be forced through the public path.
+- The rows of Core's call ledger are not asserted, only the provider's table.
+- The principal of the service call is null, as in the neighbouring grant suite, so the binding of
+  a principal to a call stays uncovered.
+
+The fixture loads the SDK's scaffold from the SDK's built `dist`, because the SDK does not export
+`createPlugin` from its package entry. A change of the SDK's build layout would break the
+fixture with a clear error rather than silently.
+
+### The local evidence
+
+The changed inputs are the two new files and the documents. The planner widened the run with the
+four API contract suites, because the new suite lives under `tests/routes`.
+
+```
+DATABASE_URL_TEST=postgresql://postgres:postgres@localhost:5432/jiffoo_core_test \
+PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=<the owner's consent to reset jiffoo_core_test> \
+pnpm verify:quick --test-files=apps/api/tests/routes/plugin-acceptance-examples.test.ts
+```
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: the four API contract suites (the API contract surface changed)
+Run API tests:
+   Start at  18:33:58
+ Test Files  5 passed (5)
+      Tests  208 passed (208)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check selected scope and shared | PASS | 14.25s |
+| Lint Shop | PASS | 12.48s |
+| Reset test database | PASS | 5.13s |
+| Run API tests | PASS | 18.42s |
+```
+
+The suite proves that the provider's own migration runs inside the test app: the provider's table
+is in the plugin's namespace schema, and the SDK database path refuses to work before the
+namespace is provisioned, so a migration that did not run would fail the cases instead of passing
+them quietly.
+
+The browser E2E did not run locally: it belongs to CI, and this batch changed no product code.
