@@ -1,11 +1,13 @@
 // @vitest-environment jsdom
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PluginWorkspace } from '@/components/plugins/PluginWorkspace';
 import { merchant as en } from '../../../packages/shared/src/i18n/messages/en/merchant';
 
 const mocks = vi.hoisted(() => ({ config: vi.fn(), instances: vi.fn(), push: vi.fn() }));
+vi.mock('@/lib/plugin-upload', () => ({ pluginUploadApi: { recovery: async () => ({ items: [] }) } }));
 vi.mock('shared/src/i18n/react', () => ({ useLocale: () => 'en', useT: () => (key: string) => key.split('.').slice(1).reduce<any>((value, part) => value?.[part], en) ?? key }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: mocks.push }) }));
 vi.mock('next/link', () => ({ default: ({ children, ...props }: React.PropsWithChildren<{ href: string }>) => <a {...props}>{children}</a> }));
@@ -17,15 +19,16 @@ vi.mock('@/lib/marketplace', () => ({ useMarketplaceStatus: () => ({ data: { con
 vi.mock('@/lib/hooks/use-api', () => ({ usePluginConfig: mocks.config, usePluginInstances: mocks.instances, useUpdatePluginInstance: () => ({ mutateAsync: vi.fn(), isPending: false }) }));
 
 describe('Plugin workspace category fallback', () => {
-  let root: Root, container: HTMLDivElement;
+  let root: Root, container: HTMLDivElement, client: QueryClient;
   beforeEach(() => {
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     container = document.createElement('div'); document.body.appendChild(container); root = createRoot(container);
     mocks.push.mockReset();
     mocks.instances.mockReturnValue({ data: { items: [{ installationId: 'one', instanceKey: 'default', enabled: false, config: {} }] } });
   });
-  afterEach(async () => { await act(async () => root.unmount()); container.remove(); });
-  const mount = async () => { await act(async () => root.render(<PluginWorkspace slug="fixture" />)); };
+  afterEach(async () => { await act(async () => root.unmount()); client.clear(); container.remove(); });
+  const mount = async () => { await act(async () => root.render(<QueryClientProvider client={client}><PluginWorkspace slug="fixture" /></QueryClientProvider>)); };
   const aboutRow = (label: string) => {
     const term = Array.from(container.querySelectorAll('dt')).find(node => node.textContent === label);
     return term?.nextElementSibling?.textContent ?? '';

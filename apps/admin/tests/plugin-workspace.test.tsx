@@ -1,13 +1,15 @@
 // @vitest-environment jsdom
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PluginWorkspace } from '@/components/plugins/PluginWorkspace';
 import { AdminApiError } from '@/lib/api';
 import { requestAppNavigation } from '@/lib/pending-navigation';
 import { merchant as en } from '../../../packages/shared/src/i18n/messages/en/merchant';
 
-const mocks = vi.hoisted(() => ({ config: vi.fn(), instances: vi.fn(), update: vi.fn(), push: vi.fn() }));
+const mocks = vi.hoisted(() => ({ config: vi.fn(), instances: vi.fn(), update: vi.fn(), push: vi.fn(), recovery: vi.fn() }));
+vi.mock('@/lib/plugin-upload', () => ({ pluginUploadApi: { recovery: mocks.recovery } }));
 vi.mock('shared/src/i18n/react', () => ({ useLocale: () => 'en', useT: () => (key: string) => key.split('.').slice(1).reduce<any>((value, part) => value?.[part], en) ?? key }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: mocks.push }) }));
 vi.mock('next/link', () => ({ default: ({ children, ...props }: React.PropsWithChildren<{ href: string }>) => <a {...props}>{children}</a> }));
@@ -19,20 +21,49 @@ vi.mock('@/lib/marketplace', () => ({ useMarketplaceStatus: () => ({ data: { con
 vi.mock('@/lib/hooks/use-api', () => ({ usePluginConfig: mocks.config, usePluginInstances: mocks.instances, useUpdatePluginInstance: () => ({ mutateAsync: mocks.update, isPending: false }) }));
 
 describe('Plugin detail configuration', () => {
-  let root: Root, container: HTMLDivElement;
+  let root: Root, container: HTMLDivElement, client: QueryClient;
   beforeEach(() => {
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
+    mocks.recovery.mockReset().mockResolvedValue({ items: [] });
     container = document.createElement('div'); document.body.appendChild(container); root = createRoot(container);
     mocks.push.mockReset(); mocks.update.mockReset().mockResolvedValue({ updatedAt: '2026-10-12T12:00:00Z' });
     mocks.config.mockReturnValue({ data: { name: 'Config fixture', category: 'payment', source: 'builtin', trustLevel: 'builtin', configSchema: { type: 'object', properties: { instructions: { type: 'string', title: 'Instructions', default: 'Pay manually.' }, credential: { type: 'string', title: 'Credential', default: 'never-show', sensitive: true } }, required: ['credential'] } }, isLoading: false });
     mocks.instances.mockReturnValue({ data: { items: [{ installationId: 'one', instanceKey: 'default', updatedAt: '2026-10-10T00:00:00Z', enabled: false, config: {}, configMeta: { secretFields: { credential: { configured: true } } } }] } });
   });
-  afterEach(async () => { await act(async () => root.unmount()); container.remove(); });
-  const mount = async () => { await act(async () => root.render(<PluginWorkspace slug="fixture" />)); };
+  afterEach(async () => { await act(async () => root.unmount()); client.clear(); container.remove(); });
+  const mount = async () => { await act(async () => root.render(<QueryClientProvider client={client}><PluginWorkspace slug="fixture" /></QueryClientProvider>)); };
   const input = (field: string) => container.querySelector<HTMLInputElement>('#plugin-config-' + field)!;
   async function fill(field: string, text: string) { await act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input(field), text); input(field).dispatchEvent(new Event('input', { bubbles: true })); }); }
   const button = (name: string) => Array.from(document.getElementsByTagName('button')).find(button => button.textContent === name)!;
   async function click(name: string) { await act(async () => button(name).click()); }
+
+  it.each(['NEEDS_RECOVERY', 'PUBLISHED', 'FAILED'])('separates configured enablement from runtime %s', async phase => {
+    mocks.instances.mockReturnValue({ data: { items: [{ installationId: 'one', instanceKey: 'default', enabled: true, config: {} }] } });
+    client.setQueryData(['plugin-recovery'], { items: [{ slug: 'fixture', markerCount: 0, maintenanceRequired: false,
+      operations: [{ phase }] }] });
+    await mount();
+    expect(container.querySelector('header')?.textContent).toContain('Enabled');
+    expect(Array.from(container.querySelectorAll('[role=alert]')).some(node => node.textContent === 'Paused')).toBe(phase === 'NEEDS_RECOVERY');
+    expect(container.textContent).not.toContain(en.plugins.recovery.maintenance);
+  });
+
+  it('does not label cleanup maintenance as paused or an abnormal server stop', async () => {
+    client.setQueryData(['plugin-recovery'], { items: [{ slug: 'fixture', markerCount: 0, maintenanceRequired: true, operations: [] }] });
+    await mount();
+    expect(Array.from(container.querySelectorAll('[role=alert]')).some(node => node.textContent === 'Paused')).toBe(false);
+    expect(container.textContent).not.toContain(en.plugins.recovery.maintenance);
+  });
+
+  it('reports an unavailable recovery projection without claiming the runtime is paused', async () => {
+    mocks.recovery.mockRejectedValue(new Error('Unavailable'));
+    await mount();
+    await vi.waitFor(async () => {
+      await act(async () => {});
+      expect(container.textContent).toContain(en.plugins.recovery.loadFailed);
+    });
+    expect(Array.from(container.querySelectorAll('[role=alert]')).some(node => node.textContent === 'Paused')).toBe(false);
+  });
 
   it('offers the update entry of an installed package and not of a built-in one', async () => {
     await mount();
