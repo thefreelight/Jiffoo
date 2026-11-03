@@ -276,7 +276,7 @@ of that day.
 | 5zam | The idle window of a page session is renewed by a live shell | `6338e3536` |
 | 5zan | The assertion of the lease renewal is not a millisecond-boundary assertion | `b72804d18` |
 | 5zao | The service path of a plugin service records the outcome of the provider at the breaker | `df280dc59` |
-| 5zap | The theme of the store reaches the page of a plugin: the full token payload, the plugin UI stylesheet and the page scaffold | — |
+| 5zap | The theme of the store reaches the page of a plugin: the full token payload, the plugin UI stylesheet and the page scaffold | `d9e7b628b` |
 
 ## 6. The archive
 
