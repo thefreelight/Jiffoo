@@ -168,3 +168,63 @@ for (const surface of ['shop', 'admin'] as const) test(`${surface}: dedicated sh
     await fixture.cleanup();
   }
 });
+
+test('shop: the navigation of a plugin page follows the locale and the cart carries no frame', async ({ page, request }) => {
+  test.setTimeout(180_000);
+  const slug = `e2e-page-nav-${Date.now().toString(36).slice(-6)}`;
+  const api = 'http://127.0.0.1:3001/api/v1';
+  const origin = 'http://127.0.0.1:3003';
+  const fixture = await pluginPagePackage(slug, true);
+  let installed = false;
+  let authorization = '';
+  try {
+    await login(page, ownerEmail, finalOwnerPassword);
+    const authenticated = await request.post(`${api}/auth/login`, { data: { email: ownerEmail, password: finalOwnerPassword, surface: 'admin' } });
+    expect(authenticated.ok()).toBe(true);
+    authorization = `Bearer ${(await authenticated.json()).data.access_token}`;
+    const file = { name: 'nav-proof.zip', mimeType: 'application/zip', buffer: fixture.bytes };
+    const preview = await request.post(`${api}/extensions/plugin/preview`, { headers: { authorization }, multipart: { file } });
+    expect(preview.ok(), await preview.text()).toBe(true);
+    const upload = await request.post(`${api}/extensions/plugin/install`, { headers: { authorization }, multipart: {
+      previewToken: (await preview.json()).data.previewToken, confirmMigrations: 'true', confirmationSlug: slug, file,
+    } });
+    expect(upload.status(), await upload.text()).toBe(202);
+    const operationId = (await upload.json()).data.operationId;
+    let state, cursor = '';
+    do {
+      const response = await request.get(`${api}/extensions/plugin/operations/${operationId}?wait=true${cursor}`, { headers: { authorization } });
+      expect(response.ok()).toBe(true); state = (await response.json()).data;
+      cursor = `&phase=${encodeURIComponent(state.phase)}&committedPrefix=${state.committedPrefix}`;
+    } while (!state.terminal);
+    expect(state.phase).toBe('SUCCESS'); installed = true;
+    await page.goto(`/en/plugins/${slug}`);
+    await page.getByRole('button', { name: 'Enable', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Disable', exact: true })).toBeVisible();
+
+    for (const [locale, title, navigation] of [
+      ['en', 'Studio', 'Plugin pages'],
+      ['zh-Hans', '创作空间', '插件页面'],
+      ['zh-Hant', '創作空間', '外掛頁面'],
+    ] as const) {
+      await page.goto(`${origin}/${locale}`);
+      // The plugin navigation is rendered in the header and in the footer, so the header landmark scopes it.
+      const nav = page.getByRole('banner').getByRole('navigation', { name: navigation, exact: true });
+      await expect(nav).toBeVisible();
+      const link = nav.getByRole('link', { name: title, exact: true });
+      await expect(link).toBeVisible();
+      await link.click();
+      await expect(page).toHaveURL(`${origin}/${locale}/apps/${slug}/studio`);
+      await expect(page.getByRole('document', { name: title, exact: true })).toHaveCount(1);
+      await page.goto(`${origin}/${locale}/cart`);
+      await expect(page.getByRole('document', { name: title, exact: true })).toHaveCount(0);
+    }
+  } finally {
+    if (installed) {
+      const uninstall = await request.delete(`${api}/extensions/plugin/${slug}`, { headers: { authorization } });
+      expect.soft(uninstall.ok(), await uninstall.text()).toBe(true);
+      const purge = await request.delete(`${api}/extensions/plugin/${slug}/purge`, { headers: { authorization }, data: { confirmationSlug: slug } });
+      expect.soft(purge.ok(), await purge.text()).toBe(true);
+    }
+    await fixture.cleanup();
+  }
+});
