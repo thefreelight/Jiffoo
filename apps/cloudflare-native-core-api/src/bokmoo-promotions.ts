@@ -91,6 +91,17 @@ export function promotionPayload(body: unknown): {
   return { slug, name, startsAt, endsAt, discountType, discountValue, productIds, perUserLimit, banner, rulesUrl };
 }
 
+// Storefront browsers (bokmoo.com) read the active-promotion list directly;
+// every other consumer is native or server-proxied, so the CORS surface
+// stays scoped to this one public GET.
+const PROMO_CORS_ORIGINS = new Set(['https://bokmoo.com', 'https://www.bokmoo.com']);
+
+function promotionCorsHeaders(request: Request): Record<string, string> {
+  const origin = request.headers.get('origin')?.trim() ?? '';
+  if (!PROMO_CORS_ORIGINS.has(origin)) return {};
+  return { 'Access-Control-Allow-Origin': origin, 'Access-Control-Max-Age': '86400', Vary: 'Origin' };
+}
+
 export async function tryNativeBokmooPromotions(request: Request, env: BokmooPromotionsEnv): Promise<Response | null> {
   const url = new URL(request.url);
   const path = url.pathname;
@@ -99,6 +110,18 @@ export async function tryNativeBokmooPromotions(request: Request, env: BokmooPro
     && !path.startsWith('/api/v1/admin/promotions/')) return null;
 
   if (path === '/api/v1/promotions/active') {
+    const cors = promotionCorsHeaders(request);
+    if (request.method === 'OPTIONS') {
+      if (!cors['Access-Control-Allow-Origin']) return failure(403, 'FORBIDDEN_ORIGIN', 'Origin not allowed');
+      return new Response(null, {
+        status: 204,
+        headers: {
+          ...cors,
+          'Access-Control-Allow-Methods': 'GET, OPTIONS',
+          'Access-Control-Allow-Headers': 'content-type',
+        },
+      });
+    }
     if (request.method !== 'GET') return failure(405, 'METHOD_NOT_ALLOWED', 'GET only');
     const locale = (new URL(request.url).searchParams.get('locale') ?? 'en').slice(0, 12);
     const now = new Date().toISOString();
@@ -106,7 +129,11 @@ export async function tryNativeBokmooPromotions(request: Request, env: BokmooPro
       `SELECT * FROM native_promotions WHERE status = 'active' AND starts_at <= ?1 AND ends_at >= ?1
        ORDER BY starts_at ASC`,
     ).bind(now).all<PromotionRow>();
-    return success({ items: (result.results ?? []).map((row) => publicPromotion(row, locale, now)) });
+    const response = success({ items: (result.results ?? []).map((row) => publicPromotion(row, locale, now)) });
+    if (!Object.keys(cors).length) return response;
+    const headers = new Headers(response.headers);
+    for (const [key, value] of Object.entries(cors)) headers.set(key, value);
+    return new Response(response.body, { status: response.status, headers });
   }
 
   const admin = await authenticateNativeAdmin(request, env);

@@ -113,6 +113,34 @@ describe('admin promotions routes', () => {
     expect((await tryNativeBokmooPromotions(request('POST', '/api/v1/admin/promotions', { name: 'x' }), env(adminDb()))).status).toBe(400);
   });
 
+
+  it('answers CORS preflight for allowed storefront origins only', async () => {
+    const preflight = (origin?: string) => new Request('https://api.bokmoo.com/api/v1/promotions/active', {
+      method: 'OPTIONS',
+      headers: { 'origin': origin ?? '', 'access-control-request-method': 'GET' },
+    });
+    const allowed = await tryNativeBokmooPromotions(preflight('https://bokmoo.com'), env(adminDb()));
+    expect(allowed.status).toBe(204);
+    expect(allowed.headers.get('access-control-allow-origin')).toBe('https://bokmoo.com');
+    const denied = await tryNativeBokmooPromotions(preflight('https://evil.example'), env(adminDb()));
+    expect(denied.status).toBe(403);
+  });
+
+  it('marks active-list responses with the storefront CORS origin', async () => {
+    const db = adminDb([{
+      id: 'p1', slug: 'bf', name: 'BF', status: 'active',
+      starts_at: '2026-01-01T00:00:00.000Z', ends_at: '2026-12-31T00:00:00.000Z',
+      discount_type: 'percent', discount_value: 20, product_ids_json: null,
+      per_user_limit: 0, banner_json: null, rules_url: null, created_at: '', updated_at: '',
+    }]);
+    const response = await tryNativeBokmooPromotions(
+      new Request('https://api.bokmoo.com/api/v1/promotions/active', {
+        headers: { origin: 'https://www.bokmoo.com' },
+      }), env(db),
+    );
+    expect(response.headers.get('access-control-allow-origin')).toBe('https://www.bokmoo.com');
+  });
+
   it('serves the active public list with locale-picked banner', async () => {
     const db = adminDb([{
       id: 'p1', slug: 'black-friday-2026', name: 'Black Friday', status: 'active',
