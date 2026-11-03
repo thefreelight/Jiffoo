@@ -23,15 +23,16 @@ function exact(value: Record<string, Plain>, keys: string[]) {
 /**
  * The refresh failures that end the page.
  *
- * A revoked session, a forbidden origin, a token Core no longer accepts, a
- * plugin that is gone and a Core that is in maintenance end the page: the
- * frame cannot work without them. Every other failure is transient — a rate
- * limit, a network error, a Core that is busy — and the page keeps its
- * session, its frame and the state the customer entered.
+ * A revoked session, a session that reached the end of its lifetime, a
+ * forbidden origin, a token Core no longer accepts, a plugin that is gone and
+ * a Core that is in maintenance end the page: the frame cannot work without
+ * them. Every other failure is transient — a rate limit, a network error, a
+ * Core that is busy — and the page keeps its session, its frame and the state
+ * the customer entered.
  */
 const fatalRefreshCodes = new Set([
-  'PLUGIN_PAGE_SESSION_REVOKED', 'SESSION_REVOKED', 'INVALID_TOKEN', 'FORBIDDEN', 'PLUGIN_PAGE_ORIGIN_FORBIDDEN',
-  'NOT_FOUND', 'PLUGIN_MAINTENANCE',
+  'PLUGIN_PAGE_SESSION_REVOKED', 'PLUGIN_PAGE_SESSION_EXPIRED', 'SESSION_REVOKED', 'INVALID_TOKEN', 'FORBIDDEN',
+  'PLUGIN_PAGE_ORIGIN_FORBIDDEN', 'NOT_FOUND', 'PLUGIN_MAINTENANCE',
 ]);
 
 /**

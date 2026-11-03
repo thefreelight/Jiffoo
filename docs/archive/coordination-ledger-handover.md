@@ -5749,3 +5749,177 @@ members the hand-written declaration names, so the two cannot drift apart; the r
 and the section of this batch say that the tarball the imager links carries the service types and
 the client generator but not the published class of the refusal; and the ledger names the package
 of each pre-release, so the bridge and the SDK are not confused with each other.
+
+## 5zam. The idle window of a page session is renewed by a live shell
+
+**Baseline SHA:** `f148dc902`. **Commit:** recorded in the index of the ledger.
+
+### What the imager line reported
+
+The Studio page of the imagic was destroyed while it was idle: after about twenty-nine minutes
+the host showed the unavailable screen, and the file the customer had chosen and the task display
+were gone. The imager line proved the mechanism at the source level, with a script that extracts
+the canonical `signPageToken` and drives it with a throwing stub signer: at minute 27 the signer
+is reached, at minute 29 the function throws `PLUGIN_PAGE_SESSION_REVOKED` although the session
+had a minute left. The live history of the instance agrees: its sessions were created and revoked
+about twenty-nine minutes apart.
+
+The mechanism in the tree:
+
+- `apps/api/src/core/plugin-pages/sessions.ts` created a page session with `expiresAt = now + 30
+  minutes` and never extended it.
+- `authorizeShellSession` validated the session and signed a token, but left the window where it
+  was.
+- `signPageToken` required a full 120-second token to fit before that window, otherwise it threw
+  `PLUGIN_PAGE_SESSION_REVOKED`.
+- `packages/shared/src/plugin-pages/shell.tsx` classified that code as fatal, and its sixty-second
+  refresh timer then called `stop(true)`, which unmounts the iframe and shows the unavailable
+  screen.
+
+The last two minutes of every session were therefore unusable, with no rate limit involved and no
+customer traffic needed to reach it.
+
+### The decision
+
+The end of the idle window is not a revocation, and a live shell renews it.
+
+- The window of a session is an idle window of thirty minutes that a live shell renews on every
+  shell-authorized call, bounded by an absolute lifetime of twelve hours from the creation of the
+  session.
+- The renewal happens on the strength of the credentials the refresh already demands — the Core
+  identity of the customer or the administrator, or the shell-only secret of a guest — and inside
+  the transaction that holds the row of the session exclusively, as a conditional update whose
+  predicate carries the prior value and the revocation state.
+- The end of the window is `PLUGIN_PAGE_SESSION_EXPIRED`, a new code of the catalogue, and not
+  `PLUGIN_PAGE_SESSION_REVOKED`. The shell treats it as fatal, because a session that reached its
+  absolute lifetime cannot be renewed.
+
+### The policy that this changes
+
+The thirty minutes were the only bound a captured session identifier and shell-only guest secret
+had. They are now usable for as long as the absolute lifetime of twelve hours, as long as the
+browser keeps the page. The exposure needs the shell secret, the exact origin and the live
+identity of the page, so the window was never the only defence; the bound is still there and it is
+now explicit.
+
+### The local evidence
+
+The batch is a widened one: the shared package changed, so the certifying run is the shard mode.
+It covered the whole API catalogue, the Admin suite and the Shop suite.
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: not applicable (the shard mode runs the full API catalogue and the full Admin and Shop suites, covering 191 planner-mandated suite(s))
+Mode: shard mode (--shards=4)
+Gate note: the API suite ran in parallel shards. The Prisma generate, the type check, the Lint Shop step, the test database reset, the Admin suite and the Shop suite ran as well.
+Gate note: this mode is not the complete gate: the browser E2E and the serial full-suite run are not part of it.
+Run API tests in 4 shards:
+Shards: 1, 2, 3, 4 of 4 (4-shard run)
+Run scope: full catalogue (4 shard(s))
+Scope coverage: 220/220 files covered
+Totals: Test Files 220 files, 220 passed | Tests 2885 tests, 2885 passed | Suites 571 suites, 571 passed
+Test conclusion: PASS
+Cleanup conclusion: PASS
+Delivery status: API PASS / cleanup PASS
+| Shard | Exit | Duration | Start at | Test Files | Tests | Failed files |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | 0 | 697.9s | 12:41:26 | 54 files, 54 passed | 687 tests, 687 passed | none |
+| 2 | 0 | 662.4s | 12:41:28 | 55 files, 55 passed | 761 tests, 761 passed | none |
+| 3 | 0 | 664.6s | 12:41:27 | 56 files, 56 passed | 743 tests, 743 passed | none |
+| 4 | 0 | 721.5s | 12:41:29 | 55 files, 55 passed | 694 tests, 694 passed | none |
+Run Admin tests:
+   Start at  12:53:26
+ Test Files  65 passed (65)
+      Tests  688 passed (688)
+Run Shop tests:
+   Start at  12:53:53
+ Test Files  42 passed (42)
+      Tests  296 passed (296)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.02s |
+| Type-check API, Admin, Shop and shared | PASS | 3.79s |
+| Lint Shop | PASS | 13.91s |
+| Reset test database | PASS | 4.64s |
+| Run API tests in 4 shards | PASS | 739.77s |
+| Run Admin tests | PASS | 26.77s |
+| Run Shop tests | PASS | 25.43s |
+```
+
+The controlled-clock cases of the batch are in
+`apps/api/tests/routes/plugin-page-sessions.test.ts`: one session is walked through the windows
+of minute 27, 28, 29 and 30 and through several renewal periods, and the cases cover the renewal
+under concurrency, the renewal that a revocation reaches at the same moment, the guest session,
+the identity, the origin and the generation checks, the absolute lifetime and the admission of a
+token whose session fell behind. The shell cases are in `apps/shop/tests/plugin-page-refresh.test.ts`:
+the timer path keeps the page and the frame when the session is renewed, and the page ends when
+the session reached the end of its lifetime.
+
+### What the next reader should know
+
+- The window is renewed by every shell-authorized call, so an idle page is never torn down by the
+  end of a window it never used, and the frame, the file and the form of the customer survive.
+- A revocation is never renewed: the logout, the account switch, the plugin disable and the
+  plugin update end the session as before, and the generation and the identity checks are read on
+  every renewal.
+- The end of the window is its own code. The shell and the download path report
+  `PLUGIN_PAGE_SESSION_EXPIRED`; the gateway refuses the admission of such a token without a code.
+- The browser validation of an idle page belongs to the imager line (§0, the open items).
+
+### The review of the batch
+
+An independent reviewer read the diff against the goals of the change and found no blocking defect
+in the behaviour, but two defects the batch had introduced itself, and both were fixed before the
+commit.
+
+The first was a deadlock: the row of the session was locked `FOR SHARE`, and the renewal writes it,
+so two concurrent renewals of the same session held the row and waited for each other when they
+wrote it. The row is now locked exclusively, so the renewals serialise; the reviewer checked the
+lock order of the renewal, of the gateway admission and of the three revocation paths against each
+other and found no cycle. The second was the fallback of the renewal: it could hand a lapsed window
+to the signer, which would have reported the lifetime as over and ended a live page. The fallback
+now reads the live row and reports an expiry when the window is still behind, and the case that
+covers it is in the batch.
+
+The reviewer also asked for two records and the batch has them: the contract says that the gateway
+refuses the admission without a code, and the design and the ledger name the twelve-hour absolute
+lifetime and say that the exposure of a shell-only guest secret grew from thirty minutes to
+twelve hours.
+
+## 5zan. The assertion of the lease renewal is not a millisecond-boundary assertion
+
+**Baseline SHA:** `f148dc902`. **Commit:** recorded in the index of the ledger.
+
+### The failure
+
+The certifying shard run of the batch above failed in the shard 4 with one failed test, and the
+failure was not the doing of the change:
+
+```
+FAIL tests/routes/plugin-migrations.test.ts > Declared plugin migrations over real TCP >
+  B short lease renewal updates the real lease and a lost token fences SQL before execution
+AssertionError: expected 1793679072842 to be greater than 1793679072842
+```
+
+The assertion compared the expiry of the lease before the renewal with the expiry after it and
+demanded a strict difference. The renewal sets the expiry from the clock of the database, which
+has a millisecond resolution, so a renewal in the same millisecond as the reading above keeps the
+same value and the assertion fails. The case passed in the shard runs before it and failed in this
+one: it is a boundary of the clock, not a behaviour of the product.
+
+### The decision
+
+The assertion no longer demands a strict difference. It says that the renewal did not move the
+window backwards, that the lease is live, and that the ownership of the lease is unchanged; the
+renewal itself is reported by the child, which the case already waits for.
+
+### The local evidence
+
+The batch is a test-only change, and its gate is the shard run of the batch above, which covers the
+file: the API catalogue ran in four shards with 220 files and 2885 tests, the Admin suite and the
+Shop suite ran as well, and the summary is in §5zam.
+

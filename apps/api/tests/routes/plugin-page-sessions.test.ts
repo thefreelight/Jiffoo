@@ -7,7 +7,7 @@ import { buildApp } from '@/server';
 import { getTestPrisma } from '../helpers/db';
 import { createUserWithToken } from '../helpers/auth';
 import { pageFiles, pageManifest, pageZip } from '../fixtures/plugin-pages';
-import { pageTokenSecret, verifyPluginPageToken } from '@/core/plugin-pages/sessions';
+import { PAGE_SESSION_ABSOLUTE_LIFETIME_MS, pageTokenSecret, verifyPluginPageToken } from '@/core/plugin-pages/sessions';
 import { JwtUtils } from '@/utils/jwt';
 import { prisma as corePrisma } from '@/config/database';
 import { bindPurchaseOrigin, purchaseReturnTarget } from '@/core/plugin-pages/purchase-origins';
@@ -227,4 +227,123 @@ it('concurrent orders cannot both consume one purchase origin', async () => {
     const bound = await prisma.pluginPurchaseOrigin.findUniqueOrThrow({ where: { id } });
     expect(orders.map(order => order.id)).toContain(bound.orderId);
   } finally { await prisma.order.deleteMany({ where: { id: { in: orders.map(order => order.id) } } }); }
+});
+
+describe('the idle window of a page session', () => {
+  const minute = 60_000;
+  const refresh = (sessionId: string, token?: string, body: Record<string, unknown> = {}) => app.inject({ method: 'POST',
+    url: `/api/v1/plugin-pages/${slug}/sessions/${sessionId}/refresh`, headers: headers(token), payload: body });
+  const row = (sessionId: string) => prisma.pluginPageSession.findUniqueOrThrow({ where: { id: sessionId } });
+  const moveClockTo = (sessionId: string, remainingMs: number) => prisma.pluginPageSession.update({ where: { id: sessionId },
+    data: { expiresAt: new Date(Date.now() + remainingMs) } });
+
+  it('renews the window of a live session across minutes 27, 28, 29 and 30', async () => {
+    const data = (await create(customer.token)).json().data;
+    const before = await row(data.sessionId);
+    // The window of the session runs out at minute 30. The shell refreshes
+    // every minute, so the window is three minutes left at minute 27, two at
+    // minute 28, one at minute 29 and none at minute 30.
+    for (const remaining of [3 * minute, 2 * minute, 60_000, -1000]) {
+      await moveClockTo(data.sessionId, remaining);
+      const response = await refresh(data.sessionId, customer.token);
+      expect(response.statusCode, response.body).toBe(200);
+      const renewed = await row(data.sessionId);
+      expect(renewed.expiresAt.getTime()).toBeGreaterThan(Date.now() + 29 * minute);
+      expect(renewed.expiresAt.getTime()).toBeLessThanOrEqual(Date.now() + 31 * minute);
+      expect(renewed.revokedAt).toBeNull();
+      expect(renewed.createdAt).toEqual(before.createdAt);
+      // The renewed token is usable: the admission still holds.
+      expect((await admission(response.json().data.pluginToken))?.user?.email).toBe(customer.user.email);
+    }
+    // Several renewal periods: the window keeps sliding and never crosses
+    // the absolute lifetime.
+    for (let period = 0; period < 3; period += 1) {
+      await moveClockTo(data.sessionId, -1000);
+      const response = await refresh(data.sessionId, customer.token);
+      expect(response.statusCode, response.body).toBe(200);
+      const renewed = await row(data.sessionId);
+      expect(renewed.expiresAt.getTime()).toBeGreaterThan(Date.now() + 29 * minute);
+      expect(renewed.expiresAt.getTime()).toBeLessThanOrEqual(before.createdAt.getTime() + PAGE_SESSION_ABSOLUTE_LIFETIME_MS);
+    }
+  });
+
+  it('renews under concurrency, without a deadlock between two refreshes', async () => {
+    const data = (await create(customer.token)).json().data;
+    await moveClockTo(data.sessionId, -1000);
+    const outcomes = await Promise.allSettled([
+      refresh(data.sessionId, customer.token),
+      refresh(data.sessionId, customer.token),
+    ]);
+    expect(outcomes.map(outcome => outcome.status)).toEqual(['fulfilled', 'fulfilled']);
+    for (const outcome of outcomes) expect(outcome.status === 'fulfilled' ? outcome.value.statusCode : 0).toBe(200);
+    const renewed = await row(data.sessionId);
+    expect(renewed.expiresAt.getTime()).toBeGreaterThan(Date.now() + 29 * minute);
+    expect(renewed.revokedAt).toBeNull();
+    // A revocation that reaches the session at the same moment as a renewal
+    // is never overwritten, and the renewal never resurrects the session.
+    await moveClockTo(data.sessionId, -1000);
+    await Promise.allSettled([
+      refresh(data.sessionId, customer.token),
+      prisma.pluginPageSession.update({ where: { id: data.sessionId }, data: { revokedAt: new Date() } }),
+    ]);
+    expect((await row(data.sessionId)).revokedAt).not.toBeNull();
+    const afterwards = await refresh(data.sessionId, customer.token);
+    expect(afterwards.statusCode).toBe(401);
+  });
+
+  it('renews a guest window on the strength of the shell secret', async () => {
+    const data = (await create(undefined, 'shop', 'public')).json().data;
+    await moveClockTo(data.sessionId, -1000);
+    expect((await refresh(data.sessionId, undefined, { guestSecret: 'a'.repeat(43) })).statusCode).toBe(401);
+    const response = await refresh(data.sessionId, undefined, { guestSecret: data.guestSecret });
+    expect(response.statusCode, response.body).toBe(200);
+    const renewed = await row(data.sessionId);
+    expect(renewed.expiresAt.getTime()).toBeGreaterThan(Date.now() + 29 * minute);
+    expect((await admission(response.json().data.pluginToken))?.user).toBeNull();
+  });
+
+  it('keeps the identity, the origin and the generation checks of the renewal', async () => {
+    const data = (await create(customer.token)).json().data;
+    await moveClockTo(data.sessionId, -1000);
+    expect((await refresh(data.sessionId)).statusCode).toBe(401);
+    expect((await refresh(data.sessionId, admin.token)).statusCode).toBe(403);
+    expect((await app.inject({ method: 'POST', url: `/api/v1/plugin-pages/${slug}/sessions/${data.sessionId}/refresh`,
+      headers: headers(customer.token, 'http://localhost:3002'), payload: {} })).statusCode).toBe(403);
+    const stillLapsed = await row(data.sessionId);
+    expect(stillLapsed.expiresAt.getTime()).toBeLessThan(Date.now());
+    await prisma.pluginInstallation.update({ where: { id: installationId }, data: { protectionGeneration: { increment: 1 } } });
+    const response = await refresh(data.sessionId, customer.token);
+    expect(response.statusCode).toBe(401);
+    expect((await row(data.sessionId)).expiresAt.getTime()).toBeLessThan(Date.now());
+    // The gateway refuses the admission of the token of a session that fell
+    // behind its window. A live session never reaches this state: the shell
+    // renews the window before it can.
+    expect(await admission(data.pluginToken)).toBeNull();
+  });
+
+  it('stops the renewal at the absolute lifetime of the session', async () => {
+    const data = (await create(customer.token)).json().data;
+    // The absolute lifetime is over: the session cannot be renewed.
+    await prisma.pluginPageSession.update({ where: { id: data.sessionId }, data: {
+      createdAt: new Date(Date.now() - PAGE_SESSION_ABSOLUTE_LIFETIME_MS - minute), expiresAt: new Date(Date.now() - 1000) } });
+    const over = await refresh(data.sessionId, customer.token);
+    expect(over.statusCode).toBe(401);
+    expect(over.json().error.code).toBe('PLUGIN_PAGE_SESSION_EXPIRED');
+    expect((await row(data.sessionId)).expiresAt.getTime()).toBeLessThan(Date.now());
+    // The absolute lifetime leaves less than the two minutes a token needs:
+    // the session ends as well.
+    await prisma.pluginPageSession.update({ where: { id: data.sessionId }, data: {
+      createdAt: new Date(Date.now() - PAGE_SESSION_ABSOLUTE_LIFETIME_MS + minute), expiresAt: new Date(Date.now() - 1000) } });
+    const narrow = await refresh(data.sessionId, customer.token);
+    expect(narrow.statusCode).toBe(401);
+    expect(narrow.json().error.code).toBe('PLUGIN_PAGE_SESSION_EXPIRED');
+    // A revoked session is never renewed either.
+    const revoked = new Date(Date.now() - minute);
+    await prisma.pluginPageSession.update({ where: { id: data.sessionId }, data: { revokedAt: revoked, expiresAt: new Date(Date.now() - 1000) } });
+    const response = await refresh(data.sessionId, customer.token);
+    expect(response.statusCode).toBe(401);
+    const unchanged = await row(data.sessionId);
+    expect(unchanged.revokedAt).toEqual(revoked);
+    expect(unchanged.expiresAt.getTime()).toBeLessThan(Date.now());
+  });
 });

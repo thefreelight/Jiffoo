@@ -15,6 +15,25 @@ export type PageSurface = 'shop' | 'admin';
 export type PageTransaction = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 const digest = (secret: string) => createHash('sha256').update(secret).digest('hex');
 
+/**
+ * The idle window of a page session.
+ *
+ * The window is not a total lifetime: a live shell renews it on every
+ * refresh, so a page that is open keeps its session, its frame and the state
+ * the customer entered. The window is what an abandoned session falls behind
+ * in.
+ */
+export const PAGE_SESSION_IDLE_WINDOW_MS = 30 * 60_000;
+
+/**
+ * The absolute lifetime of a page session.
+ *
+ * The idle window never crosses it. The bound keeps the shell-only guest
+ * secret and a stale session identifier from being usable for ever, even
+ * when the browser keeps the page open.
+ */
+export const PAGE_SESSION_ABSOLUTE_LIFETIME_MS = 12 * 60 * 60_000;
+
 /** Canonical base64 keys prevent accidental reuse of ordinary JWT or file keys. */
 export function pageTokenSecret(): Buffer {
   const raw = process.env.PLUGIN_PAGE_TOKEN_SECRET;
@@ -51,9 +70,13 @@ export async function shellIdentity(request: FastifyRequest, surface: PageSurfac
 
 export const currentPage = PluginPageDeclarationService.currentPage;
 
-export async function validateSession(tx: PageTransaction, session: PluginPageSession) {
+export async function validateSession(tx: PageTransaction, session: PluginPageSession, options: { allowLapsed?: boolean } = {}) {
   const now = (await tx.$queryRaw<Array<{ now: Date }>>`SELECT clock_timestamp() AS now`)[0].now;
-  if (session.revokedAt || session.expiresAt <= now || !['shop', 'admin'].includes(session.surface)) throw new ApiError('PLUGIN_PAGE_SESSION_REVOKED');
+  if (session.revokedAt || !['shop', 'admin'].includes(session.surface)) throw new ApiError('PLUGIN_PAGE_SESSION_REVOKED');
+  // The end of the idle window is not a revocation: a shell that still proves
+  // who it is may renew the session. Only a session that cannot be renewed
+  // any more is expired.
+  if (!options.allowLapsed && session.expiresAt <= now) throw new ApiError('PLUGIN_PAGE_SESSION_EXPIRED');
   const current = await PluginPageDeclarationService.currentForInstallation(tx, session.installationId, session.surface as PageSurface, session.pageId);
   const { installation } = current;
   if (current.installation.id !== session.installationId || installation.protectionGeneration !== session.generation || installation.plugin.zipHash !== session.zipHash) throw new ApiError('PLUGIN_PAGE_SESSION_REVOKED');
@@ -67,10 +90,36 @@ export async function validateSession(tx: PageTransaction, session: PluginPageSe
   return { ...current, user, now };
 }
 
+/**
+ * Renew the idle window of a live page session.
+ *
+ * The renewal happens inside the transaction that holds the row of the
+ * session, and it is a conditional update whose predicate carries the prior
+ * value and the revocation state. A revocation that lands at the same moment
+ * is therefore never overwritten, and a renewal never resurrects a session
+ * that was revoked.
+ */
+async function renewSessionWindow(tx: PageTransaction, session: PluginPageSession, now: Date): Promise<PluginPageSession> {
+  const absolute = new Date(session.createdAt.getTime() + PAGE_SESSION_ABSOLUTE_LIFETIME_MS);
+  if (absolute <= now) throw new ApiError('PLUGIN_PAGE_SESSION_EXPIRED');
+  const deadline = new Date(Math.min(now.getTime() + PAGE_SESSION_IDLE_WINDOW_MS, absolute.getTime()));
+  const renewed = await tx.pluginPageSession.updateMany({ where: { id: session.id, revokedAt: null, expiresAt: session.expiresAt }, data: { expiresAt: deadline } });
+  if (renewed.count) return { ...session, expiresAt: deadline };
+  // The row changed under this transaction: another renewal moved the window,
+  // or a revocation landed. The live row decides, and a window that is still
+  // behind us is an expiry rather than a revocation.
+  const live = await tx.pluginPageSession.findUnique({ where: { id: session.id } });
+  if (!live || live.revokedAt) throw new ApiError('PLUGIN_PAGE_SESSION_REVOKED');
+  if (live.expiresAt <= now) throw new ApiError('PLUGIN_PAGE_SESSION_EXPIRED');
+  return live;
+}
+
 export function signPageToken(session: PluginPageSession, slug: string, now: Date) {
   const issued = Math.floor(now.getTime() / 1000);
   const exp = issued + 120;
-  if (exp * 1000 > session.expiresAt.getTime()) throw new ApiError('PLUGIN_PAGE_SESSION_REVOKED');
+  // The token has to fit inside the window of the session. A window that is
+  // too short is the end of the lifetime, not a revocation.
+  if (exp * 1000 > session.expiresAt.getTime()) throw new ApiError('PLUGIN_PAGE_SESSION_EXPIRED');
   const scopes = session.principalType === 'GUEST' ? ['gateway:invoke'] : ['gateway:invoke', 'storage:upload', 'storage:read'];
   return { token: jwt.sign({ sid: session.id, installationId: session.installationId, slug,
     zipHash: session.zipHash, generation: session.generation.toString(), surface: session.surface, pageId: session.pageId,
@@ -96,7 +145,7 @@ export async function issuePageSession(request: FastifyRequest, slug: string, su
     }
     const now = (await tx.$queryRaw<Array<{ now: Date }>>`SELECT clock_timestamp() AS now`)[0].now;
     const session = await tx.pluginPageSession.create({ data: { installationId: installation.id, generation: installation.protectionGeneration, zipHash: installation.plugin.zipHash!, surface, pageId,
-      principalType: user ? surface === 'admin' ? 'ADMIN' : 'CUSTOMER' : 'GUEST', principalId: user?.id, sessionVersion: user?.sessionVersion, guestSecretHash: guestSecret ? digest(guestSecret) : null, expiresAt: new Date(now.getTime() + 30 * 60_000) } });
+      principalType: user ? surface === 'admin' ? 'ADMIN' : 'CUSTOMER' : 'GUEST', principalId: user?.id, sessionVersion: user?.sessionVersion, guestSecretHash: guestSecret ? digest(guestSecret) : null, expiresAt: new Date(now.getTime() + PAGE_SESSION_IDLE_WINDOW_MS) } });
     const frame = new URL(`/api/v1/plugin-assets/${installation.id}/${session.zipHash}/${page.entry}`, origin);
     frame.searchParams.set('shellOrigin', origin);
     return { session, page, user: user ? { id: user.id, displayName: user.username, email: user.email } : null, guestSecret, frameUrl: frame.href, ...signPageToken(session, slug, now) };
@@ -115,12 +164,18 @@ export async function authorizeShellSession(request: FastifyRequest, slug: strin
   return prisma.$transaction(async tx => {
     await tx.$queryRaw`SELECT id FROM public.plugin_installations WHERE id = ${session.installationId} FOR SHARE`;
     if (session.principalId) await tx.$queryRaw`SELECT id FROM public.users WHERE id = ${session.principalId} FOR SHARE`;
-    await tx.$queryRaw`SELECT id FROM public.plugin_page_sessions WHERE id = ${id} FOR SHARE`;
+    // The row of the session is locked exclusively, because the renewal writes
+    // it. A shared lock would let two renewals hold the row and wait for each
+    // other when they write it.
+    await tx.$queryRaw`SELECT id FROM public.plugin_page_sessions WHERE id = ${id} FOR UPDATE`;
     const liveSession = await tx.pluginPageSession.findUnique({ where: { id } });
     if (!liveSession) throw new ApiError('PLUGIN_PAGE_SESSION_REVOKED');
-    const validated = await validateSession(tx, liveSession);
+    // The window may have lapsed while the browser held the page. The shell
+    // still proves who it is, so the session is renewed instead of revoked.
+    const validated = await validateSession(tx, liveSession, { allowLapsed: true });
     if (validated.installation.pluginSlug !== slug) throw new ApiError('PLUGIN_PAGE_SESSION_REVOKED');
-    return { session: liveSession, ...validated, ...(rotate ? signPageToken(liveSession, slug, validated.now) : {}) };
+    const renewed = await renewSessionWindow(tx, liveSession, validated.now);
+    return { session: renewed, ...validated, ...(rotate ? signPageToken(renewed, slug, validated.now) : {}) };
   });
 }
 

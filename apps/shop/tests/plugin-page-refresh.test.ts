@@ -32,7 +32,7 @@ describe('the refresh of a plugin page', () => {
     return event;
   }
 
-  async function mount(refreshFailure: unknown) {
+  async function mount(refreshFailure: unknown, refreshResult?: { pluginToken: string; expiresAt: string; context: unknown }) {
     vi.useFakeTimers();
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
     vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
@@ -40,7 +40,7 @@ describe('the refresh of a plugin page', () => {
     document.body.appendChild(container);
     root = createRoot(container);
     const frameUrl = new URL(`/api/v1/plugin-assets/id/${'a'.repeat(64)}/index.html`, location.origin).href;
-    const refresh = vi.fn().mockRejectedValue(refreshFailure);
+    const refresh = refreshResult ? vi.fn().mockResolvedValue(refreshResult) : vi.fn().mockRejectedValue(refreshFailure);
     const transport = vi.fn(async (path: string, method: string) => {
       if (path.endsWith('/refresh')) return refresh();
       if (method === 'POST' && path.endsWith('/session')) {
@@ -111,6 +111,28 @@ describe('the refresh of a plugin page', () => {
 
   it('ends the page when the plugin is gone', async () => {
     const { refresh } = await mount('NOT_FOUND');
+    await act(async () => { await vi.advanceTimersByTimeAsync(60_000); });
+    expect(refresh).toHaveBeenCalled();
+    expect(container!.querySelector('[role=alert]')).not.toBeNull();
+    expect(container!.querySelector('iframe')).toBeNull();
+  });
+
+  it('keeps the page and its frame when the session is renewed at the end of its window', async () => {
+    // Core renews the window of a live session, so the refresh at the end of
+    // the window answers with a fresh token. The frame is not unmounted: the
+    // file the customer chose and the form they filled in stay in it.
+    const { refresh, frame } = await mount(undefined, { pluginToken: 'renewed', expiresAt: new Date(Date.now() + 120_000).toISOString(),
+      context: { customer: null, admin: null, page: { id: 'studio', path: '/studio' } } });
+    expect(container!.querySelector('iframe')).not.toBeNull();
+    await act(async () => { await vi.advanceTimersByTimeAsync(60_000); });
+    expect(refresh).toHaveBeenCalled();
+    expect(container!.querySelector('[role=alert]')).toBeNull();
+    expect(container!.querySelector('iframe')).toBe(frame);
+  });
+
+  it('ends the page when the session reached the end of its lifetime', async () => {
+    const { refresh } = await mount('PLUGIN_PAGE_SESSION_EXPIRED');
+    expect(container!.querySelector('iframe')).not.toBeNull();
     await act(async () => { await vi.advanceTimersByTimeAsync(60_000); });
     expect(refresh).toHaveBeenCalled();
     expect(container!.querySelector('[role=alert]')).not.toBeNull();

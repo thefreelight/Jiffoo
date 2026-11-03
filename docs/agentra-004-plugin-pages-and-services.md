@@ -163,6 +163,32 @@ request. A refresh that Core refused does not become a refresh per request
 either: the bridge waits half a minute and keeps the token it holds while that
 token is valid. Only session-specific context responses contain email.
 
+A page session carries two bounds: an idle window of thirty minutes and an
+absolute lifetime of twelve hours. The idle window is not a total lifetime: a
+live shell renews it on every shell-authorized call — the refresh of the
+token, the cart of the storefront, the download of a file — so a page that
+stays open keeps its session, its frame and the state the customer entered,
+and an idle page is never torn down by the end of a window it never used. The
+absolute lifetime bounds the window, so the session identifier and the
+shell-only guest secret of a page that stays open are not usable for ever: a
+guest secret of a public page is usable for up to twelve hours from the moment
+its session was issued, where the earlier bound was thirty minutes. It grants
+gateway access only and never customer identity. When the absolute lifetime
+leaves less than the two minutes a token needs, the session ends: the token
+does not fit and the shell is told that the lifetime is over. The renewal
+happens on the strength of the credentials the refresh already demands — the
+Core identity of the customer or the administrator, or the shell-only secret
+of a guest — and inside the transaction that holds the row of the session
+exclusively, as a conditional update that carries the prior value and the
+revocation state, so a revocation that lands at the same moment is never
+overwritten, a renewal never resurrects a revoked session and two renewals of
+the same session serialise instead of deadlocking. The end of the window is
+PLUGIN_PAGE_SESSION_EXPIRED and not a revocation: the shell and the download
+path report that code, and the gateway refuses the admission of such a token
+without a code. A revoked session, a changed identity, a changed package or
+generation, a disabled plugin and a forbidden origin are never renewed, and
+they still end the page.
+
 Navigation is rendered by Core from enabled declarations in header, account
 menu and footer, with translated titles. Links to login-required pages remain
 discoverable and redirect through Core sign-in using a validated same-origin
