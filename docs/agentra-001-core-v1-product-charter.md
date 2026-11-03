@@ -685,9 +685,12 @@ exact-release verification, which the owner deferred on 2026-10-12 because the l
 into the release branch and no release is declared. The twenty-second and the twenty-third are
 delivered on the Core side: the core-mediated service, its method grants, the durable call
 ledger, the service graph and the permissioned paid-order read are built, reviewed and green.
-What the two scenarios still need is a consumer of that contract: the tree holds no plugin that
-exports a wallet service, so the debit, the enqueue, the compensation and the reconciliation
-credit of the two scenarios belong to the plugin that consumes the contract.
+What the two scenarios still need is a consumer of that contract: the tree holds no shipped
+plugin that exports a wallet service, so the debit, the enqueue, the compensation and the
+reconciliation credit of the two scenarios belong to the plugin that consumes the contract. The
+acceptance of the plugin line carries a test-signed example of such a provider and consumer, so
+the mechanism is proven inside Core; the plugin that consumes the contract in production is the
+imager line.
 
 The current state of the line is in `docs/coordination-ledger.md`, section 0. The assessment of
 each scenario, the commits that carry it and the evidence that holds it are in
