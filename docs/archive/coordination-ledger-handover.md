@@ -6181,6 +6181,121 @@ working tree. The certification of the one line of this batch is the CI job that
 
 The browser E2E did not run locally: it belongs to CI, and this batch changed no product code.
 
+## 5zao. The service path of a plugin service records the outcome of the provider at the breaker
+
+**Baseline SHA:** `df280dc59`. **Commits:** `df280dc59`.
+
+### What the batch fixes
+
+The service path of a plugin service was the only path that never told the breaker whether the
+provider answered. A provider that answered correctly left no sample, so the failure history of a
+provider never slid out of the window and a probe that succeeded never closed an open circuit. A
+provider that crashed, that timed out or that broke the protocol recorded a failure, but the
+refusal the provider made on purpose was told apart from the refusal of Core, which is not the
+same thing: a refusal never opens the circuit and closes a probe that was open.
+
+The path now records the outcome of the provider itself, and once per call:
+
+- a provider that answered, and a refusal the provider made on purpose, are a success;
+- a provider that could not be loaded, that did not answer, that answered with a broken
+  protocol, that timed out or that crashed is a failure;
+- the sample is recorded once per call, and a protection infrastructure that is unavailable does
+  not blame the provider.
+
+`apps/api/tests/core/plugin-service-breaker.test.ts` holds the outcomes with two fixture plugins,
+a provider that answers, refuses, crashes, times out and breaks the protocol, and a consumer that
+calls it through the service path. The case reads the samples and the failures of the scope in
+Redis and counts them.
+
+### The local evidence
+
+```
+pnpm verify:quick --shards=4
+```
+
+The whole API catalogue in four shards (221 files, 2892 tests), the Admin suite (65 files, 688
+tests) and the Shop suite (43 files, 300 tests), all green.
+
+## 5zap. The theme of the store reaches the page of a plugin
+
+**Baseline SHA:** `d9e7b628b`. **Commits:** `d9e7b628b`, `d42a7d7ce`.
+
+### What the batch fixes
+
+A plugin page runs in an opaque frame, so the CSS variables of the host page never cross the
+document boundary on their own. The only channel was seven names in the page context, and three
+of them never existed in the storefront (`--shop-primary`, `--shop-background`, `--shop-text`), so
+they always read empty. A plugin that wanted the colour of the merchant had to read the context
+and write the variables itself, and every plugin wrote a palette of its own.
+
+The theme now travels the whole way:
+
+- the shell reads the computed value of every theme variable of its surface — 44 in the
+  storefront, 25 in the administration — and sends each under its own name and under its neutral
+  name, so one stylesheet serves both surfaces;
+- the bridge lays the values down on the root of the frame document in one stylesheet element and
+  marks the document, and a variable that fails the name or the value check is dropped on its own
+  while the rest is written;
+- `@jiffoo/plugin-ui` is the stylesheet of a plugin page: a token layer that maps the neutral
+  variables of the shell onto the tokens of the plugin and gives every token a fallback for the
+  frame before the handshake answers, and a component layer that names no colour, no radius and no
+  spacing of its own;
+- `jiffoo-plugin create --pages` scaffolds the frontend of a plugin: the page document, the bridge
+  bootstrap, the plugin UI stylesheets and the Vite build that fills the declared asset directory,
+  so a plugin author no longer starts from an empty page.
+
+The labels of the artifacts moved with their content: the bridge is `1.0.0-alpha.3` and the SDK is
+`1.0.0-alpha.5`, because the earlier labels named a different tarball. The three packages are built
+and packed together by `scripts/pack-plugin-packages.mjs`, which records the commit and the SHA256
+of every tarball beside it; npm publishing stays deferred until the owner supplies an npm
+organisation.
+
+`apps/shop/tests/plugin-theme-bridge.test.ts` holds the payload of the shell, the hand-down of the
+bridge and the stylesheets of the plugin UI.
+
+### The local evidence
+
+```
+pnpm verify:quick --shards=4
+```
+
+The whole API catalogue in four shards (221 files, 2892 tests), the Admin suite (65 files, 688
+tests) and the Shop suite (43 files, 300 tests), all green; and a scoped run with the three
+standalone audits of the packages and the four Shop suites the planner selected for the shared
+change, all green.
+
+## 5zas. The base font size of the storefront comes from the theme token
+
+**Baseline SHA:** `24b3a07f1`. **Commits:** `24b3a07f1`.
+
+### What the batch fixes
+
+The theme contract declares `extras.font-size-base` as a merchant setting, and nothing in the
+storefront read it: the body of the storefront declared `font-size: 14px` and the setting changed
+nothing. The plugin pages read the token, so a plugin page rendered its inherited text at 1rem
+while the storefront rendered it at 14px, and the two surfaces of the same store disagreed.
+
+The token is now the single baseline and the storefront does not move:
+
+- the default of the role is `0.875rem`, which is the size the storefront already renders, so the
+  declared default is true and the rendering of the store does not change;
+- the body of the storefront reads `--shop-extras-font-size-base` and never a literal, so the
+  merchant's setting moves the storefront and the pages of the plugins at the same time;
+- the size that carries a role is not derived from that base any more: the plugin UI keeps the
+  type scale of the storefront one for one, so the hierarchy of both surfaces agrees whatever the
+  merchant sets.
+
+The label of the plugin UI moved with its content: `1.0.0-alpha.2`.
+
+### The local evidence
+
+```
+pnpm verify:quick --shards=4
+```
+
+The whole API catalogue in four shards (222 files, 2905 tests), the Admin suite (65 files, 688
+tests) and the Shop suite (43 files, 301 tests), all green.
+
 ## 5zau. The example plugins of the plugin line, on the Core side
 
 **Baseline SHA:** `26979916d`. **Commits:** (the commits of this batch).
