@@ -9,6 +9,7 @@ import {
   Smartphone,
 } from 'lucide-react';
 import type { HomePageProps } from 'shared/src/types/theme';
+import { PromoBanner } from './PromoBanner';
 import { isExternalHref, pickCopy, resolveBokmooSiteConfig } from '../site';
 
 type HeroPillarProps = {
@@ -78,6 +79,7 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
 
   return (
     <div className="min-h-screen bg-[#08070a] text-[var(--bokmoo-ink)]">
+      <PromoBanner locale={locale} config={config} />
       {/* Hero */}
       <section className="relative overflow-hidden border-b border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,transparent)]">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_75%_35%,color-mix(in_oklab,var(--bokmoo-gold)_16%,transparent),transparent_55%)]" />
