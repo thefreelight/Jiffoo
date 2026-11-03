@@ -1,12 +1,12 @@
 # @jiffoo-core/plugin-sdk
 
-Extension authoring CLI and canonical Core types, version 1.0.0-alpha.5.
+Extension authoring CLI and canonical Core types, version 1.0.0-alpha.6.
 Supported runtime: Node.js >=24.13.1 <25, matching Core's Node 24 CI runtime.
 
 Install the SDK tarball attached to the matching Core release:
 
 ```sh
-npm i ./jiffoo-core-plugin-sdk-1.0.0-alpha.5.tgz
+npm i ./jiffoo-core-plugin-sdk-1.0.0-alpha.6.tgz
 npx jiffoo-plugin create --slug my-extension --name "My extension" --output my-extension
 ```
 

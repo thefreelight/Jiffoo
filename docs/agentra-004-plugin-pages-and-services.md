@@ -1236,7 +1236,7 @@ UI-asset validation modules, without workspace dependencies or Core application
 imports. Pre-release versions use `1.0.0-alpha.N`, starting at alpha.1. npm
 publishing comes later, after the owner supplies an npm organisation; set
 publishConfig.access to public at that time. Consumers can install the release
-asset with `npm i ./jiffoo-core-plugin-sdk-1.0.0-alpha.5.tgz` and import
+asset with `npm i ./jiffoo-core-plugin-sdk-1.0.0-alpha.6.tgz` and import
 `PluginContext` from `@jiffoo-core/plugin-sdk`.
 
 The browser-side client is `@jiffoo/plugin-bridge`, the counterpart of the SDK for
