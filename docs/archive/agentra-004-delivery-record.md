@@ -167,6 +167,22 @@ runs no tests and is not committed.
   consuming retry budget, and cancel only removed handler versions. Dev and
   drain helper execute tasks/hooks through the same worker engine.
 
+## The acceptance of G4, G4-R and P-5
+
+The Core-side cases of R2/G4, R4/G4-R, G4 and G4-R have tests; the coordination
+ledger names the batch of each. P-5 is covered by four clauses, and each clause
+is held by a different kind of evidence:
+
+| Clause of P-5 | Where it is held |
+| --- | --- |
+| the navigation, the loading state and the error state in all three locales | the browser case of the shop navigation; the loading state of the page shell; the localized error state of the shell |
+| no frame on cart/checkout/payment/result | the browser case of the plugin page shells, with the cart asserted while the plugin is enabled |
+| two APIs/two workers share DB, Redis, package blobs and S3 | the compose acceptance: the probe plugin propagates between both API instances, the anonymous budget is shared through Redis, the upload is read from both, and the notification of the worker pool is persisted once |
+| every new module-level registry/cache and every lifecycle rebuild path | the module state audit of the charter scenarios 12 and 15 |
+
+The imager flow, the provider plugin's own behaviour and the page of the SDK's
+scaffold in a browser are the plugin line's.
+
 ## The revision history
 
 Revision 1 incorporates consumer items J1-J9 and S1-S7 in sections 6, 7 and

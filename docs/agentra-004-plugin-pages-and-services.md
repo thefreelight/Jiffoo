@@ -1305,9 +1305,12 @@ On the Core side the two example plugins exist and work against each other:
 they are installed through the real path, the provider's ledger is a table of
 the provider's own plugin schema created by the provider's own migration, and
 the consumer's task and its final-failure hook call the provider's methods
-under the merchant's grant. The browser acceptance of the two plugins, the
-three locales of their navigation and the multi-instance deployment of them
-are still owed.
+under the merchant's grant. The navigation entry of a plugin page follows the
+locale of the store in all three locales, and the cart, the checkout, the
+payment and the result pages carry no plugin frame. The page of the SDK's own
+scaffold, which the two example plugins carry, has not been rendered in a
+browser yet; the mechanisms of that page are held with Core's own page
+fixture.
 
 ### First consumer flow: imager, using only general contracts
 
@@ -1357,7 +1360,7 @@ The plan of the batches, with the scope, the worktree and the risk of each, and
 the acceptance of the delivered batches, are in
 `docs/archive/agentra-004-delivery-record.md`.
 
-Required acceptance and adversarial cases of the batches that are owed:
+Required acceptance and adversarial cases of the batches:
 
 - R2/G4: timeout after commit recovers the original success/business rejection
   with original callId and no duplicate effect; proven NOT_EXECUTED executes
@@ -1396,6 +1399,15 @@ Required acceptance and adversarial cases of the batches that are owed:
   frame on cart/checkout/payment/result; two APIs/two workers share DB, Redis,
   package blobs and S3. Enumerate every new module-level registry/cache and
   verify every lifecycle rebuild path, extending charter scenarios 12 and 15.
+
+The Core-side cases of R2/G4, R4/G4-R, G4 and G4-R have tests, and the
+coordination ledger names the batch of each. P-5 is covered: the navigation,
+the loading state and the error state in the three locales, the absence of a
+plugin frame on the cart, the checkout, the payment and the result pages, the
+two API instances and the two worker instances over one deployment, and the
+module containers of the charter scenarios 12 and 15. The imager flow, the
+provider plugin's own behaviour and the page of the SDK's scaffold in a browser
+are the plugin line's.
 
 ## 11. Review points and explicit limits
 
