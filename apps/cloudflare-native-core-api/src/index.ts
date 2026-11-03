@@ -11,6 +11,7 @@ import { tryNativeShipmentRead } from './shipments';
 import { releaseStaleInventoryReservations, tryNativeCheckout } from './checkout';
 import { tryNativeAddressBook } from './address-book';
 import { tryNativeBokmooNotifications } from './bokmoo-notifications';
+import { tryNativeBokmooPromotions } from './bokmoo-promotions';
 import { tryNativeI18nLocales } from './i18n-locales';
 import { tryNativePluginOrders } from './plugin-orders';
 import { processCheckoutOutbox } from './outbox';
@@ -403,6 +404,8 @@ async function routeNativeRequest(request: Request, env: WorkerEnv, ctx: Executi
     if (nativeAddressBook) return nativeAddressBook;
     const nativeBokmooNotifications = await tryNativeBokmooNotifications(nativeRequest, env);
     if (nativeBokmooNotifications) return nativeBokmooNotifications;
+    const nativeBokmooPromotions = await tryNativeBokmooPromotions(nativeRequest, env);
+    if (nativeBokmooPromotions) return nativeBokmooPromotions;
     const nativeI18nLocales = await tryNativeI18nLocales(nativeRequest, env);
     if (nativeI18nLocales) return nativeI18nLocales;
     const nativePluginOrders = await tryNativePluginOrders(nativeRequest, env);

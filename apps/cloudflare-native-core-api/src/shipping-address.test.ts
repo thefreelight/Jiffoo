@@ -20,6 +20,7 @@ function goodsDb() {
     prepare: (sql: string) => ({
       bind: (..._values: unknown[]) => ({
         first: async () => null,
+        all: async () => ({ results: [] }),
         run: async () => ({ success: true }),
       }),
       first: async () => null,
@@ -170,6 +171,7 @@ describe('encodeStripeForm via /payments/sessions', () => {
     return {
       prepare: (sql: string) => ({
         bind: (..._values: unknown[]) => ({
+          all: async () => ({ results: [] }),
           first: async () => (sql.includes('native_order_snapshots')
             ? { payload: JSON.stringify(order), total_amount: 20, currency: 'USD', payment_status: 'PENDING' }
             : null),

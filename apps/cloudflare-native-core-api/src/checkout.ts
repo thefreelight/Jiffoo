@@ -1,4 +1,5 @@
 import { authenticateNativeUser, type NativeAuthEnv, type NativeSessionUser } from './auth';
+import { resolveActivePromotion } from './bokmoo-promotions';
 import { getNativePluginConfig, getNativePluginSecret, getNativeStripeSecret } from './plugin-settings';
 import { settleNativeWalletCheckout } from './native-wallet';
 
@@ -179,21 +180,65 @@ async function createOrder(
 
   const now = new Date().toISOString();
   const orderId = orderNumber();
-  const items = resolved.map(({ input, product, variant }) => ({
-    id: crypto.randomUUID(),
-    productId: product.id,
-    productName: product.name,
-    productKind: product.productKind,
-    variantId: variant.id,
-    variantName: variant.name ?? null,
-    variantAttributes: variant.attributes ?? null,
-    quantity: input.quantity,
-    unitPrice: variant.salePrice,
-    totalPrice: variant.salePrice * input.quantity,
-    fulfillmentStatus: 'pending',
-    fulfillmentData: input.fulfillmentData ?? null,
-    currency: 'USD',
-  }));
+  // Campaign promotion: the single best active promotion replaces the
+  // affiliate discount (no stacking) and lands on the covered items' unit
+  // price, keeping the Stripe charge, the order record and the apps equal.
+  // Promo codes double as buyer discounts and affiliate attribution.
+  const affiliateCodeRaw = typeof body.affiliateCode === 'string' ? body.affiliateCode.trim().toUpperCase() : '';
+  const affiliatePartner = affiliateCodeRaw
+    ? await env.DB.prepare(
+      `SELECT id, discount_rate FROM native_affiliate_partners
+       WHERE code = ?1 AND status = 'active' AND discount_rate > 0`,
+    ).bind(affiliateCodeRaw).first<{ id: string; discount_rate: number }>()
+    : null;
+  const catalogSubtotal = resolved.reduce(
+    (sum, { input, variant }) => sum + variant.salePrice * input.quantity, 0,
+  );
+  const promotion = await resolveActivePromotion(
+    env,
+    resolved.map(({ product }) => product.id),
+    new Map(resolved.map(({ input, product }) => [product.id, input.quantity])),
+    new Map(resolved.map(({ variant }) => [variant.id, variant.salePrice])),
+    user.id,
+  );
+  const affiliateDiscount = affiliatePartner
+    ? Math.min(catalogSubtotal, Math.round(catalogSubtotal * affiliatePartner.discount_rate) / 100)
+    : 0;
+  const appliedPromotion = promotion && promotion.discountAmount > 0 && promotion.discountAmount >= affiliateDiscount
+    ? promotion : null;
+  const discountAmount = appliedPromotion
+    ? Math.min(appliedPromotion.discountAmount, catalogSubtotal)
+    : affiliateDiscount;
+  const discountedUnit = new Map<string, number>();
+  if (appliedPromotion) {
+    for (const { product, variant } of resolved) {
+      const covered = !appliedPromotion.row.product_ids_json
+        || (() => { try { return (JSON.parse(appliedPromotion.row.product_ids_json!) as string[]).includes(product.id); } catch { return false; } })();
+      if (!covered) continue;
+      const perUnit = appliedPromotion.row.discount_type === 'percent'
+        ? Math.round(variant.salePrice * appliedPromotion.row.discount_value) / 100
+        : Math.min(appliedPromotion.row.discount_value, Math.max(variant.salePrice - 0.01, 0));
+      discountedUnit.set(variant.id, Math.max(variant.salePrice - Math.min(perUnit, variant.salePrice), 0.01));
+    }
+  }
+  const items = resolved.map(({ input, product, variant }) => {
+    const unitPrice = discountedUnit.get(variant.id) ?? variant.salePrice;
+    return {
+      id: crypto.randomUUID(),
+      productId: product.id,
+      productName: product.name,
+      productKind: product.productKind,
+      variantId: variant.id,
+      variantName: variant.name ?? null,
+      variantAttributes: variant.attributes ?? null,
+      quantity: input.quantity,
+      unitPrice,
+      totalPrice: unitPrice * input.quantity,
+      fulfillmentStatus: 'pending',
+      fulfillmentData: input.fulfillmentData ?? null,
+      currency: 'USD',
+    };
+  });
   const subtotal = items.reduce((sum, item) => sum + item.totalPrice, 0);
   const shipping = await env.DB.prepare(
     'SELECT shipping_amount, method_name, plugin_slug FROM native_shipping_selections WHERE user_id = ?1',
@@ -206,29 +251,20 @@ async function createOrder(
   if (requiresShipping && !shippingAddress) {
     return failure(400, 'SHIPPING_ADDRESS_REQUIRED', 'A complete shipping address is required for physical products');
   }
-  // Promo codes double as buyer discounts and affiliate attribution.
-  const affiliateCodeRaw = typeof body.affiliateCode === 'string' ? body.affiliateCode.trim().toUpperCase() : '';
-  const affiliatePartner = affiliateCodeRaw
-    ? await env.DB.prepare(
-      `SELECT id, discount_rate FROM native_affiliate_partners
-       WHERE code = ?1 AND status = 'active' AND discount_rate > 0`,
-    ).bind(affiliateCodeRaw).first<{ id: string; discount_rate: number }>()
-    : null;
-  const discountAmount = affiliatePartner
-    ? Math.min(subtotal, Math.round(subtotal * affiliatePartner.discount_rate) / 100)
-    : 0;
   const order: Record<string, unknown> = {
     id: orderId,
     userId: user.id,
     status: 'PENDING',
     paymentStatus: 'PENDING',
-    subtotalAmount: subtotal,
-    totalAmount: subtotal + shippingAmount - discountAmount,
+    subtotalAmount: catalogSubtotal,
+    totalAmount: catalogSubtotal + shippingAmount - discountAmount,
     discountAmount,
     shippingAmount,
     shippingMethod: requiresShipping ? shipping?.method_name ?? null : null,
     shippingProvider: requiresShipping ? shipping?.plugin_slug ?? null : null,
-    appliedDiscounts: [],
+    appliedDiscounts: appliedPromotion
+      ? [{ kind: 'promotion', id: appliedPromotion.row.id, slug: appliedPromotion.row.slug, amount: discountAmount }]
+      : (affiliatePartner ? [{ kind: 'affiliate', id: affiliatePartner.id, amount: discountAmount }] : []),
     currency: 'USD',
     shippingAddress: shippingAddress ?? body.shippingAddress ?? null,
     customerEmail: user.email,
@@ -258,9 +294,9 @@ async function createOrder(
     ).bind(orderId, user.id, searchable(order), JSON.stringify(order), now),
     env.DB.prepare(
       `INSERT INTO native_order_metadata
-       (order_id, user_id, idempotency_key, payment_status, currency, total_amount, affiliate_partner_id)
-       VALUES (?1, ?2, ?3, 'PENDING', 'USD', ?4, ?5)`,
-    ).bind(orderId, user.id, idempotencyKey, subtotal + shippingAmount - discountAmount, affiliatePartner?.id ?? null),
+       (order_id, user_id, idempotency_key, payment_status, currency, total_amount, affiliate_partner_id, promotion_id)
+       VALUES (?1, ?2, ?3, 'PENDING', 'USD', ?4, ?5, ?6)`,
+    ).bind(orderId, user.id, idempotencyKey, catalogSubtotal + shippingAmount - discountAmount, affiliatePartner?.id ?? null, appliedPromotion?.row.id ?? null),
   ];
   for (let index = 0; index < resolved.length; index += 1) {
     const { input, product, variant } = resolved[index]!;
@@ -278,7 +314,7 @@ async function createOrder(
       `INSERT INTO native_order_items
        (id, order_id, reservation_id, product_id, variant_id, quantity, unit_price, payload)
        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)`,
-    ).bind(item.id, orderId, reservationId, product.id, variant.id, input.quantity, variant.salePrice, JSON.stringify(item)));
+    ).bind(item.id, orderId, reservationId, product.id, variant.id, input.quantity, item.unitPrice, JSON.stringify(item)));
   }
   statements.push(env.DB.prepare(
     `INSERT INTO native_checkout_outbox (id, event_type, aggregate_id, payload, created_at)
