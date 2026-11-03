@@ -6282,3 +6282,87 @@ namespace is provisioned, so a migration that did not run would fail the cases i
 them quietly.
 
 The browser E2E did not run locally: it belongs to CI, and this batch changed no product code.
+
+## 5zav. The acceptance of the plugin line: the navigation in three locales, the cart without a frame and the localized error state
+
+**Baseline SHA:** `db21adb1b`. **Commits:** (the commits of this batch).
+
+### What the design asks for
+
+P-5 of the plugin design asks for four things: an accessible Core navigation, loading state and
+error state in all three storefront locales; no plugin frame on the cart, the checkout, the
+payment and the result pages; two API instances and two worker instances over one deployment,
+sharing the database, Redis, the package blobs and the object storage; and the enumeration of
+every module-level container with its lifecycle rebuild path, extending the charter scenarios 12
+and 15.
+
+Three of the four were already held: the absence of the frame on the checkout, the payment and
+the result pages is held by the browser case of the plugin page shells, the shared state of the
+two API instances and the two worker instances is held by the compose acceptance, and the
+enumeration of the module containers is held by the module state audit of the scenarios 12 and
+15. The first one was not: the navigation entry of a plugin page was only proven in English.
+
+### What the batch adds
+
+`e2e/40-plugin-page-shells.spec.ts` gains a case that installs a page plugin, enables it and
+walks the three storefront locales:
+
+| Step | What it holds |
+| --- | --- |
+| the entry of the header | the navigation of the header carries the localized label of the plugin pages and the localized title of the page |
+| the link | the link opens the page of the plugin in the shell, and the frame of the plugin carries the title of the page |
+| the cart | the cart of the store carries no frame of a plugin, while the plugin is enabled |
+
+The navigation of the plugin pages is rendered three times, in the header, in the account menu
+and in the footer, so the case scopes its locator to the banner of the page: the account menu is
+closed and the footer is outside the banner. The frame of a plugin page is the element with the
+role `document` and the accessible name of the title of the page.
+
+`apps/shop/tests/plugin-page-labels.test.ts` mounts the shell of a page whose session Core
+refuses, once per locale, and holds that the alert carries the localized text of the failure and
+the localized retry, and that the frame is gone. The loading state of the shell was already held
+for the three locales by the shop's page shell test.
+
+### What the batch does not hold
+
+- The browser runs in CI only. The local gate cannot execute the case, and the case was not run
+  locally.
+- The page of the SDK's scaffold, which the two example plugins carry, has not been rendered in a
+  browser. The mechanisms of such a page are held with Core's own page fixture.
+- The two example plugins are not run in the compose deployment. The mechanism of the
+  multi-instance deployment is held there with the compose probe plugin: it propagates between
+  both API instances, the anonymous budget is shared through Redis, the upload is read from both,
+  and the notification of the worker pool is persisted once.
+- The shell says the same thing when Core refuses to open the session and when the session is
+  revoked. The catalogue code of the failure reaches the Admin surface, not the storefront.
+
+### The local evidence
+
+The changed inputs of the gate are the new shop test and the documents. The browser case reached
+no suite of the API, so the planner added none.
+
+```
+DATABASE_URL_TEST=postgresql://postgres:postgres@localhost:5432/jiffoo_core_test \
+PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=<the owner's consent to reset jiffoo_core_test> \
+pnpm verify:quick --scope=shop
+```
+
+```
+=== Final test summary ===
+Scope: shop
+Lane: integration
+Database: not used
+Planner added suites: none
+Run Shop tests:
+   Start at  19:18:27
+ Test Files  44 passed (44)
+      Tests  302 passed (302)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Type-check selected scope and shared | PASS | 2.95s |
+| Lint Shop | PASS | 8.34s |
+| Run Shop tests | PASS | 23.72s |
+```
+
+The browser case is proved by the CI run of the commit `db21adb1b`, in its `e2e` job.
