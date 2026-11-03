@@ -1,6 +1,6 @@
 {
   "name": "@jiffoo-core/plugin-sdk",
-  "version": "1.0.0-alpha.4",
+  "version": "1.0.0-alpha.3",
   "license": "GPL-2.0-or-later",
   "types": "dist/template-types/index.d.ts",
   "exports": {

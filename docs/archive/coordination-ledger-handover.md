@@ -5676,7 +5676,15 @@ of the installed tarball, so the gap between the runtime and the types stayed in
 - The runtime export carries the marker as well, so the types and the runtime agree.
 - The standalone script compiles a consumer against the installed tarball that extends the class
   and uses the marker, so the published types cannot lose it again.
-- The SDK is `1.0.0-alpha.4`, because its published bytes changed.
+- The SDK stays `1.0.0-alpha.3`. The pre-release was never consumable, because its published
+  types did not declare the refusal, so the same label is re-delivered with the types of the
+  refusal in it. The tarball of the earlier delivery of that label is replaced, and the SHA256
+  beside the file tells the two apart.
+
+The label moved to `1.0.0-alpha.4` in the first commit of the batch and back to
+`1.0.0-alpha.3` in its follow-up, on the owner's instruction: a pre-release that no consumer can
+compile against was never delivered, so the re-delivery keeps the label it was announced with. No
+alpha.4 tarball was ever published.
 
 ### The local evidence
 
@@ -5690,7 +5698,7 @@ Lane: integration
 Database: jiffoo_core_test
 Planner added suites: none
 Run script tests:
-Node test start time: 2026-11-02T19:46:00.933Z
+Node test start time: 2026-11-03T02:13:57.572Z
 ℹ tests 1
 ℹ suites 0
 ℹ pass 1
@@ -5698,33 +5706,34 @@ Node test start time: 2026-11-02T19:46:00.933Z
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 18053.7484
+ℹ duration_ms 32598.835
 Run API tests:
-   Start at  03:46:36
+   Start at  10:15:06
  Test Files  6 passed (6)
       Tests  67 passed (67)
 
 | Step | Result | Duration |
 | --- | --- | --- |
-| Run script tests | PASS | 18.10s |
-| Prisma generate | PASS | 0.01s |
-| Type-check selected scope and shared | PASS | 3.04s |
-| Lint Shop | PASS | 10.20s |
-| Reset test database | PASS | 3.57s |
-| Run API tests | PASS | 117.87s |
+| Run script tests | PASS | 32.70s |
+| Prisma generate | PASS | 0.04s |
+| Type-check selected scope and shared | PASS | 4.52s |
+| Lint Shop | PASS | 21.98s |
+| Reset test database | PASS | 8.02s |
+| Run API tests | PASS | 198.74s |
 ```
 
 ### What the next reader should know
 
 - A plugin raises a refusal with `throw new PluginBusinessError(code, message, details)` inside its
   transaction and answers with `ctx.services.businessError({code, message, details})`.
-- The SDK tarball of the tree is `1.0.0-alpha.4`. The older tarball exports the class at runtime
+- The SDK tarball of the tree is `jiffoo-core-plugin-sdk-1.0.0-alpha.3.tgz`. The tarball of the
+  earlier delivery of that label exports the class at runtime
   but does not declare it in its types, so a plugin that links it cannot extend the class and has
   to declare the class itself.
 - The refusal only stays a refusal when its details match the `errorDetails` schema the method
   declares. The wallet's schemas declare the details it raises, so its refusals reach the consumer
   as provider rejections.
-- The tarball of that commit is `jiffoo-core-plugin-sdk-1.0.0-alpha.4.tgz`. A consumer that
+- The tarball of that commit is `jiffoo-core-plugin-sdk-1.0.0-alpha.3.tgz`. A consumer that
   vendors it records the Core commit it came from and the SHA256 the standalone script prints.
 
 ### The review of the batch
