@@ -1,4 +1,5 @@
 import React from 'react';
+import type { ThemeConfig } from 'shared/src/types/theme';
 import { resolveBokmooSiteConfig } from '../site';
 
 type PromoEntry = {
@@ -43,7 +44,7 @@ function useCountdown(endsAt: string | null): string | null {
  */
 export const PromoBanner = React.memo(function PromoBanner({ locale, config }: {
   locale?: string;
-  config?: unknown;
+  config?: ThemeConfig;
 }) {
   const site = resolveBokmooSiteConfig(config, locale);
   const [state, setState] = React.useState<PromoState>('loading');
