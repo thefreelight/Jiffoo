@@ -1,4 +1,4 @@
-name = "bokmoo-shop"
+name = "bokmoo-production-shop"
 main = "cloudflare-entry.ts"
 compatibility_date = "2026-07-12"
 compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
@@ -24,7 +24,7 @@ NEXT_PUBLIC_FALLBACK_POWERED_BY_JIFFOO = "0"
 
 [[services]]
 binding = "WORKER_SELF_REFERENCE"
-service = "bokmoo-shop"
+service = "bokmoo-production-shop"
 
 [[r2_buckets]]
 binding = "THEME_ASSETS"
