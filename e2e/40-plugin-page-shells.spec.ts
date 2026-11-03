@@ -1,6 +1,7 @@
 import { expect, test } from './local-requests';
 import { pluginPagePackage } from './plugin-page-package';
 import { finalOwnerPassword, login, ownerEmail } from './helpers';
+import { buildAcceptancePackages } from '../apps/api/tests/fixtures/acceptance-plugins';
 import { promises as fs } from 'node:fs';
 import sharp from 'sharp';
 import type { Page } from '@playwright/test';
@@ -226,5 +227,69 @@ test('shop: the navigation of a plugin page follows the locale and the cart carr
       expect.soft(purge.ok(), await purge.text()).toBe(true);
     }
     await fixture.cleanup();
+  }
+});
+
+/**
+ * The page of the SDK's own scaffold, in a real browser.
+ *
+ * The two ordinary plugins of the plugin design are installed through the real
+ * path, so the page every plugin author starts from is rendered by the shell of
+ * Core, in the three storefront locales.
+ */
+test('shop: the page of the SDK scaffold renders in the browser in every locale', async ({ page, request }) => {
+  test.setTimeout(240_000);
+  const api = 'http://127.0.0.1:3001/api/v1';
+  const origin = 'http://127.0.0.1:3003';
+  const packages = await buildAcceptancePackages();
+  let authorization = '';
+  const installedSlugs: string[] = [];
+  try {
+    await login(page, ownerEmail, finalOwnerPassword);
+    const authenticated = await request.post(`${api}/auth/login`, { data: { email: ownerEmail, password: finalOwnerPassword, surface: 'admin' } });
+    expect(authenticated.ok()).toBe(true);
+    authorization = `Bearer ${(await authenticated.json()).data.access_token}`;
+
+    // The provider comes first: the consumer declares its dependency on it.
+    for (const plugin of [packages.provider, packages.consumer]) {
+      const file = { name: `${plugin.slug}.zip`, mimeType: 'application/zip', buffer: plugin.bytes };
+      const preview = await request.post(`${api}/extensions/plugin/preview`, { headers: { authorization }, multipart: { file } });
+      expect(preview.ok(), await preview.text()).toBe(true);
+      const plan = (await preview.json()).data;
+      const upload = await request.post(`${api}/extensions/plugin/install`, { headers: { authorization }, multipart: {
+        previewToken: plan.previewToken,
+        ...(plan.migrationPlan.changesDatabase ? { confirmMigrations: 'true' } : {}),
+        confirmationSlug: plugin.slug,
+        file,
+      } });
+      expect(upload.status(), await upload.text()).toBe(202);
+      const operationId = (await upload.json()).data.operationId;
+      let state, cursor = '';
+      do {
+        const response = await request.get(`${api}/extensions/plugin/operations/${operationId}?wait=true${cursor}`, { headers: { authorization } });
+        expect(response.ok()).toBe(true); state = (await response.json()).data;
+        cursor = `&phase=${encodeURIComponent(state.phase)}&committedPrefix=${state.committedPrefix}`;
+      } while (!state.terminal);
+      expect(state.phase, `The install of ${plugin.slug} failed: ${state.errorCode ?? 'unknown'}`).toBe('SUCCESS');
+      installedSlugs.push(plugin.slug);
+      await page.goto(`/en/plugins/${plugin.slug}`);
+      await page.getByRole('button', { name: 'Enable', exact: true }).click();
+      await expect(page.getByRole('button', { name: 'Disable', exact: true })).toBeVisible();
+    }
+
+    for (const [locale, title] of [['en', 'Studio'], ['zh-Hans', '工作室'], ['zh-Hant', '工作台']] as const) {
+      await page.goto(`${origin}/${locale}/apps/page-studio/studio`);
+      const frame = page.getByRole('document', { name: title, exact: true }).contentFrame();
+      await expect(frame.getByRole('button', { name: 'Reload the page', exact: true })).toBeVisible();
+      await expect(frame.getByText('This page is served by the plugin inside the Core page shell.', { exact: true })).toBeVisible();
+      await expect(frame.getByText(`/studio - ${locale}`, { exact: true })).toBeVisible();
+    }
+  } finally {
+    for (const slug of installedSlugs.reverse()) {
+      const uninstall = await request.delete(`${api}/extensions/plugin/${slug}`, { headers: { authorization } });
+      expect.soft(uninstall.ok(), await uninstall.text()).toBe(true);
+      const purge = await request.delete(`${api}/extensions/plugin/${slug}/purge`, { headers: { authorization }, data: { confirmationSlug: slug } });
+      expect.soft(purge.ok(), await purge.text()).toBe(true);
+    }
   }
 });

@@ -40,7 +40,7 @@ export interface AcceptancePackage {
 }
 
 const sha256 = (content: Buffer | string): string => createHash('sha256').update(content).digest('hex');
-const repositoryRoot = path.resolve('../..');
+const repositoryRoot = path.resolve(__dirname, '../../../..');
 const sdkRequire = createRequire(path.join(repositoryRoot, 'packages/plugin-sdk/package.json'));
 const sdkCreatePath = path.join(repositoryRoot, 'packages/plugin-sdk/dist/internal/plugin-sdk/src/create.js');
 
