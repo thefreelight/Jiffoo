@@ -13,8 +13,14 @@ type PromoEntry = {
 type PromoState = 'loading' | 'idle' | 'ready';
 
 const PROMO_LOCALE: Record<string, string> = {
-  en: 'en', hans: 'zh-Hans', hant: 'zh-Hant', ja: 'ja', ko: 'ko', fr: 'fr', de: 'de',
+  en: 'en', 'zh-Hans': 'zh-Hans', 'zh-Hant': 'zh-Hant', 'zh-HK': 'zh-Hant',
+  hans: 'zh-Hans', hant: 'zh-Hant', ja: 'ja', ko: 'ko', fr: 'fr', de: 'de',
 };
+
+function promoApiLocale(locale?: string): string {
+  if (!locale) return 'en';
+  return PROMO_LOCALE[locale] ?? (locale.startsWith('zh-Hant') || locale.startsWith('zh-HK') ? 'zh-Hant' : locale.startsWith('zh') ? 'zh-Hans' : locale.split('-')[0] ?? 'en');
+}
 
 function useCountdown(endsAt: string | null): string | null {
   const [label, setLabel] = React.useState<string | null>(null);
@@ -53,7 +59,7 @@ export const PromoBanner = React.memo(function PromoBanner({ locale, config }: {
 
   React.useEffect(() => {
     let cancelled = false;
-    const apiLocale = PROMO_LOCALE[locale ?? 'en'] ?? 'en';
+    const apiLocale = promoApiLocale(locale);
     fetch(`${site.apiBaseUrl}/api/v1/promotions/active?locale=${encodeURIComponent(apiLocale)}`)
       .then((response) => (response.ok ? response.json() : null))
       .then((payload: { data?: { items?: PromoEntry[] } } | null) => {
