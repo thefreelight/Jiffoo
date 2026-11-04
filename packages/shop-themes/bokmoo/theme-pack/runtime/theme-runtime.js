@@ -15219,6 +15219,9 @@
   // src/components/PromoBanner.tsx
   var PROMO_LOCALE = {
     en: "en",
+    "zh-Hans": "zh-Hans",
+    "zh-Hant": "zh-Hant",
+    "zh-HK": "zh-Hant",
     hans: "zh-Hans",
     hant: "zh-Hant",
     ja: "ja",
@@ -15226,6 +15229,10 @@
     fr: "fr",
     de: "de"
   };
+  function promoApiLocale(locale) {
+    if (!locale) return "en";
+    return PROMO_LOCALE[locale] ?? (locale.startsWith("zh-Hant") || locale.startsWith("zh-HK") ? "zh-Hant" : locale.startsWith("zh") ? "zh-Hans" : locale.split("-")[0] ?? "en");
+  }
   function useCountdown(endsAt) {
     const [label, setLabel] = react_default.useState(null);
     react_default.useEffect(() => {
@@ -15256,7 +15263,7 @@
     const countdown = useCountdown(promo?.endsAt ?? null);
     react_default.useEffect(() => {
       let cancelled = false;
-      const apiLocale = PROMO_LOCALE[locale ?? "en"] ?? "en";
+      const apiLocale = promoApiLocale(locale);
       fetch(`${site.apiBaseUrl}/api/v1/promotions/active?locale=${encodeURIComponent(apiLocale)}`).then((response) => response.ok ? response.json() : null).then((payload) => {
         if (cancelled) return;
         const entry = payload?.data?.items?.[0] ?? null;
@@ -17648,7 +17655,7 @@ body[data-theme='bokmoo'] ::selection {
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.43",
+      version: "1.1.44",
       target: "shop"
     }
   };
