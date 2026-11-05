@@ -63,7 +63,7 @@ export function SelectionBanner({ all, count, total, copy, selectAll, onlyPage }
 
 export function BulkBar({ count, copy, children, clear, allMatching = false }: { count: number; copy: ListCopy; children: ReactNode; clear: () => void; allMatching?: boolean }) {
   if (!count) return null;
-  return <div role="region" aria-label={copy('bulkActions')} className="sticky bottom-4 z-20 mt-auto flex justify-center px-4 pb-4"><div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-ground p-2 pl-4 shadow-xl"><span className="mr-2 font-medium">{copy(allMatching ? 'selectedAll' : 'selected', { count })}</span>{children}<Button size="sm" variant="ghost" onClick={clear}>{copy('cancelSelection')}</Button></div></div>;
+  return <div role="region" aria-label={copy('bulkActions')} className="flex justify-center px-4 pt-3"><div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-ground p-2 pl-4 shadow-xl"><span className="mr-2 font-medium">{copy(allMatching ? 'selectedAll' : 'selected', { count })}</span>{children}<Button size="sm" variant="ghost" onClick={clear}>{copy('cancelSelection')}</Button></div></div>;
 }
 
 export function paginationPages(page: number, pages: number): Array<number | string> {
@@ -71,13 +71,14 @@ export function paginationPages(page: number, pages: number): Array<number | str
   const values = [...new Set([1, pages, page - 1, page, page + 1, ...edge, ...(pages <= 7 ? Array.from({ length: pages }, (_, i) => i + 1) : [])])].filter(value => value > 0 && value <= pages).sort((a, b) => a - b);
   return values.flatMap((value, index) => index && value - values[index - 1] > 1 ? ['gap-' + value, value] : [value]);
 }
-export function PaginationBar({ page, pageSize, total, copy, onPage, onPageSize }: { page: number; pageSize: number; total: number; copy: ListCopy; onPage: (page: number) => void; onPageSize: (size: number) => void }) {
+export function PaginationBar({ page, pageSize, total, copy, onPage, onPageSize, children }: { page: number; pageSize: number; total: number; copy: ListCopy; onPage: (page: number) => void; onPageSize: (size: number) => void; children?: ReactNode }) {
   const pages = Math.max(1, Math.ceil(total / pageSize));
-  return <nav aria-label={copy('pagination')} className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
+  return <div className="sticky bottom-0 z-20 border-t border-border bg-ground py-3 [overflow-anchor:none]">
+    <nav aria-label={copy('pagination')} className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
     <div className="flex flex-wrap items-center gap-3">
       <span className="tabular-nums">{copy('range', { start: total ? (page - 1) * pageSize + 1 : 0, end: Math.min(page * pageSize, total), total })}</span>
       <label className="flex items-center gap-2">{copy('perPageBefore')}
-        <ListFilter compact label={copy('perPage')} value={String(pageSize)} onChange={value => onPageSize(Number(value))} options={[20, 50, 100].map(size => ({ value: String(size), label: String(size) }))} />
+        <select aria-label={copy('perPage')} value={pageSize} onChange={event => onPageSize(Number(event.target.value))} className="h-7 rounded-md border border-border bg-raised px-2 font-mono text-xs">{[20, 50, 100].map(size => <option key={size} value={size}>{size}</option>)}</select>
         {copy('perPageAfter')}
       </label>
     </div>
@@ -86,7 +87,9 @@ export function PaginationBar({ page, pageSize, total, copy, onPage, onPageSize 
       {paginationPages(page, pages).map(value => typeof value === 'string' ? <span key={value} className="px-2">…</span> : <Button key={value} size="sm" variant={page === value ? 'default' : 'outline'} aria-label={copy('pageLabel', { page: value })} aria-current={page === value ? 'page' : undefined} className={cn('h-[30px] min-w-[30px] px-2 font-mono', page !== value && 'bg-ground')} onClick={() => onPage(value)}>{value}</Button>)}
       <Button size="icon" variant="outline" className="size-[30px] bg-ground" aria-label={copy('next')} disabled={page >= pages} onClick={() => onPage(page + 1)}><ChevronRight aria-hidden="true" className="size-3" /></Button>
     </div>
-  </nav>;
+    </nav>
+    {children}
+  </div>;
 }
 
 export function ListEmpty({ filtered, copy, clear }: { filtered: boolean; copy: ListCopy; clear: () => void }) {

@@ -1,4 +1,5 @@
-import { isApiErrorCode, type ApiErrorCode } from 'shared';
+import { isApiErrorCode } from 'shared/error-codes';
+import type { ApiErrorCode } from 'shared';
 import { isAdminApiError } from './api';
 
 type TranslateFn = ((key: string) => string) | undefined;

@@ -1,7 +1,7 @@
 'use client';
 import { createContext, useContext, useState } from 'react';
 import { useLocale } from 'shared/src/i18n/react';
-import { formatStoreDate } from 'shared';
+import { formatStoreDate } from 'shared/store-time';
 
 const StoreTime = createContext({ timezone: 'UTC', now: '1970-01-01T00:00:00Z', setTimezone: (_value: string) => {} });
 export function StoreTimeProvider({ timezone, now, children }: { timezone?: string | null; now: string; children: React.ReactNode }) {

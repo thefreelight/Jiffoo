@@ -14,7 +14,7 @@ export interface ProductListFilter {
 export interface ProductSort { sortBy?: 'name' | 'createdAt' | 'updatedAt' | 'price' | 'stock'; sortOrder?: 'asc' | 'desc' }
 export type ProductSelection = { mode: 'ids'; ids: string[] } | { mode: 'filter'; filter: ProductListFilter; excludeIds?: string[] };
 
-function productQuery(filter: ProductListFilter, selection?: ProductSelection) {
+function productQuery(filter: ProductListFilter, selection?: ProductSelection, aggregateSort = false) {
   const conditions: Prisma.Sql[] = [Prisma.sql`TRUE`];
   const search = filter.search?.trim();
   if (search) {
@@ -24,30 +24,33 @@ function productQuery(filter: ProductListFilter, selection?: ProductSelection) {
   }
   if (filter.categoryId) conditions.push(filter.categoryId === 'none' ? Prisma.sql`p."categoryId" IS NULL` : Prisma.sql`p."categoryId" = ${filter.categoryId}`);
   if (filter.productType) conditions.push(Prisma.sql`p."productType" = ${filter.productType}`);
-  const active = Prisma.sql`(p."isActive" AND a.active_count > 0)`;
+  const active = Prisma.sql`(p."isActive" AND EXISTS (
+    SELECT 1 FROM public.product_variants av WHERE av."productId" = p.id AND av."isActive"))`;
   if (filter.status === 'active') conditions.push(active);
-  if (filter.status === 'inactive') conditions.push(Prisma.sql`NOT ${active}`);
-  if (filter.status === 'outOfStock') conditions.push(Prisma.sql`${active} AND a.active_stock = 0`);
+  if (filter.status === 'inactive') conditions.push(Prisma.sql`NOT (p."isActive" AND COALESCE(a.has_active, false))`);
+  if (filter.status === 'outOfStock') conditions.push(Prisma.sql`${active} AND COALESCE(a.active_stock, 0) = 0`);
   if (filter.minPrice !== undefined || filter.maxPrice !== undefined) conditions.push(Prisma.sql`EXISTS (
     SELECT 1 FROM public.product_variants pv WHERE pv."productId" = p.id AND pv."isActive"
       ${filter.minPrice !== undefined ? Prisma.sql`AND pv."salePrice" >= ${filter.minPrice}` : Prisma.empty}
       ${filter.maxPrice !== undefined ? Prisma.sql`AND pv."salePrice" <= ${filter.maxPrice}` : Prisma.empty})`);
-  if (filter.inStock !== undefined) conditions.push(filter.inStock ? Prisma.sql`a.active_stock > 0` : Prisma.sql`a.active_stock = 0`);
+  if (filter.inStock !== undefined) conditions.push(filter.inStock ? Prisma.sql`COALESCE(a.active_stock, 0) > 0` : Prisma.sql`COALESCE(a.active_stock, 0) = 0`);
   if (selection?.mode === 'ids') conditions.push(selection.ids.length ? Prisma.sql`p.id IN (${Prisma.join(selection.ids)})` : Prisma.sql`FALSE`);
   if (selection?.mode === 'filter' && selection.excludeIds?.length) conditions.push(Prisma.sql`p.id NOT IN (${Prisma.join(selection.excludeIds)})`);
-  return Prisma.sql`FROM public.products p LEFT JOIN LATERAL (
-    SELECT COALESCE(MIN(v."salePrice"), 0) AS price, COALESCE(SUM(v.stock), 0) AS stock,
-      COUNT(*) FILTER (WHERE v."isActive") AS active_count,
-      COALESCE(SUM(v.stock) FILTER (WHERE v."isActive"), 0) AS active_stock
-    FROM public.product_variants v WHERE v."productId" = p.id
-  ) a ON TRUE WHERE ${Prisma.join(conditions, ' AND ')}`;
+  const needsAggregates = aggregateSort || filter.status === 'inactive' || filter.status === 'outOfStock' || filter.inStock !== undefined;
+  const aggregates = needsAggregates ? Prisma.sql`LEFT JOIN (
+    SELECT v."productId", MIN(v."salePrice") AS price, SUM(v.stock) AS stock,
+      COALESCE(SUM(v.stock) FILTER (WHERE v."isActive"), 0) AS active_stock,
+      BOOL_OR(v."isActive") AS has_active
+    FROM public.product_variants v GROUP BY v."productId"
+  ) a ON a."productId" = p.id` : Prisma.empty;
+  return Prisma.sql`FROM public.products p ${aggregates} WHERE ${Prisma.join(conditions, ' AND ')}`;
 }
 
 export async function productIds(filter: ProductListFilter, sort: ProductSort, limit: number, offset = 0, selection?: ProductSelection) {
-  const columns = { name: 'p.name', createdAt: 'p."createdAt"', updatedAt: 'p."updatedAt"', price: 'a.price', stock: 'a.stock' };
+  const columns = { name: 'p.name', createdAt: 'p."createdAt"', updatedAt: 'p."updatedAt"', price: 'COALESCE(a.price, 0)', stock: 'COALESCE(a.stock, 0)' };
   const column = Prisma.raw(columns[sort.sortBy ?? 'createdAt']);
   const direction = Prisma.raw(sort.sortOrder === 'asc' ? 'ASC' : 'DESC');
-  const rows = await prisma.$queryRaw<{ id: string }[]>(Prisma.sql`SELECT p.id ${productQuery(filter, selection)}
+  const rows = await prisma.$queryRaw<{ id: string }[]>(Prisma.sql`SELECT p.id ${productQuery(filter, selection, sort.sortBy === 'price' || sort.sortBy === 'stock')}
     ORDER BY ${column} ${direction}, p.id ${direction} LIMIT ${limit} OFFSET ${offset}`);
   return rows.map(row => row.id);
 }
@@ -57,14 +60,15 @@ export async function productCount(filter: ProductListFilter, selection?: Produc
 }
 
 export async function productNeighbors(id: string, filter: ProductListFilter & ProductSort) {
-  const columns = { name: 'p.name', createdAt: 'p."createdAt"', updatedAt: 'p."updatedAt"', price: 'a.price', stock: 'a.stock' };
+  const columns = { name: 'p.name', createdAt: 'p."createdAt"', updatedAt: 'p."updatedAt"', price: 'COALESCE(a.price, 0)', stock: 'COALESCE(a.stock, 0)' };
   const column = Prisma.raw(columns[filter.sortBy ?? 'createdAt']);
   const ascending = filter.sortOrder === 'asc';
   const before = Prisma.raw(ascending ? '<' : '>'), after = Prisma.raw(ascending ? '>' : '<');
   const forward = Prisma.raw(ascending ? 'ASC' : 'DESC'), reverse = Prisma.raw(ascending ? 'DESC' : 'ASC');
+  const aggregateSort = filter.sortBy === 'price' || filter.sortBy === 'stock';
   const [row] = await prisma.$queryRaw<{ position: bigint | null; total: bigint; previousId: string | null; nextId: string | null }[]>(Prisma.sql`
-    WITH matching AS (SELECT p.id, ${column} AS value ${productQuery(filter)}),
-    anchor AS (SELECT p.id, ${column} AS value ${productQuery({})} AND p.id = ${id})
+    WITH matching AS (SELECT p.id, ${column} AS value ${productQuery(filter, undefined, aggregateSort)}),
+    anchor AS (SELECT p.id, ${column} AS value ${productQuery({}, undefined, aggregateSort)} AND p.id = ${id})
     SELECT CASE WHEN EXISTS (SELECT 1 FROM matching m WHERE m.id = anchor.id)
       THEN (SELECT COUNT(*) + 1 FROM matching m WHERE (m.value, m.id) ${before} (anchor.value, anchor.id)) ELSE NULL END AS position,
       (SELECT COUNT(*) FROM matching) AS total,

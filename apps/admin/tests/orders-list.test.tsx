@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act } from 'react';
+import { act, useMemo } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import OrdersPage from '../app/[locale]/(themed)/orders/page';
@@ -23,10 +23,12 @@ vi.mock('../lib/api', async () => {
 });
 vi.mock('../lib/hooks/use-api', () => ({ useOrders: (params: any) => {
   state.params = params;
+  return useMemo(() => {
   if (!state.data.data) return state.data;
   const data = state.data.data;
   const secondPage = data.data.map((order: any) => ({ ...order, id: order.id + '-page-2', orderNumber: order.orderNumber + '-P2' }));
   return { ...state.data, data: { ...data, data: params.limit >= 50 ? [...data.data, ...secondPage] : params.page === 2 ? secondPage : data.data, pagination: { ...data.pagination, page: params.page, limit: params.limit } } };
+  }, [state.data, params.limit, params.page]);
 }, useOrderStats: () => state.stats }));
 let root: Root | undefined;
 let setStoreTimezone: (timezone: string) => void;
@@ -50,7 +52,12 @@ async function chooseFilter(label: string, text: string) {
   const option = options.find(option => option.textContent === text); if (!option) throw new Error('Missing option ' + text);
   await act(async () => option.click()); return names;
 }
+async function choosePageSize(value: string) {
+  const select = document.querySelector<HTMLSelectElement>('select[aria-label="' + en.orders.list.perPage + '"]')!;
+  await act(async () => { select.value = value; select.dispatchEvent(new Event('change', { bubbles: true })); });
+}
 beforeEach(() => {
+  vi.spyOn(window.history, 'replaceState').mockImplementation((data, unused, url) => { state.replace(data, unused, url); state.url = String(url).split('?')[1] ?? ''; });
   state.locale = 'en'; state.url = ''; state.replace.mockClear();
   state.data = { data: { data: [{ id: 'order-1', orderNumber: 'JF-20261012-0001', status: 'PENDING', paymentStatus: 'PENDING', requiresPaymentReview: true, itemQuantitySum: 5, itemsCount: 2, totalAmount: 50, currency: 'USD', createdAt: '2026-10-12T00:15:00Z', customer: { email: 'buyer@example.test' } }], pagination: { page: 1, limit: 20, total: 25, totalPages: 2 } } };
   state.stats = { data: { paymentReviewCount: 1, metrics: { totalOrders: 25 }, statusCounts: { PENDING: 3, PROCESSING: 4, SHIPPED: 5, DELIVERED: 6, CANCELLED: 2, REFUNDED: 5 } } };
@@ -62,8 +69,9 @@ it('shows global status counts, the quantity sum, an absolute store-time header 
   expect(container.querySelector('thead')?.textContent).toContain('Placed at (Asia/Shanghai)');
   expect(container.querySelector('tbody')?.textContent).toContain('5 items');
   expect(container.querySelector('tbody')?.textContent).toContain('2026-10-12 08:15');
+  await act(async () => { vi.stubGlobal('innerWidth', 768); window.dispatchEvent(new Event('resize')); });
   const card = container.querySelector('article')!;
-  expect(card.parentElement?.className).toContain('min-[769px]:hidden');
+  expect(container.querySelector('tbody')).toBeNull();
   expect(card.textContent).toContain('5 items'); expect(card.textContent).toContain('buyer@example.test'); expect(card.textContent).toContain('Requires review');
   expect(card.querySelector('a')?.getAttribute('aria-label')).toBe('View order JF-20261012-0001');
   expect(card.querySelector('a')?.getAttribute('href')).toBe('/en/orders/order-1');
@@ -119,9 +127,9 @@ it.each([
 it('replaces the URL while preserving other query parameters', async () => {
   state.url = 'source=overview'; await mount();
   await act(async () => button('Processing').click());
-  expect(state.replace).toHaveBeenLastCalledWith('/en/orders?source=overview&status=PROCESSING', { scroll: false });
+  expect(state.replace).toHaveBeenLastCalledWith(null, '', '/en/orders?source=overview&status=PROCESSING');
   await act(async () => button('Review payments').click());
-  expect(state.replace).toHaveBeenLastCalledWith('/en/orders?source=overview&payment=review', { scroll: false });
+  expect(state.replace).toHaveBeenLastCalledWith(null, '', '/en/orders?source=overview&payment=review');
 });
 it('shows the exact customer filter as a removable email chip', async () => {
   state.url = 'customerId=customer-1&customerEmail=buyer%40example.test';
@@ -129,7 +137,7 @@ it('shows the exact customer filter as a removable email chip', async () => {
   const remove = document.querySelector<HTMLButtonElement>('button[aria-label="Remove filter: Customer buyer@example.test"]')!;
   expect(remove).toBeTruthy(); await act(async () => remove.click());
   expect(state.params.customerId).toBeUndefined();
-  expect(state.replace).toHaveBeenLastCalledWith('/en/orders', { scroll: false });
+  expect(state.replace).toHaveBeenLastCalledWith(null, '', '/en/orders');
 });
 it('preserves matching-order exclusions through pagination, sorting and page size in the export request', async () => {
   const exportOrders = vi.spyOn(ordersApi, 'export').mockRejectedValue(new Error('Unavailable'));
@@ -146,7 +154,7 @@ it('preserves matching-order exclusions through pagination, sorting and page siz
   await act(async () => node.querySelector<HTMLButtonElement>('thead th[aria-sort="none"] button')!.click());
   expect(state.params).toMatchObject({ sortBy: 'totalAmount', sortOrder: 'asc', page: 1 });
   expect(node.querySelector<HTMLInputElement>('input[aria-label="Select order JF-20261012-0001"]')!.checked).toBe(false);
-  await chooseFilter(en.orders.list.perPage, '50');
+  await choosePageSize('50');
   expect(state.params.limit).toBe(50); expect(node.textContent).toContain('All 23 orders selected');
   expect(node.querySelector<HTMLInputElement>('input[aria-label="Select order JF-20261012-0001-P2"]')!.checked).toBe(false);
   await act(async () => button(en.orders.list.exportSelected).click());
@@ -168,7 +176,7 @@ it('preserves explicit order IDs through pagination, sorting, page size and a di
   expect(node.querySelector<HTMLInputElement>('input[aria-label="Select order JF-20261012-0001"]')!.checked).toBe(true);
   await act(async () => node.querySelector<HTMLButtonElement>('thead th[aria-sort="none"] button')!.click());
   expect(state.params).toMatchObject({ sortBy: 'totalAmount', sortOrder: 'asc', page: 1, customerId: 'customer-1' });
-  await chooseFilter(en.orders.list.perPage, '50');
+  await choosePageSize('50');
   expect(state.params).toMatchObject({ page: 1, limit: 50, customerId: 'customer-1' });
   state.url = 'customerId=customer-1&customerEmail=second%40example.test&sortBy=totalAmount&sortOrder=asc&pageSize=50';
   await act(async () => root!.render(<Page />));
@@ -218,4 +226,58 @@ it('keeps typing immediate and resets pagination only when the 300ms debounce co
   expect(state.params.search).toBe('');
   await act(async () => vi.advanceTimersByTime(1));
   expect(state.params).toMatchObject({ search: 'buyer', page: 1 });
+});
+
+it('mounts only the active viewport layout across the breakpoint', async () => {
+  const originalWidth = window.innerWidth;
+  try {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 769 });
+    const container = await mount();
+    expect(container.querySelectorAll('tbody tr').length).toBeGreaterThan(0);
+    expect(container.querySelectorAll('article')).toHaveLength(0);
+    await act(async () => {
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: 768 });
+      window.dispatchEvent(new Event('resize'));
+    });
+    expect(container.querySelectorAll('tbody tr')).toHaveLength(0);
+    expect(container.querySelectorAll('article').length).toBeGreaterThan(0);
+    await act(async () => {
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: 769 });
+      window.dispatchEvent(new Event('resize'));
+    });
+    expect(container.querySelectorAll('article')).toHaveLength(0);
+    expect(container.querySelectorAll('tbody tr').length).toBeGreaterThan(0);
+  } finally {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalWidth });
+  }
+});
+
+it('keeps monetary projections stable on selection and refreshes data and timezone projections', async () => {
+  const utils = await import('../lib/utils');
+  const formatter = vi.spyOn(utils, 'formatCurrency');
+  const container = await mount();
+  const calls = formatter.mock.calls.length;
+  expect(calls).toBeGreaterThan(0);
+  const checkbox = container.querySelector<HTMLInputElement>('input[aria-label="Select order JF-20261012-0001"]')!;
+  await act(async () => checkbox.click());
+  expect(formatter).toHaveBeenCalledTimes(calls);
+  await act(async () => setStoreTimezone('UTC'));
+  expect(container.querySelector('tbody')?.textContent).toContain('2026-10-12 00:15');
+  state.data = { ...state.data, data: { ...state.data.data, data: state.data.data.data.map((row: any) => ({ ...row, totalAmount: 75 })) } };
+  await act(async () => root!.render(<Page />));
+  expect(container.querySelector('tbody')?.textContent).toContain('$75.00');
+});
+
+it('does not format hidden monetary columns on desktop or selection changes', async () => {
+  const utils = await import('../lib/utils');
+  const formatter = vi.spyOn(utils, 'formatCurrency');
+  const container = await mount();
+  await act(async () => button('Columns').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })));
+  const amount = Array.from(document.querySelectorAll<HTMLElement>('[role="menuitemcheckbox"]')).find(item => item.textContent?.trim() === 'Amount');
+  expect(amount).toBeDefined();
+  await act(async () => amount!.click());
+  const calls = formatter.mock.calls.length;
+  expect(container.querySelector('tbody')?.textContent).not.toContain('$50.00');
+  await act(async () => container.querySelector<HTMLInputElement>('input[aria-label="Select order JF-20261012-0001"]')!.click());
+  expect(formatter).toHaveBeenCalledTimes(calls);
 });

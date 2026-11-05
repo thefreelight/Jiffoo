@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { formatStoreTimestamp, storeLocalToUtc } from 'shared';
+import { usePathname, useSearchParams } from 'next/navigation';
+import { formatStoreTimestamp, storeLocalToUtc } from 'shared/store-time';
 
 export type ListState = Record<string, string>;
 export interface ListField { default: string; valid: (value: string) => boolean }
@@ -25,7 +25,7 @@ export const listChoice = (values: string[], fallback = values[0]): ListField =>
 export const validListDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value;
 
 export function useListState(fields: ListFields) {
-  const router = useRouter(), pathname = usePathname(), params = useSearchParams();
+  const pathname = usePathname(), params = useSearchParams();
   const raw = params.toString();
   const [state, setState] = useState(() => readListState(raw, fields));
   const current = useRef(state), query = useRef(raw);
@@ -34,7 +34,7 @@ export function useListState(fields: ListFields) {
     const next = { ...current.current, ...patch };
     const serialized = writeListState(query.current, next, fields);
     current.current = next; query.current = serialized; setState(next);
-    router.replace(pathname + (serialized ? '?' + serialized : ''), { scroll: false });
+    window.history.replaceState(null, '', pathname + (serialized ? '?' + serialized : ''));
   };
   const serialized = writeListState(raw, state, fields);
   return { state, update, url: pathname + (serialized ? '?' + serialized : '') };

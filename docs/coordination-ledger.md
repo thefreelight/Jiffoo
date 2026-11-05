@@ -23,6 +23,131 @@ is a Git-conflict-avoidance measure only; it is not a seniority relation.
 
 ## 0. The state of the line
 
+### Core Admin presentation follow-up (2026-11-04, locally verified)
+
+This result supersedes the unresolved presentation inference in the prior scale baseline below;
+the original raw evidence remains intact. Background presentation and immediate DOM inspection
+distorted the earlier Event Timing observation: a passive four-second observation window even
+produced a 5112 ms candidate for a setup key. The 2440 ms record therefore cannot be used as a
+causal Core latency measurement or as the denominator of a claimed code improvement.
+
+Controlled production builds use the same webpack builder, API on 3111 and synthetic dataset.
+Target-scoped continuous screencast frames keep background presentation observable without
+bringing the window forward; event collection precedes DOM inspection. Five control keyboard
+selection samples measured 56-160 ms (median 72 ms; no stable P95 claimed). Twenty final trusted
+keyboard selections measured 16-40 ms (P50 32 ms, P95 40 ms). The first result DOM commit took
+368.2 ms and its captured result frame took 423.335 ms; later result DOM commits took 41-109.8 ms.
+These are local measured workflows, not field Core Web Vitals or all-interaction certification.
+
+The final changes use a native page-size select, exclude the footer from scroll anchoring,
+compose pagination and bulk actions inside one sticky footer, update client-only list URLs with
+Next's supported native history integration, mount one product viewport layout, and defer heavy
+product results while hiding stale actions and memoizing display projections. Unknown query
+parameters, history, detail identity, selection, narrow layouts and true empty data were checked.
+CI-only browser E2E consumers were adapted to the native control but were not run locally.
+
+The final independent input set `86fae488d57a08879b331723d5c324e71d21b859dd84e87559fa42c8fa56b69c`
+passed the approved four-shard quick verification: 232 API files / 2956 tests, 67 Admin files /
+720 tests and 44 Shop files / 308 tests; coverage and cleanup PASS. Source post-check found no
+changes; normal generated outputs are separately recorded. The exact summary and follow-up
+report are `final-presentation-summary.txt` and `presentation-fix-20261104/retest-report.html`
+under this task's external artifact directory. No commit, push or external deployment occurred.
+Only hidden local API 3111 and final Admin 3106 remain; task comparison/empty services and gate
+containers were removed, preserving acceptance data. Port 3002 had no listener at final check;
+this task did not stop or restart it and did not connect to the Imager acceptance database.
+
+### Core Admin measured remediation (2026-11-05, locally verified)
+
+Commit authorization update: the user approved the complete Core Admin performance batch and
+its performance prerequisites. Unrelated plugin, security and SDK changes are excluded.
+
+The measured follow-up is complete against baseline `a0fe077465d5439a6ea7e6444060680fbedf4fa3`.
+Seven task-owned code/test inputs cover the customer and order pages, their list tests and the
+customer query test, plus product-management `list-query.ts` and the product list/bulk/export
+contract suite. Other sessions' edits remain outside this delivery. The seven-file workspace,
+gate and runtime hashes agree: `4094ce51033ee47e35b7bbc288c2820fefb1b7f65f371072a970f9fcf3c4f610`.
+
+Customers and Orders mount one viewport layout at their original 1100/769 breakpoints, memoize
+display projections and hide deferred old results. The inactive product query uses the existing
+variant aggregation with `BOOL_OR`, preserving inactive membership including absent variants;
+there is no schema or HTTP contract change. Workers implemented the changes and an independent
+reviewer checked the source, meaningful regression assertions and measurement interpretation.
+
+The final lightweight Browser Use cohort contains 68 samples. The ready customer 20-to-100
+comparison is five observations per arm: median 240 ms before and 24 ms after, with ranges
+224-264 and 24-32 ms. Customer select-100 medians are 120/56 ms (three per arm); Orders 72/48 ms.
+Identical inactive page-3 stock and price requests measured 1268/275.8 and 1257.2/277.6 ms
+(one observation per arm, not a cache-miss or P95 claim). The 138 earlier samples whose observer
+read innerText remain exploratory; the initial loading control and the 152 ms exploratory
+outlier are preserved. No field CWV, all-Admin, zero-long-task or long-memory certification is made.
+
+The final approved four-shard gate exited 0: API 232 files/2957 tests, Admin 67/726 and Shop
+44/308, with coverage, cleanup, type check, lint, reset and schema drift checks passing. Earlier
+missing fixture/build inputs and the owned preview's Windows Prisma DLL lock were recorded and
+resolved before certification. Main acceptance data was not reset: final read-only batch counts
+and all 48 migration checksums match; the main schema diff is empty. No source changed after
+certification. CI, automatic browser E2E and a serial full run were not executed; no commit, push
+or external deployment occurred.
+
+The self-contained report, CSV, raw observations, exact task patch and process/data evidence are
+under `C:/Users/11948/.codex/visualizations/2026/11/05/01a1aa52-55ee-79d3-9bea-72e1aa2f4992/`,
+with entrypoint `remediation-final-report.html`. The original protected 3106/3111 services remain;
+the reviewed local preview uses 127.0.0.2:3109, API3115 and its own Redis56392. The owned gate
+PostgreSQL container was removed. Ports 3001/3002 were not operated; 3002 was observed listening
+at the final check, without a health claim.
+
+### Core Admin scale acceptance batch (2026-11-04, prior local baseline)
+
+Baseline: `a0fe077465d5439a6ea7e6444060680fbedf4fa3`; preserve the concurrent consumer-plugin batch.
+Acceptance uses local ports 3101/3102 and `jiffoo_core_test`, synthetic batch
+`coreadmin-20261104-v1`. Never connect to `imager_jiffoo_core` or operate ports 3001/3002.
+The task-owned gate PostgreSQL uses port 55439 and the same exact test database name;
+Redis uses port 56389, logical database 15. Gate resets must never target acceptance data.
+
+Registered contract addition: `GET /admin/products/categories` accepts optional `search`
+(maximum 200 characters), trimmed and matched case-insensitively against name or slug;
+the list and total use the same predicate. Existing pagination remains authoritative.
+Workers replace unbounded category collection with server-side search/pagination and remove
+actionable stale user/staff placeholder rows. Product active/inactive predicates use EXISTS
+without per-product aggregates unless stock filters or aggregate sorting require them.
+
+Gate selection: `apps/api/tests/routes/admin-products.test.ts` and
+`apps/api/tests/routes/product-list-bulk-export.test.ts`, plus affected Admin suites, widened
+by the approved planner. These cover category search contracts, availability, sorting,
+neighbors and filter-based bulk selection. No gate or browser completion is certified here.
+Raw before/after performance evidence and browser coverage belong in the task's external
+visualization directory; no commit, push, deployment or plugin modification is authorized.
+
+Acceptance evidence: uncached active-product search used 20 independent case-sensitive cache
+keys with the same case-insensitive SQL meaning. The original API took 995-1389 ms; the final
+source runtime, without the task's gate load, took 260-413 ms (P50 292 ms, P95 351 ms).
+Different dist/tsx runtimes and uncontrolled server caches limit the comparison. Query plans
+separately establish the per-product aggregate cost and the grouped-aggregate improvement.
+Browser verification confirmed stale actionable customer rows, unbounded category collection,
+notification detail identity loss on refresh, an oversized sticky product heading, and a loading
+pagination layout shift. The first four fixes and the query optimization passed independent
+review and the complete local shard gate (232 API files / 2956 tests, 67 Admin files / 715 tests,
+44 Shop files / 308 tests). Seven subsequent loading-height CSS changes passed Admin diagnostic
+verification and a production build; a new certifying run covers that final input separately.
+Order hard-load CLS changed from 0.4368 to approximately 0.00081 in the measured local browser.
+
+At the prior decision point, overall performance acceptance was not certified: the session
+contained a 2440 ms Event Timing candidate dominated by presentation delay. A scoped trace did not
+reproduce it (92.199 ms maximum in that controlled trace); attribution remains unresolved.
+The USER-role Admin denial, delayed old-response isolation and real NOT_FOUND bulk dry-run
+were exercised. A mixed-result browser write, notification resend and long-duration memory
+soak were not certified. No immutable event identity was changed to manufacture a failure.
+
+The final CSS input `df1527dfe5abe96ab25951395550cb955902edbcc2c2d829559ee4545a4a6443`
+subsequently passed `pnpm verify:quick --shards=4`: all 232 API files / 2956 tests,
+67 Admin files / 715 tests and 44 Shop files / 308 tests passed, with coverage and cleanup PASS.
+The exact summary is `final-css-certifying-summary.txt` in the external task artifact directory.
+An independently installed, otherwise empty test instance verified the default empty product,
+order, customer, category and notification pages; its required owner and installation audit
+records were not represented as empty. That instance and all task gate containers were removed.
+Only the hidden local final API on 3111 and production-build Admin on 3106 remain; the main
+synthetic acceptance data is retained. Browser E2E, CI, commits, pushes and deployment were not run.
+
 **Measured on:** 2026-10-31, against the tree of the branch of record. The open items were extended
 on 2026-11-01 (§5zw, §5zy, §5zaa); the other rows are the measurement of 2026-10-31 and were not
 re-measured.

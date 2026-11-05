@@ -5,6 +5,22 @@
   "main": "dist/shared/index.js",
   "types": "dist/shared/index.d.ts",
   "exports": {
+    "./error-codes": {
+      "types": "./dist/shared/src/error-codes.d.ts",
+      "default": "./dist/shared/src/error-codes.js"
+    },
+    "./extensions/*": {
+      "types": "./dist/shared/src/extensions/*.d.ts",
+      "default": "./dist/shared/src/extensions/*.js"
+    },
+    "./api/*": {
+      "types": "./dist/shared/api/*.d.ts",
+      "default": "./dist/shared/api/*.js"
+    },
+    "./store-time": {
+      "types": "./dist/shared/src/store-time.d.ts",
+      "default": "./dist/shared/src/store-time.js"
+    },
     "./src/plugin-pages/*": {
       "types": "./dist/shared/src/plugin-pages/*.d.ts",
       "default": "./dist/shared/src/plugin-pages/*.js"

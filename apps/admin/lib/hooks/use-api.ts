@@ -4,11 +4,11 @@
  * Uses unified DashboardStats type from types.ts
  */
 
-import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient, PaginationParams, productsApi, ordersApi, usersApi, pluginsApi, uploadApi, dashboardApi, accountApi, authApi, healthApi, staffApi, unwrapApiResponse, ProductStatsData, OrderStatsData, UserStatsData, type StaffCreatePayload } from '../api';
 import { toast } from 'sonner';
 import { ProductForm, DashboardStats, Product, Order, OrderDetail, User, OrderItem, HealthSummaryResponse } from '../types';
-import { PageResult } from 'shared';
+import type { PageResult } from 'shared';
 import { UseQueryResult } from '@tanstack/react-query';
 import { useT } from 'shared/src/i18n/react';
 import { useAuthStore } from '../store';
@@ -396,7 +396,6 @@ export function useCustomerNeighbors(id: string, params: import('../customer-lis
 export function useUsers(params: import('../customer-list-state').CustomerQuery = {}) {
   return useQuery({
     queryKey: [...queryKeys.users, params],
-    placeholderData: keepPreviousData,
     queryFn: async () => {
       const response = await usersApi.getAll(params);
       const data = unwrapApiResponse(response);
@@ -527,7 +526,6 @@ export function useStaff(params: {
   status?: import('../staff-list-state').StaffFilter['status'];
 } = {}) {
   return useQuery({
-    placeholderData: keepPreviousData,
     queryKey: [...queryKeys.staff, params],
     queryFn: async () => {
       const response = await staffApi.getAll(params);
@@ -698,17 +696,10 @@ export function useProductStats() {
   });
 }
 
-export function useCategories() {
+export function useCategories(page = 1, limit = 20, search = '') {
   return useQuery({
-    queryKey: ['categories'],
-    queryFn: async () => {
-      const first = unwrapApiResponse(await productsApi.getCategories(1, 100));
-      const items = [...first.items];
-      for (let page = 2; page <= first.totalPages; page++) {
-        items.push(...unwrapApiResponse(await productsApi.getCategories(page, 100)).items);
-      }
-      return items;
-    },
+    queryKey: ['categories', { page, limit, search }],
+    queryFn: async () => unwrapApiResponse(await productsApi.getCategories(page, limit, search)),
   });
 }
 

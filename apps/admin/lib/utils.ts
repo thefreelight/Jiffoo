@@ -1,6 +1,6 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { formatStoreDate } from 'shared'
+import { formatStoreDate } from 'shared/store-time';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))

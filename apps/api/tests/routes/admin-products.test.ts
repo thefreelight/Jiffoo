@@ -21,6 +21,7 @@ import {
 import { createTestProduct, deleteAllTestProducts } from '../helpers/fixtures';
 import { getTestPrisma } from '../helpers/db';
 import { AdminProductService } from '@/core/admin/product-management/service';
+import { productIds, productNeighbors } from '@/core/admin/product-management/list-query';
 import { CacheService } from '@/core/cache/service';
 import { systemSettingsService } from '@/core/settings/service';
 import { v4 as uuidv4 } from 'uuid';
@@ -120,6 +121,7 @@ describe('Admin Products Endpoints', () => {
           { name: 'Unavailable', isActive: true, variants: [{ name: 'Standard', salePrice: 12, stock: 4, isActive: false }] },
           { name: 'Empty', isActive: true, variants: [{ name: 'Standard', salePrice: 12, stock: 0, isActive: true }] },
           { name: 'Stocked', isActive: true, variants: [{ name: 'Small', salePrice: 12, stock: 0, isActive: true }, { name: 'Large', salePrice: 24, stock: 4, isActive: true }, { name: 'Hidden', salePrice: 1, stock: 99, isActive: false }] },
+          { name: 'No variants', isActive: true, variants: [] },
         ];
         for (const state of states) {
           const product = await db.product.create({ data: { ...state, spuCode: `${suffix}-${state.name}`, name: `${suffix} ${state.name}`, slug: `${suffix}-${state.name}`, categoryId: category.id, variants: { create: state.variants.map((variant, index) => ({ ...variant, skuCode: `${suffix}-${state.name}-${index}` })) } } });
@@ -131,7 +133,7 @@ describe('Admin Products Endpoints', () => {
           const response = await app.inject({ method: 'GET', url: '/api/v1/admin/products/?limit=100' + query, headers });
           expect(response.statusCode).toBe(200); return response.json().data;
         };
-        for (const [status, expected] of [['inactive', [ids[0], ids[1]]], ['active', [ids[2], ids[3]]], ['outOfStock', [ids[2]]]] as const) {
+        for (const [status, expected] of [['inactive', [ids[0], ids[1], ids[4]]], ['active', [ids[2], ids[3]]], ['outOfStock', [ids[2]]]] as const) {
           const filtered = await list(`&status=${status}&search=${suffix}&categoryId=${category.id}`);
           expect(filtered.items.map((item: { id: string }) => item.id).sort()).toEqual([...expected].sort());
           expect(filtered.total).toBe(expected.length);
@@ -141,7 +143,27 @@ describe('Admin Products Endpoints', () => {
           expect(stats.json().data.statusCounts[status]).toBe(global.total);
         }
         const all = await list(`&search=${suffix}`);
-        expect(all.total).toBe(4);
+        expect(all.total).toBe(5);
+        const withoutStock = await list(`&inStock=false&search=${suffix}`);
+        expect(withoutStock.items.map((item: { id: string }) => item.id).sort()).toEqual([ids[1], ids[2], ids[4]].sort());
+        expect(withoutStock.total).toBe(3);
+        const available = await list(`&status=active&inStock=true&search=${suffix}`);
+        expect(available.items.map((item: { id: string }) => item.id)).toEqual([ids[3]]);
+        expect(available.total).toBe(1);
+        for (const sortBy of ['price', 'stock'] as const) {
+          const ascendingIds = await productIds({ search: suffix }, { sortBy, sortOrder: 'asc' }, 100);
+          const descendingIds = await productIds({ search: suffix }, { sortBy, sortOrder: 'desc' }, 100);
+          expect(ascendingIds).toHaveLength(5);
+          expect(descendingIds).toEqual([...ascendingIds].reverse());
+          if (sortBy === 'price') expect(ascendingIds[0]).toBe(ids[4]);
+          else expect(ascendingIds.slice(0, 2).sort()).toEqual([ids[2], ids[4]].sort());
+          const position = ascendingIds.indexOf(ids[4]);
+          expect(await productNeighbors(ids[4], { search: suffix, sortBy, sortOrder: 'asc' })).toMatchObject({
+            total: 5, position: position + 1,
+            previousId: ascendingIds[position - 1] ?? null,
+            nextId: ascendingIds[position + 1] ?? null,
+          });
+        }
         expect(all.items.find((item: { id: string }) => item.id === ids[3])).toMatchObject({ variantsCount: 3, variantsActiveCount: 2, priceMin: 12, priceMax: 24, price: 12, stock: 4, isActive: true });
         expect((await list(`&status=outOfStock&inStock=true&search=${suffix}`)).total).toBe(0);
         expect((await list(`&status=active&categoryId=${category.id}&search=not-${suffix}`)).total).toBe(0);
@@ -606,6 +628,34 @@ describe('Admin Products Endpoints', () => {
   });
 
   describe('GET /api/v1/admin/products/categories', () => {
+    it('searches category names and slugs before pagination with matching totals', async () => {
+      const db = getTestPrisma();
+      const marker = `category-search-${uuidv4()}`;
+      const first = await db.category.create({ data: { name: `${marker} name`, slug: `${marker}-one` } });
+      const second = await db.category.create({ data: { name: 'Unrelated category', slug: `${marker}-two` } });
+      try {
+        const request = (page: number, search: string) => app.inject({ method: 'GET',
+          url: `/api/v1/admin/products/categories?page=${page}&limit=1&search=${encodeURIComponent(search)}`,
+          headers: { authorization: `Bearer ${adminToken}` } });
+        const one = await request(1, `  ${marker.toUpperCase()}  `);
+        const two = await request(2, marker);
+        expect(one.statusCode).toBe(200);
+        expect(two.statusCode).toBe(200);
+        expect(one.json().data.total).toBe(2);
+        expect(two.json().data.total).toBe(2);
+        expect(one.json().data.items).toHaveLength(1);
+        expect(two.json().data.items).toHaveLength(1);
+        expect(new Set([one.json().data.items[0].id, two.json().data.items[0].id])).toEqual(new Set([first.id, second.id]));
+        const empty = await request(1, `${marker}-missing`);
+        expect(empty.json().data.total).toBe(0);
+        expect(empty.json().data.items).toEqual([]);
+        const tooLong = await request(1, 'x'.repeat(201));
+        expect(tooLong.statusCode).toBe(400);
+      } finally {
+        await db.category.deleteMany({ where: { id: { in: [first.id, second.id] } } });
+      }
+    });
+
     it('should return 401 without token', async () => {
       const response = await app.inject({
         method: 'GET',

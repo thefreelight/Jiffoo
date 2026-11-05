@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 
 const transport = vi.hoisted(() => ({ post: vi.fn(), get: vi.fn() }));
-vi.mock('shared', async importOriginal => ({
-  ...await importOriginal<typeof import('shared')>(),
+vi.mock('shared/api/create-client', async importOriginal => ({
+  ...await importOriginal<typeof import('shared/api/create-client')>(),
   createAdminClient: () => transport,
 }));
 

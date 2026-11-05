@@ -11,7 +11,7 @@ async function searchCustomers(page: Page, search: string, count: number) {
   await page.getByPlaceholder('Search name or email').fill(search);
   await expect(page).toHaveURL(url => url.searchParams.get('search') === (search || null));
   const pagination = page.getByRole('navigation', { name: 'Pagination', exact: true });
-  const size = Number(await pagination.getByRole('button', { name: 'Rows per page', exact: true }).innerText());
+  const size = Number(await pagination.getByRole('combobox', { name: 'Rows per page', exact: true }).inputValue());
   await expect(pagination.getByText(`${count ? 1 : 0}\u2013${Math.min(count, size)} of ${count}`, { exact: true })).toBeVisible();
   await expect(page.getByRole('row', { name: /./ })).toHaveCount(Math.min(count, size) + 1);
 }

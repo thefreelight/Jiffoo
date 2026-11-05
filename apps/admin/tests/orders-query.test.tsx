@@ -7,7 +7,7 @@ import { ordersApi } from '../lib/api';
 import { useOrders, useResolvePaymentReview, useRecordManualPayment, useDeliverOrder } from '../lib/hooks/use-api';
 
 const transport = vi.hoisted(() => ({ get: vi.fn() }));
-vi.mock('shared', async importOriginal => ({ ...await importOriginal<typeof import('shared')>(), createAdminClient: () => ({ get: transport.get }) }));
+vi.mock('shared/api/create-client', async importOriginal => ({ ...await importOriginal<typeof import('shared/api/create-client')>(), createAdminClient: () => ({ get: transport.get }) }));
 
 it('forwards payment and review filters through the query hook to the API client', async () => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
