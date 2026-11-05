@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Printer } from 'lucide-react';
 import { useLocale, useT } from 'shared/src/i18n/react';
-import { formatStoreTimestamp } from 'shared';
+import { formatStoreTimestamp } from 'shared/store-time';
 import { useStoreDate } from '@/lib/store-time';
 import { orderListQuery } from '@/lib/order-list-state';
 import { ordersApi, type OrderPrintOrder, type OrderPrintResult } from '@/lib/api';

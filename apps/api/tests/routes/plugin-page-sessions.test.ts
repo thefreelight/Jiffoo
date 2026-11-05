@@ -12,6 +12,8 @@ import { JwtUtils } from '@/utils/jwt';
 import { prisma as corePrisma } from '@/config/database';
 import { bindPurchaseOrigin, purchaseReturnTarget } from '@/core/plugin-pages/purchase-origins';
 import { orderRequestFingerprint } from '@/core/order/idempotency';
+import * as productQuery from '@/core/extensions/commerce/product-query';
+import * as customerQuery from '@/core/extensions/customers/customer-query';
 
 const prisma = getTestPrisma();
 const slug = 'p3-session-fixture';
@@ -55,6 +57,58 @@ beforeAll(async () => {
   installationId = (await prisma.pluginInstallation.create({ data: { pluginSlug: slug, instanceKey: 'default', enabled: true } })).id;
 });
 afterAll(async () => { await prisma.pluginInstall.deleteMany({ where: { slug } }); await app?.close(); vi.unstubAllEnvs(); });
+
+it('resolves product navigation through a live guest shell and rejects a missing guest proof', async () => {
+  const response = await create(undefined, 'shop', 'public');
+  expect(response.statusCode).toBe(200);
+  const session = response.json().data;
+  const projection = vi.spyOn(productQuery, 'getPurchasableVariantsForPage').mockResolvedValue({ items: [{
+    variantId: 'c' + 'a'.repeat(24), productId: 'product', slug: 'published-product', title: 'Product',
+    variantTitle: 'Variant', currency: 'USD', price: '1.00', availability: 'available',
+  }] });
+  try {
+    const url = `/api/v1/plugin-pages/${slug}/sessions/${session.sessionId}/product-target`;
+    const payload = { variantId: 'c' + 'a'.repeat(24), locale: 'en' };
+    const denied = await app.inject({ method: 'POST', url, headers: headers(), payload });
+    expect(denied.statusCode).not.toBe(200);
+    expect(projection).not.toHaveBeenCalled();
+    const target = await app.inject({ method: 'POST', url, headers: headers(), payload: { ...payload, guestSecret: session.guestSecret } });
+    expect(target.statusCode).toBe(200);
+    expect(target.json().data).toEqual({ path: '/en/products/published-product' });
+    expect(projection).toHaveBeenCalledWith(installationId, { variantIds: [payload.variantId], locale: 'en' });
+    projection.mockResolvedValueOnce({ items: [] });
+    expect((await app.inject({ method: 'POST', url, headers: headers(), payload: { ...payload, guestSecret: session.guestSecret } })).statusCode).toBe(404);
+  } finally { projection.mockRestore(); }
+});
+
+it('opens Core customer accounts only through a granted live administrator shell and rechecks revocation', async () => {
+  const issued = await create(admin.token, 'admin', 'reports');
+  expect(issued.statusCode, issued.body).toBe(200);
+  const session = issued.json().data;
+  const url = `/api/v1/plugin-pages/${slug}/sessions/${session.sessionId}/customer-target`;
+  const adminHeaders = headers(admin.token, 'http://localhost:3002');
+  const payload = { customerId: customer.user.id };
+  const previous = await prisma.pluginInstallation.findUniqueOrThrow({ where: { id: installationId } });
+  try {
+    await prisma.pluginInstallation.update({ where: { id: installationId }, data: { grantedPermissions: [] } });
+    expect((await app.inject({ method: 'POST', url, headers: adminHeaders, payload })).statusCode).toBe(403);
+    await prisma.pluginInstallation.update({ where: { id: installationId }, data: { grantedPermissions: ['customers:read'] } });
+    const target = await app.inject({ method: 'POST', url, headers: adminHeaders, payload });
+    expect(target.statusCode, target.body).toBe(200);
+    expect(target.json().data).toEqual({ path: `/customers/${customer.user.id}` });
+    expect((await app.inject({ method: 'POST', url, headers: adminHeaders, payload: { customerId: 'missing-customer' } })).statusCode).toBe(404);
+    const customerSession = (await create(customer.token)).json().data;
+    expect((await app.inject({ method: 'POST', url: `/api/v1/plugin-pages/${slug}/sessions/${customerSession.sessionId}/customer-target`, headers: headers(customer.token), payload })).statusCode).toBe(403);
+    const original = customerQuery.readPluginCustomers;
+    const read = vi.spyOn(customerQuery, 'readPluginCustomers').mockImplementation(async (...args) => {
+      const result = await original(...args);
+      await prisma.pluginPageSession.update({ where: { id: session.sessionId }, data: { revokedAt: new Date() } });
+      return result;
+    });
+    try { expect((await app.inject({ method: 'POST', url, headers: adminHeaders, payload })).statusCode).not.toBe(200); }
+    finally { read.mockRestore(); }
+  } finally { await prisma.pluginInstallation.update({ where: { id: installationId }, data: { grantedPermissions: previous.grantedPermissions ?? [] } }); }
+});
 
 it('public declarations contain only storefront navigation fields and no identity or executable metadata', async () => {
   const response = await app.inject('/api/v1/plugin-pages');
@@ -117,6 +171,11 @@ it('guest refresh needs the shell-only secret and never supplies a customer prin
   expect(refreshed.json().data.pluginToken).not.toBe(data.pluginToken);
 });
 it('Admin declarations and sessions require ordinary Admin credentials', async () => {
+  expect((await app.inject({ url: '/api/v1/admin/plugin-pages' })).statusCode).toBe(401);
+  const navigation = await app.inject({ url: '/api/v1/admin/plugin-pages', headers: headers(admin.token, 'http://localhost:3002') });
+  expect(navigation.statusCode).toBe(200);
+  expect(navigation.json().data.some((plugin: { slug: string }) => plugin.slug === slug)).toBe(true);
+  expect((await app.inject({ url: '/api/v1/admin/plugin-pages', headers: headers(customer.token, 'http://localhost:3002') })).statusCode).toBe(403);
   const response = await app.inject({ url: `/api/v1/admin/plugin-pages/${slug}`, headers: headers(admin.token, 'http://localhost:3002') });
   expect(response.statusCode, response.body).toBe(200);
   expect(response.json().data[0].pages[0].id).toBe('reports');
@@ -181,6 +240,9 @@ it('a lifecycle disable transaction revokes Shop, Admin and guest sessions toget
       await expect(admission(data.pluginToken)).rejects.toMatchObject({ code: 'PLUGIN_PAGE_SESSION_REVOKED' });
     }
     expect((await app.inject({ url: `/api/v1/admin/plugin-pages/${slug}`, headers: headers(admin.token, 'http://localhost:3002') })).statusCode).toBe(404);
+    const navigation = await app.inject({ url: '/api/v1/admin/plugin-pages', headers: headers(admin.token, 'http://localhost:3002') });
+    expect(navigation.statusCode).toBe(200);
+    expect(navigation.json().data.some((plugin: { slug: string }) => plugin.slug === slug)).toBe(false);
   } finally {
     await prisma.pluginInstallation.update({ where: { id: installationId }, data: { enabled: true } });
   }

@@ -110,6 +110,18 @@ export type AuthIdentityCountTx = {
 };
 
 export class AuthIdentityService {
+  /** Minimal customer directory projection; credentials and administrator accounts never escape. */
+  static async customerDirectory(client: AuthIdentityListTx, input: { ids?: string[]; query?: string; afterId?: string; limit: number }) {
+    return client.user.findMany({
+      where: { role: 'USER', removedAt: null,
+        ...(input.ids ? { id: { in: input.ids } } : {}),
+        ...(input.afterId ? { id: { gt: input.afterId } } : {}),
+        ...(input.query ? { OR: [{ username: { contains: input.query, mode: 'insensitive' } }, { email: { contains: input.query, mode: 'insensitive' } }] } : {}),
+      },
+      select: { id: true, username: true, email: true }, orderBy: { id: 'asc' }, take: input.limit,
+    }) as Promise<Array<{ id: string; username: string; email: string }>>;
+  }
+
   /**
    * Update the profile of an account.
    */

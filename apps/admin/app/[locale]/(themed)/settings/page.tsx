@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLocale, useT } from 'shared/src/i18n/react';
-import { formatStoreTimestamp, storeTimezones, STORE_CURRENCIES } from 'shared';
+import { formatStoreTimestamp, storeTimezones } from 'shared/store-time';
+import { STORE_CURRENCIES } from 'shared/utils/constants';
 import { settingsApi, uploadApi, unwrapApiResponse, type SystemSettingsMap } from '@/lib/api';
 import { useStoreDate } from '@/lib/store-time';
 import { registerNavigationGuard } from '@/lib/pending-navigation';

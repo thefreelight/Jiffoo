@@ -35,3 +35,23 @@ export function verifyFileGrant(token: string): FileGrant {
     return claims;
   } catch { throw new ApiError('PLUGIN_FILE_NOT_FOUND'); }
 }
+
+const publicClaims = z.object({ publicationId: z.string().uuid(), fileId: z.string().uuid(),
+  installationId: z.string().min(1).max(128), revision: z.string().regex(/^\d+$/),
+  generation: z.string().regex(/^\d+$/), sha256: z.string().regex(/^[a-f0-9]{64}$/),
+  exp: z.number().int(), iat: z.number().int(), jti: z.string().uuid(),
+  aud: z.literal('jiffoo-plugin-public-file'), iss: z.literal('jiffoo-public-files') }).strict();
+export function signPublicFileGrant(input: { publicationId: string; fileId: string; installationId: string; revision: string; generation: string; sha256: string }, now: Date) {
+  const iat = Math.floor(now.getTime() / 1000), exp = iat + 60;
+  return { token: jwt.sign({ ...input, iat, exp, jti: randomUUID() }, fileUrlSecret(), {
+    algorithm: 'HS256', audience: 'jiffoo-plugin-public-file', issuer: 'jiffoo-public-files', header: { alg: 'HS256', typ: 'plugin-public-file-v1' },
+  }), expiresAt: new Date(exp * 1000).toISOString() };
+}
+export function verifyPublicFileGrant(token: string) {
+  try {
+    const value = jwt.verify(token, fileUrlSecret(), { algorithms: ['HS256'], audience: 'jiffoo-plugin-public-file', issuer: 'jiffoo-public-files', complete: true });
+    const claims = publicClaims.parse(value.payload);
+    if (value.header.typ !== 'plugin-public-file-v1' || claims.exp - claims.iat !== 60 || claims.iat > Math.floor(Date.now() / 1000)) throw new Error('Invalid grant');
+    return claims;
+  } catch { throw new ApiError('PLUGIN_FILE_NOT_FOUND'); }
+}

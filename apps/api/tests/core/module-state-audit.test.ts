@@ -8,6 +8,8 @@ type Entry = { category: 1 | 2 | 3; reason: string; rebuild?: { file: string; fu
 
 // Every entry is explicit: new names, including persistent class fields, require review.
 const codeConstants = [
+  'core/auth/plugin-action-authorization.ts:BUILTIN_PLUGIN_ADMIN_ACTIONS',
+  'core/plugin-storage/grants.ts:publicClaims',
   'core/admin/extension-installer/schemas.ts:repairBootstrapAjv',
   'core/admin/extension-installer/schemas.ts:repairBootstrapBodySchema',
   'core/plugin-pages/origin-policy.ts:privateFileRoutes',
@@ -403,6 +405,7 @@ const runtimeHandles = [
   'server.ts:shutdownDeadlineExceeded',
 ] as const;
 const pluginState: Record<string, Entry> = {
+  'core/extensions/host-capabilities/service.ts:adapters': { category: 2, reason: 'Process composition registry contains frozen public service callbacks only, never request or principal data; initialization replaces the complete adapter set.' },
   'core/admin/extension-installer/routes.ts:repairBootstrapErrors': { category: 2, reason: 'Weak request keys retain only the current repair admission error code until response auditing; no cross-request outcome cache or durable authority.' },
   'core/auth/middleware.ts:verifiedSessions': { category: 2, reason: 'Weak request keys retain the signature-verified subject and session version only for that request; transactional admission rechecks the live user row and this is not a reusable session cache.' },
   'core/plugins/tasks.ts:scopes': { category: 2, reason: 'Invocation-local identity and claim authority; closed on actual handler settlement, never a cached identity.' },

@@ -1,6 +1,7 @@
 'use client';
 import { apiClient, unwrapApiResponse } from './api';
-import { ApiErrorCodes, isApiErrorCode, type ApiErrorCode } from 'shared';
+import { ApiErrorCodes, isApiErrorCode } from 'shared/error-codes';
+import type { ApiErrorCode } from 'shared';
 import type { PluginMigrationDeclaration } from 'shared';
 
 export interface PluginUploadPreview {

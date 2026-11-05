@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLocale, useT } from 'shared/src/i18n/react';
-import { formatStoreTimestamp } from 'shared';
+import { formatStoreTimestamp } from 'shared/store-time';
 import { ArrowUpRight, MoreHorizontal } from 'lucide-react';
 import { useThemeAssets } from '@/lib/theme-assets';
 import { useStoreDate } from '@/lib/store-time';

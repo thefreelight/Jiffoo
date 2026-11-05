@@ -2,7 +2,8 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient, unwrapApiResponse, type ApiResponse } from '@/lib/api';
-import { ApiErrorCodes, isApiErrorCode, type ApiErrorCode } from 'shared';
+import { ApiErrorCodes, isApiErrorCode } from 'shared/error-codes';
+import type { ApiErrorCode } from 'shared';
 import { waitPluginUploadOperation, type PluginUploadPreview, type PluginUploadOperation } from './plugin-upload';
 
 export interface MarketplaceStatus { configured: boolean; testSigningMode: boolean }

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useT } from 'shared/src/i18n/react';
-import { formatStoreTimestamp } from 'shared';
+import { formatStoreTimestamp } from 'shared/store-time';
 import { apiClient, unwrapApiResponse } from '@/lib/api';
 import { useStoreDate } from '@/lib/store-time';
 import { Button } from '@/components/ui/button';

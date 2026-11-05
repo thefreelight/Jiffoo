@@ -7,7 +7,7 @@ const methods = ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'];
 const allowedHeaders = ['Authorization', 'Content-Type', 'Idempotency-Key'];
 const tokenRoutes = /^\/api\/v1\/(?:extensions\/plugin\/([a-z][a-z0-9-]*)\/api(?:\/.*)?|plugin-storage\/([a-z][a-z0-9-]*)\/.+)$/;
 const assetRoutes = /^\/api\/v1\/plugin-assets\/[^/]+\/[a-f0-9]{64}\/.+$/;
-const privateFileRoutes = /^\/api\/v1\/plugin-files\/[a-f0-9-]{36}$/;
+const privateFileRoutes = /^\/api\/v1\/plugin-(?:public-)?files\/[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
 
 /** P-3 supplies authoritative signature, session, identity and lifecycle verification. */
 export interface PluginPageAdmission {

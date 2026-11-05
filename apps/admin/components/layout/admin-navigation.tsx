@@ -1,7 +1,9 @@
 'use client';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState, type MouseEvent } from 'react';
+import { useEffect, useState, type MouseEvent } from 'react';
+import { usePluginNavigation } from '@/lib/use-plugin-navigation';
+import { pluginAdminPath } from 'shared/src/plugin-pages/labels';
 import { usePathname, useRouter } from 'next/navigation';
 import { useT, useLocale } from 'shared/src/i18n/react';
 import { ArrowUpRight, ChevronDown, ChevronsUpDown, Languages, LogOut, PanelLeft, PanelLeftOpen, Store, User } from 'lucide-react';
@@ -68,6 +70,15 @@ export function AdminNavigation({ storeName, storeUrl, logo, collapsed = false, 
   const locale = useLocale(), t = useT(), pathname = usePathname(), router = useRouter();
   const copy = shellCopy[locale], { toggleSidebar } = usePreferences();
   const { user, logout } = useAuthStore();
+  const pluginDeclarations = usePluginNavigation(user?.id, pathname);
+  const insidePlugins = pathname.startsWith('/' + locale + '/plugins/');
+  const [pluginPages, setPluginPages] = useState(insidePlugins);
+  useEffect(() => {
+    if (insidePlugins) {
+      setPluginPages(true);
+      setOpenGroups(value => ({ ...value, extensions: true }));
+    }
+  }, [pathname, insidePlugins]);
   const insideProducts = pathname === '/' + locale + '/products' || pathname.startsWith('/' + locale + '/products/');
   const [productPagesOverride, setProductPages] = useState<boolean>();
   const productPages = productPagesOverride ?? insideProducts;
@@ -100,14 +111,19 @@ export function AdminNavigation({ storeName, storeUrl, logo, collapsed = false, 
         <CollapsibleContent className="space-y-px">
           {group.items.map(([id, key, fallback, href, icon]) => {
             const name = label(key, fallback);
-            const selected = active(href) && !(id === 'products' && active('/products/categories'));
+            const selected = active(href) && !(id === 'products' && active('/products/categories')) && !(id === 'plugins' && insidePlugins);
             const navLink = <Link data-app-navigation href={'/' + locale + href} aria-label={name} aria-current={selected ? 'page' : undefined} onClick={event => navigate(event, '/' + locale + href)} className={cn('relative flex h-8 min-w-0 flex-1 items-center gap-2.5 rounded-md px-2 text-muted-foreground hover:bg-accent hover:text-foreground', active(href) && 'font-medium text-foreground', collapsed && 'justify-center px-0')}>
               <svg aria-hidden="true" className="size-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"><path d={icon} /></svg><span className={collapsed ? 'sr-only' : 'truncate'}>{name}</span>
               {id === 'orders' && reviewCount > 0 && <span role="img" aria-label={t('merchant.shell.paymentReviewBadge', { count: reviewCount })} className={cn('ml-auto font-mono text-[11px] text-attention', collapsed && 'absolute right-1 top-1 size-1.5 rounded-full bg-attention')}><span className={collapsed ? 'sr-only' : undefined}>{reviewCount}</span></span>}
             </Link>;
             return <div key={id}><div className={cn('flex items-center rounded-md', selected && 'bg-accent')}><RailTooltip name={name} enabled={collapsed}>{navLink}</RailTooltip>
               {id === 'products' && !collapsed && <button type="button" aria-label={productPages ? copy.collapsePages : copy.expandPages} aria-expanded={productPages} onClick={() => setProductPages(!productPages)} className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent"><ChevronDown aria-hidden="true" className={cn('size-3 transition-transform', !productPages && '-rotate-90')} /></button>}
-            </div>{id === 'products' && !collapsed && productPages && <div className="mt-0.5 mb-1 ml-4 border-l border-border pl-[9px]"><Link data-app-navigation href={'/' + locale + '/products/categories'} aria-current={active('/products/categories') ? 'page' : undefined} onClick={event => navigate(event, '/' + locale + '/products/categories')} className={cn('flex h-[30px] items-center rounded-md px-2 text-muted-foreground hover:bg-accent hover:text-foreground', active('/products/categories') && 'bg-accent font-medium text-foreground')}>{label('merchant.contentTranslations.categories', 'Categories')}</Link></div>}</div>;
+              {id === 'plugins' && !collapsed && pluginDeclarations.length > 0 && <button type="button" aria-label={pluginPages ? copy.collapsePlugins : copy.expandPlugins} aria-expanded={pluginPages} onClick={() => setPluginPages(!pluginPages)} className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent"><ChevronDown aria-hidden="true" className={cn('size-3 transition-transform', !pluginPages && '-rotate-90')} /></button>}
+            </div>{id === 'plugins' && (collapsed || pluginPages) && <div className={cn('mt-0.5 mb-1', !collapsed && 'ml-4 border-l border-border pl-[9px]')}>{pluginDeclarations.map(plugin => {
+              const target = '/' + locale + pluginAdminPath(plugin.slug, plugin.pages[0].path);
+              const selectedPlugin = active('/plugins/' + plugin.slug);
+              return <RailTooltip key={plugin.slug} name={plugin.slug} enabled={collapsed}><Link data-app-navigation href={target} aria-label={plugin.slug} aria-current={selectedPlugin ? 'page' : undefined} onClick={event => navigate(event, target)} className={cn('flex h-[30px] items-center rounded-md px-2 text-muted-foreground hover:bg-accent hover:text-foreground', selectedPlugin && 'bg-accent font-medium text-foreground', collapsed && 'justify-center')}><span className={collapsed ? 'sr-only' : 'truncate'}>{plugin.slug}</span>{collapsed && <span aria-hidden="true">{plugin.slug.slice(0, 1).toUpperCase()}</span>}</Link></RailTooltip>;
+            })}</div>}{id === 'products' && !collapsed && productPages && <div className="mt-0.5 mb-1 ml-4 border-l border-border pl-[9px]"><Link data-app-navigation href={'/' + locale + '/products/categories'} aria-current={active('/products/categories') ? 'page' : undefined} onClick={event => navigate(event, '/' + locale + '/products/categories')} className={cn('flex h-[30px] items-center rounded-md px-2 text-muted-foreground hover:bg-accent hover:text-foreground', active('/products/categories') && 'bg-accent font-medium text-foreground')}>{label('merchant.contentTranslations.categories', 'Categories')}</Link></div>}</div>;
           })}
         </CollapsibleContent>
       </Collapsible>)}

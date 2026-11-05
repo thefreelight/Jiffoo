@@ -201,6 +201,13 @@ export interface PluginStorage {
   put(input: PluginStorageOptions & { content: Uint8Array | AsyncIterable<Uint8Array>; contentType: PluginFileReference['contentType'] }): Promise<PluginFileReference>;
   get(reference: string, options?: PluginStorageOptions): Promise<Uint8Array>;
   readUrl(reference: string, options?: PluginStorageOptions): Promise<{ url: string; expiresAt: string }>;
+  publish(reference: string): Promise<{ publicationId: string }>;
+  unpublish(reference: string): Promise<{ revoked: true }>;
+  publicUrl(publicationId: string): Promise<{ url: string; expiresAt: string }>;
+  retain(reference: string, key: string): Promise<{ retained: boolean }>;
+  release(reference: string, key: string): Promise<{ retained: boolean }>;
+  delete(reference: string, input: { idempotencyKey: string }): Promise<{ operationId: string; status: string }>;
+  deletion(operationId: string): Promise<{ operationId: string; status: string; lastError: string | null; completedAt: string | null; erasureScope: 'active-object' }>;
 }
 
 export interface PluginContext {
@@ -231,6 +238,8 @@ export interface PluginContext {
   readonly services: PluginServices;
   /** The permissioned commerce read of G4-R. */
   readonly commerce: PluginCommerce;
+  readonly customers: PluginCustomers;
+  readonly authorization: { require(action: string): Promise<void> };
 }
 
 /** The principal a service call carries. Core builds it; a caller never does. */
@@ -300,7 +309,31 @@ export interface PaidOrder {
 }
 
 /** The commerce read a plugin may ask for, with the permission `commerce:orders.read`. */
+export interface PurchasableVariant {
+  variantId: string;
+  productId: string;
+  slug: string;
+  title: string;
+  variantTitle: string;
+  currency: string;
+  price: string;
+  availability: 'available' | 'out_of_stock';
+}
+export interface PluginCustomer {
+  id: string;
+  displayName: string;
+  email: string;
+  /** Locale-relative destination in the Core administrator shell. */
+  accountPath: string;
+}
+export interface PluginCustomers {
+  lookup(request: { ids: string[] }): Promise<{ items: PluginCustomer[]; nextCursor: string | null }>;
+  search(request: { query: string; afterId?: string; limit?: number }): Promise<{ items: PluginCustomer[]; nextCursor: string | null }>;
+}
 export interface PluginCommerce {
+  products: {
+    getVariants(request: { variantIds: string[]; locale: string }): Promise<{ items: PurchasableVariant[] }>;
+  };
   orders: {
     listPaid(request: { from: string; to: string; cursor?: string | null; limit?: number }): Promise<{
       items: PaidOrder[];
@@ -540,6 +573,8 @@ export interface PluginManifest {
   hostProtocol?: PluginHostProtocol;
   entryModule?: string;
   permissions: string[];
+  /** Explicit plugin-owned administrator actions; grants use actions:<action>. */
+  adminActions?: string[];
   author?: string;
   authorUrl?: string;
   license?: string;
@@ -607,7 +642,7 @@ function pushIssue(issues: PluginManifestIssue[], path: string, message: string,
 
 const manifestFields = new Set([
   'schemaVersion', 'slug', 'name', 'version', 'description', 'category',
-  'runtimeType', 'hostProtocol', 'entryModule', 'permissions', 'author',
+  'runtimeType', 'hostProtocol', 'entryModule', 'permissions', 'adminActions', 'author',
   'authorUrl', 'license', 'homepage', 'repository', 'icon', 'screenshots',
   'minApiVersion', 'sdkVersion', 'requiredApiVersion', 'dependencies', 'tags',
   'configSchema', 'contracts', 'requiredScopes', 'subscriptions', 'lifecycle', 'database',
@@ -737,6 +772,12 @@ export function getPluginManifestIssues(manifest: unknown): PluginManifestIssue[
     }
   }
 
+  if (manifest.adminActions !== undefined && (!Array.isArray(manifest.adminActions)
+    || manifest.adminActions.length > 100 || new Set(manifest.adminActions).size !== manifest.adminActions.length
+    || manifest.adminActions.some(action => typeof action !== 'string' || action.length > 96
+      || !/^[a-z][a-z0-9]*(?:[.-][a-z][a-z0-9]*){0,7}$/.test(action)))) {
+    pushIssue(issues, 'adminActions', 'Administrator actions must be unique bounded action names', 'INVALID_PERMISSIONS');
+  }
   if (!Array.isArray(manifest.permissions)) {
     pushIssue(issues, 'permissions', 'permissions must be an array of strings', 'INVALID_PERMISSIONS');
   } else {

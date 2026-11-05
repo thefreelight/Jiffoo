@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { mkdtemp, mkdir, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
@@ -37,7 +38,7 @@ export async function verifyStandaloneSdk() {
     const packed = JSON.parse(run(npm, ['pack', sdk, '--json', '--pack-destination', temporary]));
     assert.equal(packed.length, 1);
     assert.equal(packed[0].name, '@jiffoo-core/plugin-sdk');
-    assert.equal(packed[0].version, '1.0.0-alpha.6');
+    assert.equal(packed[0].version, '1.0.0-alpha.7');
     assert(packed[0].files.every(file => /^(package\.json|dist\/|types\/|README\.md$|LICENSE$)/.test(file.path)));
     const tarball = path.join(temporary, packed[0].filename);
     await writeFile(path.join(temporary, 'package.json'), '{"private":true}\n');
@@ -118,7 +119,34 @@ export async function verifyStandaloneSdk() {
     // without declaring the marker itself.
     await writeFile(path.join(temporary, 'consumer.ts'), "import { PluginBusinessError, isPluginBusinessError, PLUGIN_BUSINESS_ERROR } from '@jiffoo-core/plugin-sdk';\nclass Refusal extends PluginBusinessError {}\nconst refusal = new Refusal('INSUFFICIENT_BALANCE', 'The customer does not have enough points.', { balance: 0 });\nconst code: string = refusal.code;\nconst marked: boolean = isPluginBusinessError(refusal);\nconst marker: symbol = PLUGIN_BUSINESS_ERROR;\nvoid [code, refusal.details, marked, marker];\n");
     run(consumerRequire.resolve('typescript/bin/tsc'), ['--noEmit', '--strict', '--target', 'ES2022', '--module', 'Node16', '--moduleResolution', 'Node16', 'consumer.ts']);
-    console.log('Standalone SDK: npm pack/install, installed bin create/pack/migrations, scaffold build and public types passed');
+    await writeFile(path.join(temporary, 'consumer.ts'), `import type { PluginContext, PurchasableVariant, PluginCustomer } from '@jiffoo-core/plugin-sdk';
+declare const ctx: PluginContext;
+async function projections() {
+  const variants = await ctx.commerce.products.getVariants({variantIds:['variant'],locale:'en'});
+  const variant: PurchasableVariant = variants.items[0];
+  const price: string = variant.price;
+  const availability: 'available' | 'out_of_stock' = variant.availability;
+  const customers = await ctx.customers.lookup({ids:['customer']});
+  const customer: PluginCustomer = customers.items[0];
+  const accountPath: string = customer.accountPath;
+  await ctx.customers.search({query:'example',limit:10});
+  await ctx.authorization.require('content.publish');
+  const publication = await ctx.storage.publish('reference');
+  await ctx.storage.publicUrl(publication.publicationId);
+  await ctx.storage.unpublish('reference');
+  await ctx.storage.retain('reference','presentation:one');
+  await ctx.storage.release('reference','presentation:one');
+  const deletion = await ctx.storage.delete('reference',{idempotencyKey:'delete-one'});
+  const outcome = await ctx.storage.deletion(deletion.operationId);
+  const scope: 'active-object' = outcome.erasureScope;
+  void scope;
+  void [price,availability,accountPath];
+}
+void projections;
+`);
+    run(consumerRequire.resolve('typescript/bin/tsc'), ['--noEmit', '--strict', '--target', 'ES2022', '--module', 'Node16', '--moduleResolution', 'Node16', 'consumer.ts']);
+    const hash = createHash('sha256').update(await readFile(tarball)).digest('hex');
+    console.log(`Standalone SDK: npm pack/install, installed bin create/pack/migrations, scaffold build and public projection types passed, tarball ${hash}`);
   } finally {
     await rm(temporary, { recursive: true, force: true });
   }

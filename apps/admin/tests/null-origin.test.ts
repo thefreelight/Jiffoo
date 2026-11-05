@@ -6,6 +6,40 @@ import * as routes from '../app/api/[[...path]]/route';
 import { proxy } from '../proxy';
 
 afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
+it.each(['/api/v1/admin/plugin-pages', '/api/v1/admin/plugin-pages/sample-tool'])('forwards %s declarations without cookies and retains bearer authentication', async path => {
+  vi.stubEnv('API_SERVICE_URL', 'http://127.0.0.1:3001');
+  vi.stubEnv('ADMIN_URL', 'http://localhost:3002');
+  const fetcher = vi.fn(async () => Response.json({ success: true, data: [] }));
+  vi.stubGlobal('fetch', fetcher);
+  const response = await routes.GET(new NextRequest(`http://localhost:3002${path}`, {
+    headers: { Cookie: 'session=private', Authorization: 'Bearer administrator' },
+  }));
+  expect(response.status).toBe(200);
+  const outgoing = (fetcher.mock.calls[0] as unknown as [URL, RequestInit])[1].headers as Headers;
+  expect(outgoing.get('cookie')).toBeNull();
+  expect(outgoing.get('authorization')).toBe('Bearer administrator');
+});
+it.each(['GET', 'HEAD'])('guest public image %s is binary and forwards no identity', async method => {
+  vi.stubEnv('API_SERVICE_URL', 'http://127.0.0.1:3001');
+  const bytes = new Uint8Array([137, 80, 78, 71]);
+  const fetcher = vi.fn(async () => new Response(method === 'HEAD' ? null : bytes, { headers: {
+    'Content-Type': 'image/png', 'Cache-Control': 'no-store', 'Set-Cookie': 'injected=private', 'Access-Control-Allow-Credentials': 'true',
+  } }));
+  vi.stubGlobal('fetch', fetcher);
+  const path = '/api/v1/plugin-public-files/12345678-1234-4123-8123-123456789abc?token=signed';
+  const response = await routes.GET(new NextRequest(`http://127.0.0.1:3002${path}`, {
+    method, headers: { Origin: 'null', Cookie: 'session=private', Authorization: 'Bearer private' },
+  }));
+  expect(response.status).toBe(200);
+  expect(response.headers.get('content-type')).toBe('image/png');
+  expect(response.headers.get('set-cookie')).toBeNull();
+  expect(response.headers.get('access-control-allow-credentials')).toBeNull();
+  expect(new Uint8Array(await response.arrayBuffer())).toEqual(method === 'HEAD' ? new Uint8Array() : bytes);
+  const [url, init] = fetcher.mock.calls[0] as unknown as [URL, RequestInit];
+  expect(url.pathname + url.search).toBe(path);
+  expect((init.headers as Headers).get('cookie')).toBeNull();
+  expect((init.headers as Headers).get('authorization')).toBeNull();
+});
 it.each(inventory.adminProxy.methods)('Admin %s proxy rejects null Origin for every inventoried route before forwarding', async method => {
   const fetcher = vi.fn();
   vi.stubGlobal('fetch', fetcher);

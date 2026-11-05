@@ -21,6 +21,19 @@ function exact(value: Record<string, Plain>, keys: string[]) {
   if (Object.keys(value).some(key => !keys.includes(key))) throw new Error('VALIDATION_ERROR');
 }
 
+/** Accept exactly one canonically encoded product slug in the current locale. */
+export function isCanonicalProductTarget(path: unknown, locale: string): path is string {
+  if (typeof path !== 'string' || !['en', 'zh-Hans', 'zh-Hant'].includes(locale)) return false;
+  const prefix = `/${locale}/products/`;
+  if (!path.startsWith(prefix)) return false;
+  const encoded = path.slice(prefix.length);
+  try {
+    const slug = decodeURIComponent(encoded);
+    return !!slug && slug !== '.' && slug !== '..' && !/[\\/%?#:\u0000-\u001f\u007f]/.test(slug)
+      && encodeURIComponent(slug) === encoded;
+  } catch { return false; }
+}
+
 /**
  * The refresh failures that end the page.
  *
@@ -132,7 +145,7 @@ export function PluginPageShell(props: Props) {
       return { ...active!.context, locale, currency, store: { ...store, url: new URL(store.url, location.origin).href }, themeTokens,
         colorMode: css.colorScheme === 'dark' ? 'dark' : 'light',
         capabilities: ['context.get', 'context.subscribe', 'token.refresh', 'navigate', 'auth.signIn', 'frame.resize', 'toast.show', 'file.download',
-          ...(surface === 'shop' ? ['cart.add', 'checkout.open'] : [])] };
+          ...(surface === 'shop' ? ['cart.add', 'checkout.open', 'commerce.product.open'] : ['customers.open'])] };
     }
     function changed() {
       if (active && subscribed) post({ id: crypto.randomUUID(), type: 'context.changed', payload: { revision: ++revision, context: context() as unknown as Plain } });
@@ -182,6 +195,24 @@ export function PluginPageShell(props: Props) {
           if (typeof args.path !== 'string' || !args.path.startsWith('/') || /[%\\?#:]|\/\/|\.{2}|[\u0000-\u0020]/.test(args.path)
             || !currentProps.current.allowedPaths.includes(args.path)) throw new Error('FORBIDDEN');
           currentProps.current.navigate(args.path); stop(); return null;
+        }
+        case 'customers.open': {
+          if (props.surface !== 'admin' || !active?.context.admin) throw new Error('FORBIDDEN');
+          const args = object(message.payload); exact(args, ['customerId']);
+          if (typeof args.customerId !== 'string' || !/^[a-zA-Z0-9_-]{1,128}$/.test(args.customerId)) throw new Error('VALIDATION_ERROR');
+          const target = await currentProps.current.transport(path('/customer-target'), 'POST', args) as { path: string };
+          if (disposed) throw new Error('SESSION_REVOKED');
+          if (target.path !== `/customers/${encodeURIComponent(args.customerId)}`) throw new Error('FORBIDDEN');
+          currentProps.current.navigate(target.path); stop(); return null;
+        }
+        case 'commerce.product.open': {
+          if (props.surface !== 'shop') throw new Error('FORBIDDEN');
+          const args = object(message.payload); exact(args, ['variantId']);
+          if (typeof args.variantId !== 'string' || !/^c[a-z0-9]{24}$/.test(args.variantId)) throw new Error('VALIDATION_ERROR');
+          const target = await currentProps.current.transport(path('/product-target'), 'POST', { ...args, locale: currentProps.current.locale, ...auth() }) as { path: string };
+          if (disposed) throw new Error('SESSION_REVOKED');
+          if (!isCanonicalProductTarget(target.path, currentProps.current.locale)) throw new Error('FORBIDDEN');
+          currentProps.current.navigate(target.path); stop(); return null;
         }
         case 'auth.signIn': currentProps.current.signIn(); stop(); return null;
         case 'cart.add': {

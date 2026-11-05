@@ -2,7 +2,6 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 import { cleanupPluginMigrationFixture } from '../helpers/plugin-migration-cleanup';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { fork, type ChildProcess } from 'node:child_process';
-import { once } from 'node:events';
 import { createWriteStream, promises as fs } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -174,10 +173,33 @@ describe('immutable plugin package deployment', () => {
   }
   async function stop(childProcess: ChildProcess) {
     if (childProcess.exitCode !== null || childProcess.signalCode !== null) return;
+    if (!mailboxes.has(childProcess)) throw new Error('Refusing to stop an unowned fixture child');
     phase('stop-requested', childProcess.pid);
-    const exited = once(childProcess, 'exit');
-    childProcess.send({ kind: 'stop' });
-    await exited;
+    const release = () => {
+      if (!childProcess.connected) return;
+      for (const kind of ['plugin-lease-release', 'plugin-materialize-release']) {
+        childProcess.send({ kind }, error => { if (error) phase('cleanup-ipc-release-failed', childProcess.pid); });
+      }
+    };
+    const releaseLateBarrier = (value: { kind?: string }) => {
+      if (value?.kind === 'plugin-lease-ready' || value?.kind === 'plugin-materialize-ready') release();
+    };
+    childProcess.on('message', releaseLateBarrier);
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(() => finish(new Error(`Owned fixture child did not stop: ${JSON.stringify({ pid: childProcess.pid, trace: mailboxes.get(childProcess)?.trace })}`)), 10_000);
+        const onExit = () => finish();
+        const onError = (error: Error) => finish(error);
+        function finish(error?: Error) {
+          clearTimeout(timer);
+          childProcess.off('exit', onExit); childProcess.off('error', onError);
+          if (error) reject(error); else resolve();
+        }
+        childProcess.once('exit', onExit); childProcess.once('error', onError);
+        release();
+        if (childProcess.connected) childProcess.send({ kind: 'stop' }, error => { if (error) finish(error); });
+      });
+    } finally { childProcess.off('message', releaseLateBarrier); }
   }
 
   async function isolatedChild(options: { observe?: boolean; barrier?: boolean } = {}) {
@@ -470,7 +492,10 @@ describe('immutable plugin package deployment', () => {
       await prisma.pluginOperationLease.update({ where: { slug: id }, data: { expiresAt: new Date(0) } });
       const bEntered = message(b, 'plugin-lease-ready');
       const second = uploadTo(bReady.base, newZip);
-      await Promise.race([bEntered, second.then(result => { throw new Error(`Takeover finished before publication barrier: ${JSON.stringify(result)}`); })]);
+      await Promise.race([bEntered, second.then(result => {
+        console.error(`Takeover finished before publication barrier: ${JSON.stringify(result)}`);
+        throw new Error(`Takeover finished before publication barrier: ${JSON.stringify(result)}`);
+      })]);
       const bLease = await prisma.pluginOperationLease.findUniqueOrThrow({ where: { slug: id } });
       const abandoned = await prisma.pluginMigrationOperation.findFirstOrThrow({ where: { slug: id, packageVersion: '1.0.0' } });
       expect(abandoned).toMatchObject({ phase: 'NEEDS_RECOVERY', errorCode: 'PLUGIN_MIGRATION_OUTCOME_UNKNOWN', recoveryState: 'LEASE_EXPIRED' });
@@ -497,10 +522,7 @@ describe('immutable plugin package deployment', () => {
       expect(await packagePath(id, hash(oldZip))).toBeDefined();
       expect(await packagePath(id, hash(newZip))).toBeDefined();
     } finally {
-      a.send({ kind: 'plugin-lease-release' });
-      b.send({ kind: 'plugin-lease-release' });
-      await stop(a);
-      await stop(b);
+      await Promise.all([stop(a), stop(b)]);
     }
   });
 
@@ -517,7 +539,10 @@ describe('immutable plugin package deployment', () => {
       const bEntered = message(b, 'plugin-lease-ready');
       const second = uploadTo(bReady.base, newZip);
       void second.catch(() => undefined);
-      await Promise.race([bEntered, second.then(result => { throw new Error(`Recovery finished before barrier: ${JSON.stringify(result)}`); })]);
+      await Promise.race([bEntered, second.then(result => {
+        console.error(`Recovery finished before barrier: ${JSON.stringify(result)}`);
+        throw new Error(`Recovery finished before barrier: ${JSON.stringify(result)}`);
+      })]);
       const abandoned = await first;
       expect(abandoned).toMatchObject({ status: 200, body: { operation: { phase: 'NEEDS_RECOVERY', errorCode: 'PLUGIN_MIGRATION_OUTCOME_UNKNOWN' } } });
       b.send({ kind: 'plugin-lease-release' });
@@ -537,8 +562,7 @@ describe('immutable plugin package deployment', () => {
       expect((await prisma.pluginInstall.findUniqueOrThrow({ where: { slug: id } })).zipHash).toBe(hash(newZip));
       await blobInvariant(id, newZip);
     } finally {
-      a.send({ kind: 'plugin-lease-release' }); b.send({ kind: 'plugin-lease-release' });
-      await stop(a); await stop(b);
+      await Promise.all([stop(a), stop(b)]);
     }
   });
 

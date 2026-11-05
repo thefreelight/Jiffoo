@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { AlertTriangle, ChevronLeft, ChevronRight, ExternalLink, MoreHorizontal, Package } from 'lucide-react';
 import { useLocale, useT } from 'shared/src/i18n/react';
-import { formatStoreTimestamp } from 'shared';
+import { formatStoreTimestamp } from 'shared/store-time';
 import { useStoreDate } from '@/lib/store-time';
 import { useOrder, useOrderNeighbors, useDeliverOrder } from '@/lib/hooks/use-api';
 import { orderListQuery, savedOrderListUrl } from '@/lib/order-list-state';

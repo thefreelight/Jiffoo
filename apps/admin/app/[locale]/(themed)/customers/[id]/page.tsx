@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useLocale, useT } from 'shared/src/i18n/react';
-import { formatStoreTimestamp } from 'shared';
+import { formatStoreTimestamp } from 'shared/store-time';
 import { useStoreDate } from '@/lib/store-time';
 import { useUser, useUpdateUser, useCustomerNeighbors } from '@/lib/hooks/use-api';
 import { usersApi, unwrapApiResponse } from '@/lib/api';

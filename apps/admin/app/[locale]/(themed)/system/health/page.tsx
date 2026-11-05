@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { useT } from 'shared/src/i18n/react';
-import { formatStoreTimestamp } from 'shared';
+import { formatStoreTimestamp } from 'shared/store-time';
 import { useStoreDate } from '@/lib/store-time';
 import { useHealthSummary } from '@/lib/hooks/use-api';
 import { PluginDatabaseAudit } from '@/components/extensions/PluginDatabaseAudit';

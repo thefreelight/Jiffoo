@@ -5,6 +5,10 @@ const nextConfig = createNextConfig({
   appName: 'Admin',
   port: 3002,
   apiRouteHandler: true,
+  // Production bundles support the plugin shell CSP without development eval.
+  ...(['build:local', 'start:local'].includes(process.env.npm_lifecycle_event)
+    ? { distDir: '.next-local-runtime', output: undefined }
+    : {}),
   turbopack: {
     root: require('path').resolve(__dirname, '../..'),
   },

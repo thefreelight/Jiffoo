@@ -1,6 +1,6 @@
 'use client';
 import { useT } from 'shared/src/i18n/react';
-import { formatStoreTimestamp } from 'shared';
+import { formatStoreTimestamp } from 'shared/store-time';
 import { useStoreDate } from '@/lib/store-time';
 import type { StaffMembership } from '@/lib/api';
 import { staffStatus, staffInviteExpired } from '@/lib/staff-list-state';

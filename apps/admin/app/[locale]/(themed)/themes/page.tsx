@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowUpRight, MoreHorizontal, Upload } from 'lucide-react';
 import { useLocale } from 'shared/src/i18n/react';
-import { formatStoreTimestamp } from 'shared';
+import { formatStoreTimestamp } from 'shared/store-time';
 import { useThemeAssets } from '@/lib/theme-assets';
 import { useStoreDate } from '@/lib/store-time';
 import { AdminApiError } from '@/lib/api';

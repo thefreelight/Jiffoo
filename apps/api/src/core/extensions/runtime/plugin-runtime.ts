@@ -45,6 +45,8 @@ import { readStoredPluginManifest } from '@/core/extensions/runtime/stored-manif
 import { fulfillmentV1Methods, getPluginManifestIssues, isPluginBusinessError, isPluginManifest, notificationV1Methods, paymentV2Methods, PLUGIN_CONTRACT_VERSIONS, shippingV1Methods, taxV1Methods, validateServicePayload, validateServicePayloadSize, type BoundPrincipal, type PluginContractName, type PluginEvent, type PluginEventHandler, type PluginServiceCall, type PluginServiceDependencyDeclaration, type ServiceResult } from '@jiffoo/shared';
 import { providerInvocation, providerOutcomeToResult, providerRejection, serviceCoreError, serviceKey, servicePermission, serviceRegistrationsOf, SERVICE_CALL_DEFAULT_TIMEOUT_MS, SERVICE_CALL_MAX_DEPTH, SERVICE_CALL_MAX_TIMEOUT_MS, SERVICE_CALL_MIN_TIMEOUT_MS, type ServiceMethodSchemas } from '@/core/extensions/runtime/service-runtime';
 import { listPaidOrders } from '@/core/extensions/commerce/commerce-query';
+import { getPurchasableVariants } from '@/core/extensions/commerce/product-query';
+import { readPluginCustomers } from '@/core/extensions/customers/customer-query';
 import { claimServiceCall, fenceNotExecuted, markServiceCallUnknown, releaseServiceCallClaim, settleServiceCall, type ServiceCallHandle, type ServiceCallRow } from '@/core/extensions/runtime/service-ledger';
 import { prisma } from '@/config/database';
 import type { PluginInstall } from '@prisma/client';
@@ -736,6 +738,11 @@ async function ensureInternalRuntime(
         dependencies: manifest.serviceDependencies || [],
       }, request),
       listPaidOrders: (request) => listPaidOrders(ctx.installationId, request),
+      getVariants: request => getPurchasableVariants(ctx.installationId, request),
+      customers: {
+        lookup: request => readPluginCustomers(ctx.installationId, request),
+        search: request => readPluginCustomers(ctx.installationId, request),
+      },
     });
     await candidateApp.ready();
 

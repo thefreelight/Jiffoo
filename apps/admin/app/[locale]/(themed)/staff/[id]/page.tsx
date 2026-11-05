@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { ChevronLeft, ChevronRight, MoreHorizontal } from 'lucide-react';
 import { useLocale, useT } from 'shared/src/i18n/react';
-import { formatStoreTimestamp } from 'shared';
+import { formatStoreTimestamp } from 'shared/store-time';
 import { useStoreDate } from '@/lib/store-time';
 import { useAuthStore } from '@/lib/store';
 import { useStaffMember, useStaffAuditLogs, useStaffNeighbors, useRemoveStaff, useResendStaffInvite, useReinviteStaff } from '@/lib/hooks/use-api';

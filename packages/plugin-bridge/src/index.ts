@@ -215,6 +215,10 @@ export function createPluginBridge() {
   }
   return {
     ready, request,
+    customers: { open: (input: { customerId: string }) => request('customers.open', input) },
+    commerce: {
+      product: { open: (input: { variantId: string }) => request('commerce.product.open', input) },
+    },
     context: async () => { await ready; if (closed) throw new Error('Bridge closed'); return context!; },
     subscribe: async (listener: (context: PageContext) => void) => {
       await ready;

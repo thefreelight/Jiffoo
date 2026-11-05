@@ -16,9 +16,25 @@ describe('contract v1 plugin runtime', () => {
       keys = Object.keys(ctx).sort();
       ctx.contracts.implement('payment', 2, { describe: () => ({ displayName: 'Test', requiresManualConfirmation: false, unpaidTimeoutMinutes: 30, supportedCurrencies: ['USD'], account: { namespace: 'fixture', merchantAccount: 'fixture', environment: 'test' } }), createSession: () => ({ sessionId: 'session-1', action: { type: 'redirect', url: 'https://pay.example/session-1' } }), queryByRequestKey: () => ({ status: 'pending' }) });
     } }, { slug: 'test-plugin', installationId: 'install-1', generation:0n, zipHash:'fixture', version: '1.0.0', config: {}, declaredContracts: [{ name: 'payment', version: 2 }], subscriptions: [] });
-    await app.ready(); expect(keys).toEqual(['commerce', 'config', 'contracts', 'database', 'events', 'http', 'logger', 'plugin', 'services', 'storage', 'tasks']);
+    await app.ready(); expect(keys).toEqual(['authorization', 'commerce', 'config', 'contracts', 'customers', 'database', 'events', 'http', 'logger', 'plugin', 'services', 'storage', 'tasks']);
     expect((await app.inject({ method: 'POST', url: '/__contracts/payment/v2/describe', payload: {} })).statusCode).toBe(200);
     expect((await app.inject({ method: 'POST', url: '/__contracts/payment/v1/describe', payload: {} })).statusCode).toBe(404); await app.close();
+  });
+  it('delegates product and customer projections through supplied host capabilities', async () => {
+    const app = Fastify();
+    const getVariants = vi.fn().mockResolvedValue({ items: [] });
+    const lookup = vi.fn().mockResolvedValue({ items: [], nextCursor: null });
+    const search = vi.fn().mockResolvedValue({ items: [], nextCursor: null });
+    await registerContractV1Runtime(app, { async register(ctx) {
+      await expect(ctx.commerce.products.getVariants({ variantIds: ['variant'], locale: 'en' })).resolves.toEqual({ items: [] });
+      await ctx.customers.lookup({ ids: ['customer'] });
+      await ctx.customers.search({ query: 'example', limit: 10 });
+    } }, { slug: 'projection-plugin', installationId: 'projection-install', generation: 0n, zipHash: 'fixture',
+      version: '1.0.0', config: {}, declaredContracts: [], subscriptions: [], getVariants, customers: { lookup, search } });
+    expect(getVariants).toHaveBeenCalledWith({ variantIds: ['variant'], locale: 'en' });
+    expect(lookup).toHaveBeenCalledWith({ ids: ['customer'] });
+    expect(search).toHaveBeenCalledWith({ query: 'example', limit: 10 });
+    await app.close();
   });
   it('converts decimal amounts without floating point arithmetic', () => {
     expect(decimalToMinor('19.99', 'USD')).toBe(1999); expect(decimalToMinor('100', 'JPY')).toBe(100); expect(minorToDecimal(1999, 'USD')).toBe('19.99'); expect(decimalToMinor(minorToDecimal(12345, 'USD'), 'USD')).toBe(12345);

@@ -17,6 +17,10 @@
       "types": "./dist/shared/api/*.d.ts",
       "default": "./dist/shared/api/*.js"
     },
+    "./utils/constants": {
+      "types": "./dist/shared/src/utils/constants.d.ts",
+      "default": "./dist/shared/src/utils/constants.js"
+    },
     "./store-time": {
       "types": "./dist/shared/src/store-time.d.ts",
       "default": "./dist/shared/src/store-time.js"

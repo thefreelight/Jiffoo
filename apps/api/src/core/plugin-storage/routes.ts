@@ -17,6 +17,23 @@ const resultSchema = { type: 'object', additionalProperties: false, required: ['
 const responses = (schema: unknown) => ({ ...createTypedReadResponses(schema), 400: errorResponseSchema, 409: errorResponseSchema, 413: errorResponseSchema, 429: errorResponseSchema, 503: errorResponseSchema });
 
 export async function pluginStorageRoutes(app: FastifyInstance) {
+  app.route<{ Params: { id: string }; Querystring: { token: string } }>({ method: ['GET', 'HEAD'], url: '/plugin-public-files/:id', schema: {
+    tags: ['plugin-storage'], summary: 'Read explicitly published image bytes using a revocable expiring grant',
+    params: { type: 'object', additionalProperties: false, required: ['id'], properties: { id } },
+    querystring: { type: 'object', additionalProperties: false, required: ['token'], properties: { token: { type: 'string', maxLength: 4096 } } },
+    response: { 200: { type: 'string', format: 'binary' }, 400: errorResponseSchema, 404: errorResponseSchema, 429: errorResponseSchema, 503: errorResponseSchema },
+  }, handler: async (request, reply) => {
+    reply.header('Cache-Control', 'no-store').header('Referrer-Policy', 'no-referrer').header('X-Content-Type-Options', 'nosniff');
+    try {
+      const query = new URL(request.url, 'http://public-files.invalid').searchParams;
+      if (query.size !== 1 || !query.has('token')) throw new ApiError('VALIDATION_ERROR');
+      if (!(await sharedProtection.rate(`jiffoo:public-file:${request.ip}`, 60_000, 120)).allowed) throw new ApiError('RATE_LIMITED');
+      const file = await pluginStorage.readPublicGrant(request.params.id, request.query.token);
+      reply.type(file.contentType).header('Content-Disposition', `inline; filename="${request.params.id}.${fileTypes[file.contentType]}"`)
+        .header('Content-Length', file.content.length).header('Content-Security-Policy', "default-src 'none'; sandbox");
+      return reply.send(request.method === 'HEAD' ? undefined : file.content);
+    } catch (error) { return sendMappedError(reply, error); }
+  } });
   app.addHook('onRequest', async (_request, reply) => { reply.header('Cache-Control', 'private, no-store').header('Referrer-Policy', 'no-referrer').header('X-Content-Type-Options', 'nosniff'); });
   app.post<{ Params: { slug: string } }>('/plugin-storage/:slug/files', { schema: { tags: ['plugin-storage'], summary: 'Upload a private principal-owned file', params,
     consumes: ['multipart/form-data'], response: responses({ type: 'object', additionalProperties: false, required: ['reference', 'contentType', 'size', 'sha256'],

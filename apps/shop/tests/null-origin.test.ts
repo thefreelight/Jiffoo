@@ -56,6 +56,19 @@ describe('Shop opaque-origin cookie isolation inventory', () => {
     expect(response.headers.get('x-middleware-next')).toBe('1');
   });
 });
+it.each(['GET', 'HEAD'])('Shop guest public image %s keeps token-only identity', method => {
+  const response = proxy(new NextRequest('http://127.0.0.1:3003/api/v1/plugin-public-files/12345678-1234-4123-8123-123456789abc?token=signed', {
+    method, headers: { Origin: 'null', Cookie: 'shop_access=private', Authorization: 'Bearer private' },
+  }));
+  expect(response.status).toBe(200);
+  expect(response.headers.get('x-middleware-request-cookie')).toBeNull();
+  expect(response.headers.get('x-middleware-request-authorization')).toBeNull();
+  expect(response.headers.get('x-middleware-request-x-shop-return-path')).toBeNull();
+});
+it.each(['POST', 'PUT', 'DELETE'])('Shop rejects public-file %s outside exact read methods', method => {
+  const response = proxy(new NextRequest('http://127.0.0.1:3003/api/v1/plugin-public-files/12345678-1234-4123-8123-123456789abc?token=signed', { method, headers: { Origin: 'null' } }));
+  expect(response.status).toBe(403);
+});
 it.each(['GET', 'HEAD'])('Shop %s asset transport strips identity and preserves only a configured public Host', async method => {
   vi.stubEnv('API_SERVICE_URL', 'http://127.0.0.1:3001');
   vi.stubEnv('STOREFRONT_URL', 'http://127.0.0.1:3003');

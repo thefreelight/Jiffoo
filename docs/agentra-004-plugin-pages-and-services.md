@@ -1236,14 +1236,14 @@ UI-asset validation modules, without workspace dependencies or Core application
 imports. Pre-release versions use `1.0.0-alpha.N`, starting at alpha.1. npm
 publishing comes later, after the owner supplies an npm organisation; set
 publishConfig.access to public at that time. Consumers can install the release
-asset with `npm i ./jiffoo-core-plugin-sdk-1.0.0-alpha.6.tgz` and import
+asset with `npm i ./jiffoo-core-plugin-sdk-1.0.0-alpha.7.tgz` and import
 `PluginContext` from `@jiffoo-core/plugin-sdk`.
 
 The browser-side client is `@jiffoo/plugin-bridge`, the counterpart of the SDK for
 the plugin page shell. Each Core release attaches it as a release asset next to
 the SDK tarball. It has no dependencies, no Core application imports and no
 workspace references, and its published `dist` bytes are the tree's build. A
-consumer installs it with `npm i ./jiffoo-plugin-bridge-1.0.0-alpha.3.tgz` and
+consumer installs it with `npm i ./jiffoo-plugin-bridge-1.0.0-alpha.4.tgz` and
 imports `createPluginBridge` from `@jiffoo/plugin-bridge`. A consumer that
 vendors the tarball records the Core commit it came from and the tarball's
 SHA256 beside the file, so that the bytes stay traceable to a tree. The
@@ -1437,3 +1437,150 @@ Implementation must verify the full cookie-consuming route inventory and
 deployed Shop/Admin/API origin configuration before the shell is approved.
 The optional bridge KV store and component renderer are later batches, with
 no V1 dependency and no legacy route/API compatibility layer.
+
+## Consumer usage integration requirements
+
+These requirements describe the generic host boundary, not an assertion that every
+required capability is delivered. Credits is a consumer-usage provider, not a currency
+wallet or loyalty programme. A business plugin owns its styles, curated inspiration,
+creations and restrictions. Neither model belongs in Core.
+
+| Area | Previously public | Current implementation batch | Consumer responsibility and remaining work |
+| --- | --- | --- | --- |
+| Products and prices | `commerce.orders.listPaid` | `commerce.products.getVariants({variantIds,locale})`, requiring `commerce:products.read`, returns bounded published variant projections with localized product title, currency, authoritative decimal price and availability | The provider owns variant-to-usage mappings, not another currency price database. Checkout revalidates price and stock. Package endpoints must not fabricate currency prices when the projection is unavailable. |
+| Host navigation | Allowlisted `navigate`, `cart.add`, `checkout.open` and purchase origins | `bridge.commerce.product.open({variantId})` asks the authenticated or guest-proved host session to resolve the canonical localized product destination | Plugins never construct checkout routes or arbitrary return URLs. Existing checkout and return semantics below remain authoritative. |
+| Shared files | Principal-owned `storage.put/get/readUrl` | `publish/unpublish/publicUrl` and cookie-free public image reads; see final artifact verification record | Publication does not transfer ownership. Grants expire after 60 seconds; every read rechecks publication revision and installation generation before and after object reading. |
+| Permanent deletion | Private files and durable internal cleanup | `retain/release/delete/deletion`, persistent operations and existing cleanup lease/retry; see final artifact verification record | Registered active references block deletion. A removed presentation or database row is not proof of physical erasure. Preserve financial, task and audit evidence and do not cascade-delete usage transactions. |
+| Customer identity | Core authentication and administrator customer management | `customers.lookup/search` plus `authorization.require(action)`; see final artifact verification record | Reads require `customers:read` and a live ADMIN. Mutations separately require declared action grants; consumer plugins must invoke them for credit adjustment and creation restriction. Customer projections and business statistics are distinct responsibilities. |
+| Provider transition | Isolated plugin schemas, versioned service calls and installer migration ledgers | The coordinated procedure below is a plan, not an executed transition or an automatic migration tool | Preserve provider-owned ledger/effect identities and settle old work before switching. Core does not own wallet or Credits rules. |
+| Deployment | Installer/update migration declarations, checksums and audit | Consult the final artifact verification record for the executed gate and consumer checks | Apply plugin migrations only through the supported installer/update path. Any unexplained schema or migration drift stops deployment; never repair it automatically. |
+
+### Navigation and purchase return
+
+`commerce.product.open` is available on the storefront surface. The frame supplies
+only a variant id. The host verifies its live shell session (including a guest proof
+for guest sessions), installation grant and the published product projection, and
+builds the localized product URL. It does not accept a frame-supplied destination.
+
+For a direct purchase, use the existing `cart.add({variantId,quantity})`, then
+`checkout.open`. The latter creates a Core purchase origin bound to the authenticated
+customer, installation generation and the current declared page's canonical path.
+The return destination is that declared page, not an arbitrary URL supplied by a
+plugin. Core validates that origin when binding it to the order and resolving the
+purchase return. A product-page navigation alone does not establish a purchase
+origin or promise a return to the originating plugin.
+
+Reuse Core login, account disable and session revocation. A business restriction
+affects new creations only; it must not become a second account-disable mechanism.
+
+Administrator account links use `bridge.customers.open({customerId})`, not arbitrary
+paths supplied by a frame. The administrator shell asks its session-bound
+`customer-target` endpoint; Core checks the live administrator and `customers:read`,
+uses the shared audited customer projection and rechecks the session after reading.
+The host then adds its locale to the fixed `/customers/{id}` destination. Customer
+or guest pages cannot use this action. The general plugin-page `navigate` allowlist
+is unchanged.
+
+### Coordinated wallet-to-usage-provider transition
+
+The new provider has a new plugin identity and an isolated schema. Do not implement
+a slug alias, dual reads, dual writes or automatic order-history replay. No production
+or acceptance database transition is authorized or recorded by this procedure.
+
+1. Inventory the exact consumer/provider deployment versions, original Core service
+   call identities, migrations and checksums. Audit migration/schema state read-only.
+   Stop on drift. Confirm installer support for the declared new schema; retain the
+   original root `001_generations`, append `002_operations`, and declare the new
+   provider's own `001_credits` with its checksum. These names describe the consuming
+   packages' requirements, not Core-owned business migrations.
+2. Enter a coordinated maintenance window that blocks new old-provider business,
+   order crediting and new consumer tasks. Settle in-flight old tasks and original
+   Core service calls, including UNKNOWN effects, through their original identities.
+   An exported balance cannot resolve an unknown old effect. Do not switch while
+   those outcomes remain unresolved.
+3. Use provider-owned, supported export/import commands. A read-only export contains
+   balances, immutable ledger and effect keys, package mappings, manual exceptions,
+   sweep checkpoints and the relationship to original call/task identities. Produce
+   stable ordered counts and cryptographic hashes for each exported set, currency or
+   usage unit, plus a manifest of versions and migration checksums. Do not infer that
+   an existing generic Core command performs this business export.
+4. Rehearse import and reconciliation only in an explicitly approved disposable
+   environment. The documented automated plugin database verification uses a disposable
+   PostgreSQL 18.2 container and must not target acceptance data. Import idempotently
+   under the provider's ownership; reconcile counts, hashes, balances and exceptions
+   before enabling consumers. Preserve immutable identities and checkpoints. Never
+   replay paid-order history into an empty ledger on top of imported balances.
+5. After explicit approval for the real environment, install/update through Core's
+   supported path and switch the coordinated consumer/provider deployment as one
+   decision. Keep the original wallet disabled for new business, including order
+   crediting. Verify single-provider effects before ending maintenance.
+6. Roll back the whole coordinated consumer/provider deployment. Keep maintenance
+   active until post-cutover effects and checkpoints are reconciled; restoring only
+   one component or blindly restoring old balances is not a safe rollback. Retain
+   export manifests, outcome evidence and required audit/financial records.
+
+Provider-owned export/import tooling remains separate implementation work. Policy
+authority bootstrap has an explicit operator tool described below, not an automatic
+deployment step. Source changes alone do
+not constitute a consumable SDK/Bridge release: build and pack both packages, verify
+clean external consumers and generated declarations, and record versions, source
+revision and tarball hashes. The final artifact verification record in the
+coordination ledger identifies the executed gate, clean consumer checks and exact
+delivered package bytes; it does not establish CI, acceptance deployment or npm publication.
+
+### File publication, references and deletion authorization
+
+`ctx.authorization.require(action)` verifies a live Core-bound administrator, the
+installation grant `actions:<action>` and that administrator's explicit Core action
+grant. Plugin-owned actions are declared in `adminActions`; `storage.publish` and
+`storage.delete` are host built-ins. Missing grants deny access. Core policy-authority
+administration is distinct from an ordinary ADMIN role. The operator tool is
+`node scripts/plugin-action-policy-bootstrap.mjs --database-url-env=ENV_NAME --expected-database=NAME --admin-id=ID [--dry-run|--apply]`.
+It requires an already built Core, reads only the explicitly named URL environment
+variable, defaults to dry-run and requires the exact URL database name and
+`current_database()` to match. Before either mode it verifies the complete migration
+history and checksums and a read-only Prisma schema diff; any drift or failed
+preflight stops the operation without repair. Test databases additionally pass the
+lane registry guard. `--apply` is a separately authorized operator write, serialized
+to bootstrap the first active administrator authority; another identity cannot use
+bootstrap to add itself afterward. Manage later grants through the policy authority
+service. This integration session did not run bootstrap against any environment.
+
+`storage.publish(reference)` requires `storage.publish` and the administrator's own
+image. `unpublish(reference)` allows an administrator with that action to revoke any
+administrator-owned image in the same installation. An established publication
+survives its publisher's logout or account disable; its authority is the durable
+publication record, not the publisher's session. Another authorized administrator
+can revoke it. Installation disable, generation change, unpublish or deletion stops
+future public reads, even with an unexpired URL. Bytes already downloaded cannot be
+recalled. A plugin with a live handler may call `publicUrl(publicationId)` for a live
+publication without claiming the original administrator's identity; guest handlers
+are supported. Private `get/readUrl` remain owner-scoped.
+
+`retain(reference,key)` registers an explicit business reference and `release` removes
+it idempotently. Owners may manage their references; a `storage.delete`-authorized
+administrator may manage references for files in the same installation. Core cannot
+discover unregistered references in arbitrary plugin records. Reference changes and
+deletion serialize on the file row. `delete(reference,{idempotencyKey})` requires
+`storage.delete` and may target any owner within that installation. Active registered
+references return `PLUGIN_FILE_REFERENCED` (409); reusing an operation key for different
+input returns `PLUGIN_FILE_IDEMPOTENCY_CONFLICT` (409).
+
+Deletion revokes publications and private access transactionally, then the existing
+durable cleanup performs the object-store delete and verifies absence with HEAD.
+`deletion(operationId)` reports PENDING, FAILED or DELETED without erasing the operation
+evidence. Expired cleanup claims can be reclaimed; dead cleanup retries and quota
+release for these operations require the same delete action. DELETED means verified
+absence of the active object, with `erasureScope: 'active-object'`; historical S3
+versions, replicas and backups are not covered. A plugin must not advertise this as
+certified erasure of all historical copies.
+
+Core's existing destructive plugin uninstall/purge administration is a separate
+lifecycle authority from SDK administrator action grants. Its hard purge requires
+the uninstalled state, explicit slug confirmation and the existing dependency and
+unfinished-payment checks; plugin-owned schema and financial evidence remain.
+Installation storage purge also refuses ACTIVE registered references and revokes
+publications before queuing physical cleanup. The new fine-grained plugin action
+grants do not replace or narrow the existing global Core ADMIN lifecycle authority.
+Unifying that existing operator authorization is a remaining limitation, not a
+capability delivered by `ctx.authorization.require`.

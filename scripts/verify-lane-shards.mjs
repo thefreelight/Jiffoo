@@ -1346,7 +1346,7 @@ async function runShard(shard, baseEnvironment, resultsDirectory, keep = false) 
     const measurement = measureCurrentDatabase(shard.databaseContainerId, shard.databaseName);
     assertCurrentDatabaseMatches(measurement.measured, shard.databaseName);
     log.write(`# current database measured inside the shard container: ${measurement.measured}\n`);
-    const migration = await runCommand(['--filter', 'api', 'exec', 'prisma', 'migrate', 'reset', '--force', '--skip-seed'], { env: environment, log, timeoutMs: migrationTimeoutMs });
+    const migration = await runCommand(shardMigrationArguments(), { env: environment, log, timeoutMs: migrationTimeoutMs });
     if (migration.code !== 0 || migration.timedOut || migration.aborted) {
       log.write(`# migration failed with ${migration.code}\n`);
       exitCode = migration.code;
@@ -1455,6 +1455,16 @@ function containerState(containerId) {
   return (result.stdout ?? '').trim() || 'unknown';
 }
 
+export function shardMigrationArguments() {
+  return ['--filter', 'api', 'exec', 'prisma', 'migrate', 'reset', '--force', '--skip-seed', '--skip-generate'];
+}
+
+/** The generated client is shared input: finish its only write before starting any shard. */
+export async function prepareSharedPrismaClient(environment, execute = runCommand) {
+  const result = await execute(['--filter', 'api', 'exec', 'prisma', 'generate'], { env: environment, log: process.stdout, timeoutMs: 300_000 });
+  if (result.code !== 0 || result.timedOut || result.aborted || result.lingering?.length) throw new Error(`Shared Prisma client generation failed: ${result.code}`);
+}
+
 async function main() {
   const startedAt = Date.now();
   const startedAtIso = new Date(startedAt).toISOString();
@@ -1554,6 +1564,7 @@ async function main() {
     // as the shards that run against it. A run whose selection the caller named uses that
     // selection as its catalogue, and the expected set of the run is exactly that selection.
     const catalogueEnvironment = catalogueSnapshotEnvironment(baseEnvironment, plan[0]);
+    await prepareSharedPrismaClient(catalogueEnvironment);
     const catalogue = files ? readShardFileList(files) : listExpectedApiFiles(resultsDirectory, catalogueEnvironment);
     const durationTable = readDurationTable(durationFixturePath);
     const partition = partitionCatalogue(catalogue, plan[0].shards, durationTable);

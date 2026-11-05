@@ -7,6 +7,9 @@ import { createTypedReadResponses, errorResponseSchema } from '@/types/common-dt
 import { sharedProtection } from '@/infra/shared-protection';
 import { CartService } from '@/core/cart/service';
 import { CatalogReadService } from '@/core/product/catalog-read-service';
+import { getPurchasableVariantsForPage } from '@/core/extensions/commerce/product-query';
+import { readPluginCustomers } from '@/core/extensions/customers/customer-query';
+import { withTaskScope } from '@/core/plugins/tasks';
 import { authorizeShellSession, currentPage, issuePageSession, shellIdentity, shellOrigin } from './sessions';
 
 const string = { type: 'string' } as const;
@@ -39,6 +42,15 @@ async function limit(key: string, count: number) {
 
 
 export async function adminPluginPageRoutes(app: FastifyInstance) {
+  app.get('/plugin-pages', { schema: { tags: ['plugin-pages'],
+    summary: 'Read current administrator plugin navigation declarations', response: responses(declarationsSchema) } }, async (request, reply) => {
+    reply.header('Cache-Control', 'no-store');
+    try {
+      if (request.headers.origin === 'null' || request.headers.cookie !== undefined) throw new ApiError('FORBIDDEN');
+      await shellIdentity(request, 'admin');
+      return sendSuccess(reply, await PluginPageDeclarationService.declarations('admin'));
+    } catch (error) { return sendMappedError(reply, error); }
+  });
   app.get<{ Params: { slug: string } }>('/plugin-pages/:slug', { schema: { tags: ['plugin-pages'],
     summary: 'Read current administrator plugin page declarations', params, response: responses(declarationsSchema) } }, async (request, reply) => {
     reply.header('Cache-Control', 'no-store');
@@ -53,6 +65,43 @@ export async function adminPluginPageRoutes(app: FastifyInstance) {
 }
 
 export async function pluginPageRoutes(app: FastifyInstance) {
+  app.post<{ Params: { slug: string; id: string }; Body: { customerId: string } }>('/plugin-pages/:slug/sessions/:id/customer-target', {
+    schema: { tags: ['plugin-pages'], summary: 'Resolve a customer account destination through an authorized administrator shell', params: sessionParams,
+      body: { type: 'object', required: ['customerId'], additionalProperties: false,
+        properties: { customerId: { type: 'string', pattern: '^[a-zA-Z0-9_-]{1,128}$' } } },
+      response: responses({ type: 'object', required: ['path'], additionalProperties: false, properties: { path: string } }) },
+  }, async (request, reply) => {
+    reply.header('Cache-Control', 'no-store');
+    try {
+      const admission = await authorizeShellSession(request, request.params.slug, request.params.id, false);
+      if (admission.session.surface !== 'admin' || !admission.user || admission.user.role !== 'ADMIN') throw new ApiError('FORBIDDEN');
+      const session = admission.session;
+      const result = await withTaskScope({ installationId: session.installationId, generation: session.generation,
+        zipHash: session.zipHash, request: true, principal: { type: 'admin', id: admission.user.id }, actorId: admission.user.id },
+      () => readPluginCustomers(session.installationId, { ids: [request.body.customerId] }));
+      await authorizeShellSession(request, request.params.slug, request.params.id, false);
+      const customer = result.items[0];
+      if (!customer) throw new ApiError('NOT_FOUND');
+      return sendSuccess(reply, { path: customer.accountPath });
+    } catch (error) { return sendMappedError(reply, error); }
+  });
+  app.post<{ Params: { slug: string; id: string }; Body: { variantId: string; locale: string; guestSecret?: string } }>('/plugin-pages/:slug/sessions/:id/product-target', {
+    schema: { tags: ['plugin-pages'], summary: 'Resolve a published variant to its canonical storefront product destination', params: sessionParams,
+      body: { type: 'object', required: ['variantId', 'locale'], additionalProperties: false,
+        properties: { ...secretBody.properties, variantId: { type: 'string', pattern: '^c[a-z0-9]{24}$' }, locale: { type: 'string', enum: ['en', 'zh-Hans', 'zh-Hant'] } } },
+      response: responses({ type: 'object', required: ['path'], additionalProperties: false, properties: { path: string } }) },
+  }, async (request, reply) => {
+    reply.header('Cache-Control', 'no-store');
+    try {
+      const session = await authorizeShellSession(request, request.params.slug, request.params.id, false);
+      if (session.session.surface !== 'shop') throw new ApiError('FORBIDDEN');
+      const result = await getPurchasableVariantsForPage(session.session.installationId, { variantIds: [request.body.variantId], locale: request.body.locale });
+      await authorizeShellSession(request, request.params.slug, request.params.id, false);
+      const variant = result.items[0];
+      if (!variant) throw new ApiError('NOT_FOUND');
+      return sendSuccess(reply, { path: `/${request.body.locale}/products/${encodeURIComponent(variant.slug)}` });
+    } catch (error) { return sendMappedError(reply, error); }
+  });
   app.addHook('onRequest', async (_request, reply) => { reply.header('Cache-Control', 'no-store'); });
   app.get('/plugin-pages', { schema: { tags: ['plugin-pages'], summary: 'Read public storefront plugin page declarations',
     response: responses(declarationsSchema) } }, async (_request, reply) => {

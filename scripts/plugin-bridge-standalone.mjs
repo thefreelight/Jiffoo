@@ -80,6 +80,14 @@ export async function verifyStandaloneBridge() {
     assert.equal(typeof client.createPluginBridge, 'function');
     assert.equal(typeof client.parseEnvelope, 'function');
     assert.equal(typeof client.boundedPlain, 'function');
+    const declarations = await readFile(path.join(installed, 'dist/index.d.ts'), 'utf8');
+    assert.match(declarations, /commerce:\s*\{\s*product:\s*\{\s*open:/);
+    assert.match(declarations, /variantId:\s*string/);
+    assert.match(declarations, /customers:\s*\{\s*open:/);
+    assert.match(declarations, /customerId:\s*string/);
+    const product = client.parseEnvelope({ channel: 'jiffoo.plugin', version: 1, id: 'product',
+      type: 'commerce.product.open', sessionId: 'session', nonce: 'a'.repeat(64), payload: { variantId: 'variant' } });
+    assert.equal(product.type, 'commerce.product.open');
     const hello = client.parseEnvelope({ channel: 'jiffoo.plugin', version: 1, id: 'abc', type: 'bridge.hello' });
     assert.equal(hello.type, 'bridge.hello');
     // A message other than the handshake carries the session and a hex nonce.

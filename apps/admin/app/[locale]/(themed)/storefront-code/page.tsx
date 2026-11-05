@@ -2,7 +2,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLocale, useT } from 'shared/src/i18n/react';
-import { formatStoreTimestamp, storefrontCodeProviderPatterns, storefrontCodeSlotCap, storefrontCodeCharacterCount, isStorefrontCodeProviderId } from 'shared';
+import { formatStoreTimestamp } from 'shared/store-time';
+import { storefrontCodeProviderPatterns, storefrontCodeSlotCap, storefrontCodeCharacterCount, isStorefrontCodeProviderId } from 'shared/extensions/storefront-code';
 import { codeViewMessage, type CodeViewLabel } from 'shared/src/i18n/messages/admin-code-view';
 import { themeMessage, type ThemeLabel } from 'shared/src/i18n/messages/admin-themes';
 import type { Locale } from '@/lib/themes';
@@ -20,7 +21,7 @@ const providers = Object.keys(storefrontCodeProviderPatterns) as Array<keyof typ
 const slots = ['headCode', 'bodyStartCode', 'bodyEndCode'] as const;
 type Draft = Record<keyof CodeFields, string>;
 const draftOf = (value: CodeFields): Draft => ({ ga4MeasurementId: value.ga4MeasurementId ?? '', metaPixelId: value.metaPixelId ?? '', baiduSiteKey: value.baiduSiteKey ?? '', headCode: value.headCode, bodyStartCode: value.bodyStartCode, bodyEndCode: value.bodyEndCode });
-export function invalidCodeFields(draft: Draft): (keyof Draft)[] {
+function invalidCodeFields(draft: Draft): (keyof Draft)[] {
   return [...providers.filter(key => draft[key] !== '' && !isStorefrontCodeProviderId(key, draft[key])), ...slots.filter(key => storefrontCodeCharacterCount(draft[key]) > storefrontCodeSlotCap)];
 }
 

@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLocale, useT } from 'shared/src/i18n/react';
-import { formatStoreTimestamp } from 'shared';
+import { formatStoreTimestamp } from 'shared/store-time';
 import { useStoreDate } from '@/lib/store-time';
 import { useAccountProfile, useChangePassword, useUpdateAccountEmail, useUpdateAccountProfile, useUploadAvatar } from '@/lib/hooks/use-api';
 import { accountApi, unwrapApiResponse } from '@/lib/api';
