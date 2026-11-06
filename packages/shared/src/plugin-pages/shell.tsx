@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { CHANNEL, VERSION, messageBudget, parseEnvelope, randomNonce, type Envelope, type Plain } from '../../../plugin-bridge/src/protocol';
 import type { PageContext } from '../../../plugin-bridge/src/index';
 import { pluginThemeNeutralName, pluginThemeVariables } from './theme-vars';
+import { pageState, pageStateKey } from './view-state';
 
 export type ShellSession = { sessionId: string; frameUrl: string; pluginToken: string; expiresAt: string;
   guestSecret: string | null; context: Pick<PageContext, 'customer' | 'admin' | 'page'> };
@@ -145,7 +146,7 @@ export function PluginPageShell(props: Props) {
       return { ...active!.context, locale, currency, store: { ...store, url: new URL(store.url, location.origin).href }, themeTokens,
         colorMode: css.colorScheme === 'dark' ? 'dark' : 'light',
         capabilities: ['context.get', 'context.subscribe', 'token.refresh', 'navigate', 'auth.signIn', 'frame.resize', 'toast.show', 'file.download',
-          ...(surface === 'shop' ? ['cart.add', 'checkout.open', 'commerce.product.open'] : ['customers.open'])] };
+          ...(surface === 'shop' ? ['cart.add', 'checkout.open', 'commerce.product.open'] : ['customers.open', 'pageState.get', 'pageState.set', 'pageState.clear'])] };
     }
     function changed() {
       if (active && subscribed) post({ id: crypto.randomUUID(), type: 'context.changed', payload: { revision: ++revision, context: context() as unknown as Plain } });
@@ -174,6 +175,13 @@ export function PluginPageShell(props: Props) {
     }
     async function action(message: Envelope): Promise<Plain> {
       switch (message.type) {
+        case 'pageState.get':
+        case 'pageState.set':
+        case 'pageState.clear': {
+          if (disposed || props.surface !== 'admin' || !active?.context.admin || active.context.customer) throw new Error('FORBIDDEN');
+          const args = object(message.payload); exact(args, message.type === 'pageState.set' ? ['value'] : []);
+          return pageState(window.localStorage, pageStateKey(currentProps.current.store.id, active.context.admin.id, props.slug, active.context.page.id), message.type, args.value);
+        }
         case 'context.get': return context() as unknown as Plain;
         case 'context.subscribe': subscribed = true; changed(); return { subscribed: true };
         case 'token.refresh': return await refresh(binding);
