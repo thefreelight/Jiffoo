@@ -74,7 +74,18 @@ test('A home retains one theme style after a reload and across locale and page n
     await expect(page.getByRole('combobox', { name: label, exact: true })).toHaveValue(locale);
     await assertDocument(page, locale, errors);
   }
-  await page.getByRole('link', { name: 'All products', exact: true }).click();
+  const header = page.getByRole('banner');
+  await expect(header.getByRole('link', { name: 'E2E Updated Store', exact: true })).toBeVisible();
+  const categories = header.getByRole('button', { name: 'Categories', exact: true });
+  if (await categories.isVisible()) {
+    await categories.click();
+    await page.getByRole('dialog', { name: 'E2E Updated Store', exact: true })
+      .getByRole('navigation', { name: 'Categories', exact: true })
+      .getByRole('link', { name: 'All products', exact: true }).click();
+  } else {
+    await header.getByRole('navigation', { name: 'Categories', exact: true })
+      .getByRole('link', { name: 'All products', exact: true }).click();
+  }
   await expect(page).toHaveURL(`${shopOrigin}/en/products`);
   await expect(page.getByRole('heading', { level: 1, name: 'All products', exact: true })).toBeVisible();
   await assertDocument(page, 'en', errors);
