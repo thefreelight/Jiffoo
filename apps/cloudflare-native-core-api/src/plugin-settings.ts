@@ -138,8 +138,8 @@ const definitions: Record<string, PluginDefinition> = {
     configSchema: {},
   },
   'support-hub': {
-    slug: 'support-hub', name: 'Support Hub', version: '0.0.3', category: 'social',
-    description: 'Storefront contact launcher with Telegram, WhatsApp, Feishu/Lark, and generic HTTPS chat channels.',
+    slug: 'support-hub', name: 'Support Hub', version: '0.0.4', category: 'social',
+    description: 'Contact launcher plus AI customer-service chat: OpenAI-compatible AI replies, handoff to human channels, persisted conversations, and an optional bot webhook.',
     configSchema: {
       enabled: { type: 'boolean', label: 'Enable Support Hub' },
       telegramEnabled: { type: 'boolean', label: 'Enable Telegram' },
@@ -153,6 +153,16 @@ const definitions: Record<string, PluginDefinition> = {
       retentionDays: { type: 'number', label: 'Retention days' },
       autoAssign: { type: 'boolean', label: 'Auto assign' },
       defaultQueue: { type: 'string', label: 'Default queue' },
+      chatEnabled: { type: 'boolean', label: 'Enable support chat' },
+      aiEnabled: { type: 'boolean', label: 'Enable AI replies' },
+      aiBaseUrl: { type: 'string', label: 'AI API base URL' },
+      aiApiKey: { type: 'string', label: 'AI API key' },
+      aiModel: { type: 'string', label: 'AI model' },
+      aiSystemPrompt: { type: 'string', label: 'AI system prompt' },
+      aiWelcomeMessage: { type: 'string', label: 'Chat welcome message' },
+      aiHandoffMessage: { type: 'string', label: 'Handoff message' },
+      botWebhookEnabled: { type: 'boolean', label: 'Enable bot webhook' },
+      botWebhookUrl: { type: 'string', label: 'Bot webhook URL' },
     },
   },
   'imager-ai': {
