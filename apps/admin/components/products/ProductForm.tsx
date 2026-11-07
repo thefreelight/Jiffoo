@@ -90,7 +90,9 @@ export function ProductForm({ product, source, categoryId, storefrontUrl = '' }:
       return true;
     } catch (error) {
       const typed = error as { code?: string; details?: { field?: string; variantIndex?: number; issues?: { path?: string; message?: string; code?: string }[] } }, details = typed.details;
-      const message = resolveApiErrorMessage(error, t);
+      const message = typed.code === 'CONFLICT'
+        ? locale.startsWith('zh') ? '库存已被其他操作修改。草稿已保留，请记录改动并刷新页面，核对最新库存后重新编辑。' : 'Stock changed since you opened this product. Your draft is preserved. Note your changes and reload to review the latest stock before editing again.'
+        : resolveApiErrorMessage(error, t);
       const priceIssue = details?.issues?.find(issue => typeof issue?.code === 'string' && issue.code.startsWith('PRICE_NOT_REPRESENTABLE_IN_'));
       if (priceIssue) {
         const currency = priceIssue.code!.slice('PRICE_NOT_REPRESENTABLE_IN_'.length);

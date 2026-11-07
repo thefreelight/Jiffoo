@@ -13,6 +13,8 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { storefront as hans } from '../../../packages/shared/src/i18n/messages/zh-Hans/storefront';
 
+import { paymentStatusLabel } from '../lib/order-labels';
+
 vi.mock('server-only', () => ({}));
 vi.mock('../lib/catalog', () => ({ messages: () => en }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
@@ -56,6 +58,19 @@ describe('S4 form contracts', () => {
 });
 
 describe('S4 result and summary states', () => {
+  it.each(['en', 'zh-Hans', 'zh-Hant'] as const)('renders refunded as a final result in %s without pending copy or instructions', (locale) => {
+    const refunded = { ...order, status: 'REFUNDED', paymentStatus: 'REFUNDED', paymentAttemptState: 'SUCCEEDED' };
+    expect(paymentResult(refunded)).toBe('refunded');
+    const html = renderToStaticMarkup(createElement(OrderSummary, { order: refunded, locale, timezone: 'UTC' }));
+    expect(html).toContain(paymentStatusLabel(locale, 'REFUNDED'));
+    expect(html).not.toContain(en.s4.pending);
+    expect(html).not.toContain(en.s4.pendingBody);
+    expect(html).not.toContain(order.paymentInstructions!);
+    expect(html).not.toContain('animate-spin');
+    for (const paymentAttemptState of ['UNKNOWN', 'REQUIRES_REVIEW']) {
+      expect(paymentResult({ ...refunded, paymentAttemptState })).toBe('pending');
+    }
+  });
   it('shows the readable number on the checkout result and retains the internal detail link', () => {
     const html = renderToStaticMarkup(createElement(OrderSummary, { order, locale: 'en', timezone: 'UTC' }));
     expect(html).toContain(order.orderNumber);

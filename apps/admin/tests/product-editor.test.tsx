@@ -5,7 +5,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { ProductForm } from '../components/products/ProductForm';
 import { AdminNavigation } from '../components/layout/admin-navigation';
-import { duplicateDraft, productPayload } from '../lib/product-editor';
+import { duplicateDraft, productDraft, productPayload } from '../lib/product-editor';
 import { productListQuery } from '../lib/product-list-state';
 import { merchant } from '../../../packages/shared/src/i18n/messages/en/merchant';
 
@@ -30,6 +30,25 @@ const product = { id: 'product', slug: 'real-slug', currency: 'EUR', name: 'Shir
   createdAt: '2026-10-14T00:00:00Z', updatedAt: '2026-10-14T01:00:00Z', translations: [{ locale: 'zh-Hans', name: '衬衫', description: '亚麻' }],
   variants: [{ id: 'v1', name: 'Small', skuCode: 'SHIRT-S', salePrice: 10, stock: 2, isActive: true, hasOrders: true, attributes: { size: 'S' } }, { id: 'v2', name: 'Large', skuCode: 'SHIRT-L', salePrice: 12, stock: 3, isActive: false, hasOrders: false, attributes: { size: 'L' } }] };
 let root: Root | undefined;
+it('preserves the original stock baseline through edits and removes it from copies', () => {
+  const draft = productDraft(product, 'Default');
+  draft.variants[0].stock = 9;
+  expect(productPayload(draft).variants[0]).toMatchObject({ stock: 9, expectedStock: 2 });
+  expect(duplicateDraft(product, 'Default').variants.every(variant => variant.expectedStock === undefined)).toBe(true);
+  expect(productDraft(undefined, 'Default').variants[0].expectedStock).toBeUndefined();
+});
+
+it('preserves the draft after a stock conflict without retrying', async () => {
+  state.update.mockRejectedValue({ code: 'CONFLICT', status: 409 });
+  await mount();
+  await fill('variant-v1-stock', '9');
+  await act(async () => button('Save').click());
+  expect(state.update).toHaveBeenCalledTimes(1);
+  expect(state.update.mock.lastCall?.[0].data.variants[0]).toMatchObject({ stock: 9, expectedStock: 2 });
+  expect((document.getElementById('variant-v1-stock') as HTMLInputElement).value).toBe('9');
+  expect(document.body.textContent).toContain('Your draft is preserved');
+  expect(state.replace).not.toHaveBeenCalled();
+});
 async function mount(props: Partial<React.ComponentProps<typeof ProductForm>> = { product }) {
   const node = document.createElement('div'); document.body.append(node); root = createRoot(node);
   await act(async () => root!.render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><AdminNavigation storeName="Local Store" storeUrl="http://shop.test/en" /><ProductForm storefrontUrl="http://shop.test/en" {...props} /></QueryClientProvider>)); return node;

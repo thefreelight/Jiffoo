@@ -41,6 +41,7 @@ if (quick && options) {
     ...(apps.includes('shop') ? [['Lint Shop', [['--filter', 'shop', 'lint']]]] : []),
     ...(database ? [['Reset test database', [['--filter', 'api', 'exec', 'prisma', 'migrate', 'reset', '--force', '--skip-seed']]]] : []),
     ...(database && options.drift ? [['Check Prisma migration drift', [['--filter', 'api', 'exec', 'prisma', 'migrate', 'diff', '--from-url', databaseUrl, '--to-schema-datamodel', 'prisma/schema', '--exit-code']]]] : []),
+    ...(options.shopBuild ? [['Build Shop application', [['--filter', 'shop', 'build']]]] : []),
     ...apps.filter(app => selectedFiles[app].length || !selectedArgument.length).map(app => [
       `Run ${app === 'api' ? 'API' : app === 'admin' ? 'Admin' : 'Shop'} tests`,
       [['--filter', app, 'exec', 'vitest', 'run', ...localQuickVitestExclusions(app), ...selectedFiles[app], ...(!selectedArgument.length && app === 'api' ? ['--changed', '--passWithNoTests'] : [])]],
@@ -53,11 +54,12 @@ return quick
       ['Type-check API, Admin, Shop and shared', [['--filter', 'shared', 'build'], ['exec', 'turbo', 'run', 'type-check', '--filter=api', '--filter=admin', '--filter=shop', '--filter=shared']]],
       ['Lint Shop', [['--filter', 'shop', 'lint']]],
       ['Reset test database', [['--filter', 'api', 'exec', 'prisma', 'migrate', 'reset', '--force', '--skip-seed']]],
+      ...(!selectedArgument.length || selectedFiles.shop.some(file => ['tests/error-semantics-http.test.ts', 'tests/payment-return-http.test.ts'].includes(file)) ? [['Build Shop application', [['--filter', 'shop', 'build']]]] : []),
       ...(selectedArgument.length
         ? Object.entries(selectedFiles).filter(([, files]) => files.length).map(([app, files]) => [`Run ${app === 'api' ? 'API' : app === 'admin' ? 'Admin' : 'Shop'} tests`, [['--filter', app, 'exec', 'vitest', 'run', ...localQuickVitestExclusions(app), ...files]]])
         : [
             ['Run changed API tests', [['--filter', 'api', 'exec', 'vitest', 'run', ...localQuickVitestExclusions('api'), '--changed', '--passWithNoTests']]],
-            ['Run Shop tests', [['--filter', 'shop', 'exec', 'vitest', 'run']]],
+            ['Run Shop tests', [['--filter', 'shop', 'exec', 'vitest', 'run', ...localQuickVitestExclusions('shop')]]],
           ]),
     ]
   : [
@@ -75,7 +77,7 @@ return quick
       ['Check Prisma migration drift', [['--filter', 'api', 'exec', 'prisma', 'migrate', 'diff', '--from-url', databaseUrl, '--to-schema-datamodel', 'prisma/schema', '--exit-code']]],
       ['Run API tests', [['--filter', 'api', 'exec', 'vitest', 'run']]],
       ['Run Admin tests', [['--filter', 'admin', 'exec', 'vitest', 'run']]],
-      ['Run Shop tests', [['--filter', 'shop', 'exec', 'vitest', 'run']]],
+      ['Run Shop tests', [['--filter', 'shop', 'exec', 'vitest', 'run', ...localQuickVitestExclusions('shop')]]],
       ['Run browser E2E', [['verify:e2e']]],
     ];
 }
@@ -92,7 +94,8 @@ export function localShardSteps(databaseUrl, shardCount, options = {}) {
     ...(options.drift ? [['Check Prisma migration drift', [['--filter', 'api', 'exec', 'prisma', 'migrate', 'diff', '--from-url', databaseUrl, '--to-schema-datamodel', 'prisma/schema', '--exit-code']]]] : []),
     [`Run API tests in ${shardCount} shards`, [['__lane_shards__', `--shards=${shardCount}`]]],
     ['Run Admin tests', [['--filter', 'admin', 'exec', 'vitest', 'run']]],
-    ['Run Shop tests', [['--filter', 'shop', 'exec', 'vitest', 'run']]],
+    ['Build Shop application', [['--filter', 'shop', 'build']]],
+    ['Run Shop tests', [['--filter', 'shop', 'exec', 'vitest', 'run', ...localQuickVitestExclusions('shop')]]],
   ];
 }
 
@@ -109,6 +112,6 @@ export function ciSteps(databaseUrl, group, shard) {
   const tests = new Set(['Run API tests', 'Run Admin tests', 'Run Shop tests', 'Run browser E2E']);
   return localSteps(databaseUrl).filter(([name]) => common.has(name) || (group === 'api' ? ['Export OpenAPI', 'Run API tests'].includes(name) : group === 'e2e' ? name === 'Run browser E2E' : !tests.has(name) || ['Run Admin tests', 'Run Shop tests'].includes(name)))
     .flatMap(step => group === 'quality' && step[0] === 'Build plugin SDK' ? [step, apiBuildStep] : [step])
-    .map(([name, commands]) => [name, commands.map(args => name === 'Run API tests' ? [...args, `--shard=${shard}`] : [...args])]);
+    .map(([name, commands]) => [name, commands.map(args => name === 'Run API tests' ? [...args, `--shard=${shard}`] : name === 'Run Shop tests' ? args.filter(arg => !localQuickVitestExclusions('shop').includes(arg)) : [...args])]);
 }
 

@@ -5,13 +5,15 @@ import { useRouter } from 'next/navigation';
 import { availabilityFetch, useShopAvailability } from '@/lib/client-availability';
 import type { ShopLocale } from '@/lib/locale';
 import type { Order } from '@/lib/checkout-types';
-import { paymentPollDelay } from '@/lib/payment-result';
+import { paymentPollDelay, paymentResult } from '@/lib/payment-result';
 
 export function PaymentRefresh({ order, locale }: { order: Order; locale: ShopLocale }) {
   const router = useRouter();
   const availability = useShopAvailability(locale);
   const capture = useEffectEvent((error: unknown) => { availability.capture(error); });
   useEffect(() => {
+    const result = paymentResult(order);
+    if (result !== 'pending' && result !== 'manual') return;
     let stopped = false;
     let inFlight = false;
     let timer: ReturnType<typeof setTimeout>;

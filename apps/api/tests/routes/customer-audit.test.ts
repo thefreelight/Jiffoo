@@ -83,6 +83,25 @@ describe('Customer administration audit events', () => {
     })).statusCode).toBe(401);
   });
 
+  it('preserves independent concurrent customer updates', async () => {
+    const user = await customer();
+    const responses = await Promise.all([
+      update(user.id, { username: 'Concurrent Customer' }),
+      update(user.id, { isActive: false }),
+    ]);
+    expect(responses.map(response => response.statusCode)).toEqual([200, 200]);
+    expect(await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).toMatchObject({ username: 'Concurrent Customer', isActive: false });
+    expect((await events(user.id)).map(row => row.action).sort()).toEqual(['customer.deactivated', 'customer.renamed']);
+  });
+
+  it('audits concurrent duplicate deactivation only once', async () => {
+    const user = await customer();
+    const responses = await Promise.all([update(user.id, { isActive: false }), update(user.id, { isActive: false })]);
+    expect(responses.map(response => response.statusCode)).toEqual([200, 200]);
+    expect(await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).toMatchObject({ isActive: false });
+    expect(await events(user.id)).toEqual([expect.objectContaining({ action: 'customer.deactivated', actorId: admin.user.id })]);
+  });
+
   it('does not record no-ops, validation failures, protected accounts or missing customers', async () => {
     const user = await customer();
     expect((await update(user.id, { username: user.username, isActive: true })).statusCode).toBe(200);

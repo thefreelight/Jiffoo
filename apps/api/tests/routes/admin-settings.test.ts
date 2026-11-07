@@ -11,6 +11,7 @@ import type { FastifyInstance } from 'fastify';
 import { createTestApp } from '../helpers/create-test-app';
 import { systemSettingsService } from '@/core/settings/service';
 import { isStoreCurrency } from '@/core/shared/money';
+import { prisma } from '@/config/database';
 import {
   createUserWithToken,
   createAdminWithToken,
@@ -117,6 +118,26 @@ describe('Admin Settings Endpoints', () => {
     } finally {
       if (original === null) await systemSettingsService.resetSetting(key);
       else await systemSettingsService.setSetting(key, original);
+    }
+  });
+
+  it('preserves both keys from concurrent settings batches in storage', async () => {
+    const settings = { 'branding.platform_name': 'Concurrent Store', 'branding.store_description': 'Concurrent description' };
+    const originals = await Promise.all(Object.keys(settings).map(key => systemSettingsService.getSetting(key)));
+    try {
+      const responses = await Promise.all(Object.entries(settings).map(([key, value]) => app.inject({
+        method: 'PUT', url: '/api/v1/admin/settings/batch',
+        headers: { authorization: `Bearer ${adminToken}` }, payload: { settings: { [key]: value } },
+      })));
+      expect(responses.map(response => response.statusCode)).toEqual([200, 200]);
+      const stored = await prisma.systemSettings.findUniqueOrThrow({ where: { id: 'system' } });
+      const persisted = typeof stored.settings === 'string' ? JSON.parse(stored.settings) : stored.settings;
+      expect(persisted).toMatchObject(settings);
+    } finally {
+      for (const [index, key] of Object.keys(settings).entries()) {
+        if (originals[index] === null) await systemSettingsService.resetSetting(key);
+        else await systemSettingsService.setSetting(key, originals[index]);
+      }
     }
   });
 

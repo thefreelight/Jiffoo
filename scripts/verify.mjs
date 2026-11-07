@@ -296,6 +296,10 @@ if (parallelPlan && !dockerAvailable()) {
   console.log(`The API selection of ${parallelPlan.files.length} suite(s) runs in ${parallelPlan.shards} parallel shards.`);
 }
 
+if (!group && steps.some(([, commands]) => commands.some(args => args.includes('--filter') && args.includes('shop') && args.includes('--exclude=tests/availability-http.test.ts')))) {
+  console.log('Local Shop verification excludes tests/availability-http.test.ts: browser suites run in CI only.');
+}
+
 /** Whether the container runtime of the parallel shards is reachable. */
 function dockerAvailable() {
   const result = spawnSync('docker', ['version', '--format', '{{.Server.Version}}'], { encoding: 'utf8', windowsHide: true, timeout: 60_000 });

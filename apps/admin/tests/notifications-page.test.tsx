@@ -62,6 +62,50 @@ it.each(['success', 'failure'])('does not let a late resend %s overwrite another
   expect(dialog.textContent).toContain('refund-buyer@e2e.example');
   expect(dialog.textContent).not.toContain('Email queued');
   expect(dialog.textContent).not.toContain('Unable to queue email');
+  expect(mock.push).toHaveBeenCalledTimes(1);
+});
+it('does not reopen a history-closed detail when a resend finishes', async () => {
+  let resolveResend!: (value: unknown) => void;
+  mock.resend.mockReturnValueOnce(new Promise(resolve => { resolveResend = resolve; }));
+  mock.query = 'notificationId=one'; await render(); await click('Resend');
+  mock.query = ''; await render();
+  await act(async () => { resolveResend({ data: { ...item, id: 'two', status: 'PENDING' } }); });
+  expect(document.querySelector('[role="dialog"]')).toBeNull();
+  expect(mock.push).not.toHaveBeenCalled();
+});
+it('preserves the latest history filters when a pending resend finishes on the same detail', async () => {
+  let resolveResend!: (value: unknown) => void;
+  mock.resend.mockReturnValueOnce(new Promise(resolve => { resolveResend = resolve; }));
+  mock.query = 'notificationId=one&status=SENT&page=2';
+  await render(); await click('Resend');
+  mock.query = 'notificationId=one&status=FAILED&search=latest&type=order_confirmation&sort=oldest&page=3&pageSize=50';
+  await render();
+  await act(async () => { resolveResend({ data: { ...item, id: 'two', status: 'PENDING' } }); });
+  expect(mock.push).toHaveBeenLastCalledWith('/en/notifications?notificationId=two&status=FAILED&search=latest&type=order_confirmation&sort=oldest&page=3&pageSize=50', { scroll: false });
+  expect(mock.getById).toHaveBeenCalledTimes(1);
+});
+it('tracks the resent identity in history and polls it to a final status without reloading detail', async () => {
+  vi.useFakeTimers();
+  try {
+    const filters = 'status=SENT&search=buyer&type=order_confirmation&sort=oldest&page=2&pageSize=50';
+    mock.query = filters + '&notificationId=one';
+    await render(); await click('Resend');
+    expect(mock.push).toHaveBeenLastCalledWith('/en/notifications?' + filters + '&notificationId=two', { scroll: false });
+    expect(mock.getById).toHaveBeenCalledTimes(1);
+    mock.query = filters + '&notificationId=two'; await render();
+    expect(mock.getById).toHaveBeenCalledTimes(1);
+    const resend = () => [...document.querySelectorAll('button')].find(value => value.textContent === 'Resend')!;
+    expect(resend().disabled).toBe(true);
+    mock.getById.mockResolvedValue({ data: { ...item, id: 'two', status: 'SENT' } });
+    await act(async () => { await vi.advanceTimersByTimeAsync(2_000); });
+    expect(mock.getById).toHaveBeenLastCalledWith('two');
+    expect(resend().disabled).toBe(false);
+    const calls = mock.getById.mock.calls.length;
+    await act(async () => { await vi.advanceTimersByTimeAsync(4_000); });
+    expect(mock.getById).toHaveBeenCalledTimes(calls);
+    mock.query = filters + '&notificationId=one'; await render();
+    expect(mock.getById).toHaveBeenLastCalledWith('one');
+  } finally { vi.useRealTimers(); }
 });
 const snapshot = (items: Array<typeof item>) => ({ data: { items, total: items.length, counts: { all: items.length, SENT: items.length, FAILED: 0 }, types: ['order_confirmation'] } });
 it('shows a notification that arrives after the first snapshot without a manual reload', async () => {

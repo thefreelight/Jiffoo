@@ -15,14 +15,14 @@ export function OrderSummary({ order, locale, cancelled = false }: { order: Orde
     ? 'cancelled' : paymentResult(order);
   const money = (value: number) => formatPrice(value, locale, order.currency);
   const backToCart = cancelled || state === 'cancelled';
-  const Icon = state === 'paid' ? Check : state === 'cancelled' ? X : state === 'manual' ? FileText : LoaderCircle;
+  const Icon = state === 'paid' ? Check : state === 'cancelled' ? X : state === 'manual' || state === 'refunded' ? FileText : LoaderCircle;
   return <>
     <main className="mx-auto min-h-[640px] max-w-7xl px-4 pb-24 pt-[72px] md:px-8">
       <div className="mx-auto flex max-w-[560px] flex-col gap-7">
         <div className="flex flex-col items-center gap-3 text-center">
           <div className={`flex size-14 items-center justify-center rounded-full ${state === 'paid' ? 'bg-[var(--shop-success-soft)] text-[var(--shop-extras-success)]' : 'bg-highlight'}`}><Icon size={24} className={state === 'pending' ? 'animate-spin motion-reduce:animate-none' : ''} aria-hidden="true" /></div>
-          <h1 className="text-[26px] font-semibold leading-tight tracking-tight">{state === 'manual' ? t.checkout.paymentInstructions : t.s4[state]}</h1>
-          {state !== 'paid' && <p className="text-subtle">{state === 'cancelled'
+          <h1 className="text-[26px] font-semibold leading-tight tracking-tight">{state === 'refunded' ? paymentStatusLabel(locale, 'REFUNDED') : state === 'manual' ? t.checkout.paymentInstructions : t.s4[state]}</h1>
+          {state !== 'paid' && state !== 'refunded' && <p className="text-subtle">{state === 'cancelled'
             ? order.status === 'PENDING' && order.paymentStatus === 'PENDING' ? t.s4.cancellationBody
               : order.status === 'CANCELLED' ? orderStatusLabel(locale, order.status) : paymentStatusLabel(locale, order.paymentStatus)
             : state === 'manual' ? t.s4.manualBody : t.s4.pendingBody}</p>}

@@ -10,6 +10,7 @@ import { generateId } from '@/lib/utils';
 import { applyVariantValues, variantFieldId } from '@/lib/product-editor';
 
 export interface EditableVariant {
+  expectedStock?: number;
   id?: string; tempId?: string; name: string; salePrice: number | string; costPrice?: number | null; stock: number | string; skuCode?: string; isActive?: boolean; hasOrders?: boolean; attributes?: Record<string, unknown>;
 }
 export function VariantsEditor({ variants, onChange, errors = {}, currency }: { variants: EditableVariant[]; onChange: (variants: EditableVariant[]) => void; errors?: Record<string, string>; currency: string }) {

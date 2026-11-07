@@ -108,6 +108,25 @@ describe('Admin Inventory Endpoints', () => {
     expect(rows.filter(row => row.quantity === 4 && row.type === 'correction' && row.reason === 'admin_stock_set')).toHaveLength(1);
   });
 
+  it('accepts exactly one concurrent stock correction for the same observed stock', async () => {
+    const prisma = getTestPrisma();
+    const before = await prisma.productVariant.findUniqueOrThrow({ where: { id: variantId } });
+    const previous = await prisma.inventoryAdjustment.findMany({ where: { variantId } });
+    const quantities = [before.stock + 3, before.stock + 5];
+    const responses = await Promise.all(quantities.map(quantity => app.inject({
+      method: 'POST', url: '/api/v1/admin/inventory/set',
+      headers: { authorization: `Bearer ${adminToken}` },
+      payload: { variantId, quantity, expectedStock: before.stock },
+    })));
+    expect(responses.map(response => response.statusCode).sort()).toEqual([200, 409]);
+    const winner = responses.findIndex(response => response.statusCode === 200);
+    expect(responses.find(response => response.statusCode === 409)!.json().error.code).toBe('CONFLICT');
+    expect((await prisma.productVariant.findUniqueOrThrow({ where: { id: variantId } })).stock).toBe(quantities[winner]);
+    const added = (await prisma.inventoryAdjustment.findMany({ where: { variantId } }))
+      .filter(row => !previous.some(old => old.id === row.id));
+    expect(added).toEqual([expect.objectContaining({ quantity: quantities[winner] - before.stock, type: 'correction', reason: 'admin_stock_set' })]);
+  });
+
   it('POST /api/v1/admin/inventory/adjustments succeeds for an admin', async () => {
     const response = await app.inject({
       method: 'POST',

@@ -569,3 +569,18 @@ Nothing in the archive is deleted. It is what the live documents were before the
 and it is read when a question needs the day a measurement was taken on. The text of the four
 documents that were merged into `docs/verification.md` and `docs/operator-guide.md` is in those two
 files.
+
+## 2026-11-06 Local Admin inventory concurrency acceptance
+
+- Decision: the product editor sends each persisted variant's original stock as `expectedStock`, activating the existing update API's `409 CONFLICT` and transactional rollback for stale inventory. Drafts remain available on conflict; creating or duplicating variants does not inherit an inventory baseline.
+- Evidence: local Chrome double-window saves from stock 7 to 8 and 9 both succeeded before the fix. Evidence root: `C:/Users/11948/.codex/visualizations/2026/11/06/01a1b035-be66-7750-aab2-e7b640da1d1b/local-additional-acceptance`.
+- Baseline: `06a1ffd99`. Selected coverage: full Admin suite and `apps/api/tests/routes/admin-products.test.ts`, covering payload baselines, conflict draft retention, and rejected stale stock with transaction rollback. Independent review and recorded browser retest passed; final commit gate results are recorded below.
+- Verification uses frozen inputs and separate temporary PostgreSQL/Redis services. The large acceptance database on port 55444 is preserved. No commit, push, or production deployment is authorized by this record.
+
+## 2026-11-07 Native Admin and Shop acceptance commit batch
+
+- Baseline: 06a1ffd998b716334b1f9d5e7ec075855df7871f. Scope: 11 Admin files, five API acceptance suites, 12 Shop files, four verification scripts and this ledger; exact inputs are recorded in C:/Users/11948/.codex/visualizations/2026/11/06/01a1b035-be66-7750-aab2-e7b640da1d1b/commit-closeout/inputs.json. Other sessions' checkout, shared-package and plugin changes are preserved outside this batch.
+- Decisions: preserve stock baselines in the product editor; use bounded category menus and safe store titles; render completed refunds as terminal results without payment polling; prepare the database and production build for eligible Shop HTTP suites while retaining the browser-only suite in CI. The existing product-update 409 activation is registered above. No Prisma schema or migration changes are included.
+- Verification selection: audited scripts/verify-selection.test.mjs and scripts/verify-lane-shards.test.mjs, followed by pnpm verify:quick --shards=4. The latter certifies the full local eligible API catalogue, Admin and Shop; browser E2E remains CI-only. Temporary verification services are isolated from the retained 55444 acceptance clone.
+- Review: independent Admin/API, Shop and verification-runner reviews are clean. Commit is conditional on both verification runs exiting zero against the frozen inputs; exact summaries and cleanup verdicts are saved in the evidence directory.
+- Browser evidence: the recorded large-data native Admin/Shop checklists and final user-confirmed incognito login/logout checks are closed. Production and real payment channels are outside acceptance. No push or release is part of this commit batch.

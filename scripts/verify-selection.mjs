@@ -16,6 +16,7 @@ export const localScriptTests = new Set([
 ]);
 export const ciOnlyScriptTests = new Set(['scripts/verify-ci.test.mjs', 'scripts/update.test.mjs', 'scripts/local-trial.test.mjs']);
 export const ciOnlyVitestWrappers = new Set([
+  'apps/shop/tests/availability-http.test.ts',
   'apps/api/tests/core/backup-delivery.test.ts',
   'apps/api/tests/core/compose-delivery.test.ts',
   'apps/api/tests/core/local-trial.test.ts',
@@ -117,5 +118,10 @@ export function plannedSuiteLines(suites) {
 export function quickRequirements(selection) {
   const scriptOnly = selection.explicit && selection.files.scripts.length > 0 && !['api', 'admin', 'shop'].some(app => selection.files[app].length) && !selection.scopes.length;
   const apps = scriptOnly ? [] : [...new Set([...(selection.scopes.length ? selection.scopes : ['api', 'admin', 'shop']), ...['api', 'admin', 'shop'].filter(app => selection.files[app].length)])];
-  return { apps, database: apps.includes('api'), scriptOnly };
+  const shopFiles = selection.files.shop;
+  const runsShop = apps.includes('shop') && (!selection.explicit || shopFiles.length > 0);
+  const includesShopSuite = file => runsShop && (!selection.explicit || shopFiles.includes(file));
+  const shopBuild = ['tests/error-semantics-http.test.ts', 'tests/payment-return-http.test.ts', 'tests/availability-http.test.ts'].some(includesShopSuite);
+  return { apps, database: apps.includes('api') || includesShopSuite('tests/error-semantics-http.test.ts'), scriptOnly, ...(shopBuild ? { shopBuild: true } : {}) };
 }
+

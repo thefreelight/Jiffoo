@@ -420,6 +420,45 @@ describe('Admin Orders Endpoints', () => {
   });
 
   describe('POST /api/v1/admin/orders/:id/record-manual-payment', () => {
+    it('records one payment effect for concurrent confirmation of a pending order', async () => {
+      const items = [{ productId: testProduct.id, variantId: testProduct.variants[0].id, quantity: 1 }];
+      const expectedTotal = await checkoutTotal(app, userToken, items, validShippingAddress, 'free-shipping:free');
+      const created = await app.inject({
+        method: 'POST', url: '/api/v1/orders/', headers: { authorization: `Bearer ${userToken}` },
+        payload: { items, shippingAddress: validShippingAddress, shippingOptionId: 'free-shipping:free', paymentMethod: 'manual-payment', expectedTotal, idempotencyKey: uuidv4() },
+      });
+      expect(created.statusCode).toBe(201);
+      const id = created.json().data.id as string;
+      const session = await app.inject({
+        method: 'POST', url: '/api/v1/payments/create-session', headers: { authorization: `Bearer ${userToken}` },
+        payload: { orderId: id, paymentMethod: 'manual-payment' },
+      });
+      expect(session.statusCode).toBe(200);
+      const reference = `concurrent-receipt-${id}`;
+      const responses = await Promise.all([0, 1].map(() => app.inject({
+        method: 'POST', url: `/api/v1/admin/orders/${id}/record-manual-payment`,
+        headers: { authorization: `Bearer ${adminToken}` }, payload: { reference },
+      })));
+      expect(responses.some(response => response.statusCode === 200)).toBe(true);
+      for (const response of responses) {
+        if (response.statusCode === 200) continue;
+        if (response.statusCode === 409) {
+          expect(response.json().error).toMatchObject({
+            code: 'PAYMENT_REVIEW_ALREADY_RESOLVED',
+            message: 'Payment review has already been resolved. Refresh the order to see the current outcome.',
+          });
+          continue;
+        }
+        expect(response.statusCode).toBe(400);
+        expect(response.json().error).toMatchObject({ code: 'VALIDATION_ERROR', message: 'Request validation failed' });
+      }
+      expect(await prisma.order.findUniqueOrThrow({ where: { id } })).toMatchObject({ status: 'PROCESSING', paymentStatus: 'PAID' });
+      const captures = await prisma.paymentLedger.findMany({ where: { orderId: id, eventType: 'SUCCEEDED' } });
+      expect(captures).toEqual([expect.objectContaining({ manualReference: reference, refundRequired: false })]);
+      expect(await prisma.payment.count({ where: { orderId: id, status: 'SUCCEEDED' } })).toBe(1);
+      expect(await prisma.orderStatusHistory.count({ where: { orderId: id, reason: 'manual_payment_recorded' } })).toBe(1);
+    });
+
     it('should register the v1 admin route', async () => {
       const response = await app.inject({
         method: 'POST',

@@ -28,6 +28,8 @@ const POLL_INTERVAL_MS = 2_000;
 export default function NotificationsPage() {
   const router = useRouter(), pathname = usePathname(), params = useSearchParams();
   const notificationId = params.get('notificationId') || '';
+  const currentLocation = useRef({ pathname, query: params.toString() });
+  currentLocation.current = { pathname, query: params.toString() };
   const detailTrigger = useRef<HTMLElement | null>(null), pageHeading = useRef<HTMLHeadingElement>(null);
   const t = useT(), locale = useLocale(), { timezone } = useStoreDate();
   const c = (key: string, values?: Record<string, string | number>) => t(`merchant.notificationView.${key}`, values);
@@ -65,9 +67,9 @@ export default function NotificationsPage() {
     finally { if (request === detailId.current) setDetailLoading(false); }
   }, []);
   function navigateDetail(id: string) {
-    const next = new URLSearchParams(params.toString());
+    const next = new URLSearchParams(currentLocation.current.query);
     if (id) next.set('notificationId', id); else next.delete('notificationId');
-    router.push(pathname + (next.size ? '?' + next.toString() : ''), { scroll: false });
+    router.push(currentLocation.current.pathname + (next.size ? '?' + next.toString() : ''), { scroll: false });
   }
   function openDetail(id: string) { navigateDetail(id); void loadDetail(id); }
   useEffect(() => {
@@ -111,7 +113,10 @@ export default function NotificationsPage() {
     try {
       const item = unwrapApiResponse(await notificationsApi.resend(id, key));
       resendKeys.current.delete(id); setRevision(value => value + 1);
-      if (isCurrent()) { setSelected(item); setNotice('queued'); }
+      if (isCurrent()) {
+        detailId.current++; detailTarget.current = item.id;
+        setSelected(item); setNotice('queued'); navigateDetail(item.id);
+      }
     } catch { if (isCurrent()) setDetailError('resendFailed'); }
     finally { setResending(false); }
   }

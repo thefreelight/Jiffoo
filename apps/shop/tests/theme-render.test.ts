@@ -146,7 +146,10 @@ describe('T2 Shop theme rendering', () => {
     const inline = markup(createElement(Header, { context, locale: 'en', categories: [group],
       loggedIn: false, cartCount: 0, options: { variant: 'logo-left', menu: 'inline', showSearch: true } }));
     expect(inline).toContain('role="search"');
-    expect(inline).toContain('aria-label="Categories"');
+    expect(inline).toContain('class="hidden text-sm md:inline">Categories</span>');
+    expect(inline).toContain('aria-haspopup="dialog"');
+    expect(inline).not.toContain('overflow-x-auto');
+    expect(inline).toContain('<nav aria-label="Categories"');
     const footer = markup(createElement(Footer, { locale: 'en', columns: fixture.layout.footer.columns }));
     expect(footer).toContain('Support');
     expect(footer).toContain('/en/contact');
@@ -155,7 +158,9 @@ describe('T2 Shop theme rendering', () => {
 
   it('S renders the phone Sheet trigger, real cart button and locale options', () => {
     const html = markup(createElement(Header, { context, locale: 'en', categories: [group], loggedIn: true, cartCount: 3 }));
-    for (const label of ['Open menu', 'Cart (3)', 'Language', 'Account']) expect(html).toContain(`aria-label="${label}"`);
+    expect(html).toContain('class="sr-only md:hidden">Open menu</span>');
+    expect(html).toContain('class="hidden text-sm md:inline">Categories</span>');
+    for (const label of ['Cart (3)', 'Language', 'Account']) expect(html).toContain(`aria-label="${label}"`);
     expect(html).toContain('action="/en/search"');
     expect(html).toContain('method="get"');
     expect(html).toContain('value="zh-Hans"');
@@ -165,12 +170,15 @@ describe('T2 Shop theme rendering', () => {
     for (const variant of ['logo-left', 'logo-center'] as const) for (const menu of ['inline', 'drawer'] as const) {
       for (const showSearch of [true, false]) for (const loggedIn of [true, false]) {
         const html = markup(createElement(Header, { context, locale: 'en', categories: [group], loggedIn, cartCount: 3, options: { variant, menu, showSearch } }));
-        expect(html).toContain('aria-label="Open menu"');
+        expect(html).toContain('class="sr-only md:hidden">Open menu</span>');
+        expect(html).toContain('class="hidden text-sm md:inline">Categories</span>');
+        expect(html).toContain('aria-haspopup="dialog"');
         expect(html).toContain('aria-label="Account"');
         expect(html).toContain(`aria-label="Cart (${loggedIn ? 3 : 0})"`);
         expect(html.includes('role="search"')).toBe(showSearch);
         expect(html.includes('md:order-first md:w-full')).toBe(variant === 'logo-center');
         expect(html.includes('<nav aria-label="Categories"')).toBe(menu === 'inline');
+        expect(html).not.toContain('overflow-x-auto');
         for (const locale of context.supportedLocales) expect(html).toContain(`value="${locale}"`);
       }
     }

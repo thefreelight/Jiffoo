@@ -9,6 +9,23 @@ const state = vi.hoisted(() => ({ fetch: vi.fn(), refresh: vi.fn() }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: state.refresh }) }));
 vi.mock('../lib/client-availability', () => ({ availabilityFetch: state.fetch, useShopAvailability: () => ({ message: '', capture: vi.fn() }) }));
 afterEach(() => { vi.useRealTimers(); vi.clearAllMocks(); });
+it.each(['PAID', 'REFUNDED', 'FAILED'])('does not poll an already final %s payment snapshot', async (paymentStatus) => {
+  vi.useFakeTimers();
+  Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+  const order = { id: 'final-order', paymentId: 'payment', status: 'PROCESSING', paymentStatus, paymentAttemptState: 'SUCCEEDED' } as Order;
+  const container = document.createElement('div'); document.body.append(container);
+  const root = createRoot(container);
+  try {
+    await act(async () => root.render(createElement(PaymentRefresh, { order, locale: 'en' })));
+    await act(async () => {
+      window.dispatchEvent(new Event('focus'));
+      document.dispatchEvent(new Event('visibilitychange'));
+      await vi.advanceTimersByTimeAsync(60000);
+    });
+    expect(state.fetch).not.toHaveBeenCalled();
+    expect(state.refresh).not.toHaveBeenCalled();
+  } finally { await act(async () => root.unmount()); container.remove(); }
+});
 it('polls every five seconds without silently stopping after a refresh, then cancels on unmount', async () => {
   vi.useFakeTimers();
   Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });

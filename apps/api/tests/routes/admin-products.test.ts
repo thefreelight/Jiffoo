@@ -478,6 +478,23 @@ describe('Admin Products Endpoints', () => {
       expect(response.statusCode).toBe(403);
     });
 
+    it('rejects stale editor stock without overwriting the saved product', async () => {
+      const item = await createTestProduct({ stock: 7 });
+      const variant = item.variants[0];
+      const write = (stock: number, name: string) => app.inject({
+        method: 'PUT',
+        url: `/api/v1/admin/products/${item.id}`,
+        headers: { authorization: `Bearer ${adminToken}` },
+        payload: { name, variants: [{ id: variant.id, name: variant.name, salePrice: Number(variant.salePrice), stock, expectedStock: 7 }] },
+      });
+      expect((await write(8, 'First editor')).statusCode).toBe(200);
+      const stale = await write(9, 'Stale editor');
+      expect(stale.statusCode).toBe(409);
+      expect(stale.json().error.code).toBe('CONFLICT');
+      const stored = await app.inject({ method: 'GET', url: `/api/v1/admin/products/${item.id}`, headers: { authorization: `Bearer ${adminToken}` } });
+      expect(stored.json().data).toMatchObject({ name: 'First editor', variants: [expect.objectContaining({ stock: 8 })] });
+    });
+
     it('should update product for admin', async () => {
       const firstVariant = testProduct.variants[0];
       const response = await app.inject({
