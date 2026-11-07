@@ -358,7 +358,7 @@ async function routeNativeRequest(request: Request, env: WorkerEnv, ctx: Executi
     if (nativeVideoAi) return nativeVideoAi;
     const nativeImagerAi = await tryNativeImagerAi(nativeRequest, env);
     if (nativeImagerAi) return nativeImagerAi;
-    const nativeSupportHub = await tryNativeSupportHub(nativeRequest, env);
+    const nativeSupportHub = await tryNativeSupportHub(nativeRequest, env, (promise) => ctx.waitUntil(promise));
     if (nativeSupportHub) return nativeSupportHub;
     const nativePluginSettings = await tryNativePluginSettings(nativeRequest, env);
     if (nativePluginSettings) return nativePluginSettings;
