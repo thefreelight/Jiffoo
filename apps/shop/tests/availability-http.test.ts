@@ -256,8 +256,13 @@ it.each(['account-management', 'auth-form', 'auth-links', 'cart-view', 'checkout
         await page.getByRole('button', { name: 'Get shipping options' }).click();
         await browserExpect(page.getByRole('radio', { name: /Free shipping/ })).toBeVisible();
         deniedPath = '/api/v1/checkout/quote';
-        await page.getByRole('radio', { name: /Free shipping/ }).check();
-        await browserExpect(page.getByRole('radio', { name: /Free shipping/ })).toBeChecked();
+        // A failed requote invalidates the options instead of retaining a checked stale quote.
+        await page.getByRole('radio', { name: /Free shipping/ }).click();
+        await browserExpect(page.getByRole('main').getByRole('alert')).toContainText(failure === 429 ? 'Too many requests' : 'Shop temporarily unavailable');
+        await browserExpect(page.getByRole('radio', { name: /Free shipping/ })).toHaveCount(0);
+        await browserExpect(page.getByRole('radio', { name: 'Manual payment' })).toHaveCount(0);
+        await browserExpect(page.getByRole('button', { name: 'Pay', exact: true })).toBeDisabled();
+        await browserExpect(page.getByLabel('First name', { exact: true })).toHaveValue(address.firstName);
       } else if (component === 'order-detail') {
         await page.goto(`${shop}/en/account/orders/${orderId}`); deniedPath = `/api/v1/orders/${orderId}/cancel`;
         await page.getByRole('button', { name: 'Cancel order', exact: true }).click();
