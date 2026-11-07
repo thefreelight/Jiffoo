@@ -160,3 +160,192 @@ body[data-theme=bokmoo] ::selection {
 .btn-shimmer:hover::after {
   animation: gold-sweep 0.9s ease;
 }
+.bokmoo-support-root {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 2147483000;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  font-family: var(--bokmoo-font, system-ui, -apple-system, sans-serif);
+}
+.bokmoo-support-launcher {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 1px solid var(--bokmoo-line-strong);
+  background:
+    linear-gradient(
+      160deg,
+      var(--bokmoo-gold-strong),
+      var(--bokmoo-gold));
+  color: oklch(0.18 0.02 80);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+}
+.bokmoo-support-launcher:hover {
+  filter: brightness(1.06);
+}
+.bokmoo-support-panel {
+  width: 340px;
+  max-width: calc(100vw - 36px);
+  height: 440px;
+  max-height: min(62vh, 520px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid var(--bokmoo-line-strong);
+  background: var(--bokmoo-panel-strong);
+  color: var(--bokmoo-ink);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55);
+}
+.bokmoo-support-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--bokmoo-line);
+  background: color-mix(in oklab, var(--bokmoo-gold-soft) 70%, transparent);
+}
+.bokmoo-support-title {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--bokmoo-gold-strong);
+}
+.bokmoo-support-close {
+  border: none;
+  background: transparent;
+  color: var(--bokmoo-copy);
+  cursor: pointer;
+  padding: 4px;
+  line-height: 0;
+}
+.bokmoo-support-close:hover {
+  color: var(--bokmoo-ink);
+}
+.bokmoo-support-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.bokmoo-support-bubble {
+  max-width: 86%;
+  padding: 8px 11px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.bokmoo-support-bubble-assistant {
+  align-self: flex-start;
+  background: var(--bokmoo-bg-soft);
+  color: var(--bokmoo-ink);
+  border: 1px solid var(--bokmoo-line);
+}
+.bokmoo-support-bubble-visitor {
+  align-self: flex-end;
+  background:
+    linear-gradient(
+      160deg,
+      var(--bokmoo-gold-strong),
+      var(--bokmoo-gold));
+  color: oklch(0.18 0.02 80);
+}
+.bokmoo-support-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-self: flex-start;
+}
+.bokmoo-support-action {
+  font-size: 12px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--bokmoo-line-strong);
+  background: var(--bokmoo-bg-soft);
+  color: var(--bokmoo-gold-strong);
+  text-decoration: none;
+}
+.bokmoo-support-action:hover {
+  border-color: var(--bokmoo-gold);
+}
+.bokmoo-support-typing {
+  font-size: 12px;
+  color: var(--bokmoo-copy-soft);
+  padding-left: 4px;
+}
+.bokmoo-support-inputrow {
+  display: flex;
+  gap: 8px;
+  padding: 10px;
+  border-top: 1px solid var(--bokmoo-line);
+}
+.bokmoo-support-input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--bokmoo-line-strong);
+  border-radius: 9px;
+  background: var(--bokmoo-bg-soft);
+  color: var(--bokmoo-ink);
+  padding: 8px 10px;
+  font-size: 13px;
+  outline: none;
+}
+.bokmoo-support-input:focus {
+  border-color: var(--bokmoo-gold);
+}
+.bokmoo-support-send {
+  border: none;
+  border-radius: 9px;
+  padding: 8px 13px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  background:
+    linear-gradient(
+      160deg,
+      var(--bokmoo-gold-strong),
+      var(--bokmoo-gold));
+  color: oklch(0.18 0.02 80);
+}
+.bokmoo-support-send:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.bokmoo-support-channels {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.bokmoo-support-channel {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 1px solid var(--bokmoo-line-strong);
+  background: var(--bokmoo-panel-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  text-decoration: none;
+  box-shadow: 0 3px 14px rgba(0, 0, 0, 0.4);
+}
+.bokmoo-support-channel:hover {
+  border-color: var(--bokmoo-gold);
+}
+@media (max-width: 639px) {
+  .bokmoo-support-root {
+    bottom: calc(4.2rem + env(safe-area-inset-bottom));
+  }
+}

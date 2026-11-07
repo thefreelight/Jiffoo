@@ -14676,6 +14676,273 @@
     ] }) });
   });
 
+  // src/components/SupportChat.tsx
+  var VISITOR_TOKEN_STORAGE_KEY = "bokmoo-support-visitor-token";
+  var CONFIG_ENDPOINT = "/api/v1/plugins/support-hub/store/config";
+  var MESSAGES_ENDPOINT = "/api/v1/plugins/support-hub/store/chat/messages";
+  var HISTORY_ENDPOINT = "/api/v1/plugins/support-hub/store/chat/history";
+  function readVisitorToken() {
+    try {
+      const existing = window.localStorage.getItem(VISITOR_TOKEN_STORAGE_KEY);
+      if (existing && /^[A-Za-z0-9_-]{8,128}$/.test(existing)) return existing;
+      const generated = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID().replace(/-/g, "") : `v${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
+      window.localStorage.setItem(VISITOR_TOKEN_STORAGE_KEY, generated);
+      return generated;
+    } catch {
+      return `v${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
+    }
+  }
+  var CHANNEL_ICONS = {
+    telegram: "\u2708\uFE0F",
+    whatsapp: "\u{1F4AC}",
+    feishu: "\u{1F4EE}",
+    https: "\u{1F6DF}"
+  };
+  var SupportChat = react_default.memo(function SupportChat2({ locale }) {
+    const [config, setConfig] = react_default.useState(null);
+    const [open, setOpen] = react_default.useState(false);
+    const [messages, setMessages] = react_default.useState([]);
+    const [input, setInput] = react_default.useState("");
+    const [sending, setSending] = react_default.useState(false);
+    const [conversationId, setConversationId] = react_default.useState(null);
+    const historyLoaded = react_default.useRef(false);
+    const scrollRef = react_default.useRef(null);
+    const labels = {
+      open: pickCopy(locale, {
+        en: "Chat with support",
+        hans: "\u8054\u7CFB\u5BA2\u670D",
+        hant: "\u806F\u7D61\u5BA2\u670D",
+        ja: "\u30B5\u30DD\u30FC\u30C8\u306B\u30C1\u30E3\u30C3\u30C8",
+        ko: "\uACE0\uAC1D \uC9C0\uC6D0 \uCC44\uD305",
+        fr: "Discuter avec le support",
+        de: "Mit dem Support chatten"
+      }),
+      close: pickCopy(locale, {
+        en: "Close support chat",
+        hans: "\u5173\u95ED\u5BA2\u670D\u804A\u5929",
+        hant: "\u95DC\u9589\u5BA2\u670D\u804A\u5929",
+        ja: "\u30C1\u30E3\u30C3\u30C8\u3092\u9589\u3058\u308B",
+        ko: "\uCC44\uD305 \uB2EB\uAE30",
+        fr: "Fermer le chat",
+        de: "Chat schlie\xDFen"
+      }),
+      title: pickCopy(locale, {
+        en: "Support",
+        hans: "\u5BA2\u670D",
+        hant: "\u5BA2\u670D",
+        ja: "\u30B5\u30DD\u30FC\u30C8",
+        ko: "\uACE0\uAC1D \uC9C0\uC6D0",
+        fr: "Support",
+        de: "Support"
+      }),
+      placeholder: pickCopy(locale, {
+        en: "Type your message\u2026",
+        hans: "\u8F93\u5165\u4F60\u7684\u95EE\u9898\u2026",
+        hant: "\u8F38\u5165\u4F60\u7684\u554F\u984C\u2026",
+        ja: "\u30E1\u30C3\u30BB\u30FC\u30B8\u3092\u5165\u529B\u2026",
+        ko: "\uBA54\uC2DC\uC9C0\uB97C \uC785\uB825\uD558\uC138\uC694\u2026",
+        fr: "Saisissez votre message\u2026",
+        de: "Nachricht schreiben\u2026"
+      }),
+      send: pickCopy(locale, {
+        en: "Send",
+        hans: "\u53D1\u9001",
+        hant: "\u767C\u9001",
+        ja: "\u9001\u4FE1",
+        ko: "\uBCF4\uB0B4\uAE30",
+        fr: "Envoyer",
+        de: "Senden"
+      }),
+      typing: pickCopy(locale, {
+        en: "Typing\u2026",
+        hans: "\u6B63\u5728\u8F93\u5165\u2026",
+        hant: "\u6B63\u5728\u8F38\u5165\u2026",
+        ja: "\u5165\u529B\u4E2D\u2026",
+        ko: "\uC785\uB825 \uC911\u2026",
+        fr: "En train d\u2019\xE9crire\u2026",
+        de: "Schreibt\u2026"
+      }),
+      error: pickCopy(locale, {
+        en: "Message could not be delivered. Please try again shortly.",
+        hans: "\u6D88\u606F\u53D1\u9001\u5931\u8D25\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5\u3002",
+        hant: "\u8A0A\u606F\u50B3\u9001\u5931\u6557\uFF0C\u8ACB\u7A0D\u5F8C\u91CD\u8A66\u3002",
+        ja: "\u30E1\u30C3\u30BB\u30FC\u30B8\u3092\u9001\u4FE1\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u3057\u3070\u3089\u304F\u3057\u3066\u304B\u3089\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
+        ko: "\uBA54\uC2DC\uC9C0\uB97C \uC804\uC1A1\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4. \uC7A0\uC2DC \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD574 \uC8FC\uC138\uC694.",
+        fr: "Le message n\u2019a pas pu \xEAtre envoy\xE9. Veuillez r\xE9essayer shortly.",
+        de: "Nachricht konnte nicht zugestellt werden. Bitte sp\xE4ter erneut versuchen."
+      })
+    };
+    react_default.useEffect(() => {
+      let cancelled = false;
+      fetch(CONFIG_ENDPOINT).then((response) => response.ok ? response.json() : null).then((payload) => {
+        if (!cancelled && payload?.success && payload.data) {
+          setConfig(payload.data);
+        }
+      }).catch(() => void 0);
+      return () => {
+        cancelled = true;
+      };
+    }, []);
+    react_default.useEffect(() => {
+      if (scrollRef.current) {
+        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      }
+    }, [messages, open, sending]);
+    const loadHistory = react_default.useCallback((visitorToken) => {
+      if (historyLoaded.current) return;
+      historyLoaded.current = true;
+      fetch(`${HISTORY_ENDPOINT}?visitorToken=${encodeURIComponent(visitorToken)}`).then((response) => response.ok ? response.json() : null).then((payload) => {
+        if (payload?.success && payload.data) {
+          setConversationId(payload.data.conversationId ?? null);
+          setMessages(
+            (current) => current.length > 0 ? current : (payload.data.messages ?? []).slice(-50)
+          );
+        }
+      }).catch(() => void 0);
+    }, []);
+    const openChat = react_default.useCallback(() => {
+      setOpen(true);
+      loadHistory(readVisitorToken());
+    }, [loadHistory]);
+    const send = react_default.useCallback(async () => {
+      const text = input.trim();
+      if (!text || sending) return;
+      const visitorToken = readVisitorToken();
+      setSending(true);
+      setMessages((current) => [
+        ...current,
+        { id: `local_${Date.now()}`, role: "visitor", content: text }
+      ]);
+      setInput("");
+      try {
+        const response = await fetch(MESSAGES_ENDPOINT, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            visitorToken,
+            ...conversationId ? { conversationId } : {},
+            message: text
+          })
+        });
+        const payload = await response.json().catch(() => null);
+        if (payload?.success && payload.data) {
+          setConversationId(payload.data.conversationId ?? conversationId);
+          const reply = payload.data.reply;
+          if (reply) setMessages((current) => [...current, reply]);
+        } else {
+          setMessages((current) => [
+            ...current,
+            { id: `error_${Date.now()}`, role: "assistant", content: labels.error }
+          ]);
+        }
+      } catch {
+        setMessages((current) => [
+          ...current,
+          { id: `error_${Date.now()}`, role: "assistant", content: labels.error }
+        ]);
+      } finally {
+        setSending(false);
+      }
+    }, [conversationId, input, labels.error, sending]);
+    if (!config || !config.enabled) return null;
+    const chatEnabled = config.chat?.enabled === true;
+    const hasChannels = Array.isArray(config.channels) && config.channels.length > 0;
+    if (!chatEnabled && !hasChannels) return null;
+    return /* @__PURE__ */ jsxs("div", { className: "bokmoo-support-root", children: [
+      chatEnabled && open && /* @__PURE__ */ jsxs("div", { className: "bokmoo-support-panel", role: "dialog", "aria-label": labels.title, children: [
+        /* @__PURE__ */ jsxs("div", { className: "bokmoo-support-head", children: [
+          /* @__PURE__ */ jsx("span", { className: "bokmoo-support-title", children: labels.title }),
+          /* @__PURE__ */ jsx(
+            "button",
+            {
+              type: "button",
+              className: "bokmoo-support-close",
+              "aria-label": labels.close,
+              onClick: () => setOpen(false),
+              children: /* @__PURE__ */ jsx("svg", { width: "14", height: "14", viewBox: "0 0 14 14", fill: "none", "aria-hidden": "true", children: /* @__PURE__ */ jsx("path", { d: "M1 1L13 13M13 1L1 13", stroke: "currentColor", strokeWidth: "1.6", strokeLinecap: "round" }) })
+            }
+          )
+        ] }),
+        /* @__PURE__ */ jsxs("div", { className: "bokmoo-support-body", ref: scrollRef, children: [
+          /* @__PURE__ */ jsx("div", { className: "bokmoo-support-bubble bokmoo-support-bubble-assistant", children: config.chat.welcomeMessage }),
+          messages.map((message) => /* @__PURE__ */ jsxs(react_default.Fragment, { children: [
+            /* @__PURE__ */ jsx(
+              "div",
+              {
+                className: message.role === "visitor" ? "bokmoo-support-bubble bokmoo-support-bubble-visitor" : "bokmoo-support-bubble bokmoo-support-bubble-assistant",
+                children: message.content
+              }
+            ),
+            message.role === "assistant" && message.actions && message.actions.length > 0 && /* @__PURE__ */ jsx("div", { className: "bokmoo-support-actions", children: message.actions.map((action) => /* @__PURE__ */ jsxs(
+              "a",
+              {
+                className: "bokmoo-support-action",
+                href: action.href,
+                target: "_blank",
+                rel: "noopener noreferrer",
+                children: [
+                  CHANNEL_ICONS[action.kind] || "\u{1F4AC}",
+                  " ",
+                  action.label
+                ]
+              },
+              `${message.id}_${action.kind}`
+            )) })
+          ] }, message.id)),
+          sending && /* @__PURE__ */ jsx("div", { className: "bokmoo-support-typing", children: labels.typing })
+        ] }),
+        /* @__PURE__ */ jsxs("div", { className: "bokmoo-support-inputrow", children: [
+          /* @__PURE__ */ jsx(
+            "input",
+            {
+              className: "bokmoo-support-input",
+              value: input,
+              onChange: (event) => setInput(event.target.value),
+              onKeyDown: (event) => {
+                if (event.key === "Enter") send();
+              },
+              placeholder: labels.placeholder,
+              maxLength: 2e3,
+              "aria-label": labels.placeholder
+            }
+          ),
+          /* @__PURE__ */ jsx("button", { type: "button", className: "bokmoo-support-send", onClick: send, disabled: sending, children: labels.send })
+        ] })
+      ] }),
+      chatEnabled ? /* @__PURE__ */ jsx(
+        "button",
+        {
+          type: "button",
+          className: "bokmoo-support-launcher",
+          "aria-label": open ? labels.close : labels.open,
+          title: open ? labels.close : labels.open,
+          onClick: () => open ? setOpen(false) : openChat(),
+          children: open ? /* @__PURE__ */ jsx("svg", { width: "20", height: "20", viewBox: "0 0 20 20", fill: "none", "aria-hidden": "true", children: /* @__PURE__ */ jsx("path", { d: "M4 4L16 16M16 4L4 16", stroke: "currentColor", strokeWidth: "1.8", strokeLinecap: "round" }) }) : /* @__PURE__ */ jsx("svg", { width: "22", height: "22", viewBox: "0 0 24 24", fill: "none", "aria-hidden": "true", children: /* @__PURE__ */ jsx(
+            "path",
+            {
+              d: "M21 11.5C21 16.194 17.194 20 12.5 20C11.235 20 10.036 19.716 8.962 19.209L3 21L4.791 15.038C4.284 13.964 4 12.765 4 11.5C4 6.806 7.806 3 12.5 3C17.194 3 21 6.806 21 11.5Z",
+              stroke: "currentColor",
+              strokeWidth: "1.7",
+              strokeLinejoin: "round"
+            }
+          ) })
+        }
+      ) : /* @__PURE__ */ jsx("div", { className: "bokmoo-support-channels", children: config.channels.map((channel) => /* @__PURE__ */ jsx(
+        "a",
+        {
+          className: "bokmoo-support-channel",
+          href: channel.href,
+          target: "_blank",
+          rel: "noopener noreferrer",
+          title: channel.label,
+          "aria-label": channel.label,
+          children: CHANNEL_ICONS[channel.kind] || "\u{1F4AC}"
+        },
+        channel.kind
+      )) })
+    ] });
+  });
+
   // src/components/Footer.tsx
   var Footer = react_default.memo(function Footer2({
     locale,
@@ -14821,7 +15088,8 @@
           ]
         },
         label
-      )) }) })
+      )) }) }),
+      /* @__PURE__ */ jsx(SupportChat, { locale })
     ] });
   });
 
@@ -17648,6 +17916,175 @@ body[data-theme='bokmoo'] ::selection {
   pointer-events: none;
 }
 .btn-shimmer:hover::after { animation: gold-sweep 0.9s ease; }
+
+/* Support chat widget (AI customer service) \u2014 styles must live here, not in
+   runtime arbitrary-value classes: tokens.css ships with the theme version
+   bundle while worker-compiled CSS only knows classes from the worker build. */
+.bokmoo-support-root {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 2147483000;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  font-family: var(--bokmoo-font, system-ui, -apple-system, sans-serif);
+}
+.bokmoo-support-launcher {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 1px solid var(--bokmoo-line-strong);
+  background: linear-gradient(160deg, var(--bokmoo-gold-strong), var(--bokmoo-gold));
+  color: oklch(0.18 0.02 80);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+}
+.bokmoo-support-launcher:hover { filter: brightness(1.06); }
+.bokmoo-support-panel {
+  width: 340px;
+  max-width: calc(100vw - 36px);
+  height: 440px;
+  max-height: min(62vh, 520px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid var(--bokmoo-line-strong);
+  background: var(--bokmoo-panel-strong);
+  color: var(--bokmoo-ink);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55);
+}
+.bokmoo-support-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--bokmoo-line);
+  background: color-mix(in oklab, var(--bokmoo-gold-soft) 70%, transparent);
+}
+.bokmoo-support-title {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--bokmoo-gold-strong);
+}
+.bokmoo-support-close {
+  border: none;
+  background: transparent;
+  color: var(--bokmoo-copy);
+  cursor: pointer;
+  padding: 4px;
+  line-height: 0;
+}
+.bokmoo-support-close:hover { color: var(--bokmoo-ink); }
+.bokmoo-support-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.bokmoo-support-bubble {
+  max-width: 86%;
+  padding: 8px 11px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.bokmoo-support-bubble-assistant {
+  align-self: flex-start;
+  background: var(--bokmoo-bg-soft);
+  color: var(--bokmoo-ink);
+  border: 1px solid var(--bokmoo-line);
+}
+.bokmoo-support-bubble-visitor {
+  align-self: flex-end;
+  background: linear-gradient(160deg, var(--bokmoo-gold-strong), var(--bokmoo-gold));
+  color: oklch(0.18 0.02 80);
+}
+.bokmoo-support-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-self: flex-start;
+}
+.bokmoo-support-action {
+  font-size: 12px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--bokmoo-line-strong);
+  background: var(--bokmoo-bg-soft);
+  color: var(--bokmoo-gold-strong);
+  text-decoration: none;
+}
+.bokmoo-support-action:hover { border-color: var(--bokmoo-gold); }
+.bokmoo-support-typing {
+  font-size: 12px;
+  color: var(--bokmoo-copy-soft);
+  padding-left: 4px;
+}
+.bokmoo-support-inputrow {
+  display: flex;
+  gap: 8px;
+  padding: 10px;
+  border-top: 1px solid var(--bokmoo-line);
+}
+.bokmoo-support-input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--bokmoo-line-strong);
+  border-radius: 9px;
+  background: var(--bokmoo-bg-soft);
+  color: var(--bokmoo-ink);
+  padding: 8px 10px;
+  font-size: 13px;
+  outline: none;
+}
+.bokmoo-support-input:focus { border-color: var(--bokmoo-gold); }
+.bokmoo-support-send {
+  border: none;
+  border-radius: 9px;
+  padding: 8px 13px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  background: linear-gradient(160deg, var(--bokmoo-gold-strong), var(--bokmoo-gold));
+  color: oklch(0.18 0.02 80);
+}
+.bokmoo-support-send:disabled { opacity: 0.55; cursor: default; }
+.bokmoo-support-channels {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.bokmoo-support-channel {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 1px solid var(--bokmoo-line-strong);
+  background: var(--bokmoo-panel-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  text-decoration: none;
+  box-shadow: 0 3px 14px rgba(0, 0, 0, 0.4);
+}
+.bokmoo-support-channel:hover { border-color: var(--bokmoo-gold); }
+/* Keep the launcher clear of the mobile bottom navigation bar. */
+@media (max-width: 639px) {
+  .bokmoo-support-root {
+    bottom: calc(4.2rem + env(safe-area-inset-bottom));
+  }
+}
 `;
   var existingMeta = runtime_default && typeof runtime_default === "object" && runtime_default.meta && typeof runtime_default.meta === "object" ? runtime_default.meta : {};
   window.__JIFFOO_THEME_RUNTIME__ = {
@@ -17655,7 +18092,7 @@ body[data-theme='bokmoo'] ::selection {
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.46",
+      version: "1.1.47",
       target: "shop"
     }
   };

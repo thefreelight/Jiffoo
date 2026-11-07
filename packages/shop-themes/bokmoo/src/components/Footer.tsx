@@ -2,6 +2,7 @@ import React from 'react';
 import { ArrowRight, Globe2, Home, LayoutGrid, LifeBuoy, ReceiptText, ShieldCheck, Smartphone } from 'lucide-react';
 import type { FooterProps } from 'shared/src/types/theme';
 import { isExternalHref,pickCopy, resolveBokmooSiteConfig } from '../site';
+import { SupportChat } from './SupportChat';
 
 export const Footer = React.memo(function Footer({
   locale,
@@ -163,6 +164,8 @@ export const Footer = React.memo(function Footer({
           ))}
         </div>
       </div>
+
+      <SupportChat locale={locale} />
     </footer>
   );
 });
