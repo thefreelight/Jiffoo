@@ -239,7 +239,8 @@ test('B soft navigation and locale switching retain one injection without hydrat
   try {
     await page.goto(`${shopOrigin}/en`);
     await expectMarker(page);
-    await page.getByRole('link', { name: 'E2E Translated Category', exact: true }).first().click();
+    await page.getByRole('banner').getByRole('button', { name: 'Categories', exact: true }).click();
+    await page.getByRole('dialog', { name: 'E2E Updated Store', exact: true }).getByRole('navigation', { name: 'Categories', exact: true }).getByRole('link', { name: 'E2E Translated Category', exact: true }).click();
     await expect(page).toHaveURL(`${shopOrigin}/en/categories/e2e-translated-category`);
     await expectMarker(page);
     await page.getByRole('heading', { name: 'E2E Localized Product', exact: true }).click();

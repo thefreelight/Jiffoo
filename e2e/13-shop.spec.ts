@@ -5,7 +5,8 @@ test('browse the translated category and product in Shop', async ({ page }) => {
   await page.goto('/en');
   await expect(page.getByRole('heading', { name: 'Browse categories' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'E2E Localized Product', exact: true })).toBeVisible();
-  await page.getByRole('navigation', { name: 'Categories' }).getByRole('link', { name: 'E2E Translated Category', exact: true }).click();
+  await page.getByRole('banner').getByRole('button', { name: 'Categories', exact: true }).click();
+  await page.getByRole('dialog', { name: 'E2E Updated Store', exact: true }).getByRole('navigation', { name: 'Categories' }).getByRole('link', { name: 'E2E Translated Category', exact: true }).click();
   await expect(page).toHaveURL(/\/en\/categories\/e2e-translated-category$/);
   await expect(page.getByRole('heading', { name: 'E2E Localized Product', exact: true })).toBeVisible();
   await page.getByRole('searchbox', { name: 'Search products' }).fill('E2E Localized Product');

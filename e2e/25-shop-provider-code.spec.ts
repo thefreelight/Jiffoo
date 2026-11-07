@@ -181,7 +181,8 @@ test('D soft home category product and locale navigation initializes providers e
   await page.goto(`${shop}/en`);
   await checkMarker(page, config);
   const initialCommits = commits;
-  await page.getByRole('navigation', { name: 'Categories', exact: true }).getByRole('link', { name: categoryName, exact: true }).click();
+  await page.getByRole('banner').getByRole('button', { name: 'Categories', exact: true }).click();
+  await page.getByRole('dialog', { name: 'E2E Updated Store', exact: true }).getByRole('navigation', { name: 'Categories', exact: true }).getByRole('link', { name: categoryName, exact: true }).click();
   await expect(page.getByRole('heading', { level: 1, name: categoryName, exact: true })).toBeVisible();
   await checkMarker(page, config);
   await page.getByRole('heading', { name, exact: true }).click();

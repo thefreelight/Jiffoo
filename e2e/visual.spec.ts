@@ -130,20 +130,23 @@ test(`observe Shop header ${variant}/${menu}/search=${showSearch} at 390x844`, a
             await observe(guest, fixture.name, name, false);
             if (name === 'home' && process.env.VISUAL_HEADER_REQUIRE_FIT === '1') {
               const header = guest.getByRole('banner');
-              await header.getByRole('button', { name: 'Categories', exact: true }).click();
-              await expect(header.getByRole('navigation', { name: 'Categories', exact: true })).toBeVisible();
+              const storeName = await header.getByRole('link').first().getAttribute('aria-label');
+              expect(storeName).toBeTruthy();
+              const menu = guest.getByRole('dialog', { name: storeName!, exact: true });
+              await header.getByRole('button', { name: 'Open menu', exact: true }).click();
+              await expect(menu.getByRole('navigation', { name: 'Categories', exact: true })).toBeVisible();
               await observe(guest, fixture.name, 'home/categories-open', false);
-              await header.getByRole('button', { name: 'Categories', exact: true }).click();
+              await menu.getByRole('button', { name: 'Close menu', exact: true }).click();
               if (showSearch) {
                 await header.getByRole('button', { name: 'Search products', exact: true }).click();
                 await expect(header.getByRole('searchbox', { name: 'Search products', exact: true })).toBeVisible();
                 await observe(guest, fixture.name, 'home/search-open', false);
                 await header.getByRole('button', { name: 'Search products', exact: true }).click();
               }
-              await header.getByRole('button', { name: 'Language', exact: true }).click();
-              await expect(header.getByRole('combobox', { name: 'Language', exact: true })).toBeVisible();
+              await header.getByRole('button', { name: 'Open menu', exact: true }).click();
+              await expect(menu.getByRole('combobox', { name: 'Language', exact: true })).toBeVisible();
               await observe(guest, fixture.name, 'home/language-open', false);
-              await header.getByRole('button', { name: 'Language', exact: true }).click();
+              await menu.getByRole('button', { name: 'Close menu', exact: true }).click();
             }
           }
           await guest.goto('/en/categories/e2e-translated-category');
