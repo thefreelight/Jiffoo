@@ -1,0 +1,39 @@
+{
+  "name": "firepath-production-core-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-07-29",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "CACHE",
+      "id": "e6fffed780b6492b9f761494de756ef3"
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "firepath-production",
+      "database_id": "1ce4f5ca-97c0-4722-9fa1-18c9f3335191",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "ASSETS",
+      "bucket_name": "firepath-production-assets"
+    }
+  ],
+  "vars": {
+    "CORE_ORIGIN": "https://firepath-api.jiffoo.com",
+    "PUBLIC_API_BASE_URL": "https://firepath-api.jiffoo.com",
+    "RUNTIME_VERSION": "1.0.161-dev.firepath-core"
+  },
+  "routes": [
+    {
+      "pattern": "firepath-api.jiffoo.com",
+      "custom_domain": true
+    }
+  ]
+}
