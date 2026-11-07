@@ -3,7 +3,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { boundedPlain, parseEnvelope } from '../../../packages/plugin-bridge/src/protocol';
 import { createPluginBridge } from '../../../packages/plugin-bridge/src/index';
-import { PluginPageShell } from '../../../packages/shared/src/plugin-pages/shell';
+import { PluginPageShell, isCanonicalProductTarget } from '../../../packages/shared/src/plugin-pages/shell';
 import { pluginPageLabels } from '../../../packages/shared/src/plugin-pages/labels';
 import { pluginShellCsp } from '../../../packages/shared/src/plugin-pages/csp';
 import { allowedBffRoute } from '../lib/auth-contract';
@@ -11,6 +11,16 @@ import { allowedBffRoute } from '../lib/auth-contract';
 afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
 
 describe('bounded plugin bridge boundary', () => {
+  it('accepts canonical Unicode product destinations and rejects encoded traversal or extra segments', () => {
+    expect(isCanonicalProductTarget(`/zh-Hans/products/${encodeURIComponent('精选素材')}`, 'zh-Hans')).toBe(true);
+    expect(isCanonicalProductTarget('/en/products/curated%20assets', 'en')).toBe(true);
+    expect(isCanonicalProductTarget('/en/products/curated assets', 'en')).toBe(false);
+    for (const path of ['/zh-Hans/products/%252Fadmin', '/zh-Hans/products/%2Fadmin', '/zh-Hans/products/..',
+      '/zh-Hans/products/%2e%2e', '/zh-Hans/products/item/extra', '/zh-Hans/products/item?next=admin',
+      '/en/products/item', '/zh-Hans/products/%', '/zh-Hans/products/%5Cadmin']) {
+      expect(isCanonicalProductTarget(path, 'zh-Hans')).toBe(false);
+    }
+  });
   it('rejects cycles, non-plain structured clones, deep graphs, poison keys and UTF-8 overflow', () => {
     const cycle: Record<string, unknown> = {}; cycle.self = cycle;
     let nested: unknown = null; for (let index = 0; index < 20; index++) nested = { nested };
@@ -40,6 +50,20 @@ describe('bounded plugin bridge boundary', () => {
     expect(ready).toBe(false);
     send(parent, 'https://shop.example'); await bridge.ready;
     expect(await bridge.token()).toBe('scoped-token');
+    const productOpen = bridge.commerce.product.open({ variantId: 'c' + 'a'.repeat(24) });
+    await Promise.resolve();
+    const productRequest = parent.postMessage.mock.calls.at(-1)![0];
+    expect(productRequest.type).toBe('commerce.product.open');
+    expect(productRequest.payload).toEqual({ variantId: 'c' + 'a'.repeat(24) });
+    send(parent, 'https://shop.example', { ...productRequest, result: null });
+    await productOpen;
+    const customerOpen = bridge.customers.open({ customerId: 'customer' });
+    await Promise.resolve();
+    const customerRequest = parent.postMessage.mock.calls.at(-1)![0];
+    expect(customerRequest.type).toBe('customers.open');
+    expect(customerRequest.payload).toEqual({ customerId: 'customer' });
+    send(parent, 'https://shop.example', { ...customerRequest, result: null });
+    await customerOpen;
     const pending = bridge.request('context.get'); await Promise.resolve();
     const request = parent.postMessage.mock.calls.at(-1)![0];
     send(parent, 'https://shop.example', { ...request, nonce: 'b'.repeat(64), result: { wrong: true } });
@@ -145,6 +169,9 @@ it('shells render a localized accessible loading state without an unadmitted ifr
 it('only exact shell BFF routes are admitted and CSP framing is restricted to Core assets', () => {
   expect(allowedBffRoute('POST', '/plugin-pages/studio/session')).toBe(true);
   expect(allowedBffRoute('GET', '/plugin-pages')).toBe(true);
+  const productTarget = '/plugin-pages/studio/sessions/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/product-target';
+  expect(allowedBffRoute('POST', productTarget)).toBe(true);
+  expect(allowedBffRoute('GET', productTarget)).toBe(false);
   for (const path of ['/plugin-pages/studio/session/more', '/plugin-pages/../admin/session', '/plugin-pages/studio%2fadmin/session', '/plugin-pages/Studio/session']) expect(allowedBffRoute('POST', path)).toBe(false);
   const policy = pluginShellCsp('https://shop.example');
   expect(policy).toContain('frame-src https://shop.example/api/v1/plugin-assets/;');

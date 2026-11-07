@@ -4,6 +4,10 @@ import { resolveCurrentPluginPackage } from '../../src/core/storage/current-plug
 import { drainPluginInstallOperations } from '../../src/core/admin/extension-installer/plugin-migration-operation';
 
 async function main() {
+  const materializationControls = ['JIFFOO_TEST_PLUGIN_MATERIALIZE_OBSERVE', 'JIFFOO_TEST_PLUGIN_MATERIALIZE_BARRIER'] as const;
+  const requestedControls = materializationControls.map(key => process.env[key]);
+  // Startup must finish before the parent can release request-scoped barriers.
+  for (const key of materializationControls) process.env[key] = '0';
   if (process.env.JIFFOO_TEST_ISOLATED_PLUGIN_ROOT === '1') {
     await seedBuiltinCache();
   }
@@ -27,6 +31,10 @@ async function main() {
     if ((message as { kind?: string })?.kind !== 'stop') return;
     await app.close();
     process.exit(0);
+  });
+  materializationControls.forEach((key, index) => {
+    const requested = requestedControls[index];
+    if (requested === undefined) delete process.env[key]; else process.env[key] = requested;
   });
   process.send?.({ kind: 'ready', base });
 }

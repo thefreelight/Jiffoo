@@ -21,7 +21,7 @@ vi.mock('sonner', () => ({ toast: { success: vi.fn() } }));
 vi.mock('../lib/hooks/use-api', async () => {
   const { useState } = await import('react');
   return {
-    useCategories: () => ({ data: mocks.categories, isLoading: false }),
+    useCategories: () => ({ data: { items: mocks.categories, total: mocks.categories.length }, isLoading: false }),
     useUser: () => ({ data: { id: 'customer', username: 'Buyer', email: 'buyer@example.com', isActive: true, orderCount: 0, paidTotal: 0, currency: 'USD', recentOrders: [], latestShippingAddress: null, createdAt: '2026-10-01T00:00:00Z', updatedAt: '2026-10-01T00:00:00Z' }, isLoading: false }),
     useUpdateUser: () => ({ isPending: mocks.pending, mutateAsync: mocks.mutate }),
     useDeleteUser: () => ({ isPending: false }), useCustomerNeighbors: () => ({ data: { position: 1, total: 1 } }),

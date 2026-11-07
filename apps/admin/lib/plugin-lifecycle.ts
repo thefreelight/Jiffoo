@@ -1,4 +1,5 @@
-import { ApiErrorCodes, isApiErrorCode, type ApiErrorCode } from 'shared';
+import { ApiErrorCodes, isApiErrorCode } from 'shared/error-codes';
+import type { ApiErrorCode } from 'shared';
 
 export function pluginLifecycleErrorKey(error: unknown): string {
   const code = (error as { code?: string })?.code;

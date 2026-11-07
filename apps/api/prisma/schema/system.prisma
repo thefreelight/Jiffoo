@@ -1,5 +1,23 @@
 // system.prisma — User, AuthToken, ApiToken, SystemSettings, Notification, AdminStaffAuditLog
 
+model PluginPolicyAuthority {
+  principalId String @id
+  createdAt DateTime @default(now())
+  @@map("plugin_policy_authorities")
+  @@schema("public")
+}
+
+model PluginActionGrant {
+  installationId String
+  principalId String
+  action String
+  grantedBy String
+  createdAt DateTime @default(now())
+  @@id([installationId, principalId, action])
+  @@map("plugin_action_grants")
+  @@schema("public")
+}
+
 // ============================================================
 // USER
 // ============================================================

@@ -32,7 +32,7 @@ describe('the refresh of a plugin page', () => {
     return event;
   }
 
-  async function mount(refreshFailure: unknown, refreshResult?: { pluginToken: string; expiresAt: string; context: unknown }) {
+  async function mount(refreshFailure: unknown, refreshResult?: { pluginToken: string; expiresAt: string; context: unknown }, navigation = { locale: 'en' as 'en' | 'zh-Hans' | 'zh-Hant', surface: 'shop' as 'shop' | 'admin' }) {
     vi.useFakeTimers();
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
     vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
@@ -42,16 +42,19 @@ describe('the refresh of a plugin page', () => {
     const frameUrl = new URL(`/api/v1/plugin-assets/id/${'a'.repeat(64)}/index.html`, location.origin).href;
     const refresh = refreshResult ? vi.fn().mockResolvedValue(refreshResult) : vi.fn().mockRejectedValue(refreshFailure);
     const transport = vi.fn(async (path: string, method: string) => {
+      if (path.endsWith('/product-target')) return { path: `/${navigation.locale}/products/item` };
+      if (path.endsWith('/customer-target')) return { path: '/customers/customer' };
       if (path.endsWith('/refresh')) return refresh();
       if (method === 'POST' && path.endsWith('/session')) {
         return { sessionId: 'session', frameUrl, pluginToken: 'token', expiresAt: new Date(Date.now() + 120_000).toISOString(),
-          guestSecret: null, context: { customer: null, admin: null, page: { id: 'studio', path: '/studio' } } };
+          guestSecret: null, context: { customer: null, admin: navigation.surface === 'admin' ? { id: 'admin' } : null, page: { id: 'studio', path: '/studio' } } };
       }
       return { revoked: true };
     });
-    const element = createElement(PluginPageShell, { slug: 'imagic', pageId: 'studio', title: 'Studio', surface: 'shop', locale: 'en',
-      currency: 'USD', store: { id: 'system', name: 'Store', url: '/' }, allowedPaths: [], labels: pluginPageLabels.en,
-      transport: transport as never, navigate: () => undefined, signIn: () => undefined, checkout: () => undefined });
+    const navigate = vi.fn();
+    const element = createElement(PluginPageShell, { slug: 'imagic', pageId: 'studio', title: 'Studio', surface: navigation.surface, locale: navigation.locale,
+      currency: 'USD', store: { id: 'system', name: 'Store', url: '/' }, allowedPaths: ['/products'], labels: pluginPageLabels.en,
+      transport: transport as never, navigate, signIn: () => undefined, checkout: () => undefined });
     await act(async () => root!.render(element));
     await act(async () => { await vi.advanceTimersByTimeAsync(0); });
     // The frame of the plugin announces itself, the way the bridge does.
@@ -62,7 +65,32 @@ describe('the refresh of a plugin page', () => {
     contentWindow.postMessage = ((value: unknown, targetOrigin: string) => { posted.push(value as Record<string, unknown>); original(value, targetOrigin); }) as typeof contentWindow.postMessage;
     await act(async () => { frame.dispatchEvent(new Event('load')); });
     await act(async () => { window.dispatchEvent(message({ channel: 'jiffoo.plugin', version: 1, id: 'hello', type: 'bridge.hello', payload: { supportedVersions: [1] } }, contentWindow)); });
-    return { refresh, transport, frame, contentWindow, posted };
+    return { refresh, transport, frame, contentWindow, posted, navigate };
+  }
+
+  it('reports viewport space without loosening frame bounds or replacing the frame', async () => {
+    const { posted, contentWindow, frame } = await mount(undefined);
+    const binding = posted.find(envelope => envelope.type === 'bridge.welcome')!;
+    await act(async () => { window.dispatchEvent(message({ channel: 'jiffoo.plugin', version: 1,
+      id: 'resize-test', type: 'frame.resize', sessionId: binding.sessionId, nonce: binding.nonce,
+      payload: { height: 9000 } }, contentWindow)); });
+    expect(frame.style.height).toBe('2000px');
+    expect(posted.find(envelope => envelope.id === 'resize-test')?.result).toEqual({ availableHeight: window.innerHeight - 24 });
+    expect(frame.getAttribute('sandbox')).toBe('allow-scripts allow-forms');
+    expect(container!.querySelector('iframe')).toBe(frame);
+  });
+
+  for (const locale of ['en', 'zh-Hans', 'zh-Hant'] as const) {
+    for (const type of ['navigate', 'commerce.product.open', 'customers.open']) {
+      it(`passes one canonical locale prefix to the host for ${type} in ${locale}`, async () => {
+        const { posted, contentWindow, navigate } = await mount(undefined, undefined, { locale, surface: type === 'customers.open' ? 'admin' : 'shop' });
+        const binding = posted.find(envelope => envelope.type === 'bridge.welcome')!;
+        const payload = type === 'navigate' ? { path: '/products' } : type === 'customers.open' ? { customerId: 'customer' } : { variantId: 'c' + 'a'.repeat(24) };
+        await act(async () => { window.dispatchEvent(message({ channel: 'jiffoo.plugin', version: 1, id: 'navigate-test', type,
+          sessionId: binding.sessionId, nonce: binding.nonce, payload }, contentWindow)); });
+        expect(navigate).toHaveBeenCalledWith(`/${locale}/${type === 'customers.open' ? 'customers/customer' : type === 'navigate' ? 'products' : 'products/item'}`);
+      });
+    }
   }
 
   it('keeps the page and its frame when Core refuses a refresh for a while', async () => {

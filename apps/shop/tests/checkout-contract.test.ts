@@ -19,7 +19,7 @@ vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn() }), use
 vi.mock('nuqs/adapters/next/app', () => ({ NuqsAdapter: ({ children }: { children: React.ReactNode }) => children }));
 vi.mock('../components/ui/sonner', () => ({ Toaster: () => null }));
 vi.mock('next/headers', () => ({ headers: async () => new Headers({ 'x-shop-locale': 'en' }) }));
-vi.mock('../lib/server-bootstrap', () => ({ shopBootstrap: async () => ({ slots: null }) }));
+vi.mock('../lib/server-bootstrap', () => ({ shopBootstrap: async () => ({ context: { storeName: 'Example Store', defaultLocale: 'en' }, slots: null, theme: null }) }));
 
 vi.mock('../lib/storefront-messages', async () => {
   const [en, zhHans, zhHant] = await Promise.all([
@@ -106,7 +106,7 @@ describe('Shop checkout boundaries', () => {
     expect(StorefrontRoot).not.toBe(PaymentRoot);
     expect(readFileSync(path.join(app, '(payment)/layout.tsx'), 'utf8'))
       .toBe("export { default } from '@/components/document-root';\n");
-    const expected = renderToStaticMarkup(createElement('html', { lang: 'en', 'data-color-mode': 'system', 'data-shop-dark-available': 'false' }, createElement('body', null, 'root-boundary')));
+    const expected = renderToStaticMarkup(createElement('html', { lang: 'en', 'data-color-mode': 'system', 'data-shop-dark-available': 'false' }, createElement('body', null, createElement('title', null, 'Example Store'), 'root-boundary')));
     expect(renderToStaticMarkup(await StorefrontRoot({ children: 'root-boundary' }))).toBe(expected);
     expect(renderToStaticMarkup(await PaymentRoot({ children: 'root-boundary' }))).toBe(expected);
     for (const group of ['(payment)', '(storefront)']) {

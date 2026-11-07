@@ -189,6 +189,7 @@ export const orderSchemas = {
           },
           description: 'Shipping address for the order',
         },
+        taxAddress: { type: 'object', required: ['country'], additionalProperties: false, properties: { country: { type: 'string', pattern: '^[A-Za-z]{2}$' }, state: { type: 'string' }, city: { type: 'string' }, postalCode: { type: 'string' }, addressLine1: { type: 'string' }, addressLine2: { type: 'string' } } },
         customerEmail: {
           type: 'string',
           format: 'email',

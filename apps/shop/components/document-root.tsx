@@ -8,5 +8,5 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const routeLocale = (await headers()).get('x-shop-locale');
   const { context, theme } = await shopBootstrap();
   const locale = routeLocale && isShopLocale(routeLocale) ? routeLocale : context.defaultLocale;
-  return <DocumentShell locale={locale} darkAvailable={theme?.darkAvailable ?? false}>{children}</DocumentShell>;
+  return <DocumentShell locale={locale} darkAvailable={theme?.darkAvailable ?? false}><title>{context.storeName}</title>{children}</DocumentShell>;
 }

@@ -11,6 +11,7 @@ export function CheckoutSummary({ cart, quote, shippingOptionId, locale, currenc
   const t = storefrontMessages(locale);
   const money = (value: string | number) => formatPrice(value, locale, quote?.currency ?? currency);
   const shipping = quote?.shippingOptions.find((option) => option.id === shippingOptionId);
+  const requiresShipping = cart.items.some(line => line.requiresShipping) || !!quote?.shippingOptions.length;
   return <div className="space-y-4">
     {cart.items.map((line) => <div key={line.id} className="grid grid-cols-[56px_minmax(0,1fr)_auto] items-center gap-3">
       <div className="relative"><div className="relative aspect-square overflow-hidden rounded-lg bg-highlight">{line.productImage && <ShopImage src={line.productImage} alt={line.productName} fill sizes="56px" className="object-cover" />}</div>
@@ -20,7 +21,7 @@ export function CheckoutSummary({ cart, quote, shippingOptionId, locale, currenc
     </div>)}
     <dl className="space-y-2.5 border-t border-line pt-4">
       <div className="flex justify-between gap-3"><dt className="text-subtle">{t.checkout.subtotal}</dt><dd>{money(quote?.subtotal ?? cart.subtotal)}</dd></div>
-      <div className="flex justify-between gap-3"><dt className="text-subtle">{t.checkout.shipping}</dt><dd>{shipping ? money(shipping.amount) : t.s4.afterAddress}</dd></div>
+      {requiresShipping && <div className="flex justify-between gap-3"><dt className="text-subtle">{t.checkout.shipping}</dt><dd>{shipping ? money(shipping.amount) : t.s4.afterAddress}</dd></div>}
       {quote?.taxUnavailable
         ? <div className="flex justify-between gap-3"><dt className="text-subtle">{t.checkout.tax}</dt><dd className="text-subtle">{t.checkout.taxUnavailable}</dd></div>
         : quote?.tax !== undefined && <div className="flex justify-between gap-3"><dt className="text-subtle">{t.checkout.tax} ({quote.taxInclusive ? t.checkout.taxInclusive : t.checkout.taxExclusive})</dt><dd>{money(quote.tax)}</dd></div>}

@@ -424,6 +424,7 @@ export const adminProductSchemas = {
     querystring: {
       type: 'object',
       properties: {
+        search: { type: 'string', maxLength: 200, description: 'Search category name or slug' },
         page: { type: 'integer', default: 1, minimum: 1, description: 'Page number' },
         limit: { type: 'integer', default: 20, minimum: 1, maximum: 100, description: 'Items per page' },
       },

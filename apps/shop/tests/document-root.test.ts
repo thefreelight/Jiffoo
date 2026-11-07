@@ -11,13 +11,13 @@ import { proxy } from '../proxy';
 import { locales } from '../lib/locale';
 
 const requestHeaders = vi.hoisted(() => ({ value: new Headers() }));
-const bootstrap = vi.hoisted(() => ({ theme: null as { darkAvailable: boolean } | null }));
+const bootstrap = vi.hoisted(() => ({ storeName: 'Example Store', theme: null as { darkAvailable: boolean } | null }));
 vi.mock('server-only', () => ({}));
 vi.mock('nuqs/adapters/next/app', () => ({ NuqsAdapter: ({ children }: { children: React.ReactNode }) => children }));
 vi.mock('../components/ui/sonner', () => ({ Toaster: () => null }));
 vi.mock('next/headers', () => ({ headers: async () => requestHeaders.value }));
-vi.mock('../lib/server-bootstrap', () => ({ shopBootstrap: async () => ({ context: { defaultLocale: 'zh-Hant' }, slots: null, theme: bootstrap.theme }) }));
-afterEach(() => { vi.restoreAllMocks(); bootstrap.theme = null; });
+vi.mock('../lib/server-bootstrap', () => ({ shopBootstrap: async () => ({ context: { storeName: bootstrap.storeName, defaultLocale: 'zh-Hant' }, slots: null, theme: bootstrap.theme }) }));
+afterEach(() => { vi.restoreAllMocks(); bootstrap.theme = null; bootstrap.storeName = 'Example Store'; });
 
 it('uses system color mode only with the active theme dark-availability marker', async () => {
   requestHeaders.value = new Headers({ 'x-shop-locale': 'en' });
@@ -39,7 +39,7 @@ it('A document roots render the route language for storefront and payment in eve
       requestHeaders.value = new Headers({ 'x-shop-locale': locale });
       const root = suffix ? PaymentRoot : StorefrontRoot;
       expect(renderToStaticMarkup(await root({ children: 'Document content' })))
-        .toBe(`<html lang="${locale}" data-color-mode="system" data-shop-dark-available="false"><head></head><body>Document content</body></html>`);
+        .toBe(`<html lang="${locale}" data-color-mode="system" data-shop-dark-available="false"><head><title>Example Store</title></head><body>Document content</body></html>`);
     }
   }
 });
@@ -49,7 +49,7 @@ it('B nonlocalized documents use the store language and discard a spoofed route 
   expect(response.headers.get('x-middleware-request-x-shop-locale')).toBeNull();
   requestHeaders.value = new Headers();
   expect(renderToStaticMarkup(await DocumentRoot({ children: 'Not found' })))
-    .toBe('<html lang="zh-Hant" data-color-mode="system" data-shop-dark-available="false"><head></head><body>Not found</body></html>');
+    .toBe('<html lang="zh-Hant" data-color-mode="system" data-shop-dark-available="false"><head><title>Example Store</title></head><body>Not found</body></html>');
 });
 
 it('C the initial document language is the server value despite a different pathname or a nonlocale store-default route', async () => {
@@ -61,5 +61,15 @@ it('C the initial document language is the server value despite a different path
   requestHeaders.value = new Headers();
   expect(renderToStaticMarkup(createElement(PathnameContext.Provider, { value: '/en' },
     await DocumentRoot({ children: 'Store default content' }))))
-    .toBe('<html lang="zh-Hant" data-color-mode="system" data-shop-dark-available="false"><head></head><body>Store default content</body></html>');
+    .toBe('<html lang="zh-Hant" data-color-mode="system" data-shop-dark-available="false"><head><title>Example Store</title></head><body>Store default content</body></html>');
+});
+
+it('renders the current store name as escaped title text in both document roots', async () => {
+  bootstrap.storeName = 'Store </title><script>alert("title")</script> & Friends';
+  requestHeaders.value = new Headers({ 'x-shop-locale': 'en' });
+  for (const root of [StorefrontRoot, PaymentRoot]) {
+    const html = renderToStaticMarkup(await root({ children: 'Store content' }));
+    expect(html).toContain('<head><title>Store &lt;/title&gt;&lt;script&gt;alert(&quot;title&quot;)&lt;/script&gt; &amp; Friends</title></head>');
+    expect(html).not.toContain('<script>');
+  }
 });

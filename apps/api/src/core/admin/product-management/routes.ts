@@ -187,8 +187,8 @@ export async function adminProductRoutes(fastify: FastifyInstance) {
     }
   }, async (request, reply) => {
     try {
-      const { page, limit } = request.query as { page?: number; limit?: number };
-      const categories = await AdminProductService.getCategories(page, limit);
+      const { page, limit, search } = request.query as { page?: number; limit?: number; search?: string };
+      const categories = await AdminProductService.getCategories(page, limit, search);
       return sendSuccess(reply, categories);
     } catch (error) { return sendMappedError(reply, error); }
   });

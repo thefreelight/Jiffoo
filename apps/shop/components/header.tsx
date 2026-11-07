@@ -18,15 +18,16 @@ export function Header({ context, locale, categories, loggedIn, cartCount, optio
   const t = messages(locale);
   const links = [{ href: localePath(locale, '/products'), label: t.navigation.products },
     ...categories.map((category) => ({ href: localePath(locale, `/categories/${category.slug}`), label: category.name }))];
+  const useDrawer = options?.menu === 'drawer' || links.length > 4 || links.some(link => link.label.length > 18);
   return <header className="relative z-30 border-b border-line bg-[var(--shop-extras-header-bg)] text-[var(--shop-extras-header-text)]">
-    <div className={`mx-auto flex min-h-14 max-w-7xl items-center gap-2 px-4 md:min-h-16 md:gap-7 md:px-8 ${options?.variant === 'logo-center' ? 'flex-wrap justify-center' : ''}`}>
-      <div className={options?.menu === 'drawer' ? '' : 'md:hidden'}><DrawerMenu label={t.navigation.categories} links={links}
+    <div className={`mx-auto flex min-h-14 max-w-7xl flex-wrap items-center gap-2 px-4 md:min-h-16 md:gap-x-3 md:px-8 xl:gap-x-7 ${options?.variant === 'logo-center' ? 'justify-center' : ''}`}>
+      <div className={useDrawer ? 'shrink-0' : 'shrink-0 md:hidden'}><DrawerMenu label={t.navigation.categories} links={links}
         locale={locale} supported={context.supportedLocales} storeName={context.storeName} loggedIn={loggedIn} showSearch={options?.showSearch !== false} /></div>
-      <Link href={localePath(locale)} aria-label={context.storeName} className={`flex min-w-0 items-center gap-2 text-[17px] font-bold tracking-tight ${options?.variant === 'logo-center' ? 'md:order-first md:w-full md:justify-center md:pt-3' : ''}`}>
-        {context.logo && <Image src={context.logo} alt={context.storeName} width={32} height={32} className="size-8 object-contain" />}<span className="truncate">{context.storeName}</span>
+      <Link href={localePath(locale)} aria-label={context.storeName} title={context.storeName} className={`flex min-w-0 shrink-0 items-center gap-2 text-[17px] font-bold tracking-tight ${options?.variant === 'logo-center' ? 'w-[min(40vw,12rem)] md:order-first md:w-full md:justify-center md:pt-3' : 'w-[min(40vw,12rem)]'}`}>
+        {context.logo && <Image src={context.logo} alt={context.storeName} width={32} height={32} className="size-8 shrink-0 object-contain" />}<span className="truncate">{context.storeName}</span>
       </Link>
-      {options?.menu !== 'drawer' && <nav aria-label={t.navigation.categories} className="hidden min-w-0 items-center gap-[22px] overflow-x-auto text-sm text-subtle md:flex">
-        {links.map((link) => <Link key={link.href} href={link.href} className="whitespace-nowrap hover:text-ink">{link.label}</Link>)}
+      {!useDrawer && <nav aria-label={t.navigation.categories} className="order-last hidden w-full min-w-0 flex-wrap items-center gap-x-5 gap-y-2 py-2 text-sm text-subtle md:flex">
+        {links.map(link => <Link key={link.href} href={link.href} title={link.label} className="min-w-0 max-w-full truncate hover:text-ink">{link.label}</Link>)}
       </nav>}
       <div className="ml-auto flex shrink-0 items-center gap-1">
         <PluginNavigation locale={locale} placement="header-nav" />

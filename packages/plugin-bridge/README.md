@@ -1,13 +1,13 @@
 # @jiffoo/plugin-bridge
 
-The browser-side client of the Core plugin page shell, version 1.0.0-alpha.3.
+The browser-side client of the Core plugin page shell, version 1.0.0-alpha.4.
 It runs in the storefront's browser; the build and the verification run on
 Node.js >=24.13.1 <25, matching Core's Node 24 CI runtime.
 
 Install the bridge tarball attached to the matching Core release:
 
 ```sh
-npm i ./jiffoo-plugin-bridge-1.0.0-alpha.3.tgz
+npm i ./jiffoo-plugin-bridge-1.0.0-alpha.4.tgz
 ```
 
 ```typescript
@@ -51,3 +51,30 @@ owner provides an npm organisation.
 A consumer that vendors the tarball records the Core commit it came from and
 the tarball's SHA256 beside the file, so that the bytes stay traceable to a
 tree.
+
+The current integration batch adds `bridge.commerce.product.open({variantId})`
+on the storefront surface. Check the advertised `commerce.product.open` capability.
+The host resolves a published variant under its installation grant and live shell
+session to a canonical localized product route. The frame supplies no URL or path.
+Guest sessions must prove their shell session to the host; this is not a bypass of
+administrator-owned storage or other private resources.
+
+For direct purchase, reuse `bridge.request('cart.add', {variantId,quantity})` followed
+by `bridge.request('checkout.open')`. Checkout records a purchase origin bound to
+the authenticated customer, installation generation and current declared plugin
+page; the host validates it for the purchase return. No arbitrary return URL is
+accepted. Opening a product page alone does not register that purchase origin.
+
+The wire envelope remains version 1; capability discovery determines whether the
+host offers the added action. This batch is not a delivered artifact until build,
+pack and external consumer verification have passed and the release records its
+package version and hash. Public file publication and permanent deletion are not
+provided by this navigation action.
+
+Administrator pages can use `bridge.customers.open({customerId})` when the host
+advertises `customers.open`. Core verifies the administrator shell session and the
+installation's `customers:read` grant, reads the customer through the shared audited
+projection and rechecks the session before returning a fixed account destination.
+The administrator host adds the current locale. This is the supported way to open
+an SDK customer projection's `accountPath`; an iframe must not navigate itself or
+pass that path to the general plugin-page navigation allowlist.

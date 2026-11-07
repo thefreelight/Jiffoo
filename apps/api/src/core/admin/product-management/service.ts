@@ -872,15 +872,19 @@ export class AdminProductService {
 
   /**
    * Get categories list
-   * Uses simple cache (60s TTL) as categories rarely change
    */
-  static async getCategories(page = 1, limit = 20) {
+  static async getCategories(page = 1, limit = 20, search = '') {
     const safePage = Math.max(1, Number(page) || 1);
     const safeLimit = Math.min(100, Math.max(1, Number(limit) || 20));
     const skip = (safePage - 1) * safeLimit;
+    const term = search.trim();
+    const where: Prisma.CategoryWhereInput = term ? {
+      OR: [{ name: { contains: term, mode: 'insensitive' } }, { slug: { contains: term, mode: 'insensitive' } }],
+    } : {};
 
     const [items, total] = await Promise.all([
       prisma.category.findMany({
+        where,
         skip,
         take: safeLimit,
         orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
@@ -893,7 +897,7 @@ export class AdminProductService {
           _count: { select: { products: true, children: true } },
         }
       }),
-      prisma.category.count(),
+      prisma.category.count({ where }),
     ]);
 
     return {

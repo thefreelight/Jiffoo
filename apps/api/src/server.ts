@@ -20,6 +20,7 @@
 // Register module aliases for production runtime (must be first import)
 import './core/logger/production-console';
 import 'module-alias/register';
+import { initializePluginHostCapabilities } from './plugin-host-capabilities';
 import { parseTrustedProxies } from 'shared/trusted-proxies';
 
 import Fastify, { type FastifyInstance, type FastifyPluginAsync } from 'fastify';
@@ -78,6 +79,7 @@ const fastify = Fastify({
 });
 
 registerPluginProcessFailureHandlers();
+initializePluginHostCapabilities();
 let shutdownDeadlineExceeded = false;
 
 export async function registerGlobalRateLimiter(

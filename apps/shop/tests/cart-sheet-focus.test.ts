@@ -4,10 +4,11 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CartButton, CartSheet } from '../components/cart-sheet';
 import { useCartUI } from '../lib/cart-ui';
+import type { Cart } from '../lib/checkout-types';
 
-const mocks = vi.hoisted(() => ({ refresh: vi.fn(), setError: vi.fn(), capture: vi.fn(), change: vi.fn() }));
+const mocks = vi.hoisted(() => ({ refresh: vi.fn(), setError: vi.fn(), capture: vi.fn(), change: vi.fn(), cart: { items: [], itemCount: 0, subtotal: 0 } as Cart }));
 vi.mock('next/link', () => ({ default: ({ onClick, children, ...props }: ComponentProps<'a'>) => h('a', { ...props, onClick: (event: ReactMouseEvent<HTMLAnchorElement>) => { event.preventDefault(); onClick?.(event); } }, children) }));
-vi.mock('../lib/use-cart', () => ({ useCart: () => ({ cart: { items: [], itemCount: 0, subtotal: 0 }, busy: false, error: '', setError: mocks.setError, availability: { blocked: false, message: '', capture: mocks.capture, clear: vi.fn() }, refresh: mocks.refresh, change: mocks.change, blocked: false }) }));
+vi.mock('../lib/use-cart', () => ({ useCart: () => ({ cart: mocks.cart, busy: false, error: '', setError: mocks.setError, availability: { blocked: false, message: '', capture: mocks.capture, clear: vi.fn() }, refresh: mocks.refresh, change: mocks.change, blocked: false }) }));
 
 let root: Root, container: HTMLDivElement;
 const settle = () => act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
@@ -32,11 +33,19 @@ beforeEach(() => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
   useCartUI.setState({ open: false, count: null, lastAdded: null });
   mocks.refresh.mockResolvedValue(undefined);
+  mocks.cart = { items: [], itemCount: 0, subtotal: 0 };
   container = document.createElement('div'); document.body.append(container); root = createRoot(container);
 });
 afterEach(async () => { await act(async () => root.unmount()); await settle(); container.remove(); useCartUI.setState({ open: false, count: null, lastAdded: null }); vi.restoreAllMocks(); vi.clearAllMocks(); vi.unstubAllGlobals(); });
 
 describe('Cart sheet focus with the real Radix sheet', () => {
+  it.each([[false], [true], [false, true]])('limits the delivery-address hint to carts that need shipping: %j', async (...shipping) => {
+    mocks.cart = { items: shipping.map((requiresShipping, index) => ({ id: `line-${index}`, productId: 'product', variantId: 'variant', productName: 'Product', productImage: '', price: 1, subtotal: 1, quantity: 1, maxQuantity: 5, requiresShipping })), itemCount: shipping.length, subtotal: shipping.length };
+    await render(); await click(cartButton());
+    const modal = document.body.querySelector('[role="dialog"]')!;
+    expect(modal.textContent?.includes('Shipping is calculated at checkout based on your delivery address')).toBe(shipping.some(Boolean));
+    expect(modal.querySelector('a[href="/en/checkout"]')).not.toBeNull();
+  });
   it.each(['Escape', 'Close'])('restores the persistent cart button after %s', async method => {
     await render(); const trigger = cartButton(); await click(trigger);
     const modal = document.body.querySelector('[role="dialog"]')!; expect(modal.contains(document.activeElement)).toBe(true);

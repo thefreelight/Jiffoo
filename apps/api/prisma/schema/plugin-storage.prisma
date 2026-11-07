@@ -9,6 +9,7 @@ model PluginFile {
   sizeBytes            BigInt    @default(0)
   reservedBytes        BigInt
   state                String    @default("RESERVED")
+  publicationRevision  BigInt    @default(0)
   reservationExpiresAt DateTime  @db.Timestamptz(3)
   deletedAt            DateTime? @db.Timestamptz(3)
   createdAt            DateTime  @default(now()) @db.Timestamptz(3)
@@ -43,8 +44,57 @@ model PluginFileCleanup {
   claimToken     String?   @db.Uuid
   leaseUntil     DateTime? @db.Timestamptz(3)
   lastError      String?
+  operationId    String?
 
   @@index([nextAttemptAt, leaseUntil])
   @@map("plugin_file_cleanup")
+  @@schema("public")
+}
+
+model PluginFilePublication {
+  id             String    @id @default(uuid())
+  installationId String
+  fileId         String
+  revision       BigInt
+  status         String    @default("PUBLISHED")
+  publishedBy    String
+  publishedAt    DateTime  @default(now()) @db.Timestamptz(3)
+  revokedAt      DateTime? @db.Timestamptz(3)
+
+  @@index([installationId, fileId, status])
+  @@map("plugin_file_publications")
+  @@schema("public")
+}
+
+model PluginFileReference {
+  id             String    @id @default(uuid())
+  installationId String
+  fileId         String
+  key            String
+  status         String    @default("ACTIVE")
+  createdAt      DateTime  @default(now()) @db.Timestamptz(3)
+  releasedAt     DateTime? @db.Timestamptz(3)
+
+  @@unique([installationId, fileId, key])
+  @@map("plugin_file_references")
+  @@schema("public")
+}
+
+model PluginFileOperation {
+  id             String    @id @default(uuid())
+  installationId String
+  idempotencyKey String
+  inputHash      String
+  kind           String
+  fileId         String
+  result         Json?
+  status         String    @default("PENDING")
+  lastError      String?
+  createdAt      DateTime  @default(now()) @db.Timestamptz(3)
+  completedAt    DateTime? @db.Timestamptz(3)
+
+  @@unique([installationId, idempotencyKey])
+  @@index([installationId, fileId])
+  @@map("plugin_file_operations")
   @@schema("public")
 }

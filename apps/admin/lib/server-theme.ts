@@ -1,5 +1,6 @@
 import { cache } from 'react';
-import { isStoreTimezone, type ThemeFontFace, type ThemeTokens, type ThemeDarkTokens } from 'shared';
+import { isStoreTimezone } from 'shared/store-time';
+import type { ThemeFontFace, ThemeTokens, ThemeDarkTokens } from 'shared';
 
 /** The default deadline of the headers of the Core. */
 const DEFAULT_EDGE_TIMEOUT_MS = 30000;

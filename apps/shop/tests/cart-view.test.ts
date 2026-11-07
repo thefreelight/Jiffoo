@@ -30,13 +30,17 @@ function elements(node: ReactNode): Element[] {
   const element = node as Element;
   return [element, ...elements(element.props.children as ReactNode)];
 }
-const initial: Cart = { items: [{ id: 'line-1', productId: 'product-1', variantId: 'variant-1',
+const initial: Cart = { items: [{ requiresShipping: true, id: 'line-1', productId: 'product-1', variantId: 'variant-1',
   productName: 'Product', productImage: '', price: 19.99, quantity: 1, maxQuantity: 20, subtotal: 19.99 }], itemCount: 1, subtotal: 19.99 };
 function render(cart = initial) {
   state.cursor = 0;
   return elements(CartView({ initial: cart, locale: 'en', currency: 'USD', productLinks: { 'product-1': '/en/products/product' } }));
 }
 function checkout(nodes: Element[]) { return nodes.find((node) => node.props.href === '/en/checkout'); }
+function text(node: ReactNode): string {
+  if (Array.isArray(node)) return node.map(text).join('');
+  return isValidElement(node) ? text((node as Element).props.children as ReactNode) : String(node ?? '');
+}
 
 beforeEach(() => {
   state.values = []; state.cursor = 0; state.blocked = false; vi.clearAllMocks();
@@ -74,6 +78,14 @@ it.each([true, false])('prevents checkout while a quantity write is unresolved a
 it('blocks checkout while the availability boundary is blocking cart actions', () => {
   state.blocked = true;
   expect(checkout(render())).toBeUndefined();
+});
+
+it.each([[false], [true], [false, true]])('shows delivery estimates only for carts with a shipping line: %j', (...shipping) => {
+  const cart = { ...initial, items: shipping.map((requiresShipping, index) => ({ ...initial.items[0], id: `line-${index}`, requiresShipping })), itemCount: shipping.length };
+  const nodes = render(cart);
+  expect(nodes.some(node => node.type === 'dt' && text(node.props.children as ReactNode) === 'Shipping')).toBe(shipping.some(Boolean));
+  expect(nodes.some(node => node.type === 'dd' && text(node.props.children as ReactNode) === 'Calculated at checkout')).toBe(shipping.some(Boolean));
+  expect(checkout(nodes)).toBeDefined();
 });
 
 it('renders the empty board state with a browse link and no checkout', () => {

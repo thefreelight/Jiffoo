@@ -52,7 +52,7 @@ export function CartView({ initial, locale, currency, productLinks }: { initial:
         <h2 className="text-base font-semibold">{t.s4.summary}</h2>
         <dl className="space-y-2.5">
           <div className="flex justify-between gap-3"><dt className="text-subtle">{t.checkout.subtotal}</dt><dd>{money(cart.subtotal)}</dd></div>
-          <div className="flex justify-between gap-3"><dt className="text-subtle">{t.checkout.shipping}</dt><dd className="text-subtle">{t.s4.calculatedCheckout}</dd></div>
+          {cart.items.some(line => line.requiresShipping) && <div className="flex justify-between gap-3"><dt className="text-subtle">{t.checkout.shipping}</dt><dd className="text-subtle">{t.s4.calculatedCheckout}</dd></div>}
           <div className="flex justify-between border-t border-line pt-3 text-base font-semibold"><dt>{t.checkout.total}</dt><dd><strong>{money(cart.subtotal)}</strong></dd></div>
         </dl>
         {blocked ? <button disabled className="h-12 w-full rounded-md bg-action text-action-ink opacity-45">{t.s4.goCheckout}</button>

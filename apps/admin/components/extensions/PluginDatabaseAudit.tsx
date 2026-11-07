@@ -6,7 +6,7 @@ import { useT } from 'shared/src/i18n/react';
 import { pluginUploadApi } from '@/lib/plugin-upload';
 import { Button } from '@/components/ui/button';
 import { useStoreDate } from '@/lib/store-time';
-import { formatStoreTimestamp } from 'shared';
+import { formatStoreTimestamp } from 'shared/store-time';
 
 export function PluginDatabaseAudit() {
   const t = useT(), text = (key: string, values?: Record<string, string | number>) => t(`merchant.healthView.${key}`, values);

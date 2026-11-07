@@ -65,8 +65,7 @@ test('record payment, ship a Shop checkout order, and resend its notification', 
     await expect(page.getByRole('button', { name: 'Payment', exact: true })).toContainText('All');
     await page.getByRole('button', { name: 'Amount', exact: true }).click();
     await expect(page.getByRole('columnheader', { name: 'Amount', exact: true })).toHaveAttribute('aria-sort', 'ascending');
-    await page.getByRole('button', { name: 'Rows per page', exact: true }).click();
-    await page.getByRole('menuitemradio', { name: '50', exact: true }).click();
+    await page.getByRole('combobox', { name: 'Rows per page', exact: true }).selectOption('50');
     await expect(page).toHaveURL(/pageSize=50/);
     await page.getByRole('checkbox', { name: 'Select order ' + orderNumber, exact: true }).check();
     await expect(page.getByRole('region', { name: 'Bulk actions', exact: true })).toBeVisible();

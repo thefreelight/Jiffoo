@@ -6,7 +6,14 @@ import CustomersPage from '../app/[locale]/(themed)/customers/page';
 import { StoreTimeProvider } from '../lib/store-time';
 import { merchant } from '../../../packages/shared/src/i18n/messages/en/merchant';
 
-const state = vi.hoisted(() => ({ params: {} as any, url: '', replace: vi.fn(), data: {} as any, exportCsv: vi.fn() }));
+const state = vi.hoisted(() => ({ params: {} as any, url: '', replace: vi.fn(), data: {} as any, exportCsv: vi.fn(), deferredRows: undefined as any }));
+vi.mock('react', async () => {
+  const actual = await vi.importActual<typeof import('react')>('react');
+  return { ...actual, useDeferredValue: (value: unknown) => {
+    const deferred = actual.useDeferredValue(value);
+    return state.deferredRows ?? deferred;
+  } };
+});
 vi.mock('shared/src/i18n/react', () => ({ useLocale: () => 'en', useT: () => (key: string, params?: Record<string, string | number>) => {
   const value = key.split('.').slice(1).reduce<any>((value, part) => value?.[part], merchant) ?? key;
   return typeof value === 'string' ? value.replace(/\{(\w+)\}/g, (_, name) => String(params?.[name] ?? '{' + name + '}')) : key;
@@ -17,6 +24,7 @@ vi.mock('../lib/hooks/use-api', () => ({ useUsers: (params: any) => { state.para
 vi.mock('../lib/api', () => ({ usersApi: { export: state.exportCsv }, isAdminApiError: () => false, unwrapApiResponse: (response: any) => response.data, listPreferencesApi: { listViews: vi.fn(async () => ({ success: true, data: { views: [] } })), getPreference: vi.fn(async () => ({ success: true, data: { listKey: 'customers', columns: [] } })), setPreference: vi.fn(async () => ({ success: true, data: { listKey: 'customers', columns: [] } })) } }));
 let root: Root, container: HTMLDivElement;
 beforeEach(() => {
+  vi.stubGlobal('innerWidth', 1280); state.deferredRows = undefined;
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true); state.url = ''; state.replace.mockClear(); state.exportCsv.mockReset();
   state.data = { data: { data: [{ id: 'one', username: 'Buyer', email: 'buyer@example.com', isActive: true, orderCount: 3, paidTotal: 39.98, currency: 'USD', lastOrderAt: '2026-10-12T00:15:00Z', createdAt: '2026-10-01T00:00:00Z' }], pagination: { page: 1, limit: 20, total: 25 }, statusCounts: { all: 25, active: 20, inactive: 5 } } };
   container = document.createElement('div'); document.body.append(container); root = createRoot(container);
@@ -29,6 +37,8 @@ it('shows real aggregates, filtered tab counts, store time and mobile cards', as
   expect(Array.from(container.querySelectorAll('[role="tab"]')).map(tab => tab.textContent)).toEqual(['All25', 'Active20', 'Inactive5']);
   expect(container.querySelector('tbody')?.textContent).toContain('$39.98'); expect(container.querySelector('tbody')?.textContent).toContain('2026-10-12 08:15');
   expect(container.querySelector('thead')?.textContent).toContain('Registered (Asia/Shanghai)');
+  await act(async () => { vi.stubGlobal('innerWidth', 1099); window.dispatchEvent(new Event('resize')); });
+  expect(container.querySelector('tbody')).toBeNull();
   expect(container.querySelector('article')?.textContent).toContain('Orders 3');
   expect(container.textContent).not.toMatch(/Role|VIP|vs yesterday/);
   await act(async () => button('Orders').click()); expect(state.params).toMatchObject({ sortBy: 'orderCount', sortOrder: 'asc' });
@@ -79,4 +89,62 @@ it('exports selected IDs or matching filters with exclusions and reports mapped 
   expect(state.exportCsv).toHaveBeenLastCalledWith({ mode: 'filter', filters: { search: undefined, status: 'all', registered: 'all', start: undefined, end: undefined }, excludedIds: ['one'] }, { sortBy: 'createdAt', sortOrder: 'desc' }, 'en');
   await act(async () => button('Export').click());
   expect(state.exportCsv).toHaveBeenLastCalledWith({ mode: 'filter', filters: { search: undefined, status: 'all', registered: 'all', start: undefined, end: undefined } }, { sortBy: 'createdAt', sortOrder: 'desc' }, 'en');
+});
+
+it('does not reformat monetary projections when selection changes', async () => {
+  const utils = await import('../lib/utils');
+  const formatter = vi.spyOn(utils, 'formatCurrency');
+  try {
+    await mount();
+    const calls = formatter.mock.calls.length;
+    expect(calls).toBeGreaterThan(0);
+    await act(async () => container.querySelector<HTMLInputElement>('input[aria-label="Select customer Buyer"]')!.click());
+    expect(formatter).toHaveBeenCalledTimes(calls);
+    await act(async () => container.querySelector<HTMLInputElement>('input[aria-label="Select customer Buyer"]')!.click());
+    expect(formatter).toHaveBeenCalledTimes(calls);
+  } finally {
+    formatter.mockRestore();
+  }
+});
+
+it('mounts only the active viewport layout across the breakpoint', async () => {
+  const originalWidth = window.innerWidth;
+  try {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1100 });
+    await mount();
+    expect(container.querySelectorAll('tbody tr').length).toBeGreaterThan(0);
+    expect(container.querySelectorAll('article')).toHaveLength(0);
+    await act(async () => {
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1099 });
+      window.dispatchEvent(new Event('resize'));
+    });
+    expect(container.querySelectorAll('tbody tr')).toHaveLength(0);
+    expect(container.querySelectorAll('article').length).toBeGreaterThan(0);
+    await act(async () => {
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1100 });
+      window.dispatchEvent(new Event('resize'));
+    });
+    expect(container.querySelectorAll('article')).toHaveLength(0);
+    expect(container.querySelectorAll('tbody tr').length).toBeGreaterThan(0);
+  } finally {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalWidth });
+  }
+});
+
+it('disables both export paths and hides old rows while results are deferred', async () => {
+  await mount();
+  await act(async () => container.querySelector<HTMLInputElement>('input[aria-label="Select customer Buyer"]')!.click());
+  state.deferredRows = state.data.data.data;
+  state.data = { ...state.data, data: { ...state.data.data, data: state.data.data.data.map((row: any) => ({ ...row, username: 'Updated buyer' })) } };
+  await mount();
+  expect(container.querySelector('tbody')).toBeNull();
+  expect(container.querySelector('article')).toBeNull();
+  expect(container.querySelector('[role="status"]')?.textContent).toContain('Loading');
+  expect((button('Export') as HTMLButtonElement).disabled).toBe(true);
+  expect((button('Export selected') as HTMLButtonElement).disabled).toBe(true);
+  expect(state.exportCsv).not.toHaveBeenCalled();
+  state.deferredRows = undefined;
+  await mount();
+  expect(container.textContent).toContain('Updated buyer');
+  expect((button('Export') as HTMLButtonElement).disabled).toBe(false);
 });

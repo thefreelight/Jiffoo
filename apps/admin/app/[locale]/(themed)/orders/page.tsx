@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState, type MouseEvent } from 'react';
+import { useDeferredValue, useEffect, useMemo, useState, useSyncExternalStore, type MouseEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AlertTriangle, Download } from 'lucide-react';
 import { useLocale, useT } from 'shared/src/i18n/react';
-import { formatStoreTimestamp } from 'shared';
+import { formatStoreTimestamp } from 'shared/store-time';
 import { useStoreDate } from '@/lib/store-time';
 import { useOrders, useOrderStats, type Order } from '@/lib/hooks/use-api';
 import { ordersApi, type PaginationParams } from '@/lib/api';
@@ -28,7 +28,16 @@ const orderColumns: OrderColumn[] = [
   { key: 'createdAt', labelKey: 'merchant.orders.list.placedAt', className: 'whitespace-nowrap px-3 py-2.5 pr-4 text-right tabular-nums text-muted-foreground', sortable: true, field: 'createdAt' },
 ];
 
+const emptyRows: Order[] = [];
+const subscribeViewport = (notify: () => void) => {
+  window.addEventListener('resize', notify);
+  return () => window.removeEventListener('resize', notify);
+};
+const readCompactViewport = () => window.innerWidth < 769;
+const readServerViewport = () => false;
+
 export default function OrdersPage() {
+  const compactViewport = useSyncExternalStore(subscribeViewport, readCompactViewport, readServerViewport);
   const t = useT(), locale = useLocale(), { timezone } = useStoreDate(), router = useRouter();
   const copy = (key: string, values?: Record<string, string | number>) => t('merchant.orders.list.' + key, values);
   const statusLabel = (value: string) => value === 'All' ? copy('all') : t('merchant.orders.' + value.toLowerCase());
@@ -44,7 +53,7 @@ export default function OrdersPage() {
     paymentStatus: ['paid', 'unpaid', 'refunded'].includes(payment) ? payment.toUpperCase() as PaginationParams['paymentStatus'] : undefined,
     paymentReview: payment === 'review' ? 'required' : undefined, ...dates };
   const { data, isLoading, error, refetch } = useOrders({ ...filter, ...sort, page, limit: pageSize }, () => invalidDates ? {} : listDateRange(date, start, end, timezone));
-  const stats = useOrderStats(), orders = invalidDates ? [] : data?.data ?? [], total = invalidDates ? 0 : data?.pagination?.total ?? 0;
+  const stats = useOrderStats(), orders = invalidDates ? emptyRows : data?.data ?? emptyRows, total = invalidDates ? 0 : data?.pagination?.total ?? 0;
   useEffect(() => {
     if (data?.pagination?.page === page && page > Math.max(1, Math.ceil(total / pageSize))) update({ page: '1' });
   }, [data?.pagination?.page, page, pageSize, total]);
@@ -87,6 +96,14 @@ export default function OrdersPage() {
   const statusText = (order: Order) => <span className="inline-flex items-center gap-[7px] whitespace-nowrap"><StatusShape status={order.status} />{statusLabel(order.status)}</span>;
   const pageCheckbox = <input type="checkbox" aria-label={copy('selectPage')} checked={selection.pageChecked} onChange={selection.togglePage} disabled={!orders.length} className="size-[15px] cursor-pointer accent-foreground focus-visible:outline-2 focus-visible:outline-ring" />;
   const { visible, toggle } = useListColumns('orders', orderColumns.map(column => column.key));
+  const deferredRows = useDeferredValue(orders);
+  const renderingPending = deferredRows !== orders;
+  const needsMoney = compactViewport || visible.includes('totalAmount');
+  const needsCreated = compactViewport || visible.includes('createdAt');
+  const display = useMemo(() => new Map(deferredRows.map(row => [row.id, {
+    money: needsMoney ? formatCurrency(row.totalAmount, row.currency) : '',
+    created: needsCreated ? formatStoreTimestamp(row.createdAt, timezone) : '',
+  }])), [deferredRows, timezone, needsMoney, needsCreated]);
   const visibleColumns = visible.map(key => orderColumns.find(column => column.key === key)).filter((column): column is OrderColumn => column !== undefined);
   const pickerColumns = orderColumns.map(column => ({ key: column.key, label: t(column.labelKey, { timezone }), alwaysVisible: column.key === 'orderNumber' }));
   const listCopy = (key: string, values?: Record<string, string | number>) => t('merchant.listViews.' + key, values);
@@ -96,11 +113,11 @@ export default function OrdersPage() {
     if (key === 'customer') return <p title={order.customer.email || undefined} className="max-w-[260px] truncate">{order.customer.email || t('merchant.orders.noEmail')}</p>;
     if (key === 'status') return statusText(order);
     if (key === 'payment') return <PaymentPill {...order} />;
-    if (key === 'totalAmount') return formatCurrency(order.totalAmount, order.currency);
-    return formatStoreTimestamp(order.createdAt, timezone);
+    if (key === 'totalAmount') return display.get(order.id)?.money;
+    return display.get(order.id)?.created;
   };
   return <section className="mx-auto flex min-h-[calc(100dvh-72px)] min-w-0 max-w-[1120px] flex-col gap-4 [&:not(:first-child)]:mt-6">
-    <header className="flex items-center justify-between gap-3"><h1 className="text-[26px] font-semibold tracking-[-0.025em]">{t('merchant.orders.title')}</h1><Button variant="outline" size="sm" className="bg-ground" disabled={exporting || invalidDates} onClick={() => exportOrders(false)}><Download aria-hidden="true" className="mr-1.5 size-3.5" />{copy('export')}</Button></header>
+    <header className="flex items-center justify-between gap-3"><h1 className="text-[26px] font-semibold tracking-[-0.025em]">{t('merchant.orders.title')}</h1><Button variant="outline" size="sm" className="bg-ground" disabled={exporting || invalidDates || renderingPending} onClick={() => exportOrders(false)}><Download aria-hidden="true" className="mr-1.5 size-3.5" />{copy('export')}</Button></header>
     <StatusTabs label={copy('status')} value={status} onChange={value => change({ status: value })} tabs={statuses.map(value => ({ value, label: statusLabel(value), count: stats.data ? value === 'All' ? Object.values(stats.data.statusCounts).reduce((sum, count) => sum + count, 0) : stats.data.statusCounts[value] : undefined }))} />
     {stats.error && <p role="status" className="text-muted-foreground">{copy('statsError')}</p>}
     {!!stats.data?.paymentReviewCount && <div role="status" className="flex flex-wrap items-center gap-2.5 rounded-lg border border-attention-line bg-attention-soft px-3.5 py-3 text-attention"><AlertTriangle aria-hidden="true" className="size-4 shrink-0" /><p className="min-w-0 flex-1 basis-[320px]">{copy('reviewBanner', { count: stats.data.paymentReviewCount })}</p><Button variant="outline" size="sm" className="h-[30px] border-attention-line bg-transparent text-attention" onClick={() => change({ status: 'All', payment: 'review' })}>{copy('reviewAction')}</Button></div>}
@@ -116,15 +133,16 @@ export default function OrdersPage() {
     <FilterChips chips={chips} copy={copy} clear={clear} />
     {invalidDates && <p role="alert">{copy('invalidDates')}</p>}
     {exportError && <div role="alert" className="flex items-center gap-3"><p>{copy('exportError')}</p><Button variant="outline" size="sm" disabled={exporting} onClick={() => exportOrders(retrySelected)}>{copy('retry')}</Button></div>}
-    {error ? <div role="alert" className="space-y-3 py-8"><p>{copy('error')}</p><Button variant="outline" onClick={() => refetch()}>{copy('retry')}</Button></div> : isLoading ? <p role="status" className="py-8 text-muted-foreground">{copy('loading')}</p> : <>
+    {error ? <div role="alert" className="space-y-3 py-8"><p>{copy('error')}</p><Button variant="outline" onClick={() => refetch()}>{copy('retry')}</Button></div> : isLoading || renderingPending ? <p role="status" className="min-h-[calc(100dvh-10rem)] py-8 text-muted-foreground">{copy('loading')}</p> : <>
       <div className="overflow-hidden rounded-lg border border-border">
         {(selection.pageChecked || selection.selection.mode === 'filter') && <SelectionBanner all={selection.selection.mode === 'filter'} count={selection.selection.mode === 'filter' ? selection.count : orders.length} total={total} copy={copy} selectAll={selection.allMatching} onlyPage={selection.onlyPage} />}
-        <div className="hidden overflow-x-auto min-[769px]:block"><table className="w-full text-left text-[13px]"><thead className="bg-raised text-xs text-faint"><tr><th scope="col" className="w-10 py-2.5 pl-4">{pageCheckbox}</th>{visibleColumns.map(column => column.sortable ? <SortHeader key={column.key} label={t(column.labelKey, { timezone })} field={column.field ?? column.key} {...sort} onSort={(sortBy, sortOrder) => change({ sortBy, sortOrder })} align={column.align} /> : <th key={column.key} scope="col" className="whitespace-nowrap px-3 py-2.5 font-medium">{t(column.labelKey, { timezone })}</th>)}</tr></thead><tbody>{orders.map(order => <tr key={order.id} onClick={event => openRow(event, order)} className={cn('cursor-pointer border-t border-border hover:bg-active', selection.checked(order.id) && 'bg-active')}><td className="py-2.5 pl-4">{checkbox(order)}</td>{visibleColumns.map(column => <td key={column.key} className={column.className}>{orderCell(column.key, order)}</td>)}</tr>)}</tbody></table></div>
-        <div aria-label={t('merchant.orders.title')} className="divide-y divide-border min-[769px]:hidden"><p className="px-4 py-2 text-xs text-faint">{copy('placedAt', { timezone })}</p>{!!orders.length && <label className="flex items-center gap-2 px-4 py-3 text-xs">{pageCheckbox}{copy('selectPage')}</label>}{orders.map(order => <article key={order.id} aria-label={copy('detail', { id: order.orderNumber })} onClick={event => openRow(event, order)} className={cn('min-w-0 cursor-pointer space-y-3 p-4', selection.checked(order.id) && 'bg-active')}><div className="flex items-start justify-between gap-3"><div className="flex min-w-0 items-start gap-2">{checkbox(order)}<div>{orderLink(order)}<p className="mt-1 text-xs text-faint">{copy('items', { count: order.itemQuantitySum })}</p></div></div><span className="shrink-0 font-mono">{formatCurrency(order.totalAmount, order.currency)}</span></div><p className="break-all text-muted-foreground">{order.customer.email || t('merchant.orders.noEmail')}</p><div className="flex flex-wrap items-center justify-between gap-2">{statusText(order)}<PaymentPill {...order} /></div><p className="flex flex-wrap justify-between gap-1 text-xs text-faint"><span>{copy('placed')}</span><time dateTime={order.createdAt}>{formatStoreTimestamp(order.createdAt, timezone)}</time></p></article>)}</div>
+        {!compactViewport && <div className="overflow-x-auto"><table className="w-full text-left text-[13px]"><thead className="bg-raised text-xs text-faint"><tr><th scope="col" className="w-10 py-2.5 pl-4">{pageCheckbox}</th>{visibleColumns.map(column => column.sortable ? <SortHeader key={column.key} label={t(column.labelKey, { timezone })} field={column.field ?? column.key} {...sort} onSort={(sortBy, sortOrder) => change({ sortBy, sortOrder })} align={column.align} /> : <th key={column.key} scope="col" className="whitespace-nowrap px-3 py-2.5 font-medium">{t(column.labelKey, { timezone })}</th>)}</tr></thead><tbody>{deferredRows.map(order => <tr key={order.id} onClick={event => openRow(event, order)} className={cn('cursor-pointer border-t border-border hover:bg-active', selection.checked(order.id) && 'bg-active')}><td className="py-2.5 pl-4">{checkbox(order)}</td>{visibleColumns.map(column => <td key={column.key} className={column.className}>{orderCell(column.key, order)}</td>)}</tr>)}</tbody></table></div>}
+        {compactViewport && <div aria-label={t('merchant.orders.title')} className="divide-y divide-border"><p className="px-4 py-2 text-xs text-faint">{copy('placedAt', { timezone })}</p>{!!orders.length && <label className="flex items-center gap-2 px-4 py-3 text-xs">{pageCheckbox}{copy('selectPage')}</label>}{deferredRows.map(order => <article key={order.id} aria-label={copy('detail', { id: order.orderNumber })} onClick={event => openRow(event, order)} className={cn('min-w-0 cursor-pointer space-y-3 p-4', selection.checked(order.id) && 'bg-active')}><div className="flex items-start justify-between gap-3"><div className="flex min-w-0 items-start gap-2">{checkbox(order)}<div>{orderLink(order)}<p className="mt-1 text-xs text-faint">{copy('items', { count: order.itemQuantitySum })}</p></div></div><span className="shrink-0 font-mono">{display.get(order.id)?.money}</span></div><p className="break-all text-muted-foreground">{order.customer.email || t('merchant.orders.noEmail')}</p><div className="flex flex-wrap items-center justify-between gap-2">{statusText(order)}<PaymentPill {...order} /></div><p className="flex flex-wrap justify-between gap-1 text-xs text-faint"><span>{copy('placed')}</span><time dateTime={order.createdAt}>{display.get(order.id)?.created}</time></p></article>)}</div>}
         {!orders.length && <ListEmpty filtered={filtered} copy={copy} clear={() => change({ status: 'All', search: '', payment: 'all', date: 'all', start: '', end: '', customerId: '', customerEmail: '' })} />}
       </div>
     </>}
-    <PaginationBar page={page} pageSize={pageSize} total={total} copy={copy} onPage={value => update({ page: String(value) })} onPageSize={value => change({ pageSize: String(value) })} />
-    <BulkBar count={selection.count} copy={copy} allMatching={selection.selection.mode === 'filter'} clear={selection.clear}><Button size="sm" disabled={exporting || invalidDates} onClick={() => exportOrders(true)}><Download aria-hidden="true" className="mr-1.5 size-3.5" />{copy('exportSelected')}</Button><Button size="sm" variant="outline" disabled={exporting || invalidDates} asChild><Link href={printHref()}>{t('merchant.bulkActions.print.print')}</Link></Button></BulkBar>
+    <PaginationBar page={page} pageSize={pageSize} total={total} copy={copy} onPage={value => update({ page: String(value) })} onPageSize={value => change({ pageSize: String(value) })}>
+      <BulkBar count={selection.count} copy={copy} allMatching={selection.selection.mode === 'filter'} clear={selection.clear}><Button size="sm" disabled={exporting || invalidDates || renderingPending} onClick={() => exportOrders(true)}><Download aria-hidden="true" className="mr-1.5 size-3.5" />{copy('exportSelected')}</Button><Button size="sm" variant="outline" disabled={exporting || invalidDates || renderingPending} asChild><Link href={printHref()}>{t('merchant.bulkActions.print.print')}</Link></Button></BulkBar>
+    </PaginationBar>
   </section>;
 }

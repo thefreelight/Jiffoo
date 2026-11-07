@@ -35,6 +35,6 @@ export function DeclaredPluginPage({ slug, path, locale }: { slug: string; path:
   return <PluginPageShell slug={slug} pageId={page.id} title={page.title[locale]} surface="admin" locale={locale}
     currency={store.currency} store={{ id: 'system', name: store.storeName, url: '/' }} labels={labels} transport={transport}
     allowedPaths={declarations.flatMap(plugin => plugin.pages.map(candidate => pluginAdminPath(plugin.slug, candidate.path)))}
-    navigate={target => router.push(`/${locale}${target}`)}
+    navigate={target => router.push(target)}
     signIn={() => { sessionStorage.setItem('redirectPath', canonical); router.push(`/${locale}/auth/login`); }} checkout={() => undefined} />;
 }

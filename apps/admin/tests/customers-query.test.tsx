@@ -15,7 +15,7 @@ vi.mock('shared/src/i18n/react', () => ({ useLocale: () => 'en', useT: () => (ke
   const value = key.split('.').slice(1).reduce<any>((value, part) => value?.[part], merchant) ?? key;
   return typeof value === 'string' ? value.replace(/\{(\w+)\}/g, (_, name) => String(params?.[name] ?? '{' + name + '}')) : key;
 } }));
-vi.mock('shared', async importOriginal => ({ ...await importOriginal<typeof import('shared')>(), createAdminClient: () => ({ get: transport.get }) }));
+vi.mock('shared/api/create-client', async importOriginal => ({ ...await importOriginal<typeof import('shared/api/create-client')>(), createAdminClient: () => ({ get: transport.get }) }));
 it('forwards every customer filter and aggregate sort through the client and returns tab counts', async () => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
   transport.get.mockImplementation((path: string) => Promise.resolve({ success: true, data: path.endsWith('/neighbors') ? { position: 2, total: 4, previousId: 'one', nextId: 'three' } : { items: [], page: 2, limit: 50, total: 1, totalPages: 1, statusCounts: { all: 4, active: 3, inactive: 1 } } }));
@@ -29,8 +29,9 @@ it('forwards every customer filter and aggregate sort through the client and ret
     await vi.waitFor(() => expect(client.getQueryData(['users', { ...params, page: 2, limit: 50 }])).toMatchObject({ statusCounts: { all: 4, active: 3, inactive: 1 } }));
   } finally { await act(async () => root.unmount()); client.clear(); transport.get.mockReset(); vi.unstubAllGlobals(); }
 });
-it('keeps the table, customer row and open menu mounted while a new search query is in flight', async () => {
+it('removes stale customer actions during a new search and renders only its completed results', async () => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
+  vi.stubGlobal('innerWidth', 1280);
   route.query = '';
   const customer = { id: 'empty', username: 'Empty Customer', email: 'empty@example.com', avatar: null, locale: null, isActive: true, emailVerified: false, createdAt: '2026-10-15T00:00:00Z', updatedAt: '2026-10-15T00:00:00Z', orderCount: 0, paidTotal: 0, currency: 'USD', lastOrderAt: null };
   const initial = { success: true, data: { items: [{ ...customer, id: 'buyer', username: 'Buyer', email: 'buyer@example.com' }, customer], page: 1, limit: 20, total: 2, totalPages: 1, statusCounts: { all: 2, active: 2, inactive: 0 } } };
@@ -57,16 +58,21 @@ it('keeps the table, customer row and open menu mounted while a new search query
     await act(async () => render());
     expect(transport.get).toHaveBeenCalledWith('/admin/users', { params: expect.objectContaining({ search: 'empty@example.com' }) });
     expect(client.getQueryCache().findAll({ queryKey: ['users'] }).some(query => query.state.status === 'pending')).toBe(true);
-    expect(container.querySelector('table')).toBe(table);
-    expect(container.querySelector('tbody')!.lastElementChild).toBe(row);
-    expect(document.body.contains(menu)).toBe(true);
-    expect(container.textContent).not.toContain('Loading customers');
+    expect(container.querySelector('table')).toBeNull();
+    expect(container.contains(row)).toBe(false);
+    expect(document.body.contains(menu)).toBe(false);
+    expect(container.querySelector('button[aria-label="More actions: Empty Customer"]')).toBeNull();
+    expect(container.querySelector('input[type="checkbox"]')).toBeNull();
+    expect(container.querySelector('[role="status"]')?.textContent).toContain(merchant.customers.workspace.loading);
     await act(async () => { finishSearch(filtered); await pending; });
     await vi.waitFor(async () => {
       await act(async () => {});
       expect(container.querySelector('tbody')!.children).toHaveLength(1);
     });
-    expect(container.querySelector('table')).toBe(table);
-    expect(document.body.contains(menu)).toBe(true);
+    expect(container.querySelector('tbody')?.textContent).toContain('Empty Customer');
+    expect(container.querySelector('tbody')?.textContent).not.toContain('Buyer');
+    expect(container.querySelector('button[aria-label="More actions: Empty Customer"]')).not.toBeNull();
+    expect(container.querySelector('[role="status"]')).toBeNull();
+    expect(document.body.contains(menu)).toBe(false);
   } finally { finishSearch(filtered); await act(async () => root.unmount()); container.remove(); client.clear(); transport.get.mockReset(); route.query = ''; vi.unstubAllGlobals(); }
 });

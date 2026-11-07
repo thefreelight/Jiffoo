@@ -65,7 +65,7 @@ export function CartSheet({ locale, currency, loggedIn, initial }: { locale: Sho
       </div>
       <div className="space-y-3 border-t border-line p-5">
         <p className="flex justify-between"><span className="text-subtle">{t.checkout.subtotal}</span><strong>{formatPrice(cart?.subtotal ?? 0, locale, currency)}</strong></p>
-        <p className="text-xs text-[var(--shop-core-faint)]">{t.shop.shippingAtCheckout}</p>
+        {cart?.items.some(line => line.requiresShipping) && <p className="text-xs text-[var(--shop-core-faint)]">{t.shop.shippingAtCheckout}</p>}
         {blocked ? <button disabled className="h-12 w-full rounded-md bg-action text-action-ink opacity-45">{t.checkout.checkout}</button>
           : <Link href={`/${locale}/checkout`} onClick={closeForNavigation} className="flex h-12 items-center justify-center rounded-md bg-action text-action-ink">{t.checkout.checkout}</Link>}
         <Link href={`/${locale}/cart`} onClick={closeForNavigation} className="flex h-10 items-center justify-center rounded-md border border-line">{t.shop.viewCart}</Link>

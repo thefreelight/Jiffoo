@@ -27,6 +27,14 @@ const render = (value: Quote) => renderToStaticMarkup(createElement(CheckoutSumm
 }));
 
 describe('The degraded tax of a quote', () => {
+  it('omits inapplicable shipping rows for digital carts and retains physical and quoted shipping', () => {
+    const line = { id: 'line', productId: 'product', variantId: 'variant', productName: 'Product', productImage: '', price: 20, subtotal: 20, quantity: 1, maxQuantity: 5, requiresShipping: false };
+    const summary = (requiresShipping: boolean, value: Quote | null) => renderToStaticMarkup(createElement(CheckoutSummary, { cart: { items: [{ ...line, requiresShipping }], itemCount: 1, subtotal: 20 }, quote: value, shippingOptionId: '', locale: 'en', currency: 'USD' }));
+    expect(summary(false, null)).not.toContain('>Shipping<');
+    expect(summary(false, quote({ shippingOptions: [], total: '20.00' }))).not.toContain('>Shipping<');
+    expect(summary(true, null)).toContain('>Shipping<');
+    expect(summary(false, quote())).toContain('>Shipping<');
+  });
   it('shows that the tax is being calculated and no empty total', () => {
     const html = render(quote({ taxUnavailable: true }));
     expect(html).toContain('The tax is being calculated');

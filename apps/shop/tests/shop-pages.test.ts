@@ -40,7 +40,7 @@ const render = (node: React.ReactNode) => renderToStaticMarkup(node);
 const variant = (stock: number) => ({ id: 'v1', name: 'Standard', skuCode: null, salePrice: 12, stock, attributes: { Size: 'M' } });
 const picker = (stock: number) => render(h(VariantPicker, { variants: [variant(stock)], locale: 'en', currency: 'USD', labels: storefrontMessages('en').product, productId: 'p1', slug: 'product', loggedIn: true }));
 const product = { id: 'p1', slug: 'product', name: 'Product', description: null, categoryName: 'Books', categorySlug: 'books', price: 12, images: [], stock: 0 };
-const cart: Cart = { items: [{ id: 'line', productId: 'p1', productImage: '', variantId: 'v1', productName: 'Product', variantName: 'Size M', price: 12, quantity: 2, maxQuantity: 3, subtotal: 24 }], itemCount: 2, subtotal: 24 };
+const cart: Cart = { items: [{ requiresShipping: true, id: 'line', productId: 'p1', productImage: '', variantId: 'v1', productName: 'Product', variantName: 'Size M', price: 12, quantity: 2, maxQuantity: 3, subtotal: 24 }], itemCount: 2, subtotal: 24 };
 beforeEach(() => useCartUI.setState({ open: true, lastAdded: null, count: null }));
 afterEach(() => useCartUI.setState({ open: false, lastAdded: null, count: null }));
 

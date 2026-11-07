@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, expect, it, vi } from 'vitest';
 import { createHash, randomUUID } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import os from 'node:os';
@@ -8,7 +8,7 @@ import { buildApp } from '@/server';
 import { prisma } from '@/config/database';
 import { env } from '@/config/env';
 import { PluginStorageService, createStorageApi, type StorageAuthorization } from '@/core/plugin-storage/service';
-import { fileUrlSecret } from '@/core/plugin-storage/grants';
+import { fileUrlSecret, signPublicFileGrant } from '@/core/plugin-storage/grants';
 import { recordTaskPrincipal, withTaskScope } from '@/core/plugins/tasks';
 import { PluginTaskWorker } from '@/core/plugins/task-worker';
 import { LocalUploadedObjectStore, type UploadedObjectStore } from '@/core/storage/uploaded-object-store';
@@ -51,15 +51,135 @@ beforeAll(async () => {
   installationId = installation.id; generation = installation.protectionGeneration;
   session = await issue(); await recordTaskPrincipal(installationId, other.user);
 });
+afterEach(async () => {
+  if (installationId) await prisma.pluginFileReference.updateMany({ where: { installationId, status: 'ACTIVE' }, data: { status: 'RELEASED', releasedAt: new Date() } });
+});
+
 afterAll(async () => {
   if (installationId) {
+    await prisma.pluginFileReference.updateMany({ where: { installationId, status: 'ACTIVE' }, data: { status: 'RELEASED', releasedAt: new Date() } });
     await prisma.$transaction(tx => PluginStorageService.purgeInstallation(tx, installationId, 'test'));
     await new PluginStorageService().cleanup();
     await prisma.pluginFile.deleteMany({ where: { installationId } });
     await prisma.pluginFileCleanup.deleteMany({ where: { installationId } });
+    await prisma.pluginFilePublication.deleteMany({ where: { installationId } });
+    await prisma.pluginFileReference.deleteMany({ where: { installationId } });
+    await prisma.pluginFileOperation.deleteMany({ where: { installationId } });
+    await prisma.pluginActionGrant.deleteMany({ where: { installationId } });
     await prisma.pluginInstall.deleteMany({ where: { slug } });
   }
   await app?.close(); if (directory) await fs.rm(directory, { recursive: true, force: true }); vi.unstubAllEnvs();
+});
+
+it('publishes an administrator image without transferring ownership and revokes public grants immediately', async () => {
+  const service = new PluginStorageService();
+  const adminSession = await issue(admin, 'admin');
+  await prisma.pluginInstallation.update({ where: { id: installationId }, data: { grantedPermissions: ['actions:storage.publish', 'actions:storage.delete'] } });
+  for (const action of ['storage.publish', 'storage.delete']) await prisma.pluginActionGrant.upsert({
+    where: { installationId_principalId_action: { installationId, principalId: admin.user.id, action } },
+    create: { installationId, principalId: admin.user.id, action, grantedBy: admin.user.id }, update: {},
+  });
+  const uploaded = await upload(await image(), 'image/png', adminSession.pluginToken);
+  expect(uploaded.statusCode, uploaded.body).toBe(200);
+  const reference = uploaded.json().data.reference;
+  const authorize: StorageAuthorization = async () => ({ installationId, generation, principal: { type: 'admin', id: admin.user.id } });
+  const published = await service.publish(authorize, reference);
+  expect(await service.publish(authorize, reference)).toEqual(published);
+  const file = await prisma.pluginFile.findUniqueOrThrow({ where: { id: reference } });
+  expect(file.ownerId).toBe(admin.user.id);
+  await expect(service.get(authority(), reference)).rejects.toHaveProperty('code', 'PLUGIN_FILE_NOT_FOUND');
+  const grant = signPublicFileGrant({ publicationId: published.publicationId, fileId: reference, installationId,
+    generation: generation.toString(), revision: file.publicationRevision.toString(), sha256: file.sha256! }, new Date());
+  const publicPath = `/api/v1/plugin-public-files/${published.publicationId}?token=${encodeURIComponent(grant.token)}`;
+  expect((await app.inject(publicPath)).statusCode).toBe(200);
+  await prisma.user.update({ where: { id: admin.user.id }, data: { isActive: false } });
+  try { expect((await app.inject(publicPath)).statusCode).toBe(200); }
+  finally { await prisma.user.update({ where: { id: admin.user.id }, data: { isActive: true } }); }
+  const expired = signPublicFileGrant({ publicationId: published.publicationId, fileId: reference, installationId,
+    generation: generation.toString(), revision: file.publicationRevision.toString(), sha256: file.sha256! }, new Date(Date.now() - 120_000));
+  expect((await app.inject(`/api/v1/plugin-public-files/${published.publicationId}?token=${encodeURIComponent(expired.token)}`)).statusCode).toBe(404);
+  expect((await app.inject(`/api/v1/plugin-public-files/${randomUUID()}?token=${encodeURIComponent(grant.token)}`)).statusCode).toBe(404);
+  await service.unpublish(authorize, reference);
+  expect((await app.inject(publicPath)).statusCode).toBe(404);
+  expect(await service.publish(authorize, reference)).not.toEqual(published);
+  expect((await app.inject(publicPath)).statusCode).toBe(404);
+  const moderator = await createUserWithToken({ role: 'ADMIN' });
+  await issue(moderator, 'admin');
+  await prisma.pluginActionGrant.create({ data: { installationId, principalId: moderator.user.id, action: 'storage.publish', grantedBy: admin.user.id } });
+  const moderate: StorageAuthorization = async () => ({ installationId, generation, principal: { type: 'admin', id: moderator.user.id } });
+  await expect(service.publish(moderate, reference)).rejects.toHaveProperty('code', 'PLUGIN_FILE_NOT_FOUND');
+  await expect(service.unpublish(moderate, reference)).resolves.toEqual({ revoked: true });
+});
+
+it('serializes retain against deletion and recovers an interrupted deletion through the existing cleanup lease', async () => {
+  const store = new LocalUploadedObjectStore(directory);
+  let failDelete = true;
+  const failing: UploadedObjectStore = {
+    initialize: () => store.initialize(), list: prefix => store.list(prefix),
+    put: (...args) => store.put(...args), get: (...args) => store.get(...args),
+    read: (...args) => store.read(...args), head: (...args) => store.head(...args),
+    delete: async (...args) => { if (failDelete) throw new Error('Storage unavailable'); await store.delete(...args); },
+  };
+  const service = new PluginStorageService(failing);
+  await issue(admin, 'admin');
+  await prisma.pluginInstallation.update({ where: { id: installationId }, data: { grantedPermissions: ['actions:storage.delete'] } });
+  await prisma.pluginActionGrant.upsert({ where: { installationId_principalId_action: { installationId, principalId: admin.user.id, action: 'storage.delete' } },
+    create: { installationId, principalId: admin.user.id, action: 'storage.delete', grantedBy: admin.user.id }, update: {} });
+  const authorize: StorageAuthorization = async () => ({ installationId, generation, principal: { type: 'admin', id: admin.user.id } });
+  const file = await service.put(authority(), Buffer.from('retained content'), 'text/plain');
+  const race = await Promise.allSettled([service.reference(authority(), file.reference, 'race:one', true), service.deleteFile(authorize, file.reference, 'race-delete')]);
+  expect(race.filter(result => result.status === 'fulfilled')).toHaveLength(1);
+  if (race[0].status === 'fulfilled') {
+    expect(race[1]).toMatchObject({ status: 'rejected', reason: { code: 'PLUGIN_FILE_REFERENCED' } });
+    await service.reference(authority(), file.reference, 'race:one', false);
+  }
+  const operation = await service.deleteFile(authorize, file.reference, 'race-delete');
+  await service.cleanup();
+  expect(await service.deletion(authorize, operation.operationId)).toMatchObject({ status: 'PENDING', lastError: 'UPLOAD_STORAGE_UNAVAILABLE' });
+  const cleanup = await prisma.pluginFileCleanup.findFirstOrThrow({ where: { operationId: operation.operationId } });
+  await prisma.pluginFileCleanup.update({ where: { id: cleanup.id }, data: { leaseUntil: new Date(Date.now() + 60_000), nextAttemptAt: new Date(0), claimToken: randomUUID() } });
+  failDelete = false;
+  await service.cleanup();
+  expect((await service.deletion(authorize, operation.operationId)).status).toBe('PENDING');
+  await prisma.pluginFileCleanup.update({ where: { id: cleanup.id }, data: { leaseUntil: new Date(0) } });
+  await service.cleanup();
+  expect(await service.deletion(authorize, operation.operationId)).toMatchObject({ status: 'DELETED', lastError: null });
+  expect(await store.head(cleanup.objectKey)).toBeNull();
+});
+
+it('blocks installation purge transactionally while registered references remain', async () => {
+  const service = new PluginStorageService();
+  const file = await service.put(authority(), Buffer.from('retain through purge'), 'text/plain');
+  await service.reference(authority(), file.reference, 'purge:one', true);
+  const operationsBefore = await prisma.pluginFileOperation.count({ where: { installationId } });
+  await expect(prisma.$transaction(tx => PluginStorageService.purgeInstallation(tx, installationId, admin.user.id)))
+    .rejects.toHaveProperty('code', 'PLUGIN_FILE_REFERENCED');
+  expect(await service.get(authority(), file.reference)).toEqual(Buffer.from('retain through purge'));
+  expect(await prisma.pluginFileCleanup.count({ where: { fileId: file.reference } })).toBe(0);
+  expect(await prisma.pluginFileOperation.count({ where: { installationId } })).toBe(operationsBefore);
+  await service.reference(authority(), file.reference, 'purge:one', false);
+});
+
+it('blocks referenced files, lets an authorized administrator delete customer files, and preserves deletion outcomes', async () => {
+  const service = new PluginStorageService();
+  await issue(admin, 'admin');
+  await prisma.pluginInstallation.update({ where: { id: installationId }, data: { grantedPermissions: ['actions:storage.delete'] } });
+  await prisma.pluginActionGrant.upsert({ where: { installationId_principalId_action: { installationId, principalId: admin.user.id, action: 'storage.delete' } },
+    create: { installationId, principalId: admin.user.id, action: 'storage.delete', grantedBy: admin.user.id }, update: {} });
+  const authorize: StorageAuthorization = async () => ({ installationId, generation, principal: { type: 'admin', id: admin.user.id } });
+  const file = await service.put(authority(), await image(), 'image/png');
+  await service.reference(authority(), file.reference, 'presentation:one', true);
+  await expect(service.deleteFile(authorize, file.reference, 'delete-test')).rejects.toHaveProperty('code', 'PLUGIN_FILE_REFERENCED');
+  await service.reference(authority(), file.reference, 'presentation:one', false);
+  const operation = await service.deleteFile(authorize, file.reference, 'delete-test');
+  const concurrent = await Promise.all([service.deleteFile(authorize, file.reference, 'delete-test'), service.deleteFile(authorize, file.reference, 'delete-test')]);
+  expect(concurrent).toEqual([operation, operation]);
+  expect(await service.deleteFile(authorize, file.reference, 'delete-test')).toEqual(operation);
+  await expect(service.get(authority(), file.reference)).rejects.toHaveProperty('code', 'PLUGIN_FILE_NOT_FOUND');
+  await service.cleanup();
+  expect(await service.deletion(authorize, operation.operationId)).toMatchObject({ status: 'DELETED', erasureScope: 'active-object' });
+  expect(await service.deleteFile(authorize, file.reference, 'delete-test')).toMatchObject({ operationId: operation.operationId, status: 'DELETED' });
+  await expect(service.deleteFile(authorize, randomUUID(), 'delete-test')).rejects.toHaveProperty('code', 'PLUGIN_FILE_IDEMPOTENCY_CONFLICT');
 });
 
 it('uploads only verified bytes and grants a transferable, revocable cookie-free image read', async () => {

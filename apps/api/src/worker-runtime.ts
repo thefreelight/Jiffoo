@@ -1,4 +1,5 @@
 import { prisma } from './config/database';
+import { initializePluginHostCapabilities } from './plugin-host-capabilities';
 import { closePluginDatabase, abandonPluginDatabase } from '@/core/admin/extension-installer/plugin-database';
 import { startCoreProcess, drainCoreProcess, finishCoreProcess, stopCoreProcessHeartbeat, drainCoreProcessHeartbeat } from '@/infra/core-process';
 import { coreProcessIdentity } from '@/infra/core-process-identity';
@@ -34,6 +35,7 @@ import { validateDatabaseUrl, validateRedisUrl } from '@/config/test-lane';
 import { systemSettingsService } from '@/core/settings/service';
 
 export async function startWorkerRuntime(options: { redisUrl?: string; healthPort?: number } = {}) {
+  initializePluginHostCapabilities();
   if (env.NODE_ENV === 'test') { validateDatabaseUrl(env.DATABASE_URL); validateRedisUrl(options.redisUrl ?? env.REDIS_URL); }
   workerShutdownDeadlineMs();
   assertThemeTestHooks();

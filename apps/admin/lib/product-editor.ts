@@ -7,11 +7,11 @@ export const cloneDraft = <T,>(value: T): T => JSON.parse(JSON.stringify(value))
 export function productDraft(product: AdminProductDetailDTO | undefined, defaultVariant: string, categoryId: string | null = null): ProductDraft {
   return cloneDraft({ name: product?.name ?? '', spuCode: product?.spuCode ?? '', description: product?.description ?? '', translations: product?.translations ?? [], categoryId: product?.categoryId ?? categoryId,
     requiresShipping: product?.requiresShipping !== false, images: product?.images ?? [], isActive: product?.isActive !== false,
-    variants: product?.variants?.map(v => ({ ...v, skuCode: v.skuCode ?? '', salePrice: Number(v.salePrice), stock: Number(v.stock), isActive: v.isActive !== false })) ?? [{ name: defaultVariant, salePrice: '', stock: 0, skuCode: '', isActive: true }] });
+    variants: product?.variants?.map(v => ({ ...v, expectedStock: Number(v.stock), skuCode: v.skuCode ?? '', salePrice: Number(v.salePrice), stock: Number(v.stock), isActive: v.isActive !== false })) ?? [{ name: defaultVariant, salePrice: '', stock: 0, skuCode: '', isActive: true }] });
 }
 export function duplicateDraft(product: AdminProductDetailDTO, defaultVariant: string): ProductDraft {
   const draft = productDraft(product, defaultVariant); draft.spuCode = ''; draft.isActive = false;
-  draft.variants = draft.variants.map(({ id, tempId, hasOrders, ...variant }) => ({ ...variant, skuCode: '' }));
+  draft.variants = draft.variants.map(({ id, tempId, hasOrders, expectedStock, ...variant }) => ({ ...variant, skuCode: '' }));
   return draft;
 }
 export function moveImage(images: string[], from: number, to: number): string[] {

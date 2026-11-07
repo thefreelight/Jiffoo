@@ -73,7 +73,7 @@ export function generateSnapshot() {
     'PluginServiceDeclaration', 'PluginServiceDependencyDeclaration', 'PluginApiVersionRange', 'PluginLifecycleDeclaration', 'PluginManifest'])
     lines.push(declaration(files[0], name).getFullText().trim());
   // The types a generated service client compiles against.
-  for (const name of ['BoundPrincipal', 'ProviderOutcome', 'ServiceResult', 'ProviderInvocation', 'ProviderHandler', 'PluginServiceCall', 'PluginServices', 'PluginCommerce', 'PaidOrder'])
+  for (const name of ['BoundPrincipal', 'ProviderOutcome', 'ServiceResult', 'ProviderInvocation', 'ProviderHandler', 'PluginServiceCall', 'PluginServices', 'PluginCommerce', 'PaidOrder', 'PurchasableVariant', 'PluginCustomer', 'PluginCustomers'])
     lines.push(declaration(files[0], name).getFullText().trim());
   lines.push(`export type ApiErrorCode = ${render(checker.getTypeAtLocation(declaration(errorCodesPath, 'ApiErrorCode').name))};`);
   lines.push(declaration(lifecyclePath, 'LifecycleContext').getText());

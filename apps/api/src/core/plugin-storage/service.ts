@@ -11,6 +11,8 @@ import { uploadedObjectStore, type UploadedObjectStore } from '@/core/storage/up
 import { sharedProtection } from '@/infra/shared-protection';
 import { collectFile, fileTypes, untilAbort, validateFileContent, type FileType } from './content';
 import { signFileGrant, verifyFileGrant } from './grants';
+import { signPublicFileGrant, verifyPublicFileGrant } from './grants';
+import { hostCapabilityAdapters } from '@/core/extensions/host-capabilities/service';
 
 type Authority = { installationId: string; principal: TaskPrincipal; generation: bigint; signal?: AbortSignal };
 /**
@@ -77,6 +79,141 @@ async function queueCleanup(tx: TaskTransaction, file: PluginFile) {
 /** Owns private metadata, quotas and durable cleanup. No public object paths escape. */
 export class PluginStorageService {
   constructor(private readonly store: UploadedObjectStore = uploadedObjectStore) {}
+
+  private async action(tx: TaskTransaction, authority: Authority, action: string) {
+    await hostCapabilityAdapters().requirePluginAction(tx, authority.installationId, authority.principal, action);
+  }
+
+  private async lockedFile(tx: TaskTransaction, authority: Authority, reference: string) {
+    if (typeof reference !== 'string' || !uuid.test(reference)) throw new ApiError('PLUGIN_FILE_NOT_FOUND');
+    await tx.$queryRaw`SELECT id FROM public.plugin_files WHERE id = ${reference} FOR UPDATE`;
+    return ownedFile(tx, authority, reference);
+  }
+
+  async publish(authorize: StorageAuthorization, reference: string) {
+    return prisma.$transaction(async tx => {
+      const authority = await admit(tx, authorize);
+      await this.action(tx, authority, 'storage.publish');
+      const file = await this.lockedFile(tx, authority, reference);
+      if (!file.contentType.startsWith('image/')) throw new ApiError('FORBIDDEN_FILE_TYPE');
+      const existing = await tx.pluginFilePublication.findFirst({ where: { installationId: authority.installationId, fileId: file.id, status: 'PUBLISHED' } });
+      if (existing) return { publicationId: existing.id };
+      const revision = file.publicationRevision + 1n;
+      await tx.pluginFile.update({ where: { id: file.id }, data: { publicationRevision: revision } });
+      const publication = await tx.pluginFilePublication.create({ data: { installationId: authority.installationId, fileId: file.id,
+        revision, publishedBy: authority.principal.id } });
+      await AdminAuditService.record(tx, { actorId: authority.principal.id, action: 'PLUGIN_FILE_PUBLISHED', targetType: 'plugin-file', targetId: file.id, summary: { publicationId: publication.id } });
+      return { publicationId: publication.id };
+    });
+  }
+
+  async unpublish(authorize: StorageAuthorization, reference: string) {
+    return prisma.$transaction(async tx => {
+      const authority = await admit(tx, authorize);
+      await this.action(tx, authority, 'storage.publish');
+      if (typeof reference !== 'string' || !uuid.test(reference)) throw new ApiError('PLUGIN_FILE_NOT_FOUND');
+      await tx.$queryRaw`SELECT id FROM public.plugin_files WHERE id = ${reference} FOR UPDATE`;
+      const file = await tx.pluginFile.findFirst({ where: { id: reference, installationId: authority.installationId, ownerType: 'ADMIN', state: 'READY', deletedAt: null } });
+      if (!file) throw new ApiError('PLUGIN_FILE_NOT_FOUND');
+      const result = await tx.pluginFilePublication.updateMany({ where: { installationId: authority.installationId, fileId: file.id, status: 'PUBLISHED' },
+        data: { status: 'REVOKED', revokedAt: await taskDatabaseTime(tx) } });
+      if (result.count) {
+        await tx.pluginFile.update({ where: { id: file.id }, data: { publicationRevision: { increment: 1 } } });
+        await AdminAuditService.record(tx, { actorId: authority.principal.id, action: 'PLUGIN_FILE_UNPUBLISHED', targetType: 'plugin-file', targetId: file.id, summary: {} });
+      }
+      return { revoked: true as const };
+    });
+  }
+
+  async publicUrl(installationId: string, publicationId: string) {
+    return prisma.$transaction(async tx => {
+      await assertTaskOperation(tx, installationId);
+      const publication = await tx.pluginFilePublication.findFirst({ where: { id: publicationId, installationId, status: 'PUBLISHED' } });
+      if (!publication) throw new ApiError('PLUGIN_FILE_NOT_FOUND');
+      const installation = await PluginStorageAdmissionService.current(tx, installationId);
+      const file = await tx.pluginFile.findFirst({ where: { id: publication.fileId, installationId, state: 'READY', deletedAt: null, publicationRevision: publication.revision } });
+      if (!file?.sha256) throw new ApiError('PLUGIN_FILE_NOT_FOUND');
+      const grant = signPublicFileGrant({ publicationId, fileId: file.id, installationId, revision: publication.revision.toString(), generation: installation.generation.toString(), sha256: file.sha256 }, await taskDatabaseTime(tx));
+      return { url: `/api/v1/plugin-public-files/${publicationId}?token=${encodeURIComponent(grant.token)}`, expiresAt: grant.expiresAt };
+    });
+  }
+
+  async readPublicGrant(publicationId: string, token: string) {
+    const claims = verifyPublicFileGrant(token);
+    if (claims.publicationId !== publicationId) throw new ApiError('PLUGIN_FILE_NOT_FOUND');
+    const check = () => prisma.$transaction(async tx => {
+      const now = await taskDatabaseTime(tx);
+      if (claims.exp * 1000 <= now.getTime()) throw new ApiError('PLUGIN_FILE_NOT_FOUND');
+      const installation = await PluginStorageAdmissionService.current(tx, claims.installationId);
+      if (installation.generation.toString() !== claims.generation) throw new ApiError('PLUGIN_FILE_NOT_FOUND');
+      const publication = await tx.pluginFilePublication.findFirst({ where: { id: publicationId, installationId: claims.installationId, fileId: claims.fileId, revision: BigInt(claims.revision), status: 'PUBLISHED' } });
+      if (!publication) throw new ApiError('PLUGIN_FILE_NOT_FOUND');
+      const file = await tx.pluginFile.findFirst({ where: { id: claims.fileId, installationId: claims.installationId, state: 'READY', deletedAt: null, publicationRevision: publication.revision, sha256: claims.sha256 } });
+      if (!file || !file.contentType.startsWith('image/')) throw new ApiError('PLUGIN_FILE_NOT_FOUND');
+      return file;
+    });
+    const file = await check();
+    const signal = AbortSignal.timeout(15_000);
+    const content = await untilAbort(this.store.read(file.objectKey, Number(file.sizeBytes), signal), signal);
+    if (!content || content.length !== Number(file.sizeBytes) || digest(content) !== claims.sha256) throw new ApiError('UPLOAD_STORAGE_CORRUPT');
+    await check();
+    return { content, contentType: file.contentType as FileType };
+  }
+
+  async reference(authorize: StorageAuthorization, reference: string, key: string, retain: boolean) {
+    if (typeof key !== 'string' || !/^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,127}$/.test(key)) throw new ApiError('VALIDATION_ERROR');
+    return prisma.$transaction(async tx => {
+      const authority = await admit(tx, authorize);
+      if (typeof reference !== 'string' || !uuid.test(reference)) throw new ApiError('PLUGIN_FILE_NOT_FOUND');
+      await tx.$queryRaw`SELECT id FROM public.plugin_files WHERE id = ${reference} FOR UPDATE`;
+      const file = await tx.pluginFile.findFirst({ where: { id: reference, installationId: authority.installationId, state: 'READY', deletedAt: null } });
+      if (!file) throw new ApiError('PLUGIN_FILE_NOT_FOUND');
+      if (file.ownerType !== owner(authority).ownerType || file.ownerId !== authority.principal.id) await this.action(tx, authority, 'storage.delete');
+      const identity = { installationId: authority.installationId, fileId: file.id, key };
+      if (retain) await tx.pluginFileReference.upsert({ where: { installationId_fileId_key: identity },
+        create: identity, update: { status: 'ACTIVE', releasedAt: null } });
+      else await tx.pluginFileReference.updateMany({ where: { ...identity, status: 'ACTIVE' }, data: { status: 'RELEASED', releasedAt: await taskDatabaseTime(tx) } });
+      return { retained: retain };
+    });
+  }
+
+  async deleteFile(authorize: StorageAuthorization, reference: string, idempotencyKey: string) {
+    if (typeof reference !== 'string' || !uuid.test(reference)) throw new ApiError('PLUGIN_FILE_NOT_FOUND');
+    if (typeof idempotencyKey !== 'string' || !/^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,127}$/.test(idempotencyKey)) throw new ApiError('VALIDATION_ERROR');
+    return prisma.$transaction(async tx => {
+      const authority = await admit(tx, authorize);
+      await this.action(tx, authority, 'storage.delete');
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`plugin-file-delete:${authority.installationId}:${idempotencyKey}`}, 0))`;
+      await tx.$queryRaw`SELECT id FROM public.plugin_files WHERE id = ${reference} FOR UPDATE`;
+      const inputHash = digest(Buffer.from(JSON.stringify({ reference, principal: authority.principal })));
+      const identity = { installationId: authority.installationId, idempotencyKey };
+      const existing = await tx.pluginFileOperation.findUnique({ where: { installationId_idempotencyKey: identity } });
+      if (existing) {
+        if (existing.inputHash !== inputHash) throw new ApiError('PLUGIN_FILE_IDEMPOTENCY_CONFLICT');
+        return { operationId: existing.id, status: existing.status };
+      }
+      const file = await tx.pluginFile.findFirst({ where: { id: reference, installationId: authority.installationId, state: 'READY', deletedAt: null } });
+      if (!file) throw new ApiError('PLUGIN_FILE_NOT_FOUND');
+      if (await tx.pluginFileReference.count({ where: { installationId: authority.installationId, fileId: file.id, status: 'ACTIVE' } })) throw new ApiError('PLUGIN_FILE_REFERENCED');
+      const operation = await tx.pluginFileOperation.create({ data: { ...identity, inputHash, kind: 'DELETE', fileId: file.id } });
+      await tx.pluginFilePublication.updateMany({ where: { installationId: authority.installationId, fileId: file.id, status: 'PUBLISHED' }, data: { status: 'REVOKED', revokedAt: await taskDatabaseTime(tx) } });
+      await queueCleanup(tx, file);
+      await tx.pluginFileCleanup.update({ where: { objectKey: file.objectKey }, data: { operationId: operation.id, nextAttemptAt: await taskDatabaseTime(tx) } });
+      await AdminAuditService.record(tx, { actorId: authority.principal.id, action: 'PLUGIN_FILE_DELETION_REQUESTED', targetType: 'plugin-file', targetId: file.id, summary: { operationId: operation.id } });
+      return { operationId: operation.id, status: operation.status };
+    });
+  }
+
+  async deletion(authorize: StorageAuthorization, operationId: string) {
+    return prisma.$transaction(async tx => {
+      const authority = await admit(tx, authorize);
+      await this.action(tx, authority, 'storage.delete');
+      const operation = await tx.pluginFileOperation.findFirst({ where: { id: operationId, installationId: authority.installationId, kind: 'DELETE' } });
+      if (!operation) throw new ApiError('PLUGIN_FILE_NOT_FOUND');
+      return { operationId: operation.id, status: operation.status, lastError: operation.lastError,
+        completedAt: operation.completedAt?.toISOString() ?? null, erasureScope: 'active-object' as const };
+    });
+  }
 
   async put(authorize: StorageAuthorization, content: Uint8Array | AsyncIterable<Uint8Array>, contentType: FileType): Promise<PluginFileReference> {
     if (!Object.hasOwn(fileTypes, contentType)) throw new ApiError('FORBIDDEN_FILE_TYPE');
@@ -181,6 +318,9 @@ export class PluginStorageService {
   }
 
   static async purgeInstallation(tx: TaskTransaction, installationId: string, actorId: string) {
+    await lockTaskScheduler(tx);
+    if (await tx.pluginFileReference.count({ where: { installationId, status: 'ACTIVE' } })) throw new ApiError('PLUGIN_FILE_REFERENCED');
+    await tx.pluginFilePublication.updateMany({ where: { installationId, status: 'PUBLISHED' }, data: { status: 'REVOKED', revokedAt: await taskDatabaseTime(tx) } });
     const files = await tx.pluginFile.findMany({ where: { installationId } });
     for (const file of files) await queueCleanup(tx, file);
     await AdminAuditService.record(tx, { actorId, action: 'PLUGIN_FILES_PURGED', targetType: 'plugin', targetId: installationId, summary: { files: files.length } });
@@ -235,6 +375,9 @@ export class PluginStorageService {
         // in the plugin recovery listing.
         const attempts = live.attempts + 1;
         const dead = failure !== null && attempts >= PLUGIN_FILE_CLEANUP_MAX_ATTEMPTS;
+        if (live.operationId) await tx.pluginFileOperation.updateMany({ where: { id: live.operationId, status: { not: 'DELETED' } },
+          data: { status: !failure ? 'DELETED' : dead ? 'FAILED' : 'PENDING', lastError: failure,
+            completedAt: !failure ? now : null, result: !failure ? { erasureScope: 'active-object' } : undefined } });
         await tx.pluginFileCleanup.updateMany({ where: { id: claim.id, claimToken: claim.claimToken, leaseUntil: { gt: now } }, data: {
           fileId: failure ? live.fileId : null, claimToken: null, leaseUntil: null, lastError: failure,
           attempts, status: dead ? 'DEAD' : 'PENDING',
@@ -256,10 +399,14 @@ export class PluginStorageService {
         SELECT id, status, "fileId", "installationId" FROM public.plugin_file_cleanup WHERE "objectKey" = ${objectKey} FOR UPDATE`;
       const row = rows[0];
       if (!row || row.status !== 'DEAD') throw new ApiError('PLUGIN_FILE_NOT_FOUND');
+      const operationCleanup = await tx.pluginFileCleanup.findUniqueOrThrow({ where: { id: row.id } });
+      if (operationCleanup.operationId) await hostCapabilityAdapters().requirePluginAction(tx, row.installationId, { type: 'admin', id: actorId }, 'storage.delete');
       const now = await taskDatabaseTime(tx);
       await tx.pluginFileCleanup.update({ where: { id: row.id }, data: {
         status: 'PENDING', attempts: 0, nextAttemptAt: now, claimToken: null, leaseUntil: null,
       } });
+      const cleanup = await tx.pluginFileCleanup.findUniqueOrThrow({ where: { id: row.id } });
+      if (cleanup.operationId) await tx.pluginFileOperation.updateMany({ where: { id: cleanup.operationId }, data: { status: 'PENDING', lastError: null, completedAt: null } });
       await AdminAuditService.record(tx, { actorId, action: 'PLUGIN_FILE_CLEANUP_RETRIED', targetType: 'plugin', targetId: row.installationId,
         summary: { objectKey, fileId: row.fileId } });
       return { objectKey, action: 'retry' as const, status: 'PENDING' };
@@ -277,6 +424,7 @@ export class PluginStorageService {
   async releaseDeadCleanup(actorId: string, objectKey: string) {
     const queued = await prisma.pluginFileCleanup.findUnique({ where: { objectKey } });
     if (!queued || queued.status !== 'DEAD') throw new ApiError('PLUGIN_FILE_NOT_FOUND');
+    if (queued.operationId) await prisma.$transaction(tx => hostCapabilityAdapters().requirePluginAction(tx, queued.installationId, { type: 'admin', id: actorId }, 'storage.delete'));
     let present: { size: number } | null;
     try {
       const signal = AbortSignal.timeout(15_000);
@@ -289,6 +437,8 @@ export class PluginStorageService {
         SELECT id, status, "fileId", "installationId" FROM public.plugin_file_cleanup WHERE "objectKey" = ${objectKey} FOR UPDATE`;
       const row = rows[0];
       if (!row || row.status !== 'DEAD') throw new ApiError('PLUGIN_FILE_NOT_FOUND');
+      const operationCleanup = await tx.pluginFileCleanup.findUniqueOrThrow({ where: { id: row.id } });
+      if (operationCleanup.operationId) await hostCapabilityAdapters().requirePluginAction(tx, row.installationId, { type: 'admin', id: actorId }, 'storage.delete');
       if (row.fileId) {
         const file = await tx.pluginFile.findUnique({ where: { id: row.fileId } });
         if (file) {
@@ -299,6 +449,8 @@ export class PluginStorageService {
           await tx.pluginFile.delete({ where: { id: file.id } });
         }
       }
+      const cleanup = await tx.pluginFileCleanup.findUniqueOrThrow({ where: { id: row.id } });
+      if (cleanup.operationId) await tx.pluginFileOperation.updateMany({ where: { id: cleanup.operationId }, data: { status: 'DELETED', lastError: null, completedAt: await taskDatabaseTime(tx), result: { erasureScope: 'active-object' } } });
       await tx.pluginFileCleanup.delete({ where: { id: row.id } });
       await AdminAuditService.record(tx, { actorId, action: 'PLUGIN_FILE_CLEANUP_RELEASED', targetType: 'plugin', targetId: row.installationId,
         summary: { objectKey, fileId: row.fileId } });
@@ -333,7 +485,14 @@ export function createStorageApi(installationId: string): PluginStorage {
   };
   return { put: input => pluginStorage.put(authorize(input), input.content, input.contentType),
     get: (reference, options) => pluginStorage.get(authorize(options), reference),
-    readUrl: (reference, options) => pluginStorage.readUrl(authorize(options), reference) };
+    readUrl: (reference, options) => pluginStorage.readUrl(authorize(options), reference),
+    publish: reference => pluginStorage.publish(authorize(), reference),
+    unpublish: reference => pluginStorage.unpublish(authorize(), reference),
+    publicUrl: publicationId => pluginStorage.publicUrl(installationId, publicationId),
+    retain: (reference, key) => pluginStorage.reference(authorize(), reference, key, true),
+    release: (reference, key) => pluginStorage.reference(authorize(), reference, key, false),
+    delete: (reference, input) => pluginStorage.deleteFile(authorize(), reference, input?.idempotencyKey),
+    deletion: operationId => pluginStorage.deletion(authorize(), operationId) };
 }
 
 export { fileUrlSecret } from './grants';

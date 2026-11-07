@@ -2,10 +2,65 @@
 import { act, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { expect, it, vi } from 'vitest';
-import { listChoice, listDateRange, readListState, writeListState, useListSelection } from '../lib/hooks/use-list-state';
-import { ListFilter, PaginationBar, paginationPages } from '../components/list';
+import { listChoice, listDateRange, readListState, writeListState, useListSelection, useListState } from '../lib/hooks/use-list-state';
+import { BulkBar, ListFilter, PaginationBar, paginationPages } from '../components/list';
 
 const fields = { tab: listChoice(['all', 'paid']), search: { default: '', valid: () => true }, page: { default: '1', valid: (value: string) => /^[1-9]\d*$/.test(value) }, pageSize: listChoice(['20', '50', '100']), sort: listChoice(['desc', 'asc']) };
+
+const navigation = vi.hoisted(() => ({ raw: '' }));
+vi.mock('next/navigation', () => ({ usePathname: () => '/en/orders', useSearchParams: () => new URLSearchParams(navigation.raw) }));
+
+it('replaces native history, preserves consecutive updates and follows external URL state', async () => {
+  vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
+  navigation.raw = 'source=overview&page=3';
+  const replace = vi.spyOn(window.history, 'replaceState').mockImplementation((_data, _unused, url) => {
+    navigation.raw = String(url).split('?')[1] ?? '';
+  });
+  const root = createRoot(document.createElement('div'));
+  let model: ReturnType<typeof useListState>;
+  function Probe() { model = useListState(fields); return null; }
+  try {
+    await act(async () => root.render(<Probe />));
+    await act(async () => { model.update({ search: 'buyer' }); model.update({ pageSize: '100', page: '1' }); });
+    expect(replace).toHaveBeenLastCalledWith(null, '', '/en/orders?source=overview&search=buyer&pageSize=100');
+    expect(model!.state).toMatchObject({ search: 'buyer', pageSize: '100', page: '1' });
+    expect(model!.url).toContain('source=overview');
+    navigation.raw = 'source=history&tab=paid&page=2&pageSize=invalid';
+    await act(async () => root.render(<Probe />));
+    expect(model!.state).toMatchObject({ tab: 'paid', page: '2', pageSize: '20', search: '' });
+    await act(async () => model.update({ sort: 'asc' }));
+    expect(replace).toHaveBeenLastCalledWith(null, '', '/en/orders?source=history&tab=paid&page=2&sort=asc');
+  } finally { await act(async () => root.unmount()); replace.mockRestore(); vi.unstubAllGlobals(); }
+});
+
+it('keeps pagination usable after clearing the composed bulk-action footer', async () => {
+  vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
+  const container = document.createElement('div'), root = createRoot(container);
+  const onPage = vi.fn(), onPageSize = vi.fn();
+  const copy = (key: string) => key;
+  function Probe() {
+    const [count, setCount] = useState(2);
+    const [size, setSize] = useState(20);
+    return <PaginationBar page={1} pageSize={size} total={200} copy={copy} onPage={onPage} onPageSize={value => { onPageSize(value); setSize(value); }}>
+      <BulkBar count={count} copy={copy} clear={() => setCount(0)}><button>Export selected</button></BulkBar>
+    </PaginationBar>;
+  }
+  try {
+    await act(async () => root.render(<Probe />));
+    const nav = container.querySelector('nav[aria-label="pagination"]')!;
+    const bulk = container.querySelector('[role="region"][aria-label="bulkActions"]')!;
+    expect(bulk).toBeTruthy(); expect(nav.contains(bulk)).toBe(false);
+    const cancel = Array.from(bulk.querySelectorAll('button')).find(button => button.textContent === 'cancelSelection')!;
+    await act(async () => cancel.click());
+    expect(container.querySelector('[role="region"][aria-label="bulkActions"]')).toBeNull();
+    expect(container.querySelector('nav[aria-label="pagination"]')).toBe(nav);
+    const size = container.querySelector<HTMLSelectElement>('select[aria-label="perPage"]')!;
+    await act(async () => { size.value = '100'; size.dispatchEvent(new Event('change', { bubbles: true })); });
+    expect(onPageSize).toHaveBeenLastCalledWith(100); expect(size.value).toBe('100');
+    await act(async () => container.querySelector<HTMLButtonElement>('button[aria-label="next"]')!.click());
+    expect(onPage).toHaveBeenLastCalledWith(2);
+  } finally { await act(async () => root.unmount()); vi.unstubAllGlobals(); }
+});
 it('round trips URL state, preserves unrelated params and falls back on invalid values', () => {
   const state = { tab: 'paid', search: 'a+b@example.test', page: '3', pageSize: '100', sort: 'asc' };
   const serialized = writeListState('source=overview', state, fields);
@@ -51,7 +106,8 @@ it('always renders single-page pagination, page size and disabled navigation', a
     await act(async () => root.render(<PaginationBar page={1} pageSize={20} total={1} copy={copy} onPage={vi.fn()} onPageSize={vi.fn()} />));
     expect(container.querySelector('nav')).toBeTruthy(); expect(container.querySelector('[aria-current="page"]')?.textContent).toBe('1');
     expect(container.querySelectorAll('button:disabled')).toHaveLength(2);
-    expect(container.querySelector('button[aria-label="perPage"]')?.textContent).toBe('20');
+    const size = container.querySelector<HTMLSelectElement>('select[aria-label="perPage"]')!;
+    expect(size.value).toBe('20'); expect(Array.from(size.options).map(option => option.value)).toEqual(['20', '50', '100']);
     expect(paginationPages(5, 20)).toEqual([1, 'gap-4', 4, 5, 6, 'gap-20', 20]);
     expect(paginationPages(1, 20)).toEqual([1, 2, 3, 'gap-20', 20]);
   } finally { await act(async () => root.unmount()); vi.unstubAllGlobals(); }
@@ -80,5 +136,20 @@ it('keeps custom-date fields keyboard accessible inside the filter menu', async 
     const custom = Array.from(document.querySelectorAll<HTMLElement>('[role="menuitemradio"]')).find(node => node.textContent === 'Custom')!;
     await act(async () => custom.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })));
     expect(document.activeElement?.getAttribute('aria-label')).toBe('Start date');
+  } finally { await act(async () => root.unmount()); container.remove(); vi.unstubAllGlobals(); }
+});
+
+it('changes the native page-size control using its accessible name', async () => {
+  vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
+  const container = document.createElement('div'); document.body.append(container); const root = createRoot(container);
+  const change = vi.fn();
+  function Probe() { const [size, setSize] = useState(20); return <PaginationBar page={1} pageSize={size} total={200} copy={key => key === 'perPage' ? 'Rows per page' : key} onPage={vi.fn()} onPageSize={value => { change(value); setSize(value); }} />; }
+  try {
+    await act(async () => root.render(<Probe />));
+    const select = container.querySelector<HTMLSelectElement>('select[aria-label="Rows per page"]')!;
+    expect(select).toBeTruthy();
+    expect(Array.from(select.options).map(option => option.value)).toEqual(['20', '50', '100']);
+    await act(async () => { select.value = '100'; select.dispatchEvent(new Event('change', { bubbles: true })); });
+    expect(change).toHaveBeenLastCalledWith(100); expect(select.value).toBe('100');
   } finally { await act(async () => root.unmount()); container.remove(); vi.unstubAllGlobals(); }
 });

@@ -5,7 +5,7 @@ import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { parseSelection, quickRequirements, mandatorySuites, mandatoryAdditions, plannedSuiteLines, ciOnlyScriptTests, ciOnlyVitestWrappers, localQuickVitestExclusions } from './verify-selection.mjs';
-import { localSteps, executableStepArgs, parallelApiPlan, parallelApiThreshold } from './verify-steps.mjs';
+import { localSteps, ciSteps, executableStepArgs, parallelApiPlan, parallelApiThreshold } from './verify-steps.mjs';
 
 test('Vitest execution uses the real Node executable and retains long selections verbatim', () => {
   const files = Array.from({ length: 169 }, (_, index) => `tests/core/long-command-selection-with-workspace-spaces-${index}.test.ts`);
@@ -48,6 +48,44 @@ test('non-Vitest verification commands remain unchanged', () => {
 });
 
 const select = args => parseSelection(['--quick', ...args], () => true);
+test('CI quality keeps the complete Shop catalogue including browser suites', () => {
+  const previous = process.env.GITHUB_ACTIONS;
+  process.env.GITHUB_ACTIONS = 'true';
+  try {
+    const commands = ciSteps('url', 'quality').find(([name]) => name === 'Run Shop tests')[1];
+    assert.deepEqual(commands, [['--filter', 'shop', 'exec', 'vitest', 'run']]);
+    const localCommands = localSteps('url').find(([name]) => name === 'Run Shop tests')[1];
+    assert.ok(localCommands[0].includes('--exclude=tests/availability-http.test.ts'));
+  } finally {
+    if (previous === undefined) delete process.env.GITHUB_ACTIONS;
+    else process.env.GITHUB_ACTIONS = previous;
+  }
+});
+
+test('Shop HTTP suites declare database and production-build prerequisites', () => {
+  for (const [file, database] of [['error-semantics-http', true], ['payment-return-http', false]]) {
+    const selection = select(['--scope=shop', `--test-files=apps/shop/tests/${file}.test.ts`]);
+    const requirements = quickRequirements(selection);
+    assert.equal(requirements.database, database);
+    assert.equal(requirements.shopBuild, true);
+    const names = localSteps('url', true, ['selected'], selection.files, requirements).map(([name]) => name);
+    assert.equal(names.includes('Reset test database'), database);
+    assert.ok(names.indexOf('Build Shop application') < names.indexOf('Run Shop tests'));
+  }
+  const selection = select(['--scope=shop']);
+  assert.equal(quickRequirements(selection).database, true);
+  assert.equal(quickRequirements(selection).shopBuild, true);
+});
+
+test('local Shop catalogues exclude the browser suite and explicit browser selection fails', () => {
+  assert.throws(() => select(['--test-files=apps/shop/tests/availability-http.test.ts']), /CI-only/);
+  const selection = select(['--scope=shop']);
+  for (const plan of [localSteps('url', true), localSteps('url', true, [], selection.files, quickRequirements(selection))]) {
+    const command = plan.flatMap(([, commands]) => commands).find(args => args.includes('shop') && args.includes('vitest'));
+    assert.ok(command.includes('--exclude=tests/availability-http.test.ts'));
+  }
+});
+
 test('admin and shop scopes skip all API service steps, API keeps them', () => {
   for (const app of ['admin', 'shop', 'api']) {
     const selection = select([`--scope=${app}`, `--test-files=apps/${app}/tests/example.test.ts`]);
@@ -76,7 +114,7 @@ test('conservative selection excludes every CI-only wrapper and inventory reject
     const source = readFileSync(new URL(`../${file}`, import.meta.url), 'utf8');
     return /\b(?:spawn|spawnSync|execFile|execFileSync|fork)\s*\(/.test(source) && [...ciOnlyScriptTests].some(script => source.includes(script));
   });
-  assert.deepEqual([...new Set(wrappers)].sort(), [...ciOnlyVitestWrappers].sort());
+  assert.deepEqual([...new Set(wrappers), 'apps/shop/tests/availability-http.test.ts'].sort(), [...ciOnlyVitestWrappers].sort());
   const selected = mandatorySuites(['packages/shared/src/index.ts'], ['api'], files).map(item => item.file);
   for (const wrapper of ciOnlyVitestWrappers) assert.equal(selected.includes(wrapper), false);
   assert.ok(selected.includes('apps/api/tests/core/local-trial.test.ts') === false);
@@ -87,9 +125,9 @@ test('default and scoped quick invocations exclude wrappers while full verificat
   for (const plan of [localSteps('url', true), localSteps('url', true, ['selected'], files, { apps: ['api'], database: true })]) {
     const command = plan.flatMap(([, commands]) => commands).find(args => args.includes('vitest') && args.includes('api'));
     assert.ok(command);
-    for (const wrapper of ciOnlyVitestWrappers) assert.ok(command.includes(`--exclude=${wrapper.slice('apps/api/'.length)}`));
+    for (const wrapper of ciOnlyVitestWrappers) if (wrapper.startsWith('apps/api/')) assert.ok(command.includes(`--exclude=${wrapper.slice('apps/api/'.length)}`));
   }
-  assert.equal(localSteps('url').flatMap(([, commands]) => commands).flat().some(arg => arg.startsWith('--exclude=')), false);
+  assert.ok(localSteps('url').flatMap(([, commands]) => commands).flat().includes('--exclude=tests/availability-http.test.ts'));
 });
 test('mandatory planner expands contract, shared, auth and migration coverage', () => {
   const catalogue = ['apps/api/tests/contract/api-standards.test.ts', 'apps/api/tests/contract/openapi-contract.test.ts', 'apps/api/tests/routes/auth.test.ts', 'apps/api/tests/core/core-migrations.test.ts', 'apps/admin/tests/session.test.tsx', 'apps/shop/tests/example.test.ts'];
@@ -152,11 +190,11 @@ test('the diagnostic planner listing names every suite with its reason', () => {
   assert.deepEqual(plannedSuiteLines([]), ['Certifying gate would also run 0 planner-mandated suite(s)']);
 });
 test('existing default quick and explicit application catalogues are unchanged', () => {
-  assert.deepEqual(localSteps('url', true).map(([name]) => name), ['Prisma generate', 'Type-check API, Admin, Shop and shared', 'Lint Shop', 'Reset test database', 'Run changed API tests', 'Run Shop tests']);
+  assert.deepEqual(localSteps('url', true).map(([name]) => name), ['Prisma generate', 'Type-check API, Admin, Shop and shared', 'Lint Shop', 'Reset test database', 'Build Shop application', 'Run changed API tests', 'Run Shop tests']);
   const files = { api: ['tests/example.test.ts'], admin: [], shop: [] };
   const plan = localSteps('url', true, ['selected'], files);
   assert.deepEqual(plan.at(-1), ['Run API tests', [['--filter', 'api', 'exec', 'vitest', 'run', ...localQuickVitestExclusions('api'), 'tests/example.test.ts']]]);
-  assert.deepEqual(quickRequirements(select([])), { apps: ['api', 'admin', 'shop'], database: true, scriptOnly: false });
+  assert.deepEqual(quickRequirements(select([])), { apps: ['api', 'admin', 'shop'], database: true, scriptOnly: false, shopBuild: true });
 });
 test('a wide API selection runs in parallel shards and a narrow one stays serial', () => {
   const narrow = Array.from({ length: parallelApiThreshold - 1 }, (_, index) => `tests/core/example-${index}.test.ts`);
@@ -176,8 +214,8 @@ test('existing invocation catalogues retain their committed behavior', async () 
   const original = execFileSync('git', ['show', 'HEAD:scripts/verify-steps.mjs'], { encoding: 'utf8' });
   const executable = original.replace(/^import \{ localQuickVitestExclusions \} from '\.\/verify-selection\.mjs';\r?\n/m, '');
   const previous = await import(`data:text/javascript;base64,${Buffer.from('const localQuickVitestExclusions = () => [];\n' + executable).toString('base64')}`);
-  const withoutExclusions = plan => plan.map(([name, commands]) => [name, commands.map(args => args.filter(arg => !arg.startsWith('--exclude=')))]);
-  assert.deepEqual(localSteps('url'), previous.localSteps('url'));
+  const withoutExclusions = plan => plan.filter(([name]) => name !== 'Build Shop application').map(([name, commands]) => [name, commands.map(args => args.filter(arg => !arg.startsWith('--exclude=')))]);
+  assert.deepEqual(withoutExclusions(localSteps('url')), withoutExclusions(previous.localSteps('url')));
   assert.deepEqual(withoutExclusions(localSteps('url', true)), withoutExclusions(previous.localSteps('url', true)));
   for (const app of ['api', 'admin', 'shop']) {
     const files = { api: [], admin: [], shop: [] };

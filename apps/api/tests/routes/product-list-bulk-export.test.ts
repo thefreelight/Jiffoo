@@ -162,6 +162,40 @@ it('combines each sort with SPU/SKU search, uncategorized and inactive/out-of-st
   const response = await app.inject({ method: 'GET', url: '/api/v1/admin/products?' + new URLSearchParams({ search: product.spuCode, status: 'inactive', sortBy: 'stock' }), headers: headers() });
   expect(response.json().data.items.map((row: any) => row.id)).toEqual([product.id]);
 });
+it('keeps inactive membership consistent for list sorts, counts, exports and filter exclusions', async () => {
+  const name = prefix + '-inactive-membership';
+  const inactive = await createTestProduct({ name: name + '-product', price: 10, stock: 3 });
+  const inactiveVariants = await createTestProduct({ name: name + '-variants', price: 20, stock: 5 });
+  const noVariants = await createTestProduct({ name: name + '-none', price: 30, stock: 7 });
+  const active = await createTestProduct({ name: name + '-active', price: 40, stock: 9 });
+  owned.push(inactive.id, inactiveVariants.id, noVariants.id, active.id);
+  await prisma.product.update({ where: { id: inactive.id }, data: { isActive: false } });
+  await prisma.productVariant.updateMany({ where: { productId: inactiveVariants.id }, data: { isActive: false } });
+  await prisma.productVariant.deleteMany({ where: { productId: noVariants.id } });
+  await CacheService.incrementProductVersion();
+  const filter = { search: name, status: 'inactive' as const };
+  const expected = [noVariants.id, inactive.id, inactiveVariants.id];
+  for (const sortBy of ['price', 'stock', 'name'] as const) {
+    const response = await app.inject({ method: 'GET', url: '/api/v1/admin/products?' + new URLSearchParams({ ...filter, sortBy, sortOrder: 'asc', limit: '100' }), headers: headers() });
+    expect(response.statusCode).toBe(200);
+    expect(response.json().data.total).toBe(3);
+    const ids = response.json().data.items.map((row: any) => row.id);
+    if (sortBy === 'name') expect([...ids].sort()).toEqual([...expected].sort());
+    else expect(ids).toEqual(expected);
+    expect(ids).not.toContain(active.id);
+    const exported = await post('export', { selection: { mode: 'filter', filter, excludeIds: [inactive.id] }, sortBy, sortOrder: 'asc' });
+    expect(exported.statusCode).toBe(200);
+    expect(exported.headers['x-product-count']).toBe('2');
+    expect(exported.body).toContain(inactiveVariants.name);
+    expect(exported.body).not.toContain(inactive.name);
+    expect(exported.body).not.toContain(active.name);
+  }
+  const preview = await post('bulk', { action: 'deactivate', dryRun: true, selection: { mode: 'filter', filter, excludeIds: [noVariants.id] } });
+  expect(preview.statusCode).toBe(200);
+  expect(preview.json().data.matched).toBe(2);
+  expect(preview.json().data.processedPreview.map((row: any) => row.id).sort()).toEqual([inactive.id, inactiveVariants.id].sort());
+});
+
 it.each(['activate', 'deactivate', 'setCategory', 'delete'])('dry-runs and executes %s with the single-operation side effects', async action => {
   const product = await createTestProduct({ name: prefix + '-action-' + action }); owned.push(product.id);
   if (action === 'activate') await prisma.product.update({ where: { id: product.id }, data: { isActive: false } });

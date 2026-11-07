@@ -3,9 +3,9 @@
  * Uses unified AuthClient. 
  */
 
+import { createAdminClient, getAdminClient } from 'shared/api/create-client';
+import { parsePluginConfigSchema, validatePluginConfig } from 'shared/extensions/plugin-config-schema';
 import {
-  createAdminClient,
-  getAdminClient,
   type ApiResponse,
   type ListResult,
   type PageResult,
@@ -15,8 +15,6 @@ import {
   type AdminProductDetailDTO,
   type AdminOrderListItemDTO,
   type AdminOrderDetailDTO,
-  parsePluginConfigSchema,
-  validatePluginConfig,
 } from 'shared';
 
 export type { ApiResponse, ListResult, PageResult, UserProfile };
@@ -356,8 +354,8 @@ export const productsApi = {
 
   delete: (id: string): Promise<ApiResponse<void>> => apiClient.delete(`/admin/products/${id}`),
 
-  getCategories: (page = 1, limit = 20): Promise<ApiResponse<PageResult<any>>> =>
-    apiClient.get('/admin/products/categories', { params: { page, limit } }),
+  getCategories: (page = 1, limit = 20, search = ''): Promise<ApiResponse<PageResult<any>>> =>
+    apiClient.get('/admin/products/categories', { params: { page, limit, search } }),
 };
 
 // Orders API

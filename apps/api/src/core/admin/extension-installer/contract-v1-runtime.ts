@@ -8,11 +8,16 @@ import { ContractCallError } from '@/core/extensions/runtime/contract-errors';
 import { getPluginTimeoutMs, PLUGIN_REGISTER_TIMEOUT_MS } from '@/core/extensions/runtime/gateway-protection';
 import { createTaskApi, withInstallationTaskHandler } from '@/core/plugins/tasks';
 import { createStorageApi } from '@/core/plugin-storage/service';
+import { prisma } from '@/config/database';
+import { assertTaskOperation } from '@/core/plugins/tasks';
+import { hostCapabilityAdapters } from '@/core/extensions/host-capabilities/service';
 import { publishServiceRegistrations, registerServiceMethod, serviceBusinessError, serviceCoreError, type ServiceMethodSchemas, type ServiceRegistrationTable } from '@/core/extensions/runtime/service-runtime';
 import type { PluginTaskDeclaration, PluginTasks, TaskHandlerOptions, PluginServiceCall, PluginServiceDeclaration, ServiceResult, PaidOrder } from '@jiffoo/shared';
 
 type JsonObject = Record<string, unknown>;
 type RuntimeOptions = {
+  getVariants?: PluginContext['commerce']['products']['getVariants'];
+  customers?: PluginContext['customers'];
   slug: string; installationId: string; generation: bigint; zipHash: string; version: string; config: JsonObject; configSchema?: unknown;
   declaredContracts: Array<{ name: string; version: number }>; subscriptions: EventSubscription[]; tasks?: PluginTaskDeclaration[];
   declaredServices?: PluginServiceDeclaration[];
@@ -53,6 +58,10 @@ export async function registerContractV1Runtime(app: FastifyInstance, runtime: P
   const implemented = new Set<string>();
   const redact = (value: unknown) => redactPluginText(typeof value === 'string' ? value : JSON.stringify(value) ?? String(value), options.config, options);
   const context: PluginContext = {
+    authorization: { require: action => prisma.$transaction(async tx => {
+      const scope = await assertTaskOperation(tx, options.installationId);
+      await hostCapabilityAdapters().requirePluginAction(tx, options.installationId, scope.principal, action);
+    }) },
     storage: createStorageApi(options.installationId),
     plugin: { slug: options.slug, installationId: options.installationId, version: options.version }, config: Object.freeze({ ...options.config }),
     database: createPluginDatabase(options.slug, options.installationId),
@@ -121,7 +130,23 @@ export async function registerContractV1Runtime(app: FastifyInstance, runtime: P
       businessError: (error) => serviceBusinessError(error),
     },
     // The permissioned commerce read of G4-R.
+    customers: {
+      lookup: async request => {
+        if (!options.customers) throw new ApiError('PLUGIN_SERVICE_DEPENDENCY_INVALID');
+        return options.customers.lookup(request);
+      },
+      search: async request => {
+        if (!options.customers) throw new ApiError('PLUGIN_SERVICE_DEPENDENCY_INVALID');
+        return options.customers.search(request);
+      },
+    },
     commerce: {
+      products: {
+        getVariants: async request => {
+          if (!options.getVariants) throw new ApiError('PLUGIN_SERVICE_DEPENDENCY_INVALID');
+          return options.getVariants(request);
+        },
+      },
       orders: {
         listPaid: async (request) => {
           if (!options.listPaidOrders) throw new ApiError('PLUGIN_SERVICE_DEPENDENCY_INVALID');

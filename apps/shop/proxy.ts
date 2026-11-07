@@ -9,7 +9,7 @@ export function proxy(request: NextRequest) {
   // The gateway and plugin-storage paths keep their null-origin exception; only Core decides
   // whether such an operation is admitted, exactly as the deployment edge routing /api/ does.
   const gatewayRequest = /^\/api\/v1\/(?:extensions\/plugin\/[^/]+\/api(?:\/.*)?|plugin-storage\/[^/]+\/.+)$/.test(request.nextUrl.pathname);
-  const privateFileRequest = ['GET', 'HEAD'].includes(request.method) && /^\/api\/v1\/plugin-files\/[a-f0-9-]{36}$/.test(request.nextUrl.pathname);
+  const privateFileRequest = ['GET', 'HEAD'].includes(request.method) && /^\/api\/v1\/plugin-(?:public-)?files\/[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(request.nextUrl.pathname);
   if (request.headers.get('origin') === 'null' && !assetRequest && !gatewayRequest && !privateFileRequest) {
     return NextResponse.json({ success: false, error: { code: 'INVALID_ORIGIN', message: 'Invalid request origin' } }, { status: 403 });
   }
@@ -19,7 +19,7 @@ export function proxy(request: NextRequest) {
     headers.delete('authorization');
   }
   headers.delete('x-shop-return-path');
-  headers.set('x-shop-return-path', request.nextUrl.pathname + request.nextUrl.search);
+  if (!privateFileRequest) headers.set('x-shop-return-path', request.nextUrl.pathname + request.nextUrl.search);
   const locale = request.nextUrl.pathname.split('/')[1];
   headers.delete('x-shop-locale');
   if (isShopLocale(locale)) headers.set('x-shop-locale', locale);

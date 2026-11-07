@@ -254,7 +254,7 @@ export async function createPlugin(flags: Record<string, string>, options: { pag
   const packageJson = {
     name: slug, version: '1.0.0', private: true,
     scripts: { build: 'node tools/build.mjs', pack: 'node tools/build.mjs && node tools/sdk.mjs pack', sign: 'node tools/sdk.mjs sign', upload: 'node tools/sdk.mjs upload', dev: 'node tools/sdk.mjs dev' },
-    ...(scaffold ? { dependencies: { '@jiffoo/plugin-bridge': '1.0.0-alpha.3', '@jiffoo/plugin-ui': '1.0.0-alpha.1' } } : {}),
+    ...(scaffold ? { dependencies: { '@jiffoo/plugin-bridge': '1.0.0-alpha.4', '@jiffoo/plugin-ui': '1.0.0-alpha.1' } } : {}),
     devDependencies: { esbuild: '0.27.2', ...(scaffold ? { vite: '8.3.5', typescript: '5.8.3' } : {}) },
   };
   const files: Record<string, string> = {

@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 import { act } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { ProductForm } from '../components/products/ProductForm';
 import { AdminNavigation } from '../components/layout/admin-navigation';
-import { duplicateDraft, productPayload } from '../lib/product-editor';
+import { duplicateDraft, productDraft, productPayload } from '../lib/product-editor';
 import { productListQuery } from '../lib/product-list-state';
 import { merchant } from '../../../packages/shared/src/i18n/messages/en/merchant';
 
@@ -18,7 +19,7 @@ vi.mock('shared/src/i18n/react', () => ({ useLocale: () => 'en', useT: () => (ke
 vi.mock('../lib/hooks/use-api', () => ({
   useOrderStats: () => ({ data: { paymentReviewCount: 0 } }),
   useProductEditorContext: () => ({ data: { currency: state.currency, defaultLocale: 'en' } }),
-  useCategories: () => ({ data: [{ id: 'category', name: 'Clothing' }] }),
+  useCategories: () => ({ data: { items: [{ id: 'category', name: 'Clothing' }], total: 1 } }),
   useCreateProduct: () => ({ mutateAsync: state.create, isPending: false }),
   useUpdateProduct: () => ({ mutateAsync: state.update, isPending: false }),
   useUploadProductImage: () => ({ mutateAsync: state.upload, isPending: false }),
@@ -29,9 +30,28 @@ const product = { id: 'product', slug: 'real-slug', currency: 'EUR', name: 'Shir
   createdAt: '2026-10-14T00:00:00Z', updatedAt: '2026-10-14T01:00:00Z', translations: [{ locale: 'zh-Hans', name: '衬衫', description: '亚麻' }],
   variants: [{ id: 'v1', name: 'Small', skuCode: 'SHIRT-S', salePrice: 10, stock: 2, isActive: true, hasOrders: true, attributes: { size: 'S' } }, { id: 'v2', name: 'Large', skuCode: 'SHIRT-L', salePrice: 12, stock: 3, isActive: false, hasOrders: false, attributes: { size: 'L' } }] };
 let root: Root | undefined;
+it('preserves the original stock baseline through edits and removes it from copies', () => {
+  const draft = productDraft(product, 'Default');
+  draft.variants[0].stock = 9;
+  expect(productPayload(draft).variants[0]).toMatchObject({ stock: 9, expectedStock: 2 });
+  expect(duplicateDraft(product, 'Default').variants.every(variant => variant.expectedStock === undefined)).toBe(true);
+  expect(productDraft(undefined, 'Default').variants[0].expectedStock).toBeUndefined();
+});
+
+it('preserves the draft after a stock conflict without retrying', async () => {
+  state.update.mockRejectedValue({ code: 'CONFLICT', status: 409 });
+  await mount();
+  await fill('variant-v1-stock', '9');
+  await act(async () => button('Save').click());
+  expect(state.update).toHaveBeenCalledTimes(1);
+  expect(state.update.mock.lastCall?.[0].data.variants[0]).toMatchObject({ stock: 9, expectedStock: 2 });
+  expect((document.getElementById('variant-v1-stock') as HTMLInputElement).value).toBe('9');
+  expect(document.body.textContent).toContain('Your draft is preserved');
+  expect(state.replace).not.toHaveBeenCalled();
+});
 async function mount(props: Partial<React.ComponentProps<typeof ProductForm>> = { product }) {
   const node = document.createElement('div'); document.body.append(node); root = createRoot(node);
-  await act(async () => root!.render(<><AdminNavigation storeName="Local Store" storeUrl="http://shop.test/en" /><ProductForm storefrontUrl="http://shop.test/en" {...props} /></>)); return node;
+  await act(async () => root!.render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><AdminNavigation storeName="Local Store" storeUrl="http://shop.test/en" /><ProductForm storefrontUrl="http://shop.test/en" {...props} /></QueryClientProvider>)); return node;
 }
 const button = (name: string, scope: ParentNode = document) => {
   const found = Array.from(scope.querySelectorAll<HTMLButtonElement>('button')).find(control => control.textContent?.trim() === name || control.getAttribute('aria-label') === name);
@@ -106,8 +126,8 @@ it('supports cover and move menus, optional bulk fields and currency from settin
 it('keeps the selected category for Save and add another and generates a fresh form', async () => {
   await mount({ categoryId: 'category' }); await fill('product-name', 'New'); await fill('variant-0-price', '4');
   await act(async () => button('Save and add another').click()); expect(state.create.mock.lastCall?.[0].categoryId).toBe('category');
-  expect((document.getElementById('product-name') as HTMLInputElement).value).toBe(''); expect(button('Category').textContent).toContain('Clothing');
-  await openMenu('Category'); expect(document.querySelector('[role="menuitemradio"][aria-checked="true"]')?.textContent).toBe('Clothing');
+  expect((document.getElementById('product-name') as HTMLInputElement).value).toBe(''); expect(button('Category').textContent).toContain('category');
+  await act(async () => button('Category').click()); expect(Array.from(document.querySelectorAll('[role="dialog"] button')).some(item => item.textContent === 'Clothing')).toBe(true);
   expect(state.replace).toHaveBeenCalledWith('/en/products/create?categoryId=category');
 });
 it('maps the exact SKU index, preserves fields and focuses the first invalid input from the banner', async () => {

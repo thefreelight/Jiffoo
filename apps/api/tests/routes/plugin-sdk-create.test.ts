@@ -98,6 +98,14 @@ describe('Plugin SDK create and generated projects', () => {
     });
   });
 
+  it('pins the page scaffold to the delivered bridge version', async () => {
+    await temporary(async directory => {
+      const output = path.join(directory, 'page-project');
+      successful(run(sdk, ['create', '--slug', id(), '--name', 'Page project', '--output', output, '--pages']));
+      const manifest = JSON.parse(await fs.readFile(path.join(output, 'package.json'), 'utf8'));
+      expect(manifest.dependencies['@jiffoo/plugin-bridge']).toBe('1.0.0-alpha.4');
+    });
+  });
   it.each(['empty directory', 'non-empty directory', 'file', 'link target'])('B create refuses an existing %s without modifying it', async kind => {
     await temporary(async directory => {
       const output = path.join(directory, 'project'), target = path.join(directory, 'target');

@@ -180,6 +180,8 @@ export const mockRedisCache = new InMemoryRedisCache();
  * Each test file should create its own instance for isolation
  */
 export async function createTestApp(options: CreateTestAppOptions = {}): Promise<FastifyInstance> {
+  const { initializePluginHostCapabilities } = await import('../../src/plugin-host-capabilities');
+  initializePluginHostCapabilities();
   const {
     disableRedis = true,
     disableDynamicPlugins = true,

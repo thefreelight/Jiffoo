@@ -1,16 +1,18 @@
 'use client';
-import { useEffect, useState, type MouseEvent } from 'react';
+import { useDeferredValue, useEffect, useMemo, useState, useSyncExternalStore, type MouseEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { MoreHorizontal, Package, Download } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useLocale, useT } from 'shared/src/i18n/react';
-import { formatStoreTimestamp, type AdminProductListItemDTO } from 'shared';
-import { useProducts, useProductStats, useCategories } from '@/lib/hooks/use-api';
+import { formatStoreTimestamp } from 'shared/store-time';
+import type { AdminProductListItemDTO } from 'shared';
+import { useProducts, useProductStats } from '@/lib/hooks/use-api';
 import { productsApi, type ProductSelection, type ProductBulkAction, type ProductBulkResult } from '@/lib/api';
 import { useListState, useListSelection } from '@/lib/hooks/use-list-state';
 import { productListFields as fields } from '@/lib/product-list-state';
 import { BulkBar, ColumnPicker, FilterChips, ListEmpty, ListSearch, ListFilter, PaginationBar, SavedViews, SelectionBanner, SortHeader, StatusTabs, useListColumns } from '@/components/list';
+import { CategoryPicker, useCategoryLabel } from '@/components/products/CategoryPicker';
 import { BulkDeleteDialog } from '@/components/products/BulkDeleteDialog';
 import { BulkPriceEditDialog } from '@/components/products/BulkPriceEditDialog';
 import { Button } from '@/components/ui/button';
@@ -19,7 +21,16 @@ import { resolveApiErrorMessage } from '@/lib/error-utils';
 import { useStoreDate } from '@/lib/store-time';
 import { cn, formatCurrency } from '@/lib/utils';
 
+const emptyProducts: AdminProductListItemDTO[] = [];
+type PresentedProduct = AdminProductListItemDTO & { displayPrice: string; displayUpdatedAt: string };
+
 const statuses = ['all', 'active', 'inactive', 'outOfStock'];
+const subscribeViewport = (notify: () => void) => {
+  window.addEventListener('resize', notify);
+  return () => window.removeEventListener('resize', notify);
+};
+const readCompactViewport = () => window.innerWidth < 769;
+const readServerViewport = () => false;
 const sharedKeys = ['clearAll', 'clearFilters', 'removeFilter', 'pagination', 'perPage', 'perPageBefore', 'perPageAfter', 'pageLabel'];
 
 type ProductColumn = { key: string; labelKey: string; className: string; sortable?: boolean; field?: string; align?: 'left' | 'right' };
@@ -33,6 +44,7 @@ const productColumns: ProductColumn[] = [
 ];
 
 export default function ProductsPage() {
+  const compactViewport = useSyncExternalStore(subscribeViewport, readCompactViewport, readServerViewport);
   const t = useT(), locale = useLocale(), router = useRouter(), client = useQueryClient(), { timezone } = useStoreDate();
   const c = (key: string, values?: Record<string, string | number>) => t('merchant.catalog.' + key, values);
   const l = (key: string, values?: Record<string, string | number>) => sharedKeys.includes(key) ? t('merchant.orders.list.' + key, values) : c(key, values);
@@ -41,11 +53,17 @@ export default function ProductsPage() {
   useEffect(() => { sessionStorage.setItem('products-list:' + locale, url); }, [url, locale]);
   const filter = { search: state.search, status: state.status === 'all' ? undefined : state.status, categoryId: state.category || undefined };
   const sort = { sortBy: state.sortBy as 'name' | 'createdAt' | 'updatedAt' | 'price' | 'stock', sortOrder: state.sortOrder as 'asc' | 'desc' };
-  const list = useProducts({ ...filter, ...sort, page, limit: pageSize }), stats = useProductStats(), categories = useCategories();
-  const products = list.data?.data ?? [], total = list.data?.pagination?.total ?? 0;
-  useEffect(() => {
-    if (categories.data && state.category && state.category !== 'none' && !categories.data.some(category => category.id === state.category)) change({ category: '' });
-  }, [categories.data, state.category]);
+  const list = useProducts({ ...filter, ...sort, page, limit: pageSize }), stats = useProductStats(), categoryLabel = useCategoryLabel(state.category);
+  const products = list.data?.data ?? emptyProducts, total = list.data?.pagination?.total ?? 0;
+  const { visible, toggle } = useListColumns('products', productColumns.map(column => column.key));
+  const needsPrice = compactViewport || visible.includes('price');
+  const needsTime = compactViewport || visible.includes('updatedAt');
+  const deferredProducts = useDeferredValue(products);
+  const presentedProducts = useMemo<PresentedProduct[]>(() => deferredProducts.map(product => ({
+    ...product,
+    displayPrice: !needsPrice ? '' : product.variantsActiveCount === 0 ? '—' : product.priceMin === product.priceMax ? formatCurrency(product.priceMin, product.currency) : t('merchant.catalog.fromPrice', { price: formatCurrency(product.priceMin, product.currency) }),
+    displayUpdatedAt: needsTime ? formatStoreTimestamp(product.updatedAt, timezone) : '',
+  })), [deferredProducts, timezone, t, needsPrice, needsTime]);
   const selection = useListSelection(JSON.stringify(filter), filter, products.map(product => product.id), total);
   const [pending, setPending] = useState(false), [failure, setFailure] = useState(''), [message, setMessage] = useState('');
   const [preview, setPreview] = useState<ProductBulkResult | null>(null), [deleteSelection, setDeleteSelection] = useState<ProductSelection | null>(null);
@@ -74,29 +92,28 @@ export default function ProductsPage() {
       if (selected) { selection.clear(); await refresh(); }
     } catch { setFailure(c('exportError')); } finally { setPending(false); }
   };
-  const categoryOptions = [{ value: '', label: c('all') }, { value: 'none', label: c('uncategorized') }, ...(categories.data ?? []).map(category => ({ value: category.id, label: category.name }))];
+  const categoryOptions = [{ value: '', label: c('all') }, { value: 'none', label: c('uncategorized') }];
   const clear = () => change({ search: '', category: '' });
-  const chips = state.category ? [{ key: 'category', name: c('category'), value: categoryOptions.find(option => option.value === state.category)?.label ?? state.category, remove: () => change({ category: '' }) }] : [];
+  const chips = state.category ? [{ key: 'category', name: c('category'), value: categoryOptions.find(option => option.value === state.category)?.label ?? categoryLabel.data?.name ?? state.category, remove: () => change({ category: '' }) }] : [];
   const productState = (product: AdminProductListItemDTO) => product.isActive ? product.stock === 0 ? 'outOfStock' : 'active' : 'inactive';
   const status = (product: AdminProductListItemDTO) => <span className={cn('inline-flex items-center gap-2 whitespace-nowrap', productState(product) === 'outOfStock' ? 'text-attention' : productState(product) === 'inactive' ? 'text-faint' : 'text-foreground')}><span aria-hidden="true" className={cn('size-1.5 rounded-full', productState(product) === 'inactive' ? 'border border-current' : 'bg-current')} />{c(productState(product))}</span>;
   const href = (product: AdminProductListItemDTO) => '/' + locale + '/products/' + product.id + '/edit';
   const open = (event: MouseEvent, product: AdminProductListItemDTO) => { if (!(event.target as Element).closest('a,button,input,label,[role^="menuitem"]')) router.push(href(product)); };
   const identity = (product: AdminProductListItemDTO) => <div className="flex min-w-0 items-center gap-3">{product.images[0] ? <img src={product.images[0]} alt="" className="size-9 shrink-0 rounded-md object-cover" /> : <span className="flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-raised"><Package aria-hidden="true" className="size-4 text-faint" /></span>}<div className="min-w-0"><Link href={href(product)} className="font-medium hover:underline">{product.name}</Link><p className="mt-0.5 text-xs text-faint"><span className="font-mono">{product.spuCode}</span>{' · '}{product.categoryName || c('uncategorized')}{' · '}{c('variantCount', { count: product.variantsCount ?? 0 })}</p></div></div>;
-  const price = (product: AdminProductListItemDTO) => product.variantsActiveCount === 0 ? '—' : product.priceMin === product.priceMax ? formatCurrency(product.priceMin, product.currency) : c('fromPrice', { price: formatCurrency(product.priceMin, product.currency) });
+  const price = (product: PresentedProduct) => product.displayPrice;
   const checkbox = (product: AdminProductListItemDTO) => <input type="checkbox" className="size-[15px] shrink-0 accent-foreground" aria-label={c('selectProduct', { name: product.name })} checked={selection.checked(product.id)} onChange={() => selection.toggle(product.id)} />;
   const pageCheckbox = <input type="checkbox" className="size-[15px] accent-foreground" aria-label={c('selectPage')} checked={selection.pageChecked} disabled={!products.length} onChange={selection.togglePage} />;
-  const { visible, toggle } = useListColumns('products', productColumns.map(column => column.key));
   const visibleColumns = visible.map(key => productColumns.find(column => column.key === key)).filter((column): column is ProductColumn => column !== undefined);
   const pickerColumns = productColumns.map(column => ({ key: column.key, label: t(column.labelKey, { timezone }), alwaysVisible: column.key === 'name' }));
   const listCopy = (key: string, values?: Record<string, string | number>) => t('merchant.listViews.' + key, values);
   const bulkCopy = (key: string, values?: Record<string, string | number>) => t('merchant.bulkActions.price.' + key, values);
   const currentQuery = Object.fromEntries(new URLSearchParams(url.split('?')[1] ?? '').entries());
-  const productCell = (key: string, product: AdminProductListItemDTO) => {
+  const productCell = (key: string, product: PresentedProduct) => {
     if (key === 'name') return identity(product);
     if (key === 'status') return status(product);
     if (key === 'price') return price(product);
     if (key === 'stock') return <span className={cn('font-mono text-xs', productState(product) === 'outOfStock' && 'text-attention')}>{product.stock}</span>;
-    return formatStoreTimestamp(product.updatedAt, timezone);
+    return product.displayUpdatedAt;
   };
   const actions = (product: AdminProductListItemDTO) => <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="size-[30px]" aria-label={c('more', { name: product.name })}><MoreHorizontal aria-hidden="true" className="size-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end">
     <DropdownMenuItem asChild><Link href={href(product)}>{c('edit')}</Link></DropdownMenuItem>
@@ -107,16 +124,18 @@ export default function ProductsPage() {
     <header className="flex flex-wrap items-center justify-between gap-3"><h1 className="text-[26px] font-semibold">{c('products')}</h1><div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" asChild><Link href={'/' + locale + '/products/categories'}>{c('manageCategories')}</Link></Button><Button size="sm" variant="outline" disabled={pending} onClick={() => exportProducts(false)}><Download aria-hidden="true" className="mr-1 size-3.5" />{c('export')}</Button><Button size="sm" asChild><Link href={'/' + locale + '/products/create'}>{c('addProduct')}</Link></Button></div></header>
     <StatusTabs label={c('status')} value={state.status} onChange={status => change({ status })} tabs={statuses.map(value => ({ value, label: c(value), attention: value === 'outOfStock', count: stats.data?.statusCounts[value as keyof typeof stats.data.statusCounts] }))} />
     {stats.error && <p role="status">{c('statsError')}</p>}
-    <div className="flex flex-wrap gap-2"><ListSearch label={c('searchCodes')} value={state.search} onChange={search => change({ search })} /><ListFilter label={c('category')} value={state.category} options={categoryOptions} onChange={category => change({ category })} /><SavedViews listKey="products" query={currentQuery} label={t('merchant.listViews.savedViews')} copy={listCopy} /><ColumnPicker label={t('merchant.listViews.columnPicker')} columns={pickerColumns} visible={visible} onToggle={toggle} /></div>
+    {categoryLabel.error && <div role="alert"><p>{c('categoryError')}</p><Button type="button" size="sm" variant="outline" onClick={() => void categoryLabel.refetch()}>{c('retry')}</Button></div>}
+    <div className="flex flex-wrap gap-2"><ListSearch label={c('searchCodes')} value={state.search} onChange={search => change({ search })} /><CategoryPicker label={c('category')} value={state.category} options={categoryOptions} onChange={category => change({ category })} /><SavedViews listKey="products" query={currentQuery} label={t('merchant.listViews.savedViews')} copy={listCopy} /><ColumnPicker label={t('merchant.listViews.columnPicker')} columns={pickerColumns} visible={visible} onToggle={toggle} /></div>
     <FilterChips chips={chips} copy={l} clear={clear} />{failure && <p role="alert" className="text-destructive">{failure}</p>}{message && <p role="status">{message}</p>}
-    {list.error ? <div role="alert"><p>{c('listError')}</p><Button variant="outline" onClick={() => list.refetch()}>{c('retry')}</Button></div> : list.isLoading ? <p role="status">{c('loading')}</p> : <div className="overflow-hidden rounded-lg border border-border">
+    {list.error ? <div role="alert"><p>{c('listError')}</p><Button variant="outline" onClick={() => list.refetch()}>{c('retry')}</Button></div> : list.isLoading || deferredProducts !== products ? <p role="status" className="min-h-[calc(100dvh-10rem)]">{c('loading')}</p> : <div className="overflow-hidden rounded-lg border border-border">
       {(selection.pageChecked || selection.selection.mode === 'filter') && <SelectionBanner all={selection.selection.mode === 'filter'} count={selection.selection.mode === 'filter' ? selection.count : products.length} total={total} copy={l} selectAll={selection.allMatching} onlyPage={selection.onlyPage} />}
-      <div className="hidden overflow-x-auto min-[769px]:block"><table className="w-full min-w-[760px] text-left text-[13px]"><thead className="bg-raised text-xs text-faint"><tr><th scope="col" className="w-10 py-2.5 pl-4">{pageCheckbox}</th>{visibleColumns.map(column => column.sortable ? <SortHeader key={column.key} label={t(column.labelKey, { timezone })} field={column.field ?? column.key} {...sort} onSort={(sortBy, sortOrder) => change({ sortBy, sortOrder })} align={column.align} /> : <th key={column.key} scope="col" className="whitespace-nowrap px-3 py-2.5 font-medium">{t(column.labelKey, { timezone })}</th>)}<th scope="col" className="pr-4"><span className="sr-only">{c('actions')}</span></th></tr></thead><tbody>{products.map(product => <tr key={product.id} onClick={event => open(event, product)} className={cn('cursor-pointer border-t border-border hover:bg-active', selection.checked(product.id) && 'bg-active')}><td className="py-2.5 pl-4">{checkbox(product)}</td>{visibleColumns.map(column => <td key={column.key} className={column.className}>{productCell(column.key, product)}</td>)}<td className="py-1.5 pl-3 pr-4 text-right">{actions(product)}</td></tr>)}</tbody></table></div>
-      <div className="divide-y divide-border min-[769px]:hidden"><p className="px-4 py-2 text-xs text-faint">{c('updatedAt', { timezone })}</p>{!!products.length && <label className="flex items-center gap-2 p-4">{pageCheckbox}{c('selectPage')}</label>}{products.map(product => <article aria-label={product.name} key={product.id} onClick={event => open(event, product)} className={cn('space-y-3 p-4', selection.checked(product.id) && 'bg-active')}><div className="flex items-start gap-2">{checkbox(product)}{identity(product)}</div><div className="flex items-center justify-between gap-2">{status(product)}<span className="font-mono">{price(product)}</span></div><p className="flex justify-between text-muted-foreground"><span>{c('stock')}</span><span className="font-mono">{product.stock}</span></p><div className="flex items-center justify-between gap-2"><time dateTime={product.updatedAt} className="text-xs text-faint">{formatStoreTimestamp(product.updatedAt, timezone)}</time>{actions(product)}</div></article>)}</div>
+      {!compactViewport ? <div className="overflow-x-auto"><table className="w-full min-w-[760px] text-left text-[13px]"><thead className="bg-raised text-xs text-faint"><tr><th scope="col" className="w-10 py-2.5 pl-4">{pageCheckbox}</th>{visibleColumns.map(column => column.sortable ? <SortHeader key={column.key} label={t(column.labelKey, { timezone })} field={column.field ?? column.key} {...sort} onSort={(sortBy, sortOrder) => change({ sortBy, sortOrder })} align={column.align} /> : <th key={column.key} scope="col" className="whitespace-nowrap px-3 py-2.5 font-medium">{t(column.labelKey, { timezone })}</th>)}<th scope="col" className="pr-4"><span className="sr-only">{c('actions')}</span></th></tr></thead><tbody>{presentedProducts.map(product => <tr key={product.id} onClick={event => open(event, product)} className={cn('cursor-pointer border-t border-border hover:bg-active', selection.checked(product.id) && 'bg-active')}><td className="py-2.5 pl-4">{checkbox(product)}</td>{visibleColumns.map(column => <td key={column.key} className={column.className}>{productCell(column.key, product)}</td>)}<td className="py-1.5 pl-3 pr-4 text-right">{actions(product)}</td></tr>)}</tbody></table></div> :
+      <div className="divide-y divide-border"><p className="px-4 py-2 text-xs text-faint">{c('updatedAt', { timezone })}</p>{!!products.length && <label className="flex items-center gap-2 p-4">{pageCheckbox}{c('selectPage')}</label>}{presentedProducts.map(product => <article aria-label={product.name} key={product.id} onClick={event => open(event, product)} className={cn('space-y-3 p-4', selection.checked(product.id) && 'bg-active')}><div className="flex items-start gap-2">{checkbox(product)}{identity(product)}</div><div className="flex items-center justify-between gap-2">{status(product)}<span className="font-mono">{price(product)}</span></div><p className="flex justify-between text-muted-foreground"><span>{c('stock')}</span><span className="font-mono">{product.stock}</span></p><div className="flex items-center justify-between gap-2"><time dateTime={product.updatedAt} className="text-xs text-faint">{product.displayUpdatedAt}</time>{actions(product)}</div></article>)}</div>}
       {!products.length && <ListEmpty filtered={!!state.search || !!state.category || state.status !== 'all'} copy={l} clear={() => change({ status: 'all', category: '', search: '' })} />}
     </div>}
-    <PaginationBar copy={l} page={page} pageSize={pageSize} total={total} onPage={page => update({ page: String(page) })} onPageSize={pageSize => change({ pageSize: String(pageSize) })} />
-    <BulkBar count={selection.count} copy={l} allMatching={selection.selection.mode === 'filter'} clear={selection.clear}><Button size="sm" variant="outline" disabled={pending} onClick={() => apply('activate')}>{c('activate')}</Button><Button size="sm" variant="outline" disabled={pending} onClick={() => apply('deactivate')}>{c('deactivate')}</Button><ListFilter label={c('changeCategory')} disabled={pending} showValue={false} value="" options={categoryOptions.filter(option => option.value !== '')} onChange={category => { if (!pending) apply('setCategory', selection.selection, category === 'none' ? null : category); }} /><Button size="sm" variant="outline" disabled={pending} onClick={() => exportProducts(true)}>{c('export')}</Button><Button size="sm" variant="outline" disabled={pending} onClick={() => setPriceOpen(true)}>{bulkCopy('editPrices')}</Button><Button size="sm" variant="outline" disabled={pending} onClick={() => confirmDelete(selection.selection)}>{c('delete')}</Button></BulkBar>
+    <PaginationBar copy={l} page={page} pageSize={pageSize} total={total} onPage={page => update({ page: String(page) })} onPageSize={pageSize => change({ pageSize: String(pageSize) })}>
+      <BulkBar count={selection.count} copy={l} allMatching={selection.selection.mode === 'filter'} clear={selection.clear}><Button size="sm" variant="outline" disabled={pending} onClick={() => apply('activate')}>{c('activate')}</Button><Button size="sm" variant="outline" disabled={pending} onClick={() => apply('deactivate')}>{c('deactivate')}</Button><CategoryPicker label={c('changeCategory')} disabled={pending} showValue={false} value="" options={categoryOptions.filter(option => option.value !== '')} onChange={category => { if (!pending) apply('setCategory', selection.selection, category === 'none' ? null : category); }} /><Button size="sm" variant="outline" disabled={pending} onClick={() => exportProducts(true)}>{c('export')}</Button><Button size="sm" variant="outline" disabled={pending} onClick={() => setPriceOpen(true)}>{bulkCopy('editPrices')}</Button><Button size="sm" variant="outline" disabled={pending} onClick={() => confirmDelete(selection.selection)}>{c('delete')}</Button></BulkBar>
+    </PaginationBar>
     <BulkDeleteDialog result={preview} pending={pending} error={failure} onCancel={() => setPreview(null)} onConfirm={() => { if (deleteSelection) apply('delete', deleteSelection); }} />
     {priceOpen && <BulkPriceEditDialog selection={selection.selection} onClose={() => setPriceOpen(false)} onApplied={async () => { selection.clear(); await refresh(); }} />}
   </section>;

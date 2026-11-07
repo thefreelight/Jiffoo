@@ -23,6 +23,264 @@ is a Git-conflict-avoidance measure only; it is not a seniority relation.
 
 ## 0. The state of the line
 
+### Complete workspace source finalization (2026-11-05, locally verified)
+
+The user authorized a local commit of all remaining source after `5f896274e`, including the
+previously separate plugin, security, SDK and Admin integration work. The complete current tree
+was copied with 1528 source inputs and independently installed dependencies. Main migration
+history and checksums match all 48 local migrations; the isolated schema diff passes.
+
+Shared, SDK, Bridge, Plugin UI, Admin webpack and Shop webpack builds passed. The audited shard
+runner and real SDK/Bridge pack-install checks passed 69 tests. The final approved four-shard
+gate passed API 232 files/2957 tests, Admin 68/740 and Shop 44/308, with full catalogue coverage
+and cleanup PASS. An initial missing generated OpenAPI document caused 13 failures; after export
+from the current source, the four affected files passed all 62 tests and the formal gate passed.
+The failed run is retained, not counted as passing. Evidence is in `workspace-finalization/`
+under the 2026-11-05 task artifact directory recorded below.
+
+Generated Next build directories, local report output and private uploaded data are retained
+locally and excluded through Git's local exclude file. The generated Next type reference was
+normalized to the actual clean standard build output; no historical dirty line was guessed.
+No primary acceptance reset, policy-bootstrap apply, external deployment, port 3001/3002
+operation or push was performed. Browser performance evidence remains the bounded seven-list,
+overview and related-flow evidence below; it does not certify every Admin page, button, role or
+business state, nor does every fixture table contain 100000 rows.
+
+### Admin declared-plugin sidebar batch (2026-11-04, locally verified)
+
+Baseline: `a0fe077465d5439a6ea7e6444060680fbedf4fa3`. Preserve concurrent work.
+Add `GET /api/v1/admin/plugin-pages`, using the existing administrator identity check and
+declaration availability projection; return the existing declaration array, including an empty
+array when no enabled administrator pages are available. Cover authentication and filtering with
+API tests. The Admin sidebar consumes this projection and uses the first declared administrator
+page as the plugin entry destination. Detail and declared-page routes select the plugin child,
+not the Plugins collection link. No plugin identifiers or business rules are hardcoded.
+Verification must use isolated Core test services, never the Imager database. Browser acceptance
+on the existing Imager host is limited to navigation and presentation, with no business actions.
+Scoped diagnostic verification selected `plugin-page-sessions.test.ts`, `admin-shell.test.tsx`,
+`plugin-navigation.test.tsx` and `null-origin.test.ts`: API 24 and Admin 83 tests passed, with
+selected type checks and migration parity passing. PostgreSQL 55440 and Redis 56390 were isolated
+task-owned services and were removed after verification. This was not the certifying full gate.
+Manual Chrome checks covered plugin detail and declared-page selection, default-page navigation,
+refresh, back/forward, sidebar rail and light/dark presentation. Changes remain uncommitted.
+
+### Core Admin presentation follow-up (2026-11-04, locally verified)
+
+This result supersedes the unresolved presentation inference in the prior scale baseline below;
+the original raw evidence remains intact. Background presentation and immediate DOM inspection
+distorted the earlier Event Timing observation: a passive four-second observation window even
+produced a 5112 ms candidate for a setup key. The 2440 ms record therefore cannot be used as a
+causal Core latency measurement or as the denominator of a claimed code improvement.
+
+Controlled production builds use the same webpack builder, API on 3111 and synthetic dataset.
+Target-scoped continuous screencast frames keep background presentation observable without
+bringing the window forward; event collection precedes DOM inspection. Five control keyboard
+selection samples measured 56-160 ms (median 72 ms; no stable P95 claimed). Twenty final trusted
+keyboard selections measured 16-40 ms (P50 32 ms, P95 40 ms). The first result DOM commit took
+368.2 ms and its captured result frame took 423.335 ms; later result DOM commits took 41-109.8 ms.
+These are local measured workflows, not field Core Web Vitals or all-interaction certification.
+
+The final changes use a native page-size select, exclude the footer from scroll anchoring,
+compose pagination and bulk actions inside one sticky footer, update client-only list URLs with
+Next's supported native history integration, mount one product viewport layout, and defer heavy
+product results while hiding stale actions and memoizing display projections. Unknown query
+parameters, history, detail identity, selection, narrow layouts and true empty data were checked.
+CI-only browser E2E consumers were adapted to the native control but were not run locally.
+
+The final independent input set `86fae488d57a08879b331723d5c324e71d21b859dd84e87559fa42c8fa56b69c`
+passed the approved four-shard quick verification: 232 API files / 2956 tests, 67 Admin files /
+720 tests and 44 Shop files / 308 tests; coverage and cleanup PASS. Source post-check found no
+changes; normal generated outputs are separately recorded. The exact summary and follow-up
+report are `final-presentation-summary.txt` and `presentation-fix-20261104/retest-report.html`
+under this task's external artifact directory. No commit, push or external deployment occurred.
+Only hidden local API 3111 and final Admin 3106 remain; task comparison/empty services and gate
+containers were removed, preserving acceptance data. Port 3002 had no listener at final check;
+this task did not stop or restart it and did not connect to the Imager acceptance database.
+
+### Core Admin measured remediation (2026-11-05, locally verified)
+
+Commit authorization update: the user approved the complete Core Admin performance batch and
+its performance prerequisites. Unrelated plugin, security and SDK changes are excluded.
+
+The measured follow-up is complete against baseline `a0fe077465d5439a6ea7e6444060680fbedf4fa3`.
+Seven task-owned code/test inputs cover the customer and order pages, their list tests and the
+customer query test, plus product-management `list-query.ts` and the product list/bulk/export
+contract suite. Other sessions' edits remain outside this delivery. The seven-file workspace,
+gate and runtime hashes agree: `4094ce51033ee47e35b7bbc288c2820fefb1b7f65f371072a970f9fcf3c4f610`.
+
+Customers and Orders mount one viewport layout at their original 1100/769 breakpoints, memoize
+display projections and hide deferred old results. The inactive product query uses the existing
+variant aggregation with `BOOL_OR`, preserving inactive membership including absent variants;
+there is no schema or HTTP contract change. Workers implemented the changes and an independent
+reviewer checked the source, meaningful regression assertions and measurement interpretation.
+
+The final lightweight Browser Use cohort contains 68 samples. The ready customer 20-to-100
+comparison is five observations per arm: median 240 ms before and 24 ms after, with ranges
+224-264 and 24-32 ms. Customer select-100 medians are 120/56 ms (three per arm); Orders 72/48 ms.
+Identical inactive page-3 stock and price requests measured 1268/275.8 and 1257.2/277.6 ms
+(one observation per arm, not a cache-miss or P95 claim). The 138 earlier samples whose observer
+read innerText remain exploratory; the initial loading control and the 152 ms exploratory
+outlier are preserved. No field CWV, all-Admin, zero-long-task or long-memory certification is made.
+
+The final approved four-shard gate exited 0: API 232 files/2957 tests, Admin 67/726 and Shop
+44/308, with coverage, cleanup, type check, lint, reset and schema drift checks passing. Earlier
+missing fixture/build inputs and the owned preview's Windows Prisma DLL lock were recorded and
+resolved before certification. Main acceptance data was not reset: final read-only batch counts
+and all 48 migration checksums match; the main schema diff is empty. No source changed after
+certification. CI, automatic browser E2E and a serial full run were not executed; no commit, push
+or external deployment occurred.
+
+The self-contained report, CSV, raw observations, exact task patch and process/data evidence are
+under `C:/Users/11948/.codex/visualizations/2026/11/05/01a1aa52-55ee-79d3-9bea-72e1aa2f4992/`,
+with entrypoint `remediation-final-report.html`. The original protected 3106/3111 services remain;
+the reviewed local preview uses 127.0.0.2:3109, API3115 and its own Redis56392. The owned gate
+PostgreSQL container was removed. Ports 3001/3002 were not operated; 3002 was observed listening
+at the final check, without a health claim.
+
+### Core Admin scale acceptance batch (2026-11-04, prior local baseline)
+
+Baseline: `a0fe077465d5439a6ea7e6444060680fbedf4fa3`; preserve the concurrent consumer-plugin batch.
+Acceptance uses local ports 3101/3102 and `jiffoo_core_test`, synthetic batch
+`coreadmin-20261104-v1`. Never connect to `imager_jiffoo_core` or operate ports 3001/3002.
+The task-owned gate PostgreSQL uses port 55439 and the same exact test database name;
+Redis uses port 56389, logical database 15. Gate resets must never target acceptance data.
+
+Registered contract addition: `GET /admin/products/categories` accepts optional `search`
+(maximum 200 characters), trimmed and matched case-insensitively against name or slug;
+the list and total use the same predicate. Existing pagination remains authoritative.
+Workers replace unbounded category collection with server-side search/pagination and remove
+actionable stale user/staff placeholder rows. Product active/inactive predicates use EXISTS
+without per-product aggregates unless stock filters or aggregate sorting require them.
+
+Gate selection: `apps/api/tests/routes/admin-products.test.ts` and
+`apps/api/tests/routes/product-list-bulk-export.test.ts`, plus affected Admin suites, widened
+by the approved planner. These cover category search contracts, availability, sorting,
+neighbors and filter-based bulk selection. No gate or browser completion is certified here.
+Raw before/after performance evidence and browser coverage belong in the task's external
+visualization directory; no commit, push, deployment or plugin modification is authorized.
+
+Acceptance evidence: uncached active-product search used 20 independent case-sensitive cache
+keys with the same case-insensitive SQL meaning. The original API took 995-1389 ms; the final
+source runtime, without the task's gate load, took 260-413 ms (P50 292 ms, P95 351 ms).
+Different dist/tsx runtimes and uncontrolled server caches limit the comparison. Query plans
+separately establish the per-product aggregate cost and the grouped-aggregate improvement.
+Browser verification confirmed stale actionable customer rows, unbounded category collection,
+notification detail identity loss on refresh, an oversized sticky product heading, and a loading
+pagination layout shift. The first four fixes and the query optimization passed independent
+review and the complete local shard gate (232 API files / 2956 tests, 67 Admin files / 715 tests,
+44 Shop files / 308 tests). Seven subsequent loading-height CSS changes passed Admin diagnostic
+verification and a production build; a new certifying run covers that final input separately.
+Order hard-load CLS changed from 0.4368 to approximately 0.00081 in the measured local browser.
+
+At the prior decision point, overall performance acceptance was not certified: the session
+contained a 2440 ms Event Timing candidate dominated by presentation delay. A scoped trace did not
+reproduce it (92.199 ms maximum in that controlled trace); attribution remains unresolved.
+The USER-role Admin denial, delayed old-response isolation and real NOT_FOUND bulk dry-run
+were exercised. A mixed-result browser write, notification resend and long-duration memory
+soak were not certified. No immutable event identity was changed to manufacture a failure.
+
+The final CSS input `df1527dfe5abe96ab25951395550cb955902edbcc2c2d829559ee4545a4a6443`
+subsequently passed `pnpm verify:quick --shards=4`: all 232 API files / 2956 tests,
+67 Admin files / 715 tests and 44 Shop files / 308 tests passed, with coverage and cleanup PASS.
+The exact summary is `final-css-certifying-summary.txt` in the external task artifact directory.
+An independently installed, otherwise empty test instance verified the default empty product,
+order, customer, category and notification pages; its required owner and installation audit
+records were not represented as empty. That instance and all task gate containers were removed.
+Only the hidden local final API on 3111 and production-build Admin on 3106 remain; the main
+synthetic acceptance data is retained. Browser E2E, CI, commits, pushes and deployment were not run.
+
+### Credits and consumer-plugin integration batch (2026-11-04, locally verified)
+
+Baseline: `a0fe077465d5439a6ea7e6444060680fbedf4fa3`. The six consumer requirements are acceptance
+requirements, not assertions about delivered SDK support. No acceptance environment upgrade,
+provider recovery, credit mutation, generation or wallet cutover is authorized by this batch.
+
+The planned public contract additions are a permissioned bounded published variant projection
+(`commerce:products.read`), host-owned product navigation and existing purchase-origin return
+binding, a minimal administrator customer directory (`customers:read`), and generic storage
+publication, revocation, reference protection and durable deletion outcomes. Installation grants
+and an ADMIN principal are not per-action administrator RBAC; that gap remains explicit until a
+unified action-authorization mechanism is implemented and tested. Prices belong to Core;
+variant-credit mappings, usage ledgers, restrictions and content semantics belong to plugins.
+
+Workers own product/catalog, customer/identity and public SDK/Bridge wiring in disjoint files.
+Storage schema work follows the approved baseline gate and is serial. Independent review and
+the widened `pnpm verify:quick --shards=4` gate are required before certification; no check has
+yet been certified. Final distribution requires built and packed SDK/Bridge artifacts and an
+isolated consumer check, not just updated source types. Browser E2E remains CI-only.
+
+Wallet-to-Credits migration is a coordinated maintenance/export/import plan only: reconcile
+counts and hashes of balances, immutable ledger/effect keys, mappings, manual exceptions and
+sweep checkpoints; settle old tasks and original service-call identities before switching;
+never replay historic orders over imported balances, dual-write, or leave the old provider
+enabled for new business. Rollback covers the coordinated consumer/provider deployment.
+Plugin-owned root `001_generations` remains immutable; `002_operations` is append-only;
+Credits owns its isolated `001_credits` checksum and schema. Use only installer/update paths.
+Any unexpected database drift stops work without automatic repair.
+
+The first widened gate covered all 227 API files (no missing, extra or duplicate files), but
+failed five assertions: the changed context-key contract, three boundary assertions for new
+edges/cycles, and an existing immutable-package lease test timeout. Type checks, Shop lint and
+the dedicated test database reset passed; Admin and Shop test suites did not execute after the
+API failure. This is not a certified batch. The dependency fix uses typed host adapters wired
+at API/worker/test composition roots; the owning Product/Auth/Audit services retain their reads
+and writes. Static enumeration of the revised graph retains 600 cycles rather than registering
+the 315 cycles of the rejected direct-import design. This still requires executable validation.
+An explicit Prisma diff against the task-owned PostgreSQL 18.2 baseline returned
+`No difference detected` before the new storage/action-policy schemas were started.
+
+Registered contract changes for this batch: `POST /plugin-pages/:slug/sessions/:id/product-target`,
+token-only `GET/HEAD /plugin-public-files/:id`, and administrator policy grant GET/PUT/DELETE
+under `/admin/plugin-action-policy`. Shared storage now declares publish/unpublish/publicUrl,
+retain/release, idempotent delete and deletion-outcome reads; live-principal action checks use
+`authorization.require` and bounded manifest `adminActions`. Installation `actions:<action>`
+and explicit administrator grants are both required. Referenced-file and idempotency-key input
+conflicts are distinct 409 outcomes, covered by storage tests. Publication is independent of a
+publisher's later login availability; another explicitly authorized installation administrator
+may revoke an admin-owned publication. Customer ownership never becomes public by a read.
+
+The new migration is `20261104042933_plugin_host_capabilities`, generated with the runbook diff
+against the validated task-owned baseline, not hand-written or applied to acceptance data.
+SDK alpha.7 and Bridge alpha.4 are candidate local distribution versions until build, pack,
+isolated consumer verification and the final gate finish. Object deletion certifies only the
+active storage object; historical S3 versions, backups and secure media erasure remain outside
+that result. The operator bootstrap tool requires an explicitly named connection environment
+variable, expected database and administrator; dry-run is the default. It checks migration
+history/checksums and schema before any explicit apply. No bootstrap was executed in this task.
+
+The administrator host also exposes `customers.open({customerId})` and a session-bound
+customer-target endpoint: it uses the same permissioned customer projection and audit, checks
+the session again, and returns only the fixed Core customer path. This closes the iframe's
+otherwise unusable account-link path without allowing arbitrary redirects.
+
+Independent reviews covered product availability/pricing, customer identity and rate bounds,
+action-policy session locking, publication/revocation/deletion, public-file proxies and signed
+URL redaction, customer navigation, and the verification runner. Findings were returned to their
+owning worker and fixed. The final static graph has 207 approved edges and the original 600
+registered cycles. The runner generates its shared Prisma client before any shard starts and
+resets each isolated shard with `--skip-generate`; its 67 database-free script tests passed.
+The targeted diagnostic passed API, Admin and Shop selections after the advisory-lock call was
+corrected to avoid PostgreSQL void deserialization. This is diagnostic evidence, not the final
+certifying gate. Full lifecycle purge now refuses registered active file references; its existing
+Core-wide administrator authority remains distinct from the SDK's fine-grained action grants.
+
+Final verification: `pnpm verify:quick --shards=4` exited 0 against the frozen input snapshot
+`7d8bc6d7cb9da6990c492c46fe96644f5ba713b379d81c69a8970b7ffbc42f94` (baseline above).
+The complete API catalogue covered 232/232 files and passed 2,955 tests; Admin passed 66 files /
+709 tests and Shop passed 44 files / 308 tests. Coverage and cleanup verdicts were both PASS.
+The type check, Shop lint, test reset and schema drift check passed. Core build, OpenAPI export,
+67 database-free runner tests and both isolated package-consumer checks also passed. Browser
+E2E remains CI-only and was not run; no serial full-suite run or CI run is claimed.
+
+The final SDK alpha.7 and Bridge alpha.4 tarballs match the bytes installed by the isolated
+consumer checks. Their SHA256 values, the raw final summary, exported OpenAPI and independent
+review record are in the task's local artifact directory:
+`C:/Users/11948/.codex/visualizations/2026/11/04/01a1a4b2-90f5-7f92-a7ba-523aaf6f313b/artifacts/manifest.json`.
+The source remains uncommitted and unpushed; no registry publication, acceptance update,
+production migration, bootstrap, recovery, top-up, generation or wallet cutover was performed.
+This final ledger-only result record was appended after verification; implementation and test
+inputs were frozen and matched the recorded snapshot before writing it.
+
 **Measured on:** 2026-10-31, against the tree of the branch of record. The open items were extended
 on 2026-11-01 (§5zw, §5zy, §5zaa); the other rows are the measurement of 2026-10-31 and were not
 re-measured.
@@ -311,3 +569,17 @@ Nothing in the archive is deleted. It is what the live documents were before the
 and it is read when a question needs the day a measurement was taken on. The text of the four
 documents that were merged into `docs/verification.md` and `docs/operator-guide.md` is in those two
 files.
+
+## 2026-11-06 Local Admin inventory concurrency acceptance
+
+- Decision: the product editor sends each persisted variant's original stock as `expectedStock`, activating the existing update API's `409 CONFLICT` and transactional rollback for stale inventory. Drafts remain available on conflict; creating or duplicating variants does not inherit an inventory baseline.
+- Evidence: local Chrome double-window saves from stock 7 to 8 and 9 both succeeded before the fix. Evidence root: `C:/Users/11948/.codex/visualizations/2026/11/06/01a1b035-be66-7750-aab2-e7b640da1d1b/local-additional-acceptance`.
+- Baseline: `06a1ffd99`. Selected coverage: full Admin suite and `apps/api/tests/routes/admin-products.test.ts`, covering payload baselines, conflict draft retention, and rejected stale stock with transaction rollback. Independent static review is clean; gate and browser retest are pending.
+- Verification uses frozen inputs and separate temporary PostgreSQL/Redis services. The large acceptance database on port 55444 is preserved. No commit, push, or production deployment is authorized by this record.
+
+## 2026-11-07 Address-free checkout contract
+
+- Decision: checkout quote accepts omitted shippingAddress for line-aware plans without address or shipping-quote requirements. Default requiresShipping=false suppresses default shipping requirements; explicitly registered policies retain independent constraints.
+- Contract: configured tax without a country returns VALIDATION_ERROR with issue path shippingAddress.country and code tax_address_required. Shop requests a real tax address and invalidates stale quotes and payment selections. No plugin identity is hardcoded.
+- Coverage: fulfillment-policy, order-pipeline, Shop s4-checkout and related checkout contracts. The first full frozen gate found four fixture failures; fixtures are corrected and the next isolated gate is pending.
+- Scope: no schema migration, no commit, no push and no production deployment. Existing unrelated changes are preserved. Evidence: C:/Personal Develop/imager-core/artifacts/qa/plugin-ui-integration-20261106/gate-digital-checkout.

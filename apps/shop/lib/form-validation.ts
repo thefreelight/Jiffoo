@@ -4,6 +4,10 @@ import type { storefront } from 'shared/src/i18n/messages/en/storefront';
 type Copy = typeof storefront.s4;
 export const addressFields = ['lastName', 'firstName', 'phone', 'country', 'state', 'city', 'addressLine1', 'addressLine2', 'postalCode'] as const;
 export type AddressField = typeof addressFields[number];
+export const taxAddressFields = ['country', 'state', 'city', 'postalCode', 'addressLine1', 'addressLine2'] as const;
+export function taxAddressSchema(t: Copy) {
+  return z.object({ country: z.string().trim().regex(/^[A-Za-z]{2}$/, t.required), state: z.string().trim(), city: z.string().trim(), postalCode: z.string().trim(), addressLine1: z.string().trim(), addressLine2: z.string().trim() });
+}
 
 export function addressSchema(t: Copy, requiredCountries: readonly string[]) {
   const required = () => z.string().trim().min(1, t.required);

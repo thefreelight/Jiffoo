@@ -9,6 +9,7 @@ import { FastifyInstance } from 'fastify';
 
 // Core routes
 import { authRoutes } from '@/core/auth/routes';
+import { pluginActionPolicyRoutes } from '@/core/auth/plugin-action-policy-routes';
 import { apiTokenRoutes } from '@/core/auth/api-token-routes';
 import { accountRoutes } from '@/core/account/routes';
 import { productRoutes } from '@/core/product/routes';
@@ -60,6 +61,7 @@ export async function registerV1Routes(fastify: FastifyInstance) {
     admin.addHook('onRequest', authMiddleware);
     admin.addHook('onRequest', requireAdmin);
     await admin.register(adminPluginPageRoutes);
+    await admin.register(pluginActionPolicyRoutes, { prefix: '/plugin-action-policy' });
     await admin.register(adminUserRoutes, { prefix: '/users' });
     await admin.register(customerPasswordResetLinkRoutes, { prefix: '/customers' });
     await admin.register(adminProductRoutes, { prefix: '/products' });

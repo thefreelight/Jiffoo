@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { formatStoreTimestamp } from 'shared';
+import { formatStoreTimestamp } from 'shared/store-time';
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useLocale, useT } from 'shared/src/i18n/react';

@@ -1,12 +1,12 @@
 # @jiffoo-core/plugin-sdk
 
-Extension authoring CLI and canonical Core types, version 1.0.0-alpha.6.
+Extension authoring CLI and canonical Core types, version 1.0.0-alpha.7.
 Supported runtime: Node.js >=24.13.1 <25, matching Core's Node 24 CI runtime.
 
 Install the SDK tarball attached to the matching Core release:
 
 ```sh
-npm i ./jiffoo-core-plugin-sdk-1.0.0-alpha.6.tgz
+npm i ./jiffoo-core-plugin-sdk-1.0.0-alpha.7.tgz
 npx jiffoo-plugin create --slug my-extension --name "My extension" --output my-extension
 ```
 
@@ -49,7 +49,7 @@ radius or a spacing.
 Install them from the Core release assets as local file dependencies:
 
 ```sh
-npm i ./jiffoo-plugin-bridge-1.0.0-alpha.3.tgz ./jiffoo-plugin-ui-1.0.0-alpha.1.tgz
+npm i ./jiffoo-plugin-bridge-1.0.0-alpha.4.tgz ./jiffoo-plugin-ui-1.0.0-alpha.1.tgz
 ```
 
 Then change the `dependencies` of the generated `package.json` to the same
@@ -163,3 +163,42 @@ The helper is NODE_ENV=test-only, requires includeFinalFailure:true and explicit
 installationIds/deadlineMs, reports future work and UNKNOWN hooks, and refuses
 to conceal unsettled invocations. advanceDueTo affects only the captured task
 selection and never changes execution deadlines.
+
+The current integration batch adds `ctx.commerce.products.getVariants({variantIds,locale})`
+under the installation grant `commerce:products.read`. It returns published variant
+ids, product ids/slugs, localized product titles, variant titles, currency, decimal
+price strings and availability. Request only the ids needed; checkout remains the
+authority for the final price and stock. A usage provider stores mappings to usage
+amounts, not a separate currency-price database.
+
+`ctx.customers.lookup({ids})` and `ctx.customers.search({query,afterId?,limit?})`
+require `customers:read` and a live bound ADMIN principal. The minimal projection
+contains `id`, `displayName`, `email`, `accountPath` and pagination. `accountPath`
+is relative to the Core administrator locale; it is not a customer-facing link.
+These reads alone do not implement action authorization for business mutations.
+Declare plugin actions in `adminActions` and call `ctx.authorization.require(action)`;
+Core requires both installation `actions:<action>` and an explicit administrator
+action grant. No grant means denial. Operators can bootstrap the first policy
+authority with the Core tool `scripts/plugin-action-policy-bootstrap.mjs`, supplying
+an explicit database environment name, expected database and administrator id.
+It defaults to dry-run, checks complete migration checksums and schema state, and
+requires a separately authorized `--apply` for a write. It is not run automatically
+by installation, and this integration session did not execute bootstrap.
+
+Storage private `put/get/readUrl` remain principal-owned. `publish/unpublish/publicUrl`
+add explicit image publication with 60-second revocable URLs. Publishing requires
+`storage.publish` and an administrator-owned image; another authorized administrator
+in the installation can unpublish it. Publication survives publisher logout/disable
+until explicitly revoked or the installation becomes unavailable.
+`retain/release` register explicit references; active references block `delete`.
+`delete(reference,{idempotencyKey})` requires `storage.delete` and returns an operation
+id; query `deletion(operationId)` until DELETED or FAILED. Cleanup uses existing
+durable leases and recovery. DELETED covers only the verified absent active object
+(`erasureScope: 'active-object'`), not historical S3 versions or backups. Plugin
+ledger, financial, task and audit records are not cascade-deleted. Reuse Core account
+disable and revocation instead of implementing a second authentication system.
+
+These additions are source-level batch contracts until verification and external
+package-consumer checks pass. Use the matching Core release's SDK tarball with its
+recorded version, source revision and SHA256; do not treat a generated workspace
+type or an unchanged package version as evidence that a release was delivered.

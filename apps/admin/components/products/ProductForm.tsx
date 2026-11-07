@@ -4,8 +4,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ChevronDown, ChevronLeft, ChevronRight, MoreHorizontal } from 'lucide-react';
 import { useLocale, useT } from 'shared/src/i18n/react';
-import { formatStoreTimestamp, type AdminProductDetailDTO } from 'shared';
-import { useCategories, useCreateProduct, useUpdateProduct, useProductNeighbors, useProductEditorContext } from '@/lib/hooks/use-api';
+import { formatStoreTimestamp } from 'shared/store-time';
+import type { AdminProductDetailDTO } from 'shared';
+import { useCreateProduct, useUpdateProduct, useProductNeighbors, useProductEditorContext } from '@/lib/hooks/use-api';
 import { useStoreDate } from '@/lib/store-time';
 import { productListQuery } from '@/lib/product-list-state';
 import { cloneDraft, duplicateDraft, productDraft, productPayload, validateProductDraft, variantFieldId, type ProductDraft } from '@/lib/product-editor';
@@ -17,6 +18,7 @@ import { Switch } from '@/components/ui/switch';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuRadioGroup, DropdownMenuRadioItem } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from '@/components/ui/alert-dialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { CategoryPicker } from './CategoryPicker';
 import { VariantsEditor } from './VariantsEditor';
 import { ProductImages } from './ProductImages';
 import { ContentTranslations } from './ContentTranslations';
@@ -30,7 +32,7 @@ export function ProductForm({ product, source, categoryId, storefrontUrl = '' }:
   const baseline = useRef(productDraft(product, c('defaultVariant'), categoryId || null));
   const [data, setData] = useState(() => source ? duplicateDraft(source, c('defaultVariant')) : cloneDraft(baseline.current));
   const [savedAt, setSavedAt] = useState(product?.updatedAt ?? '');
-  const categories = useCategories(), context = useProductEditorContext(), create = useCreateProduct(), update = useUpdateProduct();
+  const context = useProductEditorContext(), create = useCreateProduct(), update = useUpdateProduct();
   const [errors, setErrors] = useState<Record<string, string>>({}), [failure, setFailure] = useState(''), [saving, setSaving] = useState(false), [uploading, setUploading] = useState(false);
   const [destination, setDestination] = useState<Destination | null>(null);
   const [listUrl, setListUrl] = useState('/' + locale + '/products');
@@ -88,7 +90,9 @@ export function ProductForm({ product, source, categoryId, storefrontUrl = '' }:
       return true;
     } catch (error) {
       const typed = error as { code?: string; details?: { field?: string; variantIndex?: number; issues?: { path?: string; message?: string; code?: string }[] } }, details = typed.details;
-      const message = resolveApiErrorMessage(error, t);
+      const message = typed.code === 'CONFLICT'
+        ? locale.startsWith('zh') ? '库存已被其他操作修改。草稿已保留，请记录改动并刷新页面，核对最新库存后重新编辑。' : 'Stock changed since you opened this product. Your draft is preserved. Note your changes and reload to review the latest stock before editing again.'
+        : resolveApiErrorMessage(error, t);
       const priceIssue = details?.issues?.find(issue => typeof issue?.code === 'string' && issue.code.startsWith('PRICE_NOT_REPRESENTABLE_IN_'));
       if (priceIssue) {
         const currency = priceIssue.code!.slice('PRICE_NOT_REPRESENTABLE_IN_'.length);
@@ -121,7 +125,7 @@ export function ProductForm({ product, source, categoryId, storefrontUrl = '' }:
         {product && <nav aria-label={c('productNavigation')} className="flex items-center gap-1"><span className="mr-1 font-mono text-xs text-faint">{neighbors.data ? (neighbors.data.position ?? '—') + ' / ' + neighbors.data.total : '— / —'}</span>{(['previous', 'next'] as const).map(direction => { const id = direction === 'previous' ? neighbors.data?.previousId : neighbors.data?.nextId, Icon = direction === 'previous' ? ChevronLeft : ChevronRight; return id ? <Button asChild key={direction} variant="outline" size="icon" className="size-7"><Link aria-label={c(direction === 'previous' ? 'previousProduct' : 'nextProduct')} href={'/' + locale + '/products/' + id + '/edit' + (listUrl.includes('?') ? '?' + listUrl.split('?')[1] : '')}><Icon aria-hidden="true" className="size-3" /></Link></Button> : <Button key={direction} type="button" disabled variant="outline" size="icon" className="size-7" aria-label={c(direction === 'previous' ? 'previousProduct' : 'nextProduct')}><Icon aria-hidden="true" className="size-3" /></Button>; })}</nav>}
       </div>
       {neighbors.error && product && <p role="alert" className="text-xs text-muted-foreground">{c('neighborsError')} <Button type="button" variant="outline" size="sm" onClick={() => neighbors.refetch()}>{c('retry')}</Button></p>}
-      <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex min-w-0 flex-wrap items-center gap-2.5"><h1 className="break-words text-[22px] font-semibold tracking-tight">{product ? data.name || c('editProduct') : c('newProduct')}</h1>
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3"><div className="flex min-w-0 max-w-full flex-wrap items-center gap-2.5"><h1 className="line-clamp-2 min-w-0 w-full max-w-full break-words text-[22px] font-semibold tracking-tight" title={product ? data.name || c('editProduct') : c('newProduct')}>{product ? data.name || c('editProduct') : c('newProduct')}</h1>
         <DropdownMenu><DropdownMenuTrigger asChild><Button id="product-active" type="button" variant="outline" disabled={pending} className="h-[26px] gap-1.5 rounded-full bg-raised px-2 text-xs" aria-label={c('productStatus')}><span aria-hidden="true" className={'size-[7px] rounded-full border border-foreground ' + (data.isActive ? 'bg-foreground' : '')} />{c(data.isActive ? 'active' : 'inactive')}<ChevronDown aria-hidden="true" className="size-2.5 text-faint" /></Button></DropdownMenuTrigger><DropdownMenuContent><DropdownMenuRadioGroup value={data.isActive ? 'active' : 'inactive'}>{['active', 'inactive'].map(value => <DropdownMenuRadioItem key={value} value={value} onSelect={() => change('isActive', value === 'active')}>{c(value)}</DropdownMenuRadioItem>)}</DropdownMenuRadioGroup></DropdownMenuContent></DropdownMenu>
       </div><div className="flex flex-wrap items-center gap-2"><span className={'inline-flex items-center gap-1.5 text-xs ' + (dirty || !product ? 'text-foreground' : 'text-faint')}>{(dirty || !product) && <span aria-hidden="true" className="size-1.5 rounded-full bg-attention" />}{product ? dirty ? c('unsaved') : c('savedAt', { time: savedAt ? formatStoreTimestamp(savedAt, timezone) : '—', timezone }) : c('newUnsaved')}</span>
         <DropdownMenu><DropdownMenuTrigger asChild><Button type="button" variant="outline" size="icon" className="size-8" disabled={pending} aria-label={c('editorMore')}><MoreHorizontal aria-hidden="true" className="size-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end">
@@ -145,10 +149,8 @@ export function ProductForm({ product, source, categoryId, storefrontUrl = '' }:
         {context.data?.currency && <VariantsEditor variants={data.variants} currency={context.data.currency} errors={errors} onChange={value => change('variants', value)} />}
         <ProductImages disabled={pending} images={data.images} onPending={setUploading} onChange={updateImages => setData(current => ({ ...current, images: updateImages(current.images) }))} />
         <section aria-labelledby="organization-title" className={panel}><h2 id="organization-title" className="font-semibold">{c('organization')}</h2><div className="space-y-1.5"><Label htmlFor="product-category">{c('category')}</Label>
-          <DropdownMenu><DropdownMenuTrigger asChild><Button id="product-category" type="button" variant="outline" aria-label={c('category')} className="h-[34px] w-full min-w-0 justify-between bg-raised px-3"><span className="min-w-0 whitespace-normal text-left break-words">{categories.data?.find((category: { id: string; name: string }) => category.id === data.categoryId)?.name ?? c('editorUncategorized')}</span><ChevronDown aria-hidden="true" className="size-3 shrink-0 text-faint" /></Button></DropdownMenuTrigger>
-            <DropdownMenuContent align="start" aria-label={c('category')} className="w-[var(--radix-dropdown-menu-trigger-width)] max-w-[calc(100vw-32px)] p-1"><DropdownMenuRadioGroup value={data.categoryId ?? ''} className="max-h-64 overflow-y-auto"><DropdownMenuRadioItem value="" onSelect={() => change('categoryId', null)}>{c('editorUncategorized')}</DropdownMenuRadioItem>{categories.data?.map((category: { id: string; name: string }) => <DropdownMenuRadioItem key={category.id} value={category.id} className="whitespace-normal break-words" onSelect={() => change('categoryId', category.id)}>{category.name}</DropdownMenuRadioItem>)}</DropdownMenuRadioGroup></DropdownMenuContent>
-          </DropdownMenu></div>
-          {categories.error && <p role="alert">{c('categoryError')}</p>}<div className="flex items-center gap-3 border-t border-border pt-3"><div className="flex-1"><Label htmlFor="product-shipping">{c('shipping')}</Label><p className="mt-0.5 text-muted-foreground">{c('editorShippingHint')}</p></div><Switch id="product-shipping" checked={data.requiresShipping} onCheckedChange={value => change('requiresShipping', value)} /></div>
+          <CategoryPicker id="product-category" label={c('category')} value={data.categoryId ?? ''} disabled={pending} options={[{ value: '', label: c('editorUncategorized') }]} onChange={value => change('categoryId', value || null)} /></div>
+          <div className="flex items-center gap-3 border-t border-border pt-3"><div className="flex-1"><Label htmlFor="product-shipping">{c('shipping')}</Label><p className="mt-0.5 text-muted-foreground">{c('editorShippingHint')}</p></div><Switch id="product-shipping" checked={data.requiresShipping} onCheckedChange={value => change('requiresShipping', value)} /></div>
         </section>
         <section aria-labelledby="translations-title" className="overflow-hidden rounded-lg border border-border"><h2 id="translations-title" className="border-b border-border px-4 py-3 font-semibold">{t('merchant.contentTranslations.title')} <span className="font-normal text-faint">{c('translationsHint')}</span></h2>
           {['en', 'zh-Hans', 'zh-Hant'].filter(language => language !== context.data?.defaultLocale).map(language => <Collapsible key={language}><CollapsibleTrigger asChild><Button type="button" variant="ghost" className="h-auto w-full justify-between rounded-none border-b border-border px-4 py-3"><span>{t('merchant.contentTranslations.locales.' + language)}</span><span className="ml-auto mr-2 text-faint">{c(data.translations.some(row => row.locale === language && row.name.trim()) ? 'filled' : 'notFilled')}</span><ChevronRight aria-hidden="true" className="size-3" /></Button></CollapsibleTrigger><CollapsibleContent className="p-4"><ContentTranslations onlyLocale={language} showHeading={false} defaultLocale={context.data?.defaultLocale ?? ''} translations={data.translations} onChange={value => change('translations', value)} /></CollapsibleContent></Collapsible>)}

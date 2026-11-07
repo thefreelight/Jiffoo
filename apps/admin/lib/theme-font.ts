@@ -1,4 +1,6 @@
-import { themeFontFaces, themeTokensToCss, themeTokenStyle, type ThemeFontFace, type ThemeTokens, type ThemeDarkTokens } from 'shared';
+import { themeFontFaces } from 'shared/extensions/theme-font-faces';
+import { themeTokensToCss, themeTokenStyle } from 'shared/extensions/theme-css';
+import type { ThemeFontFace, ThemeTokens, ThemeDarkTokens } from 'shared';
 const fontResolver = (fonts: ThemeFontFace[]) => (id: string) =>
   fonts.find((font) => font.id === id)?.family ?? (id === 'outfit' ? 'var(--font-outfit)' : undefined);
 export const adminThemeCss = (tokens: ThemeTokens, fonts: ThemeFontFace[] = []): string =>

@@ -12,6 +12,8 @@ import { TooltipProvider } from '../components/ui/tooltip';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
 const state = vi.hoisted(() => ({ locale: 'en', pathname: '/en/dashboard', count: 0, push: vi.fn(), logout: vi.fn() }));
 const messages = { en: merchant, 'zh-Hans': hans, 'zh-Hant': hant };
+const plugins = vi.hoisted(() => ({ items: [{ slug: 'sample-tool', pages: [{ id: 'overview', path: '/overview' }] }] }));
+vi.mock('../lib/use-plugin-navigation', () => ({ usePluginNavigation: () => plugins.items }));
 vi.mock('../lib/hooks/use-api', () => ({ useOrderStats: () => ({ data: { paymentReviewCount: state.count } }) }));
 vi.mock('shared/src/i18n/react', () => ({ useLocale: () => state.locale, useT: () => (key: string, params?: Record<string, string | number>) => {
   const value = key.split('.').slice(1).reduce<any>((value, part) => value?.[part], messages[state.locale as keyof typeof messages]) ?? key;
@@ -21,7 +23,7 @@ vi.mock('next/navigation', () => ({ usePathname: () => state.pathname, useRouter
 vi.mock('next/link', () => ({ default: ({ children, ...props }: any) => <a {...props}>{children}</a> }));
 vi.mock('next/image', () => ({ default: (props: any) => <img {...props} /> }));
 vi.mock('../lib/store', () => ({ useAuthStore: () => ({ user: { firstName: 'Simo', username: 'simo', email: 'simo@example.test' }, logout: state.logout }) }));
-beforeEach(() => { state.locale = 'en'; state.pathname = '/en/dashboard'; state.count = 0; state.push.mockClear(); state.logout.mockReset().mockResolvedValue(undefined); });
+beforeEach(() => { plugins.items = [{ slug: 'sample-tool', pages: [{ id: 'overview', path: '/overview' }] }]; state.locale = 'en'; state.pathname = '/en/dashboard'; state.count = 0; state.push.mockClear(); state.logout.mockReset().mockResolvedValue(undefined); });
 let root: Root | undefined;
 const mount = async (children: ReactNode, collapsed = false, darkAvailable = true) => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
@@ -29,6 +31,57 @@ const mount = async (children: ReactNode, collapsed = false, darkAvailable = tru
   await act(async () => root!.render(<PreferencesProvider initialMode="system" initialCollapsed={collapsed} darkAvailable={darkAvailable}><TooltipProvider>{children}</TooltipProvider></PreferencesProvider>));
   return element;
 };
+it.each([false, true])('selects the declared plugin instead of its parent in rail state %s', async collapsed => {
+  state.pathname = '/en/plugins/sample-tool/pages/overview';
+  const container = await mount(<AdminNavigation storeName="Local Store" storeUrl="http://localhost:3003/en" collapsed={collapsed} />, collapsed);
+  const plugin = container.querySelector('a[aria-label="sample-tool"]');
+  expect(plugin?.getAttribute('href')).toBe('/en/plugins/sample-tool/pages/overview');
+  expect(plugin?.getAttribute('aria-current')).toBe('page');
+  expect(container.querySelector('a[aria-label="Plugins"]')?.hasAttribute('aria-current')).toBe(false);
+});
+it('selects a plugin detail route and follows its default declared page', async () => {
+  state.pathname = '/en/plugins/sample-tool';
+  const container = await mount(<AdminNavigation storeName="Local Store" storeUrl="http://localhost:3003/en" />);
+  const link = container.querySelector<HTMLAnchorElement>('a[aria-label="sample-tool"]')!;
+  expect(link.getAttribute('aria-current')).toBe('page');
+  await act(async () => link.click());
+  expect(state.push).toHaveBeenCalledWith('/en/plugins/sample-tool/pages/overview');
+});
+it.each([
+  ['en', 'Expand plugins', 'Collapse plugins'],
+  ['zh-Hans', '展开插件', '收起插件'],
+  ['zh-Hant', '展開外掛', '收起外掛'],
+])('labels the plugin navigation toggle independently in %s', async (locale, expand, collapse) => {
+  state.locale = locale; state.pathname = '/' + locale + '/dashboard';
+  const container = await mount(<AdminNavigation storeName="Local Store" storeUrl="http://localhost:3003/en" />);
+  const toggle = container.querySelector<HTMLButtonElement>(`button[aria-label="${expand}"]`)!;
+  expect(toggle).toBeTruthy();
+  await act(async () => toggle.click());
+  expect(toggle.getAttribute('aria-label')).toBe(collapse);
+  expect(toggle.getAttribute('aria-expanded')).toBe('true');
+});
+it('shows no child toggle or available plugin entry when declarations are empty', async () => {
+  plugins.items = [];
+  state.pathname = '/en/plugins';
+  const container = await mount(<AdminNavigation storeName="Local Store" storeUrl="http://localhost:3003/en" />);
+  expect(container.querySelector('a[aria-label="sample-tool"]')).toBeNull();
+  expect(container.querySelector('a[aria-label="Plugins"]')?.getAttribute('aria-current')).toBe('page');
+});
+it('restores the plugin expansion and selection across pathname changes', async () => {
+  plugins.items.push({ slug: 'second-tool', pages: [{ id: 'settings', path: '/settings' }] });
+  const container = await mount(<AdminNavigation storeName="Local Store" storeUrl="http://localhost:3003/en" />);
+  const rerender = async (path: string) => {
+    state.pathname = path;
+    await act(async () => root!.render(<PreferencesProvider initialMode="system" initialCollapsed={false} darkAvailable><TooltipProvider><AdminNavigation storeName="Local Store" storeUrl="http://localhost:3003/en" /></TooltipProvider></PreferencesProvider>));
+  };
+  await rerender('/en/plugins/sample-tool');
+  expect(container.querySelector('a[aria-label="sample-tool"]')?.getAttribute('aria-current')).toBe('page');
+  await rerender('/en/plugins/second-tool/pages/settings');
+  expect(container.querySelector('a[aria-label="sample-tool"]')?.hasAttribute('aria-current')).toBe(false);
+  expect(container.querySelector('a[aria-label="second-tool"]')?.getAttribute('href')).toBe('/en/plugins/second-tool/pages/settings');
+  await rerender('/en/plugins/sample-tool');
+  expect(container.querySelector('a[aria-label="sample-tool"]')?.getAttribute('aria-current')).toBe('page');
+});
 afterEach(async () => { if (root) await act(async () => root!.unmount()); root = undefined; document.body.innerHTML = ''; vi.unstubAllGlobals(); });
 it.each([false, true])('keeps accessible navigation names and focus in rail state %s', async collapsed => {
   const container = await mount(<AdminNavigation storeName="Local Store" storeUrl="http://localhost:3003/en" collapsed={collapsed} />, collapsed);

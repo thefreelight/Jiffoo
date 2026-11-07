@@ -6,7 +6,7 @@ import { expect, it, vi } from 'vitest';
 import { productsApi } from '../lib/api';
 import { useProducts, useCategories, useCreateProduct, useUpdateProduct, useDeleteProduct } from '../lib/hooks/use-api';
 const transport = vi.hoisted(() => ({ get: vi.fn() }));
-vi.mock('shared', async original => ({ ...await original<typeof import('shared')>(), createAdminClient: () => ({ get: transport.get }) }));
+vi.mock('shared/api/create-client', async original => ({ ...await original<typeof import('shared/api/create-client')>(), createAdminClient: () => ({ get: transport.get }) }));
 vi.mock('shared/src/i18n/react', () => ({ useT: () => (key: string) => key }));
 it('forwards product status, category and search through the hook to the transport', async () => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
@@ -16,12 +16,12 @@ it('forwards product status, category and search through the hook to the transpo
   try { await act(async () => root.render(<QueryClientProvider client={client}><Probe /></QueryClientProvider>)); expect(transport.get).toHaveBeenCalledWith('/admin/products', { params: { page: 1, limit: 20, status: 'inactive', categoryId: 'books', search: 'novel', productType: undefined, sortBy: 'price', sortOrder: 'asc' } }); }
   finally { await act(async () => root.unmount()); client.clear(); transport.get.mockReset(); vi.unstubAllGlobals(); }
 });
-it('loads real categories beyond the first page', async () => {
+it('loads only the requested category page and forwards server search', async () => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
   const spy = vi.spyOn(productsApi, 'getCategories').mockResolvedValueOnce({ success: true, data: { items: [{ id: 'one', name: 'First' }], totalPages: 2 } } as any).mockResolvedValueOnce({ success: true, data: { items: [{ id: 'two', name: 'Second' }], totalPages: 2 } } as any);
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } }), root = createRoot(document.createElement('div'));
-  function Probe() { useCategories(); return null; }
-  try { await act(async () => root.render(<QueryClientProvider client={client}><Probe /></QueryClientProvider>)); await vi.waitFor(() => expect(client.getQueryData(['categories'])).toEqual([{ id: 'one', name: 'First' }, { id: 'two', name: 'Second' }])); expect(spy).toHaveBeenNthCalledWith(2, 2, 100); }
+  function Probe() { useCategories(2, 20, 'Books'); return null; }
+  try { await act(async () => root.render(<QueryClientProvider client={client}><Probe /></QueryClientProvider>)); await vi.waitFor(() => expect(client.getQueryData(['categories', { page: 2, limit: 20, search: 'Books' }])).toEqual({ items: [{ id: 'one', name: 'First' }], totalPages: 2 })); expect(spy).toHaveBeenCalledExactlyOnceWith(2, 20, 'Books'); }
   finally { await act(async () => root.unmount()); client.clear(); spy.mockRestore(); vi.unstubAllGlobals(); }
 });
 it.each(['create', 'update', 'delete'])('invalidates product lists and counts after %s', async operation => {

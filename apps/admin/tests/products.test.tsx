@@ -1,5 +1,35 @@
 // @vitest-environment jsdom
-import { act } from 'react';
+
+it('renders one viewport layout and preserves selected product IDs across resizing', async () => {
+  const originalWidth = Object.getOwnPropertyDescriptor(window, 'innerWidth');
+  const resize = async (width: number) => {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: width });
+    await act(async () => window.dispatchEvent(new Event('resize')));
+  };
+  const selectedLabel = merchant.catalog.selectProduct.replace('{name}', 'Available');
+  const selected = (node: ParentNode) => Array.from(node.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')).find(input => input.getAttribute('aria-label') === selectedLabel)!;
+  try {
+    await resize(1024);
+    const node = await mount();
+    expect(node.querySelectorAll('table')).toHaveLength(1);
+    expect(node.querySelectorAll('article')).toHaveLength(0);
+    await act(async () => selected(node).click());
+    expect(selected(node).checked).toBe(true);
+    await resize(390);
+    expect(node.querySelectorAll('table')).toHaveLength(0);
+    expect(node.querySelectorAll('article')).toHaveLength(3);
+    expect(selected(node).checked).toBe(true);
+    await resize(769);
+    expect(node.querySelectorAll('table')).toHaveLength(1);
+    expect(node.querySelectorAll('article')).toHaveLength(0);
+    expect(selected(node).checked).toBe(true);
+  } finally {
+    if (originalWidth) Object.defineProperty(window, 'innerWidth', originalWidth);
+    else Reflect.deleteProperty(window, 'innerWidth');
+    await act(async () => window.dispatchEvent(new Event('resize')));
+  }
+});
+import { act, Profiler } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { beforeEach, afterEach, it, expect, vi } from 'vitest';
@@ -25,13 +55,13 @@ vi.mock('../lib/api', async () => {
 vi.mock('../components/products/ContentTranslations', () => ({ ContentTranslations: () => null, useStoreDefaultLocale: () => ({ data: 'en' }) }));
 vi.mock('../components/ui/dialog', () => ({ Dialog: ({ open, children }: any) => open ? children : null, DialogContent: ({ children }: any) => <div role="dialog">{children}</div>, DialogHeader: ({ children }: any) => children, DialogTitle: ({ children }: any) => <h2>{children}</h2>, DialogDescription: ({ children }: any) => <p>{children}</p>, DialogFooter: ({ children }: any) => children }));
 vi.mock('../lib/hooks/use-api', () => ({
-  useProducts: (params: any) => { state.params = params; return { data: { data: [
+  useProducts: (params: any) => { state.params = params; const key = JSON.stringify([params, state.total]); if (productDataCache?.key === key) return productDataCache.value; const value = { data: { data: [
     { id: 'a', name: 'Available', spuCode: 'K7M2Q9XA', hasOrders: true, updatedAt: '2026-10-14T00:00:00Z', isActive: true, stock: 3, variantsCount: 2, priceMin: 10, priceMax: 20, images: [] },
     { id: 'b', name: 'Hidden', hasOrders: false, updatedAt: '2026-10-14T00:00:00Z', isActive: false, stock: 0, variantsCount: 1, priceMin: 10, priceMax: 10, images: [] },
     { id: 'c', name: 'Empty', hasOrders: false, updatedAt: '2026-10-14T00:00:00Z', isActive: true, stock: 0, variantsCount: 1, priceMin: 10, priceMax: 10, images: [] },
-  ].map(product => params.page > 1 ? { ...product, id: product.id + '-page-' + params.page, name: product.name + ' page ' + params.page } : product), pagination: { total: state.total, totalPages: Math.ceil(state.total / params.limit) } } }; },
+  ].map(product => params.page > 1 ? { ...product, id: product.id + '-page-' + params.page, name: product.name + ' page ' + params.page } : product), pagination: { total: state.total, totalPages: Math.ceil(state.total / params.limit) } } }; productDataCache = { key, value }; return value; },
   useProductStats: () => ({ data: { statusCounts: { all: 3, active: 2, inactive: 1, outOfStock: 1 } } }),
-  useCategories: () => ({ data: [{ id: 'real-category', name: 'Actual category' }] }),
+  useCategories: () => ({ data: { items: [{ id: 'real-category', name: 'Actual category' }], total: 1 } }),
   useProductNeighbors: () => ({ data: { position: 1, total: 1, previousId: null, nextId: null } }),
   useProductEditorContext: () => ({ data: { currency: 'USD', defaultLocale: 'en' } }),
   useDeleteProduct: () => ({ mutateAsync: state.remove, isPending: false }),
@@ -39,6 +69,7 @@ vi.mock('../lib/hooks/use-api', () => ({
   useCreateProduct: () => ({ mutateAsync: state.create, isPending: false }),
   useUploadProductImage: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
+let productDataCache: { key: string; value: any } | undefined;
 let root: Root;
 let queryClient: QueryClient;
 async function mount(element = <ProductsPage />) {
@@ -57,10 +88,12 @@ async function chooseFilter(label: string, text: string) {
 }
 async function input(id: string, value: string) { const node = document.getElementById(id) as HTMLInputElement; await act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(node, value); node.dispatchEvent(new Event('input', { bubbles: true })); }); }
 beforeEach(() => {
+  vi.spyOn(window.history, 'replaceState').mockImplementation((data, unused, url) => { state.replace(data, unused, url); state.url = String(url).split('?')[1] ?? ''; });
+  productDataCache = undefined;
   sessionStorage.clear();
   vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true); state.url = ''; state.total = 3; state.update.mockReset().mockResolvedValue({}); state.remove.mockReset(); state.create.mockReset();
-  state.replace.mockReset().mockImplementation((url: string) => { state.url = url.split('?')[1] ?? ''; });
+  state.replace.mockReset();
 });
 afterEach(async () => { if (root) await act(async () => root.unmount()); queryClient?.clear(); document.body.innerHTML = ''; vi.unstubAllGlobals(); vi.useRealTimers(); vi.restoreAllMocks(); });
 it.each(['active', 'inactive', 'outOfStock'])('reads server-side status, category and search from the URL: %s', async status => {
@@ -76,18 +109,21 @@ it('ignores invalid status and renders real categories, price ranges and the thr
   state.url = 'status=unknown'; const node = await mount(); expect(state.params.status).toBeUndefined();
   expect(node.querySelector('tbody')?.textContent).toContain('From $10.00');
   for (const status of ['Active', 'Inactive', 'Out of stock']) expect(node.querySelector('tbody')?.textContent).toContain(status);
-  await openMenu(merchant.catalog.category);
-  expect(Array.from(document.querySelectorAll('[role="menuitemradio"]')).map(option => option.textContent)).toContain('Actual category');
-  expect(node.querySelector('select')).toBeNull();
+  await act(async () => button(merchant.catalog.category).click());
+  expect(Array.from(document.querySelectorAll('[role="dialog"] button')).map(option => option.textContent)).toContain('Actual category');
+  expect(node.querySelector('select[aria-label="' + merchant.catalog.category + '"]')).toBeNull();
+  expect(button(merchant.catalog.category)).toBeTruthy();
+  expect(node.querySelector('select[aria-label="' + merchant.orders.list.perPage + '"]')).toBeTruthy();
 });
 it('changes tabs and categories, debounces search and preserves other URL parameters', async () => {
   vi.useFakeTimers(); state.url = 'source=overview'; await mount();
   await act(async () => button('Active2').click()); expect(state.params.status).toBe('active');
-  await chooseFilter(merchant.catalog.category, 'Actual category');
+  await act(async () => button(merchant.catalog.category).click());
+  await act(async () => button('Actual category').click());
   expect(state.params.categoryId).toBe('real-category');
   const search = document.querySelector('input')!; await act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(search, 'boots'); search.dispatchEvent(new Event('input', { bubbles: true })); });
   expect(state.params.search).toBe(''); await act(async () => vi.advanceTimersByTime(300)); expect(state.params.search).toBe('boots');
-  expect(state.replace.mock.lastCall?.[0]).toContain('source=overview');
+  expect(state.replace.mock.lastCall?.[2]).toContain('source=overview');
 });
 it('disables sold-product deletion with its reason before a request can be made', async () => {
   const bulk = vi.spyOn(productsApi, 'bulk'); await mount();
@@ -113,7 +149,8 @@ it('keeps all 10000 matching products and cross-page exclusions through paging, 
   expect(checkbox('Select product Available').checked).toBe(false);
   expect(node.textContent).toContain('All 9998 products selected');
   await act(async () => button(merchant.catalog.price).click());
-  await chooseFilter(merchant.orders.list.perPage, '50');
+  const pageSize = document.querySelector<HTMLSelectElement>('select[aria-label="' + merchant.orders.list.perPage + '"]')!;
+  await act(async () => { pageSize.value = '50'; pageSize.dispatchEvent(new Event('change', { bubbles: true })); });
   expect(state.params).toMatchObject({ page: 1, limit: 50, sortBy: 'price', sortOrder: 'asc' });
   expect(node.textContent).toContain('All 9998 products selected');
   const actions = node.querySelector('[role="region"][aria-label="Bulk actions"]')!;
@@ -199,4 +236,17 @@ it('disables ordered variant removal with its reason before saving', async () =>
   expect(remove.disabled).toBe(true); expect(remove.title).toBe(merchant.catalog.orderedVariantRemove);
   await act(async () => remove.click()); expect(state.update).not.toHaveBeenCalled();
   expect(document.getElementById('variant-v1-sku')).not.toBeNull();
+});
+
+it('hides stale product actions while the deferred page commits', async () => {
+  state.total = 100;
+  const commits: { loading: boolean; rows: string; oldAction: boolean }[] = [];
+  const node = await mount(<Profiler id="products" onRender={() => {
+    commits.push({ loading: Array.from(document.querySelectorAll('[role="status"]')).some(element => element.textContent === merchant.catalog.loading), rows: document.querySelector('tbody')?.textContent ?? '', oldAction: !!document.querySelector('input[aria-label="Select product Available"]') });
+  }}><ProductsPage /></Profiler>);
+  commits.length = 0;
+  await act(async () => button('Next').click());
+  expect(commits.some(commit => commit.loading && !commit.oldAction && !commit.rows)).toBe(true);
+  expect(node.querySelector('tbody')?.textContent).toContain('Available page 2');
+  expect(node.querySelector('input[aria-label="Select product Available"]')).toBeNull();
 });

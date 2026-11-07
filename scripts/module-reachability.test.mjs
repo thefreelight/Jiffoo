@@ -74,6 +74,25 @@ test('an unresolved import keeps its application conservative', async () => {
   }
 });
 
+test('bundled package declarations map to source and missing source imports remain unresolved', async () => {
+  const root = await fixture();
+  try {
+    await mkdir(path.join(root, 'packages/plugin-sdk/dist/template-types'), { recursive: true });
+    await mkdir(path.join(root, 'packages/plugin-sdk/src'), { recursive: true });
+    await writeFile(path.join(root, 'packages/plugin-sdk/dist/template-types/index.d.ts'), 'export {};');
+    await writeFile(path.join(root, 'packages/plugin-sdk/src/index.ts'), "export * from './missing';");
+    await writeFile(path.join(root, 'apps/api/tsconfig.json'), JSON.stringify({ compilerOptions: {
+      baseUrl: '.', paths: { '@jiffoo-core/plugin-sdk': ['../../packages/plugin-sdk/dist/template-types/index'] },
+    } }));
+    await writeFile(path.join(root, 'apps/api/tests/core/sdk.test.ts'), "import '@jiffoo-core/plugin-sdk';");
+    const graph = buildImportGraph(root);
+    assert.ok(graph.imports.get('apps/api/tests/core/sdk.test.ts').has('packages/plugin-sdk/src/index.ts'));
+    assert.ok(graph.unresolved.includes('packages/plugin-sdk/src/index.ts -> ./missing'));
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test('the workspace graph resolves every TypeScript import of the applications and the packages', { timeout: 600_000 }, () => {
   const graph = buildImportGraph(workspace);
   const unresolvedTypescript = graph.unresolved.filter(entry => /\.(?:ts|tsx|mts|cts)(?:\s|$)/.test(entry));

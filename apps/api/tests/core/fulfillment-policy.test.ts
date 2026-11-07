@@ -23,6 +23,8 @@ import {
   defaultFulfillmentPolicy,
   fulfillmentPolicyFor,
   fulfillmentPlanFor,
+  fulfillmentPlanForLines,
+  registerFulfillmentPolicy,
   lineRequiresShippingAddress,
   orderRequiresShippingAddress,
   registeredFulfillmentPolicyTypes,
@@ -170,11 +172,21 @@ describe('the address rule of a line', () => {
 });
 
 describe('the address rule of an order', () => {
-  it('needs an address when a policy of the order asks for one', () => {
+  it('allows a product flag to veto default shipping while empty plans remain conservative', () => {
     const plan = fulfillmentPlanFor(['physical']);
 
-    expect(orderRequiresShippingAddress(plan, [{ productType: 'physical', requiresShipping: false }])).toBe(true);
+    expect(orderRequiresShippingAddress(plan, [{ productType: 'physical', requiresShipping: false }])).toBe(false);
     expect(orderRequiresShippingAddress(plan, [])).toBe(true);
+  });
+
+  it('shares the physical, digital, mixed and explicit-policy requirements across callers', () => {
+    const digital = { productType: 'physical', requiresShipping: false };
+    const physical = { productType: 'physical', requiresShipping: true };
+    expect(fulfillmentPlanForLines([digital])).toEqual({ requiresShippingAddress: false, requiresShippingQuote: false, tracksInventory: true });
+    expect(fulfillmentPlanForLines([physical, digital])).toEqual({ requiresShippingAddress: true, requiresShippingQuote: true, tracksInventory: true });
+    registerFulfillmentPolicy('service-address', { requiresShippingAddress: true, requiresShippingQuote: false, tracksInventory: false });
+    expect(fulfillmentPlanForLines([{ productType: 'service-address', requiresShipping: false }])).toEqual({ requiresShippingAddress: true, requiresShippingQuote: false, tracksInventory: false });
+    expect(lineRequiresShippingAddress('service-address', false)).toBe(true);
   });
 
   it('needs no address for an order of lines that need none', () => {
@@ -232,6 +244,21 @@ describe('the quote of a plan that needs no shipping option', () => {
     // The subtotal of the lines plus the tax: the order of the quote
     // computes the same amount, so the expected total of the order matches.
     expect(quote.total).toBe('22.50');
+  });
+
+  it('quotes an address-free digital cart without a tax provider and requires a real address when tax is configured', async () => {
+    vi.mocked(callContract).mockClear();
+    vi.mocked(listProviders).mockClear();
+    vi.mocked(resolveSingleProvider).mockResolvedValue(null);
+    const result = await CheckoutService.quoteItems('USD', items, {}, true, { requiresShippingQuote: false });
+    expect(result).toMatchObject({ total: '20.00', tax: '0', shippingOptions: [] });
+    expect(listProviders).not.toHaveBeenCalled();
+    vi.mocked(resolveSingleProvider).mockResolvedValue({ pluginSlug: 'fixture-tax' } as never);
+    await expect(CheckoutService.quoteItems('USD', items, {}, true, { requiresShippingQuote: false })).rejects.toMatchObject({ code: 'VALIDATION_ERROR', safeDetails: { issues: [{ path: 'taxAddress.country', code: 'TAX_ADDRESS_REQUIRED' }] } });
+    expect(callContract).not.toHaveBeenCalled();
+    const taxed = await CheckoutService.quoteItems('USD', items, { taxAddress: { country: 'US' } }, true, { requiresShippingQuote: false });
+    expect(taxed.total).toBe('22.50');
+    expect(callContract).toHaveBeenCalledWith('fixture-tax', 'tax', expect.any(Number), 'calculate', expect.objectContaining({ address: expect.objectContaining({ country: 'US' }) }));
   });
 
   it('keeps the quote of a shipping plan unchanged', async () => {

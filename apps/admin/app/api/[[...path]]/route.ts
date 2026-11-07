@@ -252,7 +252,7 @@ async function proxyToCore(request: NextRequest): Promise<Response> {
   // The gateway and plugin-storage paths keep their null-origin exception; only Core decides
   // whether such an operation is admitted, exactly as the deployment edge routing /api/ does.
   const gatewayRequest = /^\/api\/v1\/(?:extensions\/plugin\/[^/]+\/api(?:\/.*)?|plugin-storage\/[^/]+\/.+)$/.test(incomingUrl.pathname)
-  const privateFileRequest = ['GET', 'HEAD'].includes(request.method) && /^\/api\/v1\/plugin-files\/[a-f0-9-]{36}$/.test(incomingUrl.pathname)
+  const privateFileRequest = ['GET', 'HEAD'].includes(request.method) && /^\/api\/v1\/plugin-(?:public-)?files\/[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(incomingUrl.pathname)
   if (request.headers.get('origin') === 'null' && !assetRequest && !gatewayRequest && !privateFileRequest) {
     return Response.json({ success: false, error: { code: 'FORBIDDEN', message: 'Request origin is forbidden' } }, { status: 403 });
   }
@@ -275,7 +275,7 @@ async function proxyToCore(request: NextRequest): Promise<Response> {
 
   const upstreamUrl = new URL(`${incomingUrl.pathname}${incomingUrl.search}`, apiServiceUrl)
   const headers = new Headers(request.headers)
-  const pageRequest = /^\/api\/v1\/(?:plugin-pages(?:\/|$)|admin\/plugin-pages\/)/.test(incomingUrl.pathname)
+  const pageRequest = /^\/api\/v1\/(?:plugin-pages(?:\/|$)|admin\/plugin-pages(?:\/|$))/.test(incomingUrl.pathname)
   if (pageRequest) {
     const configured = process.env.ADMIN_URL ? new URL(process.env.ADMIN_URL).origin : null
     if (!configured || request.method !== 'GET' && request.headers.get('origin') !== configured) {
@@ -390,7 +390,7 @@ async function proxyToCore(request: NextRequest): Promise<Response> {
 
   const responseHeaders = new Headers(upstream.headers)
   HOP_BY_HOP_HEADERS.forEach((name) => responseHeaders.delete(name))
-  if (assetRequest) {
+  if (assetRequest || privateFileRequest) {
     responseHeaders.delete('set-cookie')
     responseHeaders.delete('access-control-allow-credentials')
   }

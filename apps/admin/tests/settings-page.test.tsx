@@ -4,6 +4,8 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import SettingsPage from '@/app/[locale]/(themed)/settings/page';
 import { requestAppNavigation } from '@/lib/pending-navigation';
+import { storeTimezones } from 'shared/store-time';
+import { StoreTimeProvider, useStoreDate } from '@/lib/store-time';
 const mock = vi.hoisted(() => ({ getAll: vi.fn(), batchUpdate: vi.fn(), get: vi.fn(), post: vi.fn(), delete: vi.fn(), push: vi.fn() }));
 vi.mock('shared/src/i18n/react', async () => { const { translate } = await import('./helpers/operations'); return { useLocale: () => 'en', useT: () => translate }; });
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: mock.push }) }));
@@ -23,6 +25,37 @@ function button(name: string) { const result = [...document.querySelectorAll('bu
 async function click(name: string) { await act(async () => button(name).click()); }
 async function fill(id: string, value: string) { const input = document.getElementById(id) as HTMLInputElement; expect(input).not.toBeNull(); await act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, value); input.dispatchEvent(new Event('input', { bubbles: true })); }); }
 async function save() { await act(async () => document.getElementById('settings-editor')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))); }
+it('keeps timezone changes in the draft until Save and restores them on discard', async () => {
+  function StoreTimezone() { return <output aria-label="Current store timezone">{useStoreDate().timezone}</output>; }
+  await act(async () => root.render(<StoreTimeProvider timezone="UTC" now="2026-11-06T00:00:00Z"><SettingsPage /><StoreTimezone /></StoreTimeProvider>));
+  const select = document.getElementById('localization.timezone') as HTMLSelectElement;
+  expect(select.tagName).toBe('SELECT');
+  expect(select.labels?.[0].htmlFor).toBe(select.id);
+  expect([...select.options].map(option => option.value)).toEqual(storeTimezones());
+  expect([...select.options].every(option => option.text === option.value)).toBe(true);
+  const submit = vi.fn();
+  document.getElementById('settings-editor')!.addEventListener('submit', submit);
+  const choose = async (value: string) => { await act(async () => { select.value = value; select.dispatchEvent(new Event('change', { bubbles: true })); }); };
+  const currentTimezone = () => container.querySelector('output[aria-label="Current store timezone"]')!.textContent;
+  await choose('Asia/Shanghai');
+  expect(select.value).toBe('Asia/Shanghai');
+  expect(button('Save').disabled).toBe(false);
+  expect(mock.batchUpdate).not.toHaveBeenCalled();
+  expect(submit).not.toHaveBeenCalled();
+  expect(currentTimezone()).toBe('UTC');
+  await click('Discard changes');
+  expect(select.value).toBe('UTC');
+  expect(button('Save').disabled).toBe(true);
+  await choose('Asia/Shanghai');
+  await click('Save');
+  expect(mock.batchUpdate).toHaveBeenCalledExactlyOnceWith({ 'localization.timezone': 'Asia/Shanghai' });
+  expect(currentTimezone()).toBe('Asia/Shanghai');
+  expect(button('Save').disabled).toBe(true);
+  await choose('UTC');
+  await click('Discard changes');
+  expect(select.value).toBe('Asia/Shanghai');
+  expect(currentTimezone()).toBe('Asia/Shanghai');
+});
 // The first test of this file pays the one-time cost of mounting the whole settings page in
 // jsdom: React's first mount of every settings section plus the Intl region-name table the
 // page builds. That cost is CPU bound, so it grows with the rest of the admin suite running
@@ -85,3 +118,34 @@ it('creates a scoped token and shows the one-time value', async () => { await re
 it('requires a token name and preserves its form after a server rejection', async () => { await render(); await click('Create token'); const dialog = document.querySelector('[role="dialog"]')!; const submit = async () => { await act(async () => dialog.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))); }; await submit(); expect(document.body.textContent).toContain('Enter a name and select at least one permission.'); expect(mock.post).not.toHaveBeenCalled(); const input = dialog.querySelector('input')!; await act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, 'Retained app'); input.dispatchEvent(new Event('input', { bubbles: true })); }); mock.post.mockRejectedValueOnce(new Error()); await submit(); expect(input.value).toBe('Retained app'); expect(dialog.textContent).toContain('Unable to complete token action'); });
 it('shows real token permissions and phone cards, and requires confirmation before revoking', async () => { mock.get.mockResolvedValue({ data: [{ id: 'token-one', label: 'My app', scopes: ['catalog:read'], createdAt: '2026-10-13T00:00:00Z', lastUsedAt: null }] }); await render(); expect(container.textContent).toContain('Read products'); expect(container.textContent).toContain('Never used'); expect(container.querySelector('article')!.getAttribute('aria-label')).toBe('My app'); await click('Revoke token: My app'); expect(mock.delete).not.toHaveBeenCalled(); mock.delete.mockRejectedValueOnce(new Error()); const confirm = () => [...document.querySelectorAll('[role="alertdialog"] button')].find(button => button.textContent === 'Revoke') as HTMLButtonElement; await act(async () => confirm().click()); expect(document.body.textContent).toContain('Unable to complete token action'); mock.get.mockResolvedValue({ data: [] }); await act(async () => confirm().click()); expect(mock.delete).toHaveBeenCalledWith('/admin/api-tokens/token-one'); expect(container.textContent).toContain('No API tokens yet'); });
 it('warns about unchanged prices when currency changes and discards the warning', async () => { await render(); const select = document.getElementById('localization.currency')!; await act(async () => { select.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); }); const option = [...document.querySelectorAll('[role=option]')].find(option => option.textContent?.includes('CNY'))!; expect(option).toBeDefined(); await act(async () => { (option as HTMLElement).click(); }); expect(container.textContent).toContain('Changing currency does not convert existing product prices'); await click('Discard changes'); expect(container.textContent).not.toContain('Changing currency does not convert existing product prices'); });
+
+it('opens the country picker without submitting or clearing an unsaved description', async () => {
+  await render();
+  const description = document.getElementById('branding.store_description') as HTMLTextAreaElement;
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(description, 'Unsaved description');
+    description.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  expect(button('Save').disabled).toBe(false);
+  await click('Add country or region');
+  expect(document.querySelector('[role="alertdialog"]')).not.toBeNull();
+  expect(mock.batchUpdate).not.toHaveBeenCalled();
+  expect(description.value).toBe('Unsaved description');
+  expect(button('Save').disabled).toBe(false);
+  expect(container.textContent).toContain('Unsaved changes');
+});
+
+it('removes the logo only from the draft until the explicit save action', async () => {
+  const logo = '/uploads/settings-test-logo.png';
+  mock.getAll.mockResolvedValue({ data: { ...initial, 'branding.logo': logo } });
+  await render();
+  await fill('branding.platform_name', 'Unsaved shop name');
+  await click('Remove');
+  expect(container.querySelector('#store img')).toBeNull();
+  expect(mock.batchUpdate).not.toHaveBeenCalled();
+  expect((document.getElementById('branding.platform_name') as HTMLInputElement).value).toBe('Unsaved shop name');
+  expect(button('Save').disabled).toBe(false);
+  await click('Save');
+  expect(mock.batchUpdate).toHaveBeenCalledTimes(1);
+  expect(mock.batchUpdate).toHaveBeenCalledWith({ 'branding.platform_name': 'Unsaved shop name', 'branding.logo': '' });
+});

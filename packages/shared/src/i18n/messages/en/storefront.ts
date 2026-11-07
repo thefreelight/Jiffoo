@@ -116,7 +116,7 @@ export const storefront = {
     lastName: 'Last name', phone: 'Phone', addressLine1: 'Address line 1',
     addressLine2: 'Address line 2', city: 'City', state: 'State / province',
     postalCode: 'Postal code', country: 'Country', chooseCountry: 'Select country',
-    getQuote: 'Get shipping options', shipping: 'Shipping', tax: 'Tax', total: 'Total',
+    getQuote: 'Get shipping options', getTotal: 'Calculate total', taxAddress: 'Tax location', taxAddressRequired: 'Select your country to calculate the applicable tax. Other tax location fields are optional.', shipping: 'Shipping', tax: 'Tax', total: 'Total',
     taxInclusive: 'Tax included', taxExclusive: 'Tax added', payment: 'Payment method',
     placeOrder: 'Place order', priceChanged: 'Price changed. Review the new total and confirm again.',
     genericError: 'Checkout is temporarily unavailable. Please try again.',

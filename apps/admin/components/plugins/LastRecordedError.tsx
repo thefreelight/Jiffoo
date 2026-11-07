@@ -1,7 +1,7 @@
 'use client';
 import { useStoreDate } from '@/lib/store-time';
 import { useT } from 'shared/src/i18n/react';
-import { formatStoreTimestamp } from 'shared';
+import { formatStoreTimestamp } from 'shared/store-time';
 
 export function LastRecordedError({ lastFailureAt, lastFailureMessage }: { lastFailureAt?: string | null; lastFailureMessage?: string | null }) {
   const { timezone } = useStoreDate();

@@ -4,8 +4,9 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { pluginPageLabels, pluginShopPath, type PageDeclarations } from 'shared/src/plugin-pages/labels';
 import type { ShopLocale } from '@/lib/locale';
+import { DropdownMenuItem } from './ui/dropdown-menu';
 
-export function PluginNavigation({ locale, placement }: { locale: ShopLocale; placement: 'header-nav' | 'account-menu' | 'footer' }) {
+export function PluginNavigation({ locale, placement, menu = false, onNavigate }: { locale: ShopLocale; placement: 'header-nav' | 'account-menu' | 'footer'; menu?: boolean; onNavigate?: () => void }) {
   const [plugins, setPlugins] = useState<PageDeclarations>([]);
   useEffect(() => {
     let disposed = false;
@@ -27,7 +28,9 @@ export function PluginNavigation({ locale, placement }: { locale: ShopLocale; pl
     href: `/${locale}${pluginShopPath(plugin.slug, page.path)}`, title: page.title[locale],
   })));
   if (!links.length) return null;
-  return <nav aria-label={pluginPageLabels[locale].navigation} className="flex flex-wrap gap-3 text-sm">
-    {links.map(link => <Link key={link.href} href={link.href}>{link.title}</Link>)}
+  return <nav aria-label={pluginPageLabels[locale].navigation} className={menu ? 'grid gap-0 text-sm' : 'flex flex-wrap gap-3 text-sm'}>
+    {links.map(link => menu
+      ? <DropdownMenuItem key={link.href} asChild><Link href={link.href} onClick={onNavigate}>{link.title}</Link></DropdownMenuItem>
+      : <Link key={link.href} href={link.href} onClick={onNavigate}>{link.title}</Link>)}
   </nav>;
 }

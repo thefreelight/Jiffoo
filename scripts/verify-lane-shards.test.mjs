@@ -8,6 +8,8 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { laneConfig } from './lane-config.mjs';
 import {
+  prepareSharedPrismaClient,
+  shardMigrationArguments,
   aggregateShardResults,
   assertContainersAvailable,
   assertCurrentDatabaseMatches,
@@ -68,6 +70,28 @@ import {
   uploadStorageResourceStatus,
   writeDurationTable,
 } from './verify-lane-shards.mjs';
+
+test('shared client generation completes once before shard reset consumers and failures stop preparation', async () => {
+  const events = [];
+  const environment = { NODE_ENV: 'test' };
+  await prepareSharedPrismaClient(environment, async (args, options) => {
+    events.push('generate-start');
+    assert.deepEqual(args, ['--filter', 'api', 'exec', 'prisma', 'generate']);
+    assert.equal(options.env, environment);
+    await Promise.resolve();
+    events.push('generate-complete');
+    return { code: 0 };
+  });
+  events.push('shards-start');
+  assert.deepEqual(events, ['generate-start', 'generate-complete', 'shards-start']);
+  const reset = shardMigrationArguments();
+  assert.ok(reset.includes('--skip-generate'));
+  assert.ok(reset.includes('--force'));
+  assert.deepEqual(reset.slice(0, 6), ['--filter', 'api', 'exec', 'prisma', 'migrate', 'reset']);
+  for (const result of [{ code: 1 }, { code: 0, timedOut: true }, { code: 0, aborted: true }]) {
+    await assert.rejects(prepareSharedPrismaClient(environment, async () => result), /generation failed/);
+  }
+});
 
 const apiFile = name => resolve('apps/api/tests', name);
 
