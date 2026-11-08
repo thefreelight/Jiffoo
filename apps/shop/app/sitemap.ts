@@ -32,10 +32,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const origin = await resolvePublicOrigin();
   const locales = storeLocales();
 
+  // hreflang values must be absolute URLs (Google rejects relative ones).
   const alternatesFor = (pathFor: (locale: string) => string): SitemapEntry['alternates'] => ({
     languages: {
-      ...Object.fromEntries(locales.map((locale) => [locale, pathFor(locale)])),
-      'x-default': pathFor(DEFAULT_LOCALE),
+      ...Object.fromEntries(
+        locales.map((locale) => [locale, new URL(pathFor(locale), origin).toString()])
+      ),
+      'x-default': new URL(pathFor(DEFAULT_LOCALE), origin).toString(),
     },
   });
 
