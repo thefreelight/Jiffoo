@@ -15,6 +15,7 @@ import { Menu, Search, Bot, Globe, ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 import { BlueMinimalSidebar } from './blue-minimal-sidebar'
 import { UpdateNotificationBell } from './update-notification-bell'
+import { SupportInboxBell } from './support-inbox-bell'
 import ProtectedRoute from '../auth/ProtectedRoute'
 import { ManagedModeProvider, useManagedMode } from '@/lib/managed-mode'
 import { getLanguageSwitcherItems } from 'shared/src/i18n/react'
@@ -146,6 +147,7 @@ export function BlueMinimalLayout({ children }: BlueMinimalLayoutProps) {
 
               <div className="flex shrink-0 items-center gap-2">
                 <TopBarLanguageSwitcher />
+                <SupportInboxBell />
                 <UpdateNotificationBell />
                 <button
                   type="button"

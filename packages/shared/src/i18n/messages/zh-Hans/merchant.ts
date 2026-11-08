@@ -90,6 +90,7 @@ export const merchant = {
     themes: '主题市场',
     settings: '设置',
     staff: 'Staff',
+    support: '客服会话 / Support',
     systemSettings: '系统设置',
     pluginsMarketplace: '插件市场',
     installedPlugins: '已安装插件',
@@ -922,6 +923,12 @@ export const merchant = {
 
   // Header
   header: {
+    supportInbox: '客服消息 / Support inbox',
+    supportAllRead: '暂无新访客消息 / No new visitor messages',
+    supportAllReadHint: '店面客服聊天的新消息会出现在这里 / New storefront chat messages appear here',
+    supportEmptyConversation: '(无消息 / no messages)',
+    supportMessages: '条消息 / messages',
+    openSupportInbox: '打开客服工作台 → / Open support workspace →',
     searchPlaceholder: '搜索商品、订单、客户、插件等...',
     notifications: '通知',
     profile: '个人资料',

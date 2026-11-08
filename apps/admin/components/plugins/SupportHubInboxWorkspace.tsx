@@ -6,6 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 
+interface SupportChannel {
+  kind: string;
+  label: string;
+  href: string;
+}
+
 interface SupportConversation {
   id: string;
   visitorToken: string;
@@ -20,7 +26,9 @@ interface SupportConversationMessage {
   id: string;
   role: 'visitor' | 'assistant';
   content: string;
-  actions?: Array<{ kind: string; label: string; href: string }>;
+  actions?: SupportChannel[];
+  /** 'ai' | 'agent' for assistant messages (0.0.5+). */
+  sender?: 'ai' | 'agent';
   createdAt: string;
 }
 
@@ -53,6 +61,8 @@ export function SupportHubInboxWorkspace(props: { installationId: string; disabl
   const [transcript, setTranscript] = useState<ConversationTranscript | null>(null);
   const [loading, setLoading] = useState(true);
   const [opening, setOpening] = useState<string | null>(null);
+  const [replyDraft, setReplyDraft] = useState('');
+  const [replying, setReplying] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -93,12 +103,46 @@ export function SupportHubInboxWorkspace(props: { installationId: string; disabl
         throw new Error('Conversation not found');
       }
       setTranscript(data);
+      // Opening a conversation clears its unread contribution (best effort;
+      // the bell re-polls the unread count on its own schedule).
+      void apiClient.post('/extensions/plugin/support-hub/api/admin/conversations/mark-read', {
+        conversationId,
+      }, { headers: { 'x-installation-id': 'default' } }).catch(() => undefined);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to load conversation');
     } finally {
       setOpening(null);
     }
   }, []);
+
+  const sendReply = useCallback(async () => {
+    const text = replyDraft.trim();
+    const conversationId = transcript?.conversationId;
+    if (!text || replying || !conversationId) return;
+    setReplying(true);
+    try {
+      const response = await apiClient.post(
+        `/extensions/plugin/support-hub/api/admin/conversations/${encodeURIComponent(conversationId)}/reply`,
+        { message: text },
+        { headers: { 'x-installation-id': 'default' } },
+      );
+      const data = unwrap<{ reply?: SupportConversationMessage }>(response);
+      if (data?.error) {
+        throw new Error(data.error.message || 'Failed to send reply');
+      }
+      if (data?.reply) {
+        const reply = data.reply as SupportConversationMessage;
+        setTranscript((current) => (current ? { ...current, messages: [...current.messages, reply] } : current));
+      }
+      setReplyDraft('');
+      toast.success('Reply sent to the visitor chat.');
+      void load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to send reply');
+    } finally {
+      setReplying(false);
+    }
+  }, [load, replyDraft, replying, transcript]);
 
   if (disabled) {
     return (
@@ -220,7 +264,7 @@ export function SupportHubInboxWorkspace(props: { installationId: string; disabl
                   }
                 >
                   <span className="mr-2 text-xs font-bold uppercase tracking-wide text-slate-500">
-                    {message.role}
+                    {message.role === 'assistant' && message.sender ? `assistant (${message.sender})` : message.role}
                   </span>
                   {message.content}
                   {message.actions && message.actions.length > 0 ? (
@@ -234,6 +278,27 @@ export function SupportHubInboxWorkspace(props: { installationId: string; disabl
                 <li className="px-3 py-2 text-sm text-slate-500">No messages in this conversation.</li>
               ) : null}
             </ul>
+            <div className="flex items-end gap-2 border-t border-slate-100 pt-3">
+              <textarea
+                className="min-h-[44px] flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-500"
+                placeholder="Reply as a support agent — the visitor sees this in the storefront chat. Replying disables AI answers for this conversation."
+                value={replyDraft}
+                maxLength={2000}
+                onChange={(event) => setReplyDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) void sendReply();
+                }}
+              />
+              <Button
+                className="rounded-lg"
+                size="sm"
+                disabled={replying || replyDraft.trim().length === 0}
+                onClick={() => void sendReply()}
+              >
+                {replying ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                Send reply
+              </Button>
+            </div>
           </div>
         ) : null}
       </CardContent>

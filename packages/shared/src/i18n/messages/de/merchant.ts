@@ -757,6 +757,12 @@ export const merchant = {
 
   // Header
   header: {
+    supportInbox: '客服消息 / Support inbox',
+    supportAllRead: '暂无新访客消息 / No new visitor messages',
+    supportAllReadHint: '店面客服聊天的新消息会出现在这里 / New storefront chat messages appear here',
+    supportEmptyConversation: '(无消息 / no messages)',
+    supportMessages: '条消息 / messages',
+    openSupportInbox: '打开客服工作台 → / Open support workspace →',
     searchPlaceholder: 'Search...',
     notifications: 'Notifications',
     profile: 'Profile',
