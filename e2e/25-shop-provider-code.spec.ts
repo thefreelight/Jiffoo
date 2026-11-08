@@ -166,6 +166,7 @@ test('C initializes GA4 Meta Baidu before merchant head code on storefront and c
 });
 
 test('D soft home category product and locale navigation initializes providers exactly once per document', async ({ page, request }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
   const id = randomUUID();
   const categoryName = `Provider Category ${id}`;
   const category = await api<{ id: string }>(request, '/admin/products/categories', {
@@ -181,7 +182,9 @@ test('D soft home category product and locale navigation initializes providers e
   await page.goto(`${shop}/en`);
   await checkMarker(page, config);
   const initialCommits = commits;
+  await page.getByRole('button', { name: 'Categories', exact: true }).click();
   await page.getByRole('navigation', { name: 'Categories', exact: true }).getByRole('link', { name: categoryName, exact: true }).click();
+  await expect(page.getByRole('navigation', { name: 'Categories', exact: true })).toBeHidden();
   await expect(page.getByRole('heading', { level: 1, name: categoryName, exact: true })).toBeVisible();
   await checkMarker(page, config);
   await page.getByRole('heading', { name, exact: true }).click();

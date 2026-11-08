@@ -2,10 +2,13 @@ import { expect, test } from './local-requests';
 import { api, customerEmail, ownerEmail, shopLogin } from './helpers';
 
 test('browse the translated category and product in Shop', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/en');
   await expect(page.getByRole('heading', { name: 'Browse categories' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'E2E Localized Product', exact: true })).toBeVisible();
-  await page.getByRole('navigation', { name: 'Categories' }).getByRole('link', { name: 'E2E Translated Category', exact: true }).click();
+  await page.getByRole('button', { name: 'Categories', exact: true }).click();
+  await page.getByRole('navigation', { name: 'Categories', exact: true }).getByRole('link', { name: 'E2E Translated Category', exact: true }).click();
+  await expect(page.getByRole('navigation', { name: 'Categories', exact: true })).toBeHidden();
   await expect(page).toHaveURL(/\/en\/categories\/e2e-translated-category$/);
   await expect(page.getByRole('heading', { name: 'E2E Localized Product', exact: true })).toBeVisible();
   await page.getByRole('searchbox', { name: 'Search products' }).fill('E2E Localized Product');
@@ -16,7 +19,9 @@ test('browse the translated category and product in Shop', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'E2E Localized Product', exact: true })).toBeVisible();
   await page.getByRole('combobox', { name: 'Language' }).selectOption('zh-Hans');
   await expect(page.getByRole('heading', { name: '测试商品', exact: true })).toBeVisible();
-  await expect(page.getByRole('navigation', { name: '分类' }).getByRole('link', { name: '测试分类', exact: true })).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole('button', { name: '打开菜单', exact: true }).click();
+  await expect(page.getByRole('navigation', { name: '分类', exact: true }).getByRole('link', { name: '测试分类', exact: true })).toBeVisible();
   await page.goto('/zh-Hans/products/unknown-e2e-product');
   await expect(page.getByRole('heading', { name: '页面不存在' })).toBeVisible();
 });

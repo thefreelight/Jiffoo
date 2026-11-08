@@ -229,6 +229,7 @@ test('A injects ordered head and body slots with blocking external dependencies 
 });
 
 test('B soft navigation and locale switching retain one injection without hydration errors', async ({ page, request }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
   const probe = randomUUID();
   await configuration(request, slots(probe));
   const observation = observe(page, probe);
@@ -239,7 +240,9 @@ test('B soft navigation and locale switching retain one injection without hydrat
   try {
     await page.goto(`${shopOrigin}/en`);
     await expectMarker(page);
-    await page.getByRole('link', { name: 'E2E Translated Category', exact: true }).first().click();
+    await page.getByRole('button', { name: 'Categories', exact: true }).click();
+    await page.getByRole('navigation', { name: 'Categories', exact: true }).getByRole('link', { name: 'E2E Translated Category', exact: true }).click();
+    await expect(page.getByRole('navigation', { name: 'Categories', exact: true })).toBeHidden();
     await expect(page).toHaveURL(`${shopOrigin}/en/categories/e2e-translated-category`);
     await expectMarker(page);
     await page.getByRole('heading', { name: 'E2E Localized Product', exact: true }).click();

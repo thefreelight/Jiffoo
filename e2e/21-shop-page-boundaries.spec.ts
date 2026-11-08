@@ -79,12 +79,15 @@ test('D checkout to Header home performs a main-frame document navigation', asyn
 });
 
 test('E Header home to category stays within the storefront document', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(`${shopOrigin}/en`);
   await expect(page.getByRole('heading', { level: 2, name: 'Browse categories', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Categories', exact: true }).click();
   const documents = await documentRequestsDuring(page,
-    () => page.getByRole('banner').getByRole('link', { name: 'E2E Translated Category', exact: true }).click(),
+    () => page.getByRole('navigation', { name: 'Categories', exact: true }).getByRole('link', { name: 'E2E Translated Category', exact: true }).click(),
     `${shopOrigin}/en/categories/e2e-translated-category`, 'E2E Translated Category');
   expect(documents).toEqual([]);
+  await expect(page.getByRole('navigation', { name: 'Categories', exact: true })).toBeHidden();
 });
 
 test('F confirmation to order detail stays within the storefront document', async ({ page }) => {

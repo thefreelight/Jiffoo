@@ -55,6 +55,7 @@ async function screenshot(page: Page, name: string) {
 
 test('A home retains one theme style after a reload and across locale and page navigation', async ({ page }) => {
   test.setTimeout(120_000);
+  await page.setViewportSize({ width: 1440, height: 900 });
   const errors = observe(page);
   await page.goto(`${shopOrigin}/en`);
   await expect(page.getByRole('heading', { name: 'New arrivals', exact: true })).toBeVisible();
@@ -74,7 +75,10 @@ test('A home retains one theme style after a reload and across locale and page n
     await expect(page.getByRole('combobox', { name: label, exact: true })).toHaveValue(locale);
     await assertDocument(page, locale, errors);
   }
-  await page.getByRole('link', { name: 'All products', exact: true }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole('button', { name: 'Open menu', exact: true }).click();
+  await page.getByRole('navigation', { name: 'Categories', exact: true }).getByRole('link', { name: 'All products', exact: true }).click();
+  await expect(page.getByRole('navigation', { name: 'Categories', exact: true })).toBeHidden();
   await expect(page).toHaveURL(`${shopOrigin}/en/products`);
   await expect(page.getByRole('heading', { level: 1, name: 'All products', exact: true })).toBeVisible();
   await assertDocument(page, 'en', errors);
