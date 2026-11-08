@@ -34,6 +34,7 @@ import { tryNativeAdminSettings } from './admin-settings';
 import { tryNativeAdminThemes } from './admin-themes';
 import { captureNativeError, tryNativeAdminErrors } from './admin-errors';
 import { tryNativeSeoRedirects } from './seo-redirects';
+import { tryNativeSeoStore } from './seo-store';
 import { tryNativeMailBounces } from './mail-bounces';
 import { processScheduledOdooCatalogSync, tryNativeOdooCatalogSync } from './odoo-catalog';
 import { snapshotFallbackKey, snapshotKey } from './snapshot-key';
@@ -304,6 +305,8 @@ async function routeNativeRequest(request: Request, env: WorkerEnv, ctx: Executi
     if (nativeAdminErrors) return nativeAdminErrors;
     const nativeSeoRedirects = await tryNativeSeoRedirects(nativeRequest, env);
     if (nativeSeoRedirects) return nativeSeoRedirects;
+    const nativeSeoStore = await tryNativeSeoStore(nativeRequest, env);
+    if (nativeSeoStore) return nativeSeoStore;
     const nativeMailBounces = await tryNativeMailBounces(nativeRequest, env);
     if (nativeMailBounces) return nativeMailBounces;
     const nativePublicAuthConfig = tryNativePublicAuthConfig(nativeRequest, env);

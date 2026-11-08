@@ -20,6 +20,8 @@ interface SeoHeadProps {
     locale?: string;
     /** Alternative locales */
     alternateLocales?: string[];
+    /** hreflang alternates (locale → absolute URL), plus `x-default`. */
+    alternates?: Record<string, string>;
   };
 }
 
@@ -57,10 +59,14 @@ export function generateMetadata(
     description,
   };
 
-  // Add canonical URL
-  if (canonical) {
+  // Add canonical URL and hreflang alternates. Each language version must
+  // self-canonicalize and cross-link its siblings (x-default → default
+  // locale) — cross-locale canonicals merge ranking signals into the wrong
+  // page.
+  if (canonical || options?.alternates) {
     metadata.alternates = {
-      canonical,
+      ...(canonical ? { canonical } : {}),
+      ...(options?.alternates ? { languages: options.alternates } : {}),
     };
   }
 

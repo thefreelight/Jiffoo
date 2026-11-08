@@ -31,6 +31,8 @@ export interface ProductMetaOptions {
   name: string;
   description?: string;
   slug: string;
+  /** Locale-prefixed page path (e.g. '/en/products/x'); overrides the /products/{slug} default. */
+  path?: string;
   baseUrl?: string;
   imageUrl?: string;
   price?: number;
@@ -76,6 +78,7 @@ export function generateProductMetaTags(options: ProductMetaOptions): MetaTags {
     name,
     description = '',
     slug,
+    path,
     baseUrl,
     imageUrl,
     price,
@@ -84,8 +87,11 @@ export function generateProductMetaTags(options: ProductMetaOptions): MetaTags {
   } = options;
 
   const title = seoMetadata?.metaTitle || displayProductTitle(name);
-  const desc = seoMetadata?.metaDescription || description;
-  const canonical = seoMetadata?.canonicalUrl || generateCanonicalUrl(`/products/${slug}`, baseUrl);
+  // Meta descriptions truncate at 155 chars (SERP snippet budget); longer
+  // text gets cut by the engine anyway, mid-word and without control.
+  const desc = truncateForMeta(seoMetadata?.metaDescription || description, 155);
+  const canonical = seoMetadata?.canonicalUrl
+    || generateCanonicalUrl(path ?? `/products/${slug}`, baseUrl);
 
   return {
     title,
@@ -161,6 +167,8 @@ export function generateProductStructuredData(product: {
   name: string;
   description?: string;
   slug: string;
+  /** Locale-prefixed page path (e.g. '/en/products/x'); overrides the /products/{slug} default. */
+  path?: string;
   baseUrl?: string;
   imageUrl?: string;
   price?: number;
@@ -177,6 +185,7 @@ export function generateProductStructuredData(product: {
     name,
     description = '',
     slug,
+    path,
     baseUrl,
     imageUrl,
     price,
@@ -192,7 +201,7 @@ export function generateProductStructuredData(product: {
     '@type': 'Product',
     name: displayProductTitle(name),
     description,
-    url: generateCanonicalUrl(`/products/${slug}`, baseUrl),
+    url: generateCanonicalUrl(path ?? `/products/${slug}`, baseUrl),
   };
 
   if (imageUrl) {

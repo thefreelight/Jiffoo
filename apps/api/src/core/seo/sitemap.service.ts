@@ -138,6 +138,41 @@ export class SitemapService {
   }
 
   /**
+   * Storefront sitemap items (public host consumption).
+   *
+   * The shop app's /sitemap.xml consumes this JSON surface to build
+   * product URLs with real lastmod timestamps. Capped so a large catalog
+   * cannot blow the response size; `truncated` tells the host the set is
+   * partial.
+   */
+  static async getStorefrontItems(cap = 5000): Promise<{
+    items: Array<{ id: string; lastmod?: string }>;
+    truncated: boolean;
+  }> {
+    const products = await prisma.product.findMany({
+      select: {
+        id: true,
+        updatedAt: true,
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+      take: cap + 1,
+    });
+
+    const truncated = products.length > cap;
+    const page = truncated ? products.slice(0, cap) : products;
+
+    return {
+      items: page.map((product) => ({
+        id: product.id,
+        lastmod: formatDate(product.updatedAt),
+      })),
+      truncated,
+    };
+  }
+
+  /**
    * Generate complete sitemap XML
    */
   static async generateSitemap(options: SitemapOptions = {}): Promise<string> {
