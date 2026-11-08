@@ -24,7 +24,7 @@ test('create category and product translations, reopen and remove one translatio
   await page.goto('/en/products/create')
   await page.getByLabel('Name', { exact: true }).first().fill('E2E Localized Product')
   await page.getByRole('button', { name: 'Category', exact: true }).click()
-  await page.getByRole('menuitemradio', { name: 'E2E Translated Category', exact: true }).click()
+  await page.getByRole('dialog', { name: 'Category', exact: true }).getByRole('button', { name: 'E2E Translated Category', exact: true }).click()
   await page.getByRole('button', { name: /^Simplified Chinese/ }).click()
   await page.getByRole('textbox', { name: 'Translated name (Simplified Chinese)' }).fill('测试商品')
   await page.getByRole('button', { name: /^Traditional Chinese/ }).click()

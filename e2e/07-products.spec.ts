@@ -36,7 +36,7 @@ test('product filters, sorting, bulk visibility/category, safe deletion and CSV 
   await page.goto('/en/products/create');
   await page.getByLabel('Name', { exact: true }).first().fill('U4 Ordered Product');
   await page.getByRole('button', { name: 'Category', exact: true }).click();
-  await page.getByRole('menuitemradio', { name: 'U4 Apparel', exact: true }).click();
+  await page.getByRole('dialog', { name: 'Category', exact: true }).getByRole('button', { name: 'U4 Apparel', exact: true }).click();
   await page.getByRole('textbox', { name: /^Variant name:/ }).first().fill('Standard');
   await page.getByRole('spinbutton', { name: /^Price:/ }).first().fill('12');
   await page.getByRole('spinbutton', { name: /^Stock:/ }).first().fill('4');
@@ -54,7 +54,7 @@ test('product filters, sorting, bulk visibility/category, safe deletion and CSV 
     await api(request, '/admin/products', { token, method: 'POST', data: { name: 'U4 Free Product', categoryId: category.id, variants: [{ name: 'Standard', salePrice: 22, stock: 7 }] } });
     await page.reload(); await page.setViewportSize({ width: 1440, height: 900 });
     await page.getByRole('button', { name: 'Category', exact: true }).click();
-    await page.getByRole('menuitemradio', { name: 'U4 Apparel', exact: true }).click();
+    await page.getByRole('dialog', { name: 'Category', exact: true }).getByRole('button', { name: 'U4 Apparel', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Remove filter: Category U4 Apparel', exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Remove filter: Category U4 Apparel', exact: true }).click();
     await page.getByRole('button', { name: 'Price', exact: true }).click();
@@ -73,7 +73,7 @@ test('product filters, sorting, bulk visibility/category, safe deletion and CSV 
     await expect(bulk).toHaveCount(0);
     await selectPair();
     await bulk.getByRole('button', { name: 'Change category', exact: true }).click();
-    await page.getByRole('menuitemradio', { name: 'Uncategorized', exact: true }).click();
+    await page.getByRole('dialog', { name: 'Change category', exact: true }).getByRole('button', { name: 'Uncategorized', exact: true }).click();
     await expect(bulk).toHaveCount(0);
     await selectPair();
     for (const mode of ['Light', 'Dark']) {
@@ -144,7 +144,7 @@ test('A5 product editor guards changes, reorders images, navigates, duplicates a
   await page.goto('/en/products/create');
   await page.getByRole('textbox', { name: 'Name', exact: true }).fill('A5 Editor Alpha');
   await page.getByRole('button', { name: 'Category', exact: true }).press('Enter');
-  await page.getByRole('menuitemradio', { name: 'U4 Apparel', exact: true }).press('Enter');
+  await page.getByRole('dialog', { name: 'Category', exact: true }).getByRole('button', { name: 'U4 Apparel', exact: true }).press('Enter');
   await page.getByRole('textbox', { name: /^Variant name:/ }).first().fill('Small');
   await page.getByRole('spinbutton', { name: /^Price:/ }).first().fill('9');
   await page.getByRole('spinbutton', { name: /^Stock:/ }).first().fill('8');
@@ -169,7 +169,7 @@ test('A5 product editor guards changes, reorders images, navigates, duplicates a
   await expect(page.getByRole('textbox', { name: 'Name', exact: true })).toHaveValue('');
   await expect(page.getByRole('button', { name: 'Category', exact: true })).toContainText('U4 Apparel');
   await page.getByRole('button', { name: 'Category', exact: true }).click();
-  await expect(page.getByRole('menuitemradio', { name: 'U4 Apparel', exact: true })).toHaveAttribute('aria-checked', 'true');
+  await expect(page.getByRole('dialog', { name: 'Category', exact: true }).getByRole('button', { name: 'U4 Apparel', exact: true })).toBeVisible();
   await page.keyboard.press('Escape');
   await page.getByRole('textbox', { name: 'Name', exact: true }).fill('A5 Editor Beta');
   await page.getByRole('spinbutton', { name: /^Price:/ }).first().fill('5');
