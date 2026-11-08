@@ -171,7 +171,9 @@ test('A5 product editor guards changes, reorders images, navigates, duplicates a
   await page.getByRole('button', { name: 'Category', exact: true }).click();
   await expect(page.getByRole('dialog', { name: 'Category', exact: true }).getByRole('button', { name: 'U4 Apparel', exact: true })).toBeVisible();
   await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: 'Category', exact: true })).toBeHidden();
   await page.getByRole('textbox', { name: 'Name', exact: true }).fill('A5 Editor Beta');
+  await expect(page.getByRole('textbox', { name: 'Name', exact: true })).toHaveValue('A5 Editor Beta');
   await page.getByRole('spinbutton', { name: /^Price:/ }).first().fill('5');
   await page.getByRole('spinbutton', { name: /^Stock:/ }).first().fill('2');
   await page.getByRole('button', { name: 'Save', exact: true }).click();
