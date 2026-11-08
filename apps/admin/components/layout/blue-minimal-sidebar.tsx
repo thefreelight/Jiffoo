@@ -35,6 +35,7 @@ import {
   ChevronDown,
   Radar,
   ShieldCheck,
+  Headphones,
 } from 'lucide-react'
 import { useAuthStore } from '@/lib/store'
 import {
@@ -177,6 +178,14 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
         href: '/staff',
         icon: UsersRound,
         requiredPermissions: [ADMIN_PERMISSIONS.STAFF_READ],
+      },
+      {
+        id: 'support',
+        nameKey: 'merchant.nav.support',
+        fallback: '客服会话',
+        href: '/support',
+        icon: Headphones,
+        requiredPermissions: [ADMIN_PERMISSIONS.SUPPORT_READ],
       },
       'divider',
       {
