@@ -17,6 +17,10 @@ function fakeDb() {
   const firstFor = (sql: string) => async () => {
     if (sql.includes('SELECT enabled')) return { enabled: state.enabled };
     if (sql.includes('SELECT config_json')) return { config_json: state.config_json };
+    // admin-access resolves the caller's membership; tests act as OWNER.
+    if (sql.includes('FROM native_admin_memberships WHERE user_id')) {
+      return { role: 'OWNER', status: 'ACTIVE', is_owner: 1, extra_permissions: '[]', revoked_permissions: '[]' };
+    }
     return null;
   };
   return {
@@ -70,7 +74,7 @@ describe('native support hub adapter', () => {
     const db = fakeDb();
     const health = await tryNativeSupportHub(storeRequest('/health'), { DB: db } as never);
     expect(health?.status).toBe(200);
-    await expect(health?.json()).resolves.toMatchObject({ status: 'healthy', plugin: 'support-hub', version: '0.0.4' });
+    await expect(health?.json()).resolves.toMatchObject({ status: 'healthy', plugin: 'support-hub', version: '0.0.5' });
 
     const config = await tryNativeSupportHub(storeRequest('/config'), { DB: db } as never);
     await expect(config?.json()).resolves.toMatchObject({ success: true, data: { enabled: true, channels: [] } });
@@ -80,7 +84,7 @@ describe('native support hub adapter', () => {
   it('serves the same contract through the gateway alias', async () => {
     const db = fakeDb();
     const health = await tryNativeSupportHub(gatewayRequest('/store/health'), { DB: db } as never);
-    await expect(health?.json()).resolves.toMatchObject({ status: 'healthy', version: '0.0.4' });
+    await expect(health?.json()).resolves.toMatchObject({ status: 'healthy', version: '0.0.5' });
     const config = await tryNativeSupportHub(gatewayRequest('/store/config'), { DB: db } as never);
     await expect(config?.json()).resolves.toMatchObject({ success: true, data: { enabled: true, channels: [] } });
   });
@@ -150,7 +154,7 @@ describe('native marketplace install of support-hub', () => {
   it('allows support-hub to install natively now that the adapter exists', async () => {
     authenticateNativeAdmin.mockResolvedValue({ id: 'admin-1', role: 'ADMIN' });
     vi.stubGlobal('fetch', vi.fn(async () => Response.json({ data: { items: [
-      { slug: 'support-hub', kind: 'plugin', installable: true, sellableVersion: '0.0.4' },
+      { slug: 'support-hub', kind: 'plugin', installable: true, sellableVersion: '0.0.5' },
     ] } })));
     const run = vi.fn(async () => ({ success: true, meta: { changes: 1 } }));
     const db = { prepare: vi.fn(() => ({ bind: vi.fn(() => ({ run })) })) };
@@ -158,7 +162,7 @@ describe('native marketplace install of support-hub', () => {
       method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'plugin' }),
     }), { DB: db } as never);
     expect(response?.status).toBe(200);
-    await expect(response?.json()).resolves.toMatchObject({ success: true, data: { slug: 'support-hub', version: '0.0.4' } });
+    await expect(response?.json()).resolves.toMatchObject({ success: true, data: { slug: 'support-hub', version: '0.0.5' } });
     expect(run).toHaveBeenCalledOnce();
   });
 });
@@ -170,19 +174,34 @@ describe('native marketplace install of support-hub', () => {
 type FakeRow = Record<string, unknown>;
 
 function chatFakeDb() {
-  const state = { config_json: '{}' };
+  const state = { config_json: '{}' as string, membership_role: 'OWNER' as string };
   const conversations = new Map<string, {
     id: string; installation_id: string; visitor_token: string; status: string;
     message_count: number; created_at: string; updated_at: string;
   }>();
   const messages: Array<{
     id: string; conversation_id: string; installation_id: string; role: string;
-    content: string; actions_json: string | null; created_at: string;
+    content: string; actions_json: string | null; sender?: string | null; created_at: string;
   }> = [];
+  const reads = new Map<string, string>();
 
   const exec = (sql: string, args: unknown[]) => {
     if (sql.includes('SELECT config_json FROM native_plugin_instances')) {
       return { first: async () => ({ config_json: state.config_json }) };
+    }
+    // admin-access resolves the caller's membership; tests act as OWNER.
+    if (sql.includes('FROM native_admin_memberships WHERE user_id')) {
+      const role = state.membership_role;
+      return {
+        first: async () => ({
+          role,
+          status: 'ACTIVE',
+          is_owner: role === 'OWNER' ? 1 : 0,
+          extra_permissions: '[]',
+          revoked_permissions: '[]',
+        }),
+        all: async () => ({ results: [] as FakeRow[] }),
+      };
     }
     if (sql.includes('INSERT INTO native_plugin_instances')) {
       return { run: async () => { state.config_json = String(args[1]); return {} as never; }, first: async () => null, all: async () => ({ results: [] as FakeRow[] }) };
@@ -199,7 +218,11 @@ function chatFakeDb() {
     if (sql.includes('UPDATE native_support_hub_conversations')) {
       return { run: async () => {
         const conversation = conversations.get(String(args[0]));
-        if (conversation) { conversation.message_count += 1; conversation.updated_at = String(args[1]); }
+        if (conversation) {
+          if (sql.includes("SET status = 'agent'")) conversation.status = 'agent';
+          conversation.message_count += 1;
+          conversation.updated_at = String(args[1]);
+        }
         return {} as never;
       }, first: async () => null, all: async () => ({ results: [] as FakeRow[] }) };
     }
@@ -208,12 +231,13 @@ function chatFakeDb() {
         messages.push({
           id: String(args[0]), conversation_id: String(args[1]), installation_id: String(args[2]),
           role: String(args[3]), content: String(args[4]),
-          actions_json: args[5] === null ? null : String(args[5]), created_at: String(args[6]),
+          actions_json: args[5] === null ? null : String(args[5]),
+          sender: args[6] === null ? null : String(args[6]), created_at: String(args[7]),
         });
         return {} as never;
       }, first: async () => null, all: async () => ({ results: [] as FakeRow[] }) };
     }
-    if (sql.includes('SELECT COUNT(*) AS count')) {
+    if (sql.includes('SELECT COUNT(*) AS count') && sql.includes('m.created_at > ?3')) {
       return { first: async () => ({
         count: messages.filter((message) => {
           const conversation = conversations.get(message.conversation_id);
@@ -233,10 +257,13 @@ function chatFakeDb() {
     }
     if (sql.includes('FROM native_support_hub_messages') && sql.includes('ORDER BY created_at DESC LIMIT 1')) {
       return { first: async () => {
-        const rows = messages
-          .filter((message) => message.conversation_id === String(args[0]))
-          .sort((a, b) => b.created_at.localeCompare(a.created_at));
-        return rows[0] ? { content: rows[0].content } : null;
+        // Messages are pushed chronologically; the last matching entry is the
+        // newest even when ISO timestamps collide within the same millisecond.
+        let latest: { content: string } | null = null;
+        for (const message of messages) {
+          if (message.conversation_id === String(args[0])) latest = { content: message.content };
+        }
+        return latest;
       }, all: async () => ({ results: [] as FakeRow[] }) };
     }
     if (sql.includes('FROM native_support_hub_conversations c')) {
@@ -255,6 +282,24 @@ function chatFakeDb() {
         return conversation && conversation.installation_id === String(args[1]) && conversation.visitor_token === String(args[2])
           ? conversation : null;
       }, all: async () => ({ results: [] as FakeRow[] }) };
+    }
+    if (sql.includes("WHERE id = ?1 AND installation_id = 'default' LIMIT 1")) {
+      return { first: async () => conversations.get(String(args[0])) ?? null, all: async () => ({ results: [] as FakeRow[] }) };
+    }
+    if (sql.includes('LEFT JOIN native_support_hub_admin_reads r ON r.conversation_id = c.id AND r.admin_user_id = ?1')) {
+      const adminId = String(args[0]);
+      const count = messages.filter((message) => {
+        if (message.role !== 'visitor') return false;
+        const lastRead = reads.get(`${adminId}__${message.conversation_id}`);
+        return !lastRead || message.created_at > lastRead;
+      }).length;
+      return { first: async () => ({ count }), all: async () => ({ results: [] as FakeRow[] }) };
+    }
+    if (sql.includes('INSERT INTO native_support_hub_admin_reads')) {
+      return { run: async () => {
+        reads.set(`${String(args[1])}__${String(args[2])}`, String(args[3]));
+        return {} as never;
+      }, first: async () => null, all: async () => ({ results: [] as FakeRow[] }) };
     }
     if (sql.includes('SELECT id, visitor_token FROM native_support_hub_conversations')) {
       return { first: async () => {
@@ -277,7 +322,7 @@ function chatFakeDb() {
   };
 
   return {
-    state, conversations, messages,
+    state, conversations, messages, reads,
     prepare: (sql: string) => {
       const run = (args: unknown[]) => exec(sql, args);
       return {
@@ -489,5 +534,136 @@ describe('native support hub 0.0.4 chat', () => {
     expect(parseNativeAiReply({ choices: [] })).toBeNull();
     const handoff = buildNativeHandoffReply(mergeNativeSettings({ telegramEnabled: true, telegramLink: 'https://t.me/bokmoo' }));
     expect(handoff.actions.map((action) => action.href)).toEqual(['https://t.me/bokmoo']);
+  });
+});
+
+
+describe('native support hub 0.0.5 agent takeover', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    isNativePluginEnabled.mockResolvedValue(true);
+    authenticateNativeAdmin.mockResolvedValue({ id: 'admin-1', role: 'ADMIN' });
+  });
+
+  it('agent reply stores sender=agent, flips status, and agent mode skips AI', async () => {
+    const db = chatFakeDb();
+    await tryNativeSupportHub(gatewayRequest('/admin/settings', {
+      method: 'PUT',
+      body: JSON.stringify({
+        chatEnabled: true, aiEnabled: true, aiBaseUrl: 'https://ai.example.test/v1',
+        aiApiKey: 'sk-native', aiModel: 'gpt-4o-mini',
+      }),
+    }), { DB: db } as never);
+    stubFetch();
+
+    const first = await chatPost(db, { visitorToken: 'visitor_agent_e2e', message: 'first question' });
+    const conversationId = (await first?.json()).data.conversationId;
+
+    const reply = await tryNativeSupportHub(gatewayRequest(`/admin/conversations/${conversationId}/reply`, {
+      method: 'POST', body: JSON.stringify({ message: '人工客服回复 Agent here' }),
+    }), { DB: db } as never);
+    expect(reply?.status).toBe(200);
+    const replyBody = await reply?.json();
+    expect(replyBody.data.reply.sender).toBe('agent');
+
+    const second = await chatPost(db, { visitorToken: 'visitor_agent_e2e', message: 'follow-up question' });
+    const secondBody = await second?.json();
+    expect(secondBody.data.reply).toBeNull();
+
+    const history = await tryNativeSupportHub(storeRequest('/chat/history?visitorToken=visitor_agent_e2e'), { DB: db } as never);
+    const historyBody = await history?.json();
+    const contents = historyBody.data.messages.map((message: { content: string }) => message.content);
+    // AI answers the first (open-mode) message; after takeover the follow-up gets no reply.
+    expect(contents).toEqual(['first question', 'Native AI reply', '人工客服回复 Agent here', 'follow-up question']);
+
+    const transcript = await tryNativeSupportHub(gatewayRequest(`/admin/conversations/${conversationId}/messages`), { DB: db } as never);
+    const transcriptBody = await transcript?.json();
+    const senders = transcriptBody.data.messages.map((message: { sender?: string }) => message.sender);
+    expect(senders).toEqual([undefined, 'ai', 'agent', undefined]);
+  });
+
+  it('unread-count reflects per-admin read state and mark-read clears it', async () => {
+    const db = chatFakeDb();
+    await tryNativeSupportHub(gatewayRequest('/admin/settings', {
+      method: 'PUT', body: JSON.stringify({ chatEnabled: true }),
+    }), { DB: db } as never);
+    stubFetch();
+
+    await chatPost(db, { visitorToken: 'visitor_unread_e2e', message: 'hello?' });
+
+    const before = await tryNativeSupportHub(gatewayRequest('/admin/conversations/unread-count'), { DB: db } as never);
+    expect((await before?.json()).data.unread).toBe(1);
+
+    const conversationList = await tryNativeSupportHub(gatewayRequest('/admin/conversations'), { DB: db } as never);
+    const conversationId = (await conversationList?.json()).data.conversations[0].id;
+
+    const marked = await tryNativeSupportHub(gatewayRequest('/admin/conversations/mark-read', {
+      method: 'POST', body: JSON.stringify({ conversationId }),
+    }), { DB: db } as never);
+    expect(marked?.status).toBe(200);
+
+    const after = await tryNativeSupportHub(gatewayRequest('/admin/conversations/unread-count'), { DB: db } as never);
+    expect((await after?.json()).data.unread).toBe(0);
+
+    // let the clock advance past the read timestamp (same-millisecond writes compare equal)
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    await chatPost(db, { visitorToken: 'visitor_unread_e2e', message: 'one more' });
+    const reflagged = await tryNativeSupportHub(gatewayRequest('/admin/conversations/unread-count'), { DB: db } as never);
+    expect((await reflagged?.json()).data.unread).toBe(1);
+  });
+
+  it('rejects invalid reply payloads and unknown conversations', async () => {
+    const db = chatFakeDb();
+    await tryNativeSupportHub(gatewayRequest('/admin/settings', {
+      method: 'PUT', body: JSON.stringify({ chatEnabled: true }),
+    }), { DB: db } as never);
+
+    const bad = await tryNativeSupportHub(gatewayRequest('/admin/conversations/shconv_unknown0000/reply', {
+      method: 'POST', body: JSON.stringify({ message: 'hi' }),
+    }), { DB: db } as never);
+    expect(bad?.status).toBe(404);
+
+    const badBody = await tryNativeSupportHub(gatewayRequest('/admin/conversations/mark-read', {
+      method: 'POST', body: JSON.stringify({}),
+    }), { DB: db } as never);
+    expect(badBody?.status).toBe(400);
+  });
+});
+
+
+describe('native support hub RBAC enforcement', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    isNativePluginEnabled.mockResolvedValue(true);
+    authenticateNativeAdmin.mockResolvedValue({ id: 'agent-1', role: 'SUPPORT_AGENT' });
+  });
+
+  it('a SUPPORT_AGENT membership can read conversations and reply but cannot write plugin settings', async () => {
+    const db = chatFakeDb();
+    // owner seeds chat + a conversation first
+    await tryNativeSupportHub(gatewayRequest('/admin/settings', {
+      method: 'PUT', body: JSON.stringify({ chatEnabled: true }),
+    }), { DB: db } as never);
+    stubFetch();
+    await chatPost(db, { visitorToken: 'visitor_rbac_e2e', message: 'need help' });
+
+    // now act as the support agent
+    db.state.membership_role = 'SUPPORT_AGENT';
+
+    const conversations = await tryNativeSupportHub(gatewayRequest('/admin/conversations'), { DB: db } as never);
+    expect(conversations?.status).toBe(200);
+
+    const deniedSettings = await tryNativeSupportHub(gatewayRequest('/admin/settings', {
+      method: 'PUT', body: JSON.stringify({ aiApiKey: 'sk-rotate' }),
+    }), { DB: db } as never);
+    expect(deniedSettings?.status).toBe(403);
+    await expect(deniedSettings?.json()).resolves.toMatchObject({ error: { code: 'FORBIDDEN' } });
+
+    const list = await tryNativeSupportHub(gatewayRequest('/admin/conversations'), { DB: db } as never);
+    const conversationId = (await list?.json()).data.conversations[0].id;
+    const reply = await tryNativeSupportHub(gatewayRequest(`/admin/conversations/${conversationId}/reply`, {
+      method: 'POST', body: JSON.stringify({ message: 'agent on it' }),
+    }), { DB: db } as never);
+    expect(reply?.status).toBe(200);
   });
 });

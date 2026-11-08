@@ -1,6 +1,7 @@
 import { clearNativePasswordResetCode, deliverNativePasswordResetCode, sendNativeVerificationCode, stageNativePasswordResetCode, verifyNativeEmailCode, verifyNativePasswordResetCode } from './email-verification';
 import { consumeVerificationRateLimit, requestIp } from './auth-rate-limit';
 import { recordNativeSecurityEvent, recordLoginAudit, recordNativeLoginSuccess } from './security-audit';
+import { resolveNativeAdminAccess } from './admin-access';
 
 export interface NativeSmtpEnv {
   SITE_NAME?: string;
@@ -271,6 +272,20 @@ export async function authenticateNativeUser(request: Request, env: NativeAuthEn
   return user?.is_active && user.email_verified ? nativePublicUser(user) : null;
 }
 
+export async function loadNativeAdminAccount(env: NativeAuthEnv, userId: string): Promise<NativeSessionUser | null> {
+  const user = await env.DB.prepare('SELECT * FROM native_users WHERE id = ?1').bind(userId).first<NativeUser>();
+  if (!user?.is_active) return null;
+  if (['ADMIN', 'SUPER_ADMIN'].includes(user.role)) return nativePublicUser(user);
+  // Staff-provisioned accounts carry native_users.role='USER'; their admin
+  // access lives in native_admin_memberships (e.g. SUPPORT_AGENT). Without
+  // this membership path the whole staff management flow cannot log in.
+  const membership = await env.DB.prepare(
+    "SELECT role FROM native_admin_memberships WHERE user_id = ?1 AND status = 'ACTIVE'",
+  ).bind(userId).first<{ role: string }>();
+  if (membership) return { ...nativePublicUser(user), role: membership.role };
+  return null;
+}
+
 export async function authenticateNativeAdmin(request: Request, env: NativeAuthEnv): Promise<NativeSessionUser | null> {
   const authorization = request.headers.get('authorization');
   const token = cookie(request, 'admin_auth_token') ?? (authorization?.startsWith('Bearer ') ? authorization.slice(7) : null);
@@ -279,8 +294,7 @@ export async function authenticateNativeAdmin(request: Request, env: NativeAuthE
   const payload = await verifyJwt(secret, token);
   if (!payload || payload.type === 'refresh' || payload.iss !== 'jiffoo-admin' || payload.aud !== 'admin') return null;
   if (typeof payload.userId !== 'string') return null;
-  const user = await env.DB.prepare('SELECT * FROM native_users WHERE id = ?1').bind(payload.userId).first<NativeUser>();
-  return user?.is_active && ['ADMIN', 'SUPER_ADMIN'].includes(user.role) ? nativePublicUser(user) : null;
+  return loadNativeAdminAccount(env, payload.userId);
 }
 
 export async function createNativeSession(
@@ -418,7 +432,10 @@ export async function tryNativeAuth(
       }
     }
     const hash = await derivePassword(body.password, decodeBase64Url(user.password_salt), user.password_iterations);
-    if (!user.is_active || !['ADMIN', 'SUPER_ADMIN'].includes(user.role) || !constantTimeEqual(hash, decodeBase64Url(user.password_hash))) {
+    const adminAccount = user.is_active && constantTimeEqual(hash, decodeBase64Url(user.password_hash))
+      ? await loadNativeAdminAccount(env, user.id)
+      : null;
+    if (!adminAccount) {
       await recordLoginAudit(env, {
         action: 'login.failed',
         email: user.email,
@@ -439,7 +456,7 @@ export async function tryNativeAuth(
       ip: requestIp(request),
       userAgent: request.headers.get('user-agent'),
     });
-    const session = await createNativeSession(env, nativePublicUser(user), 'admin');
+    const session = await createNativeSession(env, adminAccount, 'admin');
     return new Response(JSON.stringify(session.body), { status: 200, headers: session.headers });
   }
 
@@ -473,10 +490,10 @@ export async function tryNativeAuth(
     if (!token) return null;
     const secret = await getNativeJwtSecret(env);
     const payload = await verifyJwt(secret, token);
-    if (!payload || payload.type !== 'refresh' || payload.iss !== 'jiffoo-admin' || payload.aud !== 'admin') return null;
-    const user = await env.DB.prepare('SELECT * FROM native_users WHERE id = ?1').bind(payload.userId).first<NativeUser>();
-    if (!user?.is_active || !['ADMIN', 'SUPER_ADMIN'].includes(user.role)) return null;
-    const session = await createNativeSession(env, nativePublicUser(user), 'admin');
+    if (!payload || payload.type !== 'refresh' || payload.iss !== 'jiffoo-admin' || payload.aud !== 'admin' || typeof payload.userId !== 'string') return null;
+    const account = await loadNativeAdminAccount(env, payload.userId);
+    if (!account) return null;
+    const session = await createNativeSession(env, account, 'admin');
     return new Response(JSON.stringify(session.body), { status: 200, headers: session.headers });
   }
 
@@ -488,9 +505,10 @@ export async function tryNativeAuth(
     const secret = await getNativeJwtSecret(env);
     const payload = await verifyJwt(secret, token);
     if (!payload || payload.iss !== 'jiffoo-admin' || payload.aud !== 'admin' || typeof payload.userId !== 'string') return null;
-    const user = await env.DB.prepare('SELECT * FROM native_users WHERE id = ?1').bind(payload.userId).first<NativeUser>();
-    if (!user?.is_active || !['ADMIN', 'SUPER_ADMIN'].includes(user.role)) return null;
-    return Response.json({ success: true, data: { ...nativePublicUser(user), isActive: true } }, {
+    const account = await loadNativeAdminAccount(env, payload.userId);
+    if (!account) return null;
+    const access = await resolveNativeAdminAccess(env, account.id, account.role);
+    return Response.json({ success: true, data: { ...account, isActive: true, permissions: access?.permissions ?? [] } }, {
       headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-admin-auth' },
     });
   }

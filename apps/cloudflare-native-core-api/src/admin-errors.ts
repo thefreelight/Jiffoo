@@ -1,4 +1,6 @@
-import { authenticateNativeAdmin, type NativeAuthEnv } from './auth';
+import { type NativeAuthEnv } from './auth';
+import { ADMIN_PERMISSIONS } from './native-rbac';
+import { requireAdminPermission } from './admin-access';
 
 /**
  * Native error tracking for Cloudflare-native instances.
@@ -282,8 +284,9 @@ async function resolveError(env: ErrorEnv, id: string, adminId: string, body: Re
 export async function tryNativeAdminErrors(request: Request, env: ErrorEnv): Promise<Response | null> {
   const url = new URL(request.url);
   if (!url.pathname.startsWith('/api/v1/admin/errors')) return null;
-  const admin = await authenticateNativeAdmin(request, env);
-  if (!admin) return fail('UNAUTHORIZED', 'Administrator authentication is required', 401);
+  const errorsGate = await requireAdminPermission(request, env, request.method === 'PATCH' ? ADMIN_PERMISSIONS.SETTINGS_WRITE : ADMIN_PERMISSIONS.HEALTH_READ);
+  if (!errorsGate.ok) return errorsGate.response;
+  const admin = errorsGate.admin;
 
   const rest = url.pathname.slice('/api/v1/admin/errors'.length);
   try {

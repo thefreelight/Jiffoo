@@ -1,4 +1,6 @@
 import { authenticateNativeAdmin, type NativeAuthEnv, type NativeSessionUser } from './auth';
+import { ADMIN_PERMISSIONS } from './native-rbac';
+import { requireAdminPermission } from './admin-access';
 import { requestIp } from './auth-rate-limit';
 import { recordNativeSecurityEvent } from './security-audit';
 
@@ -83,8 +85,14 @@ function error(status: number, code: string, message: string): Response {
   });
 }
 
-async function requireAdmin(request: Request, env: AdminUserEnv): Promise<NativeSessionUser | null> {
-  return authenticateNativeAdmin(request, env);
+async function requireAdmin(request: Request, env: AdminUserEnv): Promise<NativeSessionUser | Response> {
+  const gate = await requireAdminPermission(
+    request,
+    env,
+    request.method === 'GET' ? ADMIN_PERMISSIONS.CUSTOMERS_READ : ADMIN_PERMISSIONS.CUSTOMERS_WRITE,
+  );
+  if (!gate.ok) return gate.response;
+  return gate.admin as unknown as NativeSessionUser;
 }
 
 function parseId(pathname: string): string | null {
@@ -101,7 +109,7 @@ export async function tryNativeAdminUsers(request: Request, env: AdminUserEnv): 
   if (!/^\/api\/v1\/admin\/users(?:\/[^/]+(?:\/password)?)?\/?$/.test(url.pathname)) return null;
 
   const admin = await requireAdmin(request, env);
-  if (!admin) return error(401, 'UNAUTHORIZED', 'Admin authentication required');
+  if (admin instanceof Response) return admin;
 
   if (request.method === 'GET' && (url.pathname.endsWith('/stats') || url.pathname.endsWith('/stats/'))) {
     const row = await env.DB.prepare(

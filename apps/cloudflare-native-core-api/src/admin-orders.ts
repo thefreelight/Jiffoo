@@ -1,4 +1,6 @@
-import { authenticateNativeAdmin, type NativeAuthEnv } from './auth';
+import { type NativeAuthEnv } from './auth';
+import { ADMIN_PERMISSIONS } from './native-rbac';
+import { requireAdminPermission } from './admin-access';
 import { attachShipments } from './shipments';
 
 interface AdminOrderEnv extends NativeAuthEnv { DB: D1Database }
@@ -63,13 +65,9 @@ async function attachCustomers(db: D1Database, orders: AdminOrder[]): Promise<vo
 export async function tryNativeAdminOrders(request: Request, env: AdminOrderEnv, _proxy: ProxyRequest): Promise<Response | null> {
   const url = new URL(request.url);
   if (request.method !== 'GET' || !/^\/api\/v1\/admin\/orders(?:\/[^/]+)?$/.test(url.pathname)) return null;
-  const admin = await authenticateNativeAdmin(request, env);
-  if (!admin) {
-    return Response.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Administrator authentication is required' } }, {
-      status: 401,
-      headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-admin-orders' },
-    });
-  }
+  const gate = await requireAdminPermission(request, env, ADMIN_PERMISSIONS.ORDERS_READ);
+  if (!gate.ok) return gate.response;
+  const admin = gate.admin;
   const detail = url.pathname.match(/^\/api\/v1\/admin\/orders\/([^/]+)$/);
   if (detail) {
     const row = await env.DB.prepare('SELECT payload FROM native_order_snapshots WHERE id = ?1')

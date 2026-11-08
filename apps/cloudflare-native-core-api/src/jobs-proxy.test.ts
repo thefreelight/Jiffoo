@@ -161,14 +161,16 @@ describe('native jobs admin proxy', () => {
   it('rejects non-admins without calling the upstream jobs worker', async () => {
     const service = { fetch: vi.fn(async () => Response.json({ sources: [] })) };
     const { tryNativeJobsAdminProxy } = await import('./jobs-proxy');
+    // RBAC model: an authenticated caller without plugins.read/write gets a
+    // 403 FORBIDDEN (401 stays reserved for unauthenticated callers).
     const response = await tryNativeJobsAdminProxy(
       new Request('https://api.example/api/v1/admin/plugins/remoteradar-jobs/sources'),
       { JOBS_SERVICE: service, JOBS_ADMIN_TOKEN: 'admin-secret' },
       async () => ({ id: 'user-1', role: 'USER' }),
     );
-    expect(response?.status).toBe(401);
+    expect(response?.status).toBe(403);
     expect(service.fetch).not.toHaveBeenCalled();
-    await expect(response?.json()).resolves.toMatchObject({ error: { code: 'UNAUTHORIZED' } });
+    await expect(response?.json()).resolves.toMatchObject({ error: { code: 'FORBIDDEN' } });
   });
 
   it('rejects public (unauthenticated) callers without leaking an upstream URL', async () => {

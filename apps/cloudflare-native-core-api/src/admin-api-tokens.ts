@@ -1,4 +1,6 @@
-import { authenticateNativeAdmin, type NativeAuthEnv } from './auth';
+import { type NativeAuthEnv } from './auth';
+import { ADMIN_PERMISSIONS } from './native-rbac';
+import { requireAdminPermission } from './admin-access';
 
 type TokenEnv = NativeAuthEnv & { DB: D1Database };
 const encoder = new TextEncoder();
@@ -16,8 +18,9 @@ function rawToken(): string {
 export async function tryNativeAdminApiTokens(request: Request, env: TokenEnv): Promise<Response | null> {
   const url = new URL(request.url);
   if (!/^\/api\/v1\/admin\/api-tokens(?:\/[^/]+)?\/?$/.test(url.pathname)) return null;
-  const admin = await authenticateNativeAdmin(request, env);
-  if (!admin) return Response.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Administrator authentication is required' } }, { status: 401 });
+  const tokensGate = await requireAdminPermission(request, env, ADMIN_PERMISSIONS.SETTINGS_WRITE);
+  if (!tokensGate.ok) return tokensGate.response;
+  const admin = tokensGate.admin;
   const id = url.pathname.match(/\/api-tokens\/([^/]+)\/?$/)?.[1];
   if (request.method === 'GET' && !id) {
     const rows = await env.DB.prepare(
