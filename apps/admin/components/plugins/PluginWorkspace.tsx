@@ -33,6 +33,7 @@ import { InstalledPluginsRail } from '@/components/extensions/InstalledPluginsRa
 import { OfficialBadge } from '@/components/extensions/ExtensionVisuals';
 import { PluginInstanceManager } from '@/components/plugins/PluginInstanceManager';
 import { RemoteRadarJobsNativeWorkspace } from '@/components/plugins/RemoteRadarJobsNativeWorkspace';
+import { SupportHubInboxWorkspace } from '@/components/plugins/SupportHubInboxWorkspace';
 import { useJobsAdminCapability } from '@/hooks/use-jobs-admin-capability';
 import { toast } from 'sonner';
 
@@ -1694,6 +1695,13 @@ export function PluginWorkspace({ slug }: { slug: string }) {
                 <RemoteRadarJobsNativeWorkspace
                   installationId={selectedInstance?.installationId || 'default'}
                   disabled={!selectedInstance}
+                />
+              ) : null}
+
+              {slug === 'support-hub' ? (
+                <SupportHubInboxWorkspace
+                  installationId={selectedInstance?.installationId || 'default'}
+                  disabled={!selectedInstance?.enabled}
                 />
               ) : null}
 
