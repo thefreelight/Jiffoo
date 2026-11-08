@@ -1,4 +1,6 @@
-import { authenticateNativeAdmin, type NativeAuthEnv } from './auth';
+import { type NativeAuthEnv } from './auth';
+import { ADMIN_PERMISSIONS } from './native-rbac';
+import { requireAdminPermission } from './admin-access';
 
 interface AdminSettingsEnv extends NativeAuthEnv { DB: D1Database }
 type SettingValue = string | number | boolean | string[] | null;
@@ -54,10 +56,9 @@ export async function tryNativeAdminSettings(request: Request, env: AdminSetting
   const isList = url.pathname === '/api/v1/admin/settings' && request.method === 'GET';
   const isBatch = url.pathname === '/api/v1/admin/settings/batch' && request.method === 'PUT';
   if (!isList && !isBatch) return null;
-  const admin = await authenticateNativeAdmin(request, env);
-  if (!admin) {
-    return json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Administrator authentication is required' } }, 401);
-  }
+  const settingsGate = await requireAdminPermission(request, env, isBatch ? ADMIN_PERMISSIONS.SETTINGS_WRITE : ADMIN_PERMISSIONS.SETTINGS_READ);
+  if (!settingsGate.ok) return settingsGate.response;
+  const admin = settingsGate.admin;
   if (isList) {
     return json({ success: true, data: await readSettings(env) });
   }

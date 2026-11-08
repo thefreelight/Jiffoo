@@ -1,4 +1,6 @@
-import { authenticateNativeAdmin, type NativeAuthEnv, type NativeSessionUser } from './auth';
+import { type NativeAuthEnv, type NativeSessionUser } from './auth';
+import { ADMIN_PERMISSIONS } from './native-rbac';
+import { requireAdminPermission } from './admin-access';
 import { loadProductCopyOverrides } from './product-copy';
 
 type ProductEnv = NativeAuthEnv & { DB: D1Database };
@@ -85,13 +87,9 @@ export async function tryNativeAdminProducts(request: Request, env: ProductEnv):
     );
   }
 
-  const admin = await authenticateNativeAdmin(request, env);
-  if (!admin) {
-    return Response.json(
-      { success: false, error: { code: 'UNAUTHORIZED', message: 'Administrator authentication is required' } },
-      { status: 401, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-admin-products' } },
-    );
-  }
+  const productsGate = await requireAdminPermission(request, env, request.method === 'PUT' ? ADMIN_PERMISSIONS.PRODUCTS_WRITE : ADMIN_PERMISSIONS.PRODUCTS_READ);
+  if (!productsGate.ok) return productsGate.response;
+  const admin = productsGate.admin;
 
   if (request.method === 'PUT' && descriptionMatch) {
     return saveDescriptionOverride(env, decodeURIComponent(descriptionMatch[1]), request, admin);

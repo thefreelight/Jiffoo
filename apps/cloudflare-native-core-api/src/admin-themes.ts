@@ -1,4 +1,6 @@
-import { authenticateNativeAdmin, type NativeAuthEnv } from './auth';
+import { type NativeAuthEnv } from './auth';
+import { ADMIN_PERMISSIONS } from './native-rbac';
+import { requireAdminPermission } from './admin-access';
 
 type ThemesEnv = NativeAuthEnv & { DB: D1Database };
 
@@ -49,12 +51,8 @@ export async function tryNativeAdminThemes(request: Request, env: ThemesEnv): Pr
   // The admin-target active read keeps its dedicated snapshot route handling.
   if (url.pathname === '/api/v1/admin/themes/admin/active') return null;
 
-  if (!await authenticateNativeAdmin(request, env)) {
-    return Response.json(
-      { success: false, error: { code: 'UNAUTHORIZED', message: 'Administrator authentication is required' } },
-      { status: 401, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-admin-themes' } },
-    );
-  }
+  const themesGate = await requireAdminPermission(request, env, ADMIN_PERMISSIONS.THEMES_READ);
+  if (!themesGate.ok) return themesGate.response;
 
   if (/^\/api\/v1\/admin\/themes\/?$/.test(url.pathname)) {
     return Response.json(

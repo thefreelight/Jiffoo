@@ -18,13 +18,15 @@
  *   - gateway:     /api/v1/extensions/plugin/support-hub/api/{store,admin}/...
  */
 
-import { authenticateNativeAdmin, type NativeAuthEnv } from './auth';
+import { type NativeAuthEnv, type PublicUser } from './auth';
 import { isNativePluginEnabled } from './plugin-enabled';
+import { ADMIN_PERMISSIONS } from './native-rbac';
+import { requireAdminPermission } from './admin-access';
 
 type SupportHubEnv = NativeAuthEnv & { DB: D1Database };
 
 const RUNTIME = 'cloudflare-native-support-hub';
-const PLUGIN_VERSION = '0.0.4';
+const PLUGIN_VERSION = '0.0.5';
 
 export interface SupportHubSettings {
   enabled: boolean;
@@ -91,6 +93,8 @@ export interface SupportChatMessage {
   role: 'visitor' | 'assistant';
   content: string;
   actions?: SupportChatAction[];
+  /** 'ai' | 'agent' for assistant messages; absent for visitor messages (0.0.5+). */
+  sender?: 'ai' | 'agent';
   createdAt: string;
 }
 
@@ -362,6 +366,7 @@ interface ConversationRecord {
   id: string;
   visitor_token: string;
   message_count: number;
+  status?: string;
 }
 
 async function ensureConversation(
@@ -372,13 +377,13 @@ async function ensureConversation(
 ): Promise<ConversationRecord | null> {
   if (conversationId) {
     const row = await env.DB.prepare(
-      `SELECT id, visitor_token, message_count FROM native_support_hub_conversations
+      `SELECT id, visitor_token, message_count, status FROM native_support_hub_conversations
        WHERE id = ?1 AND installation_id = ?2 AND visitor_token = ?3 LIMIT 1`,
     ).bind(conversationId, installationId, visitorToken).first<ConversationRecord>();
     return row ?? null;
   }
   const existing = await env.DB.prepare(
-    `SELECT id, visitor_token, message_count FROM native_support_hub_conversations
+    `SELECT id, visitor_token, message_count, status FROM native_support_hub_conversations
      WHERE installation_id = ?1 AND visitor_token = ?2 LIMIT 1`,
   ).bind(installationId, visitorToken).first<ConversationRecord>();
   if (existing) return existing;
@@ -390,11 +395,11 @@ async function ensureConversation(
      ON CONFLICT(installation_id, visitor_token) DO NOTHING`,
   ).bind(id, installationId, visitorToken, now).run();
   const created = await env.DB.prepare(
-    'SELECT id, visitor_token, message_count FROM native_support_hub_conversations WHERE id = ?1 LIMIT 1',
+    'SELECT id, visitor_token, message_count, status FROM native_support_hub_conversations WHERE id = ?1 LIMIT 1',
   ).bind(id).first<ConversationRecord>();
   if (created) return created;
   return await env.DB.prepare(
-    `SELECT id, visitor_token, message_count FROM native_support_hub_conversations
+    `SELECT id, visitor_token, message_count, status FROM native_support_hub_conversations
      WHERE installation_id = ?1 AND visitor_token = ?2 LIMIT 1`,
   ).bind(installationId, visitorToken).first<ConversationRecord>();
 }
@@ -404,6 +409,7 @@ interface MessageRecord {
   role: string;
   content: string;
   actions_json: string | null;
+  sender?: string | null;
   created_at: string;
 }
 
@@ -425,11 +431,13 @@ function toChatMessage(row: MessageRecord): SupportChatMessage {
       actions = undefined;
     }
   }
+  const sender = row.sender === 'agent' ? 'agent' : row.sender === 'ai' ? 'ai' : undefined;
   return {
     id: row.id,
     role: row.role === 'assistant' ? 'assistant' : 'visitor',
     content: row.content,
     ...(actions && actions.length ? { actions } : {}),
+    ...(sender ? { sender } : {}),
     createdAt: row.created_at,
   };
 }
@@ -441,14 +449,15 @@ async function insertChatMessage(
   role: 'visitor' | 'assistant',
   content: string,
   actions?: SupportChatAction[],
+  sender?: 'ai' | 'agent',
 ): Promise<SupportChatMessage> {
   const id = `shmsg_${crypto.randomUUID()}`;
   const createdAt = new Date().toISOString();
   const actionsJson = actions && actions.length ? JSON.stringify(actions) : null;
   await env.DB.prepare(
-    `INSERT INTO native_support_hub_messages (id, conversation_id, installation_id, role, content, actions_json, created_at)
-     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`,
-  ).bind(id, conversationId, installationId, role, content, actionsJson, createdAt).run();
+    `INSERT INTO native_support_hub_messages (id, conversation_id, installation_id, role, content, actions_json, sender, created_at)
+     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)`,
+  ).bind(id, conversationId, installationId, role, content, actionsJson, sender ?? null, createdAt).run();
   await env.DB.prepare(
     'UPDATE native_support_hub_conversations SET message_count = message_count + 1, updated_at = ?2 WHERE id = ?1',
   ).bind(conversationId, new Date().toISOString()).run();
@@ -457,6 +466,7 @@ async function insertChatMessage(
     role,
     content,
     ...(actions && actions.length ? { actions } : {}),
+    ...(sender ? { sender } : {}),
     createdAt,
   };
 }
@@ -490,6 +500,17 @@ async function recentVisitorMessageCount(
      JOIN native_support_hub_conversations c ON c.id = m.conversation_id
      WHERE c.installation_id = ?1 AND c.visitor_token = ?2 AND m.role = 'visitor' AND m.created_at > ?3`,
   ).bind(installationId, visitorToken, cutoff).first<{ count: number }>();
+  return Number(row?.count ?? 0);
+}
+
+async function unreadVisitorMessageCount(env: SupportHubEnv, adminUserId: string): Promise<number> {
+  const row = await env.DB.prepare(
+    `SELECT COUNT(*) AS count
+     FROM native_support_hub_messages m
+     JOIN native_support_hub_conversations c ON c.id = m.conversation_id
+     LEFT JOIN native_support_hub_admin_reads r ON r.conversation_id = c.id AND r.admin_user_id = ?1
+     WHERE c.installation_id = 'default' AND m.role = 'visitor' AND (r.last_read_at IS NULL OR m.created_at > r.last_read_at)`,
+  ).bind(adminUserId).first<{ count: number }>();
   return Number(row?.count ?? 0);
 }
 
@@ -552,11 +573,15 @@ export async function tryNativeSupportHub(
       return failure(404, 'CONVERSATION_NOT_FOUND', 'Conversation does not exist for this visitor');
     }
     const visitorMessage = await insertChatMessage(env, installationId, conversation.id, 'visitor', message);
+    if (conversation.status === 'agent') {
+      // Human agent has taken over: store for the inbox, agent answers manually.
+      return success({ conversationId: conversation.id, visitorMessage, reply: null });
+    }
     const history = await conversationHistory(env, conversation.id);
     const aiReply = await requestAiReply(env, settings, history, message);
     let reply: SupportChatMessage;
     if (aiReply) {
-      reply = await insertChatMessage(env, installationId, conversation.id, 'assistant', aiReply);
+      reply = await insertChatMessage(env, installationId, conversation.id, 'assistant', aiReply, undefined, 'ai');
     } else {
       const handoff = buildNativeHandoffReply(settings);
       reply = await insertChatMessage(env, installationId, conversation.id, 'assistant', handoff.content, handoff.actions);
@@ -601,8 +626,28 @@ export async function tryNativeSupportHub(
   }
 
   if (path.startsWith('/admin/')) {
-    const admin = await authenticateNativeAdmin(request, env);
-    if (!admin) return failure(401, 'UNAUTHORIZED', 'Administrator authentication is required');
+    // Permission model: reading conversations/history/unread needs support.read;
+    // answering (reply) and read-state management need support.write; plugin
+    // settings (channels + AI key) are admin config and need plugins.read/write.
+    const needsSupportWrite = (
+      (request.method === 'POST' && (path === '/admin/conversations/mark-read' || Boolean(path.match(/^\/admin\/conversations\/[^/]+\/reply$/))))
+    );
+    const needsPluginsWrite = request.method === 'PUT' && path === '/admin/settings';
+    const readsConversations = request.method === 'GET' && (
+      path === '/admin/conversations'
+      || path === '/admin/conversations/unread-count'
+      || Boolean(path.match(/^\/admin\/conversations\/[^/]+\/messages$/))
+    );
+    const adminPermission = needsSupportWrite
+      ? ADMIN_PERMISSIONS.SUPPORT_WRITE
+      : needsPluginsWrite
+        ? ADMIN_PERMISSIONS.PLUGINS_WRITE
+        : readsConversations
+          ? ADMIN_PERMISSIONS.SUPPORT_READ
+          : ADMIN_PERMISSIONS.PLUGINS_READ;
+    const adminGate = await requireAdminPermission(request, env, adminPermission);
+    if (!adminGate.ok) return adminGate.response;
+    const admin: PublicUser = adminGate.admin;
 
     if (request.method === 'GET' && path === '/admin/settings') {
       return success(normalizeSettings(await loadSettings(env)));
@@ -616,6 +661,53 @@ export async function tryNativeSupportHub(
       const merged = normalizeSettings(body);
       await saveSettings(env, merged);
       return success(merged);
+    }
+
+    if (request.method === 'GET' && path === '/admin/conversations/unread-count') {
+      const count = await unreadVisitorMessageCount(env, admin.id);
+      return success({ unread: count });
+    }
+
+    if (request.method === 'POST' && path === '/admin/conversations/mark-read') {
+      const body = await request.json<Record<string, unknown>>().catch(() => null);
+      const conversationId = sanitizeConversationId((body ?? {}).conversationId);
+      if (!conversationId) {
+        return failure(400, 'VALIDATION_ERROR', 'conversationId is required');
+      }
+      const conversation = await env.DB.prepare(
+        "SELECT id, visitor_token, message_count, status FROM native_support_hub_conversations WHERE id = ?1 AND installation_id = 'default' LIMIT 1",
+      ).bind(conversationId).first<ConversationRecord>();
+      if (!conversation) {
+        return failure(404, 'CONVERSATION_NOT_FOUND', 'Conversation not found');
+      }
+      const now = new Date().toISOString();
+      await env.DB.prepare(
+        `INSERT INTO native_support_hub_admin_reads (id, admin_user_id, conversation_id, last_read_at)
+         VALUES (?1, ?2, ?3, ?4)
+         ON CONFLICT(admin_user_id, conversation_id) DO UPDATE SET last_read_at = excluded.last_read_at`,
+      ).bind(`shread_${crypto.randomUUID()}`, admin.id, conversationId, now).run();
+      return success({ conversationId, markedReadAt: now });
+    }
+
+    const replyMatch = path.match(/^\/admin\/conversations\/([A-Za-z0-9_-]{8,128})\/reply$/);
+    if (request.method === 'POST' && replyMatch) {
+      const conversationId = replyMatch[1];
+      const body = await request.json<Record<string, unknown>>().catch(() => null);
+      const message = sanitizeMessage((body ?? {}).message);
+      if (!message) {
+        return failure(400, 'VALIDATION_ERROR', `message must be 1-${MESSAGE_MAX_LENGTH} characters`);
+      }
+      const conversation = await env.DB.prepare(
+        "SELECT id, visitor_token, message_count, status FROM native_support_hub_conversations WHERE id = ?1 AND installation_id = 'default' LIMIT 1",
+      ).bind(conversationId).first<ConversationRecord>();
+      if (!conversation) {
+        return failure(404, 'CONVERSATION_NOT_FOUND', 'Conversation not found');
+      }
+      const reply = await insertChatMessage(env, 'default', conversation.id, 'assistant', message, undefined, 'agent');
+      await env.DB.prepare(
+        "UPDATE native_support_hub_conversations SET status = 'agent', updated_at = ?2 WHERE id = ?1",
+      ).bind(conversation.id, new Date().toISOString()).run();
+      return success({ conversationId: conversation.id, reply });
     }
 
     if (request.method === 'GET' && path === '/admin/conversations') {
@@ -648,7 +740,7 @@ export async function tryNativeSupportHub(
     if (request.method === 'GET' && conversationMessagesMatch) {
       const conversationId = conversationMessagesMatch[1];
       const conversation = await env.DB.prepare(
-        `SELECT id, visitor_token FROM native_support_hub_conversations
+        `SELECT id, visitor_token, status FROM native_support_hub_conversations
          WHERE id = ?1 AND installation_id = 'default' LIMIT 1`,
       ).bind(conversationId).first<{ id: string; visitor_token: string }>();
       if (!conversation) {

@@ -136,7 +136,9 @@ describe('native admin login fallback', () => {
       password_salt: base64Url(salt),
       password_hash: await derive('legacy-pass', salt),
     });
-    const db = makeDb([null, bridged]);
+    // Queue: identifier miss (bridge trigger), post-upsert find, then
+    // loadNativeAdminAccount re-reads the user row and probes memberships.
+    const db = makeDb([null, bridged, bridged, null]);
     const proxyRequest = vi.fn().mockResolvedValue(new Response(
       JSON.stringify({ success: true, data: { user: { id: 'legacy-1', email: 'legacy@example.com', username: 'legacy', role: 'SUPER_ADMIN' } } }),
       { status: 200, headers: JSON_HEADERS },

@@ -1,13 +1,14 @@
-import { authenticateNativeAdmin, type NativeAuthEnv } from './auth';
+import { type NativeAuthEnv } from './auth';
+import { ADMIN_PERMISSIONS } from './native-rbac';
+import { requireAdminPermission } from './admin-access';
 
 type DashboardEnv = NativeAuthEnv & { DB: D1Database };
 
 export async function tryNativeAdminDashboard(request: Request, env: DashboardEnv): Promise<Response | null> {
   const url = new URL(request.url);
   if (request.method !== 'GET' || url.pathname !== '/api/v1/admin/dashboard') return null;
-  if (!await authenticateNativeAdmin(request, env)) {
-    return Response.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Administrator authentication is required' } }, { status: 401 });
-  }
+  const dashboardGate = await requireAdminPermission(request, env, ADMIN_PERMISSIONS.DASHBOARD_READ);
+  if (!dashboardGate.ok) return dashboardGate.response;
 
   const [users, orders, products] = await Promise.all([
     env.DB.prepare("SELECT COUNT(*) AS count FROM native_users WHERE role = 'USER'").first<{ count: number }>(),

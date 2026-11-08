@@ -20,7 +20,7 @@ afterEach(() => vi.clearAllMocks());
 
 describe('native plugin settings admin routes', () => {
   it('lists the bokmoo-connect native adapter alongside built-in plugins', async () => {
-    authenticateNativeAdmin.mockResolvedValue({ id: 'admin-1', email: 'admin@example.com' });
+    authenticateNativeAdmin.mockResolvedValue({ id: 'admin-1', email: 'admin@example.com', role: 'ADMIN' });
     const response = await tryNativePluginSettings(
       new Request('https://api.example/api/v1/extensions/plugin', { headers: { authorization: 'Bearer admin-token' } }),
       { DB: { prepare: vi.fn(() => statement(null)) } } as never,
@@ -42,7 +42,7 @@ describe('native plugin settings admin routes', () => {
   });
 
   it('answers the bokmoo-connect plugin detail route natively instead of proxying', async () => {
-    authenticateNativeAdmin.mockResolvedValue({ id: 'admin-1', email: 'admin@example.com' });
+    authenticateNativeAdmin.mockResolvedValue({ id: 'admin-1', email: 'admin@example.com', role: 'ADMIN' });
     const response = await tryNativePluginSettings(
       new Request('https://api.example/api/v1/extensions/plugin/bokmoo-connect', { headers: { authorization: 'Bearer admin-token' } }),
       { DB: { prepare: vi.fn() } } as never,
@@ -75,7 +75,7 @@ describe('native plugin settings admin routes', () => {
   });
 
   it('returns the installed bokmoo-connect instance with its enabled state', async () => {
-    authenticateNativeAdmin.mockResolvedValue({ id: 'admin-1', email: 'admin@example.com' });
+    authenticateNativeAdmin.mockResolvedValue({ id: 'admin-1', email: 'admin@example.com', role: 'ADMIN' });
     const instance = {
       id: 'installation-1',
       plugin_slug: 'bokmoo-connect',
@@ -88,7 +88,9 @@ describe('native plugin settings admin routes', () => {
     };
     const response = await tryNativePluginSettings(
       new Request('https://api.example/api/v1/extensions/plugin/bokmoo-connect/instances', { headers: { authorization: 'Bearer admin-token' } }),
-      { DB: { prepare: vi.fn(() => statement(instance)) } } as never,
+      { DB: { prepare: vi.fn((sql: string) => (
+        sql.includes('native_admin_memberships') ? statement(null) : statement(instance)
+      )) } } as never,
     );
     expect(response?.status).toBe(200);
     const payload = await response?.json() as any;
@@ -102,7 +104,7 @@ describe('native plugin settings admin routes', () => {
   });
 
   it('answers unknown plugin slugs with a structured 404 so they are not mistaken for native plugins', async () => {
-    authenticateNativeAdmin.mockResolvedValue({ id: 'admin-1', email: 'admin@example.com' });
+    authenticateNativeAdmin.mockResolvedValue({ id: 'admin-1', email: 'admin@example.com', role: 'ADMIN' });
     const response = await tryNativePluginSettings(
       new Request('https://api.example/api/v1/extensions/plugin/does-not-exist', { headers: { authorization: 'Bearer admin-token' } }),
       { DB: { prepare: vi.fn() } } as never,
@@ -117,7 +119,7 @@ describe('native plugin settings admin routes', () => {
 
 describe('unknown plugin slugs fail fast natively', () => {
   it('answers gateway-only plugin detail with a structured 404 instead of proxying', async () => {
-    authenticateNativeAdmin.mockResolvedValue({ id: 'admin-1', email: 'admin@example.com' });
+    authenticateNativeAdmin.mockResolvedValue({ id: 'admin-1', email: 'admin@example.com', role: 'ADMIN' });
     const response = await tryNativePluginSettings(
       new Request('https://api.example/api/v1/extensions/plugin/remoteradar-jobs', { headers: { authorization: 'Bearer admin-token' } }),
       { DB: { prepare: vi.fn() } } as never,
@@ -131,7 +133,7 @@ describe('unknown plugin slugs fail fast natively', () => {
   });
 
   it('answers gateway-only plugin instances with an empty native page', async () => {
-    authenticateNativeAdmin.mockResolvedValue({ id: 'admin-1', email: 'admin@example.com' });
+    authenticateNativeAdmin.mockResolvedValue({ id: 'admin-1', email: 'admin@example.com', role: 'ADMIN' });
     const response = await tryNativePluginSettings(
       new Request('https://api.example/api/v1/extensions/plugin/remoteradar-jobs/instances?page=1&limit=100', { headers: { authorization: 'Bearer admin-token' } }),
       { DB: { prepare: vi.fn() } } as never,

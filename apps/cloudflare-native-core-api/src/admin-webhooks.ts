@@ -1,4 +1,6 @@
-import { authenticateNativeAdmin, type NativeAuthEnv } from './auth';
+import { type NativeAuthEnv } from './auth';
+import { ADMIN_PERMISSIONS } from './native-rbac';
+import { requireAdminPermission } from './admin-access';
 
 interface AdminWebhookEnv extends NativeAuthEnv { DB: D1Database }
 
@@ -57,8 +59,9 @@ async function body(request: Request): Promise<Record<string, unknown> | null> {
 export async function tryNativeAdminWebhooks(request: Request, env: AdminWebhookEnv): Promise<Response | null> {
   const url = new URL(request.url);
   if (!url.pathname.startsWith('/api/v1/admin/webhooks/')) return null;
-  const admin = await authenticateNativeAdmin(request, env);
-  if (!admin) return error(401, 'UNAUTHORIZED', 'Admin authentication required');
+  const webhooksGate = await requireAdminPermission(request, env, request.method === 'GET' ? ADMIN_PERMISSIONS.WEBHOOKS_READ : ADMIN_PERMISSIONS.WEBHOOKS_WRITE);
+  if (!webhooksGate.ok) return webhooksGate.response;
+  const admin = webhooksGate.admin;
 
   const subscriptionMatch = url.pathname.match(/^\/api\/v1\/admin\/webhooks\/subscriptions(?:\/([^/]+))?$/);
   if (subscriptionMatch) {

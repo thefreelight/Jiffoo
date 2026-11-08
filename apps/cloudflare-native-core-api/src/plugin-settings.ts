@@ -1,4 +1,6 @@
 import { authenticateNativeAdmin, getNativeJwtSecret, type NativeAuthEnv } from './auth';
+import { ADMIN_PERMISSIONS } from './native-rbac';
+import { adminHasPermission, resolveNativeAdminAccess } from './admin-access';
 
 type ConfigValue = string | number | boolean | null | ConfigValue[] | { [key: string]: ConfigValue };
 type PluginConfig = Record<string, ConfigValue>;
@@ -413,6 +415,10 @@ export async function tryNativePluginSettings(request: Request, env: PluginSetti
   if (url.pathname === '/api/v1/extensions/plugin' && request.method === 'GET') {
     const admin = await authenticateNativeAdmin(request, env);
     if (!admin) return response({ code: 'UNAUTHORIZED', message: 'Admin authentication required' }, 401);
+    const catalogAccess = await resolveNativeAdminAccess(env, admin.id, admin.role);
+    if (!adminHasPermission(catalogAccess, ADMIN_PERMISSIONS.PLUGINS_READ)) {
+      return response({ code: 'FORBIDDEN', message: 'Permission required: plugins.read' }, 403);
+    }
     const items = await Promise.all(Object.values(definitions).map(async (definition) => {
       const instance = await findInstance(env, definition.slug);
       return {
@@ -431,6 +437,11 @@ export async function tryNativePluginSettings(request: Request, env: PluginSetti
   if (!slug) return null;
   const admin = await authenticateNativeAdmin(request, env);
   if (!admin) return response({ code: 'UNAUTHORIZED', message: 'Admin authentication required' }, 401);
+  const pluginAccess = await resolveNativeAdminAccess(env, admin.id, admin.role);
+  const pluginPermission = request.method === 'GET' ? ADMIN_PERMISSIONS.PLUGINS_READ : ADMIN_PERMISSIONS.PLUGINS_WRITE;
+  if (!adminHasPermission(pluginAccess, pluginPermission)) {
+    return response({ code: 'FORBIDDEN', message: `Permission required: ${request.method === 'GET' ? 'plugins.read' : 'plugins.write'}` }, 403);
+  }
   const definition = definitions[slug];
   if (!definition) {
     // Slugs outside the native registry (e.g. gateway-only plugins such as

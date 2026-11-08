@@ -51,6 +51,8 @@ export const ADMIN_PERMISSIONS = {
   WEBHOOKS_READ: 'webhooks.read',
   WEBHOOKS_WRITE: 'webhooks.write',
   CATALOG_IMPORT_RUN: 'catalogImport.run',
+  SUPPORT_READ: 'support.read',
+  SUPPORT_WRITE: 'support.write',
 } as const;
 
 export type AdminPermission = typeof ADMIN_PERMISSIONS[keyof typeof ADMIN_PERMISSIONS];
@@ -90,6 +92,10 @@ export const ADMIN_PERMISSION_GROUPS = {
   HEALTH: [ADMIN_PERMISSIONS.HEALTH_READ],
   WEBHOOKS: [ADMIN_PERMISSIONS.WEBHOOKS_READ, ADMIN_PERMISSIONS.WEBHOOKS_WRITE],
   CATALOG_IMPORT: [ADMIN_PERMISSIONS.CATALOG_IMPORT_RUN],
+  SUPPORT: [
+    ADMIN_PERMISSIONS.SUPPORT_READ,
+    ADMIN_PERMISSIONS.SUPPORT_WRITE,
+  ],
 } as const satisfies Record<string, readonly AdminPermission[]>;
 
 const ALL_ADMIN_PERMISSIONS = Object.values(ADMIN_PERMISSIONS) as AdminPermission[];
@@ -119,13 +125,14 @@ export const DEFAULT_ADMIN_ROLE_PERMISSIONS: Record<AdminRole, readonly AdminPer
     ADMIN_PERMISSIONS.INVENTORY_FORECAST,
     ADMIN_PERMISSIONS.HEALTH_READ,
   ],
+  // Support agents answer storefront customer conversations. They see the
+  // dashboard shell plus the support inbox only — customers, orders,
+  // products and settings stay out of the role defaults; grant them via
+  // extra_permissions if a specific operator needs more.
   SUPPORT_AGENT: [
     ADMIN_PERMISSIONS.DASHBOARD_READ,
-    ADMIN_PERMISSIONS.CUSTOMERS_READ,
-    ADMIN_PERMISSIONS.CUSTOMERS_WRITE,
-    ADMIN_PERMISSIONS.CUSTOMERS_CREDENTIALS_RESET,
-    ADMIN_PERMISSIONS.ORDERS_READ,
-    ADMIN_PERMISSIONS.ORDERS_WRITE,
+    ADMIN_PERMISSIONS.SUPPORT_READ,
+    ADMIN_PERMISSIONS.SUPPORT_WRITE,
   ],
   ANALYST: [
     ADMIN_PERMISSIONS.DASHBOARD_READ,

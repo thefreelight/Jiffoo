@@ -1,4 +1,6 @@
-import { authenticateNativeAdmin, type NativeAuthEnv } from './auth';
+import { type NativeAuthEnv } from './auth';
+import { ADMIN_PERMISSIONS } from './native-rbac';
+import { requireAdminPermission } from './admin-access';
 import { attachShipments } from './shipments';
 import { getNativeStripeSecret } from './plugin-settings';
 
@@ -83,8 +85,9 @@ export async function tryNativeAdminWrites(request: Request, env: AdminWriteEnv)
   const refundMatch = url.pathname.match(/^\/api\/v1\/admin\/orders\/([^/]+)\/refund$/);
   const itemMatch = url.pathname.match(/^\/api\/v1\/admin\/orders\/([^/]+)\/items\/([^/]+)\/fulfillment$/);
   if (!(request.method === 'PUT' && (statusMatch || itemMatch)) && !(request.method === 'POST' && (shipMatch || cancelMatch || refundMatch))) return null;
-  const admin = await authenticateNativeAdmin(request, env);
-  if (!admin) return null;
+  const writeGate = await requireAdminPermission(request, env, ADMIN_PERMISSIONS.ORDERS_WRITE);
+  if (!writeGate.ok) return writeGate.response;
+  const admin = writeGate.admin;
   const orderId = (statusMatch ?? shipMatch ?? cancelMatch ?? refundMatch ?? itemMatch)![1]!;
   const native = await loadNativeOrder(env, orderId);
   if (!native) return null;

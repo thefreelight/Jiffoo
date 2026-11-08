@@ -1,4 +1,6 @@
 import { applyJobTitleTranslations, detectJobLocale } from './jobs-translate';
+import { ADMIN_PERMISSIONS } from './native-rbac';
+import { adminHasPermission, resolveNativeAdminAccess } from './admin-access';
 
 export interface NativeJobsProxyEnv {
   JOBS_SERVICE_URL?: string;
@@ -47,9 +49,18 @@ export async function tryNativeJobsAdminProxy(
     });
   }
   const admin = await authenticate(request, env);
-  if (!admin || !['ADMIN', 'SUPER_ADMIN'].includes(admin.role)) {
+  if (!admin) {
     return Response.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Administrator authentication is required' } }, {
       status: 401,
+      headers: { 'cache-control': 'no-store', 'x-jiffoo-runtime': 'cloudflare-native-jobs-proxy' },
+    });
+  }
+  // The jobs proxy env types DB loosely, but at runtime it is the same D1 binding.
+  const jobsAccess = await resolveNativeAdminAccess(env as unknown as Parameters<typeof resolveNativeAdminAccess>[0], admin.id, admin.role);
+  const requiredJobsPermission = method === 'GET' ? ADMIN_PERMISSIONS.PLUGINS_READ : ADMIN_PERMISSIONS.PLUGINS_WRITE;
+  if (!adminHasPermission(jobsAccess, requiredJobsPermission)) {
+    return Response.json({ success: false, error: { code: 'FORBIDDEN', message: `Permission required: ${method === 'GET' ? 'plugins.read' : 'plugins.write'}` } }, {
+      status: 403,
       headers: { 'cache-control': 'no-store', 'x-jiffoo-runtime': 'cloudflare-native-jobs-proxy' },
     });
   }
