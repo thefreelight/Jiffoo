@@ -7,9 +7,12 @@
 
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { generateProductMetaTags, generateProductStructuredData } from '@/lib/seo-utils';
+import { generateProductMetaTags, generateProductStructuredData, generateMetaTitle } from '@/lib/seo-utils';
 import { generateMetadata as generateSeoMetadata } from '@/components/seo/SeoHead';
 import { buildServerApiUrl, resolvePublicOrigin } from '@/lib/server-api-url';
+import { fetchStoreName } from '@/lib/seo/store-context';
+import { storeLocales } from '@/lib/store-locales';
+import { DEFAULT_LOCALE } from 'shared/src/i18n';
 import type { ApiResponse, ShopProductDetailDTO } from 'shared';
 import ProductDetailClient from './ProductDetailClient';
 
@@ -74,6 +77,12 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
     const resolvedParams = await params;
     const product = await getServerProduct(resolvedParams.id, resolvedParams.locale);
     const publicOrigin = await resolvePublicOrigin();
+    const siteName = (await fetchStoreName(publicOrigin)) ?? 'Jiffoo';
+
+    // Product URLs are locale-prefixed (/…/{locale}/products/{id}), so the
+    // canonical must carry the same prefix — every language version
+    // self-canonicalizes and cross-links its siblings via hreflang.
+    const productPath = `/${resolvedParams.locale}/products/${resolvedParams.id}`;
 
     // Get image URL - use first image if available
     const imageUrl = product.images && product.images.length > 0
@@ -85,17 +94,33 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
       name: product.name,
       description: product.description || '',
       slug: resolvedParams.id,
+      path: productPath,
       baseUrl: publicOrigin,
       imageUrl,
       price: product.price,
       currency: 'USD',
     });
 
+    // Keyword-first product title with the store brand suffix (unique per
+    // page; the brand is omitted when the name already contains it).
+    const title = generateMetaTitle(metaTags.title, siteName);
+
+    const locales = storeLocales();
+    const alternates: Record<string, string> = {
+      ...Object.fromEntries(
+        locales.map((locale) => [
+          locale,
+          new URL(`/${locale}/products/${resolvedParams.id}`, publicOrigin).toString(),
+        ])
+      ),
+      'x-default': new URL(`/${DEFAULT_LOCALE}/products/${resolvedParams.id}`, publicOrigin).toString(),
+    };
+
     // Convert to Next.js Metadata format
-    return generateSeoMetadata(metaTags, {
-      siteName: 'Jiffoo Mall',
-      locale: resolvedParams.locale,
-    });
+    return generateSeoMetadata(
+      { ...metaTags, title },
+      { siteName, locale: resolvedParams.locale, alternates }
+    );
   } catch (error) {
     // Return default metadata if product not found
     return {
@@ -112,6 +137,7 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
 export default async function ProductPage({ params }: ProductPageProps) {
   const resolvedParams = await params;
   const publicOrigin = await resolvePublicOrigin();
+  const siteName = (await fetchStoreName(publicOrigin)) ?? 'Jiffoo';
 
   let product;
   try {
@@ -134,11 +160,13 @@ export default async function ProductPage({ params }: ProductPageProps) {
     name: product.name,
     description: product.description || '',
     slug: resolvedParams.id,
+    path: `/${resolvedParams.locale}/products/${resolvedParams.id}`,
     baseUrl: publicOrigin,
     imageUrl,
     price: product.price,
     currency: 'USD',
     availability,
+    brand: siteName,
   });
 
   return (

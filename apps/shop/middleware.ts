@@ -8,29 +8,18 @@
  * Priority: Theme App forwarding > Locale redirect > Pass through
  */
 
-import { LOCALES, DEFAULT_LOCALE, isSupportedLocale } from 'shared/src/i18n';
+import { DEFAULT_LOCALE, isSupportedLocale } from 'shared/src/i18n';
 import { createProxyHandler, type ProxyConfig } from 'shared/src/proxy';
 import { NextResponse } from 'next/server';
-
-/**
- * Store-scoped locale list for redirect detection.
- *
- * Locale detection must match against the locales THIS store actually
- * supports (store context `supportedLocales`, mirrored in the deployment's
- * NEXT_PUBLIC_FALLBACK_SUPPORTED_LOCALES var) — not the framework-wide
- * list. Otherwise a zh-Hant-only store sends Simplified-Chinese visitors
- * to /zh-Hans, where the theme's zh-Hant copy never renders. Stores that
- * do not set the var keep the framework-wide behavior.
- */
-function storeLocales(): readonly string[] {
-  const raw = process.env.NEXT_PUBLIC_FALLBACK_SUPPORTED_LOCALES;
-  if (!raw) return LOCALES;
-  const parsed = raw
-    .split(',')
-    .map((locale) => locale.trim())
-    .filter((locale) => isSupportedLocale(locale));
-  return parsed.length > 0 ? parsed : LOCALES;
-}
+import { storeLocales } from '@/lib/store-locales';
+import {
+  buildRedirectTarget,
+  countRedirectHit,
+  fetchStorefrontRedirects,
+  isRedirectCandidate,
+  matchStorefrontRedirect,
+  type StorefrontRedirect,
+} from '@/lib/seo/redirects';
 
 /**
  * Shop proxy configuration
@@ -40,6 +29,47 @@ const shopProxyConfig: ProxyConfig = {
   defaultLocale: DEFAULT_LOCALE,
   locales: storeLocales(),
 };
+
+/**
+ * Storefront SEO redirects (admin-configured 301/302/307/308 mappings).
+ *
+ * The redirect list is read from the runtime-local SEO surface on a TTL
+ * (per isolate): a cold cache awaits the fetch once, then the list is
+ * served from memory and refreshed in the background when stale — matching
+ * paths must not pay a per-request lookup. When no surface answers
+ * (plugin/alias not deployed) the list stays empty and every request
+ * passes through unchanged.
+ */
+const SEO_REDIRECTS_TTL_MS = 5 * 60 * 1000;
+let seoRedirects: { items: StorefrontRedirect[]; surface: 'native' | 'core' | null; refreshedAt: number } | null = null;
+let seoRedirectsRefresh: Promise<void> | null = null;
+
+async function ensureSeoRedirects(origin: string): Promise<void> {
+  const now = Date.now();
+  if (seoRedirects && now - seoRedirects.refreshedAt < SEO_REDIRECTS_TTL_MS) return;
+  if (seoRedirects && seoRedirectsRefresh) return; // Stale but already refreshing.
+  if (!seoRedirects) {
+    try {
+      const result = await fetchStorefrontRedirects(origin);
+      seoRedirects = { ...result, refreshedAt: Date.now() };
+    } catch {
+      seoRedirects = { items: [], surface: null, refreshedAt: Date.now() };
+    }
+    return;
+  }
+  if (!seoRedirectsRefresh) {
+    seoRedirectsRefresh = fetchStorefrontRedirects(origin)
+      .then((result) => {
+        seoRedirects = { ...result, refreshedAt: Date.now() };
+      })
+      .catch(() => {
+        // Keep serving the stale list.
+      })
+      .finally(() => {
+        seoRedirectsRefresh = null;
+      });
+  }
+}
 
 /**
  * Shop middleware handler
@@ -124,6 +154,24 @@ export async function middleware(request: ProxyRequest) {
 
   if (isInstallRootRequest(request)) {
     return NextResponse.redirect(new URL('/install.sh', request.url));
+  }
+
+  // Storefront SEO redirects run ahead of the locale redirect: a legacy URL
+  // must land on its configured target, not on a locale-prefixed 404.
+  if (isRedirectCandidate(request.nextUrl.pathname, request.method)) {
+    const origin = request.nextUrl.origin;
+    await ensureSeoRedirects(origin);
+    const list = seoRedirects?.items ?? [];
+    if (list.length > 0) {
+      const match = matchStorefrontRedirect(list, request.nextUrl.pathname);
+      if (match && seoRedirects?.surface) {
+        if (seoRedirects.surface === 'native' || seoRedirects.surface === 'core') {
+          void countRedirectHit(origin, seoRedirects.surface, request.nextUrl.pathname);
+        }
+        const target = buildRedirectTarget(match, request.nextUrl.search, origin);
+        return NextResponse.redirect(target, match.statusCode as 301 | 302 | 307 | 308);
+      }
+    }
   }
 
   return baseProxy(request);

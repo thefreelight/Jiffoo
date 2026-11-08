@@ -211,6 +211,89 @@ export async function seoRoutes(fastify: FastifyInstance) {
       return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
     }
   });
+
+  // ---- Storefront enforcement aliases (public) ----
+  // Consumed by the shop host (middleware redirect enforcement, sitemap
+  // product URL set). Deliberately unauthenticated: the payloads are public
+  // storefront data (active path mappings, product URL list) and capped in
+  // size. Cloudflare-native instances mirror these shapes on D1 via the
+  // seo-store adapter at /api/v1/plugins/seo/store/*.
+  fastify.get('/store/redirects', {
+    schema: {
+      tags: ['seo'],
+      summary: 'List active redirects for storefront enforcement',
+      querystring: {
+        type: 'object',
+        properties: {
+          limit: { type: 'integer', minimum: 1, maximum: 500, default: 500 }
+        }
+      }
+    }
+  }, async (request, reply) => {
+    try {
+      const query = request.query as { limit?: number };
+      const limit = Math.min(Math.max(Number(query.limit) || 500, 1), 500);
+      const result = await RedirectService.listRedirects(1, limit, { isActive: true });
+      return sendSuccess(reply, {
+        items: result.items.map((item) => ({
+          fromPath: item.fromPath,
+          toPath: item.toPath,
+          statusCode: item.statusCode,
+        })),
+      });
+    } catch (error: any) {
+      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
+    }
+  });
+
+  fastify.get('/store/redirects/resolve', {
+    schema: {
+      tags: ['seo'],
+      summary: 'Resolve a storefront path against active redirects (counts the hit)',
+      querystring: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', minLength: 1, maxLength: 2000 }
+        },
+        required: ['path']
+      }
+    }
+  }, async (request, reply) => {
+    try {
+      const query = request.query as { path?: string };
+      const path = typeof query.path === 'string' ? query.path : '';
+      if (!path.startsWith('/')) {
+        return sendError(reply, 400, 'BAD_REQUEST', 'path must start with /');
+      }
+      const redirect = await RedirectService.findActiveRedirect(path);
+      if (!redirect) {
+        return sendSuccess(reply, { match: false });
+      }
+      await RedirectService.incrementHitCount(redirect.id);
+      return sendSuccess(reply, {
+        match: true,
+        fromPath: redirect.fromPath,
+        toPath: redirect.toPath,
+        statusCode: redirect.statusCode,
+      });
+    } catch (error: any) {
+      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
+    }
+  });
+
+  fastify.get('/store/sitemap', {
+    schema: {
+      tags: ['seo'],
+      summary: 'Product URL set for the storefront sitemap'
+    }
+  }, async (request, reply) => {
+    try {
+      const result = await SitemapService.getStorefrontItems();
+      return sendSuccess(reply, result);
+    } catch (error: any) {
+      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
+    }
+  });
 }
 
 /**
