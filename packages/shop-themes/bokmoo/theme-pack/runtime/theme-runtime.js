@@ -14706,6 +14706,7 @@
     const [sending, setSending] = react_default.useState(false);
     const [conversationId, setConversationId] = react_default.useState(null);
     const historyLoaded = react_default.useRef(false);
+    const sendingRef = react_default.useRef(false);
     const scrollRef = react_default.useRef(null);
     const labels = {
       open: pickCopy(locale, {
@@ -14800,6 +14801,22 @@
         }
       }).catch(() => void 0);
     }, []);
+    react_default.useEffect(() => {
+      if (!open || !config?.chat.enabled) return;
+      const visitorToken = readVisitorToken();
+      const poll = () => {
+        if (sendingRef.current) return;
+        const params = new URLSearchParams({ visitorToken });
+        if (conversationId) params.set("conversationId", conversationId);
+        fetch(`/plugins/support-hub/store/chat/history?${params.toString()}`).then((response) => response.ok ? response.json() : null).then((payload) => {
+          if (payload?.success && payload.data && Array.isArray(payload.data.messages)) {
+            setMessages(payload.data.messages.slice(-50));
+          }
+        }).catch(() => void 0);
+      };
+      const interval = setInterval(poll, 2e4);
+      return () => clearInterval(interval);
+    }, [open, config, conversationId]);
     const openChat = react_default.useCallback(() => {
       setOpen(true);
       loadHistory(readVisitorToken());
@@ -14809,6 +14826,7 @@
       if (!text || sending) return;
       const visitorToken = readVisitorToken();
       setSending(true);
+      sendingRef.current = true;
       setMessages((current) => [
         ...current,
         { id: `local_${Date.now()}`, role: "visitor", content: text }
@@ -14842,6 +14860,7 @@
         ]);
       } finally {
         setSending(false);
+        sendingRef.current = false;
       }
     }, [conversationId, input, labels.error, sending]);
     if (!config || !config.enabled) return null;
@@ -18092,7 +18111,7 @@ body[data-theme='bokmoo'] ::selection {
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.47",
+      version: "1.1.48",
       target: "shop"
     }
   };

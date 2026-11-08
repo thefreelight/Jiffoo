@@ -62,6 +62,7 @@ export const SupportChat = React.memo(function SupportChat({ locale }: ThemeI18n
   const [sending, setSending] = React.useState(false);
   const [conversationId, setConversationId] = React.useState<string | null>(null);
   const historyLoaded = React.useRef(false);
+  const sendingRef = React.useRef(false);
   const scrollRef = React.useRef<HTMLDivElement | null>(null);
 
   const labels = {
@@ -167,6 +168,28 @@ export const SupportChat = React.memo(function SupportChat({ locale }: ThemeI18n
       .catch(() => undefined);
   }, []);
 
+  // While the panel is open, poll the transcript so human agent replies
+  // (support-hub 0.0.5 agent takeover) reach the visitor live.
+  React.useEffect(() => {
+    if (!open || !config?.chat.enabled) return;
+    const visitorToken = readVisitorToken();
+    const poll = () => {
+      if (sendingRef.current) return;
+      const params = new URLSearchParams({ visitorToken });
+      if (conversationId) params.set('conversationId', conversationId);
+      fetch(`/plugins/support-hub/store/chat/history?${params.toString()}`)
+        .then((response) => (response.ok ? response.json() : null))
+        .then((payload) => {
+          if (payload?.success && payload.data && Array.isArray(payload.data.messages)) {
+            setMessages((payload.data.messages as SupportChatMessage[]).slice(-50));
+          }
+        })
+        .catch(() => undefined);
+    };
+    const interval = setInterval(poll, 20000);
+    return () => clearInterval(interval);
+  }, [open, config, conversationId]);
+
   const openChat = React.useCallback(() => {
     setOpen(true);
     loadHistory(readVisitorToken());
@@ -177,6 +200,7 @@ export const SupportChat = React.memo(function SupportChat({ locale }: ThemeI18n
     if (!text || sending) return;
     const visitorToken = readVisitorToken();
     setSending(true);
+    sendingRef.current = true;
     setMessages((current) => [
       ...current,
       { id: `local_${Date.now()}`, role: 'visitor', content: text },
@@ -210,6 +234,7 @@ export const SupportChat = React.memo(function SupportChat({ locale }: ThemeI18n
       ]);
     } finally {
       setSending(false);
+      sendingRef.current = false;
     }
   }, [conversationId, input, labels.error, sending]);
 
