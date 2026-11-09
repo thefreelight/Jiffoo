@@ -18,6 +18,7 @@ export function AuthLinks({ locale, loggedIn, labels, presentation, onNavigate }
   const pathname = usePathname();
   const availability = useShopAvailability(locale);
   const [error, setError] = useState('');
+  const [menuOpen, setMenuOpen] = useState(false);
   const next = encodeURIComponent(pathname || `/${locale}`);
   const links = loggedIn ? [{ href: `/${locale}/account`, label: labels.account }, { href: `/${locale}/account/orders`, label: labels.orders }]
     : [{ href: `/${locale}/login?next=${next}`, label: labels.login }, { href: `/${locale}/register?next=${next}`, label: labels.register }];
@@ -36,13 +37,13 @@ export function AuthLinks({ locale, loggedIn, labels, presentation, onNavigate }
       className={index === 0 ? 'flex h-10 w-full items-center justify-center gap-2 rounded-md border border-line text-sm' : 'text-sm'}>
       {index === 0 && <UserRound size={16} aria-hidden="true" />}{index === 0 ? storefrontMessages(locale).shop.accountEntry : link.label}</Link>)}
     {loggedIn && <button type="button" aria-label={labels.logout} disabled={availability.blocked} onClick={() => void logout()} className="text-sm">{labels.logout}</button>}
-    <PluginNavigation locale={locale} placement="account-menu" />
+    <PluginNavigation locale={locale} placement="account-menu" onNavigate={onNavigate} />
     {message && <p role="alert" className="text-sm text-destructive">{message}</p>}
   </>;
-  return <><DropdownMenu><DropdownMenuTrigger aria-label={labels.account} className="flex size-9 items-center justify-center rounded-md hover:bg-highlight"><UserRound size={18} aria-hidden="true" /></DropdownMenuTrigger>
+  return <><DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}><DropdownMenuTrigger aria-label={labels.account} className="flex size-9 items-center justify-center rounded-md hover:bg-highlight"><UserRound size={18} aria-hidden="true" /></DropdownMenuTrigger>
     <DropdownMenuContent align="end" aria-label={labels.account}>
       {links.map((link) => <DropdownMenuItem key={link.href} asChild><Link href={link.href}>{link.label}</Link></DropdownMenuItem>)}
-      <PluginNavigation locale={locale} placement="account-menu" />
+      <PluginNavigation locale={locale} placement="account-menu" menu onNavigate={() => { setMenuOpen(false); onNavigate?.(); }} />
       {loggedIn && <DropdownMenuItem disabled={availability.blocked} onSelect={() => void logout()}>{labels.logout}</DropdownMenuItem>}
     </DropdownMenuContent></DropdownMenu>
     {message && <p role="alert" className="text-sm text-destructive">{message}</p>}

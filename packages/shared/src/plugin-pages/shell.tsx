@@ -5,6 +5,7 @@ import { CHANNEL, VERSION, messageBudget, parseEnvelope, randomNonce, type Envel
 import type { PageContext } from '../../../plugin-bridge/src/index';
 import { pluginThemeNeutralName, pluginThemeVariables } from './theme-vars';
 import { pageState, pageStateKey } from './view-state';
+import { frameViewportHeight } from './frame-layout';
 
 export type ShellSession = { sessionId: string; frameUrl: string; pluginToken: string; expiresAt: string;
   guestSecret: string | null; context: Pick<PageContext, 'customer' | 'admin' | 'page'> };
@@ -189,7 +190,7 @@ export function PluginPageShell(props: Props) {
           const args = object(message.payload); exact(args, ['height']);
           if (!Number.isInteger(args.height) || typeof args.height !== 'number') throw new Error('VALIDATION_ERROR');
           if (resizeRate()) setHeight(Math.max(240, Math.min(2000, args.height)));
-          return null;
+          return { availableHeight: frame.current ? frameViewportHeight(frame.current, window.innerHeight) : 240 };
         }
         case 'toast.show': {
           const args = object(message.payload); exact(args, ['message', 'severity']);
@@ -202,7 +203,7 @@ export function PluginPageShell(props: Props) {
           const args = object(message.payload); exact(args, ['path']);
           if (typeof args.path !== 'string' || !args.path.startsWith('/') || /[%\\?#:]|\/\/|\.{2}|[\u0000-\u0020]/.test(args.path)
             || !currentProps.current.allowedPaths.includes(args.path)) throw new Error('FORBIDDEN');
-          currentProps.current.navigate(args.path); stop(); return null;
+          currentProps.current.navigate(`/${currentProps.current.locale}${args.path}`); stop(); return null;
         }
         case 'customers.open': {
           if (props.surface !== 'admin' || !active?.context.admin) throw new Error('FORBIDDEN');
@@ -211,7 +212,7 @@ export function PluginPageShell(props: Props) {
           const target = await currentProps.current.transport(path('/customer-target'), 'POST', args) as { path: string };
           if (disposed) throw new Error('SESSION_REVOKED');
           if (target.path !== `/customers/${encodeURIComponent(args.customerId)}`) throw new Error('FORBIDDEN');
-          currentProps.current.navigate(target.path); stop(); return null;
+          currentProps.current.navigate(`/${currentProps.current.locale}${target.path}`); stop(); return null;
         }
         case 'commerce.product.open': {
           if (props.surface !== 'shop') throw new Error('FORBIDDEN');
@@ -285,6 +286,7 @@ export function PluginPageShell(props: Props) {
     const colorScheme = window.matchMedia('(prefers-color-scheme: dark)');
     colorScheme.addEventListener('change', changed);
     window.addEventListener('message', receive);
+    window.addEventListener('resize', changed);
     const signOut = () => stop();
     window.addEventListener('jiffoo:identity-changing', signOut);
     // The shell keeps the token of the page alive. A refresh that Core
@@ -312,7 +314,7 @@ export function PluginPageShell(props: Props) {
     }).catch(() => { if (!disposed) stop(true); });
     return () => { stop(); observer.disconnect(); clearInterval(refreshTimer); window.removeEventListener('message', receive);
       colorScheme.removeEventListener('change', changed);
-      window.removeEventListener('jiffoo:identity-changing', signOut); control.current = null; };
+      window.removeEventListener('jiffoo:identity-changing', signOut); window.removeEventListener('resize', changed); control.current = null; };
   }, [props.slug, props.pageId, props.surface, attempt]);
 
   useEffect(() => { control.current?.changed(); }, [props.locale, props.currency, props.store]);
@@ -323,12 +325,12 @@ export function PluginPageShell(props: Props) {
     return () => dialog.close();
   }, [prompt, session?.sessionId]);
 
-  return <section aria-label={props.title}>
-    <h1>{props.title}</h1>
+  return <section aria-label={props.title} style={props.surface === 'admin' ? { maxWidth: 1120, marginInline: 'auto', minWidth: 0 } : undefined}>
+    <h1 style={{ fontSize: 26, fontWeight: 600, lineHeight: 1.3, margin: props.surface === 'admin' ? '0 0 6px' : '0 0 16px' }}>{props.title}</h1>
     {error ? <div role="alert"><p>{props.labels.unavailable}</p><button type="button" onClick={() => setAttempt(value => value + 1)}>{props.labels.retry}</button></div>
       : !session ? <p role="status">{props.labels.loading}</p>
         : <iframe ref={frame} role="document" aria-label={props.title} title={props.title} src={session.frameUrl} sandbox="allow-scripts allow-forms" referrerPolicy="no-referrer"
-          onLoad={() => control.current?.loaded()} style={{ width: '100%', height, border: 0 }} />}
+          onLoad={() => control.current?.loaded()} style={{ display: 'block', width: '100%', maxWidth: '100%', height, border: 0 }} />}
     {notice && <p role="status">{notice}</p>}
     {prompt && prompt.sessionId === session?.sessionId && <dialog ref={downloadDialog} aria-label={props.labels.download}
       onCancel={() => setPrompt(null)} style={{ maxWidth: 'min(28rem, calc(100vw - 2rem))', padding: 24, borderRadius: 8, background: 'Canvas', color: 'CanvasText' }}>

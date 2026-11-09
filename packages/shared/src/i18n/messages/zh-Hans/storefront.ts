@@ -116,7 +116,7 @@ export const storefront = {
     lastName: '姓', phone: "手机号", addressLine1: "详细地址",
     addressLine2: "地址补充", city: '城市', state: "省 / 州",
     postalCode: "邮编", country: '国家或地区', chooseCountry: '选择国家或地区',
-    getQuote: '获取配送选项', shipping: "运费", tax: '税费', total: '合计',
+    getQuote: '获取配送选项', getTotal: '计算总价', taxAddress: '计税地区', taxAddressRequired: '请选择国家以计算适用税费，其他计税地区信息可选填。', shipping: "运费", tax: '税费', total: '合计',
     taxInclusive: '已含税', taxExclusive: '另计税费', payment: "支付方式",
     placeOrder: '提交订单', priceChanged: '价格已变化，请核对新合计并再次确认。',
     genericError: '结账暂时不可用，请重试。',

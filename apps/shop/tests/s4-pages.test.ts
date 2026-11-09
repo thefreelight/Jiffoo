@@ -12,7 +12,6 @@ import type { Order } from '../lib/checkout-types';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { storefront as hans } from '../../../packages/shared/src/i18n/messages/zh-Hans/storefront';
-
 import { paymentStatusLabel } from '../lib/order-labels';
 
 vi.mock('server-only', () => ({}));
@@ -126,11 +125,16 @@ describe('S4 result and summary states', () => {
     expect(alreadyPaid).toContain(en.s4.paid); expect(alreadyPaid).not.toContain(en.s4.cancellationBody);
   });
   it('never invents shipping before a quote, and shows actual tax and shipping afterwards', () => {
-    const cart = { items: [], itemCount: 0, subtotal: 20 };
+    const cart = { items: [{ id: 'physical-line', productId: 'physical-product', variantId: 'physical-variant', productName: 'Physical product', productImage: '', price: 20, subtotal: 20, quantity: 1, maxQuantity: 5, requiresShipping: true }], itemCount: 1, subtotal: 20 };
     const before = renderToStaticMarkup(createElement(CheckoutSummary, { cart, quote: null, shippingOptionId: '', locale: 'en', currency: 'USD' }));
     expect(before).toContain(en.s4.afterAddress);
     const after = renderToStaticMarkup(createElement(CheckoutSummary, { cart, quote: { currency: 'USD', subtotal: '20', total: '24', tax: '1', shippingOptions: [{ id: 'ship', label: 'Shipping', amount: '3' }], paymentMethods: [] }, shippingOptionId: 'ship', locale: 'en', currency: 'USD' }));
     expect(after).toContain('$24.00'); expect(after).toContain('$3.00'); expect(after).toContain('$1.00');
+  });
+  it('does not prompt for a shipping address when the summary has no items or quote', () => {
+    const html = renderToStaticMarkup(createElement(CheckoutSummary, { cart: { items: [], itemCount: 0, subtotal: 0 }, quote: null, shippingOptionId: '', locale: 'en', currency: 'USD' }));
+    expect(html).not.toContain(en.s4.afterAddress);
+    expect(html).not.toContain('>Shipping<');
   });
   it.each(['PENDING', 'SHIPPED', 'DELIVERED', 'CANCELLED'])('renders a real %s order status', (status) => {
     expect(renderToStaticMarkup(createElement(OrderStatus, { status, paymentStatus: 'PENDING', locale: 'en' }))).toContain(status === 'PENDING' ? en.orders.paymentStatus.PENDING : en.orders.status[status as keyof typeof en.orders.status]);

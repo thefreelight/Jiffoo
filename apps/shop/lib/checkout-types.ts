@@ -1,6 +1,7 @@
 import type { ShopLocale } from './locale';
 
 export type CartLine = {
+  requiresShipping: boolean;
   id: string;
   productId: string;
   variantId: string;
@@ -42,6 +43,7 @@ export type Address = {
 };
 
 export type SavedAddress = { [Field in keyof Address]?: string | null } & { company?: string | null };
+export type TaxAddress = Pick<Address, 'country' | 'state' | 'city' | 'postalCode' | 'addressLine1' | 'addressLine2'>;
 
 export function addressFormValues(address: SavedAddress | null): Address {
   return {

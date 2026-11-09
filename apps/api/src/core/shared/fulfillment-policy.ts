@@ -24,15 +24,9 @@
  *   under a policy that asks for an address, and a policy that does not ask
  *   for an address vetoes the line, so the line of a product type without an
  *   address needs none.
- * - The address of an order: an order needs a shipping address when a
- *   policy of the order asks for one or when a line of the order needs one.
- *   The default policy of every product type asks for an address, so an
- *   order of a store that enables no policy always needs one.
- *
- * The rules above are the rules that are implemented; the cart line and the
- * order answer two different questions, the address of one line and the
- * address of the whole order, so they can differ: an order of a store that
- * enables no policy needs an address even when none of its lines needs one.
+ * - The address and quote of an order combine its lines. Product flags veto
+ *   default shipping requirements. Explicitly registered policies retain
+ *   independent requirements, including service address requirements.
  *
  * The registry is the only module scope state of this module: it holds the
  * policies of the product types of the installation. It never holds request
@@ -271,14 +265,23 @@ export function stockCeilingFor(productType: string, stock: number): number {
 /**
  * The address rule of a line.
  *
- * A line needs a shipping address when the product asks for shipping and the
- * policy of its product type asks for an address. The product flag can only
- * veto the policy: a product whose requiresShipping flag is still true asks
- * for an address under a policy that asks for an address, and a policy that
- * does not ask for an address vetoes the line.
+ * Product flags veto the default shipping address requirement. A registered
+ * policy retains its independent address requirement.
  */
 export function lineRequiresShippingAddress(productType: string, productRequiresShipping: boolean): boolean {
-  return productRequiresShipping && fulfillmentPolicyFor(productType).requiresShippingAddress;
+  const policy = fulfillmentPolicyFor(productType);
+  return policy.requiresShippingAddress && (policies.has(productType) || productRequiresShipping);
+}
+
+/** Product flags veto default shipping; an explicit policy retains its independent requirements. */
+export function fulfillmentPlanForLines(lines: FulfillmentAddressLine[]): FulfillmentPlan {
+  if (!lines.length) return defaultFulfillmentPolicy();
+  return {
+    requiresShippingAddress: lines.some(line => lineRequiresShippingAddress(line.productType, line.requiresShipping)),
+    requiresShippingQuote: lines.some(line => fulfillmentPolicyFor(line.productType).requiresShippingQuote
+      && (policies.has(line.productType) || line.requiresShipping)),
+    tracksInventory: lines.some(line => fulfillmentPolicyFor(line.productType).tracksInventory),
+  };
 }
 
 /** A line of an order, as the address rule of the order sees it. */
@@ -292,12 +295,9 @@ export type FulfillmentAddressLine = {
 /**
  * The address rule of an order.
  *
- * An order needs a shipping address when a policy of the order asks for one
- * or when a line of the order needs one. Under the default policy every
- * product type asks for an address, so an order of a store that enables no
- * policy always needs one.
+ * An order combines its line requirements. Empty lines retain the caller's
+ * conservative plan; registered policies retain independent requirements.
  */
 export function orderRequiresShippingAddress(plan: FulfillmentPlan, lines: FulfillmentAddressLine[]): boolean {
-  return plan.requiresShippingAddress
-    || lines.some(line => lineRequiresShippingAddress(line.productType, line.requiresShipping));
+  return lines.length ? fulfillmentPlanForLines(lines).requiresShippingAddress : plan.requiresShippingAddress;
 }

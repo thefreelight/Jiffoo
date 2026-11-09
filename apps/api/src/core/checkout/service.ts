@@ -7,7 +7,7 @@ import { callContract } from '@/core/extensions/runtime/plugin-runtime';
 import { ContractCallError } from '@/core/extensions/runtime/contract-errors';
 import { recordPluginFailure } from '@/core/extensions/runtime/failure';
 import { decimalToMinor, minorToDecimal, MoneyError } from '@/core/shared/money';
-import { fulfillmentPlanFor, type FulfillmentPlan } from '@/core/shared/fulfillment-policy';
+import { fulfillmentPlanForLines, type FulfillmentPlan } from '@/core/shared/fulfillment-policy';
 
 type Address = { country: string; state?: string; city?: string; postalCode?: string; addressLine1?: string; addressLine2?: string };
 
@@ -73,7 +73,7 @@ export class CheckoutService {
     catch (error) { if (error instanceof MoneyError) throw new ApiError('VALIDATION_ERROR'); throw error; }
   }
 
-  static async quote(userId: string, input: { shippingAddress: Address; shippingOptionId?: string }) {
+  static async quote(userId: string, input: { shippingAddress?: Address; taxAddress?: Address; shippingOptionId?: string }) {
     const [cart, currency] = await Promise.all([CartService.getCart(userId), systemSettingsService.getShopCurrency()]);
     if (!cart.items.length) throw new ApiError('BAD_REQUEST');
     const items = cart.items.map((item) => ({ productId: item.productId, variantId: item.variantId, quantity: item.quantity, unitPriceMinor: this.amount(() => decimalToMinor(item.price, currency)) }));
@@ -81,26 +81,29 @@ export class CheckoutService {
     // line, which the cart module projects. The quote of a cart that needs no
     // shipping quote offers no shipping option.
     const lines = await CartService.getLineFulfillments(userId);
-    return this.quoteItems(currency, items, input, false, fulfillmentPlanFor(lines.map((line) => line.productType)));
+    const plan = fulfillmentPlanForLines(lines);
+    if (plan.requiresShippingAddress && !input.shippingAddress) throw new ApiError('VALIDATION_ERROR', { issues: [{ path: 'shippingAddress.country', code: 'required' }] });
+    return this.quoteItems(currency, items, input, false, plan);
   }
 
   static async quoteItems(
     currency: string,
     items: Array<{ productId: string; variantId: string; quantity: number; unitPriceMinor: number }>,
-    input: { shippingAddress: Address; shippingOptionId?: string },
+    input: { shippingAddress?: Address; taxAddress?: Address; shippingOptionId?: string },
     allowUnavailableForOrder = false,
     plan?: Pick<FulfillmentPlan, 'requiresShippingQuote'>,
   ) {
     // Without a plan the quote needs a shipping quote, which is the behaviour
     // of a store that enables no fulfilment policy.
     const requiresShippingQuote = plan?.requiresShippingQuote ?? true;
+    if (requiresShippingQuote && !input.shippingAddress) throw new ApiError('VALIDATION_ERROR', { issues: [{ path: 'shippingAddress.country', code: 'required' }] });
     const subtotalMinor = items.reduce((total, item) => total + item.unitPriceMinor * item.quantity, 0);
     const shippingProviders = requiresShippingQuote ? await listProviders('shipping') : [];
     const failedShippingSlugs = new Set<string>();
     const shippingOptions = (await Promise.all(shippingProviders.map(async (provider) => {
       let result: { options: Array<{ id: string; label: string; amountMinor: number; estimatedDays?: { min: number; max: number } }> };
       try {
-        result = await callContract(provider.pluginSlug, 'shipping', PLUGIN_CONTRACT_VERSIONS.shipping, 'quote', { currency, items, subtotalMinor, address: contractAddress(input.shippingAddress) }) as typeof result;
+        result = await callContract(provider.pluginSlug, 'shipping', PLUGIN_CONTRACT_VERSIONS.shipping, 'quote', { currency, items, subtotalMinor, address: contractAddress(input.shippingAddress!) }) as typeof result;
       } catch (error) {
         await excludeFailedProvider(provider.pluginSlug, 'shipping', error);
         failedShippingSlugs.add(provider.pluginSlug);
@@ -162,7 +165,7 @@ export class CheckoutService {
   private static async quoteWithTax(
     currency: string,
     items: QuoteItem[],
-    input: { shippingAddress: Address },
+    input: { shippingAddress?: Address; taxAddress?: Address },
     shippingOptions: QuoteShippingOption[],
     paymentMethods: QuotePaymentMethod[],
     shippingMinor: number,
@@ -170,10 +173,12 @@ export class CheckoutService {
     const subtotalMinor = items.reduce((total, item) => total + item.unitPriceMinor * item.quantity, 0);
     const taxProvider = await resolveSingleProvider('tax');
     if (!taxProvider) return { currency, subtotal: this.amount(() => minorToDecimal(subtotalMinor, currency)), shippingOptions, paymentMethods, tax: '0', taxInclusive: false, total: this.amount(() => minorToDecimal(subtotalMinor + shippingMinor, currency)) };
+    const taxAddress = input.taxAddress ?? input.shippingAddress;
+    if (!taxAddress?.country) throw new ApiError('VALIDATION_ERROR', { issues: [{ path: 'taxAddress.country', code: 'TAX_ADDRESS_REQUIRED' }] });
     const lines = items.map((item, index) => ({ lineId: String(index), productId: item.productId, variantId: item.variantId, quantity: item.quantity, amountMinor: item.unitPriceMinor * item.quantity }));
     let tax: { totalTaxMinor: number; pricesIncludeTax: boolean };
     try {
-      tax = await callContract(taxProvider.pluginSlug, 'tax', PLUGIN_CONTRACT_VERSIONS.tax, 'calculate', { currency, lines, shippingAmountMinor: shippingMinor, address: contractAddress(input.shippingAddress) }) as { totalTaxMinor: number; pricesIncludeTax: boolean };
+      tax = await callContract(taxProvider.pluginSlug, 'tax', PLUGIN_CONTRACT_VERSIONS.tax, 'calculate', { currency, lines, shippingAmountMinor: shippingMinor, address: contractAddress(taxAddress) }) as { totalTaxMinor: number; pricesIncludeTax: boolean };
     } catch (error) {
       // A tax provider that failed is not a store without a tax provider: the
       // tax of the quote is unknown. The quote carries no tax and no total,

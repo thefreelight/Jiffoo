@@ -175,7 +175,9 @@ export function buildImportGraph(root) {
         unresolved.add(`${file} -> ${specifier}`);
         continue;
       }
-      const target = sourceBehind(resolution.resolvedFileName, root);
+      // Bundled declaration entries need not mirror the runtime source layout.
+      // Use the same workspace source entry as an unbuilt package in that case.
+      const target = sourceBehind(resolution.resolvedFileName, root) ?? workspacePackageSource(root, specifier);
       if (!target) { unresolved.add(`${file} -> ${specifier}`); continue; }
       if (!known.has(target) && !isDataNode(target)) continue;
       edges.add(target);

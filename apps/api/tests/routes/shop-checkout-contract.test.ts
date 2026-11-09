@@ -8,6 +8,9 @@ import { createTestProduct, deleteAllTestCarts, deleteAllTestOrders, deleteAllTe
 import { checkoutTotal } from '../helpers/checkout-total';
 import { syncBuiltinPlugins } from '@/core/admin/extension-installer/builtin-sync';
 import { prisma } from '@/config/database';
+import { PluginManagementService } from '@/core/admin/plugin-management/service';
+import { getDefaultInstance, resolveSingleProvider } from '@/core/extensions/registry';
+import { restoreBuiltinRows, snapshotPluginRows } from '../helpers/plugin-db-snapshot';
 
 describe('Shop checkout contract', () => {
   let app: FastifyInstance;
@@ -58,6 +61,30 @@ describe('Shop checkout contract', () => {
     expect(response.json().error.code).toBe('QUOTE_CHANGED');
     expect(await prisma.order.count()).toBe(count);
     expect((await prisma.productVariant.findUniqueOrThrow({ where: { id: variantId } })).stock).toBe(5);
+  });
+
+  it('publishes the canonical tax location requirement through the real quote HTTP error contract', async () => {
+    // Sync preserves existing disabled installations; arrange the provider explicitly.
+    const previousProvider = await resolveSingleProvider('tax');
+    const providerSlugs = [...new Set(['zero-tax', ...(previousProvider ? [previousProvider.pluginSlug] : [])])];
+    const providerRows = await snapshotPluginRows(providerSlugs);
+    try {
+      const zeroTax = await getDefaultInstance('zero-tax');
+      expect(zeroTax).not.toBeNull();
+      await PluginManagementService.updateInstance(zeroTax!.id, { enabled: true });
+      expect(await resolveSingleProvider('tax')).toMatchObject({ pluginSlug: 'zero-tax' });
+    const digital = await createTestProduct({ name: 'HTTP tax location fixture', requiresShipping: false, price: 1, stock: 5 });
+    const added = await app.inject({ method: 'POST', url: '/api/v1/cart/items', headers: headers(), payload: { productId: digital.id, variantId: digital.variants[0].id, quantity: 1 } });
+    expect(added.statusCode).toBe(200);
+    const missing = await app.inject({ method: 'POST', url: '/api/v1/checkout/quote', headers: headers(), payload: {} });
+    expect(missing.statusCode).toBe(400);
+    expect(missing.json()).toMatchObject({ success: false, error: { code: 'VALIDATION_ERROR', details: { issues: [{ path: 'taxAddress.country', message: 'Invalid field', code: 'TAX_ADDRESS_REQUIRED' }] } } });
+    const quoted = await app.inject({ method: 'POST', url: '/api/v1/checkout/quote', headers: headers(), payload: { taxAddress: { country: 'US' } } });
+    expect(quoted.statusCode).toBe(200);
+    expect(quoted.json().data).toMatchObject({ total: '1.00', shippingOptions: [] });
+    } finally {
+      await restoreBuiltinRows(providerRows, providerSlugs);
+    }
   });
 
   it('B creates an order at the confirmed quote total', async () => {

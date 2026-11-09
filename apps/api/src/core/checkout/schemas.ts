@@ -64,8 +64,7 @@ export const checkoutSchemas = {
   quote: {
     body: {
       type: 'object',
-      required: ['shippingAddress'],
-      properties: { shippingAddress: shippingAddressSchema, shippingOptionId: { type: 'string' } },
+      properties: { shippingAddress: shippingAddressSchema, taxAddress: { ...shippingAddressSchema, properties: { ...shippingAddressSchema.properties, country: { type: 'string', pattern: '^[A-Za-z]{2}$' } } }, shippingOptionId: { type: 'string' } },
     },
     response: {
       ...createTypedReadResponses(quoteResponseSchema),

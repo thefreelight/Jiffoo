@@ -116,7 +116,7 @@ export const storefront = {
     lastName: '姓氏', phone: '電話', addressLine1: '地址第一行',
     addressLine2: '地址第二行', city: '城市', state: '省／州',
     postalCode: '郵遞區號', country: '國家或地區', chooseCountry: '選擇國家或地區',
-    getQuote: '取得配送選項', shipping: '運費', tax: '稅額', total: '合計',
+    getQuote: '取得配送選項', getTotal: '計算總價', taxAddress: '計稅地區', taxAddressRequired: '請選擇國家以計算適用稅費，其他計稅地區資訊可選填。', shipping: '運費', tax: '稅額', total: '合計',
     taxInclusive: '已含稅', taxExclusive: '另計稅額', payment: '付款方式',
     placeOrder: '提交訂單', priceChanged: '價格已變更，請核對新合計並再次確認。',
     genericError: '結帳暫時無法使用，請重試。',

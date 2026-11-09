@@ -22,6 +22,6 @@ export function ShopPluginPage({ slug, page, declarations, locale, currency, sto
     surface="shop" locale={locale} currency={currency} store={{ id: 'system', name: storeName, url: '/' }} labels={pluginPageLabels[locale]}
     transport={transport} allowedPaths={['/products', '/account', '/account/orders', '/cart',
       ...declarations.flatMap(plugin => plugin.pages.map(candidate => pluginShopPath(plugin.slug, candidate.path)))]}
-    navigate={path => router.push(`/${locale}${path}`)} signIn={() => router.push(`/${locale}/login?next=${encodeURIComponent(canonical)}`)}
+    navigate={path => router.push(path)} signIn={() => router.push(`/${locale}/login?next=${encodeURIComponent(canonical)}`)}
     checkout={() => router.push(`/${locale}/checkout`)} /></main>;
 }

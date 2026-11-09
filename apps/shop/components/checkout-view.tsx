@@ -1,16 +1,16 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { getNamespaceMessages } from 'shared/src/i18n/messages';
 import type { common } from 'shared/src/i18n/messages/en/common';
-import { addressFormValues, addressRequest, type Address, type Cart, type Quote, type SavedAddress } from '@/lib/checkout-types';
+import { addressFormValues, addressRequest, type Address, type TaxAddress, type Cart, type Quote, type SavedAddress } from '@/lib/checkout-types';
 import type { ShopLocale } from '@/lib/locale';
 import { formatPrice } from '@/lib/price';
 import { storefrontMessages } from '@/lib/storefront-messages';
 import { availabilityFetch, useShopAvailability } from '@/lib/client-availability';
-import { addressFields, addressSchema, serverFieldIssues, type AddressField } from '@/lib/form-validation';
+import { addressFields, addressSchema, taxAddressFields, taxAddressSchema, type AddressField } from '@/lib/form-validation';
 import { CheckoutSummary } from './checkout-summary';
 import { CircleAlert } from 'lucide-react';
 
@@ -40,6 +40,7 @@ export function CheckoutView({ cart, locale, address: initialAddress, countries,
   const orderRequestKey = useRef('');
   const purchaseOrigin = useRef(pluginPurchaseOriginId);
   const form = useForm<Address>({ resolver: zodResolver(addressSchema(copy, requiredCountries)), shouldFocusError: true, defaultValues: addressFormValues(initialAddress) });
+  const taxForm = useForm<TaxAddress>({ resolver: zodResolver(taxAddressSchema(copy)), shouldFocusError: true, defaultValues: { country: '', state: '', city: '', postalCode: '', addressLine1: '', addressLine2: '' } });
   const country = useWatch({ control: form.control, name: 'country' });
   const requiredRegion = requiredCountries.includes(country?.toUpperCase());
   const [quote, setQuote] = useState<Quote | null>(null);
@@ -50,28 +51,52 @@ export function CheckoutView({ cart, locale, address: initialAddress, countries,
   const [priceChanged, setPriceChanged] = useState(false);
   const [paymentOrderId, setPaymentOrderId] = useState<string | null>(null);
   const [cartSnapshot, setCartSnapshot] = useState(cart);
+  const [taxAddressRequired, setTaxAddressRequired] = useState<false | 'tax' | 'shipping'>(false);
+  const requiresAddress = taxAddressRequired === 'shipping' || !cartSnapshot.items.length || cartSnapshot.items.some(item => item.requiresShipping);
   const availability = useShopAvailability(locale);
+  useEffect(() => {
+    if (taxAddressRequired === 'tax') taxForm.setFocus('country');
+  }, [taxAddressRequired, taxForm]);
 
   async function requestQuote(optionId?: string, errorOnFailure: string = t.genericError): Promise<Quote | null> {
+    setQuote(null);
+    try {
     const response = await availabilityFetch('/bff/checkout/quote', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ shippingAddress: addressRequest(form.getValues()), ...(optionId ? { shippingOptionId: optionId } : {}) }),
+      body: JSON.stringify({ ...requestAddresses(), ...(optionId ? { shippingOptionId: optionId } : {}) }),
     });
     if (!response.ok) {
       const failure = await response.json();
+      setQuote(null); setShippingOptionId(''); setPaymentMethod('');
       showFieldErrors(failure);
-      setError(failure.error?.code === 'ADMIN_ACCOUNT_NOT_FOR_SHOP' ? storefrontMessages(locale).account.adminAccountNotForShop : errorOnFailure);
+      const needsTaxAddress = failure.error?.code === 'VALIDATION_ERROR' && failure.error?.details?.issues?.length > 0
+        && failure.error.details.issues.every((issue: { path?: string; code?: string }) => issue.path === 'taxAddress.country' && issue.code === 'TAX_ADDRESS_REQUIRED');
+      setError(needsTaxAddress ? '' : failure.error?.code === 'ADMIN_ACCOUNT_NOT_FOR_SHOP' ? storefrontMessages(locale).account.adminAccountNotForShop : errorOnFailure);
       return null;
     }
     const result = (await response.json()).data as Quote;
+    if (!result.paymentMethods.some(method => method.providerSlug === paymentMethod)) setPaymentMethod('');
     setQuote(result);
     return result;
+    } catch (error) { setPaymentMethod(''); throw error; }
+  }
+
+  function requestAddresses() {
+    return { ...(requiresAddress ? { shippingAddress: addressRequest(form.getValues()) } : {}), ...(taxAddressRequired === 'tax' ? { taxAddress: Object.fromEntries(Object.entries(taxForm.getValues()).filter(([, value]) => value.trim()).map(([key, value]) => [key, key === 'country' ? value.trim().toUpperCase() : value.trim()])) } : {}) };
   }
 
   function showFieldErrors(body: unknown) {
-    const fields = serverFieldIssues(body).filter((field): field is AddressField => addressFields.includes(field as AddressField));
-    fields.forEach((field) => form.setError(field, { type: 'server', message: copy.invalidField }));
-    if (fields[0]) form.setFocus(fields[0]);
+    const issues = (body as { error?: { details?: { issues?: Array<{ path?: string }> } } })?.error?.details?.issues ?? [];
+    for (const issue of issues) {
+      const [scope, field] = issue.path?.replace(/^\//, '').split(/[./]/) ?? [];
+      if (scope === 'taxAddress' && taxAddressFields.includes(field as typeof taxAddressFields[number])) {
+        setTaxAddressRequired('tax'); taxForm.setError(field as keyof TaxAddress, { type: 'server', message: copy.invalidField });
+        if (taxAddressRequired === 'tax') taxForm.setFocus(field as keyof TaxAddress);
+      } else if (scope === 'shippingAddress' && addressFields.includes(field as AddressField)) {
+        if (!requiresAddress) setTaxAddressRequired('shipping');
+        form.setError(field as AddressField, { type: 'server', message: copy.invalidField }); form.setFocus(field as AddressField);
+      }
+    }
   }
 
   async function begin() {
@@ -107,13 +132,15 @@ export function CheckoutView({ cart, locale, address: initialAddress, countries,
     let orderId = paymentOrderId;
     try {
       if (!orderId) {
+      if (requiresAddress && !await form.trigger()) return;
+      if (taxAddressRequired === 'tax' && !await taxForm.trigger()) return;
       // One key per checkout attempt: a repeated click or a retried request returns the same order.
       orderRequestKey.current ||= crypto.randomUUID();
       const response = await availabilityFetch('/bff/orders', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           items: cart.items.map(({ productId, variantId, quantity }) => ({ productId, variantId, quantity })),
-          shippingAddress: addressRequest(form.getValues()), shippingOptionId: shippingOptionId || NO_SHIPPING_OPTION, paymentMethod, expectedTotal: quote.total,
+          ...requestAddresses(), shippingOptionId: shippingOptionId || NO_SHIPPING_OPTION, paymentMethod, expectedTotal: quote.total,
           idempotencyKey: orderRequestKey.current,
           ...(purchaseOrigin.current ? { pluginPurchaseOriginId: purchaseOrigin.current } : {}),
         }),
@@ -203,8 +230,9 @@ export function CheckoutView({ cart, locale, address: initialAddress, countries,
         <section className="space-y-4"><h2 className="text-base font-semibold">{copy.contact}</h2>
           <label className="flex flex-col gap-1.5 text-[13px] font-medium">{storefrontMessages(locale).account.email}<input className={inputClass} type="email" value={email} disabled /></label>
         </section>
-        <form noValidate onSubmit={form.handleSubmit(begin)} className="space-y-4">
-          <fieldset disabled={busy || availability.blocked || !!paymentOrderId}>
+        <form noValidate onSubmit={requiresAddress ? form.handleSubmit(begin) : taxAddressRequired === 'tax' ? taxForm.handleSubmit(begin) : event => { event.preventDefault(); void begin(); }} className="space-y-4">
+          {taxAddressRequired && <p role="status">{taxAddressRequired === 'tax' ? t.taxAddressRequired : t.address}</p>}
+          {requiresAddress && <fieldset disabled={busy || availability.blocked || !!paymentOrderId}>
             <legend className="mb-4 text-base font-semibold">{t.address}</legend>
             <div className="grid grid-cols-2 gap-3">
               {addressFields.map((field) => {
@@ -221,20 +249,28 @@ export function CheckoutView({ cart, locale, address: initialAddress, countries,
                 </div>;
               })}
             </div>
-          </fieldset>
-          <button type="submit" disabled={busy || availability.blocked || !!paymentOrderId} className="h-10 rounded-md border border-line px-[18px] disabled:opacity-45">{t.getQuote}</button>
+          </fieldset>}
+          {taxAddressRequired === 'tax' && <fieldset disabled={busy || availability.blocked || !!paymentOrderId} className="space-y-3">
+            <legend>{t.taxAddress}</legend>
+            {taxAddressFields.map(field => <label key={field} className="block text-[13px]">{t[field]}{field === 'country'
+              ? <select {...taxForm.register(field, { onChange: invalidate })} aria-required="true" className={inputClass}><option value="">{t.chooseCountry}</option>{countries.map(country => <option key={country.code} value={country.code}>{country.name}</option>)}</select>
+              : <input {...taxForm.register(field, { onChange: invalidate })} className={inputClass} />}
+              {taxForm.formState.errors[field] && <span role="alert">{taxForm.formState.errors[field]?.message}</span>}
+            </label>)}
+          </fieldset>}
+          <button type="submit" disabled={busy || availability.blocked || !!paymentOrderId} className="h-10 rounded-md border border-line px-[18px] disabled:opacity-45">{cartSnapshot.items.some(item => item.requiresShipping) ? t.getQuote : t.getTotal}</button>
         </form>
-        <fieldset disabled={busy || availability.blocked || !!paymentOrderId} className="space-y-3">
+        {(cartSnapshot.items.some(item => item.requiresShipping) || !!quote?.shippingOptions.length) && <fieldset disabled={busy || availability.blocked || !!paymentOrderId} className="space-y-3">
           <legend className="mb-3 text-base font-semibold">{storefrontMessages(locale).orders.shippingMethod}</legend>
           {!quote && <p className="rounded-lg border border-line p-4 text-[13px] text-subtle">{copy.shippingPrompt}</p>}
           {quote?.shippingOptions.map((option) => <label key={option.id} className="flex cursor-pointer items-center gap-3 rounded-lg border border-[var(--shop-border-strong)] p-4 has-checked:border-ink">
             <input type="radio" name="shipping" className="size-4 accent-action" checked={shippingOptionId === option.id} onChange={() => void selectShipping(option.id)} />
             <span className="flex-1">{option.label}</span><span>{formatPrice(option.amount, locale, quote.currency)}</span>
           </label>)}
-        </fieldset>
+        </fieldset>}
         <fieldset disabled={busy || availability.blocked || !!paymentOrderId} className="space-y-3">
           <legend className="mb-3 text-base font-semibold">{t.payment}</legend>
-          {!total && <p className="rounded-lg border border-line p-4 text-[13px] text-subtle">{quote?.taxUnavailable ? t.taxUnavailableNote : copy.paymentPrompt}</p>}
+          {!total && <p className="rounded-lg border border-line p-4 text-[13px] text-subtle">{quote?.taxUnavailable ? t.taxUnavailableNote : cartSnapshot.items.some(item => item.requiresShipping) || !!quote?.shippingOptions.length ? copy.paymentPrompt : t.getTotal}</p>}
           {total && quote?.paymentMethods.map((method) => <label key={method.providerSlug} className="flex cursor-pointer items-center gap-3 rounded-lg border border-[var(--shop-border-strong)] p-4 has-checked:border-ink">
             <input type="radio" name="payment" className="size-4 accent-action" checked={paymentMethod === method.providerSlug} onChange={() => setPaymentMethod(method.providerSlug)} /><span>{method.displayName}</span>
           </label>)}

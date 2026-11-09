@@ -94,6 +94,29 @@ export async function verifyStandaloneBridge() {
     assert.equal(client.parseEnvelope({ channel: 'jiffoo.plugin', version: 1, id: 'abc', type: 'context.get', sessionId: 's', nonce: 'z'.repeat(64) }), null);
     assert.equal(client.parseEnvelope({ channel: 'jiffoo.plugin', version: 2, id: 'abc', type: 'bridge.hello' }), null);
 
+    // A dropped pre-load hello must not wait for the 500ms retry.
+    const saved = new Map(['window', 'parent', 'location'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+    const handlers = new Map(), messages = [];
+    try {
+      Object.defineProperty(globalThis, 'window', { configurable: true, value: {
+        addEventListener: (name, callback) => handlers.set(name, callback),
+        removeEventListener: name => handlers.delete(name),
+      } });
+      Object.defineProperty(globalThis, 'parent', { configurable: true, value: { postMessage: message => messages.push(message) } });
+      Object.defineProperty(globalThis, 'location', { configurable: true, value: { href: 'https://assets.example/frame?shellOrigin=https%3A%2F%2Fshop.example' } });
+      const bridge = client.createPluginBridge();
+      assert.equal(messages.length, 1);
+      handlers.get('load')();
+      await new Promise(resolve => setTimeout(resolve, 20));
+      assert.equal(messages.length, 2);
+      assert(messages.every(message => message.type === 'bridge.hello'));
+      handlers.get('pagehide')();
+      await assert.rejects(bridge.ready, /Bridge closed/);
+      assert.equal(handlers.has('load'), false);
+    } finally {
+      for (const [key, descriptor] of saved) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete globalThis[key]; }
+    }
+
     // 5. The tarball hash is the token a consumer records beside the file.
     console.log(`Standalone bridge: npm pack/install, dist bytes equal the tree build, tarball ${sha256(await readFile(tarball))}`);
   } finally {

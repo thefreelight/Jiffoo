@@ -49,6 +49,7 @@ export const ShippingAddressSchema = z.object({
 export const CreateOrderSchema = z.object({
   items: z.array(OrderItemSchema).min(1, 'Order must have at least one item'),
   shippingAddress: ShippingAddressSchema.optional(),
+  taxAddress: z.object({ country: z.string().trim().regex(/^[A-Za-z]{2}$/).transform(value => value.toUpperCase()), state: z.string().trim().optional(), city: z.string().trim().optional(), postalCode: z.string().trim().optional(), addressLine1: z.string().trim().optional(), addressLine2: z.string().trim().optional() }).optional(),
   customerEmail: z.string().email('Valid email is required').optional(),
   currency: z.string().optional(),
   paymentTermId: z.string().optional(), // B2B payment terms

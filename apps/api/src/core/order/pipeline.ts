@@ -21,7 +21,7 @@ import { recordPluginFailure } from '@/core/extensions/runtime/failure';
 import { bindPurchaseOrigin } from '@/core/plugin-pages/service';
 import { decimalToMinor, minorToDecimal, MoneyError } from '@/core/shared/money';
 import { currentLinePrice } from '@/core/shared/pricing';
-import { fulfillmentPlanFor, fulfillmentPolicyFor, orderRequiresShippingAddress, type FulfillmentPolicy } from '@/core/shared/fulfillment-policy';
+import { fulfillmentPlanForLines, fulfillmentPolicyFor, orderRequiresShippingAddress, type FulfillmentPolicy } from '@/core/shared/fulfillment-policy';
 import { allocateOrderNumber } from '@/core/order/number';
 import { recordOrderStatusHistory } from '@/core/order/status-history';
 import { createCatalogSnapshot } from '@/core/order/catalog-snapshot';
@@ -524,16 +524,9 @@ function createOrderPlacementStages(): OrderPlacementStage[] {
     {
       name: 'resolve-shipping-requirement',
       run: async context => {
-        // The plan of the order combines the fulfilment policies of the
-        // product types of its items, and the address rule of the order is
-        // the shared rule of the shared layer: an order needs an address when
-        // a policy of the order asks for one or when a line of the order
-        // needs one. The default policy asks for an address, so an order of
-        // a store that enables no fulfilment policy needs an address, exactly
-        // as before.
-        const policies = fulfillmentPlanFor(
-          context.itemFulfillments.map((item) => item.productType),
-        );
+        // Quote and placement share product flags and explicitly registered
+        // policy requirements, so an address-free quote stays address-free.
+        const policies = fulfillmentPlanForLines(context.itemFulfillments);
         const plan: OrderPlacementFulfillmentPlan = {
           ...policies,
           requiresShippingAddress: orderRequiresShippingAddress(policies, context.itemFulfillments),
@@ -556,21 +549,26 @@ function createOrderPlacementStages(): OrderPlacementStage[] {
         const plan = context.fulfillmentPlan;
         const address = context.normalizedShippingAddress;
 
+        const taxAddress = data.taxAddress;
+        if (taxAddress && (typeof taxAddress.country !== 'string' || !/^[A-Za-z]{2}$/.test(taxAddress.country.trim()))) {
+          throw new ApiError('VALIDATION_ERROR', { issues: [{ path: 'taxAddress.country', code: 'invalid_string' }] });
+        }
         const quote = await CheckoutService.quoteItems(context.currency, context.orderItems.map((item) => ({
           productId: item.productId,
           variantId: item.variantId,
           quantity: item.quantity,
           unitPriceMinor: item.unitPriceMinor,
         })), {
-          shippingAddress: {
+          shippingAddress: address ? {
             country: address?.country ?? '',
             state: address?.state,
             city: address?.city ?? '',
             postalCode: address?.postalCode,
             addressLine1: address?.addressLine1 ?? '',
             addressLine2: address?.addressLine2,
-          },
+          } : undefined,
           shippingOptionId: data.shippingOptionId,
+          taxAddress: taxAddress ? { ...taxAddress, country: taxAddress.country.trim().toUpperCase() } : undefined,
         }, true, { requiresShippingQuote: plan.requiresShippingQuote });
         const selectedShipping = quote.shippingOptions.find((option) => option.id === data.shippingOptionId);
         if (plan.requiresShippingQuote && !selectedShipping) {

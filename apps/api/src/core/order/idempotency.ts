@@ -66,6 +66,7 @@ function fingerprintAddress(address: FingerprintAddress): string {
 export function orderRequestFingerprint(input: {
   items?: Array<{ productId?: string; variantId?: string; quantity?: number }>;
   shippingAddress?: FingerprintAddress;
+  taxAddress?: FingerprintAddress;
   shippingOptionId?: string;
   paymentMethod?: string;
   expectedTotal?: string | number;
@@ -81,6 +82,7 @@ export function orderRequestFingerprint(input: {
     normalizeText(input.paymentMethod),
     normalizeAmount(input.expectedTotal),
     fingerprintAddress(input.shippingAddress),
+    fingerprintAddress(input.taxAddress),
     normalizeText(input.pluginPurchaseOriginId),
   ].join('|');
   return createHash('sha256').update(canonical).digest('hex');

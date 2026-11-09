@@ -21,6 +21,7 @@ import { AdminOrderService } from '@/core/admin/order-management/service';
 import { syncBuiltinPlugins } from '@/core/admin/extension-installer/builtin-sync';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
 import { getDefaultInstance } from '@/core/extensions/registry';
+import * as pluginRegistry from '@/core/extensions/registry';
 import { prisma } from '@/config/database';
 import { createTestApp } from '../helpers/create-test-app';
 import { createUserWithToken, deleteAllTestUsers } from '../helpers/auth';
@@ -32,6 +33,13 @@ import {
 } from '../helpers/fixtures';
 import { checkoutTotal } from '../helpers/checkout-total';
 import { restoreBuiltinRows, snapshotPluginRows } from '../helpers/plugin-db-snapshot';
+
+/** Model a store without tax while retaining its real shipping and payment providers. */
+function withoutTaxProvider() {
+  const resolve = pluginRegistry.resolveSingleProvider;
+  return vi.spyOn(pluginRegistry, 'resolveSingleProvider').mockImplementation((...args) =>
+    args[0] === 'tax' ? Promise.resolve(null) : resolve(...args));
+}
 
 describe('the order placement pipeline', () => {
   it('exposes its stages in the order they run', () => {
@@ -333,7 +341,10 @@ describe('the fulfilment plan of an order', () => {
       idempotencyKey: randomUUID(),
     });
 
-    const placed = await runOrderPlacement(userId, data);
+    const tax = withoutTaxProvider();
+    let placed;
+    try { placed = await runOrderPlacement(userId, data); }
+    finally { tax.mockRestore(); }
 
     expect(placed.replayed).toBe(false);
     expect(placed.order.shippingAddress).toBeNull();
@@ -341,6 +352,26 @@ describe('the fulfilment plan of an order', () => {
     // The stock of a type that does not track inventory is not decremented.
     const stockAfter = (await prisma.productVariant.findUniqueOrThrow({ where: { id: digitalVariantId } })).stock;
     expect(stockAfter).toBe(stockBefore);
+  });
+
+  it('quotes and places a default-policy non-shipping product without saving an empty address', async () => {
+    const product = await createTestProduct({ name: 'Default non-shipping product', requiresShipping: false, price: 12, stock: 5 });
+    const variantId = product.variants[0].id;
+    const tax = withoutTaxProvider();
+    try {
+      await CartService.clearCart(userId);
+      await CartService.addToCart(userId, product.id, 1, variantId);
+      expect((await CartService.getCart(userId)).items[0].requiresShipping).toBe(false);
+      const quote = await CheckoutService.quote(userId, {});
+      expect(quote.shippingOptions).toEqual([]);
+      expect(quote.total).toBe('12.00');
+      const result = await runOrderPlacement(userId, CreateOrderSchema.parse({ items: [{ productId: product.id, variantId, quantity: 1 }], shippingOptionId: 'none:none', paymentMethod: 'manual-payment', expectedTotal: '12.00', idempotencyKey: randomUUID() }));
+      expect(result.order.shippingAddress).toBeNull();
+      expect(result.order.shippingMethod).toBeNull();
+    } finally {
+      tax.mockRestore();
+      await CartService.clearCart(userId);
+    }
   });
 
   it('offers no shipping option for a cart of a registered non shipping product type', async () => {
@@ -362,6 +393,22 @@ describe('the fulfilment plan of an order', () => {
 
     const normalQuote = await CheckoutService.quote(userId, { shippingAddress: quoteAddress });
     expect(normalQuote.shippingOptions.length).toBeGreaterThan(0);
+  });
+
+  it('uses a country-only tax address for a digital order without saving a shipping address', async () => {
+    applyFulfillmentPolicySelection({ digital: 'digital' });
+    await CartService.clearCart(userId);
+    await CartService.addToCart(userId, digitalProduct.id, 1, digitalVariantId);
+    const quote = await CheckoutService.quote(userId, { taxAddress: { country: 'US' } });
+    expect(quote.total).toBe('19.99');
+    const request = CreateOrderSchema.parse({ items: [{ productId: digitalProduct.id, variantId: digitalVariantId, quantity: 1 }], taxAddress: { country: 'us' }, shippingOptionId: 'none:none', paymentMethod: 'manual-payment', expectedTotal: quote.total, idempotencyKey: randomUUID() });
+    const placed = await runOrderPlacement(userId, request);
+    expect(placed.order.shippingAddress).toBeNull();
+    expect(placed.order.shippingMethod).toBeNull();
+    const replay = await runOrderPlacement(userId, { ...request, taxAddress: { country: 'US' } });
+    expect(replay.replayed).toBe(true);
+    await expect(runOrderPlacement(userId, { ...request, taxAddress: { country: 'CA' } })).rejects.toMatchObject({ code: 'ORDER_IDEMPOTENCY_CONFLICT' });
+    await CartService.clearCart(userId);
   });
 
   it('sells a product of a type that does not track its inventory without stock', async () => {
@@ -395,7 +442,10 @@ describe('the fulfilment plan of an order', () => {
       idempotencyKey: randomUUID(),
     });
 
-    const placed = await runOrderPlacement(userId, data);
+    const tax = withoutTaxProvider();
+    let placed;
+    try { placed = await runOrderPlacement(userId, data); }
+    finally { tax.mockRestore(); }
 
     expect(placed.replayed).toBe(false);
     expect(placed.order.shippingAddress).toBeNull();

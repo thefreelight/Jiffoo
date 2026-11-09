@@ -30,25 +30,29 @@ describe('the release of the notification leases that are in flight', () => {
       await prisma.coreProcess.create({ data: { bootNonce, instanceId, kind: 'worker', hostname: 'lease-test', pid: 1, databaseRole: 'postgres', state } });
     }
     const rows = new Map<string, string>();
+    const initialLeases = new Map<string, number>();
     for (const [name, owner] of Object.entries(owners)) {
       const id = `lease-release-${randomUUID()}`;
       notificationIds.push(id);
-      await prisma.notification.create({ data: {
+      const notification = await prisma.notification.create({ data: {
         id, type: 'payment_received', toAddress: 'lease@example.test', locale: 'en',
         subject: 'Lease release', html: 'Lease release', text: 'Lease release',
         status: 'SENDING', claimToken: randomUUID(), claimedBy: owner, leaseUntil: new Date(Date.now() + 600_000),
       } });
       rows.set(name, id);
+      initialLeases.set(name, notification.leaseUntil!.getTime());
     }
     // The rows of this instance and of the owners that are gone are released;
     // the rows of a peer that may still be alive keep their lease.
-    expect(await releaseNotificationLeases(owners.self)).toBe(3);
+    // The returned count covers the whole database, including unrelated orphan
+    // rows left by other suites. The assertions below identify this fixture's rows.
+    expect(await releaseNotificationLeases(owners.self)).toBeGreaterThanOrEqual(3);
     const leaseOf = async (name: string) => (await prisma.notification.findUniqueOrThrow({ where: { id: rows.get(name)! } })).leaseUntil!.getTime();
     for (const name of ['self', 'unregistered', 'dead']) {
       expect(await leaseOf(name), `the row of ${name} must be released`).toBeLessThan(Date.now());
     }
     for (const name of ['alive', 'draining', 'suspect']) {
-      expect(await leaseOf(name), `the row of ${name} must keep its lease`).toBeGreaterThan(Date.now() + 300_000);
+      expect(await leaseOf(name), `the row of ${name} must keep its lease`).toBe(initialLeases.get(name));
     }
   });
 });

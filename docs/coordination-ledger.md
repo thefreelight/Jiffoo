@@ -577,6 +577,21 @@ files.
 - Baseline: `06a1ffd99`. Selected coverage: full Admin suite and `apps/api/tests/routes/admin-products.test.ts`, covering payload baselines, conflict draft retention, and rejected stale stock with transaction rollback. Independent review and recorded browser retest passed; final commit gate results are recorded below.
 - Verification uses frozen inputs and separate temporary PostgreSQL/Redis services. The large acceptance database on port 55444 is preserved. No commit, push, or production deployment is authorized by this record.
 
+## 2026-11-07 Address-free checkout contract
+
+- Decision: checkout quote accepts omitted shippingAddress for line-aware plans without address or shipping-quote requirements. Default requiresShipping=false suppresses default shipping requirements; explicitly registered policies retain independent constraints.
+- Contract: configured tax without a country returns VALIDATION_ERROR with issue path shippingAddress.country and code tax_address_required. Shop requests a real tax address and invalidates stale quotes and payment selections. No plugin identity is hardcoded.
+- Coverage: fulfillment-policy, order-pipeline, Shop s4-checkout and related checkout contracts. The first full frozen gate found four fixture failures; fixtures are corrected and the next isolated gate is pending.
+- Scope: no schema migration, no commit, no push and no production deployment. Existing unrelated changes are preserved. Evidence: C:/Personal Develop/imager-core/artifacts/qa/plugin-ui-integration-20261106/gate-digital-checkout.
+
+## 2026-11-07 Imager checkout accepted closeout
+
+- Accepted contract: a non-shipping order uses an independent taxAddress only when tax requires a location. Country is required; other tax fields are optional. The public field issue code is TAX_ADDRESS_REQUIRED. ShippingAddress remains the physical-delivery contract. Tax addresses are not stored as shipping addresses and participate in the order request fingerprint. This supersedes the earlier provisional contract note.
+- Local verification: the frozen imager-state-98b96ba1c7 snapshot passed all 232 API files (2968 tests), Admin (748), Shop (328), type checks and Shop lint using two full API shards in isolated temporary PostgreSQL/Redis containers. Cleanup passed. CI browser E2E and serial full-suite execution were not run.
+- Browser acceptance: Credits and Wallet country-only quotes returned USD 1.00, without shipping data or misleading shipping copy. Virtual cart drawer/page and payment-before-submission states passed. No order or payment was submitted; the dedicated customer cart was restored empty.
+- Preservation: another session's subsequent CartSheet animation/focus edits remain untouched in the shared source and are outside the running frozen snapshot. The previously paused intermittent iframe blank issue remains outside this batch; opaque-frame upload and dependent new generation remain blocked by browser capability.
+- Evidence: C:/Personal Develop/imager-core/artifacts/qa/plugin-ui-integration-20261106/completed-handoff-report.html and completed-handoff-closeout.json. API and Shop were restarted with existing configuration and absolute original storage paths after read-only migration/schema checks passed. No commit, push or production deployment.
+
 ## 2026-11-07 Native Admin and Shop acceptance commit batch
 
 - Baseline: 06a1ffd998b716334b1f9d5e7ec075855df7871f. Scope: 11 Admin files, five API acceptance suites, 12 Shop files, four verification scripts and this ledger; exact inputs are recorded in C:/Users/11948/.codex/visualizations/2026/11/06/01a1b035-be66-7750-aab2-e7b640da1d1b/commit-closeout/inputs.json. Other sessions' checkout, shared-package and plugin changes are preserved outside this batch.
@@ -584,3 +599,11 @@ files.
 - Verification selection: audited scripts/verify-selection.test.mjs and scripts/verify-lane-shards.test.mjs, followed by pnpm verify:quick --shards=4. The latter certifies the full local eligible API catalogue, Admin and Shop; browser E2E remains CI-only. Temporary verification services are isolated from the retained 55444 acceptance clone.
 - Review: independent Admin/API, Shop and verification-runner reviews are clean. Commit is conditional on both verification runs exiting zero against the frozen inputs; exact summaries and cleanup verdicts are saved in the evidence directory.
 - Browser evidence: the recorded large-data native Admin/Shop checklists and final user-confirmed incognito login/logout checks are closed. Production and real payment channels are outside acceptance. No push or release is part of this commit batch.
+
+## 2026-11-09 Remaining workspace closeout
+
+- Baseline: `6711661e627a50b269e825ddf5a75b1d9008e17f`. The user requested completing and committing the remaining workspace changes, followed by CI verification. Preserve all existing changes in a frozen snapshot; do not discard or stash them to make the workspace appear clean.
+- Scope: the accepted independent tax-address checkout contract, plugin shell sizing and navigation, bridge artifact updates, related consumer tests, import reachability and owned fixture cleanup. No Prisma schema or migration changes are included. The accepted `taxAddress` / `TAX_ADDRESS_REQUIRED` contract above remains canonical.
+- Review: independent checkout, plugin/bridge and verification-fixture reviews are clean. The fixture cleanup keeps creation-time and workspace ownership checks; lease recovery tests retain fencing assertions.
+- Verification selection: audited module-reachability, bridge-standalone, selection and shard-runner script tests, followed by `pnpm verify:quick --shards=4`. These cover the shared import graph, distributable bridge, all locally eligible API suites, Admin and Shop. The final input manifest and exact summaries are saved under `C:/Users/11948/.codex/visualizations/2026/11/07/01a1b5f2-864f-72e3-b712-a2d2bb1b9809/workspace-closeout-20261109`.
+- Commit and push are conditional on the frozen-input gate passing. Browser verification uses the existing authorization for local CI investigation in isolated services; do not replace the running Imager previews or their database. No production deployment or scheduled monitor is part of this batch.

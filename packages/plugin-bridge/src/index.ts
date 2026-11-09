@@ -129,6 +129,8 @@ export function createPluginBridge() {
     context = undefined;
     clearTimeout(welcomeTimer);
     clearInterval(helloTimer);
+    clearTimeout(loadHelloTimer);
+    window.removeEventListener('load', onLoad);
     welcomeReject(reason);
     window.removeEventListener('message', receive);
     window.removeEventListener('pagehide', onPageHide);
@@ -157,6 +159,8 @@ export function createPluginBridge() {
       applyThemeTokens(context.themeTokens);
       clearTimeout(welcomeTimer);
       clearInterval(helloTimer);
+      clearTimeout(loadHelloTimer);
+      window.removeEventListener('load', onLoad);
       welcomeResolve();
       return;
     }
@@ -182,7 +186,13 @@ export function createPluginBridge() {
   window.addEventListener('message', receive);
   function onPageHide() { dispose(); }
   window.addEventListener('pagehide', onPageHide, { once: true });
-  const hello = () => parent.postMessage({ channel: CHANNEL, version: VERSION, id: crypto.randomUUID(), type: 'bridge.hello', payload: { supportedVersions: [1] } }, shellOrigin);
+  const hello = () => { if (!closed && !binding) parent.postMessage({ channel: CHANNEL, version: VERSION, id: crypto.randomUUID(), type: 'bridge.hello', payload: { supportedVersions: [1] } }, shellOrigin); };
+  let loadHelloTimer: ReturnType<typeof setTimeout> | undefined;
+  function onLoad() {
+    // Let the parent iframe load handler open its existing handshake gate first.
+    loadHelloTimer = setTimeout(hello, 0);
+  }
+  window.addEventListener('load', onLoad, { once: true });
   const helloTimer = setInterval(hello, 500);
   hello();
 

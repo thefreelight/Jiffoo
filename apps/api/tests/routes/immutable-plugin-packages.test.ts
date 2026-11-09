@@ -1,5 +1,6 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { cleanupPluginMigrationFixture } from '../helpers/plugin-migration-cleanup';
+import { recordB10ProcessTree, forceB10ProcessTree, confirmB10ProcessTreeExited } from '../helpers/b10-process-tree';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { fork, type ChildProcess } from 'node:child_process';
 import { createWriteStream, promises as fs } from 'node:fs';
@@ -186,19 +187,32 @@ describe('immutable plugin package deployment', () => {
     };
     childProcess.on('message', releaseLateBarrier);
     try {
-      await new Promise<void>((resolve, reject) => {
-        const timer = setTimeout(() => finish(new Error(`Owned fixture child did not stop: ${JSON.stringify({ pid: childProcess.pid, trace: mailboxes.get(childProcess)?.trace })}`)), 10_000);
+      const graceful = await new Promise<boolean>((resolve, reject) => {
+        const timer = setTimeout(() => finish(undefined, false), 10_000);
         const onExit = () => finish();
         const onError = (error: Error) => finish(error);
-        function finish(error?: Error) {
+        function finish(error?: Error, exited = true) {
           clearTimeout(timer);
           childProcess.off('exit', onExit); childProcess.off('error', onError);
-          if (error) reject(error); else resolve();
+          if (error) reject(error); else resolve(exited);
         }
         childProcess.once('exit', onExit); childProcess.once('error', onError);
         release();
         if (childProcess.connected) childProcess.send({ kind: 'stop' }, error => { if (error) finish(error); });
       });
+      if (!graceful && childProcess.exitCode === null && childProcess.signalCode === null) {
+        phase('cleanup-grace-expired', childProcess.pid);
+        let tree: Awaited<ReturnType<typeof recordB10ProcessTree>> | undefined;
+        try {
+          tree = await recordB10ProcessTree(childProcess.pid!);
+          const root = tree.find(row => row.ProcessId === childProcess.pid)!;
+          await forceB10ProcessTree(childProcess.pid!, root.CreationDate);
+        } catch (error) {
+          // A graceful exit may win the race against process-tree inspection.
+          if (childProcess.exitCode === null && childProcess.signalCode === null) throw error;
+        }
+        if (tree) await confirmB10ProcessTreeExited(tree);
+      }
     } finally { childProcess.off('message', releaseLateBarrier); }
   }
 
@@ -490,6 +504,10 @@ describe('immutable plugin package deployment', () => {
       const firstSettled = first.then(result => ({ result, error: undefined }), error => ({ result: undefined, error }));
       await aEntered;
       await prisma.pluginOperationLease.update({ where: { slug: id }, data: { expiresAt: new Date(0) } });
+      // Recovery can defer on NOWAIT contention; await its terminal status before replacement.
+      const outcome = await firstSettled;
+      expect(outcome.error).toBeUndefined();
+      expect(outcome.result).toMatchObject({ status: 200, body: { operation: { phase: 'NEEDS_RECOVERY' } } });
       const bEntered = message(b, 'plugin-lease-ready');
       const second = uploadTo(bReady.base, newZip);
       await Promise.race([bEntered, second.then(result => {
@@ -505,7 +523,6 @@ describe('immutable plugin package deployment', () => {
       a.send({ kind: 'plugin-lease-release' });
       a.send({ kind: 'drain-operations' });
       await aDrained;
-      const outcome = await firstSettled;
       expect(outcome.error).toBeUndefined();
       expect(outcome.result).toMatchObject({ status: 200, body: { operation: { phase: 'NEEDS_RECOVERY' } } });
       const fenced = await fetch(`${aReady.base}/api/v1/extensions/plugin/operations/${outcome.result!.body.operation.operationId}`, { headers: { authorization: `Bearer ${token}` } });
@@ -536,6 +553,8 @@ describe('immutable plugin package deployment', () => {
       void first.catch(() => undefined);
       await aEntered;
       await prisma.pluginOperationLease.update({ where: { slug: id }, data: { expiresAt: new Date(0) } });
+      const abandoned = await first;
+      expect(abandoned).toMatchObject({ status: 200, body: { operation: { phase: 'NEEDS_RECOVERY', errorCode: 'PLUGIN_MIGRATION_OUTCOME_UNKNOWN' } } });
       const bEntered = message(b, 'plugin-lease-ready');
       const second = uploadTo(bReady.base, newZip);
       void second.catch(() => undefined);
@@ -543,7 +562,6 @@ describe('immutable plugin package deployment', () => {
         console.error(`Recovery finished before barrier: ${JSON.stringify(result)}`);
         throw new Error(`Recovery finished before barrier: ${JSON.stringify(result)}`);
       })]);
-      const abandoned = await first;
       expect(abandoned).toMatchObject({ status: 200, body: { operation: { phase: 'NEEDS_RECOVERY', errorCode: 'PLUGIN_MIGRATION_OUTCOME_UNKNOWN' } } });
       b.send({ kind: 'plugin-lease-release' });
       expect((await second).status).toBe(200);
