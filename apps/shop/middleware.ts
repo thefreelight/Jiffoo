@@ -19,6 +19,7 @@ import {
   isRedirectCandidate,
   matchStorefrontRedirect,
   type StorefrontRedirect,
+  type RedirectSurface,
 } from '@/lib/seo/redirects';
 
 /**
@@ -41,7 +42,7 @@ const shopProxyConfig: ProxyConfig = {
  * passes through unchanged.
  */
 const SEO_REDIRECTS_TTL_MS = 5 * 60 * 1000;
-let seoRedirects: { items: StorefrontRedirect[]; surface: 'native' | 'core' | null; refreshedAt: number } | null = null;
+let seoRedirects: { items: StorefrontRedirect[]; surface: RedirectSurface | null; refreshedAt: number } | null = null;
 let seoRedirectsRefresh: Promise<void> | null = null;
 
 async function ensureSeoRedirects(origin: string): Promise<void> {
@@ -165,9 +166,7 @@ export async function middleware(request: ProxyRequest) {
     if (list.length > 0) {
       const match = matchStorefrontRedirect(list, request.nextUrl.pathname);
       if (match && seoRedirects?.surface) {
-        if (seoRedirects.surface === 'native' || seoRedirects.surface === 'core') {
-          void countRedirectHit(origin, seoRedirects.surface, request.nextUrl.pathname);
-        }
+        void countRedirectHit(origin, seoRedirects.surface, request.nextUrl.pathname);
         const target = buildRedirectTarget(match, request.nextUrl.search, origin);
         return NextResponse.redirect(target, match.statusCode as 301 | 302 | 307 | 308);
       }

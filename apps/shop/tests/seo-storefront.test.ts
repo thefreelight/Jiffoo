@@ -178,6 +178,28 @@ describe('fetchStorefrontRedirects', () => {
     });
   });
 
+  it('prefers the plugin gateway surface over the core alias when it answers', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes('/api/v1/extensions/plugin/seo/api/store/redirects')) {
+        return jsonResponse({
+          success: true,
+          data: { items: [{ fromPath: '/plugin', toPath: '/p2', statusCode: 301 }] },
+        });
+      }
+      if (url.includes('/api/seo/store/redirects')) {
+        throw new Error('should not probe the core surface');
+      }
+      return jsonResponse({ error: { code: 'NOT_FOUND' } }, 404);
+    }));
+
+    const result = await fetchStorefrontRedirects('https://example.com');
+    expect(result).toEqual({
+      items: [{ fromPath: '/plugin', toPath: '/p2', statusCode: 301 }],
+      surface: 'plugin',
+    });
+  });
+
   it('returns an empty list when neither surface answers', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => jsonResponse({}, 500)));
     const result = await fetchStorefrontRedirects('https://example.com');

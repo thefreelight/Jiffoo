@@ -19,7 +19,7 @@ export interface StorefrontRedirect {
   statusCode: number;
 }
 
-export type RedirectSurface = 'native' | 'core';
+export type RedirectSurface = 'native' | 'plugin' | 'core';
 
 export interface StorefrontRedirectsResult {
   items: StorefrontRedirect[];
@@ -80,8 +80,11 @@ async function fetchSurface(url: string): Promise<StorefrontRedirect[] | null> {
 
 /**
  * Fetch the active redirect list from the runtime-local SEO surface.
- * Tries the native adapter first, then the Node core alias; a valid
- * (possibly empty) answer from a surface ends the probe.
+ * Tries the native adapter first, then the official seo plugin's store
+ * surface through the node plugin gateway (authoritative for
+ * plugin-admin-managed redirects on self-hosted instances), then the node
+ * core alias; a valid (possibly empty) answer from a surface ends the
+ * probe.
  */
 export async function fetchStorefrontRedirects(
   origin: string,
@@ -90,6 +93,7 @@ export async function fetchStorefrontRedirects(
   const capped = Math.min(Math.max(1, Math.trunc(limit)), MAX_LIST_SIZE);
   const surfaces: Array<{ surface: RedirectSurface; url: string }> = [
     { surface: 'native', url: `${origin}/api/v1/plugins/seo/store/redirects?limit=${capped}` },
+    { surface: 'plugin', url: `${origin}/api/v1/extensions/plugin/seo/api/store/redirects?limit=${capped}` },
     { surface: 'core', url: `${origin}/api/seo/store/redirects?limit=${capped}` },
   ];
   for (const { surface, url } of surfaces) {
@@ -156,7 +160,9 @@ export async function countRedirectHit(
   const path = encodeURIComponent(normalizeRedirectPath(pathname));
   const url = surface === 'native'
     ? `${origin}/api/v1/plugins/seo/store/redirects/resolve?path=${path}`
-    : `${origin}/api/seo/store/redirects/resolve?path=${path}`;
+    : surface === 'plugin'
+      ? `${origin}/api/v1/extensions/plugin/seo/api/store/redirects/resolve?path=${path}`
+      : `${origin}/api/seo/store/redirects/resolve?path=${path}`;
   try {
     await fetch(url, { cache: 'no-store', headers: { accept: 'application/json' } });
   } catch {
