@@ -255,7 +255,7 @@ describe('Plugin SDK create and generated projects', () => {
       const snapshot = path.join(project, 'types/index.d.ts');
       successful(run(generator, ['--check', snapshot]));
       const declarations = await fs.readFile(snapshot, 'utf8');
-      for (const name of ['PluginContext', 'PluginEntryModule', 'PluginLifecycleExports', 'LifecycleContext', 'PaymentV2Contract', 'ShippingV1Contract', 'TaxV1Contract', 'FulfillmentV1Contract', 'NotificationV1Contract']) expect(declarations).toContain(`export interface ${name}`);
+      for (const name of ['PluginContext', 'PluginEntryModule', 'PluginLifecycleExports', 'LifecycleContext', 'PaymentV2Contract', 'ShippingV1Contract', 'TaxV1Contract', 'FulfillmentV1Contract', 'NotificationV2Contract']) expect(declarations).toContain(`export interface ${name}`);
       for (const name of ['PluginDatabase', 'PluginDatabaseTransaction', 'PluginDatabaseOptions', 'PluginDatabaseResult']) expect(declarations).toContain(`export interface ${name}`);
       expect(declarations).toContain('export interface PluginRepairBootstrapDeclaration');
       expect(declarations).toContain('Plugin code is trusted in-process code.');
@@ -289,7 +289,7 @@ describe('Plugin SDK create and generated projects', () => {
       const methods = { payment: ['describe', 'createSession', 'queryByRequestKey', 'handleWebhook'], shipping: ['quote'], tax: ['calculate'], fulfillment: ['createFulfillment', 'getStatus'], notification: ['send'] };
       for (const [category, names] of Object.entries(methods)) {
         const title = category[0].toUpperCase() + category.slice(1);
-        const version = category === 'payment' ? 2 : 1;
+        const version = category === 'payment' || category === 'notification' ? 2 : 1;
         assertions.push(`import type * as ${title} from ${JSON.stringify(canonical + '/extensions/contracts/' + category + '-v' + version)};`);
         for (const method of names) for (const direction of ['Input', 'Output']) assertions.push(`type ${title}${method}${direction} = Assert<Equal<Local.${title}V${version}${direction}<'${method}'>, ${title}.${title}V${version}${direction}<'${method}'>>>;`);
       }

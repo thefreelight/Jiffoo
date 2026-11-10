@@ -10,7 +10,7 @@ afterEach(async () => {
   ids.length = 0;
 });
 
-it.each(['000100', '000500', '000900'])('reclaims and claims an expired notification after its ladder rung at microseconds %s', async fraction => {
+it.each(['000100', '000500', '000900'])('does not resend an expired notification after its ladder rung at microseconds %s', async fraction => {
   const id = `lease-clock-${randomUUID()}`, oldToken = randomUUID();
   const earlierId = `lease-clock-earlier-${randomUUID()}`;
   ids.push(id, earlierId);
@@ -59,10 +59,11 @@ it.each(['000100', '000500', '000900'])('reclaims and claims an expired notifica
         query: async (sql, values = []) => ({ rows: await tx.$queryRawUnsafe<any[]>(clock(afterRung)(sql), ...values) }),
       };
       const claimed = await claimNotifications(later, 'replacement-worker', 1);
-      expect(claimed).toHaveLength(1);
-      const owned = claimed.find(row => row.id === id);
-      expect(owned).toMatchObject({ id, status: 'SENDING', attempts: 1, claimedBy: 'replacement-worker' });
-      expect(owned?.claimToken).not.toBe(oldToken);
+      expect(claimed).toHaveLength(0);
+      const row = await tx.notification.findUniqueOrThrow({ where: { id } });
+      expect(row.status).toBe('FAILED');
+      expect(row.lastError).toContain('UNKNOWN:');
+
     });
     expect(await isolation.$queryRawUnsafe(
       'SELECT * FROM public.notifications WHERE id <> $1 ORDER BY id', id,

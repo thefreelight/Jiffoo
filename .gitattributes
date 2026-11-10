@@ -2,3 +2,7 @@ deploy/compose/*.sh text eol=lf
 deploy/release/*.sh text eol=lf
 deploy/compose/*.envsh text eol=lf
 bin/jiffoo-host text eol=lf
+apps/admin/app/default-tokens.css text eol=lf
+apps/shop/app/default-tokens.css text eol=lf
+apps/shop/app/**/layout.tsx text eol=lf
+apps/shop/app/**/not-found.tsx text eol=lf

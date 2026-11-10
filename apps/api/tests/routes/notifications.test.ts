@@ -44,13 +44,16 @@ describe('Persisted notifications', () => {
     customerToken = customer.token;
     customerId = customer.user.id;
     const source = `const fs = require('fs'); module.exports = { register(ctx) {
-      ctx.contracts.implement('notification', 1, { send(input) {
+      ctx.contracts.implement('notification', 2, { send(input) {
         fs.appendFileSync(${JSON.stringify(logFile)}, JSON.stringify(input) + '\\n');
-        if (fs.existsSync(${JSON.stringify(failFile)})) return { accepted: false, error: 'transport unavailable' };
-        return { accepted: true, providerMessageId: 'fixture_' + input.idempotencyKey };
+        const mode = fs.existsSync(${JSON.stringify(failFile)}) ? fs.readFileSync(${JSON.stringify(failFile)}, 'utf8') : '';
+        if (mode === 'throw') throw new Error('handler disconnected after send');
+        if (mode === 'rejected' || mode === 'unknown') return { outcome: mode, code: 'SEND_RESULT', error: 'provider result' };
+        if (fs.existsSync(${JSON.stringify(failFile)})) return { outcome: 'retryable', code: 'TRANSPORT_UNAVAILABLE', error: 'transport unavailable' };
+        return { outcome: 'accepted', providerMessageId: 'fixture_' + input.idempotencyKey };
       } });
     } };`;
-    await installFixturePlugin({ app, adminToken, adminUserId }, slug, 'notification', [{ name: 'notification', version: 1 }], source);
+    await installFixturePlugin({ app, adminToken, adminUserId }, slug, 'notification', [{ name: 'notification', version: 2 }], source);
     const consoleEmail = await prisma.pluginInstallation.findUniqueOrThrow({
       where: { pluginSlug_instanceKey: { pluginSlug: 'console-email', instanceKey: 'default' } },
     });
@@ -92,6 +95,17 @@ describe('Persisted notifications', () => {
       { secret },
     ));
   }
+  it.each(['rejected', 'unknown', 'throw'])('stops automatic retries after a %s send result', async mode => {
+    await fs.writeFile(failFile, mode);
+    const item = await pending();
+    await deliverPendingNotifications();
+    const stopped = await prisma.notification.findUniqueOrThrow({ where: { id: item.id } });
+    expect(stopped.status).toBe('FAILED');
+    expect(stopped.secretJson).toBeNull();
+    expect(stopped.lastError).toContain(mode === 'rejected' ? 'REJECTED:' : 'UNKNOWN:');
+    await deliverPendingNotifications();
+    expect(await calls()).toHaveLength(1);
+  });
   it('filters recipients and types, returns status counts before the status filter, and sorts stably', async () => {
     const first = await pending('order_confirmation');
     const second = await pending('order_confirmation');
@@ -215,16 +229,17 @@ describe('Persisted notifications', () => {
     // The reclaim of a notification whose sender died waits for the rung of
     // the delivery ladder, so the recovered row is not due yet.
     const recovered = await prisma.notification.findUniqueOrThrow({ where: { id: item.id } });
-    expect(recovered.status).toBe('PENDING');
+    expect(recovered.status).toBe('FAILED');
     expect(recovered.attempts).toBe(1);
-    expect(recovered.lastError).toBe('Notification delivery lease expired');
+    expect(recovered.lastError).toContain('UNKNOWN:');
     expect(recovered.nextAttemptAt.getTime()).toBeGreaterThan(Date.now());
     expect(recovered.nextAttemptAt.getTime()).toBeLessThan(Date.now() + 120_000);
     // The rung passes and the recovered notification is delivered.
     await prisma.notification.update({ where: { id: item.id }, data: { nextAttemptAt: new Date(0) } });
     await deliverPendingNotifications();
     const delivered = await prisma.notification.findUniqueOrThrow({ where: { id: item.id } });
-    expect(delivered.status, delivered.lastError || 'Notification was not sent').toBe('SENT');
+    expect(delivered.status).toBe('FAILED');
+    expect(await calls()).toHaveLength(0);
   });
 
   it('delivers via the builtin console-email provider when it is the enabled provider', async () => {

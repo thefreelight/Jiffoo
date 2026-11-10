@@ -46,7 +46,9 @@ describe('the reclaim of a notification lease', () => {
     expect(NOTIFICATION_RETRY_JITTER_RATIO).toBeLessThan(1);
     expect(statement).not.toContain('(1 - random()');
     // The budget of the row is still spent one attempt at a time.
-    expect(statement).toContain(`status = CASE WHEN n.attempts + 1 >= $1 THEN 'FAILED' ELSE 'PENDING' END`);
+    expect(statement).toContain(`status = 'FAILED'`);
+    expect(statement).toContain('UNKNOWN:');
+    expect(statement).toContain('"secretJson" = NULL');
   });
 
   it('B uses the same ladder as the delivery failure path', async () => {

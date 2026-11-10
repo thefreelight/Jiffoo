@@ -74,8 +74,8 @@ beforeAll(async () => {
   builtinSnapshot = await snapshotPluginRows(builtinSlugs);
   await syncBuiltinPlugins(path.resolve('builtin-plugins'));
   app = await createTestApp(); admin = await createAdminWithToken();
-  await installFixturePlugin({ app, adminToken: admin.token, adminUserId: admin.user.id }, notificationSlug, 'notification', [{ name: 'notification', version: 1 }],
-    `module.exports={register(ctx){ctx.contracts.implement('notification',1,{async send(input){const response=await fetch(${JSON.stringify(providerUrl + '/notification')},{method:'POST',body:JSON.stringify({idempotencyKey:input.idempotencyKey,pid:process.pid})});return response.json();}});}};`);
+  await installFixturePlugin({ app, adminToken: admin.token, adminUserId: admin.user.id }, notificationSlug, 'notification', [{ name: 'notification', version: 2 }],
+    `module.exports={register(ctx){ctx.contracts.implement('notification',2,{async send(input){const response=await fetch(${JSON.stringify(providerUrl + '/notification')},{method:'POST',body:JSON.stringify({idempotencyKey:input.idempotencyKey,pid:process.pid})});return response.json();}});}};`);
   await installFixturePlugin({ app, adminToken: admin.token, adminUserId: admin.user.id }, eventSlug, 'integration', [],
     `module.exports={register(ctx){ctx.events.subscribe('order.created',1,async event=>{const response=await fetch(${JSON.stringify(providerUrl + '/event')},{method:'POST',body:JSON.stringify({id:event.id,pid:process.pid})});await response.text();});}};`, { subscriptions: [{ type: 'order.created', version: 1 }] });
   const builtin = await prisma.pluginInstallation.findUniqueOrThrow({ where: { pluginSlug_instanceKey: { pluginSlug: 'console-email', instanceKey: 'default' } } });
@@ -91,7 +91,7 @@ beforeEach(async () => {
 
 afterEach(async () => {
   restoreSlowDiagnostics?.(); restoreSlowDiagnostics = undefined;
-  for (const response of responses) response.end(JSON.stringify({ accepted: true, providerMessageId: 'released' }));
+  for (const response of responses) response.end(JSON.stringify({ outcome: 'accepted', providerMessageId: 'released' }));
   const cleanup = await Promise.allSettled([...children].map(value => stopChild(value)));
   if (queueIsolation) cleanup.push(...await Promise.allSettled([(async () => {
     const isolation = queueIsolation!;
@@ -233,69 +233,35 @@ it('A two real connections claim distinct notifications while a locked claim rem
     await Promise.all([first.query('COMMIT'), second.query('COMMIT')]);
   } finally { await first.query('ROLLBACK'); await second.query('ROLLBACK'); await first.end(); await second.end(); }
 });
-it('B expired takeover rejects both stale completion and failure without changing the new owner', async () => {
-  const item = await notification(), first = await connect(), second = await connect();
+it('B expired delivery stops with an unknown outcome and rejects stale writes', async () => {
+  const item = await notification(), connection = await connect();
   try {
-    await first.query('BEGIN'); const [oldClaim] = await claimNotifications(first, 'old'); await first.query('COMMIT');
-    expect(oldClaim.id).toBe(item.id);
-    await expireNotificationLeaseForTest(true, first, item.id, oldClaim.claimToken!);
-    await second.query('BEGIN'); expect(await reclaimNotificationLeases(second)).toBe(1);
-    // The reclaimed row waits for the rung of the ladder before it is due again.
-    await assertLadderRung(second, item.id, LADDER_RUNG_SECONDS[0]);
-    await passLadderRung(second, item.id);
-    const [current] = await claimNotifications(second, 'new'); await second.query('COMMIT');
+    const [owned] = await claimNotifications(connection, 'old');
+    await expireNotificationLeaseForTest(true, connection, item.id, owned.claimToken!);
+    expect(await reclaimNotificationLeases(connection)).toBe(1);
     const snapshot = await prisma.notification.findUniqueOrThrow({ where: { id: item.id } });
-    expect(current).toBeDefined();
-    expect(current.claimToken).not.toBe(oldClaim.claimToken); expect(current.attempts).toBe(1);
-    expect(await completeNotification(first, oldClaim, 'old', 'old-message')).toBe(0);
-    expect(await failNotification(first, oldClaim, 'old-error', 'old')).toBe(0);
+    expect(snapshot).toMatchObject({ status: 'FAILED', attempts: 1, secretJson: null });
+    expect(snapshot.lastError).toContain('UNKNOWN:');
+    expect(await claimNotifications(connection, 'replacement')).toHaveLength(0);
+    expect(await completeNotification(connection, owned, 'old', 'late-receipt')).toBe(0);
+    expect(await failNotification(connection, owned, 'late-error')).toBe(0);
     expect(await prisma.notification.findUniqueOrThrow({ where: { id: item.id } })).toEqual(snapshot);
-    expect(await completeNotification(second, current, 'new', 'new-message')).toBe(1);
-  } finally { await first.end(); await second.end(); }
+  } finally { await connection.end(); }
 });
-it('C a real worker killed mid-send is reclaimed and resends the identical notification idempotency key', async () => {
-  const item = await notification(), control = await connect(); let first: Awaited<ReturnType<typeof child>> | undefined, second: typeof first;
+it('C a killed sender is marked unknown without another automatic provider call', async () => {
+  const item = await notification(), connection = await connect();
+  const sender = await child();
   try {
-    first = await child(); await requestFrom(first, value => value.kind === 'notification' && value.id === item.id && value.pid === first!.process.pid);
-    const claimed = await prisma.notification.findUniqueOrThrow({ where: { id: item.id } }); expect(claimed.status).toBe('SENDING');
-    await stopChild(first, true);
-    await expireNotificationLeaseForTest(true, control, item.id, claimed.claimToken!);
-    second = await child();
-    await second.messages.take(value => value.stage === 'ready');
-    // The worker reclaimed the expired lease and waits for the rung of the ladder.
-    await waitFor(async () => (await prisma.notification.findUniqueOrThrow({ where: { id: item.id } })).attempts === 1);
-    await assertLadderRung(control, item.id, LADDER_RUNG_SECONDS[0]);
-    await passLadderRung(control, item.id);
-    second.process.send({ command: 'notification-tick' });
-    const resend = await requestFrom(second, value => value.kind === 'notification' && value.id === item.id && value.pid === second!.process.pid);
-    expect((await prisma.notification.findUniqueOrThrow({ where: { id: item.id } })).attempts).toBe(1);
-    expect(observed.filter(value => value.id === item.id).map(value => value.id)).toEqual([item.id, item.id]);
-    resend.response.end(JSON.stringify({ accepted: true, providerMessageId: `receipt-${item.id}` }));
-    await stopChild(second);
-    expect((await prisma.notification.findUniqueOrThrow({ where: { id: item.id } })).status).toBe('SENT');
-  } finally { if (first) await stopChild(first); if (second) await stopChild(second); await control.end(); }
-}, 180_000);
-it('D five real worker crashes exhaust attempts and clear the notification secret', async () => {
-  const item = await notification(), control = await connect();
-  try {
-    for (let attempt = 1; attempt <= 5; attempt++) {
-      const current = await child();
-      try {
-        await requestFrom(current, value => value.kind === 'notification' && value.id === item.id && value.pid === current.process.pid);
-        const claimed = await prisma.notification.findUniqueOrThrow({ where: { id: item.id } });
-        await stopChild(current, true); await expireNotificationLeaseForTest(true, control, item.id, claimed.claimToken!);
-        await control.query('BEGIN'); expect(await reclaimNotificationLeases(control)).toBe(1); await control.query('COMMIT');
-        const result = await prisma.notification.findUniqueOrThrow({ where: { id: item.id } });
-        expect(result.attempts).toBe(attempt); expect(result.status).toBe(attempt === 5 ? 'FAILED' : 'PENDING');
-        // The reclaim waits for the rung of the ladder that the attempts of the row carry.
-        await assertLadderRung(control, item.id, LADDER_RUNG_SECONDS[attempt - 1]);
-        if (attempt === 5) expect(result.secretJson).toBeNull();
-        else await passLadderRung(control, item.id);
-      } finally { await stopChild(current); }
-    }
-    expect(observed.filter(value => value.id === item.id)).toHaveLength(5);
-  } finally { await control.end(); }
-}, 240_000);
+    await requestFrom(sender, value => value.kind === 'notification' && value.id === item.id);
+    const owned = await prisma.notification.findUniqueOrThrow({ where: { id: item.id } });
+    await stopChild(sender, true);
+    await expireNotificationLeaseForTest(true, connection, item.id, owned.claimToken!);
+    expect(await reclaimNotificationLeases(connection)).toBe(1);
+    expect(await reclaimNotificationLeases(connection)).toBe(0);
+    expect(await claimNotifications(connection, 'replacement')).toHaveLength(0);
+    expect(await prisma.notification.findUniqueOrThrow({ where: { id: item.id } })).toMatchObject({ status: 'FAILED', attempts: 1, secretJson: null });
+  } finally { await stopChild(sender); await connection.end(); }
+});
 async function event() {
   const id = randomUUID(); eventIds.add(id);
   const instance = await prisma.pluginInstallation.findUniqueOrThrow({ where: { pluginSlug_instanceKey: { pluginSlug: eventSlug, instanceKey: 'default' } } });
@@ -340,10 +306,10 @@ it('E3 a timed-out notification invocation keeps stop waiting until its underlyi
     const tree = await recordB10ProcessTree(current.process.pid!); current.process.send({ command: 'stop' });
     await current.messages.take(value => value.stage === 'draining'); expect(current.process.exitCode).toBeNull();
     expect((await prisma.coreProcess.findUniqueOrThrow({ where: { bootNonce: ready.bootNonce } })).state).toBe('DRAINING');
-    request.response.end(JSON.stringify({ accepted: true, providerMessageId: 'late-receipt' }));
+    request.response.end(JSON.stringify({ outcome: 'accepted', providerMessageId: 'late-receipt' }));
     expect((await current.exited)[0], current.logs()).toBe(0); await confirmB10ProcessTreeExited(tree);
     expect((await prisma.coreProcess.findUniqueOrThrow({ where: { bootNonce: ready.bootNonce } })).state).toBe('QUIESCENT');
-  } finally { for (const response of responses) response.end(JSON.stringify({ accepted: true })); await stopChild(current); }
+  } finally { for (const response of responses) response.end(JSON.stringify({ outcome: 'accepted' })); await stopChild(current); }
 }, 120_000);
 it('E4 an unsettled notification send is logged by id and leaves the deadline-exiting worker DRAINING', async () => {
   const current = await child({ deadlineMs: 500, invocationMs: 50 });
@@ -356,7 +322,7 @@ it('E4 an unsettled notification send is logged by id and leaves the deadline-ex
     expect((await current.exited)[0], current.logs()).toBe(1); await confirmB10ProcessTreeExited(tree);
     expect(current.logs()).toContain('notification-send'); expect(current.logs()).toContain(item.id);
     expect((await prisma.coreProcess.findUniqueOrThrow({ where: { bootNonce: ready.bootNonce } })).state).toBe('DRAINING');
-  } finally { for (const response of responses) response.end(JSON.stringify({ accepted: true })); await stopChild(current); }
+  } finally { for (const response of responses) response.end(JSON.stringify({ outcome: 'accepted' })); await stopChild(current); }
 }, 120_000);
 it('H slow successful sends across multiple lease-sized batches never reclaim or exhaust attempts', async () => {
   const limit = notificationClaimLimit(getPluginTimeoutMs());
@@ -404,7 +370,7 @@ it('H slow successful sends across multiple lease-sized batches never reclaim or
       try { await new Promise<void>(resolve => { releaseDelay = resolve; timer = setTimeout(resolve, getPluginTimeoutMs() * 0.9); }); }
       finally { clearTimeout(timer); }
       mark('provider-release', request.id);
-      request.response.end(JSON.stringify({ accepted: true, providerMessageId: `slow-${request.id}` }));
+      request.response.end(JSON.stringify({ outcome: 'accepted', providerMessageId: `slow-${request.id}` }));
     }
   })();
   void provider.catch(() => undefined);
@@ -424,7 +390,7 @@ it('H slow successful sends across multiple lease-sized batches never reclaim or
     stopped = true; clearInterval(reclaimTimer);
     clearTimeout(timer);
     releaseDelay?.();
-    for (const response of responses) response.end(JSON.stringify({ accepted: true }));
+    for (const response of responses) response.end(JSON.stringify({ outcome: 'accepted' }));
     try { await provider; await reclaim; } finally {
       restoreSlowDiagnostics?.(); restoreSlowDiagnostics = undefined;
       await control.end();
@@ -442,10 +408,10 @@ it('I a second overlapping tick in one real worker claims nothing', async () => 
     expect(await prisma.notification.findUniqueOrThrow({ where: { id: first.id } })).toEqual(before);
     expect(await prisma.notification.findUniqueOrThrow({ where: { id: second.id } })).toMatchObject({ status: 'PENDING', attempts: 0, claimToken: null });
     expect(observed.filter(value => value.id === second.id)).toHaveLength(0);
-    request.response.end(JSON.stringify({ accepted: true, providerMessageId: 'overlap-receipt' }));
+    request.response.end(JSON.stringify({ outcome: 'accepted', providerMessageId: 'overlap-receipt' }));
     await current.messages.take(value => value.stage === 'ready');
     await stopChild(current);
-  } finally { for (const response of responses) response.end(JSON.stringify({ accepted: true })); await stopChild(current); }
+  } finally { for (const response of responses) response.end(JSON.stringify({ outcome: 'accepted' })); await stopChild(current); }
 }, 120_000);
 it('J a short remaining lease releases the unsent tail without attempts or provider calls', async () => {
   const items = await Promise.all([notification(), notification(), notification()]);
@@ -459,14 +425,14 @@ it('J a short remaining lease releases the unsent tail without attempts or provi
       await control.query(`UPDATE public.notifications SET "leaseUntil" = clock_timestamp() + interval '500 milliseconds'
         WHERE id = $1 AND status = 'SENDING' AND "claimToken" = $2::uuid`, [id, row.claimToken]);
     }
-    first.response.end(JSON.stringify({ accepted: true, providerMessageId: 'first-receipt' }));
+    first.response.end(JSON.stringify({ outcome: 'accepted', providerMessageId: 'first-receipt' }));
     expect(await delivery).toBe(items.length);
     for (const id of tail) {
       expect(await prisma.notification.findUniqueOrThrow({ where: { id } })).toMatchObject({ status: 'PENDING', attempts: 0, claimToken: null, claimedBy: null, leaseUntil: null });
       expect(observed.filter(value => value.id === id)).toHaveLength(0);
     }
   } finally {
-    for (const response of responses) response.end(JSON.stringify({ accepted: true }));
+    for (const response of responses) response.end(JSON.stringify({ outcome: 'accepted' }));
     await delivery;
     await control.end();
   }

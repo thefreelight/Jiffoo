@@ -38,7 +38,7 @@ export async function verifyStandaloneSdk() {
     const packed = JSON.parse(run(npm, ['pack', sdk, '--json', '--pack-destination', temporary]));
     assert.equal(packed.length, 1);
     assert.equal(packed[0].name, '@jiffoo-core/plugin-sdk');
-    assert.equal(packed[0].version, '1.0.0-alpha.7');
+    assert.equal(packed[0].version, '1.0.0-alpha.8');
     assert(packed[0].files.every(file => /^(package\.json|dist\/|types\/|README\.md$|LICENSE$)/.test(file.path)));
     const tarball = path.join(temporary, packed[0].filename);
     await writeFile(path.join(temporary, 'package.json'), '{"private":true}\n');

@@ -58,10 +58,10 @@ describe('contract v1 plugin runtime', () => {
     const app = Fastify();
     await registerContractV1Runtime(app, { register(ctx) {
       ctx.contracts.implement('fulfillment', 1, { createFulfillment: () => ({ fulfillmentId: 'full-1', status: 'pending' }) });
-      ctx.contracts.implement('notification', 1, { send: () => ({ accepted: true, providerMessageId: 'message-1' }) });
-    } }, { slug: 'operations-plugin', installationId: 'operations-install', version: '1.0.0', config: {}, declaredContracts: [{ name: 'fulfillment', version: 1 }, { name: 'notification', version: 1 }], subscriptions: [] });
+      ctx.contracts.implement('notification', 2, { send: () => ({ outcome: 'accepted', providerMessageId: 'message-1' }) });
+    } }, { slug: 'operations-plugin', installationId: 'operations-install', version: '1.0.0', config: {}, declaredContracts: [{ name: 'fulfillment', version: 1 }, { name: 'notification', version: 2 }], subscriptions: [] });
     expect((await app.inject({ method: 'POST', url: '/__contracts/fulfillment/v1/createFulfillment', payload: {} })).json().fulfillmentId).toBe('full-1');
-    expect((await app.inject({ method: 'POST', url: '/__contracts/notification/v1/send', payload: {} })).json().accepted).toBe(true);
+    expect((await app.inject({ method: 'POST', url: '/__contracts/notification/v2/send', payload: {} })).json().outcome).toBe('accepted');
     await app.close();
   });
 });

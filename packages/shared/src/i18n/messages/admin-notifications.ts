@@ -1,7 +1,7 @@
 export const adminNotificationMessages = {
   en: {
     title: 'Notifications', description: 'Emails sent automatically: order confirmations, payment results, email verification and administrator invitations.',
-    all: 'All', PENDING: 'Pending', SENDING: 'Sending', SENT: 'Sent', FAILED: 'Failed', status: 'Delivery status',
+    all: 'All', PENDING: 'Pending', SENDING: 'Sending', SENT: 'Provider accepted', FAILED: 'Failed', status: 'Delivery status',
     search: 'Search recipients', searchPlaceholder: 'Search recipient email', type: 'Type', mail: 'Email', recipient: 'Recipient', attempts: 'Attempts', created: 'Created ({timezone})',
     failedBanner: '{count} emails failed. Open one to see why, then check the recipient address or email plugin before resending.', onlyFailed: 'Show failed',
     loading: 'Loading notifications', empty: 'No notifications yet', failed: 'Unable to load notifications', detailFailed: 'Unable to load notification details', retry: 'Retry',
@@ -19,7 +19,7 @@ export const adminNotificationMessages = {
   },
   'zh-Hans': {
     title: '通知', description: '系统自动发出的邮件：订单确认、付款结果、邮箱验证、管理员邀请等。',
-    all: '全部', PENDING: '待发送', SENDING: '发送中', SENT: '已发送', FAILED: '失败', status: '发送状态',
+    all: '全部', PENDING: '待发送', SENDING: '发送中', SENT: '邮件服务已受理', FAILED: '失败', status: '发送状态',
     search: '搜索收件人', searchPlaceholder: '搜索收件人邮箱', type: '类型', mail: '邮件', recipient: '收件人', attempts: '尝试', created: '创建时间（{timezone}）',
     failedBanner: '{count} 封邮件发送失败。点开看失败原因，确认收件地址或发信插件后可以重新发送。', onlyFailed: '只看失败',
     loading: '正在加载通知', empty: '暂无通知', failed: '无法加载通知', detailFailed: '无法加载通知详情', retry: '重试',
@@ -37,7 +37,7 @@ export const adminNotificationMessages = {
   },
   'zh-Hant': {
     title: '通知', description: '系統自動寄出的郵件：訂單確認、付款結果、電子郵件驗證、管理員邀請等。',
-    all: '全部', PENDING: '待寄送', SENDING: '寄送中', SENT: '已寄送', FAILED: '失敗', status: '寄送狀態',
+    all: '全部', PENDING: '待寄送', SENDING: '寄送中', SENT: '郵件服務已受理', FAILED: '失敗', status: '寄送狀態',
     search: '搜尋收件人', searchPlaceholder: '搜尋收件人電子郵件', type: '類型', mail: '郵件', recipient: '收件人', attempts: '嘗試', created: '建立時間（{timezone}）',
     failedBanner: '{count} 封郵件寄送失敗。開啟查看原因，確認收件地址或寄信外掛後可重新寄送。', onlyFailed: '只看失敗',
     loading: '正在載入通知', empty: '暫無通知', failed: '無法載入通知', detailFailed: '無法載入通知詳情', retry: '重試',

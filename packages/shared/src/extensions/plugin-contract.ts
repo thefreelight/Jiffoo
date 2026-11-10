@@ -71,14 +71,15 @@ export const PLUGIN_CONTRACT_VERSIONS = {
   shipping: 1,
   tax: 1,
   fulfillment: 1,
-  notification: 1,
+  notification: 2,
 } as const;
 
 /** The name of a published capability contract. */
 export type PluginContractName = keyof typeof PLUGIN_CONTRACT_VERSIONS;
 
 export type PluginContractDeclaration = { name: 'payment'; version: 2 }
-  | { name: 'shipping' | 'tax' | 'fulfillment' | 'notification'; version: 1 };
+  | { name: 'shipping' | 'tax' | 'fulfillment'; version: 1 }
+  | { name: 'notification'; version: 2 };
 
 export type PluginDatabaseJson = null | boolean | number | string | readonly PluginDatabaseJson[] | { readonly [key: string]: PluginDatabaseJson };
 export type PluginDatabaseParameter = PluginDatabaseJson | Date | Uint8Array;
