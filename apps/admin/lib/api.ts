@@ -19,6 +19,8 @@ import {
 
 export type { ApiResponse, ListResult, PageResult, UserProfile };
 
+export type NotificationDeliveryStatus = 'UNKNOWN' | 'DELIVERED' | 'DELAYED' | 'BOUNCED' | 'COMPLAINED' | 'FAILED';
+export type NotificationReceipt = { id: string; type: 'delivered' | 'delayed' | 'bounced' | 'complained' | 'failed'; occurredAt: string; receivedAt: string };
 export type AdminNotification = {
   id: string;
   type: string;
@@ -30,6 +32,9 @@ export type AdminNotification = {
   html: string;
   text: string;
   status: 'PENDING' | 'SENDING' | 'SENT' | 'FAILED';
+  deliveryStatus: NotificationDeliveryStatus;
+  deliveryUpdatedAt: string | null;
+  receiptTimeline?: NotificationReceipt[];
   attempts: number;
   nextAttemptAt: string;
   lastError: string | null;
@@ -705,7 +710,7 @@ export const pluginsApi = {
 };
 
 export const notificationsApi = {
-  getAll: (page = 1, limit = 20, status?: AdminNotification['status'], filters?: { search?: string; type?: string; sort?: string }): Promise<ApiResponse<PageResult<AdminNotification> & { counts?: Record<string, number>; types?: string[] }>> =>
+  getAll: (page = 1, limit = 20, status?: AdminNotification['status'], filters?: { search?: string; type?: string; sort?: string; deliveryStatus?: NotificationDeliveryStatus }): Promise<ApiResponse<PageResult<AdminNotification> & { counts?: Record<string, number>; types?: string[] }>> =>
     apiClient.get('/admin/notifications', { params: { page, limit, status, ...filters } }),
   getById: (id: string): Promise<ApiResponse<AdminNotification>> =>
     apiClient.get(`/admin/notifications/${id}`),

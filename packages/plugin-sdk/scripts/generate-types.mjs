@@ -7,7 +7,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../.
 const shared = path.join(root, 'packages/shared/src');
 const files = [
   'extensions/plugin-contract.ts', 'events/registry.ts',
-  ...['payment', 'shipping', 'tax', 'fulfillment', 'notification'].map(name => `extensions/contracts/${name}-v${name === 'payment' || name === 'notification' ? 2 : 1}.ts`),
+  ...['payment', 'shipping', 'tax', 'fulfillment', 'notification'].map(name => `extensions/contracts/${name}-v${name === 'notification' ? 3 : name === 'payment' ? 2 : 1}.ts`),
 ].map(name => path.join(shared, name));
 const lifecyclePath = path.join(root, 'apps/api/src/core/admin/plugin-management/lifecycle-hooks.ts');
 const runtimePath = path.join(root, 'apps/api/src/core/admin/extension-installer/contract-v1-runtime.ts');
@@ -87,7 +87,7 @@ export function generateSnapshot() {
   const required = variable(runtimePath, 'requiredMethods').initializer;
   if (!ts.isObjectLiteralExpression(required)) throw new Error('Invalid canonical required methods');
   for (const name of ['payment', 'shipping', 'tax', 'fulfillment', 'notification']) {
-    const version = name === 'payment' || name === 'notification' ? 2 : 1;
+    const version = name === 'notification' ? 3 : name === 'payment' ? 2 : 1;
     const filename = path.join(shared, `extensions/contracts/${name}-v${version}.ts`);
     const title = name[0].toUpperCase() + name.slice(1);
     const methods = properties(filename, `${name}V${version}Methods`);

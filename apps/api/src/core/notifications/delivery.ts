@@ -105,16 +105,14 @@ async function deliverBatch(options: { isStopping?: () => boolean }): Promise<nu
         await releaseUnstartedNotification(client, notification);
         continue;
       }
-      // The provider call happens before the row is marked as sent, so a crash
-      // between the two sends the notification again once the lease is
-      // reclaimed. That at-least-once window is safe because the provider
-      // receives a stable idempotency key: the notification row id. The key
-      // is the primary key of the row, so it holds the same value in every
-      // path that retries one delivery. The failure path re-claims the same
-      // row, and the lease reclaim path re-claims the same row after it was
-      // reset to PENDING, so both reuse this id. Only a deliberate resend
-      // writes a new row, and therefore a new key, because that is a new
-      // notification rather than a retry of this one.
+      // Bind the provider before external IO so an early signed receipt can
+      // safely identify this notification. Only an explicit retryable result
+      // reuses this row and idempotency key; ambiguous calls and expired leases
+      // stop automatically. A deliberate manual resend creates a new row.
+      const binding = await client.query(`UPDATE public.notifications SET "providerSlug" = $3
+        WHERE id = $1 AND status = 'SENDING' AND "claimToken" = $2::uuid
+        AND ("providerSlug" IS NULL OR "providerSlug" = $3) RETURNING id`, [notification.id, notification.claimToken, providerSlug]);
+      if (!binding.rows.length) throw new DeterministicNotificationError('NOTIFICATION_PROVIDER_BINDING_FAILED');
       providerCallStarted = true;
       const result = await callContract(providerSlug, 'notification', PLUGIN_CONTRACT_VERSIONS.notification, 'send', {
         channel: 'email', to: notification.toAddress, subject: notification.subject,

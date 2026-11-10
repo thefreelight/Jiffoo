@@ -11,7 +11,7 @@ import type { EventSubscription, PaymentFact, WebhookOutcome } from '@jiffoo/sha
 import { createHash } from 'node:crypto';
 import { cleanupPluginMigrationFixture } from './plugin-migration-cleanup';
 
-export type FixtureContract = { name: 'payment'; version: 2 } | { name: 'shipping' | 'tax'; version: 1 } | { name: 'notification'; version: 2 };
+export type FixtureContract = { name: 'payment'; version: 2 } | { name: 'shipping' | 'tax'; version: 1 } | { name: 'notification'; version: 3 };
 
 export const checkoutPaymentFixtureSource = `module.exports = { register(ctx) {
   const requests = new Map();

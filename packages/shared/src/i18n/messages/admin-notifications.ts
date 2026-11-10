@@ -1,7 +1,8 @@
 export const adminNotificationMessages = {
   en: {
+    refreshReceipts: 'Refresh receipts', receiptStatus: 'Receipt status', receiptUNKNOWN: 'No receipt', receiptDELIVERED: 'Recipient server accepted', receiptDELAYED: 'Delivery delayed', receiptBOUNCED: 'Bounced', receiptCOMPLAINED: 'Complaint reported', receiptFAILED: 'Delivery failed', receiptUpdated: 'Receipt updated', receiptHistory: 'Receipt history', receiptOccurred: 'Event time', receiptReceived: 'Received at', receiptExplanation: 'Provider acceptance is the sending result. Delivery receipts describe the recipient server response and do not confirm that the recipient read the email.', unknownHint: 'The previous sending result is unknown. Confirm the provider record before resending because another email may duplicate it.',
     title: 'Notifications', description: 'Emails sent automatically: order confirmations, payment results, email verification and administrator invitations.',
-    all: 'All', PENDING: 'Pending', SENDING: 'Sending', SENT: 'Provider accepted', FAILED: 'Failed', status: 'Delivery status',
+    all: 'All', PENDING: 'Pending', SENDING: 'Sending', SENT: 'Provider accepted', FAILED: 'Failed', status: 'Sending status',
     search: 'Search recipients', searchPlaceholder: 'Search recipient email', type: 'Type', mail: 'Email', recipient: 'Recipient', attempts: 'Attempts', created: 'Created ({timezone})',
     failedBanner: '{count} emails failed. Open one to see why, then check the recipient address or email plugin before resending.', onlyFailed: 'Show failed',
     loading: 'Loading notifications', empty: 'No notifications yet', failed: 'Unable to load notifications', detailFailed: 'Unable to load notification details', retry: 'Retry',
@@ -18,6 +19,7 @@ export const adminNotificationMessages = {
     order_confirmation: 'Order confirmation', payment_received: 'Payment received', staff_invite: 'Administrator invitation', email_verification: 'Email verification', password_reset: 'Password reset', shipped: 'Order shipped', cancelled: 'Order cancelled', refunded: 'Order refunded',
   },
   'zh-Hans': {
+    refreshReceipts: '刷新回执', receiptStatus: '送达回执', receiptUNKNOWN: '暂无回执', receiptDELIVERED: '收件服务器已接收', receiptDELAYED: '送达延迟', receiptBOUNCED: '已退信', receiptCOMPLAINED: '已投诉', receiptFAILED: '送达失败', receiptUpdated: '回执更新时间', receiptHistory: '回执记录', receiptOccurred: '事件发生时间', receiptReceived: '回执接收时间', receiptExplanation: '邮件服务受理是发送结果；送达回执描述收件服务器的处理结果，不代表收件人已读。', unknownHint: '上次发送结果未知。请先核对供应商记录，重新发送可能产生重复邮件。',
     title: '通知', description: '系统自动发出的邮件：订单确认、付款结果、邮箱验证、管理员邀请等。',
     all: '全部', PENDING: '待发送', SENDING: '发送中', SENT: '邮件服务已受理', FAILED: '失败', status: '发送状态',
     search: '搜索收件人', searchPlaceholder: '搜索收件人邮箱', type: '类型', mail: '邮件', recipient: '收件人', attempts: '尝试', created: '创建时间（{timezone}）',
@@ -36,6 +38,7 @@ export const adminNotificationMessages = {
     order_confirmation: '订单确认', payment_received: '付款成功', staff_invite: '管理员邀请', email_verification: '邮箱验证', password_reset: '重置密码', shipped: '订单已发货', cancelled: '订单已取消', refunded: '订单已退款',
   },
   'zh-Hant': {
+    refreshReceipts: '重新整理回執', receiptStatus: '送達回執', receiptUNKNOWN: '暫無回執', receiptDELIVERED: '收件伺服器已接收', receiptDELAYED: '送達延遲', receiptBOUNCED: '已退信', receiptCOMPLAINED: '已投訴', receiptFAILED: '送達失敗', receiptUpdated: '回執更新時間', receiptHistory: '回執記錄', receiptOccurred: '事件發生時間', receiptReceived: '回執接收時間', receiptExplanation: '郵件服務受理是寄送結果；送達回執描述收件伺服器的處理結果，不代表收件人已讀。', unknownHint: '上次寄送結果未知。請先核對供應商記錄，重新寄送可能產生重複郵件。',
     title: '通知', description: '系統自動寄出的郵件：訂單確認、付款結果、電子郵件驗證、管理員邀請等。',
     all: '全部', PENDING: '待寄送', SENDING: '寄送中', SENT: '郵件服務已受理', FAILED: '失敗', status: '寄送狀態',
     search: '搜尋收件人', searchPlaceholder: '搜尋收件人電子郵件', type: '類型', mail: '郵件', recipient: '收件人', attempts: '嘗試', created: '建立時間（{timezone}）',

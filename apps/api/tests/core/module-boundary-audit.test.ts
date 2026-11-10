@@ -2789,6 +2789,7 @@ const TABLE_OWNERS: Record<string, string> = {
   // platform
   system_settings: 'settings',
   notifications: 'notifications',
+  notification_receipts: 'notifications',
   admin_audit_events: 'audit',
   admin_staff_audit_logs: 'audit',
   storefront_code_configurations: 'admin/storefront-code',

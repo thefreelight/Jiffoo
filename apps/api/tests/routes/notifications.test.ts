@@ -44,7 +44,7 @@ describe('Persisted notifications', () => {
     customerToken = customer.token;
     customerId = customer.user.id;
     const source = `const fs = require('fs'); module.exports = { register(ctx) {
-      ctx.contracts.implement('notification', 2, { send(input) {
+      ctx.contracts.implement('notification', 3, { verifyReceipt: () => ({ outcome: 'unavailable', code: 'RECEIPTS_UNAVAILABLE' }), send(input) {
         fs.appendFileSync(${JSON.stringify(logFile)}, JSON.stringify(input) + '\\n');
         const mode = fs.existsSync(${JSON.stringify(failFile)}) ? fs.readFileSync(${JSON.stringify(failFile)}, 'utf8') : '';
         if (mode === 'throw') throw new Error('handler disconnected after send');
@@ -53,7 +53,7 @@ describe('Persisted notifications', () => {
         return { outcome: 'accepted', providerMessageId: 'fixture_' + input.idempotencyKey };
       } });
     } };`;
-    await installFixturePlugin({ app, adminToken, adminUserId }, slug, 'notification', [{ name: 'notification', version: 2 }], source);
+    await installFixturePlugin({ app, adminToken, adminUserId }, slug, 'notification', [{ name: 'notification', version: 3 }], source);
     const consoleEmail = await prisma.pluginInstallation.findUniqueOrThrow({
       where: { pluginSlug_instanceKey: { pluginSlug: 'console-email', instanceKey: 'default' } },
     });

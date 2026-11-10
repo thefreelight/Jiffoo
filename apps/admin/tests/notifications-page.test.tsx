@@ -11,9 +11,9 @@ it.each([['SENT', 0, 1], ['SENT', 2, 3], ['PENDING', 0, 0], ['PENDING', 2, 2], [
 vi.mock('shared/src/i18n/react', async () => { const { translate } = await import('./helpers/operations'); return { useLocale: () => 'en', useT: () => translate }; });
 vi.mock('next/navigation', () => ({ usePathname: () => '/en/notifications', useSearchParams: () => new URLSearchParams(mock.query), useRouter: () => ({ replace: mock.replace, push: mock.push }) }));
 vi.mock('@/lib/api', () => ({ notificationsApi: mock, unwrapApiResponse: <T,>(response: { data: T }) => response.data }));
-const item = { id: 'one', type: 'order_confirmation', toAddress: 'buyer@example.com', subject: 'Your order', text: 'Hello {{secret.link}}', status: 'SENT', attempts: 1, createdAt: '2026-10-13T00:00:00Z', sentAt: '2026-10-13T00:01:00Z', nextAttemptAt: '2026-10-13T00:02:00Z', providerSlug: 'console-email', recipientUserId: 'buyer' };
+const item = { deliveryStatus: 'UNKNOWN', deliveryUpdatedAt: null, receiptTimeline: [], id: 'one', type: 'order_confirmation', toAddress: 'buyer@example.com', subject: 'Your order', text: 'Hello {{secret.link}}', status: 'SENT', attempts: 1, createdAt: new Date().toISOString(), sentAt: '2026-10-13T00:01:00Z', nextAttemptAt: '2026-10-13T00:02:00Z', providerSlug: 'console-email', recipientUserId: 'buyer' };
 let container: HTMLDivElement, root: Root;
-beforeEach(() => { vi.clearAllMocks(); mock.query = ''; vi.spyOn(window.history, 'replaceState').mockImplementation((data, unused, url) => { mock.replace(data, unused, url); mock.query = String(url).split('?')[1] ?? ''; }); (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true; mock.getAll.mockResolvedValue({ data: { items: [item], total: 1, totalPages: 1, counts: { all: 1, SENT: 1, FAILED: 0 }, types: ['order_confirmation'] } }); mock.getById.mockResolvedValue({ data: item }); mock.resend.mockResolvedValue({ data: { ...item, id: 'two', status: 'PENDING' } }); container = document.createElement('div'); document.body.append(container); root = createRoot(container); });
+beforeEach(() => { vi.clearAllMocks(); vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible'); mock.query = ''; vi.spyOn(window.history, 'replaceState').mockImplementation((data, unused, url) => { mock.replace(data, unused, url); mock.query = String(url).split('?')[1] ?? ''; }); (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true; mock.getAll.mockResolvedValue({ data: { items: [item], total: 1, totalPages: 1, counts: { all: 1, SENT: 1, FAILED: 0 }, types: ['order_confirmation'] } }); mock.getById.mockResolvedValue({ data: item }); mock.resend.mockResolvedValue({ data: { ...item, id: 'two', status: 'PENDING' } }); container = document.createElement('div'); document.body.append(container); root = createRoot(container); });
 afterEach(async () => { await act(async () => root.unmount()); container.remove(); vi.restoreAllMocks(); });
 async function render() { await act(async () => root.render(<NotificationsPage />)); }
 async function click(name: string) { const button = [...document.querySelectorAll('button')].find(element => element.textContent === name || element.getAttribute('aria-label') === name); expect(button).toBeDefined(); await act(async () => button!.click()); }
@@ -44,7 +44,7 @@ it('follows browser history changes and closes when the detail identity disappea
   expect(document.querySelector('[role="dialog"]')).not.toBeNull();
 });
 it('loads real counts, desktop rows and phone cards and resends from the detail drawer', async () => { await render(); expect(container.textContent).toContain('buyer@example.com'); expect(container.querySelector('.md\\:hidden')).not.toBeNull(); await open(); expect(document.body.textContent).toContain('[One-time link hidden]'); await click('Resend'); expect(mock.resend).toHaveBeenCalledWith('one', expect.any(String)); expect(document.body.textContent).toContain('Email queued'); expect(mock.getAll).toHaveBeenCalledTimes(2); });
-it.each(['PENDING', 'SENDING', 'SENT', 'FAILED'])('restores the %s tab, filters, sort and pagination from the URL', async status => { mock.query = `status=${status}&search=buyer&type=order_confirmation&sort=oldest&page=2&pageSize=50`; await render(); expect(mock.getAll).toHaveBeenCalledWith(2, 50, status, { search: 'buyer', type: 'order_confirmation', sort: 'oldest' }); await click('Remove filter: buyer'); expect(mock.replace).toHaveBeenLastCalledWith(null, '', expect.stringContaining('pageSize=50')); expect(mock.replace.mock.calls.at(-1)![2]).not.toContain('search='); });
+it.each(['PENDING', 'SENDING', 'SENT', 'FAILED'])('restores the %s tab, filters, sort and pagination from the URL', async status => { mock.query = `status=${status}&search=buyer&type=order_confirmation&sort=oldest&page=2&pageSize=50`; await render(); expect(mock.getAll).toHaveBeenCalledWith(2, 50, status, { search: 'buyer', type: 'order_confirmation', sort: 'oldest', deliveryStatus: undefined }); await click('Remove filter: buyer'); expect(mock.replace).toHaveBeenLastCalledWith(null, '', expect.stringContaining('pageSize=50')); expect(mock.replace.mock.calls.at(-1)![2]).not.toContain('search='); });
 it('shows empty and failed load states without fake counts', async () => { mock.getAll.mockRejectedValueOnce(new Error()); await render(); expect(container.textContent).toContain('Unable to load notifications'); await click('Retry'); expect(container.textContent).toContain('buyer@example.com'); mock.getAll.mockResolvedValueOnce({ data: { items: [], total: 0, counts: { all: 0 }, types: [] } }); await click('Pending—'); expect(container.textContent).toContain('No notifications yet'); });
 it('retains detail after resend failure and reuses its idempotency key', async () => { mock.resend.mockRejectedValueOnce(new Error()); await render(); await open(); await click('Resend'); expect(document.body.textContent).toContain('Unable to queue email'); await click('Resend'); expect(mock.resend.mock.calls[0][1]).toBe(mock.resend.mock.calls[1][1]); });
 it.each([['password_reset', 'SENT'], ['order_confirmation', 'PENDING'], ['order_confirmation', 'SENDING']])('disables resend for %s in %s', async (type, status) => { mock.getById.mockResolvedValue({ data: { ...item, type, status } }); await render(); await open(); const button = [...document.querySelectorAll('button')].find(value => value.textContent === 'Resend')!; expect(button.disabled).toBe(true); expect(mock.resend).not.toHaveBeenCalled(); });
@@ -102,7 +102,7 @@ it('tracks the resent identity in history and polls it to a final status without
     expect(resend().disabled).toBe(false);
     const calls = mock.getById.mock.calls.length;
     await act(async () => { await vi.advanceTimersByTimeAsync(4_000); });
-    expect(mock.getById).toHaveBeenCalledTimes(calls);
+    expect(mock.getById).toHaveBeenCalledTimes(calls + 2);
     mock.query = filters + '&notificationId=one'; await render();
     expect(mock.getById).toHaveBeenLastCalledWith('one');
   } finally { vi.useRealTimers(); }
@@ -163,10 +163,10 @@ it('follows the status of an open notification that is still being sent', async 
     await act(async () => {});
     // The open detail follows the status, so the resend becomes available.
     expect(resend().disabled).toBe(false);
-    // A final status is not read again.
+    // Provider acceptance can still receive later delivery receipts.
     const calls = mock.getById.mock.calls.length;
     await act(async () => { await vi.advanceTimersByTimeAsync(6_000); });
-    expect(mock.getById).toHaveBeenCalledTimes(calls);
+    expect(mock.getById).toHaveBeenCalledTimes(calls + 3);
   } finally { vi.useRealTimers(); }
 });
 it('stops reading the open detail once the sheet is closed', async () => {
@@ -179,5 +179,36 @@ it('stops reading the open detail once the sheet is closed', async () => {
     const calls = mock.getById.mock.calls.length;
     await act(async () => { await vi.advanceTimersByTimeAsync(6_000); });
     expect(mock.getById).toHaveBeenCalledTimes(calls);
+  } finally { vi.useRealTimers(); }
+});
+
+it('shows receipt evidence separately from provider acceptance without sending another email', async () => {
+  mock.getById.mockResolvedValue({ data: { ...item, deliveryStatus: 'DELIVERED', deliveryUpdatedAt: '2026-10-13T00:03:00Z', receiptTimeline: [{ id: 'receipt-1', type: 'delivered', occurredAt: '2026-10-13T00:02:00Z', receivedAt: '2026-10-13T00:03:00Z' }] } });
+  await render(); await open();
+  expect(document.body.textContent).toContain('Recipient server accepted');
+  expect(document.body.textContent).toContain('do not confirm that the recipient read the email');
+  expect(document.body.textContent).toContain('Receipt history');
+  expect(mock.resend).not.toHaveBeenCalled();
+});
+it('restores a receipt filter from the URL and sends it to the API', async () => {
+  mock.query = 'deliveryStatus=BOUNCED&page=2';
+  await render();
+  expect(mock.getAll).toHaveBeenCalledWith(2, 20, undefined, expect.objectContaining({ deliveryStatus: 'BOUNCED' }));
+});
+
+it('polls recent unknown sending outcomes but stops automatically after the receipt window', async () => {
+  vi.useFakeTimers();
+  try {
+    mock.getById.mockResolvedValue({ data: { ...item, status: 'FAILED', lastError: 'UNKNOWN: connection lost' } });
+    await render(); await open();
+    await act(async () => { await vi.advanceTimersByTimeAsync(2_000); });
+    expect(mock.getById.mock.calls.length).toBeGreaterThan(1);
+    mock.getById.mockResolvedValue({ data: { ...item, status: 'FAILED', lastError: 'UNKNOWN: connection lost', createdAt: new Date(Date.now() - 25 * 3600000).toISOString() } });
+    await click('Refresh receipts');
+    const calls = mock.getById.mock.calls.length;
+    await act(async () => { await vi.advanceTimersByTimeAsync(4_000); });
+    expect(mock.getById).toHaveBeenCalledTimes(calls);
+    await click('Refresh receipts');
+    expect(mock.getById).toHaveBeenCalledTimes(calls + 1);
   } finally { vi.useRealTimers(); }
 });

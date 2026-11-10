@@ -24,6 +24,7 @@ import { customerPasswordResetLinkRoutes } from '@/core/admin/user-management/pa
 import { adminProductRoutes } from '@/core/admin/product-management/routes';
 import { adminOrderRoutes } from '@/core/admin/order-management/routes';
 import { adminNotificationRoutes } from '@/core/admin/notifications/routes';
+import { notificationReceiptRoutes } from '@/core/notifications/receipt-routes';
 import { adminAuditEventRoutes } from '@/core/admin/audit-events/routes';
 import { adminListPreferenceRoutes } from '@/core/admin/list-preferences/routes';
 import { adminStorefrontCodeRoutes, publicStorefrontCodeRoutes } from '@/core/admin/storefront-code/routes';
@@ -49,6 +50,7 @@ import { storeRoutes } from '@/core/store/routes';
  * Note: Parent router adds /api/v1 prefix, so routes here are relative to that
  */
 export async function registerV1Routes(fastify: FastifyInstance) {
+  await fastify.register(notificationReceiptRoutes);
   await fastify.register(pluginStorageRoutes);
   // Authentication routes
   await fastify.register(authRoutes, { prefix: '/auth' });
