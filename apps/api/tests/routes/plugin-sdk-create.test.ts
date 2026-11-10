@@ -270,6 +270,9 @@ describe('Plugin SDK create and generated projects', () => {
         'type Assert<T extends true> = T;',
         'type NotificationDeclarationMatches = Assert<Equal<Extract<Local.PluginContractDeclaration, { name: "notification" }>, { name: "notification"; version: 3 }>>;',
         'const notificationDeclaration: Local.PluginContractDeclaration = { name: "notification", version: 3 };',
+        'const identityDeclaration: Local.PluginContractDeclaration = { name: "identity", version: 1 };',
+        '// @ts-expect-error Identity contracts only support canonical version 1.',
+        'const unsupportedIdentityDeclaration: Local.PluginContractDeclaration = { name: "identity", version: 2 };',
         '// @ts-expect-error Notification v2 declarations are retired from the canonical SDK.',
         'const retiredNotificationDeclaration: Local.PluginContractDeclaration = { name: "notification", version: 2 };',
         'type ContextKeysMatch = Assert<Equal<keyof Local.PluginContext, keyof Core.PluginContext>>;',
@@ -290,7 +293,7 @@ describe('Plugin SDK create and generated projects', () => {
         'type EventKeysMatch = Assert<Equal<Local.EventKey, Events.EventKey>>;',
       ];
       for (const event of ['customer.created', 'product.created', 'product.updated', 'order.fulfilled', 'order.created', 'order.cancelled', 'order.refunded', 'order.paid', 'payment.succeeded', 'payment.failed']) assertions.push(`type Event_${event.replace('.', '_')} = Assert<Equal<Local.EventPayload<'${event}'>, Events.EventPayload<'${event}'>>>;`);
-      const methods = { payment: ['describe', 'createSession', 'queryByRequestKey', 'handleWebhook'], shipping: ['quote'], tax: ['calculate'], fulfillment: ['createFulfillment', 'getStatus'], notification: ['send', 'verifyReceipt'] };
+      const methods = { payment: ['describe', 'createSession', 'queryByRequestKey', 'handleWebhook'], shipping: ['quote'], tax: ['calculate'], fulfillment: ['createFulfillment', 'getStatus'], notification: ['send', 'verifyReceipt'], identity: ['describe', 'authorize', 'complete'] };
       for (const [category, names] of Object.entries(methods)) {
         const title = category[0].toUpperCase() + category.slice(1);
         const version = category === 'notification' ? 3 : category === 'payment' ? 2 : 1;

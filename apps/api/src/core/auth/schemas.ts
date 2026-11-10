@@ -26,6 +26,7 @@ const userProfileSchema = {
     locale: { type: ['string', 'null'], enum: ['en', 'zh-Hans', 'zh-Hant', null] },
     role: { type: 'string', description: 'User role (admin, customer, etc.)' },
     emailVerified: { type: 'boolean', description: 'Whether email has been verified' },
+    hasPassword: { type: 'boolean' },
   },
   required: ['id', 'email', 'username', 'role'],
 } as const;
@@ -34,7 +35,7 @@ const userProfileSchema = {
 // Auth Response (OAuth2-like + user + compatibility fields)
 // ============================================================================
 
-const authResponseSchema = {
+export const authResponseSchema = {
   type: 'object',
   properties: {
     user: userProfileSchema,

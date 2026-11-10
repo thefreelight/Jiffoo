@@ -44,7 +44,7 @@ describe('payment script CSP', () => {
         }
         expect(response.headers.get('x-middleware-request-x-shop-locale'))
           .toBe(route.includes('[locale]') ? locale : null);
-        expect(response.headers.get('x-middleware-request-x-shop-return-path')).toBe(`${pathname}?order=own-order`);
+        expect(response.headers.get('x-middleware-request-x-shop-return-path')).toBe(route === '/[locale]/auth/identity/finish' ? pathname : `${pathname}?order=own-order`);
       }
     }
     for (const pathname of ['/', '/reset-password', '/verify-email', '/checkout', '/bff/checkout/quote',

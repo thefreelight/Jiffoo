@@ -22,6 +22,7 @@ const userProfileSchema = {
   type: 'object',
   properties: {
     id: { type: 'string' },
+    hasPassword: { type: 'boolean' },
     email: { type: 'string' },
     username: { type: 'string' },
     avatar: { type: ['string', 'null'] },
@@ -68,6 +69,7 @@ const accountSummarySchema = {
     phone: { type: ['string', 'null'] },
     membership: { type: 'string', enum: ['Admin', 'Member'] },
     accountType: { type: 'string', enum: ['customer'] },
+    hasPassword: { type: 'boolean' },
   },
   required: ['id', 'name', 'displayName', 'email', 'phone', 'membership', 'accountType'],
 } as const;
@@ -98,6 +100,7 @@ export async function accountRoutes(fastify: FastifyInstance) {
       const profile = await AccountService.getProfile(request.user!.id);
       const account = {
         id: profile.id,
+        hasPassword: profile.hasPassword,
         name: profile.username,
         displayName: profile.username,
         email: profile.email,

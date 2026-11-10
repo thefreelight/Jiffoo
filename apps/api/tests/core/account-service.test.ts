@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const { prismaMock, verifyPasswordMock, queueVerificationMock } = vi.hoisted(() => ({
   prismaMock: {
     $transaction: vi.fn(),
+    $executeRaw: vi.fn().mockResolvedValue(1),
     user: {
       findUnique: vi.fn(),
       findFirst: vi.fn(),
@@ -64,7 +65,7 @@ describe('AccountService.updateEmail', () => {
     });
 
     expect(prismaMock.user.findFirst).toHaveBeenCalledWith({
-      where: { email: 'new@example.com', id: { not: user.id } },
+      where: { email: { equals: 'new@example.com', mode: 'insensitive' }, id: { not: user.id } },
       select: { id: true },
     });
     expect(prismaMock.user.update).toHaveBeenCalledWith(expect.objectContaining({

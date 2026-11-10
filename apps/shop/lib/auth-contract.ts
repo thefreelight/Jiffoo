@@ -1,4 +1,5 @@
 import type { ShopLocale } from './locale';
+import { identityStartPath, identityConnectionPath } from './social-auth';
 
 export const ACCESS_COOKIE = 'shop_access';
 export const REFRESH_COOKIE = 'shop_refresh';
@@ -54,6 +55,10 @@ export function safeNextPath(value: string | null | undefined, locale: ShopLocal
 
 export function allowedBffRoute(method: string, path: string): boolean {
   if (/(?:%|\\|\/\/|\.\.)/i.test(path)) return false;
+  if (identityStartPath(path)) return method === 'POST';
+  if (identityConnectionPath(path)) return method === 'DELETE';
+  if (path === '/auth/identity/providers' || path === '/auth/identity/connections') return method === 'GET';
+  if (path === '/auth/identity/exchange') return method === 'POST';
   if (path === '/plugin-pages') return method === 'GET';
   if (/^\/plugin-pages\/[a-z][a-z0-9-]*\/(?:session|purchase-origins)$/.test(path)) return method === 'POST';
   if (/^\/plugin-pages\/[a-z][a-z0-9-]*\/sessions\/[0-9a-f-]{36}\/(?:refresh|cart|download|product-target)$/.test(path)) return method === 'POST';

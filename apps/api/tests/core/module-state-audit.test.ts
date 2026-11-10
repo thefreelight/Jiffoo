@@ -8,6 +8,10 @@ type Entry = { category: 1 | 2 | 3; reason: string; rebuild?: { file: string; fu
 
 // Every entry is explicit: new names, including persistent class fields, require review.
 const codeConstants = [
+  'core/extensions/identity-provider.ts:identityProviderAdapter',
+  'core/auth/identity-routes.ts:schemas',
+  'core/auth/identity-routes.ts:params',
+  'core/auth/identity-routes.ts:responses',
   'core/admin/notifications/routes.ts:deliveryValues',
   'core/notifications/receipt-routes.ts:acknowledgement',
   'core/notifications/receipt-routes.ts:privateHeaders',

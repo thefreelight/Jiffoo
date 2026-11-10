@@ -1,4 +1,5 @@
 export const storefront = {
+  socialAuth: {"signIn": "其他登录方式", "connections": "已绑定登录方式", "continueWith": "使用 {provider} 继续", "linkProvider": "绑定 {provider}", "unlink": "解除本站绑定", "unavailable": "暂时无法使用第三方登录，请稍后重试。", "unlinkFailed": "无法解除绑定，请保留其他可用登录方式。", "linkHint": "请先登录当前账号后再绑定。相同邮箱不会自动合并账号。", "lastMethod": "至少保留一种当前可用的登录方式。解除最后一种可用方式前，请通过邮件恢复设置密码，或联系店铺启用其他已绑定方式。", "setPassword": "设置密码", "finishing": "正在完成登录…", "failed": "无法完成登录，请重新开始。", "existingAccount": "该邮箱已有账号，请先使用原方式登录，再在账号中绑定。", "backLogin": "返回登录", "cancelled": "授权已取消，你可以选择其他登录方式。", "accountPasswordHint": "此账号使用第三方登录。修改邮箱、设置密码或删除账号前，请先通过邮件恢复流程设置密码。", "connectionUnavailable": "当前未配置为可用登录方式"},
   s4: {
     manualBody: '请按以下说明付款。付款确认后，订单状态会自动更新。',
     "forgotTitle": "找回密码",

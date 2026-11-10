@@ -7,6 +7,7 @@ export const PLUGIN_CATEGORIES = [
   'tax',
   'fulfillment',
   'notification',
+  'identity',
   'integration',
 ] as const;
 
@@ -72,6 +73,7 @@ export const PLUGIN_CONTRACT_VERSIONS = {
   tax: 1,
   fulfillment: 1,
   notification: 3,
+  identity: 1,
 } as const;
 
 /** The name of a published capability contract. */
@@ -79,7 +81,8 @@ export type PluginContractName = keyof typeof PLUGIN_CONTRACT_VERSIONS;
 
 export type PluginContractDeclaration = { name: 'payment'; version: 2 }
   | { name: 'shipping' | 'tax' | 'fulfillment'; version: 1 }
-  | { name: 'notification'; version: 3 };
+  | { name: 'notification'; version: 3 }
+  | { name: 'identity'; version: 1 };
 
 export type PluginDatabaseJson = null | boolean | number | string | readonly PluginDatabaseJson[] | { readonly [key: string]: PluginDatabaseJson };
 export type PluginDatabaseParameter = PluginDatabaseJson | Date | Uint8Array;

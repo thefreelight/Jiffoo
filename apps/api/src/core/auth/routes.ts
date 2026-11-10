@@ -373,7 +373,7 @@ export async function authRoutes(fastify: FastifyInstance) {
         return sendError(reply, 404, 'USER_NOT_FOUND', 'User not found');
       }
 
-      const isValid = await PasswordUtils.verify(currentPassword, user.password);
+      const isValid = typeof user.password === 'string' && await PasswordUtils.verify(currentPassword, user.password);
       if (!isValid) {
         return sendError(reply, 400, 'INVALID_PASSWORD', 'Current password is incorrect');
       }

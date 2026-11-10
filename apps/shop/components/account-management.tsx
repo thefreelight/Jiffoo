@@ -4,8 +4,9 @@ import { useState, type FormEvent } from 'react';
 import type { ShopLocale } from '@/lib/locale';
 import { storefrontMessages } from '@/lib/storefront-messages';
 import { availabilityFetch, useShopAvailability } from '@/lib/client-availability';
+import { SocialLogin } from './social-login';
 
-type Profile = { username: string; email: string; locale: string | null; emailVerified: boolean };
+type Profile = { username: string; email: string; locale: string | null; emailVerified: boolean; hasPassword: boolean };
 
 export function AccountManagement({ locale, profile: initial, labels, locales, navigation }: {
   locale: ShopLocale;
@@ -71,6 +72,7 @@ export function AccountManagement({ locale, profile: initial, labels, locales, n
       maxLength={name === 'username' ? 50 : undefined} className="mt-1 h-10 w-full rounded-md border border-[var(--shop-border-strong)] bg-canvas px-3 text-ink" /></label>;
   return <main className="mx-auto min-h-[620px] max-w-7xl px-4 pb-14 pt-9 md:px-8">
     {navigation}
+    <SocialLogin locale={locale} next={`/${locale}/account`} linking />
     <div className="max-w-[520px] space-y-6">
     {!profile.emailVerified && <section aria-label={labels.unverified} className="border-l-2 border-action pl-4">
       <p>{labels.unverified}</p>
@@ -96,7 +98,7 @@ export function AccountManagement({ locale, profile: initial, labels, locales, n
         <button disabled={availability.blocked} className="rounded-shop bg-action px-4 py-2 text-action-ink">{labels.submit}</button>
       </form>
     </section></details>
-    <details className="border-t border-line pt-5"><summary className="cursor-pointer font-medium">{labels.changeEmail}</summary><section aria-label={labels.changeEmail} className="mt-4">
+    {profile.hasPassword ? <><details className="border-t border-line pt-5"><summary className="cursor-pointer font-medium">{labels.changeEmail}</summary><section aria-label={labels.changeEmail} className="mt-4">
       <h2 className="mb-4 text-lg font-semibold">{labels.changeEmail}</h2>
       <p className="mb-4 text-sm text-subtle">{profile.email}</p>
       <form onSubmit={submit('/account/email', 'PUT', (data) => setProfile(data))} className="space-y-4">
@@ -121,6 +123,7 @@ export function AccountManagement({ locale, profile: initial, labels, locales, n
         <button disabled={availability.blocked} className="rounded-shop border border-line px-4 py-2 text-ink">{labels.deleteAccount}</button>
       </form>
     </section></details>
+    </> : <p className="border-t border-line pt-5 text-sm text-subtle">{storefrontMessages(locale).socialAuth.accountPasswordHint} <a href={`/${locale}/forgot-password`} className="underline">{storefrontMessages(locale).socialAuth.setPassword}</a></p>}
     {message && <p role="status" className="text-action">{message}</p>}
     {(availability.message || error) && <p role="alert" className="text-ink">{availability.message || error}</p>}
     </div>

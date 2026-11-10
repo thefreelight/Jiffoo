@@ -17,7 +17,7 @@ vi.mock('../lib/server-bootstrap', () => ({ shopBootstrap: async () => ({ contex
 vi.mock('../lib/theme', () => ({ getShopTheme: async () => null }));
 vi.mock('../components/locale-layout', () => ({ ThemeShell: ({ children }: { children: React.ReactNode }) => children }));
 vi.mock('../lib/catalog', () => ({ requireLocale: async () => ({ locale: 'en', context: { timezone: 'Asia/Shanghai' } }), messages: () => storefront }));
-vi.mock('../lib/server-account', () => ({ accountProfile: async () => ({ username: 'buyer', email: 'buyer@example.com', locale: 'en', emailVerified: true }) }));
+vi.mock('../lib/server-account', () => ({ accountProfile: async () => ({ username: 'buyer', email: 'buyer@example.com', locale: 'en', emailVerified: true, hasPassword: true }) }));
 vi.mock('../lib/server-checkout', () => ({ customerOrders: async (page: number) => { state.page = page; return { items: state.items, totalPages: 3 }; } }));
 vi.mock('../lib/client-availability', () => ({ availabilityFetch: vi.fn(), useShopAvailability: () => ({ blocked: false, message: '', clear: vi.fn(), capture: vi.fn() }) }));
 
@@ -33,10 +33,17 @@ it('renders desktop order rows and phone order cards with the same real amount, 
   expect(html).toContain('page=1'); expect(html).toContain('page=3');
 });
 it('shows the verified profile, editable username and sign-in hint without changing identity fields', () => {
-  const html = renderToStaticMarkup(createElement(AccountManagement, { locale: 'en', locales: ['en'], labels: storefront.account, navigation: null, profile: { username: 'buyer', email: 'buyer@example.com', locale: 'en', emailVerified: true } }));
+  const html = renderToStaticMarkup(createElement(AccountManagement, { locale: 'en', locales: ['en'], labels: storefront.account, navigation: null, profile: { username: 'buyer', email: 'buyer@example.com', locale: 'en', emailVerified: true, hasPassword: true } }));
   expect(html).toContain('Verified'); expect(html).toContain('Username'); expect(html).toContain(storefront.s4.usernameHint);
   expect(html).toMatch(/value="buyer@example.com"[^>]*disabled=""|disabled=""[^>]*value="buyer@example.com"/);
   expect(html).toContain('name="username"'); expect(html).not.toContain('name="name"');
+});
+it('keeps passwordless account actions recoverable without asking for a nonexistent password', () => {
+  const html = renderToStaticMarkup(createElement(AccountManagement, { locale: 'en', locales: ['en'], labels: storefront.account, navigation: null, profile: { username: 'buyer', email: 'buyer@example.com', locale: 'en', emailVerified: true, hasPassword: false } }));
+  expect(html).toContain(storefront.socialAuth.accountPasswordHint);
+  expect(html).toContain('/en/forgot-password');
+  expect(html).not.toContain('name="currentPassword"');
+  expect(html).toContain('name="username"');
 });
 it('uses the default locale for a non-locale not-found page with both recovery links', () => {
   const html = renderToStaticMarkup(createElement(NotFoundContent, { locale: 'en' }));

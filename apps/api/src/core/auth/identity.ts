@@ -1,4 +1,6 @@
 import { prisma } from '@/config/database';
+import { AuthIdentityService } from './identity-service';
+import { ApiError } from '@/utils/api-errors';
 
 export async function findLockedRequestAdmin(tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0], session: Readonly<{ userId: string; sessionVersion: number }>): Promise<string | null> {
   const rows = await tx.$queryRaw<Array<{ id: string }>>`SELECT id FROM public.users WHERE id = ${session.userId} AND role = 'ADMIN' AND "isActive" AND "removedAt" IS NULL AND "sessionVersion" = ${session.sessionVersion} FOR SHARE`;
@@ -21,4 +23,8 @@ export async function findAuthUserByIdentifier(identifier: string, role: 'ADMIN'
   return users.length === 1 ? users[0] : null;
 }
 export const createAuthUser = (data: { email: string; username: string; password: string; role: string; emailVerified?: boolean }) =>
-  prisma.user.create({ data: { ...data, emailVerified: data.emailVerified ?? false }, select: authUserSelect });
+  prisma.$transaction(async tx => {
+    const claim = await AuthIdentityService.claimEmail(tx, data.email);
+    if (claim.existing) throw new ApiError('EMAIL_TAKEN');
+    return tx.user.create({ data: { ...data, email: claim.email, emailVerified: data.emailVerified ?? false }, select: authUserSelect });
+  });

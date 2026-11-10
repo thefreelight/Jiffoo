@@ -66,7 +66,7 @@ export async function createTestUser(options: CreateUserOptions = {}): Promise<T
     email: user.email,
     username: user.username,
     password: plainPassword, // Return plain password for login tests
-    hashedPassword: user.password,
+    hashedPassword,
     role: user.role as TestUser['role'],
   };
 }

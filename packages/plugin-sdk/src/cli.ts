@@ -6,6 +6,7 @@ import path from 'node:path';
 import { finished } from 'node:stream/promises';
 import { getPluginManifestIssues } from '../../shared/src/extensions/plugin-contract';
 import { createPlugin } from './create';
+import { containsPrivateKeyMaterial } from './private-key-material';
 import { uploadZip, formatSdkError, redact, SdkError } from './upload';
 import { dev } from './dev';
 import { generateServiceClient } from './services';
@@ -71,7 +72,7 @@ function excluded(name: string): boolean {
     name === '.env' || name.startsWith('.env.') || name.endsWith('.pem') || name.endsWith('.key');
 }
 function assertNoPrivateKey(bytes: Buffer, file: string) {
-  if (bytes.includes(Buffer.from('BEGIN PRIVATE KEY')) || bytes.includes(Buffer.from('BEGIN OPENSSH PRIVATE KEY'))) failure('PRIVATE_KEY_MATERIAL', file);
+  if (containsPrivateKeyMaterial(bytes)) failure('PRIVATE_KEY_MATERIAL', file);
 }
 function checkContent(entries: Entry[]) {
   if (entries.length > PLUGIN_MAX_ZIP_ENTRIES || entries.reduce((total, entry) => total + entry.content.length, 0) > PLUGIN_MAX_DECOMPRESSED_SIZE)

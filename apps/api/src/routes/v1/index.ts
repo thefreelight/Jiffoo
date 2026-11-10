@@ -9,6 +9,8 @@ import { FastifyInstance } from 'fastify';
 
 // Core routes
 import { authRoutes } from '@/core/auth/routes';
+import { identityRoutes } from '@/core/auth/identity-routes';
+import { identityProviderAdapter } from '@/core/extensions/identity-provider';
 import { pluginActionPolicyRoutes } from '@/core/auth/plugin-action-policy-routes';
 import { apiTokenRoutes } from '@/core/auth/api-token-routes';
 import { accountRoutes } from '@/core/account/routes';
@@ -54,6 +56,7 @@ export async function registerV1Routes(fastify: FastifyInstance) {
   await fastify.register(pluginStorageRoutes);
   // Authentication routes
   await fastify.register(authRoutes, { prefix: '/auth' });
+  await fastify.register(identityRoutes, { prefix: '/auth/identity', identityProvider: identityProviderAdapter });
 
   // User account routes
   await fastify.register(accountRoutes, { prefix: '/account' });

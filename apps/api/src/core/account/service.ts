@@ -18,7 +18,7 @@ export class AccountService {
   static async deleteAccount(userId: string, currentPassword: string): Promise<void> {
     await knownPrismaOperation(() => prisma.$transaction(async (tx) => {
       const user = await AuthIdentityService.requireAccountWithCredentials(tx, userId);
-      if (!await PasswordUtils.verify(currentPassword, user.password)) throw new ApiError('INVALID_PASSWORD');
+      if (typeof user.password !== 'string' || !await PasswordUtils.verify(currentPassword, user.password)) throw new ApiError('INVALID_PASSWORD');
       if (user.role === 'ADMIN') {
         const settings = await tx.systemSettings.findUnique({ where: { id: 'system' }, select: { installedBy: true } });
         throw new ApiError(settings?.installedBy === userId ? 'INSTALL_ADMIN_PROTECTED' : 'SELF_REMOVAL_FORBIDDEN');
@@ -70,6 +70,7 @@ export class AccountService {
 
     return {
       ...profile,
+      hasPassword: await AuthIdentityService.hasPassword(prisma, userId),
       ...(await this.getOrderStats(userId)),
     };
   }
@@ -87,6 +88,7 @@ export class AccountService {
 
     return {
       ...updatedProfile,
+      hasPassword: await AuthIdentityService.hasPassword(prisma, userId),
       ...(await this.getOrderStats(userId)),
     };
   }
@@ -99,7 +101,7 @@ export class AccountService {
       throw new ApiError('NOT_FOUND');
     }
 
-    const isValidPassword = await PasswordUtils.verify(data.currentPassword, user.password);
+    const isValidPassword = typeof user.password === 'string' && await PasswordUtils.verify(data.currentPassword, user.password);
     if (!isValidPassword) {
       throw new ApiError('INVALID_PASSWORD');
     }
@@ -118,6 +120,7 @@ export class AccountService {
 
     return {
       ...updatedProfile,
+      hasPassword: await AuthIdentityService.hasPassword(prisma, userId),
       ...(await this.getOrderStats(userId)),
     };
   }

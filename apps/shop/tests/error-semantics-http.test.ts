@@ -76,7 +76,7 @@ it('I a real refresh authentication rejection clears cookies while dependency er
   const response = await fetch(`${shop}/bff/account/profile`, { headers: { Cookie: `shop_access=${expired}; shop_refresh=${expiredRefresh}` } });
   expect(response.status).toBe(401);
   const cleared = response.headers.getSetCookie();
-  expect(cleared.map(cookie => cookie.split('=')[0]).sort()).toEqual(['shop_access', 'shop_plugin_purchase_origin', 'shop_refresh']);
+  expect(cleared.map(cookie => cookie.split('=')[0]).sort()).toEqual(['shop_access', 'shop_identity_binding', 'shop_plugin_purchase_origin', 'shop_refresh']);
   for (const cookie of cleared) {
     expect(cookie).toContain('Max-Age=0');
     expect(cookie).toContain('HttpOnly');

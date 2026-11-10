@@ -10,6 +10,7 @@ import { authErrorMessage } from '@/lib/auth-error';
 import { availabilityFetch, useShopAvailability } from '@/lib/client-availability';
 import { storefrontMessages } from '@/lib/storefront-messages';
 import { authSchema, serverFieldIssues, type AuthValues } from '@/lib/form-validation';
+import { SocialLogin } from './social-login';
 
 type Mode = 'login' | 'register' | 'forgot-password' | 'reset-password' | 'verify-email';
 type Labels = Record<string, string>;
@@ -93,6 +94,7 @@ export function AuthForm({ mode, locale, labels, next, token }: {
       <button type="submit" disabled={busy || navigating || availability.blocked} className="h-12 w-full rounded-md bg-action px-6 text-[15px] font-medium text-action-ink disabled:opacity-45">{mode === 'forgot-password' ? labels.sendReset : mode === 'reset-password' ? t.savePassword : mode === 'register' ? t.registerAction : title}</button>
     </form>
     {(availability.message || message) && <p role="status" className="mt-5 rounded-lg bg-highlight p-3.5 text-[13px]">{availability.message || message}</p>}
+    {(mode === 'login' || mode === 'register') && <SocialLogin locale={locale} next={next} />}
     {mode === 'register' && <p className="mt-5 text-center text-xs text-subtle">{t.registerMail}</p>}
   </main>;
 }

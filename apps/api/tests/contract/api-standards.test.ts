@@ -16,6 +16,8 @@ type JsonSchema = Record<string, any>;
 
 const PASSTHROUGH_TAGS = new Set(['plugin-gateway']);
 const NON_BUSINESS_PATHS = new Set([
+  // OAuth callbacks are fixed 303 redirects, not JSON business response operations.
+  '/api/v1/auth/identity/{slug}/callback',
   '/',
   '/openapi.json',
   '/health',
