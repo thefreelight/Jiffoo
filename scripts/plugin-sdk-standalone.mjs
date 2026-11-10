@@ -38,9 +38,10 @@ export async function verifyStandaloneSdk() {
     const packed = JSON.parse(run(npm, ['pack', sdk, '--json', '--pack-destination', temporary]));
     assert.equal(packed.length, 1);
     assert.equal(packed[0].name, '@jiffoo-core/plugin-sdk');
-    assert.equal(packed[0].version, '1.0.0-alpha.9');
+    assert.equal(packed[0].version, '1.0.0-alpha.10');
     assert(packed[0].files.every(file => /^(package\.json|dist\/|types\/|README\.md$|LICENSE$)/.test(file.path)));
     const tarball = path.join(temporary, packed[0].filename);
+  run('--test', [path.join(sdk, 'test/private-key-material.test.cjs')], root);
     await writeFile(path.join(temporary, 'package.json'), '{"private":true}\n');
     run(npm, ['install', '--no-audit', '--no-fund', tarball, 'typescript@5.8.3']);
     const installed = path.join(temporary, 'node_modules/@jiffoo-core/plugin-sdk');

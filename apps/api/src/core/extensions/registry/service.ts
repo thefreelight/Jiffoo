@@ -262,11 +262,31 @@ async function readEnabledInstallations(): Promise<RegistryInstallationRow[]> {
   return rows;
 }
 
-export async function listProviders(contract: 'payment' | 'shipping'): Promise<ProviderProjection[]> {
+export async function listProviders(contract: 'payment' | 'shipping' | 'identity'): Promise<ProviderProjection[]> {
   const installations = await readEnabledInstallations();
   return installations
     .filter((installation) => declaresContract(installation.manifestJson, contract) && !installation.taskDependencyUnavailable)
     .map((installation) => ({ pluginSlug: installation.pluginSlug }));
+}
+
+export type IdentityProviderSnapshot = Readonly<{ pluginSlug: string; installationId: string; token: string }>;
+type RegistryTransaction = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+async function readIdentitySnapshots(client: Pick<RegistryTransaction, 'pluginInstallation'>): Promise<IdentityProviderSnapshot[]> {
+  const rows = await client.pluginInstallation.findMany({ where: { enabled: true, deletedAt: null, taskDependencyUnavailable: false, plugin: { deletedAt: null } }, orderBy: { id: 'asc' }, select: { id: true, pluginSlug: true, configJson: true, protectionGeneration: true, updatedAt: true, plugin: { select: { manifestJson: true, zipHash: true, updatedAt: true } } } });
+  const { createHash } = await import('node:crypto');
+  return rows.filter(row => declaresContract(row.plugin.manifestJson, 'identity')).map(row => ({
+    pluginSlug: row.pluginSlug, installationId: row.id,
+    token: createHash('sha256').update(JSON.stringify({ id: row.id, config: row.configJson, generation: String(row.protectionGeneration), updatedAt: row.updatedAt.toISOString(), packageUpdatedAt: row.plugin.updatedAt.toISOString(), zipHash: row.plugin.zipHash, manifest: row.plugin.manifestJson })).digest('hex'),
+  }));
+}
+/** Fresh identity-provider metadata; encrypted configuration never crosses this projection. */
+export function snapshotIdentityProviders(): Promise<IdentityProviderSnapshot[]> { return readIdentitySnapshots(prisma); }
+/** Lock provider lifecycle rows before validating an earlier readiness observation. */
+export async function lockIdentityProviderSnapshots(tx: RegistryTransaction, expected: readonly IdentityProviderSnapshot[]): Promise<boolean> {
+  const slugs = [...new Set(expected.map(value => value.pluginSlug))].sort();
+  for (const slug of slugs) await tx.$queryRaw`SELECT i.id FROM public.plugin_installations i JOIN public.plugin_installs p ON p.slug = i."pluginSlug" WHERE i."pluginSlug" = ${slug} FOR SHARE OF i,p`;
+  const current = await readIdentitySnapshots(tx);
+  return expected.every(value => current.some(row => row.pluginSlug === value.pluginSlug && row.installationId === value.installationId && row.token === value.token));
 }
 
 export async function resolveSingleProvider(contract: 'tax' | 'fulfillment' | 'notification'): Promise<ProviderProjection | null> {

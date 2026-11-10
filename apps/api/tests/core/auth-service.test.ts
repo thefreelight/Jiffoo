@@ -21,6 +21,7 @@ vi.mock('@/config/database', () => ({
     systemSettings: { findUnique: vi.fn() },
     eventRecord: { create: vi.fn().mockResolvedValue({ id: 'event-id' }) },
     $queryRaw: vi.fn().mockResolvedValue([]),
+    $executeRaw: vi.fn().mockResolvedValue(1),
     user: {
       findFirst: vi.fn(),
       findUnique: vi.fn(),
@@ -519,6 +520,12 @@ describe('AuthService', () => {
   // -----------------------------------------------------------------------
 
   describe('getCurrentUser', () => {
+    it.each([null, 'local-credential-hash'])('reports only a boolean capability and never the stored credential (%s)', async password => {
+      mockPrismaUser.findUnique.mockResolvedValue({ ...TEST_USER, password });
+      const result = await AuthService.getCurrentUser(TEST_USER.id);
+      expect(result.hasPassword).toBe(password !== null);
+      expect(result).not.toHaveProperty('password');
+    });
     it('should return the user profile for a valid active user', async () => {
       const userProfile = {
         id: TEST_USER.id,
@@ -543,10 +550,12 @@ describe('AuthService', () => {
           isActive: true,
           removedAt: true,
           avatar: true,
+          password: true,
           createdAt: true,
         },
       });
-      expect(result).toEqual(userProfile);
+      expect(result).toEqual({ ...userProfile, hasPassword: false });
+      expect(result).not.toHaveProperty('password');
     });
 
     it('should throw when the user is not found', async () => {

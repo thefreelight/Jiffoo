@@ -26,7 +26,7 @@ model User {
   email          String    @unique
   phone          String?   @unique
   username       String
-  password       String
+  password       String?
   sessionVersion Int       @default(0)
   avatar         String?
   locale         String?
@@ -43,6 +43,8 @@ model User {
   carts         Cart[]
   notifications Notification[]
   authTokens    AuthToken[]
+  externalIdentities ExternalIdentity[]
+  identityTransactions IdentityTransaction[]
 
   // Admin list preferences
   adminListViews           AdminListView[]
@@ -54,6 +56,46 @@ model User {
   @@index([role, createdAt])
   @@index([isActive])
   @@map("users")
+  @@schema("public")
+}
+
+model ExternalIdentity {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  providerSlug String
+  issuer String
+  subject String
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  @@unique([issuer, subject])
+  @@index([userId])
+  @@map("external_identities")
+  @@schema("public")
+}
+
+model IdentityTransaction {
+  id String @id @default(cuid())
+  providerSlug String
+  issuer String
+  stateHash String @unique
+  bindingHash String
+  encryptedPayload String?
+  intent String
+  returnTo String
+  locale String
+  userId String?
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionVersion Int?
+  expiresAt DateTime @db.Timestamptz(3)
+  claimedAt DateTime? @db.Timestamptz(3)
+  verifiedIdentity Json?
+  handoffHash String? @unique
+  handoffExpiresAt DateTime? @db.Timestamptz(3)
+  consumedAt DateTime? @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  @@index([expiresAt])
+  @@index([userId])
+  @@map("identity_transactions")
   @@schema("public")
 }
 

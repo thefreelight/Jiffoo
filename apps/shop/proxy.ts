@@ -23,6 +23,13 @@ export function proxy(request: NextRequest) {
   const locale = request.nextUrl.pathname.split('/')[1];
   headers.delete('x-shop-locale');
   if (isShopLocale(locale)) headers.set('x-shop-locale', locale);
+  if (/^\/(?:en|zh-Hans|zh-Hant)\/auth\/identity\/finish$/.test(request.nextUrl.pathname)) {
+    headers.set('x-shop-return-path', request.nextUrl.pathname);
+    const response = NextResponse.next({ request: { headers } });
+    response.headers.set('Cache-Control', 'no-store');
+    response.headers.set('Referrer-Policy', 'no-referrer');
+    return response;
+  }
   if (/^\/(?:en|zh-Hans|zh-Hant)\/apps\/[a-z][a-z0-9-]*(?:\/[a-z][a-z0-9-]*)*$/.test(request.nextUrl.pathname)) {
     const policy = pluginShellCsp(new URL(process.env.STOREFRONT_URL!).origin);
     headers.set('Content-Security-Policy', policy);

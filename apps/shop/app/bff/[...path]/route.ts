@@ -2,6 +2,8 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { shopApi } from '@/lib/core-transport';
 import { classifyAvailability, type ShopAvailability } from '@/lib/availability';
 import { coreAuthRejection, safeCoreFailure } from '@/lib/core-errors';
+import { randomBytes } from 'node:crypto';
+import { IDENTITY_BINDING_COOKIE, IDENTITY_BINDING_SECONDS, identityStartPath, identityConnectionPath } from '@/lib/social-auth';
 import {
   ACCESS_COOKIE, REFRESH_COOKIE, REFRESH_SECONDS, ORIGIN_ERROR,
   allowedBffRoute, cookieOptions, stripTokens,
@@ -11,6 +13,13 @@ import {
 type Tokens = { access_token: string; refresh_token: string; expires_in: number };
 type PasswordTokens = Omit<Tokens, 'expires_in'>;
 type Params = { params: Promise<{ path: string[] }> };
+function validTokens(value: unknown): value is Tokens {
+  if (!value || typeof value !== 'object') return false;
+  const tokens = value as Record<string, unknown>;
+  return typeof tokens.access_token === 'string' && tokens.access_token.length > 0 &&
+    typeof tokens.refresh_token === 'string' && tokens.refresh_token.length > 0 &&
+    typeof tokens.expires_in === 'number' && Number.isInteger(tokens.expires_in) && tokens.expires_in > 0;
+}
 
 function storefrontOrigin(): string {
   return new URL(process.env.STOREFRONT_URL!).origin;
@@ -25,6 +34,7 @@ function clearTokens(response: NextResponse) {
   response.cookies.set(ACCESS_COOKIE, '', cookieOptions(storefrontOrigin(), 0));
   response.cookies.set(REFRESH_COOKIE, '', cookieOptions(storefrontOrigin(), 0));
   response.cookies.set(PURCHASE_ORIGIN_COOKIE, '', cookieOptions(storefrontOrigin(), 0));
+  response.cookies.set(IDENTITY_BINDING_COOKIE, '', cookieOptions(storefrontOrigin(), 0));
 }
 
 function unavailableResponse(error: ShopAvailability): NextResponse {
@@ -43,6 +53,36 @@ async function handle(request: NextRequest, { params }: Params): Promise<NextRes
   const upstreamPath = `${path}${request.nextUrl.search}`;
   const payload = request.method === 'GET' ? undefined : await request.text();
   const init: RequestInit = { method: request.method, ...(payload ? { body: payload, headers: { 'Content-Type': 'application/json' } } : {}) };
+  let identityIntent: 'login' | 'link' | undefined;
+  let binding: string | undefined;
+  if (identityStartPath(path)) {
+    try {
+      const data = JSON.parse(payload || '{}') as { intent?: unknown; browserBinding?: unknown };
+      if (Object.hasOwn(data, 'browserBinding')) throw new Error('Client binding is not accepted');
+      if (data.intent !== 'login' && data.intent !== 'link') throw new Error('Invalid intent');
+      identityIntent = data.intent;
+      binding = randomBytes(32).toString('base64url');
+      init.body = JSON.stringify({ ...data, browserBinding: binding });
+    } catch { return NextResponse.json({ success: false, error: { code: 'VALIDATION_ERROR' } }, { status: 400 }); }
+  }
+  if (path === '/auth/identity/exchange') {
+    let data: { code?: unknown };
+    try { data = JSON.parse(payload || '{}') as { code?: unknown }; }
+    catch {
+      const denied = NextResponse.json({ success: false, error: { code: 'INVALID_IDENTITY_HANDOFF' } }, { status: 400 });
+      denied.cookies.set(IDENTITY_BINDING_COOKIE, '', cookieOptions(storefrontOrigin(), 0));
+      return denied;
+    }
+    if (!data || typeof data !== 'object' || Array.isArray(data)) data = {};
+    const saved = request.cookies.get(IDENTITY_BINDING_COOKIE)?.value;
+    if (Object.hasOwn(data, 'browserBinding')) data = {};
+    if (!saved || typeof data.code !== 'string' || !data.code) {
+      const denied = NextResponse.json({ success: false, error: { code: 'INVALID_IDENTITY_HANDOFF' } }, { status: 400 });
+      denied.cookies.set(IDENTITY_BINDING_COOKIE, '', cookieOptions(storefrontOrigin(), 0));
+      return denied;
+    }
+    init.body = JSON.stringify({ code: data.code, browserBinding: saved });
+  }
   if (path.startsWith('/plugin-pages/')) {
     init.headers = { 'Content-Type': 'application/json', Origin: storefrontOrigin() };
     if (path.endsWith('/session') && payload) {
@@ -84,6 +124,7 @@ async function handle(request: NextRequest, { params }: Params): Promise<NextRes
     return response;
   }
   const authenticated = path.startsWith('/account') || path === '/auth/change-password' ||
+    path === '/auth/identity/connections' || identityConnectionPath(path) || identityIntent === 'link' || path === '/auth/identity/exchange' && Boolean(access || refresh) ||
     path.startsWith('/cart') || path.startsWith('/checkout') || path.startsWith('/orders') ||
     path.startsWith('/payments') || path.startsWith('/plugin-pages/') && Boolean(access || refresh);
   let renewed: Tokens | undefined;
@@ -117,7 +158,27 @@ async function handle(request: NextRequest, { params }: Params): Promise<NextRes
   }
   const refreshRejected = path === '/auth/refresh' && await coreAuthRejection(upstream);
   const body = await upstream.json();
-  const response = NextResponse.json(stripTokens(body), { status: upstream.status });
+  const socialLogin = path === '/auth/identity/exchange' && upstream.ok && body.data?.intent === 'login';
+  if (path === '/auth/identity/exchange' && upstream.ok &&
+    (body.success !== true || typeof body.data?.returnTo !== 'string' ||
+      (socialLogin ? !validTokens(body.data.auth) : body.data?.intent !== 'link' || body.data?.linked !== true))) {
+    const failure = NextResponse.json({ success: false, error: { code: 'IDENTITY_UNAVAILABLE' } }, { status: 502 });
+    clearTokens(failure);
+    return failure;
+  }
+  const publicBody = path === '/auth/identity/exchange' && upstream.ok && body.data?.intent === 'login'
+    ? { success: true, data: { intent: 'login', returnTo: body.data.returnTo, user: body.data.auth?.user } }
+    : stripTokens(body);
+  const response = NextResponse.json(publicBody, { status: upstream.status });
+  if (path.startsWith('/auth/identity')) response.headers.set('Cache-Control', 'no-store');
+  if (identityStartPath(path) && upstream.ok && binding) response.cookies.set(IDENTITY_BINDING_COOKIE, binding, cookieOptions(storefrontOrigin(), IDENTITY_BINDING_SECONDS));
+  if (path === '/auth/identity/exchange') {
+    response.cookies.set(IDENTITY_BINDING_COOKIE, '', cookieOptions(storefrontOrigin(), 0));
+    if (upstream.ok && body.data?.intent === 'login' && body.data.auth) {
+      setTokens(response, body.data.auth as Tokens);
+      response.cookies.set(PURCHASE_ORIGIN_COOKIE, '', cookieOptions(storefrontOrigin(), 0));
+    }
+  }
   if (path.startsWith('/plugin-pages')) response.headers.set('Cache-Control', 'no-store');
   if (path.endsWith('/purchase-origins') && upstream.ok && typeof body.data?.id === 'string') {
     response.cookies.set(PURCHASE_ORIGIN_COOKIE, JSON.stringify({ id: body.data.id }), cookieOptions(storefrontOrigin(), 24 * 60 * 60));
@@ -129,16 +190,25 @@ async function handle(request: NextRequest, { params }: Params): Promise<NextRes
   if (refreshRejected) clearTokens(response);
   if (upstream.ok && ['/auth/login', '/auth/register'].includes(path)) {
     response.cookies.set(PURCHASE_ORIGIN_COOKIE, '', cookieOptions(storefrontOrigin(), 0));
+    response.cookies.set(IDENTITY_BINDING_COOKIE, '', cookieOptions(storefrontOrigin(), 0));
   }
   if (upstream.ok && ['/auth/login', '/auth/register', '/auth/refresh', '/auth/change-password'].includes(path)) {
     const tokens = (body as { data: Tokens | PasswordTokens }).data;
     setTokens(response, { ...tokens, expires_in: 'expires_in' in tokens ? tokens.expires_in : REFRESH_SECONDS });
-  } else if (renewed) setTokens(response, renewed);
+  } else if (renewed && !socialLogin) setTokens(response, renewed);
   if (path === '/account' && request.method === 'DELETE' && upstream.ok) clearTokens(response);
   return response;
 }
 
-export const GET = handle;
-export const POST = handle;
-export const PUT = handle;
-export const DELETE = handle;
+async function guardedHandle(request: NextRequest, context: Params): Promise<NextResponse> {
+  const response = await handle(request, context);
+  if (new URL(request.url).pathname.startsWith('/bff/auth/identity')) {
+    response.headers.set('Cache-Control', 'no-store');
+    response.headers.set('Referrer-Policy', 'no-referrer');
+  }
+  return response;
+}
+export const GET = guardedHandle;
+export const POST = guardedHandle;
+export const PUT = guardedHandle;
+export const DELETE = guardedHandle;

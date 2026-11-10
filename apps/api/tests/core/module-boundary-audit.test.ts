@@ -102,6 +102,8 @@ const SCAN_ROOTS = [CORE_ROOT, INFRA_ROOT, JOBS_ROOT];
  * `jobs/payment-reconciliation`).
  */
 const LEGAL_EDGES: Record<string, string> = {
+  'extensions -> extensions/runtime': 'the composition-only identity provider adapter invokes the versioned plugin runtime, while auth depends only on its injected neutral port.',
+  'extensions -> extensions/registry': 'the composition-only identity provider adapter exposes fresh lifecycle snapshots to auth through its injected port.',
   'account -> admin/staff-management': 'the account routes translate the public `StaffManagementError` of the staff module into the shared error shape.',
   'account -> auth': 'the account module uses the auth module\'s public middleware and email-verification service.',
   'account -> plugin-pages': 'the account service revokes the plugin-page sessions of a deleted account through the public plugin-page session service.',
@@ -2784,6 +2786,8 @@ const TABLE_OWNERS: Record<string, string> = {
   payment_provider_bindings: 'payment',
   // identity
   users: 'auth',
+  external_identities: 'auth',
+  identity_transactions: 'auth',
   auth_tokens: 'auth',
   api_tokens: 'auth',
   // platform

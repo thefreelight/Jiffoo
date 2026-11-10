@@ -701,6 +701,7 @@ const labels = {
   categoryFulfillment: ['Fulfillment', '履约', '履約'],
   categoryNotification: ['Notifications', '通知', '通知'],
   categoryIntegration: ['Integration', '集成', '整合'],
+  categoryIdentity: ['Customer identity', '顾客身份验证', '顧客身分驗證'],
   choose: ['Choose plugin package', '选择插件包', '選擇外掛套件'],
   operation: ['Operation', '本次操作', '本次操作'],
   update: ['Update plugin', '更新插件', '更新外掛'],
@@ -751,7 +752,7 @@ const taskErrorMessages = {
 export function pluginTaskErrorMessage(locale: Locale, code: keyof typeof taskErrorMessages): string {
   return taskErrorMessages[code][(['en', 'zh-Hans', 'zh-Hant'] as const).indexOf(locale)];
 }
-const categoryLabels: Record<PluginCategory, PluginLabel> = { payment: 'categoryPayment', shipping: 'categoryShipping', tax: 'categoryTax', fulfillment: 'categoryFulfillment', notification: 'categoryNotification', integration: 'categoryIntegration' };
+const categoryLabels: Record<PluginCategory, PluginLabel> = { payment: 'categoryPayment', shipping: 'categoryShipping', tax: 'categoryTax', fulfillment: 'categoryFulfillment', notification: 'categoryNotification', identity: 'categoryIdentity', integration: 'categoryIntegration' };
 export function pluginCategoryMessage(locale: Locale, category: PluginCategory) { return pluginMessage(locale, categoryLabels[category]); }
 /**
  * Total category lookup. A manifest may omit the optional category and the installer then

@@ -18,6 +18,7 @@ import { ApiError } from '@/utils/api-errors';
 import jwt from 'jsonwebtoken';
 import type { FastifyRequest } from 'fastify';
 import { verifiedRequestSession } from './middleware';
+import { AuthIdentityService } from './identity-service';
 
 export interface AuthResponse {
   user: {
@@ -76,6 +77,7 @@ export class AuthService {
    * @throws Error if a user with the same email or username already exists
    */
   static async register(data: RegisterRequest, acceptLanguage?: string): Promise<AuthResponse> {
+    data = { ...data, email: data.email.trim().toLowerCase() };
     const existingEmailUser = await findAuthUserByEmail(data.email);
     if (existingEmailUser) {
       if (!existingEmailUser.emailVerified) {
@@ -86,6 +88,8 @@ export class AuthService {
 
     const hashedPassword = await PasswordUtils.hash(data.password);
     const user = await prisma.$transaction(async (tx) => {
+      const claimedEmail = await AuthIdentityService.claimEmail(tx, data.email);
+      if (claimedEmail.existing) throw new ApiError(claimedEmail.existing.emailVerified ? 'REGISTRATION_FAILED' : 'EMAIL_NOT_VERIFIED');
       // `users.username` carries no unique constraint, so two registrations of
       // the same username could otherwise both insert and leave the account
       // unloginable. The transaction-scoped advisory lock serializes the
@@ -162,7 +166,7 @@ export class AuthService {
     const user = await findAuthUserByIdentifier(identifier, surface === 'admin' ? 'ADMIN' : 'USER');
 
     const isValid = await PasswordUtils.verify(data.password, user?.password ?? missingUserPasswordHash);
-    if (!user || !isValid) {
+    if (!user || typeof user.password !== 'string' || !isValid) {
       throw new ApiError('LOGIN_FAILED');
     }
     if (surface === 'admin') {
@@ -226,6 +230,7 @@ export class AuthService {
         isActive: true,
         removedAt: true,
         avatar: true,
+        password: true,
         createdAt: true
       }
     });
@@ -237,7 +242,8 @@ export class AuthService {
       throw new ApiError('ACCOUNT_INACTIVE');
     }
 
-    return user;
+    const { password, ...profile } = user;
+    return { ...profile, hasPassword: typeof password === 'string' };
   }
 
   /**

@@ -11,7 +11,7 @@ import type { EventSubscription, PaymentFact, WebhookOutcome } from '@jiffoo/sha
 import { createHash } from 'node:crypto';
 import { cleanupPluginMigrationFixture } from './plugin-migration-cleanup';
 
-export type FixtureContract = { name: 'payment'; version: 2 } | { name: 'shipping' | 'tax'; version: 1 } | { name: 'notification'; version: 3 };
+export type FixtureContract = { name: 'payment'; version: 2 } | { name: 'shipping' | 'tax' | 'identity'; version: 1 } | { name: 'notification'; version: 3 };
 
 export const checkoutPaymentFixtureSource = `module.exports = { register(ctx) {
   const requests = new Map();
@@ -60,7 +60,7 @@ interface FixturePluginInstallOptions {
 export async function installFixturePlugin(
   options: FixturePluginInstallOptions,
   slug: string,
-  category: 'shipping' | 'tax' | 'payment' | 'notification' | 'integration',
+  category: 'shipping' | 'tax' | 'payment' | 'notification' | 'integration' | 'identity',
   contracts: FixtureContract[],
   source: string,
   eventOptions: { subscriptions?: EventSubscription[]; config?: Record<string, unknown>; configSchema?: Record<string, unknown>; lifecycle?: Record<string, boolean>; version?: string; enable?: boolean; migrations?: Array<{ id: string; path: string; sql: string }>; permissions?: string[]; services?: Array<{ name: string; version: number; methods: Array<{ name: string; idempotencyRequired: boolean; schema: string }> }>; serviceDependencies?: Array<{ plugin: string; service: string; version: number; methods: string[] }>; files?: Record<string, string> } = {},

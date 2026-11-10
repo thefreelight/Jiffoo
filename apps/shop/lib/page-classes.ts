@@ -9,6 +9,7 @@ export const pageClasses = {
   '/[locale]/account/orders': 'storefront',
   '/[locale]/account/orders/[id]': 'storefront',
   '/[locale]/apps/[slug]/[[...path]]': 'storefront',
+  '/[locale]/auth/identity/finish': 'storefront',
   '/[locale]/categories/[slug]': 'storefront',
   '/[locale]/forgot-password': 'storefront',
   '/[locale]/login': 'storefront',

@@ -1,4 +1,7 @@
 import type { Prisma } from '@prisma/client';
+import type { prisma } from '@/config/database';
+import { ApiError } from '@/utils/api-errors';
+type EmailClaimClient = Pick<Parameters<Parameters<typeof prisma.$transaction>[0]>[0], '$executeRaw' | 'user'>;
 
 /**
  * Auth Identity Service — the public API of the auth module for the
@@ -110,6 +113,17 @@ export type AuthIdentityCountTx = {
 };
 
 export class AuthIdentityService {
+  /** Serialize all canonical email writers without changing historical address data. */
+  static async claimEmail(tx: EmailClaimClient, value: string, excludeUserId?: string) {
+    const email = value.trim().toLowerCase();
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${'jiffoo:identity:email:' + email}, 0))`;
+    const existing = await tx.user.findFirst({ where: { email: { equals: email, mode: 'insensitive' }, ...(excludeUserId ? { id: { not: excludeUserId } } : {}) }, select: { id: true, role: true, removedAt: true, emailVerified: true } });
+    return { email, existing };
+  }
+  static async hasPassword(client: AuthIdentityReadTx, userId: string): Promise<boolean> {
+    const user = await client.user.findUnique({ where: { id: userId }, select: { password: true } });
+    return typeof user?.password === 'string';
+  }
   /** Minimal customer directory projection; credentials and administrator accounts never escape. */
   static async customerDirectory(client: AuthIdentityListTx, input: { ids?: string[]; query?: string; afterId?: string; limit: number }) {
     return client.user.findMany({
@@ -159,15 +173,17 @@ export class AuthIdentityService {
    * Change the email of an account. The new address is unverified again.
    */
   static async changeEmail<const S extends Prisma.UserSelect>(
-    tx: AuthIdentityTx,
+    tx: AuthIdentityTx & EmailClaimClient,
     userId: string,
     email: string,
     select: S,
   ): Promise<Prisma.UserGetPayload<{ select: S }>> {
+    const claimed = await this.claimEmail(tx, email, userId);
+    if (claimed.existing) throw new ApiError('EMAIL_TAKEN');
     const updated = await tx.user.update({
       where: { id: userId },
       data: {
-        email,
+        email: claimed.email,
         emailVerified: false,
         updatedAt: new Date(),
       },
@@ -190,13 +206,15 @@ export class AuthIdentityService {
    * Create a customer account.
    */
   static async createCustomer<const S extends Prisma.UserSelect>(
-    tx: AuthIdentityTx,
+    tx: AuthIdentityTx & EmailClaimClient,
     data: AuthIdentityCredentials,
     select: S,
   ): Promise<Prisma.UserGetPayload<{ select: S }>> {
+    const claimed = await this.claimEmail(tx, data.email);
+    if (claimed.existing) throw new ApiError('EMAIL_TAKEN');
     const created = await tx.user.create({
       data: {
-        email: data.email,
+        email: claimed.email,
         password: data.password,
         username: data.username,
         role: 'USER',
@@ -241,12 +259,14 @@ export class AuthIdentityService {
    * invitation is accepted.
    */
   static async createStaff(
-    tx: AuthIdentityTx,
+    tx: AuthIdentityTx & EmailClaimClient,
     data: AuthIdentityCredentials,
   ): Promise<Prisma.UserGetPayload<{}>> {
+    const claimed = await this.claimEmail(tx, data.email);
+    if (claimed.existing) throw new ApiError(claimed.existing.role === 'USER' ? 'STAFF_EMAIL_IS_CUSTOMER' : claimed.existing.removedAt ? 'STAFF_EMAIL_REMOVED_ADMIN' : 'EMAIL_TAKEN');
     const created = await tx.user.create({
       data: {
-        email: data.email,
+        email: claimed.email,
         username: data.username,
         password: data.password,
         role: 'ADMIN',
@@ -299,12 +319,14 @@ export class AuthIdentityService {
    * Create the first administrator of a fresh installation.
    */
   static async createBootstrapAdmin(
-    tx: AuthIdentityTx,
+    tx: AuthIdentityTx & EmailClaimClient,
     data: AuthIdentityCredentials,
   ): Promise<Prisma.UserGetPayload<{}>> {
+    const claimed = await this.claimEmail(tx, data.email);
+    if (claimed.existing) throw new ApiError('INSTALL_EMAIL_IN_USE');
     const created = await tx.user.create({
       data: {
-        email: data.email,
+        email: claimed.email,
         username: data.username,
         password: data.password,
         role: 'ADMIN',
@@ -413,7 +435,7 @@ export class AuthIdentityService {
     excludeUserId: string,
   ): Promise<{ id: string } | null> {
     const account = await client.user.findFirst({
-      where: { email, id: { not: excludeUserId } },
+      where: { email: { equals: email.trim().toLowerCase(), mode: 'insensitive' }, id: { not: excludeUserId } },
       select: { id: true },
     });
     return account ?? null;
