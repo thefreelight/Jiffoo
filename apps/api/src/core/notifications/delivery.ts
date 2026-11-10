@@ -88,6 +88,7 @@ async function deliverBatch(options: { isStopping?: () => boolean }): Promise<nu
   }
   let releaseRemainder = false;
   for (const notification of notifications) {
+    let providerCallStarted = false;
     try {
       if (releaseRemainder || options.isStopping?.()) { await releaseUnstartedNotification(client, notification); continue; }
       // A notification that no provider can take is a configuration failure:
@@ -114,16 +115,22 @@ async function deliverBatch(options: { isStopping?: () => boolean }): Promise<nu
       // reset to PENDING, so both reuse this id. Only a deliberate resend
       // writes a new row, and therefore a new key, because that is a new
       // notification rather than a retry of this one.
+      providerCallStarted = true;
       const result = await callContract(providerSlug, 'notification', PLUGIN_CONTRACT_VERSIONS.notification, 'send', {
         channel: 'email', to: notification.toAddress, subject: notification.subject,
         html: substitute(notification.html, secrets), text: substitute(notification.text, secrets),
-        locale: notification.locale, idempotencyKey: notification.id,
-      }, { kind: 'notification-send', id: notification.id }) as { accepted: boolean; providerMessageId?: string; error?: string };
-      if (!result.accepted) throw new Error(result.error || 'Notification provider rejected delivery');
+        locale: notification.locale, idempotencyKey: notification.id, createdAt: notification.createdAt.toISOString(),
+      }, { kind: 'notification-send', id: notification.id }) as { outcome: 'accepted' | 'retryable' | 'rejected' | 'unknown'; providerMessageId?: string; code?: string; error?: string; retryAfterSeconds?: number };
+      if (result.outcome === 'rejected' || result.outcome === 'unknown') throw new DeterministicNotificationError(`${result.outcome.toUpperCase()}: ${result.code || 'PROVIDER_ERROR'}: ${result.error || 'Provider did not accept delivery'}`);
+      if (result.outcome === 'retryable') {
+        await failNotification(client, notification, `${result.code || 'PROVIDER_ERROR'}: ${result.error || 'Retryable provider failure'}`, providerSlug, { retryAfterSeconds: result.retryAfterSeconds });
+        continue;
+      }
       await completeNotification(client, notification, providerSlug, result.providerMessageId);
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
-      await failNotification(client, notification, reason, providerSlug, { deterministic: error instanceof DeterministicNotificationError });
+      const unknown = providerCallStarted && !(error instanceof DeterministicNotificationError);
+      await failNotification(client, notification, unknown ? `UNKNOWN: ${reason}` : reason, providerSlug, { deterministic: error instanceof DeterministicNotificationError || unknown });
     } finally { claimed.delete(notification.id); observeWorkerShutdownForTest('notification-wrapper-settled', { id: notification.id }); }
   }
   return notifications.length;

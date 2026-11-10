@@ -82,22 +82,19 @@ export async function releaseNotificationLeases(instanceId: string): Promise<num
 }
 
 export async function reclaimNotificationLeases(client: NotificationLeaseClient): Promise<number> {
-  // TIMESTAMP(3) can round upward; floor retry time so a recovered row is
-  // claimable exactly when its ladder says it is.
-  // The recovered row waits on the delivery ladder, exactly like a row whose
-  // provider refused the delivery: a notification whose sender died must not
-  // burn its whole attempt budget within seconds.
+  // The sender may have reached the provider before it died. An expired lease
+  // cannot safely be retried automatically without evidence of non-acceptance.
   const result = await client.query(`WITH expired AS (
     SELECT id FROM public.notifications WHERE status = 'SENDING' AND "leaseUntil" <= clock_timestamp()
     ORDER BY "leaseUntil", id LIMIT 100 FOR UPDATE SKIP LOCKED
   ) UPDATE public.notifications n SET
-    status = CASE WHEN n.attempts + 1 >= $1 THEN 'FAILED' ELSE 'PENDING' END::public."NotificationStatus",
+    status = 'FAILED'::public."NotificationStatus",
     attempts = n.attempts + 1, "nextAttemptAt" = date_trunc('milliseconds', (clock_timestamp() AT TIME ZONE 'UTC') + ${notificationRetryDelaySql('n.attempts')}),
-    "lastError" = 'Notification delivery lease expired', "updatedAt" = clock_timestamp() AT TIME ZONE 'UTC',
-    "secretJson" = CASE WHEN n.attempts + 1 >= $1 THEN NULL ELSE n."secretJson" END,
+    "lastError" = 'UNKNOWN: Notification delivery lease expired; verify provider acceptance before manual resend', "updatedAt" = clock_timestamp() AT TIME ZONE 'UTC',
+    "secretJson" = NULL,
     "claimToken" = NULL, "claimedBy" = NULL, "leaseUntil" = NULL
     FROM expired WHERE n.id = expired.id AND n.status = 'SENDING' AND n."leaseUntil" <= clock_timestamp()
-    RETURNING n.id`, [NOTIFICATION_MAX_ATTEMPTS]);
+    RETURNING n.id`);
   return result.rows.length;
 }
 /** The caller owns a short transaction; no provider call occurs while rows are locked. */
@@ -132,18 +129,18 @@ export async function completeNotification(client: NotificationLeaseClient, noti
  * the Core has no provider that can take the notification - and it lands in
  * the terminal state at once, with the reason and without the secret.
  */
-export async function failNotification(client: NotificationLeaseClient, notification: Pick<Notification, 'id' | 'claimToken'>, error: string, providerSlug?: string, options: { deterministic?: boolean } = {}): Promise<number> {
+export async function failNotification(client: NotificationLeaseClient, notification: Pick<Notification, 'id' | 'claimToken'>, error: string, providerSlug?: string, options: { deterministic?: boolean; retryAfterSeconds?: number | undefined } = {}): Promise<number> {
   const deterministic = options.deterministic === true;
   const result = await client.query(`UPDATE public.notifications SET
     status = CASE WHEN $5 OR attempts + 1 >= $6 THEN 'FAILED' ELSE 'PENDING' END::public."NotificationStatus",
     "nextAttemptAt" = (clock_timestamp() AT TIME ZONE 'UTC') +
-      ${notificationRetryDelaySql('attempts')},
+      GREATEST(${notificationRetryDelaySql('attempts')}, $7 * interval '1 second'),
     "secretJson" = CASE WHEN $5 OR attempts + 1 >= $6 THEN NULL ELSE "secretJson" END,
     attempts = attempts + 1, "lastError" = $3, "providerSlug" = $4,
     "claimToken" = NULL, "claimedBy" = NULL, "leaseUntil" = NULL,
     "updatedAt" = clock_timestamp() AT TIME ZONE 'UTC'
     WHERE id = $1 AND status = 'SENDING' AND "claimToken" = $2::uuid RETURNING id`,
-  [notification.id, notification.claimToken, error, providerSlug ?? null, deterministic, NOTIFICATION_MAX_ATTEMPTS]);
+  [notification.id, notification.claimToken, error, providerSlug ?? null, deterministic, NOTIFICATION_MAX_ATTEMPTS, Math.max(0, Math.min(86400, options.retryAfterSeconds ?? 0))]);
   if (!result.rows.length) stale(notification.id, 'failure');
   return result.rows.length;
 }

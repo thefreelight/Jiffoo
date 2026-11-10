@@ -115,7 +115,7 @@ describe('Plugin manifest contract', () => {
   });
 
   it('rejects multiple single-provider contracts but accepts payment with shipping', () => {
-    expect(getPluginManifestIssues({ ...inProcessManifest, contracts: [{ name: 'tax', version: 1 }, { name: 'notification', version: 1 }] })).toContainEqual(expect.objectContaining({ code: 'MANIFEST_MULTIPLE_SINGLE_PROVIDER_CONTRACTS' }));
+    expect(getPluginManifestIssues({ ...inProcessManifest, contracts: [{ name: 'tax', version: 1 }, { name: 'notification', version: 2 }] })).toContainEqual(expect.objectContaining({ code: 'MANIFEST_MULTIPLE_SINGLE_PROVIDER_CONTRACTS' }));
     expect(getPluginManifestIssues({ ...inProcessManifest, contracts: [{ name: 'payment', version: 2 }, { name: 'shipping', version: 1 }] })).toEqual([]);
   });
 

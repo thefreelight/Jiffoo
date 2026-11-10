@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { ApiError } from '@/utils/api-errors';
-import { fulfillmentV1Methods, notificationV1Methods, paymentV2Methods, shippingV1Methods, taxV1Methods, isEventKey, PLUGIN_CONTRACT_VERSIONS, type PluginContext, type PluginEntryModule, type EventSubscription, type PluginEvent, type PluginEventHandler } from '@jiffoo/shared';
+import { fulfillmentV1Methods, notificationV2Methods, paymentV2Methods, shippingV1Methods, taxV1Methods, isEventKey, PLUGIN_CONTRACT_VERSIONS, type PluginContext, type PluginEntryModule, type EventSubscription, type PluginEvent, type PluginEventHandler } from '@jiffoo/shared';
 import { redactPluginText } from '@/core/admin/plugin-management/config-crypto';
 import { decodePaymentWebhook, PAYMENT_WEBHOOK_WIRE_LIMIT } from './payment-webhook-wire';
 import { createPluginDatabase, withPluginDatabaseHandler } from './plugin-database';
@@ -25,7 +25,7 @@ type RuntimeOptions = {
   callService?: (request: PluginServiceCall) => Promise<ServiceResult<unknown>>;
   listPaidOrders?: (request: { from: string; to: string; cursor?: string | null; limit?: number }) => Promise<{ items: PaidOrder[]; nextCursor: string | null; from: string; to: string }>;
 };
-const contractMethods = { payment: paymentV2Methods, shipping: shippingV1Methods, tax: taxV1Methods, fulfillment: fulfillmentV1Methods, notification: notificationV1Methods } as const;
+const contractMethods = { payment: paymentV2Methods, shipping: shippingV1Methods, tax: taxV1Methods, fulfillment: fulfillmentV1Methods, notification: notificationV2Methods } as const;
 const requiredMethods: Record<keyof typeof contractMethods, string[]> = { payment: ['describe', 'createSession', 'queryByRequestKey'], shipping: ['quote'], tax: ['calculate'], fulfillment: ['createFulfillment'], notification: ['send'] };
 const eventHandlers = new Map<string, Map<string, PluginEventHandler>>();
 

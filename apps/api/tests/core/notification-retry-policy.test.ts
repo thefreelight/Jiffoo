@@ -97,10 +97,10 @@ describe('the retry policy of a notification', () => {
     } });
     await reclaimNotificationLeases(client);
     const row = await prisma.notification.findUniqueOrThrow({ where: { id: item.id } });
-    expect(row.status).toBe('PENDING');
+    expect(row.status).toBe('FAILED');
     expect(row.attempts).toBe(1);
     // The reason of the reclaim is recorded on the row.
-    expect(row.lastError).toBe('Notification delivery lease expired');
+    expect(row.lastError).toContain('UNKNOWN:');
     const seconds = await waitSeconds(item.id);
     expect(seconds).toBeGreaterThanOrEqual(60 - 5);
     expect(seconds).toBeLessThanOrEqual(72 + 5);

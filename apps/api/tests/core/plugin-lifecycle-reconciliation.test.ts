@@ -288,10 +288,10 @@ module.exports = { register(ctx) {
     const fulfillmentSlug = `fulfillment-${Date.now().toString(36)}`.slice(0, 30);
     const notificationSlug = `notification-${Date.now().toString(36)}`.slice(0, 30);
     await createPlugin(fulfillmentSlug, "module.exports = { register(ctx) { ctx.contracts.implement('fulfillment', 1, { createFulfillment: () => ({ fulfillmentId: 'fulfillment-1', status: 'pending' }) }); } };", true, [{ name: 'fulfillment', version: 1 }]);
-    await createPlugin(notificationSlug, "module.exports = { register(ctx) { ctx.contracts.implement('notification', 1, { send: () => ({ accepted: true, providerMessageId: 'message-1' }) }); } };", true, [{ name: 'notification', version: 1 }]);
+    await createPlugin(notificationSlug, "module.exports = { register(ctx) { ctx.contracts.implement('notification', 2, { send: () => ({ outcome: 'accepted', providerMessageId: 'message-1' }) }); } };", true, [{ name: 'notification', version: 2 }]);
 
     await expect(callContract(fulfillmentSlug, 'fulfillment', 1, 'createFulfillment', {})).resolves.toMatchObject({ fulfillmentId: 'fulfillment-1' });
-    await expect(callContract(notificationSlug, 'notification', 1, 'send', {})).resolves.toEqual({ accepted: true, providerMessageId: 'message-1' });
+    await expect(callContract(notificationSlug, 'notification', 2, 'send', {})).resolves.toEqual({ outcome: 'accepted', providerMessageId: 'message-1' });
   });
 
   it('replaces the enabled tax provider through its disable lifecycle path', async () => {
@@ -312,9 +312,9 @@ module.exports = { register(ctx) {
     const firstSlug = `notify-first-${Date.now().toString(36)}`.slice(0, 30);
     const secondSlug = `notify-second-${Date.now().toString(36)}`.slice(0, 30);
     const marker = path.join(os.tmpdir(), `.notification-disabled-${firstSlug}`); markerPaths.push(marker);
-    const source = (includeHook: boolean) => `const fs = require('fs'); module.exports = { ${includeHook ? `__lifecycle_onDisable: () => fs.writeFileSync(${JSON.stringify(marker)}, 'disabled'),` : ''} register(ctx) { ctx.contracts.implement('notification', 1, { send: () => ({ accepted: true }) }); } };`;
-    const firstId = await createPlugin(firstSlug, source(true), true, [{ name: 'notification', version: 1 }], { onDisable: true });
-    const secondId = await createPlugin(secondSlug, source(false), false, [{ name: 'notification', version: 1 }]);
+    const source = (includeHook: boolean) => `const fs = require('fs'); module.exports = { ${includeHook ? `__lifecycle_onDisable: () => fs.writeFileSync(${JSON.stringify(marker)}, 'disabled'),` : ''} register(ctx) { ctx.contracts.implement('notification', 2, { send: () => ({ outcome: 'accepted' }) }); } };`;
+    const firstId = await createPlugin(firstSlug, source(true), true, [{ name: 'notification', version: 2 }], { onDisable: true });
+    const secondId = await createPlugin(secondSlug, source(false), false, [{ name: 'notification', version: 2 }]);
 
     const updated = await PluginManagementService.updateInstance(secondId, { enabled: true });
     expect(updated.replacedPlugins).toContain(firstSlug);

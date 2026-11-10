@@ -112,7 +112,7 @@ describe('Builtin plugins', () => {
     expect(await callContract('zero-tax', 'tax', 1, 'calculate', { currency: 'USD', lines: [{ lineId: 'line-1', productId: 'product-1', variantId: 'variant-1', quantity: 1, amountMinor: 100 }], shippingAmountMinor: 0, address: { country: 'US' } })).toMatchObject({ lines: [{ lineId: 'line-1', taxMinor: 0 }], totalTaxMinor: 0 });
     expect(await callContract('manual-fulfillment', 'fulfillment', 1, 'createFulfillment', { orderId: 'order-1', items: [], address: { country: 'US' }, idempotencyKey: 'attempt-1' })).toMatchObject({ status: 'pending' });
     const logger = vi.spyOn(console, 'info').mockImplementation(() => undefined);
-    expect(await callContract('console-email', 'notification', 1, 'send', { channel: 'email', to: 'customer@example.com', subject: 'Subject', html: '<p>Text</p>', text: 'Text', locale: 'en', idempotencyKey: 'message-1' })).toMatchObject({ accepted: true });
+    expect(await callContract('console-email', 'notification', 2, 'send', { channel: 'email', to: 'customer@example.com', subject: 'Subject', html: '<p>Text</p>', text: 'Text', locale: 'en', idempotencyKey: 'message-1', createdAt: new Date().toISOString() })).toMatchObject({ outcome: 'accepted' });
     expect(logger).toHaveBeenCalled();
     logger.mockRestore();
   });
