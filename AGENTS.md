@@ -20,10 +20,10 @@ inspection lives in the code, in a registry a test checks, or in `docs/`.
 
 ## 1. Working agreements
 
-- **The branch of record is `codex/core-extension-boundary`.** Never merge it into `main`, never
-  push to `main` from this worktree, never open a pull request from it into `main`. `origin/main` is
-  a diverged release line; its conflict surface is registered in the coordination ledger (5zi) and
-  is not resolved here. A lane branch merges into this branch, never the other way round.
+- **The development branch of record is `dev`.** Daily Core development uses the main checkout
+  on `dev`; scoped lane branches integrate into `dev`. The former acceptance branch is historical.
+  Never merge this line into `main` or push to `main` without explicit user authorization.
+  Official signing, package publication, marketplace promotion and production deployment remain paused.
 - **The local gate covers the change; the complete gate belongs to CI.** One widened gate per
   batch, not one per fix.
 - **The browser E2E runs in CI only.** `pnpm verify:e2e` is the tool for investigating a CI failure.
@@ -88,7 +88,7 @@ inspection lives in the code, in a registry a test checks, or in `docs/`.
 
 ## 4. CI
 
-- GitHub Actions runs the complete verification gate on every push to `codex/core-extension-boundary`
+- GitHub Actions runs the complete verification gate on every push to `dev`
   and `codex/lane-*`, with isolated PostgreSQL and Redis services and exactly `jiffoo_core_test`
   without `LANE_ID`. The browser E2E runs as its own job.
 - Fix a failed CI with new commits; never amend or rebase a pushed commit. Local scoping never

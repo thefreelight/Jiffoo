@@ -226,9 +226,9 @@ test('existing invocation catalogues retain their committed behavior', async () 
 test('CI workflow changes only the push branch list and retains manual trigger', () => {
   const require = createRequire(import.meta.url);
   const workflow = require('yaml').parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
-  assert.deepEqual(workflow.on, { push: { branches: ['codex/core-extension-boundary', 'codex/lane-*'] }, workflow_dispatch: null });
+  assert.deepEqual(workflow.on, { push: { branches: ['dev', 'codex/lane-*'] }, workflow_dispatch: null });
   assert.ok(workflow.jobs.api && workflow.jobs.quality && workflow.jobs.e2e);
   const original = require('yaml').parse(execFileSync('git', ['show', 'HEAD:.github/workflows/ci.yml'], { encoding: 'utf8' }));
-  original.on.push.branches = ['codex/core-extension-boundary', 'codex/lane-*'];
+  original.on.push.branches = ['dev', 'codex/lane-*'];
   assert.deepEqual(workflow, original);
 });
