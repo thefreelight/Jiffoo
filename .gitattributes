@@ -6,3 +6,4 @@ apps/admin/app/default-tokens.css text eol=lf
 apps/shop/app/default-tokens.css text eol=lf
 apps/shop/app/**/layout.tsx text eol=lf
 apps/shop/app/**/not-found.tsx text eol=lf
+apps/api/prisma/migrations/20261110094848_notification_receipts/migration.sql -text whitespace=-blank-at-eof

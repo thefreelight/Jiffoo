@@ -8,6 +8,7 @@ import { createTypedCreateResponses, createTypedReadResponses, errorResponseSche
 import { AuditService } from '@/core/audit/service';
 import { resendNotification } from '@/core/notifications/service';
 
+const deliveryValues = ['UNKNOWN', 'DELIVERED', 'DELAYED', 'BOUNCED', 'COMPLAINED', 'FAILED'] as const;
 const statusValues = ['PENDING', 'SENDING', 'SENT', 'FAILED'] as const;
 const detailSchema = {
   type: 'object',
@@ -15,6 +16,8 @@ const detailSchema = {
     id: { type: 'string' }, type: { type: 'string' }, channel: { type: 'string' },
     recipientUserId: { type: ['string', 'null'] }, toAddress: { type: 'string' },
     locale: { type: 'string' }, subject: { type: 'string' }, html: { type: 'string' }, text: { type: 'string' },
+    deliveryStatus: { type: 'string', enum: deliveryValues }, deliveryUpdatedAt: { type: ['string', 'null'], format: 'date-time' },
+    receiptTimeline: { type: 'array', maxItems: 100, items: { type: 'object', properties: { id: { type: 'string' }, type: { type: 'string', enum: ['delivered', 'delayed', 'bounced', 'complained', 'failed'] }, occurredAt: { type: 'string', format: 'date-time' }, receivedAt: { type: 'string', format: 'date-time' } }, required: ['id','type','occurredAt','receivedAt'], additionalProperties: false } },
     status: { type: 'string', enum: statusValues }, attempts: { type: 'integer' },
     nextAttemptAt: { type: 'string', format: 'date-time' }, lastError: { type: ['string', 'null'] },
     providerSlug: { type: ['string', 'null'] }, providerMessageId: { type: ['string', 'null'] },
@@ -22,7 +25,7 @@ const detailSchema = {
     resentFromId: { type: ['string', 'null'] }, createdAt: { type: 'string', format: 'date-time' },
     updatedAt: { type: 'string', format: 'date-time' }, sentAt: { type: ['string', 'null'], format: 'date-time' },
   },
-  required: ['id', 'type', 'channel', 'recipientUserId', 'toAddress', 'locale', 'subject', 'html', 'text', 'status', 'attempts', 'nextAttemptAt', 'lastError', 'providerSlug', 'providerMessageId', 'relatedType', 'relatedId', 'resentFromId', 'createdAt', 'updatedAt', 'sentAt'],
+  required: ['id', 'type', 'channel', 'recipientUserId', 'toAddress', 'locale', 'subject', 'html', 'text', 'status', 'deliveryStatus', 'deliveryUpdatedAt', 'attempts', 'nextAttemptAt', 'lastError', 'providerSlug', 'providerMessageId', 'relatedType', 'relatedId', 'resentFromId', 'createdAt', 'updatedAt', 'sentAt'],
   additionalProperties: false,
 } as const;
 
@@ -41,7 +44,7 @@ const listSchema = {
 
 const publicFields = {
   id: true, type: true, channel: true, recipientUserId: true, toAddress: true,
-  locale: true, subject: true, html: true, text: true, status: true, attempts: true,
+  locale: true, subject: true, html: true, text: true, status: true, deliveryStatus: true, deliveryUpdatedAt: true, attempts: true,
   nextAttemptAt: true, lastError: true, providerSlug: true, providerMessageId: true,
   relatedType: true, relatedId: true, resentFromId: true, createdAt: true,
   updatedAt: true, sentAt: true,
@@ -57,6 +60,7 @@ export async function adminNotificationRoutes(fastify: FastifyInstance) {
           page: { type: 'integer', minimum: 1, default: 1 },
           limit: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
           status: { type: 'string', enum: statusValues },
+          deliveryStatus: { type: 'string', enum: deliveryValues },
           search: { type: 'string', maxLength: 320 },
           type: { type: 'string', maxLength: 100 },
           sort: { type: 'string', enum: ['newest', 'oldest'], default: 'newest' },
@@ -65,8 +69,9 @@ export async function adminNotificationRoutes(fastify: FastifyInstance) {
       response: createTypedReadResponses(listSchema),
     },
   }, async (request, reply) => {
-    const { page = 1, limit = 20, status, search, type, sort } = request.query as { page?: number; limit?: number; status?: NotificationStatus; search?: string; type?: string; sort?: string };
+    const { page = 1, limit = 20, status, search, type, sort, deliveryStatus } = request.query as { page?: number; limit?: number; status?: NotificationStatus; deliveryStatus?: typeof deliveryValues[number]; search?: string; type?: string; sort?: string };
     const filters: Prisma.NotificationWhereInput = {
+      ...(deliveryStatus ? { deliveryStatus } : {}),
       ...(search ? { toAddress: { contains: search, mode: 'insensitive' } } : {}),
       ...(type ? { type } : {}),
     };
@@ -91,7 +96,8 @@ export async function adminNotificationRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const item = await prisma.notification.findUnique({ where: { id }, select: publicFields });
-    return item ? sendSuccess(reply, item) : sendError(reply, 404, 'NOT_FOUND', 'Notification not found');
+    const receiptTimeline = item ? await prisma.notificationReceipt.findMany({ where: { notificationId: id }, select: { id: true, type: true, occurredAt: true, receivedAt: true }, orderBy: [{ occurredAt: 'desc' }, { receivedAt: 'desc' }, { id: 'desc' }], take: 100 }) : [];
+    return item ? sendSuccess(reply, { ...item, receiptTimeline }) : sendError(reply, 404, 'NOT_FOUND', 'Notification not found');
   });
 
   fastify.post('/:id/resend', {

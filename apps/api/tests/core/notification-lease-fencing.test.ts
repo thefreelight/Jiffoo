@@ -74,8 +74,8 @@ beforeAll(async () => {
   builtinSnapshot = await snapshotPluginRows(builtinSlugs);
   await syncBuiltinPlugins(path.resolve('builtin-plugins'));
   app = await createTestApp(); admin = await createAdminWithToken();
-  await installFixturePlugin({ app, adminToken: admin.token, adminUserId: admin.user.id }, notificationSlug, 'notification', [{ name: 'notification', version: 2 }],
-    `module.exports={register(ctx){ctx.contracts.implement('notification',2,{async send(input){const response=await fetch(${JSON.stringify(providerUrl + '/notification')},{method:'POST',body:JSON.stringify({idempotencyKey:input.idempotencyKey,pid:process.pid})});return response.json();}});}};`);
+  await installFixturePlugin({ app, adminToken: admin.token, adminUserId: admin.user.id }, notificationSlug, 'notification', [{ name: 'notification', version: 3 }],
+    `module.exports={register(ctx){ctx.contracts.implement('notification',3,{ verifyReceipt: () => ({ outcome: 'unavailable', code: 'RECEIPTS_UNAVAILABLE' }),async send(input){const response=await fetch(${JSON.stringify(providerUrl + '/notification')},{method:'POST',body:JSON.stringify({idempotencyKey:input.idempotencyKey,pid:process.pid})});return response.json();}});}};`);
   await installFixturePlugin({ app, adminToken: admin.token, adminUserId: admin.user.id }, eventSlug, 'integration', [],
     `module.exports={register(ctx){ctx.events.subscribe('order.created',1,async event=>{const response=await fetch(${JSON.stringify(providerUrl + '/event')},{method:'POST',body:JSON.stringify({id:event.id,pid:process.pid})});await response.text();});}};`, { subscriptions: [{ type: 'order.created', version: 1 }] });
   const builtin = await prisma.pluginInstallation.findUniqueOrThrow({ where: { pluginSlug_instanceKey: { pluginSlug: 'console-email', instanceKey: 'default' } } });

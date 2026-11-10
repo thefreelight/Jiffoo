@@ -42,7 +42,7 @@ import { pluginDatabaseLimit } from './plugin-database-test-control';
 import { registerPluginStateReset } from '@/core/extensions/runtime/plugin-state';
 import { recordPluginFailure, redactPluginFailure } from '@/core/extensions/runtime/failure';
 import { readStoredPluginManifest } from '@/core/extensions/runtime/stored-manifest';
-import { fulfillmentV1Methods, getPluginManifestIssues, isPluginBusinessError, isPluginManifest, notificationV2Methods, paymentV2Methods, PLUGIN_CONTRACT_VERSIONS, shippingV1Methods, taxV1Methods, validateServicePayload, validateServicePayloadSize, type BoundPrincipal, type PluginContractName, type PluginEvent, type PluginEventHandler, type PluginServiceCall, type PluginServiceDependencyDeclaration, type ServiceResult } from '@jiffoo/shared';
+import { fulfillmentV1Methods, getPluginManifestIssues, isPluginBusinessError, isPluginManifest, notificationV3Methods, paymentV2Methods, PLUGIN_CONTRACT_VERSIONS, shippingV1Methods, taxV1Methods, validateServicePayload, validateServicePayloadSize, type BoundPrincipal, type PluginContractName, type PluginEvent, type PluginEventHandler, type PluginServiceCall, type PluginServiceDependencyDeclaration, type ServiceResult } from '@jiffoo/shared';
 import { providerInvocation, providerOutcomeToResult, providerRejection, serviceCoreError, serviceKey, servicePermission, serviceRegistrationsOf, SERVICE_CALL_DEFAULT_TIMEOUT_MS, SERVICE_CALL_MAX_DEPTH, SERVICE_CALL_MAX_TIMEOUT_MS, SERVICE_CALL_MIN_TIMEOUT_MS, type ServiceMethodSchemas } from '@/core/extensions/runtime/service-runtime';
 import { listPaidOrders } from '@/core/extensions/commerce/commerce-query';
 import { getPurchasableVariants } from '@/core/extensions/commerce/product-query';
@@ -816,7 +816,7 @@ export async function dropInternalRuntime(installationId: string): Promise<boole
   return false;
 }
 
-const contractMethods = { payment: paymentV2Methods, shipping: shippingV1Methods, tax: taxV1Methods, fulfillment: fulfillmentV1Methods, notification: notificationV2Methods } as const;
+const contractMethods = { payment: paymentV2Methods, shipping: shippingV1Methods, tax: taxV1Methods, fulfillment: fulfillmentV1Methods, notification: notificationV3Methods } as const;
 
 function isValidTaxResult(input: unknown, output: unknown): boolean {
   if (!input || typeof input !== 'object' || !output || typeof output !== 'object') return false;

@@ -255,7 +255,7 @@ describe('Plugin SDK create and generated projects', () => {
       const snapshot = path.join(project, 'types/index.d.ts');
       successful(run(generator, ['--check', snapshot]));
       const declarations = await fs.readFile(snapshot, 'utf8');
-      for (const name of ['PluginContext', 'PluginEntryModule', 'PluginLifecycleExports', 'LifecycleContext', 'PaymentV2Contract', 'ShippingV1Contract', 'TaxV1Contract', 'FulfillmentV1Contract', 'NotificationV2Contract']) expect(declarations).toContain(`export interface ${name}`);
+      for (const name of ['PluginContext', 'PluginEntryModule', 'PluginLifecycleExports', 'LifecycleContext', 'PaymentV2Contract', 'ShippingV1Contract', 'TaxV1Contract', 'FulfillmentV1Contract', 'NotificationV3Contract']) expect(declarations).toContain(`export interface ${name}`);
       for (const name of ['PluginDatabase', 'PluginDatabaseTransaction', 'PluginDatabaseOptions', 'PluginDatabaseResult']) expect(declarations).toContain(`export interface ${name}`);
       expect(declarations).toContain('export interface PluginRepairBootstrapDeclaration');
       expect(declarations).toContain('Plugin code is trusted in-process code.');
@@ -268,6 +268,10 @@ describe('Plugin SDK create and generated projects', () => {
         `import type * as Events from ${JSON.stringify(canonical + '/events/registry')};`,
         'type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;',
         'type Assert<T extends true> = T;',
+        'type NotificationDeclarationMatches = Assert<Equal<Extract<Local.PluginContractDeclaration, { name: "notification" }>, { name: "notification"; version: 3 }>>;',
+        'const notificationDeclaration: Local.PluginContractDeclaration = { name: "notification", version: 3 };',
+        '// @ts-expect-error Notification v2 declarations are retired from the canonical SDK.',
+        'const retiredNotificationDeclaration: Local.PluginContractDeclaration = { name: "notification", version: 2 };',
         'type ContextKeysMatch = Assert<Equal<keyof Local.PluginContext, keyof Core.PluginContext>>;',
         'type RepairBootstrapMatch = Assert<Equal<Local.PluginRepairBootstrapDeclaration, Core.PluginRepairBootstrapDeclaration>>;',
         'type ManifestRepairBootstrapMatch = Assert<Equal<Local.PluginManifest["repairBootstrap"], Core.PluginManifest["repairBootstrap"]>>;',
@@ -286,10 +290,10 @@ describe('Plugin SDK create and generated projects', () => {
         'type EventKeysMatch = Assert<Equal<Local.EventKey, Events.EventKey>>;',
       ];
       for (const event of ['customer.created', 'product.created', 'product.updated', 'order.fulfilled', 'order.created', 'order.cancelled', 'order.refunded', 'order.paid', 'payment.succeeded', 'payment.failed']) assertions.push(`type Event_${event.replace('.', '_')} = Assert<Equal<Local.EventPayload<'${event}'>, Events.EventPayload<'${event}'>>>;`);
-      const methods = { payment: ['describe', 'createSession', 'queryByRequestKey', 'handleWebhook'], shipping: ['quote'], tax: ['calculate'], fulfillment: ['createFulfillment', 'getStatus'], notification: ['send'] };
+      const methods = { payment: ['describe', 'createSession', 'queryByRequestKey', 'handleWebhook'], shipping: ['quote'], tax: ['calculate'], fulfillment: ['createFulfillment', 'getStatus'], notification: ['send', 'verifyReceipt'] };
       for (const [category, names] of Object.entries(methods)) {
         const title = category[0].toUpperCase() + category.slice(1);
-        const version = category === 'payment' || category === 'notification' ? 2 : 1;
+        const version = category === 'notification' ? 3 : category === 'payment' ? 2 : 1;
         assertions.push(`import type * as ${title} from ${JSON.stringify(canonical + '/extensions/contracts/' + category + '-v' + version)};`);
         for (const method of names) for (const direction of ['Input', 'Output']) assertions.push(`type ${title}${method}${direction} = Assert<Equal<Local.${title}V${version}${direction}<'${method}'>, ${title}.${title}V${version}${direction}<'${method}'>>>;`);
       }

@@ -8,6 +8,10 @@ type Entry = { category: 1 | 2 | 3; reason: string; rebuild?: { file: string; fu
 
 // Every entry is explicit: new names, including persistent class fields, require review.
 const codeConstants = [
+  'core/admin/notifications/routes.ts:deliveryValues',
+  'core/notifications/receipt-routes.ts:acknowledgement',
+  'core/notifications/receipt-routes.ts:privateHeaders',
+  'core/notifications/receipts.ts:priority',
   'core/auth/plugin-action-authorization.ts:BUILTIN_PLUGIN_ADMIN_ACTIONS',
   'core/plugin-storage/grants.ts:publicClaims',
   'core/admin/extension-installer/schemas.ts:repairBootstrapAjv',

@@ -168,6 +168,9 @@ model Notification {
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   sentAt            DateTime?
+  deliveryStatus    NotificationDeliveryStatus @default(UNKNOWN)
+  deliveryUpdatedAt DateTime?
+  receipts          NotificationReceipt[]
 
   @@index([status, nextAttemptAt])
   @@index([status, leaseUntil])
@@ -175,7 +178,39 @@ model Notification {
   @@index([recipientUserId, createdAt])
   @@index([relatedType, relatedId])
   @@index([resentFromId, createdAt])
+  @@index([deliveryStatus, createdAt])
   @@map("notifications")
+  @@schema("public")
+}
+
+enum NotificationDeliveryStatus {
+  UNKNOWN
+  DELIVERED
+  DELAYED
+  BOUNCED
+  COMPLAINED
+  FAILED
+
+  @@schema("public")
+}
+
+model NotificationReceipt {
+  id                String @id @default(cuid())
+  providerSlug      String
+  eventId           String
+  providerMessageId String
+  recipient         String
+  type              String
+  occurredAt        DateTime @db.Timestamptz(3)
+  receivedAt        DateTime @default(now()) @db.Timestamptz(3)
+  payloadHash       String
+  notificationId    String
+  notification      Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+
+  @@unique([providerSlug, eventId])
+  @@index([providerSlug, providerMessageId, recipient])
+  @@index([notificationId, occurredAt])
+  @@map("notification_receipts")
   @@schema("public")
 }
 

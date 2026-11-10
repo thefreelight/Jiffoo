@@ -112,10 +112,12 @@ export async function claimNotifications(client: NotificationLeaseClient, claime
 }
 export async function completeNotification(client: NotificationLeaseClient, notification: Pick<Notification, 'id' | 'claimToken'>, providerSlug: string, providerMessageId?: string): Promise<number> {
   const result = await client.query(`UPDATE public.notifications SET status = 'SENT',
-    "providerSlug" = $3, "providerMessageId" = $4, "sentAt" = clock_timestamp() AT TIME ZONE 'UTC',
+    "providerSlug" = $3, "providerMessageId" = COALESCE($4, "providerMessageId"), "sentAt" = clock_timestamp() AT TIME ZONE 'UTC',
     "secretJson" = NULL, "lastError" = NULL, "claimToken" = NULL, "claimedBy" = NULL, "leaseUntil" = NULL,
     "updatedAt" = clock_timestamp() AT TIME ZONE 'UTC'
-    WHERE id = $1 AND status = 'SENDING' AND "claimToken" = $2::uuid RETURNING id`,
+    WHERE id = $1 AND status = 'SENDING' AND "claimToken" = $2::uuid
+      AND ("providerSlug" IS NULL OR "providerSlug" = $3)
+      AND ($4::text IS NULL OR "providerMessageId" IS NULL OR "providerMessageId" = $4) RETURNING id`,
   [notification.id, notification.claimToken, providerSlug, providerMessageId ?? null]);
   if (!result.rows.length) stale(notification.id, 'completion');
   return result.rows.length;
@@ -136,7 +138,7 @@ export async function failNotification(client: NotificationLeaseClient, notifica
     "nextAttemptAt" = (clock_timestamp() AT TIME ZONE 'UTC') +
       GREATEST(${notificationRetryDelaySql('attempts')}, $7 * interval '1 second'),
     "secretJson" = CASE WHEN $5 OR attempts + 1 >= $6 THEN NULL ELSE "secretJson" END,
-    attempts = attempts + 1, "lastError" = $3, "providerSlug" = $4,
+    attempts = attempts + 1, "lastError" = $3, "providerSlug" = COALESCE("providerSlug", $4),
     "claimToken" = NULL, "claimedBy" = NULL, "leaseUntil" = NULL,
     "updatedAt" = clock_timestamp() AT TIME ZONE 'UTC'
     WHERE id = $1 AND status = 'SENDING' AND "claimToken" = $2::uuid RETURNING id`,
