@@ -105,17 +105,22 @@ describe('native PaymentSheet payment intents', () => {
     }
   });
 
-  it('routes mainland-China shoppers to hosted checkout without creating an intent', async () => {
+  it('creates a native intent for mainland-China shoppers too (gate removed 2026-11-13)', async () => {
     authenticateNativeUser.mockResolvedValue({ id: 'user-1', email: 'u@example.com', username: 'u', role: 'USER' });
     getNativeStripeSecret.mockResolvedValue({ mode: 'test', value: 'sk_test_example' });
     const originalFetch = global.fetch;
-    global.fetch = vi.fn() as unknown as typeof fetch;
+    let stripeCalls = 0;
+    global.fetch = vi.fn(async () => {
+      stripeCalls += 1;
+      return new Response(JSON.stringify({ id: 'pi_test_cn', client_secret: 'pi_test_cn_secret' }), { status: 200 });
+    }) as unknown as typeof fetch;
     try {
       const { db, ran } = intentsDb();
       for (const headers of [
         { 'content-type': 'application/json', 'accept-language': 'zh-CN,zh;q=0.9' },
         { 'content-type': 'application/json', 'cf-ipcountry': 'CN' },
       ]) {
+        stripeCalls = 0;
         const response = await tryNativeCheckout(
           new Request('https://api.example/api/v1/payments/intents', {
             method: 'POST',
@@ -126,13 +131,12 @@ describe('native PaymentSheet payment intents', () => {
           { DB: db, NATIVE_CHECKOUT_ENABLED: 'true' } as never,
           () => Promise.resolve(null),
         );
-        expect(response?.status).toBe(200);
+        expect(response?.status).toBe(201);
         const payload = await (response as Response).json();
-        expect(payload.data).toEqual({ route: 'hosted_checkout' });
-        expect(payload.data.clientSecret).toBeUndefined();
+        expect(payload.data.clientSecret).toBe('pi_test_cn_secret');
+        expect(stripeCalls).toBe(1);
       }
-      expect(global.fetch).not.toHaveBeenCalled();
-      expect(ran.some((sql) => sql.includes('INSERT INTO native_payment_sessions'))).toBe(false);
+      expect(ran.some((sql) => sql.includes('INSERT INTO native_payment_sessions'))).toBe(true);
     } finally {
       global.fetch = originalFetch;
     }
