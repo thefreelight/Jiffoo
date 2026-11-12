@@ -56,7 +56,12 @@ function statusMeta(status: string, getText: (key: string, fallback: string) => 
   if (normalized === 'COMPLETED' || normalized === 'DELIVERED') {
     return { label: getText('merchant.pages.statCompleted', '已完成'), className: 'bg-emerald-50 text-emerald-600' }
   }
-  if (normalized === 'PROCESSING' || normalized === 'SHIPPED') {
+  // PROCESSING follows a successful payment (paymentStatus=PAID): spell that out
+  // so a paid order is never mistaken for an unpaid one stuck in progress.
+  if (normalized === 'PROCESSING') {
+    return { label: getText('merchant.pages.processingPaid', '已付款·处理中'), className: 'bg-blue-50 text-blue-600' }
+  }
+  if (normalized === 'SHIPPED') {
     return { label: getText('merchant.pages.processing', '处理中'), className: 'bg-blue-50 text-blue-600' }
   }
   if (normalized === 'PAID') {
