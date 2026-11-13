@@ -53,8 +53,8 @@ function intentsDb(paymentStatus = 'PENDING') {
   const db = {
     prepare: (sql: string) => ({
       bind: (..._values: unknown[]) => ({
-        first: async () => (sql.includes('native_order_snapshots snapshots')
-          ? { payload: orderPayload, total_amount: 39, currency: 'USD', payment_status: paymentStatus }
+        first: async () => (sql.includes('FROM native_order_snapshots')
+          ? { payload: orderPayload, total_amount: 39, currency: 'USD', payment_status: paymentStatus, user_id: 'user-1' }
           : null),
         run: async () => {
           ran.push(sql);
@@ -180,10 +180,13 @@ describe('native PaymentSheet payment intents', () => {
       const payload = await (response as Response).json();
       expect(payload.data.route).toBe('epay');
       expect(payload.data.payUrl).toBe('https://yzf.example/pay/submit/123/');
+      expect(payload.data.amount).toBe('280.80');
+      expect(payload.data.currency).toBe('CNY');
       // mapi.php requires the shopper IP; submit.php does not exist here.
       expect(mapiBody).toContain('clientip=8.8.8.8');
       expect(mapiBody).toContain('pid=1002');
-      expect(mapiBody).toContain('money=39.00');
+      // Easy-pay charges CNY: $39 converts at the default 7.2 rate.
+      expect(mapiBody).toContain('money=280.80');
       expect(ran.some((sql) => sql.includes('INSERT INTO native_payment_sessions'))).toBe(true);
     } finally {
       global.fetch = originalFetch;
@@ -211,6 +214,31 @@ describe('native PaymentSheet payment intents', () => {
     } finally {
       global.fetch = originalFetch;
     }
+  });
+
+  it('refuses to settle an easy-pay notify whose amount does not match the CNY conversion', async () => {
+    getNativeStripeSecret.mockResolvedValue({ mode: 'test', value: 'whsec_example' });
+    const params: Record<string, string> = {
+      pid: '1002',
+      trade_no: 'GW-T-1',
+      out_trade_no: 'ord-test-1',
+      type: 'alipay',
+      name: 'order',
+      money: '0.01',
+      trade_status: 'TRADE_SUCCESS',
+    };
+    const signInput = Object.keys(params).sort().map((k) => `${k}=${params[k]}`).join('&') + 'k-test';
+    const { createHash } = await import('node:crypto');
+    const signed = { ...params, sign: createHash('md5').update(signInput).digest('hex'), sign_type: 'MD5' };
+    const query = new URLSearchParams(signed).toString();
+    const { db } = intentsDb();
+    const response = await tryNativeCheckout(
+      new Request(`https://api.example/api/v1/payments/webhook/epay?${query}`),
+      { DB: db, NATIVE_CHECKOUT_ENABLED: 'true', EPAY_GATEWAY: 'https://yzf.example', EPAY_PID: '1002', EPAY_KEY: 'k-test' } as never,
+      () => Promise.resolve(null),
+    );
+    expect(response?.status).toBe(400);
+    expect(await (response as Response).text()).toContain('amount mismatch');
   });
 
   it('rejects an already paid order without calling Stripe', async () => {

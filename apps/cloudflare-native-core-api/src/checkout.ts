@@ -11,6 +11,10 @@ type CheckoutEnv = Pick<Cloudflare.Env,
   EPAY_GATEWAY?: string;
   EPAY_PID?: string;
   EPAY_KEY?: string;
+  // Easy-pay gateways charge in CNY while the storefront prices in USD.
+  // The conversion rate is Owner-controlled (wrangler var), never fetched
+  // live, so session and notify amounts are computed identically.
+  EPAY_USD_CNY_RATE?: string;
 };
 
 interface ProductVariant {
@@ -748,6 +752,21 @@ function epayConfigured(env: CheckoutEnv): boolean {
   return Boolean(env.EPAY_GATEWAY && env.EPAY_PID && env.EPAY_KEY);
 }
 
+const EPAY_DEFAULT_USD_CNY_RATE = 7.2;
+
+/**
+ * Easy-pay cashiers charge CNY. Convert the order total deterministically:
+ * USD orders multiply by the configured rate, CNY orders pass through, and
+ * any other currency is unsupported (the gateway cannot settle it).
+ */
+function epayCnyAmount(totalAmount: number, currency: string, env: CheckoutEnv): string | null {
+  if (currency === 'CNY') return totalAmount.toFixed(2);
+  if (currency !== 'USD') return null;
+  const rate = Number(env.EPAY_USD_CNY_RATE ?? '') || EPAY_DEFAULT_USD_CNY_RATE;
+  if (!Number.isFinite(rate) || rate <= 0) return null;
+  return (Math.round(totalAmount * rate * 100) / 100).toFixed(2);
+}
+
 async function md5Hex(input: string): Promise<string> {
   // Cloudflare Workers' subtle.digest supports MD5 for legacy gateway signing.
   const digest = await crypto.subtle.digest('MD5', new TextEncoder().encode(input));
@@ -797,6 +816,11 @@ async function createEpaySessionInner(request: Request, env: CheckoutEnv, user: 
   // The gateway server calls this URL from outside — it must be the public
   // API host, not the storefront origin (which is the buyer-facing site).
   const notifyUrl = 'https://api.bokmoo.com/api/v1/payments/webhook/epay';
+  const orderCurrency = String(row.currency ?? 'USD').toUpperCase();
+  const money = epayCnyAmount(Number(row.total_amount ?? 0), orderCurrency, env);
+  if (!money) {
+    return failure(503, 'EPAY_CURRENCY_UNSUPPORTED', `Easy-pay cannot settle ${orderCurrency} orders`);
+  }
   const params: Record<string, string> = {
     pid: String(env.EPAY_PID),
     type: payType,
@@ -804,7 +828,8 @@ async function createEpaySessionInner(request: Request, env: CheckoutEnv, user: 
     notify_url: notifyUrl,
     return_url: `${storefrontOrigin(request)}/payment/success?orderId=${encodeURIComponent(String(body.orderId))}`,
     name: productName,
-    money: Number(row.total_amount ?? 0).toFixed(2),
+    // The gateway charges CNY; USD totals convert at the configured rate.
+    money,
     // mapi.php requires the shopper IP; submit.php is 404 on this gateway.
     clientip: request.headers.get('cf-connecting-ip') ?? '127.0.0.1',
   };
@@ -847,7 +872,7 @@ async function createEpaySessionInner(request: Request, env: CheckoutEnv, user: 
     expiresAt,
     now,
   ).run();
-  return success({ route: 'epay', payUrl, orderId: body.orderId, payType });
+  return success({ route: 'epay', payUrl, orderId: body.orderId, payType, amount: money, currency: 'CNY' });
 }
 
 async function handleEpayNotify(request: Request, env: CheckoutEnv): Promise<Response> {
@@ -876,6 +901,16 @@ async function handleEpayNotify(request: Request, env: CheckoutEnv): Promise<Res
   if (!row) return new Response('success');
   const now = new Date().toISOString();
   const order = JSON.parse(row.payload) as Record<string, unknown>;
+  // Anti-underpayment guard: the gateway charges CNY, so recompute what the
+  // session should have charged and refuse to settle mismatches (a tampered
+  // or drifted notify must never mark a $20 order PAID for ¥20).
+  const items = Array.isArray(order.items) ? order.items as Array<Record<string, unknown>> : [];
+  const orderTotalUsd = Number(order.totalAmount ?? items.reduce((sum, item) => sum + Number(item.totalPrice ?? 0), 0));
+  const expectedCny = epayCnyAmount(orderTotalUsd, String(order.currency ?? 'USD').toUpperCase(), env);
+  const paidMoney = Number(params.money ?? NaN);
+  if (expectedCny === null || !Number.isFinite(paidMoney) || Math.abs(paidMoney - Number(expectedCny)) > 0.05) {
+    return new Response('fail: amount mismatch', { status: 400 });
+  }
   Object.assign(order, { status: 'PAID', paymentStatus: 'PAID', updatedAt: now });
   await env.DB.batch([
     env.DB.prepare(
