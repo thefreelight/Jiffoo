@@ -764,6 +764,15 @@ async function epaySign(params: Record<string, string>, key: string): Promise<st
 }
 
 async function createEpaySession(request: Request, env: CheckoutEnv, user: NativeSessionUser): Promise<Response | null> {
+  try {
+    return await createEpaySessionInner(request, env, user);
+  } catch (error) {
+    // Never crash the worker (1101): surface gateway/DB failures as JSON.
+    return failure(500, 'EPAY_SESSION_ERROR', error instanceof Error ? error.message : String(error));
+  }
+}
+
+async function createEpaySessionInner(request: Request, env: CheckoutEnv, user: NativeSessionUser): Promise<Response> {
   const body = await request.json<{ orderId?: unknown; payType?: unknown }>().catch(() => null);
   if (!body || typeof body.orderId !== 'string' || !body.orderId.trim()) {
     return failure(400, 'VALIDATION_ERROR', 'orderId is required');
@@ -800,11 +809,17 @@ async function createEpaySession(request: Request, env: CheckoutEnv, user: Nativ
     clientip: request.headers.get('cf-connecting-ip') ?? '127.0.0.1',
   };
   params.sign = await epaySign(params, String(env.EPAY_KEY));
-  const gatewayResponse = await fetch(`${gateway}/mapi.php`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ ...params, sign_type: 'MD5' }).toString(),
-  });
+  let gatewayResponse: Response;
+  try {
+    gatewayResponse = await fetch(`${gateway}/mapi.php`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ ...params, sign_type: 'MD5' }).toString(),
+    });
+  } catch (gatewayError) {
+    // Surface the transport failure instead of crashing the worker (1101).
+    return failure(502, 'EPAY_GATEWAY_ERROR', `Easy-pay gateway unreachable: ${gatewayError instanceof Error ? gatewayError.message : String(gatewayError)}`);
+  }
   if (!gatewayResponse.ok) {
     return failure(502, 'EPAY_GATEWAY_ERROR', `Easy-pay gateway returned ${gatewayResponse.status}`);
   }
@@ -817,9 +832,11 @@ async function createEpaySession(request: Request, env: CheckoutEnv, user: Nativ
     return failure(502, 'EPAY_GATEWAY_ERROR', 'Easy-pay gateway returned no payment URL');
   }
   const now = new Date().toISOString();
+  // Gateway casher pages stay valid for a day, same default as Stripe sessions.
+  const expiresAt = new Date(Date.now() + 86400 * 1000).toISOString();
   await env.DB.prepare(
-    `INSERT INTO native_payment_sessions (id, order_id, user_id, provider, idempotency_key, session_url, payment_intent_id, status, created_at, updated_at)
-     VALUES (?1, ?2, ?3, 'epay', ?4, ?5, NULL, 'PENDING', ?6, ?6)
+    `INSERT INTO native_payment_sessions (id, order_id, user_id, provider, idempotency_key, session_url, payment_intent_id, status, expires_at, created_at, updated_at)
+     VALUES (?1, ?2, ?3, 'epay', ?4, ?5, NULL, 'PENDING', ?6, ?7, ?7)
      ON CONFLICT(idempotency_key) DO NOTHING`,
   ).bind(
     `epay_${body.orderId}_${payType}`,
@@ -827,6 +844,7 @@ async function createEpaySession(request: Request, env: CheckoutEnv, user: Nativ
     user.id,
     `order:${body.orderId}:epay:${payType}`,
     payUrl,
+    expiresAt,
     now,
   ).run();
   return success({ route: 'epay', payUrl, orderId: body.orderId, payType });
