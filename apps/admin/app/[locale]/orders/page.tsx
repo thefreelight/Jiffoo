@@ -8,7 +8,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { CalendarDays, ChevronDown, Download, Eye, MoreHorizontal, Search, ClipboardList, Wallet, PackageCheck, CheckCircle2, XCircle } from 'lucide-react'
+import { CalendarDays, ChevronDown, Download, Eye, MoreHorizontal, Search, ClipboardList, Wallet, PackageCheck, CheckCircle2, XCircle, Truck } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/select'
 import { useT, useLocale } from 'shared/src/i18n/react'
 import { PageShell } from '@/components/layout/page-shell'
+import { ShipOrderDialog } from '@/components/orders/ShipOrderDialog'
 import { PageHero, MiniStatCard, TablePagination, SortableTh } from '@/components/list/list-kit'
 import { useOrders, useAdminDashboard, type Order } from '@/lib/hooks/use-api'
 import { formatCurrency, cn } from '@/lib/utils'
@@ -57,6 +58,12 @@ const ITEM_ART = [
 function orderIndexSeed(order: { id?: unknown }): number {
   const id = typeof order.id === 'string' ? order.id : ''
   return id ? id.charCodeAt(id.length - 1) % ITEM_ART.length : 0
+}
+
+// Only paid-but-unshipped orders show the row-level ship button.
+function shipEligible(status: string): boolean {
+  const normalized = String(status).toUpperCase()
+  return normalized === 'PAID' || normalized === 'PROCESSING'
 }
 
 function itemInitial(name: unknown): string {
@@ -111,6 +118,7 @@ export default function OrdersPage() {
   const [selectedStatus, setSelectedStatus] = useState('all')
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
+  const [shipTarget, setShipTarget] = useState<any>(null)
 
   const { data: ordersData, isLoading } = useOrders({
     page: currentPage,
@@ -308,6 +316,17 @@ export default function OrdersPage() {
                       </td>
                       <td className="px-3 py-3 text-xs text-slate-400">{created}</td>
                       <td className="px-3 py-3 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          {shipEligible(String(order.status || demo.status)) && (
+                            <button
+                              type="button"
+                              className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-600 transition-colors hover:bg-blue-100"
+                              onClick={() => setShipTarget(order)}
+                            >
+                              <Truck className="h-3.5 w-3.5" />
+                              {getText('merchant.orders.ship.action', '发货')}
+                            </button>
+                          )}
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <button
@@ -328,6 +347,7 @@ export default function OrdersPage() {
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
+                        </div>
                       </td>
                     </tr>
                   )
@@ -357,6 +377,12 @@ export default function OrdersPage() {
           />
         </div>
       </div>
+      <ShipOrderDialog
+        order={shipTarget}
+        open={shipTarget != null}
+        onOpenChange={(open) => { if (!open) setShipTarget(null) }}
+        onSuccess={() => setShipTarget(null)}
+      />
     </PageShell>
   )
 }
