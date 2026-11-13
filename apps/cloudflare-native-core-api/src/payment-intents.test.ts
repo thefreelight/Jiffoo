@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('cloudflare:sockets', () => ({ connect: vi.fn() }));
@@ -14,6 +15,20 @@ subtle.timingSafeEqual ??= (left: ArrayBuffer, right: ArrayBuffer): boolean => {
   for (let index = 0; index < leftBytes.length; index += 1) difference |= leftBytes[index]! ^ rightBytes[index]!;
   return difference === 0;
 };
+
+// Node WebCrypto lacks the Workers-only MD5 digest used by the easy-pay
+// gateway signer; route MD5 through node:crypto in tests.
+type SubtleWithMd5 = typeof crypto.subtle & { digest: typeof crypto.subtle.digest };
+const subtleMd5 = crypto.subtle as SubtleWithMd5;
+const nativeDigest = subtleMd5.digest.bind(subtleMd5);
+subtleMd5.digest = (async (algorithm: AlgorithmIdentifier | string, data: ArrayBuffer) => {
+  const name = typeof algorithm === 'string' ? algorithm : (algorithm as { name: string }).name;
+  if (name.toUpperCase() === 'MD5') {
+    const buf = createHash('md5').update(new Uint8Array(data)).digest();
+    return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer;
+  }
+  return nativeDigest(algorithm as AlgorithmIdentifier, data);
+}) as typeof crypto.subtle.digest;
 
 const { authenticateNativeUser, getNativeStripeSecret, getNativePluginConfig } = vi.hoisted(() => ({
   authenticateNativeUser: vi.fn(),
@@ -137,6 +152,62 @@ describe('native PaymentSheet payment intents', () => {
         expect(stripeCalls).toBe(1);
       }
       expect(ran.some((sql) => sql.includes('INSERT INTO native_payment_sessions'))).toBe(true);
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  it('requests a gateway payment URL from mapi.php for easy-pay sessions', async () => {
+    authenticateNativeUser.mockResolvedValue({ id: 'user-1', email: 'u@example.com', username: 'u', role: 'USER' });
+    const originalFetch = global.fetch;
+    let mapiBody = '';
+    global.fetch = vi.fn(async (_input: unknown, init?: RequestInit) => {
+      mapiBody = String(init?.body ?? '');
+      return new Response(JSON.stringify({ code: 1, payurl: 'https://yzf.example/pay/submit/123/' }), { status: 200 });
+    }) as unknown as typeof fetch;
+    try {
+      const { db, ran } = intentsDb();
+      const response = await tryNativeCheckout(
+        new Request('https://api.example/api/v1/payments/epay/session', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'cf-connecting-ip': '8.8.8.8' },
+          body: JSON.stringify({ orderId: 'ord-test-1', payType: 'alipay' }),
+        }),
+        { DB: db, NATIVE_CHECKOUT_ENABLED: 'true', EPAY_GATEWAY: 'https://yzf.example', EPAY_PID: '1002', EPAY_KEY: 'k-test' } as never,
+        () => Promise.resolve(null),
+      );
+      expect(response?.status).toBe(200);
+      const payload = await (response as Response).json();
+      expect(payload.data.route).toBe('epay');
+      expect(payload.data.payUrl).toBe('https://yzf.example/pay/submit/123/');
+      // mapi.php requires the shopper IP; submit.php does not exist here.
+      expect(mapiBody).toContain('clientip=8.8.8.8');
+      expect(mapiBody).toContain('pid=1002');
+      expect(mapiBody).toContain('money=39.00');
+      expect(ran.some((sql) => sql.includes('INSERT INTO native_payment_sessions'))).toBe(true);
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  it('surfaces a gateway rejection as a 502 for easy-pay sessions', async () => {
+    authenticateNativeUser.mockResolvedValue({ id: 'user-1', email: 'u@example.com', username: 'u', role: 'USER' });
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn(async () => new Response(JSON.stringify({ code: -1, msg: '签名校验失败' }), { status: 200 })) as unknown as typeof fetch;
+    try {
+      const { db } = intentsDb();
+      const response = await tryNativeCheckout(
+        new Request('https://api.example/api/v1/payments/epay/session', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ orderId: 'ord-test-1' }),
+        }),
+        { DB: db, NATIVE_CHECKOUT_ENABLED: 'true', EPAY_GATEWAY: 'https://yzf.example', EPAY_PID: '1002', EPAY_KEY: 'k-test' } as never,
+        () => Promise.resolve(null),
+      );
+      expect(response?.status).toBe(502);
+      const payload = await (response as Response).json();
+      expect(payload.error.code).toBe('EPAY_GATEWAY_ERROR');
     } finally {
       global.fetch = originalFetch;
     }

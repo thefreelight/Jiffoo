@@ -796,10 +796,26 @@ async function createEpaySession(request: Request, env: CheckoutEnv, user: Nativ
     return_url: `${storefrontOrigin(request)}/payment/success?orderId=${encodeURIComponent(String(body.orderId))}`,
     name: productName,
     money: Number(row.total_amount ?? 0).toFixed(2),
+    // mapi.php requires the shopper IP; submit.php is 404 on this gateway.
+    clientip: request.headers.get('cf-connecting-ip') ?? '127.0.0.1',
   };
   params.sign = await epaySign(params, String(env.EPAY_KEY));
-  params.sign_type = 'MD5';
-  const query = new URLSearchParams(params).toString();
+  const gatewayResponse = await fetch(`${gateway}/mapi.php`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ ...params, sign_type: 'MD5' }).toString(),
+  });
+  if (!gatewayResponse.ok) {
+    return failure(502, 'EPAY_GATEWAY_ERROR', `Easy-pay gateway returned ${gatewayResponse.status}`);
+  }
+  const result = await gatewayResponse.json<{ code?: number; msg?: string; payurl?: string; qrcode?: string; urlscheme?: string }>().catch(() => null);
+  if (!result || result.code !== 1) {
+    return failure(502, 'EPAY_GATEWAY_ERROR', result?.msg ?? 'Easy-pay gateway rejected the request');
+  }
+  const payUrl = result.payurl ?? result.qrcode ?? result.urlscheme ?? '';
+  if (!payUrl) {
+    return failure(502, 'EPAY_GATEWAY_ERROR', 'Easy-pay gateway returned no payment URL');
+  }
   const now = new Date().toISOString();
   await env.DB.prepare(
     `INSERT INTO native_payment_sessions (id, order_id, user_id, provider, idempotency_key, session_url, payment_intent_id, status, created_at, updated_at)
@@ -810,10 +826,10 @@ async function createEpaySession(request: Request, env: CheckoutEnv, user: Nativ
     body.orderId,
     user.id,
     `order:${body.orderId}:epay:${payType}`,
-    `${gateway}/submit.php?${query}`,
+    payUrl,
     now,
   ).run();
-  return success({ route: 'epay', payUrl: `${gateway}/submit.php?${query}`, orderId: body.orderId, payType });
+  return success({ route: 'epay', payUrl, orderId: body.orderId, payType });
 }
 
 async function handleEpayNotify(request: Request, env: CheckoutEnv): Promise<Response> {
