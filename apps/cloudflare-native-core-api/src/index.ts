@@ -36,6 +36,7 @@ import { captureNativeError, tryNativeAdminErrors } from './admin-errors';
 import { tryNativeSeoRedirects } from './seo-redirects';
 import { tryNativeSeoStore } from './seo-store';
 import { tryNativeMailBounces } from './mail-bounces';
+import { tryNativeMailReceipts } from './mail-receipts';
 import { processScheduledOdooCatalogSync, tryNativeOdooCatalogSync } from './odoo-catalog';
 import { snapshotFallbackKey, snapshotKey } from './snapshot-key';
 import { applyProductCopyOverrides, loadProductCopyOverrides, productCopyPathKind } from './product-copy';
@@ -309,6 +310,8 @@ async function routeNativeRequest(request: Request, env: WorkerEnv, ctx: Executi
     if (nativeSeoStore) return nativeSeoStore;
     const nativeMailBounces = await tryNativeMailBounces(nativeRequest, env);
     if (nativeMailBounces) return nativeMailBounces;
+    const nativeMailReceipts = await tryNativeMailReceipts(nativeRequest, env);
+    if (nativeMailReceipts) return nativeMailReceipts;
     const nativePublicAuthConfig = tryNativePublicAuthConfig(nativeRequest, env);
     if (nativePublicAuthConfig) return nativePublicAuthConfig;
     const nativeGatewayFallbacks = tryNativeGatewayFallbacks(nativeRequest);
