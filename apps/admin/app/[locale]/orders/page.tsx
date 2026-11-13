@@ -25,7 +25,6 @@ import {
 import { useT, useLocale } from 'shared/src/i18n/react'
 import { PageShell } from '@/components/layout/page-shell'
 import { PageHero, MiniStatCard, TablePagination, SortableTh } from '@/components/list/list-kit'
-import { ProductArt, type ProductIconKind } from '@/components/dashboard/overview/product-art'
 import { useOrders, useAdminDashboard, type Order } from '@/lib/hooks/use-api'
 import { formatCurrency, cn } from '@/lib/utils'
 
@@ -46,10 +45,25 @@ const DEMO_ROWS: DemoRow[] = [
   { code: '#1003', customer: '周八', amount: 299, status: 'COMPLETED', createdAt: '2024/09/13 14:30' },
 ]
 
-const DEMO_ART = [
-  { icon: 'shirt' as ProductIconKind, art: 'from-slate-600 to-slate-800' },
-  { icon: 'cap' as ProductIconKind, art: 'from-stone-500 to-stone-700' },
+// Deterministic chip art for the first two real order items (initials of
+// the product name; the badge "+N" covers the rest).
+const ITEM_ART = [
+  'from-amber-500 to-amber-700',
+  'from-sky-500 to-sky-700',
+  'from-emerald-500 to-emerald-700',
+  'from-violet-500 to-violet-700',
 ]
+
+function orderIndexSeed(order: { id?: unknown }): number {
+  const id = typeof order.id === 'string' ? order.id : ''
+  return id ? id.charCodeAt(id.length - 1) % ITEM_ART.length : 0
+}
+
+function itemInitial(name: unknown): string {
+  if (typeof name !== 'string' || !name.trim()) return '?'
+  const cleaned = name.replace(/\[[^\]]*\]\s*/g, '').trim()
+  return (cleaned || name).charAt(0).toUpperCase()
+}
 
 function statusMeta(status: string, getText: (key: string, fallback: string) => string) {
   const normalized = String(status).toUpperCase()
@@ -259,20 +273,28 @@ export default function OrdersPage() {
                   const customer = order.customer?.username || order.customer?.email || demo.customer
                   const meta = statusMeta(String(order.status || demo.status), getText)
                   const created = order.createdAt ? formatDateTime(order.createdAt) : demo.createdAt
-                  const itemCount = order.itemsCount ?? 2
+                  const itemCount = Number(order.itemsCount ?? 0)
+                    || (Array.isArray(order.itemsSummary) ? order.itemsSummary.length : 0) || 1
                   return (
                     <tr key={order.id ?? demo.code} className="transition-colors hover:bg-[#f8fafc]">
                       <td className="py-3 pl-4 pr-3 text-sm font-semibold text-slate-900">{code}</td>
                       <td className="px-3 py-3 text-sm text-slate-600">{customer}</td>
                       <td className="px-3 py-3">
                         <div className="flex -space-x-1.5">
-                          {DEMO_ART.map((art, artIndex) => (
-                            <ProductArt
-                              key={artIndex}
-                              icon={art.icon}
-                              art={art.art}
-                              className="h-7 w-7 ring-2 ring-white"
-                            />
+                          {(Array.isArray(order.itemsSummary) && order.itemsSummary.length > 0
+                            ? order.itemsSummary
+                            : [{ name: null, quantity: 1 }]
+                          ).slice(0, 2).map((item: { name: string | null; quantity: number }, itemIndex: number) => (
+                            <div
+                              key={itemIndex}
+                              title={item.name ?? undefined}
+                              className={cn(
+                                'flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br text-[11px] font-bold text-white ring-2 ring-white',
+                                ITEM_ART[(orderIndexSeed(order) + itemIndex) % ITEM_ART.length],
+                              )}
+                            >
+                              {itemInitial(item.name)}
+                            </div>
                           ))}
                         </div>
                         {itemCount > 2 && (
