@@ -18,6 +18,22 @@ function integer(value: string | null, fallback: number, max: number): number {
   return Number.isInteger(parsed) && parsed > 0 ? Math.min(parsed, max) : fallback;
 }
 
+// The admin order page renders shippingAddress.recipientName/street/zipCode,
+// but the checkout payload stores name/line1/postalCode. Alias the display
+// names on the response (payload keeps the checkout shape on disk).
+function applyShippingAddressDisplay(order: AdminOrder): void {
+  const addr = order.shippingAddress;
+  if (!addr || typeof addr !== 'object' || Array.isArray(addr)) return;
+  const source = addr as Record<string, unknown>;
+  order.shippingAddress = {
+    ...source,
+    recipientName: source.recipientName ?? source.name,
+    street: source.street ?? source.line1,
+    street2: source.street2 ?? source.line2,
+    zipCode: source.zipCode ?? source.postalCode,
+  };
+}
+
 function applyCustomer(order: AdminOrder, user: AdminCustomerRow | null): void {
   if (order.customer && typeof order.customer === 'object') return;
   const payloadEmail = typeof order.customerEmail === 'string' ? order.customerEmail : null;
@@ -76,6 +92,7 @@ export async function tryNativeAdminOrders(request: Request, env: AdminOrderEnv,
       return Response.json({ success: false, error: { code: 'NOT_FOUND', message: 'Order not found' } }, { status: 404, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-admin-orders' } });
     }
     const order = await attachCustomer(env.DB, await attachShipments(env.DB, JSON.parse(row.payload) as AdminOrder));
+    applyShippingAddressDisplay(order);
     return response(order);
   }
   const page = integer(url.searchParams.get('page'), 1, 1_000_000);
