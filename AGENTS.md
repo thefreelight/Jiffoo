@@ -20,10 +20,14 @@ inspection lives in the code, in a registry a test checks, or in `docs/`.
 
 ## 1. Working agreements
 
-- **The development branch of record is `dev`.** Daily Core development uses the main checkout
-  on `dev`; scoped lane branches integrate into `dev`. The former acceptance branch is historical.
-  Never merge this line into `main` or push to `main` without explicit user authorization.
-  Official signing, package publication, marketplace promotion and production deployment remain paused.
+- **The 2026 Core refactoring on this line is complete; `dev` is the self-hosted
+  Docker/PostgreSQL line, not the Core development branch.** Lane branches integrate into `dev`
+  only for self-hosted-line work. New Core feature development happens on `main` (PR → main).
+  A capability proven on this line reaches `main` through a porting PR that carries the
+  versioned contracts and their tests and rides the weekly release train — never by merging
+  this line into `main` wholesale, and never pushing to `main` from this line without explicit
+  user authorization. Release signing, package publication, marketplace promotion and
+  production deployment belong to `main` and stay out of scope on this line.
 - **The local gate covers the change; the complete gate belongs to CI.** One widened gate per
   batch, not one per fix.
 - **The browser E2E runs in CI only.** `pnpm verify:e2e` is the tool for investigating a CI failure.
