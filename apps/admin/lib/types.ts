@@ -95,6 +95,8 @@ export interface Order {
   currency: string
   createdAt: string
   itemsCount?: number
+  // Server-projected item chips (name + quantity, first three items).
+  itemsSummary?: Array<{ name: string | null; quantity: number }>
 
   // Flattened customer info (for list). Native order payloads carry only a
   // top-level customerEmail, so customer and its fields are all optional.
