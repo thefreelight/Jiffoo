@@ -24,7 +24,10 @@ interface UserRow {
 
 function fakeEnv(orders: OrderRow[], users: UserRow[]) {
   const prepare = (sql: string) => ({
+    sql,
     bind: (...args: unknown[]) => ({
+      sql,
+      run: async () => ({ meta: {} }),
       first: async () => {
         if (sql.includes('COUNT(*) AS total')) return { total: orders.length };
         if (sql.includes('FROM native_order_snapshots WHERE id =')) {
@@ -48,11 +51,20 @@ function fakeEnv(orders: OrderRow[], users: UserRow[]) {
         }
         if (sql.includes('FROM native_shipments WHERE')) return { results: [] };
         if (sql.includes('FROM native_shipment_events WHERE')) return { results: [] };
+        if (sql.includes('INSERT INTO native_shipments')) return { meta: {} };
         return { results: [] };
       },
     }),
   });
-  return { DB: { prepare } } as unknown as Parameters<typeof tryNativeAdminOrders>[1];
+  const batched: string[] = [];
+  const DB = {
+    prepare,
+    batch: async (statements: Array<{ sql?: string }>) => {
+      batched.push(...statements.map((statement) => statement.sql ?? ''));
+      return statements;
+    },
+  };
+  return { DB: DB as unknown as Parameters<typeof tryNativeAdminOrders>[1], batched };
 }
 
 function nativeCheckoutPayload(orderId: string, userId: string, email: string) {
@@ -70,6 +82,14 @@ function nativeCheckoutPayload(orderId: string, userId: string, email: string) {
 
 function request(path: string): Request {
   return new Request(`https://api.bokmoo.test${path}`, { headers: { authorization: 'Bearer test-token' } });
+}
+
+function shipRequest(path: string, body: Record<string, unknown>): Request {
+  return new Request(`https://api.bokmoo.test${path}`, {
+    method: 'POST',
+    headers: { authorization: 'Bearer test-token', 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  });
 }
 
 beforeEach(() => {
@@ -129,6 +149,38 @@ describe('tryNativeAdminOrders', () => {
 
     const missing = await tryNativeAdminOrders(request('/api/v1/admin/orders/nope'), env, async () => new Response('{}'));
     expect(missing.status).toBe(404);
+  });
+
+  it('records a manual shipment, marks the order SHIPPED, and notifies the customer', async () => {
+    const env = fakeEnv(
+      [{ id: 'ord-ship-1', user_id: 'u-1', payload: nativeCheckoutPayload('ord-ship-1', 'u-1', 'shopper@jiffoo.test'), source_updated_at: '2026-10-01T00:00:00Z' }],
+      [{ id: 'u-1', email: 'shopper@jiffoo.test', username: 'shopper', avatar: null }],
+    );
+    const response = await tryNativeAdminOrders(
+      shipRequest('/api/v1/admin/orders/ord-ship-1/ship', { carrier: '顺丰速运', trackingNumber: 'SF1234567890', scope: 'domestic' }),
+      env,
+      async () => new Response('{}'),
+    );
+    expect(response?.status).toBe(200);
+    const body = await response.json() as { data: { status: string; shipments: Array<{ trackingNumber: string; status: string }> } };
+    expect(body.data.status).toBe('SHIPPED');
+    expect(env.batched.some((sql) => sql.includes('UPDATE native_order_snapshots SET status'))).toBe(true);
+    expect(env.batched.some((sql) => sql.includes('INSERT INTO native_bokmoo_notifications'))).toBe(true);
+  });
+
+  it('rejects a shipment without carrier or tracking number', async () => {
+    const env = fakeEnv(
+      [{ id: 'ord-ship-2', user_id: 'u-1', payload: nativeCheckoutPayload('ord-ship-2', 'u-1', 'shopper@jiffoo.test'), source_updated_at: '2026-10-01T00:00:00Z' }],
+      [],
+    );
+    const response = await tryNativeAdminOrders(
+      shipRequest('/api/v1/admin/orders/ord-ship-2/ship', { carrier: '' }),
+      env,
+      async () => new Response('{}'),
+    );
+    expect(response?.status).toBe(400);
+    const body = await response.json() as { error: { code: string } };
+    expect(body.error.code).toBe('VALIDATION_ERROR');
   });
 
   it('requires admin authentication', async () => {
