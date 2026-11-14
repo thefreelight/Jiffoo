@@ -4,6 +4,7 @@ import {
   constantTimeTextEqual, FourPxNativeProvider, Kuaidi100NativeProvider,
   sha256Hex, ShippingProviderError, signKuaidi100Webhook,
 } from './shipping-providers';
+import { detectCarriers, SHIPPING_CARRIERS } from './shipping-carriers';
 import { upsertSupplierShipment } from './shipments';
 
 interface NativeShippingEnv extends NativeAuthEnv, PluginSettingsEnv {
@@ -389,11 +390,54 @@ function calculate(body: ShippingRequest): { methods: typeof manualMethod[]; req
   return { methods: requiresShipping ? [manualMethod] : [], requiresShipping };
 }
 
+/**
+ * Carrier picker + tracking auto-detection for the admin ship dialog.
+ * Gated on the shipping plugin being enabled so instances without the
+ * plugin keep serving plain 404s and the dialog falls back to free text.
+ */
+async function adminShipForm(request: Request, env: NativeShippingEnv, path: string): Promise<Response | null> {
+  const isForm = path === '/admin/ship-form' && request.method === 'GET';
+  const isDetect = path === '/admin/carriers/detect' && request.method === 'POST';
+  if (!isForm && !isDetect) return null;
+  const administrator = await authenticateNativeAdmin(request, env);
+  if (!administrator) return failure(401, 'UNAUTHORIZED', 'Administrator authentication is required');
+  const stored = await getNativePluginConfig(env, 'shipping');
+  if (!stored?.enabled) return failure(404, 'PLUGIN_DISABLED', 'The shipping plugin is not enabled');
+  if (isForm) {
+    const carriers = SHIPPING_CARRIERS
+      .filter((carrier) => carrier.defaultEnabled)
+      .sort((left, right) => left.sortOrder - right.sortOrder)
+      .map((carrier) => ({
+        code: carrier.code,
+        name: carrier.name,
+        nameZh: carrier.nameZh,
+        aliases: carrier.aliases ?? [],
+        trackingUrlTemplate: carrier.trackingUrlTemplate ?? null,
+      }));
+    return success({ available: carriers.length > 0, carriers, defaultCarrierCode: carriers[0]?.code ?? null });
+  }
+  const body = object(await request.json<unknown>().catch(() => null));
+  const trackingNumber = string(body.trackingNumber);
+  if (!trackingNumber) return failure(400, 'TRACKING_NUMBER_REQUIRED', 'trackingNumber is required');
+  const candidates = detectCarriers(trackingNumber);
+  return success({
+    candidates: candidates.map((candidate) => ({
+      code: candidate.code,
+      name: candidate.name,
+      nameZh: candidate.nameZh,
+      confidence: candidate.confidence,
+    })),
+    trackingNumber,
+  });
+}
+
 export async function tryNativeShipping(request: Request, env: NativeShippingEnv): Promise<Response | null> {
   const url = new URL(request.url);
   const path = providerPath(url.pathname);
   if (path === '/admin/webhooks/kuaidi100' && request.method === 'POST') return kuaidi100Webhook(request, env);
   if (path?.startsWith('/admin/providers/') && request.method === 'POST') return adminProviderRequest(request, env, path);
+  const shipForm = path ? await adminShipForm(request, env, path) : null;
+  if (shipForm) return shipForm;
   if (url.pathname === '/api/v1/shipping/calculate' && request.method === 'POST') {
     const body = await request.json<ShippingRequest>().catch(() => null);
     const result = body ? calculate(body) : null;
