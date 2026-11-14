@@ -1,4 +1,5 @@
 import { tryNativeAuth, type NativeAuthEnv } from './auth';
+import { tryNativeIdentityLogin } from './identity-login';
 import { tryNativeCart } from './cart';
 import { tryNativeOrderRead } from './orders';
 import { tryNativeAdminOrders } from './admin-orders';
@@ -396,6 +397,8 @@ async function routeNativeRequest(request: Request, env: WorkerEnv, ctx: Executi
     if (postoryCompat) return postoryCompat;
     const nativeAuth = await tryNativeAuth(nativeRequest, env, () => proxy(nativeRequest, env), (promise) => ctx.waitUntil(promise));
     if (nativeAuth) return nativeAuth;
+    const nativeIdentityLogin = await tryNativeIdentityLogin(nativeRequest, env);
+    if (nativeIdentityLogin) return nativeIdentityLogin;
     const nativeCart = await tryNativeCart(
       nativeRequest,
       env,
