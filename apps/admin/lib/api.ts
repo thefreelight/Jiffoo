@@ -44,6 +44,8 @@ import type {
   PluginState,
   HealthMetricsResponse,
   HealthSummaryResponse,
+  ShipFormOptions,
+  CarrierDetectResult,
 } from './types';
 
 /**
@@ -501,6 +503,17 @@ export const ordersApi = {
 
   refundOrder: (id: string, data: { reason?: string; idempotencyKey: string }): Promise<ApiResponse<OrderDetail>> =>
     apiClient.post(`/admin/orders/${id}/refund`, data),
+};
+
+// Ship dialog carrier picker, provided by the official shipping plugin.
+// When the plugin is absent or disabled these calls 404 and the ship
+// dialog silently falls back to its free-text form.
+export const shipFormApi = {
+  getShipForm: (): Promise<ApiResponse<ShipFormOptions>> =>
+    apiClient.get('/extensions/plugin/shipping/api/admin/ship-form'),
+
+  detectCarrier: (trackingNumber: string): Promise<ApiResponse<CarrierDetectResult>> =>
+    apiClient.post('/extensions/plugin/shipping/api/admin/carriers/detect', { trackingNumber }),
 };
 
 // Users API
