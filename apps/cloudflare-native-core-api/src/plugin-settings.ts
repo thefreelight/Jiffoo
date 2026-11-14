@@ -76,6 +76,14 @@ const definitions: Record<string, PluginDefinition> = {
       smtpTestHtml: { type: 'string', label: 'Test email HTML template' },
     },
   },
+  'google-auth': {
+    slug: 'google-auth', name: 'Google Identity Login', version: '0.1.0', category: 'social',
+    description: 'Customer sign-in and account linking with Google (OAuth 2.0 / OpenID Connect, PKCE). Enable and fill the OAuth client credentials from Google Cloud Console; register the storefront callback path as an authorized redirect URI.',
+    configSchema: {
+      clientId: { type: 'string', required: true, label: 'Google OAuth Client ID', placeholder: '...apps.googleusercontent.com' },
+      clientSecret: { type: 'secret', required: true, sensitive: true, label: 'Google OAuth Client Secret', placeholder: 'GOCSPX-...' },
+    },
+  },
   stripe: {
     slug: 'stripe', name: 'Stripe Payment Gateway', version: '1.0.5', category: 'payment',
     description: 'Stripe checkout, webhooks, and refunds.',
