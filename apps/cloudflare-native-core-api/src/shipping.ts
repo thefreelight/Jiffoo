@@ -454,6 +454,8 @@ interface Kuaidi100RuntimeSettings {
   callbackUrl: string | null;
   callbackSalt: string | null;
   environment: 'test' | 'live';
+  apiBaseUrl: string | null;
+  pollBaseUrl: string | null;
 }
 
 function kuaidi100Settings(config: JsonObject): Kuaidi100RuntimeSettings {
@@ -465,6 +467,8 @@ function kuaidi100Settings(config: JsonObject): Kuaidi100RuntimeSettings {
     callbackUrl: string(config.kuaidi100CallbackUrl),
     callbackSalt: string(config.kuaidi100CallbackSalt),
     environment: config.mode === 'test' ? 'test' : 'live',
+    apiBaseUrl: string(config.kuaidi100ApiBaseUrl),
+    pollBaseUrl: string(config.kuaidi100PollBaseUrl),
   };
 }
 
@@ -498,16 +502,29 @@ export async function subscribeKuaidi100Tracking(
     secret: settings.secret,
     customer: settings.customer ?? undefined,
     environment: settings.environment,
+    ...(settings.apiBaseUrl ? { apiBaseUrl: settings.apiBaseUrl } : {}),
+    ...(settings.pollBaseUrl ? { pollBaseUrl: settings.pollBaseUrl } : {}),
   });
+  let response: JsonObject | null = null;
   try {
-    const response = await provider.subscribe({
-      company,
-      number,
-      parameters: {
-        callbackurl: settings.callbackUrl,
-        ...(settings.callbackSalt ? { salt: settings.callbackSalt } : {}),
-      },
-    });
+    // The Kuaidi100 edge from Cloudflare egresses is unreliable (resets and
+    // 520s within seconds); one immediate retry covers the transient tail.
+    for (let attempt = 1; attempt <= 2 && response === null; attempt++) {
+      if (attempt > 1) await new Promise((resolve) => setTimeout(resolve, 750));
+      try {
+        response = await provider.subscribe({
+          company,
+          number,
+          parameters: {
+            callbackurl: settings.callbackUrl,
+            ...(settings.callbackSalt ? { salt: settings.callbackSalt } : {}),
+          },
+        });
+      } catch (error) {
+        if (error instanceof ShippingProviderError && !error.retryable) throw error;
+        if (attempt === 2) throw error;
+      }
+    }
     await env.DB.prepare(
       `INSERT INTO native_shipping_provider_orders
        (id, provider_key, merchant_reference, order_id, operation, request_hash, state, tracking_number, response_json, created_at, updated_at)
