@@ -54,7 +54,7 @@ export async function attachShipments(db: D1Database, order: Record<string, unkn
   return order;
 }
 
-const shipmentStatuses = new Set([
+export const shipmentStatuses = new Set([
   'PENDING', 'READY_TO_SHIP', 'SHIPPED', 'IN_TRANSIT', 'OUT_FOR_DELIVERY',
   'DELIVERED', 'EXCEPTION', 'CANCELLED',
 ]);
