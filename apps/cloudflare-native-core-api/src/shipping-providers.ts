@@ -156,7 +156,7 @@ export class Kuaidi100NativeProvider {
   private readonly apiBase: string;
   private readonly pollBase: string;
 
-  constructor(private readonly config: Kuaidi100Config, private readonly fetchImpl: FetchLike = fetch, private readonly clock = Date.now) {
+  constructor(private readonly config: Kuaidi100Config, private readonly fetchImpl: FetchLike = (...args) => fetch(...args), private readonly clock = Date.now) {
     this.apiBase = (config.apiBaseUrl ?? 'https://api.kuaidi100.com').replace(/\/$/, '');
     this.pollBase = (config.pollBaseUrl ?? 'https://poll.kuaidi100.com').replace(/\/$/, '');
   }
@@ -241,7 +241,7 @@ export function signFourPx(input: { appKey: string; appSecret: string; method: s
 }
 
 export class FourPxNativeProvider {
-  constructor(private readonly config: { appKey: string; appSecret: string; environment: 'test' | 'live'; accessToken?: string; language?: string; timeoutMs?: number }, private readonly fetchImpl: FetchLike = fetch, private readonly clock = Date.now) {}
+  constructor(private readonly config: { appKey: string; appSecret: string; environment: 'test' | 'live'; accessToken?: string; language?: string; timeoutMs?: number }, private readonly fetchImpl: FetchLike = (...args) => fetch(...args), private readonly clock = Date.now) {}
 
   private async call(operation: keyof typeof FOURPX_METHODS, payload: JsonObject): Promise<JsonObject> {
     const [method, version] = FOURPX_METHODS[operation];
