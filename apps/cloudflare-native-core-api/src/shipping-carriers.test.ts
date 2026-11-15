@@ -240,3 +240,55 @@ describe('kuaidi100 domestic tracking subscription', () => {
     expect(sf?.kuaidi100Code).toBe('shunfeng');
   });
 });
+
+describe('kuaidi100 relay configuration', () => {
+  it('overrides poll/api base URLs when configured for a relay', async () => {
+    getNativePluginConfig.mockResolvedValue({
+      enabled: true,
+      config: {
+        kuaidi100Enabled: true, kuaidi100Key: 'test-key', kuaidi100Secret: 'test-secret',
+        kuaidi100CallbackUrl: 'https://api.example.com/webhooks/kuaidi100',
+        kuaidi100ApiBaseUrl: 'https://relay.example.internal/api',
+        kuaidi100PollBaseUrl: 'https://relay.example.internal/poll',
+      },
+    });
+    const { db } = createFakeDb();
+    const urls: string[] = [];
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      urls.push(String(input));
+      return new Response(JSON.stringify({ result: true, returnCode: '200', message: 'success', data: {} }), { status: 200 });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      const result = await subscribeKuaidi100Tracking({ DB: db } as never, 'order-1', 'sf', 'SF1382947302948');
+      expect(result).toEqual({ subscribed: true });
+      expect(urls[0]).toBe('https://relay.example.internal/poll/poll');
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('retries a transient subscription failure once before succeeding', async () => {
+    getNativePluginConfig.mockResolvedValue(kuaidi100EnabledConfig());
+    const { db, statements } = createFakeDb();
+    let call = 0;
+    const fetchMock = vi.fn(async () => {
+      call += 1;
+      if (call === 1) {
+        // Simulate a transport-level failure (retryable path).
+        throw new TypeError('fetch failed');
+      }
+      return new Response(JSON.stringify({ result: true, returnCode: '200', message: 'success', data: {} }), { status: 200 });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      const result = await subscribeKuaidi100Tracking({ DB: db } as never, 'order-1', 'sf', 'SF1382947302948');
+      expect(result).toEqual({ subscribed: true });
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      const insert = statements.find((entry) => entry.sql.includes('INSERT INTO native_shipping_provider_orders'));
+      expect(insert?.sql).toContain("'COMPLETED'");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
