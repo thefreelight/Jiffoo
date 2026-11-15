@@ -11,6 +11,10 @@ export interface AppReleaseConfig {
   latestBuild?: number;
   minBuild?: number;
   storeUrl?: string;
+  // Direct APK download URL for sideload users (Android channel only):
+  // Play policy forbids Play-distributed apps from self-updating, but the
+  // website-distributed APK may offer an in-place download.
+  apkUrl?: string;
   releaseNotes?: string;
 }
 
@@ -28,6 +32,7 @@ export interface AppVersionResult {
   forceUpdate: boolean;
   releaseNotes: string | null;
   storeUrl: string | null;
+  apkUrl: string | null;
 }
 
 function parseBuild(value: string | null): number | null {
@@ -94,6 +99,7 @@ export async function handleAppVersionLatest(request: Request, env: AppVersionEn
       forceUpdate,
       releaseNotes: config?.releaseNotes ?? null,
       storeUrl: config?.storeUrl ?? null,
+      apkUrl: config?.apkUrl ?? null,
     } satisfies AppVersionResult,
   };
   // Clients launch-throttle, but a short edge cache keeps the poll cheap.

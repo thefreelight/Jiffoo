@@ -30,13 +30,15 @@ describe('app version latest endpoint', () => {
       minBuild: 60,
       releaseNotes: 'Bug fixes',
       storeUrl: 'https://apps.apple.com/app/id1',
+      apkUrl: 'https://bokmoo.com/downloads/bokmoo-latest.apk',
     });
     const response = await handleAppVersionLatest(request('platform=ios&build=64'), dbWithValue(config));
     expect(response.status).toBe(200);
-    const body = await (response as Response).json() as { data: { updateAvailable: boolean; forceUpdate: boolean; latestVersion: string } };
+    const body = await (response as Response).json() as { data: { updateAvailable: boolean; forceUpdate: boolean; latestVersion: string; apkUrl: string | null } };
     expect(body.data.updateAvailable).toBe(true);
     expect(body.data.forceUpdate).toBe(false);
     expect(body.data.latestVersion).toBe('0.0.11');
+    expect(body.data.apkUrl).toBe('https://bokmoo.com/downloads/bokmoo-latest.apk');
   });
 
   it('forces an update below the minimum supported build', async () => {
