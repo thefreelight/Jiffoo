@@ -4,6 +4,7 @@ import { requireAdminPermission } from './admin-access';
 import { attachShipments } from './shipments';
 import { getNativeStripeSecret } from './plugin-settings';
 import { getCarrier, matchCarrierByName, trackingUrlFor } from './shipping-carriers';
+import { subscribeKuaidi100Tracking } from './shipping';
 
 interface AdminWriteEnv extends NativeAuthEnv { DB: D1Database; STRIPE_SECRET_KEY: SecretsStoreSecret }
 type Status = 'PENDING' | 'PAID' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'COMPLETED' | 'CANCELLED' | 'REFUNDED';
@@ -139,6 +140,16 @@ export async function tryNativeAdminWrites(request: Request, env: AdminWriteEnv)
       env.DB.prepare(`INSERT INTO native_shipments (id, order_id, carrier, carrier_code, carrier_name, tracking_number, tracking_url, status, shipped_at, last_checked_at, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 'SHIPPED', ?8, ?8, ?8, ?8)`).bind(shipmentId, orderId, carrierLabel, carrierCode, carrierName, trackingNumber, trackingUrl, shippedAt),
       env.DB.prepare(`INSERT INTO native_shipment_events (id, shipment_id, status, description, occurred_at, created_at) VALUES (?1, ?2, 'SHIPPED', NULL, ?3, ?3)`).bind(crypto.randomUUID(), shipmentId, shippedAt),
     ]);
+    // Domestic shipments ride Kuaidi100 tracking push when the plugin and
+    // callback are configured; a failed subscription never blocks shipping.
+    try {
+      const subscription = await subscribeKuaidi100Tracking(env, orderId, carrierCode ?? carrierLabel, trackingNumber);
+      if (!subscription.subscribed && subscription.reason && subscription.reason !== 'PLUGIN_DISABLED' && subscription.reason !== 'KUAIDI100_NOT_CONFIGURED' && subscription.reason !== 'CARRIER_NOT_SUPPORTED') {
+        console.warn(`kuaidi100 subscribe deferred for ${orderId}: ${subscription.reason}`);
+      }
+    } catch (subscriptionError) {
+      console.warn(`kuaidi100 subscribe error for ${orderId}:`, subscriptionError instanceof Error ? subscriptionError.message : subscriptionError);
+    }
     return persist(env, admin.id, orderId, native, order, 'SHIPPED', 'order.ship', { carrier: carrierLabel, carrierCode, trackingNumber, trackingUrl, itemIds: requested ? [...requested] : items.map((item) => item.id) });
   }
 
