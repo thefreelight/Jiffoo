@@ -32,6 +32,8 @@ export interface ShippingCarrier {
   patterns?: CarrierPattern[];
   /** Tracking page URL template containing `{trackingNumber}`. */
   trackingUrlTemplate?: string;
+  /** Kuaidi100 company code (com) for domestic push subscriptions; null when unsupported. */
+  kuaidi100Code?: string;
   /** Whether the carrier is offered in the picker without extra settings. */
   defaultEnabled: boolean;
   /** Stable ordering: lower sorts first. */
@@ -45,54 +47,54 @@ export const SHIPPING_CARRIERS: readonly ShippingCarrier[] = [
     aliases: ['顺丰', 'SF'],
     patterns: [{ source: '^SF\\d{12,16}$', confidence: 'high' }],
     trackingUrlTemplate: 'https://www.sf-express.com/chn/sc/waybill/{trackingNumber}',
-    defaultEnabled: true, sortOrder: 10,
+    kuaidi100Code: 'shunfeng', defaultEnabled: true, sortOrder: 10,
   },
   {
     code: 'zto', name: 'ZTO Express', nameZh: '中通快递',
     aliases: ['中通', 'ZTO'],
     patterns: [{ source: '^ZTO\\d{11,14}$', confidence: 'high' }, { source: '^7[0-9]{11,13}$', confidence: 'medium' }],
-    defaultEnabled: true, sortOrder: 20,
+    kuaidi100Code: 'zhongtong', defaultEnabled: true, sortOrder: 20,
   },
   {
     code: 'yto', name: 'YTO Express', nameZh: '圆通速递',
     aliases: ['圆通', 'YTO'],
     patterns: [{ source: '^YT\\d{13,15}$', confidence: 'high' }],
-    defaultEnabled: true, sortOrder: 30,
+    kuaidi100Code: 'yuantong', defaultEnabled: true, sortOrder: 30,
   },
   {
     code: 'sto', name: 'STO Express', nameZh: '申通快递',
     aliases: ['申通', 'STO'],
     patterns: [{ source: '^STO\\d{12,14}$', confidence: 'high' }, { source: '^77[0-9]{11,13}$', confidence: 'medium' }],
-    defaultEnabled: true, sortOrder: 40,
+    kuaidi100Code: 'shengtong', defaultEnabled: true, sortOrder: 40,
   },
   {
     code: 'yunda', name: 'Yunda Express', nameZh: '韵达快递',
     aliases: ['韵达', 'YUNDA'],
     patterns: [{ source: '^YD\\d{13,15}$', confidence: 'high' }, { source: '^4[0-9]{13,14}$', confidence: 'medium' }],
-    defaultEnabled: true, sortOrder: 50,
+    kuaidi100Code: 'yunda', defaultEnabled: true, sortOrder: 50,
   },
   {
     code: 'jd', name: 'JD Logistics', nameZh: '京东物流',
     aliases: ['京东', 'JD'],
     patterns: [{ source: '^JD\\d{13,15}$', confidence: 'high' }],
-    defaultEnabled: true, sortOrder: 60,
+    kuaidi100Code: 'jd', defaultEnabled: true, sortOrder: 60,
   },
   {
     code: 'jt', name: 'J&T Express', nameZh: '极兔速递',
     aliases: ['极兔', 'JT'],
     patterns: [{ source: '^JT\\d{13,15}$', confidence: 'high' }],
-    defaultEnabled: true, sortOrder: 70,
+    kuaidi100Code: 'jt', defaultEnabled: true, sortOrder: 70,
   },
   {
     code: 'ems', name: 'EMS / China Post', nameZh: '邮政EMS',
     aliases: ['EMS', 'China Post', '邮政', 'ePacket'],
     patterns: [{ source: '^[A-Z]{2}[0-9]{9}CN$', confidence: 'high' }, { source: '^EM[0-9]{11,13}$', confidence: 'medium' }],
-    defaultEnabled: true, sortOrder: 80,
+    kuaidi100Code: 'ems', defaultEnabled: true, sortOrder: 80,
   },
   {
     code: 'deppon', name: 'Deppon Express', nameZh: '德邦快递',
     aliases: ['德邦', 'Deppon'],
-    defaultEnabled: false, sortOrder: 90,
+    kuaidi100Code: 'debang', defaultEnabled: false, sortOrder: 90,
   },
   // ---- International ----
   {
@@ -100,28 +102,28 @@ export const SHIPPING_CARRIERS: readonly ShippingCarrier[] = [
     aliases: ['DHL'],
     patterns: [{ source: '^[0-9]{10}$', confidence: 'medium' }],
     trackingUrlTemplate: 'https://www.dhl.com/track?tracking-id={trackingNumber}',
-    defaultEnabled: true, sortOrder: 110,
+    kuaidi100Code: 'dhl', defaultEnabled: true, sortOrder: 110,
   },
   {
     code: 'fedex', name: 'FedEx', nameZh: 'FedEx',
     aliases: ['Federal Express'],
     patterns: [{ source: '^[0-9]{12}$', confidence: 'medium' }, { source: '^[0-9]{15}$', confidence: 'medium' }, { source: '^[0-9]{20}$', confidence: 'medium' }],
     trackingUrlTemplate: 'https://www.fedex.com/fedextrack/?trknbr={trackingNumber}',
-    defaultEnabled: true, sortOrder: 120,
+    kuaidi100Code: 'fedex', defaultEnabled: true, sortOrder: 120,
   },
   {
     code: 'ups', name: 'UPS', nameZh: 'UPS',
     aliases: ['United Parcel Service'],
     patterns: [{ source: '^1Z[0-9A-Z]{16}$', confidence: 'high' }],
     trackingUrlTemplate: 'https://www.ups.com/track?tracknum={trackingNumber}',
-    defaultEnabled: true, sortOrder: 130,
+    kuaidi100Code: 'ups', defaultEnabled: true, sortOrder: 130,
   },
   {
     code: 'usps', name: 'USPS', nameZh: 'USPS',
     aliases: ['United States Postal Service'],
     patterns: [{ source: '^9[245][0-9]{18,22}$', confidence: 'high' }, { source: '^[A-Z]{2}[0-9]{9}US$', confidence: 'high' }],
     trackingUrlTemplate: 'https://tools.usps.com/go/TrackConfirmAction?tLabels={trackingNumber}',
-    defaultEnabled: true, sortOrder: 140,
+    kuaidi100Code: 'usps', defaultEnabled: true, sortOrder: 140,
   },
   {
     code: 'royal-mail', name: 'Royal Mail', nameZh: 'Royal Mail',
@@ -288,4 +290,10 @@ export function trackingUrlFor(code: string, trackingNumber: string): string | n
   const template = carrier?.trackingUrlTemplate;
   if (!template) return null;
   return template.replace('{trackingNumber}', encodeURIComponent(trackingNumber.trim().toUpperCase()));
+}
+
+/** Map a catalog carrier code to its Kuaidi100 company code (com), or null. */
+export function kuaidi100CodeFor(code: string): string | null {
+  const carrier = getCarrier(code);
+  return carrier?.kuaidi100Code ?? null;
 }

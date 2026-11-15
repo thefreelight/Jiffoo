@@ -52,6 +52,7 @@ const definitions: Record<string, PluginDefinition> = {
       kuaidi100Customer: { type: 'string', label: 'Kuaidi100 Customer ID' },
       kuaidi100Secret: { type: 'secret', sensitive: true, label: 'Kuaidi100 Secret' },
       kuaidi100CallbackSalt: { type: 'secret', sensitive: true, label: 'Kuaidi100 Callback Salt' },
+      kuaidi100CallbackUrl: { type: 'string', label: 'Kuaidi100 Callback URL', description: 'Public webhook endpoint that receives Kuaidi100 tracking pushes (e.g. https://api.example.com/api/v1/extensions/plugin/shipping/api/admin/webhooks/kuaidi100).' },
       fourpxEnabled: { type: 'boolean', label: 'Enable 4PX' },
       fourpxAppKey: { type: 'string', label: '4PX App Key' },
       fourpxAppSecret: { type: 'secret', sensitive: true, label: '4PX App Secret' },
