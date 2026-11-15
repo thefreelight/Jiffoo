@@ -5,7 +5,7 @@ import {
   sha256Hex, ShippingProviderError, signKuaidi100Webhook,
 } from './shipping-providers';
 import { detectCarriers, kuaidi100CodeFor, SHIPPING_CARRIERS } from './shipping-carriers';
-import { upsertSupplierShipment } from './shipments';
+import { shipmentStatuses, upsertSupplierShipment } from './shipments';
 
 interface NativeShippingEnv extends NativeAuthEnv, PluginSettingsEnv {
   DB: D1Database;
