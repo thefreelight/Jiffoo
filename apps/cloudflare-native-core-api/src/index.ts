@@ -66,6 +66,7 @@ import { processScheduledToolDiscovery, tryNativeToolDirectoryTrending, tryNativ
 import { nativeOdooMediaUrl } from './odoo';
 import { tryNativeBokmooConnect } from './bokmoo-connect';
 import { tryNativeFirepathCore } from './firepath-core';
+import { tryNativeCrosspilotBridge } from './crosspilot-bridge';
 
 type WorkerEnv = Cloudflare.Env & NativeAuthEnv & NativeJobsProxyEnv & {
   DEMO_MODE?: string;
@@ -343,6 +344,8 @@ async function routeNativeRequest(request: Request, env: WorkerEnv, ctx: Executi
     if (nativeBokmooConnect) return nativeBokmooConnect;
     const nativeFirepathCore = await tryNativeFirepathCore(nativeRequest, env);
     if (nativeFirepathCore) return nativeFirepathCore;
+    const nativeCrosspilotBridge = await tryNativeCrosspilotBridge(nativeRequest, env);
+    if (nativeCrosspilotBridge) return nativeCrosspilotBridge;
     const nativeRemoteRadarApplications = await tryNativeRemoteRadarApplications(nativeRequest, env);
     if (nativeRemoteRadarApplications) return nativeRemoteRadarApplications;
     const nativeWallet = await tryNativeWallet(nativeRequest, env);
