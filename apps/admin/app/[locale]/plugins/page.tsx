@@ -1,5 +1,7 @@
 'use client';
 
+import { Suspense } from 'react';
+
 import { PluginsManager } from '@/components/extensions/PluginsManager';
 import { useManagedMode } from '@/lib/managed-mode';
 import { useT } from 'shared/src/i18n/react';
@@ -32,7 +34,11 @@ function PluginsPageContent() {
           : getText('merchant.plugins.subtitle', 'Installed apps, official marketplace, and settings in one place.')
       }
     >
-      <PluginsManager />
+      {/* PluginsManager reads ?view=installed via useSearchParams; the
+          Suspense boundary keeps the prerendered shell valid. */}
+      <Suspense fallback={null}>
+        <PluginsManager />
+      </Suspense>
     </PageShell>
   );
 }

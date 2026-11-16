@@ -11,10 +11,10 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useT, useLocale } from 'shared/src/i18n/react'
 import { cn } from '@/lib/utils'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useManagedMode } from '@/lib/managed-mode'
 
 import {
@@ -106,13 +106,10 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
   const { data: installedPlugins } = useInstalledPlugins()
 
   // The plugins group splits into marketplace / installed views via a query
-  // param; read it from location.search (not useSearchParams) so the layout
-  // keeps prerendering without a Suspense boundary.
-  const [pluginsView, setPluginsView] = useState<'marketplace' | 'installed'>('marketplace')
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    setPluginsView(window.location.search.includes('view=installed') ? 'installed' : 'marketplace')
-  }, [pathname])
+  // param. useSearchParams keeps the active highlight in sync on query-only
+  // navigations (the layout wraps the sidebar in Suspense for prerender).
+  const searchParams = useSearchParams()
+  const pluginsView: 'marketplace' | 'installed' = searchParams?.get('view') === 'installed' ? 'installed' : 'marketplace'
 
   const pluginsOnActivePath = pathname.includes('/plugins')
   // The reference design shows the plugins group expanded; operators can
