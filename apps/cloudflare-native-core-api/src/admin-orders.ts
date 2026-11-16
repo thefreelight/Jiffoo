@@ -120,7 +120,7 @@ export async function tryNativeAdminOrders(request: Request, env: AdminOrderEnv,
   const total = totalRow?.total ?? 0;
   const rows = await env.DB.prepare(
     `SELECT id, status, payload, source_updated_at FROM native_order_snapshots
-     WHERE ${where} ORDER BY source_updated_at DESC LIMIT ?${bindings.length + 1} OFFSET ?${bindings.length + 2}`,
+     WHERE ${where} ORDER BY json_extract(payload, '$.createdAt') DESC LIMIT ?${bindings.length + 1} OFFSET ?${bindings.length + 2}`,
   ).bind(...bindings, limit, (page - 1) * limit).all<AdminOrderRow>();
   const items = await Promise.all(rows.results.map((row) => attachShipments(env.DB, JSON.parse(row.payload) as AdminOrder)));
   await attachCustomers(env.DB, items);

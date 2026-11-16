@@ -75,7 +75,7 @@ export async function tryNativeOrderRead(
   bindings.push(limit, (page - 1) * limit);
   const rows = await env.DB.prepare(
     `SELECT id, status, payload, source_updated_at FROM native_order_snapshots
-     WHERE ${where} ORDER BY source_updated_at DESC LIMIT ?${bindings.length - 1} OFFSET ?${bindings.length}`,
+     WHERE ${where} ORDER BY json_extract(payload, '$.createdAt') DESC LIMIT ?${bindings.length - 1} OFFSET ?${bindings.length}`,
   ).bind(...bindings).all<OrderRow>();
   return nativeResponse({
     items: await Promise.all(rows.results.map(async (row) => attachShipments(env.DB, JSON.parse(row.payload) as Record<string, unknown>))),
