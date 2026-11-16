@@ -26,7 +26,7 @@ import { requireAdminPermission } from './admin-access';
 type SupportHubEnv = NativeAuthEnv & { DB: D1Database };
 
 const RUNTIME = 'cloudflare-native-support-hub';
-const PLUGIN_VERSION = '0.0.5';
+const PLUGIN_VERSION = '0.0.9';
 
 export interface SupportHubSettings {
   enabled: boolean;
@@ -314,17 +314,63 @@ export function buildNativeHandoffReply(settings: SupportHubSettings): { content
   };
 }
 
+// Language directive injected into the AI system prompt so replies follow
+// the storefront locale the visitor is browsing in.
+const SUPPORTED_LANGUAGE_NAMES: Record<string, string> = {
+  en: 'English',
+  'zh-Hans': 'Simplified Chinese (简体中文)',
+  'zh-Hant': 'Traditional Chinese (繁體中文)',
+  zh: 'Chinese (中文)',
+  ja: 'Japanese (日本語)',
+  ko: 'Korean (한국어)',
+  fr: 'French (Français)',
+  de: 'German (Deutsch)',
+  es: 'Spanish (Español)',
+  pt: 'Portuguese (Português)',
+  ru: 'Russian (Русский)',
+  ar: 'Arabic (العربية)',
+  it: 'Italian (Italiano)',
+  th: 'Thai (ไทย)',
+  vi: 'Vietnamese (Tiếng Việt)',
+};
+
+const LOCALE_PATTERN = /^[a-zA-Z]{2,8}(-[a-zA-Z0-9]{2,8})*$/;
+
+function sanitizeLocale(input: unknown): string | null {
+  if (typeof input !== 'string') return null;
+  const trimmed = input.trim();
+  if (!trimmed || trimmed.length > 35 || !LOCALE_PATTERN.test(trimmed)) return null;
+  return trimmed;
+}
+
+function languageDirective(locale: string | null): string {
+  if (!locale) return '';
+  const lower = locale.toLowerCase();
+  const baseLanguage = lower.split('-')[0] ?? lower;
+  const matched = Object.entries(SUPPORTED_LANGUAGE_NAMES).find(
+    ([key]) => key.toLowerCase() === lower || key.toLowerCase() === baseLanguage
+  );
+  const languageName = matched ? matched[1] : locale;
+  return `\n\nIMPORTANT: The visitor is browsing the storefront in the "${languageName}" locale. Always reply in ${languageName}, regardless of the language the visitor writes in, unless they explicitly ask for a different language.`;
+}
+
 async function requestAiReply(
   env: SupportHubEnv,
   settings: SupportHubSettings,
   history: Array<{ role: 'visitor' | 'assistant'; content: string }>,
   message: string,
+  locale?: string | null,
 ): Promise<string | null> {
   if (!settings.aiEnabled) return null;
   const baseUrl = settings.aiBaseUrl.trim();
   const apiKey = settings.aiApiKey.trim();
   const model = settings.aiModel.trim();
   if (!baseUrl || !apiKey || !model) return null;
+  const payload = buildNativeAiPayload(settings, history, message);
+  const systemPrompt = payload.messages.find((entry) => entry.role === 'system');
+  if (systemPrompt && locale) {
+    systemPrompt.content += languageDirective(locale);
+  }
   try {
     const response = await fetch(buildNativeAiRequestUrl(baseUrl), {
       method: 'POST',
@@ -332,7 +378,7 @@ async function requestAiReply(
         'content-type': 'application/json',
         authorization: `Bearer ${apiKey}`,
       },
-      body: JSON.stringify(buildNativeAiPayload(settings, history, message)),
+      body: JSON.stringify(payload),
       signal: AbortSignal.timeout(AI_TIMEOUT_MS),
     });
     if (!response.ok) return null;
@@ -564,6 +610,7 @@ export async function tryNativeSupportHub(
       return failure(400, 'VALIDATION_ERROR', `message must be 1-${MESSAGE_MAX_LENGTH} characters`);
     }
     const conversationId = sanitizeConversationId(body.conversationId);
+    const visitorLocale = sanitizeLocale(body.locale);
     const installationId = 'default';
     if ((await recentVisitorMessageCount(env, installationId, visitorToken)) >= RATE_LIMIT_MAX_VISITOR_MESSAGES) {
       return failure(429, 'RATE_LIMITED', 'Too many messages, please slow down');
@@ -578,7 +625,7 @@ export async function tryNativeSupportHub(
       return success({ conversationId: conversation.id, visitorMessage, reply: null });
     }
     const history = await conversationHistory(env, conversation.id);
-    const aiReply = await requestAiReply(env, settings, history, message);
+    const aiReply = await requestAiReply(env, settings, history, message, visitorLocale);
     let reply: SupportChatMessage;
     if (aiReply) {
       reply = await insertChatMessage(env, installationId, conversation.id, 'assistant', aiReply, undefined, 'ai');

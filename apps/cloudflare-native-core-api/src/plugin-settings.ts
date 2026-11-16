@@ -151,7 +151,7 @@ const definitions: Record<string, PluginDefinition> = {
     configSchema: {},
   },
   'support-hub': {
-    slug: 'support-hub', name: 'Support Hub', version: '0.0.8', category: 'social',
+    slug: 'support-hub', name: 'Support Hub', version: '0.0.9', category: 'social',
     description: 'Contact launcher plus AI customer-service chat: OpenAI-compatible AI replies, handoff to human channels, persisted conversations, and an optional bot webhook.',
     configSchema: {
       enabled: { type: 'boolean', label: 'Enable Support Hub' },
