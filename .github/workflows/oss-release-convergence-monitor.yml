@@ -92,3 +92,43 @@ jobs:
 
             Reproduce locally:
             \`node scripts/verify-public-release-convergence.mjs --release-tag <tag> --public-url https://get.jiffoo.com/releases/core/manifest.json --verify-images\`"
+
+  # Second failure mode from the 162/163 stalls: the bot cuts the weekly
+  # draft automatically, but publishing it is manual — if no session picks
+  # it up, the draft (often with a version-drift warning) sits for days and
+  # the train silently stops. Flag any unpublished draft older than 3 days.
+  draft-stall:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Flag stale unpublished release drafts (>3 days)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh label create release-train-stall --repo "$GITHUB_REPOSITORY" \
+            --color F9A625 2>/dev/null || true
+          STALE="$(gh api "repos/${GITHUB_REPOSITORY}/releases" \
+            --jq '[.[] | select(.draft)] | map(select((now - (.created_at | fromdateiso8601)) / 86400 > 3)) | length')"
+          if [ "${STALE}" -ne 0 ]; then
+            OPEN="$(gh issue list --repo "$GITHUB_REPOSITORY" --state open \
+              --label release-train-stall --json number --jq 'length')"
+            if [ "${OPEN}" -eq 0 ]; then
+              gh issue create --repo "$GITHUB_REPOSITORY" \
+                --label release-train-stall \
+                --title "Release train stalled: unpublished draft older than 3 days" \
+                --body "The weekly release draft has been sitting unpublished for over 3 days.
+
+            Review, adjust wording, then publish it (\`gh release edit <tag> --draft=false --latest\`), or delete and re-cut via the OSS Release Draft workflow if a version-drift warning is flagged.
+
+            Detected by run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            fi
+            echo "Stale draft detected; failing this job to surface the stall." >&2
+            exit 1
+          fi
+          gh issue list --repo "$GITHUB_REPOSITORY" --state open \
+            --label release-train-stall --json number --jq '.[].number' \
+          | while read -r number; do
+              [ -n "$number" ] || continue
+              gh issue close "$number" --repo "$GITHUB_REPOSITORY" \
+                --comment "No stale release draft remains; auto-closing this alert."
+            done
