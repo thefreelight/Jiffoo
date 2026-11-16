@@ -22,6 +22,9 @@ export async function tryNativeAdminDashboard(request: Request, env: DashboardEn
       productCount = Array.isArray(envelope.data) ? envelope.data.length : Array.isArray(envelope.data?.items) ? envelope.data.items.length : 0;
     } catch { productCount = 0; }
   }
+  const byStatusRows = await env.DB.prepare('SELECT status, COUNT(*) AS n FROM native_order_snapshots GROUP BY status').all<{ status: string; n: number }>();
+  const ordersByStatus: Record<string, number> = {};
+  for (const row of byStatusRows.results) ordersByStatus[row.status] = Number(row.n);
   const recent = await env.DB.prepare('SELECT payload FROM native_order_snapshots ORDER BY source_updated_at DESC LIMIT 5').all<{ payload: string }>();
   return Response.json({ success: true, data: {
     metrics: {
@@ -29,7 +32,7 @@ export async function tryNativeAdminDashboard(request: Request, env: DashboardEn
       totalUsers: Number(users?.count ?? 0), currency: 'USD', totalRevenueTrend: 0,
       totalOrdersTrend: 0, totalProductsTrend: 0, totalUsersTrend: 0,
     },
-    ordersByStatus: {},
+    ordersByStatus,
     recentOrders: recent.results.flatMap((row) => { try { return [JSON.parse(row.payload)]; } catch { return []; } }),
   } }, { headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-admin-dashboard' } });
 }
