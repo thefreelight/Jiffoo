@@ -172,6 +172,12 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
     const synchronousTheme = null;
     const hasImmediateTheme = Boolean(cacheRef.current.get(validSlug) || synchronousTheme);
 
+    // Set when this pass only deferred theme resolution (theme pack still
+    // loading): the finally block must not clear the loading state, or the
+    // page renders one frame of the red "theme unavailable" fallback before
+    // the next pass resolves the real theme.
+    let deferredResolution = false;
+
     async function loadTheme() {
       const startTime = performance.now();
 
@@ -183,6 +189,7 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
         }
 
         if (shouldDeferEmbeddedBuiltin || shouldDeferThemeResolution) {
+          deferredResolution = true;
           if (mounted) {
             setTheme(null);
             setIsLoading(true);
@@ -304,7 +311,7 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
           }
         }
       } finally {
-        if (mounted) {
+        if (mounted && !deferredResolution) {
           setIsLoading(false);
         }
       }
