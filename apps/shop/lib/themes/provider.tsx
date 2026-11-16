@@ -357,12 +357,14 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
     [theme, config, isLoading, error]
   );
 
-  // Simplify loading state: no more full-screen mask, only show skeleton in content area
-  // Do not show loading if theme is already cached
+  // Simplify loading state: render the page children themselves while the
+  // theme renderer loads (remote runtimes load client-side). Crawlers and
+  // first paint get real content; the themed layout takes over once the
+  // theme is ready. Do not show loading if theme is already cached.
   if (isLoading && !theme) {
     return (
       <ThemeContext.Provider value={value}>
-        <div className="min-h-screen" />
+        <div className="min-h-screen bg-gray-50">{children}</div>
       </ThemeContext.Provider>
     );
   }
