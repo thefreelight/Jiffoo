@@ -14839,6 +14839,7 @@
           body: JSON.stringify({
             visitorToken,
             ...conversationId ? { conversationId } : {},
+            ...locale ? { locale } : {},
             message: text
           })
         });
@@ -18111,7 +18112,7 @@ body[data-theme='bokmoo'] ::selection {
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.48",
+      version: "1.1.49",
       target: "shop"
     }
   };
