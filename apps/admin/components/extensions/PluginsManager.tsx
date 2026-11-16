@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { pluginsApi, unwrapApiResponse } from '@/lib/api';
@@ -126,6 +127,11 @@ export function PluginsManager() {
 
   const pluginList = installedPlugins?.items || [];
   const officialPluginItems = (officialCatalogData?.items || []).filter((item) => item.kind === 'plugin');
+  // The sidebar splits Plugins into 插件市场 (marketplace) and 已安装插件
+  // (installed) entries that differ only by this query param — honor it so
+  // each entry shows its own view instead of the same combined page.
+  const searchParams = useSearchParams();
+  const view: 'marketplace' | 'installed' = searchParams?.get('view') === 'installed' ? 'installed' : 'marketplace';
   const { record } = useManagedMode();
   const managedPluginSlugs = useMemo(
     () => new Set(record?.includedPlugins ?? []),
@@ -163,36 +169,42 @@ export function PluginsManager() {
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
             <div className="mb-2 flex items-center gap-2 text-sm text-slate-500">
-              <span>Plugins</span><span>/</span><span className="text-slate-900">Marketplace</span>
+              <span>Plugins</span><span>/</span><span className="text-slate-900">{view === 'installed' ? getText('merchant.plugins.installedCollection', 'Installed plugins') : getText('merchant.plugins.marketplace', 'Official plugin marketplace')}</span>
             </div>
             <h2 className="text-[28px] font-bold tracking-tight text-slate-950">
-              {record
-                ? getText('merchant.plugins.licensedPluginCenter', 'Licensed plugins')
-                : getText('merchant.plugins.marketplace', 'Official plugin marketplace')}
+              {view === 'installed'
+                ? getText('merchant.plugins.installedCollection', 'Installed plugins')
+                : record
+                  ? getText('merchant.plugins.licensedPluginCenter', 'Licensed plugins')
+                  : getText('merchant.plugins.marketplace', 'Official plugin marketplace')}
             </h2>
             <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
-              {record
-                ? getText(
-                    'merchant.plugins.pluginCenterManagedIntro',
-                    'This managed workspace only surfaces the plugins included in your commercial package.'
-                  )
-                : getText(
-                    'merchant.plugins.pluginCenterIntro',
-                    'Installed plugins live in a dedicated control rail, while the official marketplace stays ready for the next capability you want to add.'
-                  )}
+              {view === 'installed'
+                ? getText('merchant.plugins.installedCollectionDescription', 'Manage and update your installed plugins.')
+                : record
+                  ? getText(
+                      'merchant.plugins.pluginCenterManagedIntro',
+                      'This managed workspace only surfaces the plugins included in your commercial package.'
+                    )
+                  : getText(
+                      'merchant.plugins.pluginCenterIntro',
+                      'Installed plugins live in a dedicated control rail, while the official marketplace stays ready for the next capability you want to add.'
+                    )}
             </p>
             </div>
-            <div className={platformConnectionStatus?.marketplaceReady
-              ? 'inline-flex w-fit items-center gap-2 rounded-full bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700'
-              : 'inline-flex w-fit items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-sm font-medium text-slate-600'}>
-              <span className={platformConnectionStatus?.marketplaceReady ? 'h-2 w-2 rounded-full bg-emerald-500' : 'h-2 w-2 rounded-full bg-slate-400'} />
-              {platformConnectionStatus?.marketplaceReady
-                ? getText('merchant.extensions.marketplaceReadyChip', 'Marketplace ready')
-                : getText('merchant.extensions.platformUnboundShort', 'Not connected')}
-            </div>
+            {view === 'marketplace' ? (
+              <div className={platformConnectionStatus?.marketplaceReady
+                ? 'inline-flex w-fit items-center gap-2 rounded-full bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700'
+                : 'inline-flex w-fit items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-sm font-medium text-slate-600'}>
+                <span className={platformConnectionStatus?.marketplaceReady ? 'h-2 w-2 rounded-full bg-emerald-500' : 'h-2 w-2 rounded-full bg-slate-400'} />
+                {platformConnectionStatus?.marketplaceReady
+                  ? getText('merchant.extensions.marketplaceReadyChip', 'Marketplace ready')
+                  : getText('merchant.extensions.platformUnboundShort', 'Not connected')}
+              </div>
+            ) : null}
           </div>
 
-          {record?.offerKind === 'theme_first_solution' ? (
+          {view === 'marketplace' && record?.offerKind === 'theme_first_solution' ? (
             <Button asChild variant="outline" className="rounded-lg">
               <Link href={`/${locale}/package`}>
                 {getText('merchant.package.openPackageWorkspace', 'Open Your Package')}
@@ -200,7 +212,7 @@ export function PluginsManager() {
             </Button>
           ) : null}
 
-          {officialCatalogData?.officialMarketOnly || record ? null : (
+          {view === 'marketplace' && !(officialCatalogData?.officialMarketOnly || record) ? (
             <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
               <DialogTrigger asChild>
                 <Button className="rounded-lg shadow-lg shadow-blue-500/20">
@@ -256,9 +268,52 @@ export function PluginsManager() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-          )}
+          ) : null}
         </div>
 
+        {view === 'installed' ? (
+          visiblePluginList.length > 0 ? (
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {visiblePluginList.map((plugin: any) => (
+                <Link
+                  key={plugin.slug}
+                  href={`/${locale}/plugins/${plugin.slug}`}
+                  className="group rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)] transition-colors hover:border-blue-300"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                      <Settings className="h-5 w-5" />
+                    </div>
+                    <Badge
+                      variant="secondary"
+                      className={plugin.enabled
+                        ? 'rounded-lg bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700'
+                        : 'rounded-lg bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-500'}
+                    >
+                      {plugin.enabled
+                        ? getText('merchant.plugins.statusEnabled', 'Enabled')
+                        : getText('merchant.plugins.statusDisabled', 'Disabled')}
+                    </Badge>
+                  </div>
+                  <h3 className="mt-3 truncate text-base font-bold text-slate-950">{plugin.name || plugin.slug}</h3>
+                  <p className="mt-0.5 truncate text-sm text-slate-500">{plugin.slug}</p>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-slate-200/80 bg-white px-6 py-10 text-center shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
+              <p className="text-sm text-slate-500">{getText('merchant.plugins.noPluginsInstalled', 'No plugins installed')}</p>
+              <Button asChild variant="outline" className="mt-4 rounded-lg">
+                <Link href={`/${locale}/plugins`}>
+                  {getText('merchant.plugins.marketplace', 'Official plugin marketplace')}
+                </Link>
+              </Button>
+            </div>
+          )
+        ) : null}
+
+        {view === 'marketplace' ? (
+          <>
         <div style={{ order: 2 }} className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200/80 bg-white px-6 py-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
           <div className="flex min-w-0 items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
@@ -272,16 +327,12 @@ export function PluginsManager() {
               <p className="mt-0.5 truncate text-sm text-slate-500">{getText('merchant.plugins.installedCollectionDescription', 'Manage and update your installed plugins.')}</p>
             </div>
           </div>
-          {visiblePluginList[0] ? (
-            <Button asChild variant="outline" className="shrink-0 rounded-lg">
-              <Link href={`/${locale}/plugins/${visiblePluginList[0].slug}`}>
-                {getText('merchant.plugins.viewInstalled', 'View installed plugins')}
-                <Settings className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          ) : (
-            <span className="shrink-0 text-sm text-slate-400">{getText('merchant.plugins.noPluginsInstalled', 'No plugins installed')}</span>
-          )}
+          <Button asChild variant="outline" className="shrink-0 rounded-lg">
+            <Link href={`/${locale}/plugins?view=installed`}>
+              {getText('merchant.plugins.viewInstalled', 'View installed plugins')}
+              <Settings className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
         </div>
 
         <div style={{ order: 1 }}>
@@ -303,6 +354,8 @@ export function PluginsManager() {
           getText={getText}
         />
         </div>
+          </>
+        ) : null}
       <AlertDialog open={!!purgingPlugin} onOpenChange={(open) => !open && setPurgingPlugin(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
