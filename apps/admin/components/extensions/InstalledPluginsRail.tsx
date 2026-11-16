@@ -5,9 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { PluginMetaWithState } from '@/lib/types';
-import { ExtensionAvatar, OfficialBadge } from '@/components/extensions/ExtensionVisuals';
 import type { ManagedPackageDefinition } from '@/lib/managed-mode';
-import { ChevronRight, Settings2 } from 'lucide-react';
+import { ChevronRight, Puzzle, Settings2, ShieldCheck } from 'lucide-react';
 
 interface InstalledPluginsRailProps {
   locale: string;
@@ -18,17 +17,28 @@ interface InstalledPluginsRailProps {
   managedPackage?: ManagedPackageDefinition | null;
 }
 
-function resolvePluginStatus(plugin: PluginMetaWithState, getText: InstalledPluginsRailProps['getText']): string {
+type RailStatusTone = 'emerald' | 'amber' | 'slate';
+
+function resolvePluginStatus(
+  plugin: PluginMetaWithState,
+  getText: InstalledPluginsRailProps['getText'],
+): { label: string; tone: RailStatusTone } {
   if (plugin.enabled) {
-    return getText('merchant.plugins.enabled', 'Enabled');
+    return { label: getText('merchant.plugins.enabled', 'Enabled'), tone: 'emerald' };
   }
 
   if (plugin.configRequired && !plugin.configReady) {
-    return getText('merchant.plugins.needsConfiguration', 'Needs config');
+    return { label: getText('merchant.plugins.needsConfiguration', 'Needs config'), tone: 'amber' };
   }
 
-  return getText('merchant.plugins.installed', 'Installed');
+  return { label: getText('merchant.plugins.installed', 'Installed'), tone: 'slate' };
 }
+
+const STATUS_DOT: Record<RailStatusTone, string> = {
+  emerald: 'bg-emerald-500',
+  amber: 'bg-amber-500',
+  slate: 'bg-slate-300',
+};
 
 export function InstalledPluginsRail({
   locale,
@@ -72,7 +82,7 @@ export function InstalledPluginsRail({
       </div>
 
       <div className="rounded-2xl border border-slate-200/80 bg-white p-3 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
-        <div className="mb-3 flex items-center justify-between px-2">
+        <div className="mb-2 flex items-center justify-between px-2">
           <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">
             {getText('merchant.plugins.installedCollection', 'Installed plugins')}
           </p>
@@ -86,42 +96,53 @@ export function InstalledPluginsRail({
             {getText('merchant.plugins.noPluginsInstalled', 'No plugins installed.')}
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-1">
             {plugins.map((plugin) => {
               const isSelected = plugin.slug === selectedSlug;
               const isOfficial = officialSlugs?.has(plugin.slug) || plugin.source === 'official-market';
+              const status = resolvePluginStatus(plugin, getText);
 
               return (
                 <Link
                   key={plugin.slug}
                   href={`/${locale}/plugins/${plugin.slug}`}
+                  title={plugin.name}
                   className={cn(
-                    'group flex items-center gap-3 rounded-lg border px-3 py-3 transition-all',
+                    'group flex items-center gap-3 rounded-xl px-2.5 py-2.5 transition-colors',
                     isSelected
-                      ? 'border-blue-200 bg-blue-50 shadow-sm'
-                      : 'border-transparent bg-slate-50 hover:border-slate-200 hover:bg-white'
+                      ? 'bg-blue-50 ring-1 ring-blue-200'
+                      : 'hover:bg-slate-50'
                   )}
                 >
-                  <ExtensionAvatar
-                    slug={plugin.slug}
-                    name={plugin.name}
-                    kind="plugin"
-                    className="h-11 w-11 shrink-0"
-                  />
+                  <span
+                    className={cn(
+                      'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors',
+                      isSelected
+                        ? 'bg-blue-100 text-blue-600'
+                        : 'bg-slate-100 text-slate-500 group-hover:bg-blue-50 group-hover:text-blue-600'
+                    )}
+                  >
+                    <Puzzle className="h-4.5 w-4.5" />
+                  </span>
 
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="truncate font-semibold text-slate-950">{plugin.name}</p>
-                      {isOfficial ? <OfficialBadge compact /> : null}
+                    <div className="flex items-center gap-1.5">
+                      <p className={cn('truncate text-sm font-semibold', isSelected ? 'text-blue-700' : 'text-slate-900')}>
+                        {plugin.name}
+                      </p>
+                      {isOfficial ? (
+                        <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-blue-500" aria-label="Official" />
+                      ) : null}
                     </div>
-                    <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
-                      <span className="truncate">v{plugin.version}</span>
-                      <span className="text-slate-300">•</span>
-                      <span className="truncate">{resolvePluginStatus(plugin, getText)}</span>
+                    <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-slate-500">
+                      <span className={cn('h-1.5 w-1.5 rounded-full', STATUS_DOT[status.tone])} aria-hidden />
+                      <span className="truncate">{status.label}</span>
+                      <span className="text-slate-300">·</span>
+                      <span>v{plugin.version}</span>
                     </div>
                   </div>
 
-                  <ChevronRight className={cn('h-4 w-4 shrink-0 text-slate-300 transition-colors', isSelected ? 'text-blue-600' : 'group-hover:text-slate-500')} />
+                  <ChevronRight className={cn('h-4 w-4 shrink-0 transition-colors', isSelected ? 'text-blue-600' : 'text-slate-300 group-hover:text-slate-500')} />
                 </Link>
               );
             })}
