@@ -34,6 +34,7 @@ import { OfficialBadge } from '@/components/extensions/ExtensionVisuals';
 import { PluginInstanceManager } from '@/components/plugins/PluginInstanceManager';
 import { RemoteRadarJobsNativeWorkspace } from '@/components/plugins/RemoteRadarJobsNativeWorkspace';
 import { SupportHubInboxWorkspace } from '@/components/plugins/SupportHubInboxWorkspace';
+import { SupportHubAiPanel } from '@/components/plugins/SupportHubAiPanel';
 import { useJobsAdminCapability } from '@/hooks/use-jobs-admin-capability';
 import { toast } from 'sonner';
 
@@ -1342,6 +1343,20 @@ export function PluginWorkspace({ slug }: { slug: string }) {
     [officialCatalogData?.items]
   );
   const configSchema = isPlainObject(data?.configSchema) ? (data?.configSchema as PluginConfigSchema) : undefined;
+  // Support Hub renders its AI/chat controls in the dedicated SupportHubAiPanel;
+  // keep those fields out of the generic schema editor to avoid double editing.
+  const supportHubEditorConfigSchema = useMemo(() => {
+    if (slug !== 'support-hub' || !configSchema) return configSchema;
+    const panelFields = new Set([
+      'chatEnabled', 'aiEnabled', 'aiProvider', 'aiBaseUrl', 'aiApiKey', 'aiModel',
+      'aiSystemPrompt', 'aiWelcomeMessage', 'aiHandoffMessage',
+    ]);
+    const filtered: PluginConfigSchema = {};
+    for (const [field, descriptor] of Object.entries(configSchema)) {
+      if (!panelFields.has(field)) filtered[field] = descriptor;
+    }
+    return filtered;
+  }, [configSchema, slug]);
 
   useEffect(() => {
     if (instances.length === 0) {
@@ -1708,6 +1723,16 @@ export function PluginWorkspace({ slug }: { slug: string }) {
               ) : null}
 
               {slug === 'support-hub' ? (
+                <SupportHubAiPanel
+                  configDraft={configDraft}
+                  onUpdateField={updateConfigField}
+                  onSave={() => handleSaveGenericConfig()}
+                  saving={isCreatingInstance || isUpdatingInstance}
+                  disabled={!selectedInstance?.enabled}
+                />
+              ) : null}
+
+              {slug === 'support-hub' ? (
                 <SupportHubInboxWorkspace
                   installationId={selectedInstance?.installationId || 'default'}
                   disabled={!selectedInstance?.enabled}
@@ -1732,7 +1757,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
                     )
                   ) : null}
                   <GenericConfigEditor
-                    configSchema={configSchema}
+                    configSchema={slug === 'support-hub' ? (supportHubEditorConfigSchema ?? {}) : configSchema}
                     configDraft={configDraft}
                     configMeta={selectedConfigMeta}
                     jsonFieldDrafts={jsonFieldDrafts}

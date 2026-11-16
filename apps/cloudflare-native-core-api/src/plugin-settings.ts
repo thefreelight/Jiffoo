@@ -151,7 +151,7 @@ const definitions: Record<string, PluginDefinition> = {
     configSchema: {},
   },
   'support-hub': {
-    slug: 'support-hub', name: 'Support Hub', version: '0.0.4', category: 'social',
+    slug: 'support-hub', name: 'Support Hub', version: '0.0.6', category: 'social',
     description: 'Contact launcher plus AI customer-service chat: OpenAI-compatible AI replies, handoff to human channels, persisted conversations, and an optional bot webhook.',
     configSchema: {
       enabled: { type: 'boolean', label: 'Enable Support Hub' },
@@ -168,6 +168,7 @@ const definitions: Record<string, PluginDefinition> = {
       defaultQueue: { type: 'string', label: 'Default queue' },
       chatEnabled: { type: 'boolean', label: 'Enable support chat' },
       aiEnabled: { type: 'boolean', label: 'Enable AI replies' },
+      aiProvider: { type: 'string', label: 'AI provider', enum: ['glm', 'zai', 'deepseek', 'moonshot', 'qwen', 'openai', 'custom'] },
       aiBaseUrl: { type: 'string', label: 'AI API base URL' },
       aiApiKey: { type: 'string', label: 'AI API key' },
       aiModel: { type: 'string', label: 'AI model' },
