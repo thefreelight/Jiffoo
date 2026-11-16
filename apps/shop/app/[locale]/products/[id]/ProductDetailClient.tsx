@@ -13,6 +13,7 @@ import { useCartStore } from '@/store/cart';
 import { useToast } from '@/hooks/use-toast';
 import { ShopProductDetailDTO } from '@/services/product.service';
 import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
+import { displayProductTitle } from '@/lib/seo-utils';
 import { useT } from 'shared/src/i18n/react';
 
 interface ProductDetailClientProps {
@@ -89,14 +90,50 @@ export default function ProductDetailClient({ product, locale }: ProductDetailCl
     nav.push('/products');
   };
 
-  // Theme loading state
+  // Theme loading state. While the theme renderer loads (client-side,
+  // post-hydration), render a crawlable server-rendered product summary:
+  // the themed page takes over once the theme is ready, but crawlers and
+  // first-paint users see real product content instead of a spinner.
   if (themeLoading) {
+    const summaryTitle = displayProductTitle(product.name);
+    const summaryImages = (product.images ?? []).filter(Boolean).slice(0, 4);
+    const summaryPrice =
+      typeof product.price === 'number'
+        ? new Intl.NumberFormat(locale === 'en' ? 'en-US' : locale, {
+            style: 'currency',
+            currency: 'USD',
+          }).format(product.price)
+        : null;
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent" />
-          <p className="mt-4 text-sm text-gray-600">{getText('common.actions.loading', 'Loading...')}</p>
-        </div>
+      <div className="mx-auto w-full max-w-3xl px-6 py-12">
+        {summaryImages.length > 0 && (
+          <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
+            {summaryImages.map((src, index) => (
+              // eslint-disable-next-line @next/next/no-img-element -- plain SSR images for crawler-visible first paint
+              <img
+                key={src}
+                src={src}
+                alt={`${summaryTitle} — image ${index + 1}`}
+                className="aspect-square w-full rounded-xl object-cover"
+                loading={index === 0 ? 'eager' : 'lazy'}
+              />
+            ))}
+          </div>
+        )}
+        <h1 className="text-3xl font-semibold tracking-tight text-gray-900">{summaryTitle}</h1>
+        {summaryPrice && (
+          <p className="mt-3 text-2xl font-semibold text-gray-900">{summaryPrice}</p>
+        )}
+        {product.description && (
+          <p className="mt-6 whitespace-pre-line text-base leading-7 text-gray-600">
+            {product.description}
+          </p>
+        )}
+        <noscript>
+          <p className="mt-6 text-sm text-gray-500">
+            Enable JavaScript to purchase this product.
+          </p>
+        </noscript>
       </div>
     );
   }
