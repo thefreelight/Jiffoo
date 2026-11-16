@@ -18,6 +18,33 @@ function integer(value: string | null, fallback: number, max: number): number {
   return Number.isInteger(parsed) && parsed > 0 ? Math.min(parsed, max) : fallback;
 }
 
+// Admin list projection: the page renders per-order item chips, so expose
+// the count plus a small summary instead of demo placeholders.
+function applyItemsSummary(order: AdminOrder): void {
+  const items = Array.isArray(order.items) ? order.items as Array<Record<string, unknown>> : [];
+  order.itemsCount = items.length;
+  order.itemsSummary = items.slice(0, 3).map((item) => ({
+    name: typeof item.productName === 'string' ? item.productName : null,
+    quantity: Number(item.quantity ?? 1) || 1,
+  }));
+}
+
+// The admin order page renders shippingAddress.recipientName/street/zipCode,
+// but the checkout payload stores name/line1/postalCode. Alias the display
+// names on the response (payload keeps the checkout shape on disk).
+function applyShippingAddressDisplay(order: AdminOrder): void {
+  const addr = order.shippingAddress;
+  if (!addr || typeof addr !== 'object' || Array.isArray(addr)) return;
+  const source = addr as Record<string, unknown>;
+  order.shippingAddress = {
+    ...source,
+    recipientName: source.recipientName ?? source.name,
+    street: source.street ?? source.line1,
+    street2: source.street2 ?? source.line2,
+    zipCode: source.zipCode ?? source.postalCode,
+  };
+}
+
 function applyCustomer(order: AdminOrder, user: AdminCustomerRow | null): void {
   if (order.customer && typeof order.customer === 'object') return;
   const payloadEmail = typeof order.customerEmail === 'string' ? order.customerEmail : null;
@@ -76,6 +103,8 @@ export async function tryNativeAdminOrders(request: Request, env: AdminOrderEnv,
       return Response.json({ success: false, error: { code: 'NOT_FOUND', message: 'Order not found' } }, { status: 404, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-admin-orders' } });
     }
     const order = await attachCustomer(env.DB, await attachShipments(env.DB, JSON.parse(row.payload) as AdminOrder));
+    applyShippingAddressDisplay(order);
+    applyItemsSummary(order);
     return response(order);
   }
   const page = integer(url.searchParams.get('page'), 1, 1_000_000);
@@ -95,5 +124,9 @@ export async function tryNativeAdminOrders(request: Request, env: AdminOrderEnv,
   ).bind(...bindings, limit, (page - 1) * limit).all<AdminOrderRow>();
   const items = await Promise.all(rows.results.map((row) => attachShipments(env.DB, JSON.parse(row.payload) as AdminOrder)));
   await attachCustomers(env.DB, items);
+  for (const order of items) {
+    applyShippingAddressDisplay(order);
+    applyItemsSummary(order);
+  }
   return response({ items, page, limit, total, totalPages: total === 0 ? 0 : Math.ceil(total / limit) });
 }
