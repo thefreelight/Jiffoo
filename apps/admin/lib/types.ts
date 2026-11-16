@@ -219,6 +219,7 @@ export interface OrderShipment {
   id: string
   carrier: string
   trackingNumber: string
+  trackingUrl?: string | null
   status: string
   shippedAt?: string | null
   deliveredAt?: string | null
