@@ -1,6 +1,7 @@
 import { cache } from 'react';
 import { buildServerApiUrl } from './server-api-url';
 import { getConfiguredFallbackStoreContext } from './store-context';
+import { applyThemePinToServerStoreContext } from './theme-pin';
 
 /**
  * Server-side Store Context Helper (Single Store)
@@ -94,10 +95,10 @@ export async function getServerStoreContext(
   options: ServerStoreContextOptions = {},
 ): Promise<ServerStoreContext | null> {
   const cacheMode = options.cache ?? 'no-store';
-  if (cacheMode === 'no-store') {
-    return getServerStoreContextNoStoreDeduped();
-  }
-  return fetchServerStoreContext(options);
+  const context = cacheMode === 'no-store'
+    ? await getServerStoreContextNoStoreDeduped()
+    : await fetchServerStoreContext(options);
+  return applyThemePinToServerStoreContext(context);
 }
 
 const getServerStoreContextNoStoreDeduped = cache(
