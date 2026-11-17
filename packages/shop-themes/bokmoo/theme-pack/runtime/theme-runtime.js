@@ -15034,11 +15034,11 @@
         }
       ) }) : null,
       /* @__PURE__ */ jsx("div", { className: "fixed inset-x-0 bottom-0 z-40 border-t border-[rgba(255,255,255,0.08)] bg-[#0B0B0D]/95 px-3 pb-[calc(0.65rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-18px_50px_rgba(0,0,0,0.36)] backdrop-blur-xl sm:hidden", children: /* @__PURE__ */ jsx("div", { className: "mx-auto grid max-w-[420px] grid-cols-5 gap-1", children: [
-        { label: pickCopy(locale, { en: "Home", hans: "\u9996\u9875", hant: "\u9996\u9801" }), icon: House, onClick: () => onNavigate?.("/") },
-        { label: pickCopy(locale, { en: "Store", hans: "\u5546\u5E97", hant: "\u5546\u5E97" }), icon: LayoutGrid, onClick: onNavigateToProducts },
-        { label: pickCopy(locale, { en: "Orders", hans: "\u8BA2\u5355", hant: "\u8A02\u55AE" }), icon: ReceiptText, onClick: () => onNavigate?.("/orders") },
-        { label: pickCopy(locale, { en: "Support", hans: "\u652F\u63F4", hant: "\u652F\u63F4" }), icon: LifeBuoy, onClick: onNavigateToHelp },
-        { label: pickCopy(locale, { en: "Menu", hans: "\u9009\u5355", hant: "\u9078\u55AE" }), icon: Smartphone, onClick: onNavigateToCategories }
+        { label: pickCopy(locale, { en: "Home", hans: "\u9996\u9875", hant: "\u9996\u9801", ja: "\u30DB\u30FC\u30E0", ko: "\uD648", fr: "Accueil", de: "Startseite" }), icon: House, onClick: () => onNavigate?.("/") },
+        { label: pickCopy(locale, { en: "Store", hans: "\u5546\u5E97", hant: "\u5546\u5E97", ja: "\u30B9\u30C8\u30A2", ko: "\uC2A4\uD1A0\uC5B4", fr: "Boutique", de: "Shop" }), icon: LayoutGrid, onClick: onNavigateToProducts },
+        { label: pickCopy(locale, { en: "Orders", hans: "\u8BA2\u5355", hant: "\u8A02\u55AE", ja: "\u6CE8\u6587", ko: "\uC8FC\uBB38", fr: "Commandes", de: "Bestellungen" }), icon: ReceiptText, onClick: () => onNavigate?.("/orders") },
+        { label: pickCopy(locale, { en: "Support", hans: "\u652F\u63F4", hant: "\u652F\u63F4", ja: "\u30B5\u30DD\u30FC\u30C8", ko: "\uC9C0\uC6D0", fr: "Assistance", de: "Support" }), icon: LifeBuoy, onClick: onNavigateToHelp },
+        { label: pickCopy(locale, { en: "Menu", hans: "\u9009\u5355", hant: "\u9078\u55AE", ja: "\u30E1\u30CB\u30E5\u30FC", ko: "\uBA54\uB274", fr: "Menu", de: "Men\xFC" }), icon: Smartphone, onClick: onNavigateToCategories }
       ].map(({ label, icon: Icon2, onClick }) => /* @__PURE__ */ jsxs(
         "button",
         {
@@ -15859,7 +15859,11 @@
               /* @__PURE__ */ jsx("h2", { className: "text-3xl font-light leading-tight tracking-tight text-white sm:text-4xl", children: t({
                 en: "Manage Your Connectivity with the BOKMOO App",
                 hans: "\u7528 BOKMOO App \u7BA1\u7406\u4F60\u7684\u8FDE\u63A5",
-                hant: "\u7528 BOKMOO App \u7BA1\u7406\u4F60\u7684\u9023\u7DDA"
+                hant: "\u7528 BOKMOO App \u7BA1\u7406\u4F60\u7684\u9023\u7DDA",
+                ja: "BOKMOO \u30A2\u30D7\u30EA\u3067\u63A5\u7D9A\u3092\u7BA1\u7406",
+                ko: "BOKMOO \uC571\uC73C\uB85C \uC5F0\uACB0\uC744 \uAD00\uB9AC\uD558\uC138\uC694",
+                fr: "G\xE9rez votre connectivit\xE9 avec l\u2019application BOKMOO",
+                de: "Verwalten Sie Ihre Konnektivit\xE4t mit der BOKMOO App"
               }) }),
               /* @__PURE__ */ jsx("p", { className: "text-sm font-light leading-relaxed text-neutral-400 sm:text-base", children: t({
                 en: "Switch profiles instantly, monitor data usage in real-time, and purchase destination packages directly inside the official BOKMOO application. Designed for effortless international control.",
@@ -15930,7 +15934,11 @@
         /* @__PURE__ */ jsx("p", { className: "mt-2 mb-8 text-sm text-neutral-400 sm:text-base", children: t({
           en: "Search for a country or region to explore connectivity options.",
           hans: "\u641C\u7D22\u56FD\u5BB6\u6216\u5730\u533A\uFF0C\u63A2\u7D22\u53EF\u7528\u7684\u8FDE\u63A5\u65B9\u6848\u3002",
-          hant: "\u641C\u7D22\u570B\u5BB6\u6216\u5730\u5340\uFF0C\u63A2\u7D22\u53EF\u7528\u7684\u9023\u7DDA\u65B9\u6848\u3002"
+          hant: "\u641C\u7D22\u570B\u5BB6\u6216\u5730\u5340\uFF0C\u63A2\u7D22\u53EF\u7528\u7684\u9023\u7DDA\u65B9\u6848\u3002",
+          ja: "\u56FD\u307E\u305F\u306F\u5730\u57DF\u3092\u691C\u7D22\u3057\u3066\u3001\u63A5\u7D9A\u30AA\u30D7\u30B7\u30E7\u30F3\u3092\u3054\u78BA\u8A8D\u304F\u3060\u3055\u3044\u3002",
+          ko: "\uAD6D\uAC00 \uB610\uB294 \uC9C0\uC5ED\uC744 \uAC80\uC0C9\uD558\uC5EC \uC5F0\uACB0 \uC635\uC158\uC744 \uD655\uC778\uD558\uC138\uC694.",
+          fr: "Recherchez un pays ou une r\xE9gion pour d\xE9couvrir les options de connectivit\xE9.",
+          de: "Suchen Sie nach einem Land oder einer Region, um Konnektivit\xE4tsoptionen zu entdecken."
         }) }),
         /* @__PURE__ */ jsx("form", { className: "relative mx-auto max-w-xl", onSubmit: submitSearch, children: /* @__PURE__ */ jsxs("div", { className: "flex items-center rounded-full border border-neutral-700/80 bg-[#1d1d21] py-1.5 pl-5 pr-2 shadow-lg transition-colors focus-within:border-[#E5C365]", children: [
           /* @__PURE__ */ jsx("svg", { className: "mr-3 h-5 w-5 shrink-0 text-neutral-400", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", "aria-hidden": "true", children: /* @__PURE__ */ jsx("path", { d: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z", strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "2" }) }),
@@ -16005,7 +16013,11 @@
             a: {
               en: "BOKMOO is a premier global connectivity solution offering physical SIM cards and instant digital eSIM profiles designed to keep travelers and global professionals smoothly connected across hundreds of worldwide destinations without expensive roaming fees.",
               hans: "BOKMOO \u662F\u5168\u7403\u9886\u5148\u7684\u8FDE\u63A5\u89E3\u51B3\u65B9\u6848\uFF1A\u5B9E\u4F53 SIM \u5361\u4E0E\u5373\u65F6\u6570\u5B57 eSIM \u914D\u7F6E\u6587\u4EF6\uFF0C\u8BA9\u65C5\u884C\u8005\u4E0E\u5168\u7403\u4E13\u4E1A\u4EBA\u58EB\u5728\u6570\u767E\u4E2A\u76EE\u7684\u5730\u4E4B\u95F4\u987A\u7545\u4FDD\u6301\u8FDE\u63A5\uFF0C\u65E0\u9700\u652F\u4ED8\u6602\u8D35\u7684\u6F2B\u6E38\u8D39\u3002",
-              hant: "BOKMOO \u662F\u5168\u7403\u9818\u5148\u7684\u9023\u7DDA\u89E3\u6C7A\u65B9\u6848\uFF1A\u5BE6\u9AD4 SIM \u5361\u8207\u5373\u6642\u6578\u4F4D eSIM \u8A2D\u5B9A\u6A94\uFF0C\u8B93\u65C5\u884C\u8005\u8207\u5168\u7403\u5C08\u696D\u4EBA\u58EB\u5728\u6578\u767E\u500B\u76EE\u7684\u5730\u4E4B\u9593\u9806\u66A2\u4FDD\u6301\u9023\u7DDA\uFF0C\u7121\u9700\u652F\u4ED8\u6602\u8CB4\u7684\u6F2B\u904A\u8CBB\u3002"
+              hant: "BOKMOO \u662F\u5168\u7403\u9818\u5148\u7684\u9023\u7DDA\u89E3\u6C7A\u65B9\u6848\uFF1A\u5BE6\u9AD4 SIM \u5361\u8207\u5373\u6642\u6578\u4F4D eSIM \u8A2D\u5B9A\u6A94\uFF0C\u8B93\u65C5\u884C\u8005\u8207\u5168\u7403\u5C08\u696D\u4EBA\u58EB\u5728\u6578\u767E\u500B\u76EE\u7684\u5730\u4E4B\u9593\u9806\u66A2\u4FDD\u6301\u9023\u7DDA\uFF0C\u7121\u9700\u652F\u4ED8\u6602\u8CB4\u7684\u6F2B\u904A\u8CBB\u3002",
+              ja: "BOKMOO\u306F\u3001\u7269\u7406SIM\u30AB\u30FC\u30C9\u3068\u30A4\u30F3\u30B9\u30BF\u30F3\u30C8\u30C7\u30B8\u30BF\u30EBeSIM\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3092\u63D0\u4F9B\u3059\u308B\u30B0\u30ED\u30FC\u30D0\u30EB\u30B3\u30CD\u30AF\u30C6\u30A3\u30D3\u30C6\u30A3\u30BD\u30EA\u30E5\u30FC\u30B7\u30E7\u30F3\u3067\u3059\u3002\u65C5\u884C\u8005\u3084\u30B0\u30ED\u30FC\u30D0\u30EB\u306B\u6D3B\u52D5\u3059\u308B\u5C02\u9580\u5BB6\u304C\u3001\u9AD8\u984D\u306A\u30ED\u30FC\u30DF\u30F3\u30B0\u6599\u91D1\u306A\u3057\u3067\u4E16\u754C\u4E2D\u306E\u6570\u767E\u306E\u76EE\u7684\u5730\u3067\u30B9\u30E0\u30FC\u30BA\u306B\u63A5\u7D9A\u3067\u304D\u307E\u3059\u3002",
+              ko: "BOKMOO\uB294 \uBB3C\uB9AC SIM \uCE74\uB4DC\uC640 \uC989\uC2DC \uB514\uC9C0\uD138 eSIM \uD504\uB85C\uD544\uC744 \uC81C\uACF5\uD558\uB294 \uAE00\uB85C\uBC8C \uC5F0\uACB0 \uC194\uB8E8\uC158\uC785\uB2C8\uB2E4. \uC5EC\uD589\uC790\uC640 \uAE00\uB85C\uBC8C \uC804\uBB38\uAC00\uAC00 \uBE44\uC2FC \uB85C\uBC0D \uC694\uAE08 \uC5C6\uC774 \uC804 \uC138\uACC4 \uC218\uBC31 \uAC1C \uBAA9\uC801\uC9C0\uC5D0\uC11C \uC6D0\uD65C\uD558\uAC8C \uC5F0\uACB0\uB418\uB3C4\uB85D \uC124\uACC4\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
+              fr: "BOKMOO est une solution mondiale de connectivit\xE9 offrant des cartes SIM physiques et des profils eSIM num\xE9riques instantan\xE9s, con\xE7ue pour garder les voyageurs et les professionnels connect\xE9s dans des centaines de destinations sans frais d\u2019itin\xE9rance co\xFBteux.",
+              de: "BOKMOO ist eine globale Konnektivit\xE4tsl\xF6sung mit physischen SIM-Karten und sofortigen digitalen eSIM-Profilen, damit Reisende und Fachleute in Hunderten von Reisezielen ohne teure Roaminggeb\xFChren verbunden bleiben."
             }
           },
           {
@@ -16013,7 +16025,11 @@
             a: {
               en: "Our physical SIM is delivered directly to your door and works seamlessly with all unlocked mobile phones and mobile Wi-Fi routers. The eSIM is completely digital and can be instantly downloaded, scanned, and activated on modern eSIM-compatible devices via our mobile application.",
               hans: "\u5B9E\u4F53 SIM \u5361\u76F4\u9001\u5230\u5BB6\uFF0C\u517C\u5BB9\u6240\u6709\u65E0\u9501\u624B\u673A\u4E0E\u968F\u8EAB Wi-Fi\uFF1BeSIM \u5B8C\u5168\u6570\u5B57\u5316\uFF0C\u53EF\u901A\u8FC7\u79FB\u52A8 App \u5373\u65F6\u4E0B\u8F7D\u3001\u626B\u7801\u5E76\u6FC0\u6D3B\u4E8E\u652F\u6301 eSIM \u7684\u73B0\u4EE3\u8BBE\u5907\u3002",
-              hant: "\u5BE6\u9AD4 SIM \u5361\u76F4\u9001\u5230\u5BB6\uFF0C\u76F8\u5BB9\u6240\u6709\u7121\u9396\u624B\u6A5F\u8207\u884C\u52D5 Wi-Fi\uFF1BeSIM \u5B8C\u5168\u6578\u4F4D\u5316\uFF0C\u53EF\u900F\u904E\u884C\u52D5 App \u5373\u6642\u4E0B\u8F09\u3001\u6383\u63CF\u4E26\u555F\u7528\u65BC\u652F\u63F4 eSIM \u7684\u73FE\u4EE3\u88DD\u7F6E\u3002"
+              hant: "\u5BE6\u9AD4 SIM \u5361\u76F4\u9001\u5230\u5BB6\uFF0C\u76F8\u5BB9\u6240\u6709\u7121\u9396\u624B\u6A5F\u8207\u884C\u52D5 Wi-Fi\uFF1BeSIM \u5B8C\u5168\u6578\u4F4D\u5316\uFF0C\u53EF\u900F\u904E\u884C\u52D5 App \u5373\u6642\u4E0B\u8F09\u3001\u6383\u63CF\u4E26\u555F\u7528\u65BC\u652F\u63F4 eSIM \u7684\u73FE\u4EE3\u88DD\u7F6E\u3002",
+              ja: "\u7269\u7406SIM\u306F\u3054\u81EA\u5B85\u307E\u3067\u304A\u5C4A\u3051\u3057\u3001\u30ED\u30C3\u30AF\u89E3\u9664\u6E08\u307F\u306E\u3059\u3079\u3066\u306E\u643A\u5E2F\u96FB\u8A71\u3067\u5229\u7528\u3067\u304D\u307E\u3059\u3002eSIM\u306F\u5B8C\u5168\u306B\u30C7\u30B8\u30BF\u30EB\u3067\u3001\u30E2\u30D0\u30A4\u30EB\u30A2\u30D7\u30EA\u304B\u3089\u5373\u5EA7\u306B\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u30FB\u30B9\u30AD\u30E3\u30F3\u30FB\u6709\u52B9\u5316\u3067\u304D\u307E\u3059\u3002",
+              ko: "\uBB3C\uB9AC SIM\uC740 \uC9D1\uAE4C\uC9C0 \uBC30\uC1A1\uB418\uBA70 \uBAA8\uB4E0 \uC7A0\uAE08 \uD574\uC81C\uB41C \uD734\uB300\uD3F0\uC5D0\uC11C \uC0AC\uC6A9\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4. eSIM\uC740 \uC644\uC804\uD788 \uB514\uC9C0\uD138\uC774\uBA70 \uBAA8\uBC14\uC77C \uC571\uC744 \uD1B5\uD574 \uC989\uC2DC \uB2E4\uC6B4\uB85C\uB4DC, \uC2A4\uCE94, \uD65C\uC131\uD654\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
+              fr: "Notre SIM physique est livr\xE9e chez vous et fonctionne avec tous les t\xE9l\xE9phones d\xE9bloqu\xE9s. L\u2019eSIM est enti\xE8rement num\xE9rique et peut \xEAtre t\xE9l\xE9charg\xE9e, scann\xE9e et activ\xE9e instantan\xE9ment via notre application.",
+              de: "Unsere physische SIM wird Ihnen nach Hause geliefert und funktioniert mit allen entsperrten Handys. Die eSIM ist vollst\xE4ndig digital und l\xE4sst sich sofort \xFCber unsere App herunterladen, scannen und aktivieren."
             }
           },
           {
@@ -18239,7 +18255,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.52",
+      version: "1.1.53",
       target: "shop"
     }
   };

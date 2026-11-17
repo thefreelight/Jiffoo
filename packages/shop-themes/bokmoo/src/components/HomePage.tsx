@@ -415,6 +415,10 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
                 en: 'Manage Your Connectivity with the BOKMOO App',
                 hans: '用 BOKMOO App 管理你的连接',
                 hant: '用 BOKMOO App 管理你的連線',
+                ja: 'BOKMOO アプリで接続を管理',
+                ko: 'BOKMOO 앱으로 연결을 관리하세요',
+                fr: 'Gérez votre connectivité avec l’application BOKMOO',
+                de: 'Verwalten Sie Ihre Konnektivität mit der BOKMOO App',
               })}
             </h2>
             <p className="text-sm font-light leading-relaxed text-neutral-400 sm:text-base">
@@ -514,6 +518,10 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
             en: 'Search for a country or region to explore connectivity options.',
             hans: '搜索国家或地区，探索可用的连接方案。',
             hant: '搜索國家或地區，探索可用的連線方案。',
+            ja: '国または地域を検索して、接続オプションをご確認ください。',
+            ko: '국가 또는 지역을 검색하여 연결 옵션을 확인하세요.',
+            fr: 'Recherchez un pays ou une région pour découvrir les options de connectivité.',
+            de: 'Suchen Sie nach einem Land oder einer Region, um Konnektivitätsoptionen zu entdecken.',
           })}
         </p>
         <form className="relative mx-auto max-w-xl" onSubmit={submitSearch}>
@@ -610,6 +618,10 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
                 en: 'BOKMOO is a premier global connectivity solution offering physical SIM cards and instant digital eSIM profiles designed to keep travelers and global professionals smoothly connected across hundreds of worldwide destinations without expensive roaming fees.',
                 hans: 'BOKMOO 是全球领先的连接解决方案：实体 SIM 卡与即时数字 eSIM 配置文件，让旅行者与全球专业人士在数百个目的地之间顺畅保持连接，无需支付昂贵的漫游费。',
                 hant: 'BOKMOO 是全球領先的連線解決方案：實體 SIM 卡與即時數位 eSIM 設定檔，讓旅行者與全球專業人士在數百個目的地之間順暢保持連線，無需支付昂貴的漫遊費。',
+                ja: 'BOKMOOは、物理SIMカードとインスタントデジタルeSIMプロファイルを提供するグローバルコネクティビティソリューションです。旅行者やグローバルに活動する専門家が、高額なローミング料金なしで世界中の数百の目的地でスムーズに接続できます。',
+                ko: 'BOKMOO는 물리 SIM 카드와 즉시 디지털 eSIM 프로필을 제공하는 글로벌 연결 솔루션입니다. 여행자와 글로벌 전문가가 비싼 로밍 요금 없이 전 세계 수백 개 목적지에서 원활하게 연결되도록 설계되었습니다.',
+                fr: 'BOKMOO est une solution mondiale de connectivité offrant des cartes SIM physiques et des profils eSIM numériques instantanés, conçue pour garder les voyageurs et les professionnels connectés dans des centaines de destinations sans frais d’itinérance coûteux.',
+                de: 'BOKMOO ist eine globale Konnektivitätslösung mit physischen SIM-Karten und sofortigen digitalen eSIM-Profilen, damit Reisende und Fachleute in Hunderten von Reisezielen ohne teure Roaminggebühren verbunden bleiben.',
               },
             },
             {
@@ -618,6 +630,10 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
                 en: 'Our physical SIM is delivered directly to your door and works seamlessly with all unlocked mobile phones and mobile Wi-Fi routers. The eSIM is completely digital and can be instantly downloaded, scanned, and activated on modern eSIM-compatible devices via our mobile application.',
                 hans: '实体 SIM 卡直送到家，兼容所有无锁手机与随身 Wi-Fi；eSIM 完全数字化，可通过移动 App 即时下载、扫码并激活于支持 eSIM 的现代设备。',
                 hant: '實體 SIM 卡直送到家，相容所有無鎖手機與行動 Wi-Fi；eSIM 完全數位化，可透過行動 App 即時下載、掃描並啟用於支援 eSIM 的現代裝置。',
+                ja: '物理SIMはご自宅までお届けし、ロック解除済みのすべての携帯電話で利用できます。eSIMは完全にデジタルで、モバイルアプリから即座にダウンロード・スキャン・有効化できます。',
+                ko: '물리 SIM은 집까지 배송되며 모든 잠금 해제된 휴대폰에서 사용할 수 있습니다. eSIM은 완전히 디지털이며 모바일 앱을 통해 즉시 다운로드, 스캔, 활성화할 수 있습니다.',
+                fr: 'Notre SIM physique est livrée chez vous et fonctionne avec tous les téléphones débloqués. L’eSIM est entièrement numérique et peut être téléchargée, scannée et activée instantanément via notre application.',
+                de: 'Unsere physische SIM wird Ihnen nach Hause geliefert und funktioniert mit allen entsperrten Handys. Die eSIM ist vollständig digital und lässt sich sofort über unsere App herunterladen, scannen und aktivieren.',
               },
             },
             {

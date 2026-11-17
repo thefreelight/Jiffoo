@@ -114,11 +114,11 @@ export const Footer = React.memo(function Footer({
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[rgba(255,255,255,0.08)] bg-[#0B0B0D]/95 px-3 pb-[calc(0.65rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-18px_50px_rgba(0,0,0,0.36)] backdrop-blur-xl sm:hidden">
         <div className="mx-auto grid max-w-[420px] grid-cols-5 gap-1">
           {[
-            { label: pickCopy(locale, { en: 'Home', hans: '首页', hant: '首頁' }), icon: Home, onClick: () => onNavigate?.('/') },
-            { label: pickCopy(locale, { en: 'Store', hans: '商店', hant: '商店' }), icon: LayoutGrid, onClick: onNavigateToProducts },
-            { label: pickCopy(locale, { en: 'Orders', hans: '订单', hant: '訂單' }), icon: ReceiptText, onClick: () => onNavigate?.('/orders') },
-            { label: pickCopy(locale, { en: 'Support', hans: '支援', hant: '支援' }), icon: LifeBuoy, onClick: onNavigateToHelp },
-            { label: pickCopy(locale, { en: 'Menu', hans: '选单', hant: '選單' }), icon: Smartphone, onClick: onNavigateToCategories },
+            { label: pickCopy(locale, { en: 'Home', hans: '首页', hant: '首頁', ja: 'ホーム', ko: '홈', fr: 'Accueil', de: 'Startseite' }), icon: Home, onClick: () => onNavigate?.('/') },
+            { label: pickCopy(locale, { en: 'Store', hans: '商店', hant: '商店', ja: 'ストア', ko: '스토어', fr: 'Boutique', de: 'Shop' }), icon: LayoutGrid, onClick: onNavigateToProducts },
+            { label: pickCopy(locale, { en: 'Orders', hans: '订单', hant: '訂單', ja: '注文', ko: '주문', fr: 'Commandes', de: 'Bestellungen' }), icon: ReceiptText, onClick: () => onNavigate?.('/orders') },
+            { label: pickCopy(locale, { en: 'Support', hans: '支援', hant: '支援', ja: 'サポート', ko: '지원', fr: 'Assistance', de: 'Support' }), icon: LifeBuoy, onClick: onNavigateToHelp },
+            { label: pickCopy(locale, { en: 'Menu', hans: '选单', hant: '選單', ja: 'メニュー', ko: '메뉴', fr: 'Menu', de: 'Menü' }), icon: Smartphone, onClick: onNavigateToCategories },
           ].map(({ label, icon: Icon, onClick }) => (
             <button
               key={label}
