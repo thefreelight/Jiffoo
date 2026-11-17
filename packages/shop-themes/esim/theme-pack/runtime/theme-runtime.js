@@ -18388,15 +18388,17 @@
     tokenStyle.id = tokenStyleId;
     document.head.appendChild(tokenStyle);
   }
-  tokenStyle.textContent = `/* Obsidian Aurum typeface \u2014 self-host via the resource-release runbook for
-   production; the @import keeps preview parity until fonts are materialized. */
-@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600;700;800&display=swap');
+  tokenStyle.textContent = `/* Obsidian Aurum typeface: Hanken Grotesk by name only \u2014 the webfont is
+   intentionally NOT imported remotely (a remote @import inside tokens.css
+   blocks the runtime tokens-injection await wherever Google Fonts is
+   unreachable, e.g. sandboxed webviews). Stacks fall back to system-ui.
+   Self-host the webfont via the resource-release runbook when needed. */
 
 :root {
   /* Obsidian Aurum design language (Stitch design system, dark):
      Ground #0D0D0D \xB7 Container T1 #141414 \xB7 Container T2 #1C1C1E
      Primary gold #D4AF37 (hover #E5C378) \xB7 hairlines white/8% \xB7 premium hairline gold/22%
-     Typeface: Hanken Grotesk */
+     Typeface: Hanken Grotesk (self-hosted only, system-ui fallback) */
   --esim-bg: #0d0d0d;
   --esim-bg-elevated: #141414;
   --esim-bg-soft: #1c1c1e;
