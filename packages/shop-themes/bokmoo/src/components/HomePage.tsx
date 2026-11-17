@@ -80,6 +80,10 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
                 en: 'Physical SIM and eSIM for borderless, reliable mobile connectivity.',
                 hans: '实体 SIM 与 eSIM，带来无边界、可靠的移动连接。',
                 hant: '實體 SIM 與 eSIM，帶來無邊界、可靠的行動連線。',
+                ja: '国境を越えた、信頼性の高いモバイル接続のための物理SIMとeSIM。',
+                ko: '국경 없이 신뢰할 수 있는 모바일 연결을 위한 물리 SIM과 eSIM.',
+                fr: 'SIM physique et eSIM pour une connectivité mobile fiable et sans frontières.',
+                de: 'Physische SIM und eSIM für grenzenlose, zuverlässige mobile Konnektivität.',
               })}
             </p>
             <div className="pt-2">
@@ -418,6 +422,10 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
                 en: 'Switch profiles instantly, monitor data usage in real-time, and purchase destination packages directly inside the official BOKMOO application. Designed for effortless international control.',
                 hans: '在官方 BOKMOO App 内即时切换配置、实时监控流量，并直接购买目的地套餐，为轻松掌控全球连接而设计。',
                 hant: '在官方 BOKMOO App 內即時切換設定檔、即時監控流量，並直接購買目的地套餐，為輕鬆掌控全球連線而設計。',
+                ja: '公式 BOKMOO アプリでプロファイルを即座に切り替え、データ使用量をリアルタイムで監視し、目的地パッケージを直接購入できます。世界中を簡単に管理するために設計されています。',
+                ko: '공식 BOKMOO 앱에서 프로필을 즉시 전환하고, 데이터 사용량을 실시간으로 모니터링하고, 목적지 패키지를 직접 구매하세요. 손쉬운 글로벌 관리를 위해 설계되었습니다.',
+                fr: 'Changez de profil instantanément, suivez votre consommation en temps réel et achetez des forfaits de destination directement dans l’application officielle BOKMOO. Conçu pour un contrôle international sans effort.',
+                de: 'Profile sofort wechseln, Datennutzung in Echtzeit überwachen und Zielpakete direkt in der offiziellen BOKMOO App kaufen. Für mühelose internationale Kontrolle entwickelt.',
               })}
             </p>
             <div className="flex flex-wrap items-center gap-4 pt-2">
@@ -618,6 +626,10 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
                 en: 'BOKMOO operates in over 190+ countries and territories worldwide, collaborating with top-tier telecommunications carriers to ensure high-speed 4G LTE and 5G connectivity wherever your journeys take you.',
                 hans: 'BOKMOO 覆盖全球 190+ 个国家和地区，与顶级运营商合作，无论旅程走到哪里都确保高速 4G LTE 与 5G 连接。',
                 hant: 'BOKMOO 覆蓋全球 190+ 個國家和地區，與頂級電信運營商合作，無論旅程走到哪裡都確保高速 4G LTE 與 5G 連線。',
+                ja: 'BOKMOOは世界中の190以上の国と地域で利用でき、トップクラスの通信キャリアと提携し、旅のどこでも高速な4G LTEおよび5G接続を保証します。',
+                ko: 'BOKMOO는 전 세계 190개 이상의 국가와 지역에서 사용 가능하며, 최상위 통신사와 협력하여 어디를 가든 고속 4G LTE 및 5G 연결을 보장합니다.',
+                fr: 'BOKMOO est disponible dans plus de 190 pays et territoires, en partenariat avec des opérateurs de premier plan pour une connectivité 4G LTE et 5G haut débit où que vous alliez.',
+                de: 'BOKMOO ist in über 190 Ländern und Regionen weltweit verfügbar und arbeitet mit Top-Netzbetreibern zusammen, um überall schnelles 4G LTE und 5G zu gewährleisten.',
               },
             },
           ].map((item) => (
