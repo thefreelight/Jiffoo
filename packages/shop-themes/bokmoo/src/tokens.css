@@ -1,19 +1,27 @@
+/* Obsidian Aurum typeface — self-host via the resource-release runbook for
+   production; the @import keeps preview parity until fonts are materialized. */
+@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600;700;800&display=swap');
+
 :root {
-  --bokmoo-bg: oklch(0.055 0.006 75);
-  --bokmoo-bg-elevated: oklch(0.082 0.008 75);
-  --bokmoo-bg-soft: oklch(0.118 0.01 75);
-  --bokmoo-panel: oklch(0.095 0.009 75 / 0.96);
-  --bokmoo-panel-strong: oklch(0.14 0.013 75 / 0.98);
+  /* Obsidian Aurum design language (Stitch design system, dark):
+     Ground #0D0D0D · Container T1 #141414 · Container T2 #1C1C1E
+     Primary gold #D4AF37 (hover #E5C378) · hairlines white/8% · premium hairline gold/22%
+     Typeface: Hanken Grotesk */
+  --bokmoo-bg: #0d0d0d;
+  --bokmoo-bg-elevated: #141414;
+  --bokmoo-bg-soft: #1c1c1e;
+  --bokmoo-panel: rgba(20, 20, 20, 0.96);
+  --bokmoo-panel-strong: rgba(28, 28, 30, 0.98);
   --bokmoo-surface: var(--bokmoo-bg-elevated);
   --bokmoo-surface-alt: var(--bokmoo-bg-soft);
-  --bokmoo-ink: oklch(0.97 0.006 86);
-  --bokmoo-copy: oklch(0.78 0.011 82);
-  --bokmoo-copy-soft: oklch(0.57 0.01 82);
-  --bokmoo-line: oklch(0.29 0.019 78 / 0.34);
-  --bokmoo-line-strong: oklch(0.52 0.034 78 / 0.52);
-  --bokmoo-gold: oklch(0.76 0.105 80);
-  --bokmoo-gold-strong: oklch(0.86 0.11 82);
-  --bokmoo-gold-soft: oklch(0.2 0.042 79);
+  --bokmoo-ink: #f2f2f4;
+  --bokmoo-copy: #a8a8ad;
+  --bokmoo-copy-soft: #6f6f75;
+  --bokmoo-line: rgba(255, 255, 255, 0.08);
+  --bokmoo-line-strong: rgba(212, 175, 55, 0.22);
+  --bokmoo-gold: #d4af37;
+  --bokmoo-gold-strong: #e5c378;
+  --bokmoo-gold-soft: rgba(212, 175, 55, 0.1);
   --bokmoo-primary: var(--bokmoo-gold);
   --bokmoo-primary-strong: var(--bokmoo-gold-strong);
   --bokmoo-primary-soft: var(--bokmoo-gold-soft);
@@ -31,8 +39,8 @@
   --bokmoo-radius-lg: 1.5rem;
   --bokmoo-radius-md: 1rem;
   --bokmoo-radius-sm: 0.75rem;
-  --bokmoo-display: "Avenir Next", "Satoshi", "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
-  --bokmoo-sans: "Avenir Next", "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+  --bokmoo-display: "Hanken Grotesk", "Avenir Next", "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+  --bokmoo-sans: "Hanken Grotesk", "Avenir Next", "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
   --bokmoo-grid:
     linear-gradient(to right, color-mix(in oklab, var(--bokmoo-line) 72%, transparent) 1px, transparent 1px),
     linear-gradient(to bottom, color-mix(in oklab, var(--bokmoo-line) 72%, transparent) 1px, transparent 1px);
@@ -284,3 +292,39 @@ body[data-theme='bokmoo'] ::selection {
     bottom: calc(4.2rem + env(safe-area-inset-bottom));
   }
 }
+
+/* ── Landing stage: CSS-rendered SIM card pedestal (Obsidian Aurum hero) ── */
+.bg-pedestal-top {
+  background: radial-gradient(ellipse at center, #26262b 0%, #151518 70%, #0d0d0f 100%);
+}
+.pedestal-rim {
+  background: linear-gradient(90deg, #5b4618 0%, #d8b456 25%, #fff2be 50%, #997828 75%, #42320e 100%);
+}
+.sim-metallic-body {
+  background: linear-gradient(145deg, #1c1c1f 0%, #0a0a0c 100%);
+  box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.95), 0 0 40px rgba(229, 195, 101, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+.sim-chip-gold {
+  background: linear-gradient(135deg, #ECC869 0%, #B88E28 50%, #876510 100%);
+}
+.phone-glass {
+  background: linear-gradient(180deg, #18181b 0%, #0e0e11 100%);
+  box-shadow: 0 30px 70px -15px rgba(0, 0, 0, 0.95), 0 0 30px rgba(255, 255, 255, 0.04), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+}
+@keyframes ambientBreathing {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.65; filter: blur(55px); }
+  50% { transform: translate(-50%, -50%) scale(1.15); opacity: 0.95; filter: blur(65px); }
+}
+@keyframes pedestalGlowBreathing {
+  0%, 100% { transform: translate(-50%, 0) scaleX(1) scaleY(1); opacity: 0.6; }
+  50% { transform: translate(-50%, 0) scaleX(1.18) scaleY(1.22); opacity: 0.92; }
+}
+.animate-ambient-breath { animation: ambientBreathing 7s ease-in-out infinite; }
+.animate-pedestal-breath { animation: pedestalGlowBreathing 7s ease-in-out infinite 1s; }
+@media (prefers-reduced-motion: reduce) {
+  .animate-ambient-breath, .animate-pedestal-breath { animation: none !important; }
+}
+
+/* FAQ native disclosure (design: plus icon rotates into a close cross) */
+details summary::-webkit-details-marker { display: none; }
+details[open] summary .faq-icon { transform: rotate(45deg); }
