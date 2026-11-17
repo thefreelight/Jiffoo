@@ -853,8 +853,9 @@ export function RoutePlanner({
 
   const viewPlan = React.useCallback(
     (product: EsimApiProduct) => {
-      const slug = product.slug || product.id;
-      onNavigate?.(`/products/${slug}`);
+      // Detail routes resolve by product ID (native API serves detail
+      // snapshots under the queryless ID path; slugs are presentation-only).
+      onNavigate?.(`/products/${product.id}`);
     },
     [onNavigate]
   );

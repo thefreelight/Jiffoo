@@ -16309,8 +16309,7 @@
     }, [mutate]);
     const viewPlan = react_default.useCallback(
       (product) => {
-        const slug = product.slug || product.id;
-        onNavigate?.(`/products/${slug}`);
+        onNavigate?.(`/products/${product.id}`);
       },
       [onNavigate]
     );
