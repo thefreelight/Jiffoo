@@ -3,12 +3,15 @@
 import { usePathname, useSearchParams } from 'next/navigation';
 import { StoreContextProvider } from '@/components/store-context-provider';
 import type { StoreContext } from '@/lib/store-context';
+import type { ActiveTheme } from '@/lib/theme-pack/types';
 import { ThemePackProvider } from '@/lib/theme-pack';
 
 interface ConditionalLayoutProps {
   children: React.ReactNode;
   /** Server-fetched store context so the subtree SSRs instead of gating on client fetch. */
   initialContext?: StoreContext | null;
+  /** Server-pinned active theme (deployment `THEME_SLUG_PIN`), passed straight to ThemePackProvider. */
+  initialActiveTheme?: ActiveTheme | null;
 }
 
 /**
@@ -20,7 +23,7 @@ interface ConditionalLayoutProps {
  *
  * The actual theme-based layout is handled by ThemedLayout component inside StoreContextProvider.
  */
-export function ConditionalLayout({ children, initialContext }: ConditionalLayoutProps) {
+export function ConditionalLayout({ children, initialContext, initialActiveTheme }: ConditionalLayoutProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -43,7 +46,7 @@ export function ConditionalLayout({ children, initialContext }: ConditionalLayou
   // ThemePackProvider handles tokens CSS injection and template loading
   // StoreContextProvider handles store context and the default theme renderer
   return (
-    <ThemePackProvider previewSlug={previewSlug}>
+    <ThemePackProvider previewSlug={previewSlug} initialActiveTheme={initialActiveTheme}>
       <StoreContextProvider initialContext={initialContext}>
         {children}
       </StoreContextProvider>
