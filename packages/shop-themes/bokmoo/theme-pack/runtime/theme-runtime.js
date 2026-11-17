@@ -14996,10 +14996,7 @@
     ];
     return /* @__PURE__ */ jsxs("footer", { className: "border-t border-neutral-900 bg-[#08080A] py-12 mt-12", "data-purpose": "site-footer", children: [
       /* @__PURE__ */ jsxs("div", { className: "mx-auto max-w-6xl px-6 flex flex-col md:flex-row items-center justify-between gap-6", children: [
-        /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap items-center gap-4 text-xs sm:text-sm", children: [
-          /* @__PURE__ */ jsx("div", { className: "flex items-center gap-2.5", children: /* @__PURE__ */ jsx(BokmooLogoLockup, { className: "h-6 w-auto fill-[#e2c26a] drop-shadow-[0_1px_4px_rgba(212,175,55,0.35)] shrink-0" }) }),
-          /* @__PURE__ */ jsx("span", { className: "text-neutral-500", children: site.supportEmail })
-        ] }),
+        /* @__PURE__ */ jsx("div", { className: "flex flex-wrap items-center gap-4 text-xs sm:text-sm", children: /* @__PURE__ */ jsx("div", { className: "flex items-center gap-2.5", children: /* @__PURE__ */ jsx(BokmooLogoLockup, { className: "h-6 w-auto fill-[#e2c26a] drop-shadow-[0_1px_4px_rgba(212,175,55,0.35)] shrink-0" }) }) }),
         /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-8 text-xs sm:text-sm text-neutral-400", children: [
           /* @__PURE__ */ jsx("nav", { className: "flex items-center gap-6", children: footerLinks.map((link) => /* @__PURE__ */ jsx(
             "a",
@@ -15018,7 +15015,7 @@
             "\xA9 ",
             year,
             " ",
-            site.brandName.charAt(0).toUpperCase() + site.brandName.slice(1),
+            site.brandName.toUpperCase(),
             ". All rights reserved."
           ] })
         ] })
@@ -15532,7 +15529,7 @@
   function PlayIcon() {
     return /* @__PURE__ */ jsx("svg", { viewBox: "0 0 24 24", fill: "currentColor", className: "h-5 w-5", "aria-hidden": "true", children: /* @__PURE__ */ jsx("path", { d: "M3.61 1.81L13.79 12 3.61 22.19a1.5 1.5 0 01-.44-1.06V2.87c0-.41.16-.78.44-1.06zm11.6 11.6l2.52 2.52-9.72 5.47 7.2-7.99zm4.99-4.11c.36.34.58.81.58 1.34v2.72c0 .53-.22 1-.58 1.34l-2.88 2.88-2.76-2.76 2.76-2.77-2.76-2.76 2.76-2.76 2.88 2.77zm-12.19-8.8l9.72 5.46-2.52 2.52-7.2-7.98z" }) });
   }
-  var PHONE_ICCIDS = ["897823828746375807", "891296012124251779", "894643707593644071"];
+  var PHONE_ICCIDS = ["894502187391048201", "896648729183847291", "890126048193018472"];
   var PHONE_EID = "88888888888888888888888888888888";
   var HomePage = react_default.memo(function HomePage2({ locale, config, onNavigate }) {
     const site = resolveBokmooSiteConfig(config, locale);
@@ -15547,7 +15544,6 @@
       },
       [onNavigate]
     );
-    const [openFaq, setOpenFaq] = react_default.useState(0);
     const [searchValue, setSearchValue] = react_default.useState("");
     const submitSearch = (event) => {
       event.preventDefault();
@@ -15585,7 +15581,7 @@
       /* @__PURE__ */ jsxs("section", { className: "relative overflow-hidden", children: [
         /* @__PURE__ */ jsx("div", { className: "pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_72%_30%,rgba(212,175,55,0.1),transparent_58%)]" }),
         /* @__PURE__ */ jsx("div", { "aria-hidden": "true", className: "absolute top-0 h-px w-full bg-[rgba(255,255,255,0.08)]" }),
-        /* @__PURE__ */ jsxs("div", { className: "relative mx-auto grid max-w-[1280px] grid-cols-1 items-center gap-12 px-5 pt-16 pb-20 sm:px-8 lg:grid-cols-12 lg:gap-8 lg:py-24", children: [
+        /* @__PURE__ */ jsxs("div", { className: "relative mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-6 pt-16 pb-20 lg:grid-cols-12 lg:gap-8 lg:py-24", children: [
           /* @__PURE__ */ jsxs("div", { className: "space-y-6 text-left lg:col-span-6", children: [
             /* @__PURE__ */ jsxs("h1", { className: "text-4xl font-light leading-[1.15] tracking-tight text-white sm:text-5xl lg:text-6xl", children: [
               t({ en: "One Card,", hans: "\u4E00\u5F20\u5361\uFF0C", hant: "\u4E00\u5F35\u5361\uFF0C" }),
@@ -15726,13 +15722,13 @@
           ] })
         ] })
       ] }),
-      /* @__PURE__ */ jsx(
+      /* @__PURE__ */ jsxs(
         "section",
         {
           className: "mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-6 py-16 lg:grid-cols-12 lg:gap-8 lg:py-20",
           id: "products",
-          children: /* @__PURE__ */ jsxs("div", { className: "order-2 flex justify-center lg:order-1 lg:col-span-6", "data-purpose": "app-phone-mockup", children: [
-            /* @__PURE__ */ jsx("div", { className: "w-[310px] rounded-[48px] border border-neutral-700/80 bg-[#17171c] p-3.5 shadow-2xl sm:w-[340px] relative", children: /* @__PURE__ */ jsxs("div", { className: "phone-glass relative space-y-3.5 overflow-hidden rounded-[38px] border border-white/10 p-4 sm:p-5", children: [
+          children: [
+            /* @__PURE__ */ jsx("div", { className: "order-2 flex justify-center lg:order-1 lg:col-span-6", "data-purpose": "app-phone-mockup", children: /* @__PURE__ */ jsx("div", { className: "w-[310px] rounded-[48px] border border-neutral-700/80 bg-[#17171c] p-3.5 shadow-2xl sm:w-[340px] relative", children: /* @__PURE__ */ jsxs("div", { className: "phone-glass relative space-y-3.5 overflow-hidden rounded-[38px] border border-white/10 p-4 sm:p-5", children: [
               /* @__PURE__ */ jsx("div", { className: "absolute left-1/2 top-2 z-20 flex h-4 w-24 -translate-x-1/2 items-center justify-end rounded-full bg-black px-2", children: /* @__PURE__ */ jsx("div", { className: "h-2 w-2 rounded-full border border-neutral-800 bg-neutral-900" }) }),
               /* @__PURE__ */ jsxs("div", { className: "relative z-30 flex select-none items-center justify-between px-2 pt-0.5 text-[11px] font-semibold tracking-tight text-white/90", children: [
                 /* @__PURE__ */ jsx("span", { className: "font-sans tracking-tight text-white", children: "9:41" }),
@@ -15876,7 +15872,7 @@
                   /* @__PURE__ */ jsx("svg", { className: "h-3 w-3 text-neutral-500", fill: "none", stroke: "currentColor", strokeWidth: "2.5", viewBox: "0 0 24 24", "aria-hidden": "true", children: /* @__PURE__ */ jsx("path", { d: "M9 5l7 7-7 7", strokeLinecap: "round", strokeLinejoin: "round" }) })
                 ] })
               ] }, row.iccid)) })
-            ] }) }),
+            ] }) }) }),
             /* @__PURE__ */ jsxs("div", { className: "order-1 space-y-6 text-left lg:order-2 lg:col-span-6", children: [
               /* @__PURE__ */ jsx("h2", { className: "text-3xl font-light leading-tight tracking-tight text-white sm:text-4xl", children: t({
                 en: "Manage Your Connectivity with the BOKMOO App",
@@ -15913,7 +15909,7 @@
                 store.label
               )) })
             ] })
-          ] })
+          ]
         }
       ),
       /* @__PURE__ */ jsx("section", { className: "mx-auto border-t border-neutral-800/60 px-6 py-12", "data-purpose": "features-summary", children: /* @__PURE__ */ jsx("div", { className: "grid grid-cols-1 divide-y divide-neutral-800/80 gap-8 md:grid-cols-3 md:gap-6 md:divide-y-0 md:divide-x", children: [
