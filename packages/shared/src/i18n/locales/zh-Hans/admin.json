@@ -74,5 +74,81 @@
         "enable": "启用",
         "disable": "停用",
         "configure": "设定"
+    },
+    "seo": {
+        "title": "SEO 设置",
+        "subtitle": "配置店铺的 URL 结构与 SEO 设置",
+        "overview": "SEO 概览",
+        "auditNav": "SEO 审计",
+        "redirects": "重定向",
+        "redirectsTitle": "SEO 重定向",
+        "redirectsSubtitle": "管理用于 SEO 的 301/302 重定向",
+        "redirectDescription": "创建 301 或 302 重定向，改善 SEO 与用户体验",
+        "addRedirect": "添加重定向",
+        "createRedirect": "创建重定向",
+        "editRedirect": "编辑重定向",
+        "fromPath": "原路径",
+        "toPath": "目标路径",
+        "statusCode": "状态码",
+        "permanent": "永久（301）",
+        "temporary": "临时（302）",
+        "status": "状态",
+        "active": "启用",
+        "inactive": "停用",
+        "activeRedirect": "启用中（重定向已生效）",
+        "hits": "命中次数",
+        "actions": "操作",
+        "noRedirects": "暂无重定向记录",
+        "searchPlaceholder": "按路径搜索重定向…",
+        "loading": "正在加载重定向…",
+        "loadFailed": "重定向加载失败",
+        "retry": "重试",
+        "deleteConfirm": "确定要删除这条重定向吗？",
+        "cancel": "取消",
+        "showing": "显示第",
+        "to": "至",
+        "of": "共",
+        "results": "条结果",
+        "previous": "上一页",
+        "next": "下一页",
+        "sections": {
+            "title": "SEO 版块",
+            "metaDefaults": "Meta 默认值",
+            "metaDefaultsDesc": "设置默认 meta 标签与描述",
+            "sitemap": "Sitemap",
+            "sitemapDesc": "配置 Sitemap 生成设置",
+            "underDevelopment": "该功能开发中，敬请期待",
+            "urlStructure": "URL 结构",
+            "urlStructureDesc": "配置不同内容类型的 URL 模式"
+        },
+        "metaDefaults": {
+            "title": "Meta 默认值",
+            "comingSoon": "该功能开发中，敬请期待"
+        },
+        "sitemap": {
+            "title": "Sitemap 设置",
+            "comingSoon": "该功能开发中，敬请期待"
+        },
+        "urlStructure": {
+            "title": "URL 模式配置",
+            "description": "定义不同内容类型的 URL 模式。使用 {slug} 作为内容标识。",
+            "productPattern": "商品 URL 模式",
+            "productPatternHelp": "可用变量：{slug}、{id}、{category}",
+            "categoryPattern": "分类 URL 模式",
+            "categoryPatternHelp": "可用变量：{slug}、{id}",
+            "pagePattern": "页面 URL 模式",
+            "pagePatternHelp": "可用变量：{slug}、{id}",
+            "blogPattern": "博客 URL 模式",
+            "blogPatternHelp": "可用变量：{slug}、{id}、{date}",
+            "example": "示例：",
+            "preview": "URL 预览"
+        },
+        "audit": {
+            "title": "SEO 审计",
+            "subtitle": "发现并修复商品与分类的 SEO 问题",
+            "running": "检测中…",
+            "runAudit": "运行审计",
+            "export": "导出报告"
+        }
     }
 }

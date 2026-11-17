@@ -7,6 +7,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { pluginsApi, unwrapApiResponse } from '@/lib/api';
 import type { OfficialCatalogItem } from '@/lib/api';
 import { useInstalledPlugins, useInstallOfficialExtension, useOfficialCatalog, usePlatformConnectionStatus, useProvisionManagedPackage, usePurgePlugin, useTogglePlugin } from '@/lib/hooks/use-api';
+import { localizeExtensionName } from '@/lib/extension-catalog-zh';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -295,7 +296,7 @@ export function PluginsManager() {
                         : getText('merchant.plugins.statusDisabled', 'Disabled')}
                     </Badge>
                   </div>
-                  <h3 className="mt-3 truncate text-base font-bold text-slate-950">{plugin.name || plugin.slug}</h3>
+                  <h3 className="mt-3 truncate text-base font-bold text-slate-950">{localizeExtensionName(plugin.slug, plugin.name || plugin.slug, locale)}</h3>
                   <p className="mt-0.5 truncate text-sm text-slate-500">{plugin.slug}</p>
                 </Link>
               ))}

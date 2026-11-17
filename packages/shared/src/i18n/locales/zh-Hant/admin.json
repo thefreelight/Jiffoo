@@ -74,5 +74,81 @@
         "enable": "啟用",
         "disable": "停用",
         "configure": "設定"
+    },
+    "seo": {
+        "title": "SEO 設定",
+        "subtitle": "配置店鋪的 URL 結構與 SEO 設定",
+        "overview": "SEO 概覽",
+        "auditNav": "SEO 審計",
+        "redirects": "重定向",
+        "redirectsTitle": "SEO 重定向",
+        "redirectsSubtitle": "管理用於 SEO 的 301/302 重定向",
+        "redirectDescription": "建立 301 或 302 重定向，改善 SEO 與使用者體驗",
+        "addRedirect": "新增重定向",
+        "createRedirect": "建立重定向",
+        "editRedirect": "編輯重定向",
+        "fromPath": "原始路徑",
+        "toPath": "目標路徑",
+        "statusCode": "狀態碼",
+        "permanent": "永久（301）",
+        "temporary": "暫時（302）",
+        "status": "狀態",
+        "active": "啟用",
+        "inactive": "停用",
+        "activeRedirect": "啟用中（重定向已生效）",
+        "hits": "命中次數",
+        "actions": "操作",
+        "noRedirects": "暫無重定向記錄",
+        "searchPlaceholder": "按路徑搜尋重定向…",
+        "loading": "正在載入重定向…",
+        "loadFailed": "重定向載入失敗",
+        "retry": "重試",
+        "deleteConfirm": "確定要刪除這條重定向嗎？",
+        "cancel": "取消",
+        "showing": "顯示第",
+        "to": "至",
+        "of": "共",
+        "results": "條結果",
+        "previous": "上一頁",
+        "next": "下一頁",
+        "sections": {
+            "title": "SEO 版塊",
+            "metaDefaults": "Meta 預設值",
+            "metaDefaultsDesc": "設定預設 meta 標籤與描述",
+            "sitemap": "Sitemap",
+            "sitemapDesc": "配置 Sitemap 生成設定",
+            "underDevelopment": "該功能開發中，敬請期待",
+            "urlStructure": "URL 結構",
+            "urlStructureDesc": "配置不同內容類型的 URL 模式"
+        },
+        "metaDefaults": {
+            "title": "Meta 預設值",
+            "comingSoon": "該功能開發中，敬請期待"
+        },
+        "sitemap": {
+            "title": "Sitemap 設定",
+            "comingSoon": "該功能開發中，敬請期待"
+        },
+        "urlStructure": {
+            "title": "URL 模式配置",
+            "description": "定義不同內容類型的 URL 模式。使用 {slug} 作為內容標識。",
+            "productPattern": "商品 URL 模式",
+            "productPatternHelp": "可用變數：{slug}、{id}、{category}",
+            "categoryPattern": "分類 URL 模式",
+            "categoryPatternHelp": "可用變數：{slug}、{id}",
+            "pagePattern": "頁面 URL 模式",
+            "pagePatternHelp": "可用變數：{slug}、{id}",
+            "blogPattern": "部落格 URL 模式",
+            "blogPatternHelp": "可用變數：{slug}、{id}、{date}",
+            "example": "範例：",
+            "preview": "URL 預覽"
+        },
+        "audit": {
+            "title": "SEO 審計",
+            "subtitle": "發現並修復商品與分類的 SEO 問題",
+            "running": "檢測中…",
+            "runAudit": "執行審計",
+            "export": "匯出報告"
+        }
     }
 }

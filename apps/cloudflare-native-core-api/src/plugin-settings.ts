@@ -189,6 +189,11 @@ const definitions: Record<string, PluginDefinition> = {
       creditCost: { type: 'number', label: 'Credits per generation' },
     },
   },
+  seo: {
+    slug: 'seo', name: 'SEO Manager', version: '0.0.2', category: 'seo',
+    description: 'Storefront SEO manager: redirects with hit counts and 404 conversion. Storefront robots.txt, sitemap.xml, canonical/hreflang metadata, and product JSON-LD are built into the framework and always active.',
+    configSchema: {},
+  },
 };
 
 const encoder = new TextEncoder();
@@ -422,6 +427,23 @@ export async function getNativeStripeSecret(
   return { mode, value: '' };
 }
 
+function synthesizedDefinition(slug: string): PluginDefinition {
+  const name = slug
+    .split('-')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+  return { slug, name, version: '', category: 'other', description: '', configSchema: {} };
+}
+
+async function tryFindInstance(env: PluginSettingsEnv, slug: string): Promise<StoredInstance | null> {
+  try {
+    return await findInstance(env, slug);
+  } catch {
+    // Broken/mock DB: treat as not installed so the fast-fail contract holds.
+    return null;
+  }
+}
+
 export async function tryNativePluginSettings(request: Request, env: PluginSettingsEnv): Promise<Response | null> {
   const url = new URL(request.url);
   if (url.pathname === '/api/v1/extensions/plugin' && request.method === 'GET') {
@@ -431,7 +453,10 @@ export async function tryNativePluginSettings(request: Request, env: PluginSetti
     if (!adminHasPermission(catalogAccess, ADMIN_PERMISSIONS.PLUGINS_READ)) {
       return response({ code: 'FORBIDDEN', message: 'Permission required: plugins.read' }, 403);
     }
-    const items = await Promise.all(Object.values(definitions).map(async (definition) => {
+    const knownSlugs = new Set(Object.keys(definitions));
+    const items: Array<(typeof definitions)[string] & {
+      runtimeType: string; source: string; deletedAt: null; enabled: boolean; manifestJson: string;
+    }> = await Promise.all(Object.values(definitions).map(async (definition) => {
       const instance = await findInstance(env, definition.slug);
       return {
         ...definition,
@@ -440,6 +465,35 @@ export async function tryNativePluginSettings(request: Request, env: PluginSetti
         manifestJson: JSON.stringify({ ...definition, schemaVersion: 1 }),
       };
     }));
+    // Instances outside the native registry (e.g. catalog plugins pre-seeded by
+    // migration 0038 such as cms/i18n/reviews/media-storage) must still show up
+    // in the installed list — the marketplace card reads native_plugin_instances
+    // directly, so omitting them here made install and the installed list
+    // disagree. Metadata falls back to a prettified slug until the plugin ships
+    // a native definition.
+    const allInstances = await env.DB.prepare(
+      'SELECT plugin_slug, enabled FROM native_plugin_instances WHERE instance_key = ?1',
+    ).bind('default').all<{ plugin_slug: string; enabled: number }>();
+    for (const row of allInstances.results ?? []) {
+      if (knownSlugs.has(row.plugin_slug)) continue;
+      const name = row.plugin_slug
+        .split('-')
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(' ');
+      items.push({
+        slug: row.plugin_slug,
+        name,
+        version: '',
+        category: 'other',
+        description: '',
+        configSchema: {},
+        runtimeType: 'cloudflare-native',
+        source: 'native',
+        deletedAt: null,
+        enabled: row.enabled === 1,
+        manifestJson: JSON.stringify({ slug: row.plugin_slug, name, schemaVersion: 1 }),
+      } as (typeof items)[number]);
+    }
     return response({ items, page: 1, limit: items.length, total: items.length, totalPages: 1 });
   }
   const detailMatch = url.pathname.match(/^\/api\/v1\/extensions\/plugin\/([^/]+)$/);
@@ -462,7 +516,26 @@ export async function tryNativePluginSettings(request: Request, env: PluginSetti
     // navigation until Cloudflare gives up with a 522.
     if (instancesMatch && request.method === 'GET') {
       const limit = Number(new URL(request.url).searchParams.get('limit') ?? 20) || 20;
+      const existingRow = await tryFindInstance(env, slug);
+      if (existingRow) {
+        const synthesized = synthesizedDefinition(slug);
+        return response({ items: [await adminInstance(existingRow, synthesized)], page: 1, limit, total: 1, totalPages: 1 });
+      }
       return response({ items: [], page: 1, limit, total: 0, totalPages: 0 });
+    }
+    // Installed-but-not-native-registry plugins (catalog pre-seeds such as
+    // cms/i18n) still deserve an openable detail page; truly unknown slugs
+    // keep the structured 404.
+    if (request.method === 'GET') {
+      const existingRow = await tryFindInstance(env, slug);
+      if (existingRow) {
+        const synthesized = synthesizedDefinition(slug);
+        return response({
+          ...synthesized,
+          runtimeType: 'cloudflare-native', source: 'native',
+          manifestJson: JSON.stringify({ ...synthesized, schemaVersion: 1 }),
+        });
+      }
     }
     return response({ code: 'PLUGIN_NOT_INSTALLED', message: `Plugin "${slug}" is not installed on this native runtime` }, 404);
   }

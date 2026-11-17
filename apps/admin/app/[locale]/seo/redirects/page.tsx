@@ -49,7 +49,7 @@ export default function RedirectsPage() {
   const navItems = [
     { label: getText('admin.seo.overview', 'SEO Overview'), href: '/seo', exact: true },
     { label: getText('admin.seo.redirects', 'Redirects'), href: '/seo/redirects' },
-    { label: getText('admin.seo.audit', 'SEO Audit'), href: '/seo/audit' },
+    { label: getText('admin.seo.auditNav', 'SEO Audit'), href: '/seo/audit' },
   ]
 
   const [searchTerm, setSearchTerm] = useState('')
