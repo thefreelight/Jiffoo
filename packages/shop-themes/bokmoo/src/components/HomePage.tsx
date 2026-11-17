@@ -88,47 +88,151 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_72%_30%,rgba(212,175,55,0.1),transparent_58%)]" />
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[rgba(255,255,255,0.08)]" />
-        <div className="relative mx-auto grid max-w-[1280px] items-center gap-12 px-5 py-16 sm:px-8 lg:grid-cols-2 lg:py-24">
-          <div>
-            <h1 className="text-[clamp(2.9rem,6vw,4.6rem)] font-light leading-[1.04] tracking-[-0.015em] text-white">
+        <div aria-hidden="true" className="absolute top-0 h-px w-full bg-[rgba(255,255,255,0.08)]" />
+        <div className="relative mx-auto grid max-w-[1280px] grid-cols-1 items-center gap-12 px-5 pt-16 pb-20 sm:px-8 lg:grid-cols-12 lg:gap-8 lg:py-24">
+          <div className="space-y-6 text-left lg:col-span-6">
+            <h1 className="text-4xl font-light leading-[1.15] tracking-tight text-white sm:text-5xl lg:text-6xl">
               {t({ en: 'One Card,', hans: '一张卡，', hant: '一張卡，' })}
               <br />
-              {t({ en: 'One World.', hans: '连世界。', hant: '連世界。' })}
+              <span className="font-normal">{t({ en: 'One World.', hans: '连世界。', hant: '連世界。' })}</span>
             </h1>
-            <p className="mt-6 max-w-md text-base leading-7 text-[var(--bokmoo-copy)]">
+            <p className="max-w-md text-base font-light leading-relaxed text-[var(--bokmoo-copy)] sm:text-lg">
               {t({
                 en: 'Physical SIM and eSIM for borderless, reliable mobile connectivity.',
                 hans: '实体 SIM 与 eSIM，带来无边界、可靠的移动连接。',
                 hant: '實體 SIM 與 eSIM，帶來無邊界、可靠的行動連線。',
               })}
             </p>
-            <div className="mt-9">
+            <div className="pt-2">
               <button
                 onClick={() => openHref('/products')}
-                className="btn-shimmer inline-flex min-h-12 items-center gap-2 rounded-full bg-[var(--bokmoo-gold)] px-7 text-sm font-medium text-[#0d0d0d] transition-colors hover:bg-[var(--bokmoo-gold-strong)]"
+                className="inline-flex items-center gap-3 rounded-full bg-[#E5C365] px-6 py-3.5 text-sm font-semibold text-[#111113] shadow-[0_2px_20px_rgba(229,195,101,0.25)] transition-all duration-200 hover:gap-4 hover:bg-[#F3D482]"
                 type="button"
               >
-                {t({ en: 'Get BOKMOO', hans: '获取 BOKMOO', hant: '獲取 BOKMOO' })}
+                <span>{t({ en: 'Get BOKMOO', hans: '获取 BOKMOO', hant: '獲取 BOKMOO' })}</span>
                 <ArrowRight className="h-4 w-4" />
               </button>
             </div>
           </div>
-          <div className="relative">
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_62%_42%,rgba(212,175,55,0.16),transparent_62%)]" />
-            <div className="relative mx-auto w-full max-w-[24rem]">
-              <img
-                src="/theme-assets/bokmoo/bokmoo-hero-card-pair.jpg"
-                alt={t({ en: 'BOKMOO physical SIM card and eSIM', hans: 'BOKMOO 实体 SIM 卡与 eSIM', hant: 'BOKMOO 實體 SIM 卡與 eSIM' })}
-                className="relative w-full rounded-[1.1rem] border border-[rgba(212,175,55,0.22)] object-cover shadow-[0_44px_120px_rgba(0,0,0,0.8)]"
-                loading="eager"
-              />
-              {/* Pedestal ring */}
-              <div aria-hidden="true" className="pointer-events-none absolute -bottom-9 left-1/2 h-10 w-[86%] -translate-x-1/2 rounded-[50%] border border-[rgba(212,175,55,0.42)] bg-[linear-gradient(180deg,rgba(20,18,14,0.9),rgba(10,10,10,0.98))] shadow-[0_18px_44px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(229,195,120,0.35)]" />
+
+          {/* Hero Visual Column: CSS Rendered Physical SIM on Stage Pedestal */}
+          <div className="relative flex flex-col items-center justify-center select-none lg:col-span-6">
+            <div className="pointer-events-none absolute left-1/2 top-1/2 z-0 h-[480px] w-[480px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-tr from-amber-600/10 via-[rgba(212,175,55,0.1)] to-transparent blur-[65px]" />
+            <div className="relative z-20 flex w-full flex-col items-center pt-4 pb-4">
+              <div className="sim-metallic-body relative z-20 flex h-[390px] w-[310px] flex-col justify-between overflow-hidden rounded-[24px] border border-neutral-800/90 bg-[#0e0e0e] p-6 shadow-[0_24px_50px_rgba(0,0,0,0.95)] transition-all duration-300 select-none sm:w-[340px]">
+                <svg className="pointer-events-none absolute inset-0 z-0 h-full w-full opacity-40" fill="none" viewBox="0 0 340 390" aria-hidden="true">
+                  <circle cx="100" cy="200" r="160" stroke="#262420" strokeWidth="46" />
+                  <circle cx="240" cy="280" r="130" stroke="#201e1a" strokeWidth="40" />
+                  <path d="M-20 180 C40 60, 160 30, 240 160" stroke="#22201b" strokeLinecap="round" strokeWidth="36" />
+                </svg>
+                <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-br from-white/[0.09] via-white/[0.015] to-black/85" />
+                <div className="pointer-events-none absolute inset-0 z-10 rounded-[23px] border border-white/[0.08]" />
+                <div className="relative z-20 flex w-full items-center justify-center px-2 pt-2">
+                  <svg aria-label="BOKMOO" className="h-4 w-auto shrink-0 fill-[#e2c26a] drop-shadow-[0_1px_4px_rgba(212,175,55,0.35)] sm:h-[18px]" role="img" viewBox="0 0 750 82">
+                    <g fill="#e2c26a">
+                      <g transform="translate(0 0) scale(.08) translate(-49.42 -140.06)">
+                        <path d="M909.71,140.06c-475.11,0-860.29,385.18-860.29,860.67,0,36.3,2.32,71.8,6.95,106.93h404.86c-8.48-34.36-12.72-70.26-12.72-106.93,0-254.71,206.87-461.2,461.2-461.2,255.13,0,461.6,206.49,461.6,461.2,0,36.67-4.24,72.57-12.74,106.93h405.25c4.64-35.13,6.95-70.63,6.95-106.93,0-475.49-385.56-860.67-861.06-860.67Z" />
+                        <path d="M1166.39,1000.73c0,38.22-8.12,74.5-23.56,106.93h-465.84c-15.43-32.43-23.54-68.71-23.54-106.93,0-141.64,114.62-256.66,256.66-256.66,141.64,0,256.28,115.01,256.28,256.66Z" />
+                        <path d="M2497.53,1000.73c0,38.22-8.1,74.5-23.54,106.93h-466.23c-15.43-32.43-23.56-68.71-23.56-106.93,0-141.64,115.03-256.66,256.67-256.66,141.64,0,256.66,115.01,256.66,256.66Z" />
+                        <path d="M2232,140.06c-231.19,0-441.53,91.48-595.91,240.07,93.77,109.6,162.86,240.45,199.53,384.41,80.66-135.08,227.71-225.01,396.37-225.01,254.73,0,461.2,206.49,461.2,461.2,0,36.67-4.24,72.57-12.74,106.93h405.25c4.64-35.13,6.95-70.63,6.95-106.93,0-475.49-385.18-860.67-860.67-860.67Z" />
+                      </g>
+                      <g transform="translate(270 15) scale(.9) translate(-42.62 -30)">
+                        <path d="M42.62,83.03V31.56h25.19c6.36,0,11.78,1.44,16.27,4.31,4.49,2.9,6.73,6.38,6.73,10.43,0,3.62-1.82,6.8-5.44,9.53,3.1,1.36,5.53,3.12,7.29,5.25,1.87,2.18,2.8,4.52,2.8,7.01,0,4.13-2.28,7.64-6.84,10.54-4.53,2.92-9.99,4.39-16.38,4.39h-29.62ZM54.8,53.25h13.01c2.99,0,5.53-.68,7.63-2.05,2.13-1.35,3.2-2.97,3.2-4.89,0-1.92-1.07-3.55-3.2-4.89-2.1-1.37-4.63-2.05-7.63-2.05h-13.01s0,13.88,0,13.88ZM54.8,75.22h17.45c3.03,0,5.63-.7,7.8-2.09,2.13-1.39,3.19-3.06,3.19-5.03,0-1.94-1.06-3.59-3.19-4.96-2.17-1.39-4.77-2.09-7.8-2.09h-17.45s0,14.17,0,14.17Z" />
+                        <path d="M112.91,75.83c-8-5.13-12.01-11.31-12.01-18.56,0-7.24,4-13.42,12.01-18.55,8-5.14,17.65-7.7,28.95-7.7,11.29,0,20.94,2.56,28.95,7.7,8,5.13,12.01,11.31,12.01,18.55,0,7.24-4,13.43-12.01,18.56-8,5.14-17.65,7.7-28.95,7.7-11.3,0-20.95-2.56-28.95-7.7ZM121.56,44.26c-5.61,3.59-8.42,7.93-8.42,13.01,0,5.09,2.8,9.43,8.42,13.02,5.61,3.59,12.38,5.39,20.31,5.39,7.93,0,14.7-1.8,20.3-5.39,5.61-3.59,8.42-7.93,8.42-13.02s-2.8-9.42-8.42-13.01c-5.61-3.59-12.38-5.39-20.3-5.39-7.93,0-14.7,1.8-20.31,5.39Z" />
+                        <path d="M248.62,31.56l-32.09,25.6,33.21,25.86h-15.82s-25.19-19.64-25.19-19.64l-3.76,2.99v16.65h-12.17V31.56h12.17v22.33s28.05-22.33,28.05-22.33h15.6Z" />
+                        <path d="M342.42,31.56v51.46h-12.18v-32.69s-22.32,32.69-22.32,32.69h-13.75s-21.93-32.48-21.93-32.48v32.48h-12.18V31.56h12.74s28.27,42.01,28.27,42.01l28.61-42.01h12.74Z" />
+                        <path d="M363.74,75.83c-8-5.13-12.01-11.31-12.01-18.56,0-7.24,4-13.42,12.01-18.55,8-5.14,17.65-7.7,28.95-7.7,11.29,0,20.94,2.56,28.95,7.7,8,5.13,12.01,11.31,12.01,18.55,0,7.24-4,13.43-12.01,18.56-8,5.14-17.65,7.7-28.95,7.7-11.3,0-20.95-2.56-28.95-7.7ZM372.38,44.26c-5.61,3.59-8.42,7.93-8.42,13.01s2.8,9.43,8.42,13.02c5.61,3.59,12.38,5.39,20.31,5.39,7.93,0,14.7-1.8,20.3-5.39,5.61-3.59,8.42-7.93,8.42-13.02,0-5.08-2.8-9.42-8.42-13.01-5.61-3.59-12.38-5.39-20.3-5.39-7.93,0-14.7,1.8-20.31,5.39Z" />
+                        <path d="M450.81,75.83c-8-5.13-12.01-11.31-12.01-18.56,0-7.24,4-13.42,12.01-18.55,8-5.14,17.65-7.7,28.95-7.7,11.29,0,20.94,2.56,28.95,7.7,8,5.13,12.01,11.31,12.01,18.55,0,7.24-4,13.43-12.01,18.56-8,5.14-17.65,7.7-28.95,7.7-11.3,0-20.95-2.56-28.95-7.7ZM459.45,44.26c-5.61,3.59-8.42,7.93-8.42,13.01,0,5.09,2.8,9.43,8.42,13.02,5.61,3.59,12.38,5.39,20.31,5.39,7.93,0,14.7-1.8,20.3-5.39,5.61-3.59,8.42-7.93,8.42-13.02,0-5.08-2.8-9.42-8.42-13.01-5.61-3.59-12.38-5.39-20.3-5.39-7.93,0-14.7,1.8-20.31,5.39Z" />
+                      </g>
+                    </g>
+                  </svg>
+                  <div className="absolute right-2 top-2">
+                    <svg className="h-5 w-5 stroke-[2.2] text-[#e5c365] drop-shadow-[0_1px_4px_rgba(212,175,55,0.35)]" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M6.5 6.5l11 11L12 23V1l5.5 5.5-11 11" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="relative z-20 my-auto mx-auto flex w-full items-center justify-center py-2">
+                  <div className="relative h-[162px] w-[270px]">
+                    <svg className="h-full w-full drop-shadow-[0_4px_12px_rgba(0,0,0,0.85)]" fill="none" viewBox="0 0 270 162" aria-hidden="true">
+                      <path d="M 28 8 H 118" stroke="#f5f5f5" strokeLinecap="round" strokeWidth="4.5" />
+                      <path d="M 134 8 H 236 A 16 16 0 0 1 252 24 V 68" stroke="#f5f5f5" strokeLinecap="round" strokeWidth="4.5" />
+                      <path d="M 252 84 V 110 L 224 146 H 134" stroke="#f5f5f5" strokeLinecap="round" strokeWidth="4.5" />
+                      <path d="M 118 146 H 28 A 16 16 0 0 1 12 130 V 84" stroke="#f5f5f5" strokeLinecap="round" strokeWidth="4.5" />
+                      <path d="M 12 68 V 24 A 16 16 0 0 1 28 8" stroke="#f5f5f5" strokeLinecap="round" strokeWidth="4.5" />
+                      <path d="M 46 22 H 178 A 10 10 0 0 1 188 32 V 96 L 168 126 H 46 A 10 10 0 0 1 36 116 V 32 A 10 10 0 0 1 46 22 Z" stroke="#b5b5b5" strokeDasharray="6 4" strokeLinecap="round" strokeWidth="1.4" />
+                      <path d="M 50 26 H 158 A 8 8 0 0 1 166 34 V 86 L 150 110 H 50 A 8 8 0 0 1 42 102 V 34 A 8 8 0 0 1 50 26 Z" stroke="#b5b5b5" strokeDasharray="5 3.5" strokeLinecap="round" strokeWidth="1.4" />
+                      <g transform="translate(54, 34)">
+                        <rect fill="url(#goldChipGradHero)" height="44" rx="7" stroke="#7c5e15" strokeWidth="1" width="50" x="0" y="0" />
+                        <rect fill="none" height="42" opacity="0.6" rx="6" stroke="#ffe89c" strokeWidth="0.6" width="48" x="1" y="1" />
+                        <path d="M 0 15 H 18 M 0 29 H 18" stroke="#694e0e" strokeWidth="1.1" />
+                        <path d="M 32 15 H 50 M 32 29 H 50" stroke="#694e0e" strokeWidth="1.1" />
+                        <path d="M 18 15 C 18 8 32 8 32 15 V 29 C 32 36 18 36 18 29 Z" fill="none" stroke="#694e0e" strokeWidth="1.1" />
+                        <path d="M 25 0 V 10 M 25 34 V 44" stroke="#694e0e" strokeWidth="1.1" />
+                        <path d="M 21 19 L 29 25 M 29 19 L 21 25" opacity="0.5" stroke="#694e0e" strokeWidth="0.8" />
+                      </g>
+                      <defs>
+                        <linearGradient id="goldChipGradHero" x1="0%" x2="100%" y1="0%">
+                          <stop offset="0%" stopColor="#f7dd88" />
+                          <stop offset="30%" stopColor="#e4bf5b" />
+                          <stop offset="65%" stopColor="#c89b2f" />
+                          <stop offset="100%" stopColor="#e9c669" />
+                        </linearGradient>
+                      </defs>
+                    </svg>
+                  </div>
+                </div>
+                <div className="relative z-20 flex flex-col items-center justify-center space-y-2 pb-2 text-center">
+                  <p className="text-xs font-medium uppercase tracking-[0.22em] text-[#e5c365] drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] sm:text-[13px]">
+                    YOUR GLOBAL PARTNER.
+                  </p>
+                  <p className="text-[10px] font-light uppercase tracking-[0.24em] text-[#e5c365]/90">BOKMOO.COM</p>
+                </div>
+              </div>
+              <div className="relative z-10 -mt-6 flex w-full max-w-[420px] flex-col items-center select-none sm:w-[500px]">
+                <div className="z-30 -mb-2 h-3.5 w-[320px] rounded-full bg-black opacity-95 blur-[3px] sm:w-[350px]" />
+                <div className="relative z-20 h-[62px] w-full">
+                  <div
+                    className="absolute inset-0 rounded-[50%] p-[3px] shadow-[0_6px_20px_rgba(0,0,0,0.9)]"
+                    style={{ background: 'linear-gradient(90deg, #44320e 0%, #997828 15%, #f6e29a 45%, #ffd978 52%, #b58d34 78%, #3e2e0c 100%)' }}
+                  >
+                    <div
+                      className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-[50%] border border-white/10"
+                      style={{ background: 'radial-gradient(ellipse at 50% 32%, #222226 0%, #131316 60%, #0a0a0c 100%)' }}
+                    >
+                      <div className="absolute inset-x-12 top-1 h-[2px] bg-gradient-to-r from-transparent via-white/60 to-transparent blur-[1px]" />
+                      <div className="h-[84%] w-[96%] rounded-[50%] border border-white/5" />
+                      <div className="mt-1 h-2 w-[280px] rounded-full bg-black/80 opacity-90 blur-[2px] sm:w-[310px]" />
+                    </div>
+                  </div>
+                </div>
+                <div
+                  className="relative z-10 flex h-[50px] w-[99.6%] justify-between overflow-hidden shadow-[0_10px_25px_rgba(0,0,0,0.8)]"
+                  style={{
+                    background: 'linear-gradient(90deg, #101013 0%, #1c1c20 16%, #28282e 38%, #1a1a1f 65%, #0e0e11 90%, #08080a 100%)',
+                    borderLeft: '1px solid rgba(229,195,101,0.35)',
+                    borderRight: '1px solid rgba(229,195,101,0.25)',
+                  }}
+                >
+                  <div className="h-full w-24 bg-gradient-to-r from-white/[0.14] via-white/[0.04] to-transparent" />
+                  <div className="h-full w-20 bg-gradient-to-l from-black/70 to-transparent" />
+                </div>
+                <div
+                  className="relative z-20 -mt-[31px] h-[62px] w-full rounded-[50%] p-[3px] shadow-[0_20px_40px_rgba(0,0,0,0.95)]"
+                  style={{ background: 'linear-gradient(90deg, #3d2c0b 0%, #8c6c22 18%, #f3da88 48%, #ffdf8d 55%, #a8832d 80%, #36260a 100%)' }}
+                >
+                  <div
+                    className="relative flex h-full w-full items-center justify-center"
+                    style={{ background: 'linear-gradient(180deg, #19150d 0%, #0c0a06 100%)' }}
+                  >
+                    <div className="h-full w-full rounded-[50%] border border-white/10" />
+                  </div>
+                </div>
+                <div aria-hidden="true" className="-mt-8 h-14 w-full bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0.85),transparent_70%)] opacity-95 blur-xl" />
+              </div>
             </div>
           </div>
         </div>
-        <div aria-hidden="true" className="h-px w-full bg-[rgba(255,255,255,0.08)]" />
       </section>
 
       {/* App */}
