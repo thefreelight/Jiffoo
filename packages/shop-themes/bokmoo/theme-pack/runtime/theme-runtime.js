@@ -15556,8 +15556,10 @@
     const [searchValue, setSearchValue] = react_default.useState("");
     const submitSearch = (event) => {
       event.preventDefault();
+      const mallLocale = locale === "zh-Hans" || locale === "zh-Hant" ? locale : "en";
+      const mallSearchUrl = `https://esim.bokmoo.com/${mallLocale}/search`;
       const value = searchValue.trim();
-      onNavigate?.(value ? `/products?search=${encodeURIComponent(value)}` : "/products");
+      window.location.assign(value ? `${mallSearchUrl}?q=${encodeURIComponent(value)}` : mallSearchUrl);
     };
     return /* @__PURE__ */ jsxs("div", { className: "min-h-screen bg-[#0d0d0d] text-[var(--bokmoo-ink)]", children: [
       /* @__PURE__ */ jsx(PromoBanner, { locale, config }),
@@ -18260,7 +18262,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.53",
+      version: "1.1.54",
       target: "shop"
     }
   };
