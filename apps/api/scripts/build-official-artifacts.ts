@@ -81,6 +81,10 @@ interface BuildOfficialArtifactsResult {
 }
 
 const REPO_ROOT = path.resolve(__dirname, '../../..');
+// Theme previews read from the official extensions checkout the workflow
+// provides via JIFFOO_OFFICIAL_EXTENSIONS_REPO_ROOT (fall back to this repo).
+const OFFICIAL_EXTENSIONS_VENDOR_PATH =
+  process.env.JIFFOO_OFFICIAL_EXTENSIONS_REPO_ROOT ?? REPO_ROOT;
 const DEFAULT_OUTPUT_DIR = path.join(REPO_ROOT, 'dist', 'official-artifacts');
 const ROOT_LICENSE_PATH = path.join(REPO_ROOT, 'LICENSE');
 
