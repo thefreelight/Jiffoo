@@ -18726,7 +18726,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "esim",
-      version: "0.0.1",
+      version: "0.0.2",
       target: "shop"
     }
   };
