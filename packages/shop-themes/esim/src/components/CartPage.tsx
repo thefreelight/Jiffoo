@@ -1,0 +1,269 @@
+import React from 'react';
+import { ArrowLeft, Check, Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react';
+import { cn } from '@jiffoo/ui';
+import type { CartPageProps } from 'shared/src/types/theme';
+import { pickCopy } from '../site';
+
+export const CartPage = React.memo(function CartPage({
+  cart,
+  isLoading,
+  onUpdateQuantity,
+  onRemoveItem,
+  onCheckout,
+  onCheckoutSelected,
+  selectedItemIds,
+  selectedItemCount,
+  onToggleItemSelection,
+  onSelectAllItems,
+  onDeselectAllItems,
+  onContinueShopping,
+  locale,
+}: CartPageProps) {
+  const t = (copy: { en: string; hans: string; hant: string }) => pickCopy(locale, copy);
+  const supportsSelection = Boolean(
+    onCheckoutSelected && onToggleItemSelection && onSelectAllItems && onDeselectAllItems
+  );
+  const effectiveSelectedIds = supportsSelection
+    ? (selectedItemIds || [])
+    : cart.items.map((item) => item.id);
+  const selectedIdSet = new Set(effectiveSelectedIds);
+  const selectedItems = supportsSelection
+    ? cart.items.filter((item) => selectedIdSet.has(item.id))
+    : cart.items;
+  const selectedSubtotal = selectedItems.reduce((sum, item) => sum + item.subtotal, 0);
+  const ratio = cart.subtotal > 0 ? selectedSubtotal / cart.subtotal : 0;
+  const selectedTax = Number(((cart.tax || 0) * ratio).toFixed(2));
+  const selectedShipping = Number(((cart.shipping || 0) * ratio).toFixed(2));
+  const selectedDiscount = Number(((cart.discount || 0) * ratio).toFixed(2));
+  const selectedTotal = Number((selectedSubtotal + selectedTax + selectedShipping - selectedDiscount).toFixed(2));
+  const selectedQuantity = selectedItems.reduce((sum, item) => sum + item.quantity, 0);
+  const allSelected = cart.items.length > 0 && effectiveSelectedIds.length === cart.items.length;
+  const hasSelection = effectiveSelectedIds.length > 0;
+
+  if (cart.items.length === 0) {
+    return (
+      <div className="min-h-screen bg-[var(--esim-bg)] px-4 pb-16 pt-20 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-[960px]">
+          <div className="rounded-[var(--esim-radius-xl)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-6 py-16 text-center shadow-[var(--esim-shadow)] sm:px-10">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[1.6rem] border border-[var(--esim-line)] bg-[var(--esim-bg)] text-[var(--esim-gold)]">
+              <ShoppingBag className="h-10 w-10" />
+            </div>
+            <h1 className="mt-6 text-[clamp(2.2rem,4vw,4rem)] leading-[0.98] tracking-[-0.05em] text-[var(--esim-ink)]">
+              {t({ en: 'Your cart is empty.', hans: '购物车是空的。', hant: '購物車是空的。' })}
+            </h1>
+            <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-[var(--esim-copy)]">
+              {t({ en: 'Add a destination or regional plan to prepare your connectivity before departure.', hans: '添加目的地或区域套餐，出发前备好连接。', hant: '添加目的地或區域套餐，出發前備好連接。' })}
+            </p>
+            <button
+              onClick={onContinueShopping}
+              className="mt-8 inline-flex items-center gap-2 rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--esim-gold)_82%,white),color-mix(in_oklab,var(--esim-gold)_65%,black))] px-6 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--esim-bg)]"
+              type="button"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              {t({ en: 'Continue browsing', hans: '继续逛店', hant: '繼續逛店' })}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[var(--esim-bg)] px-4 pb-16 pt-20 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-[1280px]">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={onContinueShopping}
+            className="flex h-10 w-10 items-center justify-center rounded-[1rem] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] text-[var(--esim-copy)]"
+            type="button"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </button>
+          <div>
+            <p className="text-[11px] font-semibold tracking-[0.2em] text-[var(--esim-copy-soft)]">
+              {t({ en: 'Travel Cart', hans: '旅行购物车', hant: '旅行購物車' })}
+            </p>
+            <h1 className="mt-1 text-[clamp(2rem,4vw,3.6rem)] leading-[0.98] tracking-[-0.05em] text-[var(--esim-ink)]">
+              {t({ en: 'Review your selected plans.', hans: '确认你选择的套餐。', hant: '確認你選擇的套餐。' })}
+            </h1>
+          </div>
+        </div>
+
+        {supportsSelection ? (
+          <div className="mt-5 flex items-center justify-between rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-4 shadow-[var(--esim-shadow)]">
+            <button
+              type="button"
+              onClick={() => {
+                if (allSelected) {
+                  onDeselectAllItems?.();
+                  return;
+                }
+                onSelectAllItems?.();
+              }}
+              className="inline-flex items-center gap-2 text-sm font-medium text-[var(--esim-copy)]"
+            >
+              <span
+                className={cn(
+                  'flex h-5 w-5 items-center justify-center rounded-md border',
+                  allSelected
+                    ? 'border-[var(--esim-gold)] bg-[var(--esim-gold)] text-[var(--esim-bg)]'
+                    : 'border-[var(--esim-line-strong)] bg-[var(--esim-bg)] text-transparent'
+                )}
+              >
+                <Check className="h-3.5 w-3.5" />
+              </span>
+              {allSelected ? t({ en: 'Deselect all', hans: '取消全选', hant: '取消全選' }) : t({ en: 'Select all', hans: '全选', hant: '全選' })}
+            </button>
+            <span className="text-xs font-semibold tracking-[0.18em] text-[var(--esim-copy-soft)]">
+              {selectedItemCount ?? effectiveSelectedIds.length} {t({ en: 'selected', hans: '已选', hant: '已選' })}
+            </span>
+          </div>
+        ) : null}
+
+        <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,0.98fr)_minmax(22rem,0.72fr)]">
+          <section className="space-y-4">
+            {cart.items.map((item) => (
+              <article
+                key={item.id}
+                className="rounded-[var(--esim-radius-xl)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-5 shadow-[var(--esim-shadow)]"
+              >
+                <div className="flex gap-4">
+                  {supportsSelection ? (
+                    <button
+                      type="button"
+                      onClick={() => onToggleItemSelection?.(item.id)}
+                      className={cn(
+                        'mt-1 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md border transition-colors',
+                        selectedIdSet.has(item.id)
+                          ? 'border-[var(--esim-gold)] bg-[var(--esim-gold)] text-[var(--esim-bg)]'
+                          : 'border-[var(--esim-line-strong)] bg-[var(--esim-bg)] text-transparent'
+                      )}
+                      aria-label={selectedIdSet.has(item.id) ? 'Deselect item' : 'Select item'}
+                    >
+                      <Check className="h-3.5 w-3.5" />
+                    </button>
+                  ) : null}
+
+                  <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] bg-[linear-gradient(155deg,color-mix(in_oklab,var(--esim-gold)_10%,transparent),transparent_55%),var(--esim-bg)]">
+                    {item.productImage ? (
+                      <img src={item.productImage} alt={item.productName} className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="flex h-full items-end p-3 text-[10px] tracking-[0.16em] text-[var(--esim-gold)]">
+                        BOKMOO
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-lg font-medium text-[var(--esim-ink)]">{item.productName}</h2>
+                    {item.variantName ? (
+                      <p className="mt-1 text-xs tracking-[0.16em] text-[var(--esim-copy-soft)]">
+                        {item.variantName}
+                      </p>
+                    ) : null}
+                    <p className="mt-3 text-sm text-[var(--esim-copy)]">{t({ en: 'Instant eSIM delivery with activation instructions included.', hans: '即时送达 eSIM，含激活说明。', hant: '即時送達 eSIM，含啟用說明。' })}</p>
+                    <div className="mt-4 flex items-center gap-3">
+                      <div className="flex items-center rounded-full border border-[var(--esim-line)] bg-[var(--esim-bg)] px-2 py-1">
+                        <button
+                          onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
+                          disabled={isLoading || item.quantity <= 1}
+                          className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--esim-copy)] disabled:opacity-40"
+                          type="button"
+                        >
+                          <Minus className="h-4 w-4" />
+                        </button>
+                        <span className="min-w-[2rem] text-center text-sm font-medium text-[var(--esim-ink)]">
+                          {item.quantity}
+                        </span>
+                        <button
+                          onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
+                          disabled={isLoading || item.quantity >= item.maxQuantity}
+                          className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--esim-copy)] disabled:opacity-40"
+                          type="button"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </button>
+                      </div>
+                      <button
+                        onClick={() => onRemoveItem(item.id)}
+                        disabled={isLoading}
+                        className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--esim-line)] bg-[var(--esim-bg)] text-[var(--esim-copy)] transition-colors hover:text-[var(--esim-danger)] disabled:opacity-40"
+                        title={t({ en: 'Remove', hans: '删除', hant: '刪除' })}
+                        type="button"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <p className="text-[10px] tracking-[0.18em] text-[var(--esim-copy-soft)]">{t({ en: 'Subtotal', hans: '小计', hant: '小計' })}</p>
+                    <p className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[var(--esim-ink)]">
+                      ${item.subtotal.toFixed(2)}
+                    </p>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </section>
+
+          <aside className="lg:col-span-1">
+            <div className="sticky top-24 rounded-[var(--esim-radius-xl)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-6 shadow-[var(--esim-shadow)]">
+              <p className="text-[11px] font-semibold tracking-[0.18em] text-[var(--esim-copy-soft)]">
+                {t({ en: 'Summary', hans: '摘要', hant: '摘要' })}
+              </p>
+
+              <div className="mt-6 space-y-4">
+                <div className="flex justify-between text-sm">
+                  <span className="text-[var(--esim-copy)]">{t({ en: 'Selected items', hans: '已选商品', hant: '已選商品' })}</span>
+                  <span className="text-[var(--esim-ink)]">{supportsSelection ? selectedQuantity : cart.itemCount}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-[var(--esim-copy)]">{t({ en: 'Subtotal', hans: '小计', hant: '小計' })}</span>
+                  <span className="text-[var(--esim-ink)]">${selectedSubtotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-[var(--esim-copy)]">{t({ en: 'Tax', hans: '税费', hant: '稅費' })}</span>
+                  <span className="text-[var(--esim-ink)]">${selectedTax.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-[var(--esim-copy)]">{t({ en: 'Shipping', hans: '运费', hant: '運費' })}</span>
+                  <span className="text-[var(--esim-ink)]">
+                    {selectedShipping === 0 ? t({ en: 'No shipping required', hans: '无需运费', hant: '無需運費' }) : `$${selectedShipping.toFixed(2)}`}
+                  </span>
+                </div>
+                {selectedDiscount > 0 ? (
+                  <div className="flex justify-between text-sm text-[var(--esim-success)]">
+                    <span>{t({ en: 'Discount', hans: '优惠', hant: '優惠' })}</span>
+                    <span>-${selectedDiscount.toFixed(2)}</span>
+                  </div>
+                ) : null}
+                <div className="border-t border-[var(--esim-line)] pt-4">
+                  <div className="flex justify-between text-lg">
+                    <span className="text-[var(--esim-ink)]">{t({ en: 'Total', hans: '总计', hant: '總計' })}</span>
+                    <span className="font-semibold text-[var(--esim-ink)]">${selectedTotal.toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  if (supportsSelection && hasSelection) {
+                    onCheckoutSelected?.(effectiveSelectedIds);
+                    return;
+                  }
+                  onCheckout();
+                }}
+                disabled={supportsSelection && !hasSelection}
+                className="mt-6 flex min-h-14 w-full items-center justify-center gap-2 rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--esim-gold)_82%,white),color-mix(in_oklab,var(--esim-gold)_65%,black))] px-5 text-sm font-semibold uppercase tracking-[0.2em] text-[var(--esim-bg)] disabled:cursor-not-allowed disabled:opacity-50"
+                type="button"
+              >
+                {t({ en: 'Secure Checkout', hans: '安全结算', hant: '安全結算' })}
+              </button>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </div>
+  );
+});

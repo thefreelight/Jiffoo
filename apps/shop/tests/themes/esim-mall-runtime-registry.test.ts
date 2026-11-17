@@ -13,7 +13,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '../../../..');
 const EMBEDDED_OFFICIAL_RUNTIME_SLUGS = ['esim-mall', 'imagic-studio', 'yevbi'] as const;
-const PACKAGED_RUNTIME_THEME_SLUGS = ['bokmoo', 'imagic-studio', 'modelsfind', 'navtoai', 'yevbi'] as const;
+const PACKAGED_RUNTIME_THEME_SLUGS = ['bokmoo', 'esim', 'imagic-studio', 'modelsfind', 'navtoai', 'yevbi'] as const;
 
 function readJson(relativePath: string) {
   return JSON.parse(readFileSync(path.join(repoRoot, relativePath), 'utf8'));

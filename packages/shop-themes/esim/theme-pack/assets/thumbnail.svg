@@ -1,0 +1,81 @@
+<svg width="1200" height="900" viewBox="0 0 1200 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="hero-glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(880 380) scale(420 360)">
+      <stop stop-color="#D4AF37" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#D4AF37" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="cta" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#E5C378"/>
+      <stop offset="1" stop-color="#D4AF37"/>
+    </linearGradient>
+    <linearGradient id="pedestal" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#1A1712"/>
+      <stop offset="1" stop-color="#0B0B0B"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="900" fill="#0D0D0D"/>
+  <rect x="470" y="0" width="730" height="900" fill="url(#hero-glow)"/>
+
+  <!-- Nav -->
+  <g transform="translate(60 44)">
+    <g fill="#E5C365">
+      <path d="M0 40 L0 25 A14 14 0 0 1 28 25 L28 40 Z"/>
+      <path d="M34 40 L34 25 A14 14 0 0 1 62 25 L62 40 Z"/>
+      <circle cx="29" cy="35" r="2.6"/>
+      <circle cx="35" cy="35" r="2.6"/>
+    </g>
+    <text x="72" y="38" font-family="Hanken Grotesk, Arial, sans-serif" font-size="24" font-weight="700" letter-spacing="3" fill="#F2F2F4">BOKMOO</text>
+    <g font-family="Hanken Grotesk, Arial, sans-serif" font-size="16" fill="#A8A8AD">
+      <text x="430" y="34">Products</text>
+      <text x="560" y="34">Global Plans</text>
+      <text x="710" y="34">Download App</text>
+      <text x="890" y="34">Support</text>
+    </g>
+    <rect x="1010" y="10" width="150" height="36" rx="18" fill="#D4AF37"/>
+    <text x="1042" y="34" font-family="Hanken Grotesk, Arial, sans-serif" font-size="15" font-weight="600" fill="#0D0D0D">Get BOKMOO</text>
+  </g>
+  <line x1="0" y1="106" x2="1200" y2="106" stroke="rgba(255,255,255,0.08)"/>
+
+  <!-- Hero copy -->
+  <g transform="translate(90 300)">
+    <text font-family="Hanken Grotesk, Arial, sans-serif" font-size="76" font-weight="300" fill="#FFFFFF">One Card,</text>
+    <text y="86" font-family="Hanken Grotesk, Arial, sans-serif" font-size="76" font-weight="300" fill="#FFFFFF">One World.</text>
+    <text y="150" font-family="Hanken Grotesk, Arial, sans-serif" font-size="19" fill="#A8A8AD">Physical SIM and eSIM for borderless, reliable mobile connectivity.</text>
+    <rect y="186" width="196" height="52" rx="26" fill="#D4AF37"/>
+    <text x="38" y="220" font-family="Hanken Grotesk, Arial, sans-serif" font-size="18" font-weight="600" fill="#0D0D0D">Get BOKMOO</text>
+    <path d="M172 206 l8 8 -8 8" stroke="#0D0D0D" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- Card on pedestal -->
+  <g transform="translate(700 210)">
+    <rect x="40" y="0" width="360" height="440" rx="26" fill="#131315" stroke="rgba(255,255,255,0.1)"/>
+    <g transform="translate(88 66) scale(0.62)" fill="#E5C365">
+      <path d="M0 40 L0 25 A14 14 0 0 1 28 25 L28 40 Z"/>
+      <path d="M34 40 L34 25 A14 14 0 0 1 62 25 L62 40 Z"/>
+      <circle cx="29" cy="35" r="2.6"/>
+      <circle cx="35" cy="35" r="2.6"/>
+    </g>
+    <text x="160" y="108" font-family="Hanken Grotesk, Arial, sans-serif" font-size="34" font-weight="700" letter-spacing="4" fill="#E5C365">BOKMOO</text>
+    <rect x="80" y="150" width="280" height="150" rx="18" stroke="#FFFFFF" stroke-width="3"/>
+    <path d="M320 150 v40 h-28 a8 8 0 0 1 -8 -8 v-32" stroke="#FFFFFF" stroke-width="3" fill="none"/>
+    <rect x="150" y="185" width="70" height="80" rx="8" fill="#D4AF37" stroke="#0D0D0D" stroke-width="3"/>
+    <path d="M150 205 h70 M150 225 h70 M172 185 v20 M196 185 v20" stroke="#0D0D0D" stroke-width="3" fill="none"/>
+    <text x="80" y="356" font-family="Hanken Grotesk, Arial, sans-serif" font-size="20" letter-spacing="6" fill="#E5C365">YOUR GLOBAL PARTNER.</text>
+    <ellipse cx="220" cy="500" rx="230" ry="42" stroke="#D4AF37" stroke-opacity="0.55" fill="url(#pedestal)"/>
+    <ellipse cx="220" cy="488" rx="150" ry="26" fill="#0c0a08" stroke="rgba(212,175,55,0.4)"/>
+  </g>
+
+  <!-- Section hint -->
+  <line x1="0" y1="706" x2="1200" y2="706" stroke="rgba(255,255,255,0.08)"/>
+  <g font-family="Hanken Grotesk, Arial, sans-serif" fill="#A8A8AD" font-size="17">
+    <text x="120" y="770">Fast Activation</text>
+    <text x="440" y="770">Global Coverage</text>
+    <text x="760" y="770">Flexible Options</text>
+  </g>
+  <g stroke="#D4AF37" stroke-width="1.6" fill="none">
+    <path d="M96 758 l10 -14 8 6 -6 14 -12 6 z"/>
+    <circle cx="446" cy="760" r="9"/>
+    <path d="M437 760 h18 M442 754 h-6 v12" />
+    <path d="M752 750 l8 5 8 -5 M752 758 l8 5 8 -5 M752 766 l8 5 8 -5"/>
+  </g>
+</svg>
