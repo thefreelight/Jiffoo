@@ -16,7 +16,7 @@
       "binding": "DB",
       "database_name": "bokmoo-production",
       "database_id": "2a174c03-a459-4c80-882f-8585b5d76541",
-      "migrations_dir": "/Users/jordan/Projects/Jiffoo/.worktrees/bokmoo-deploy/apps/cloudflare-native-core-api/migrations"
+      "migrations_dir": "migrations"
     }
   ],
   "r2_buckets": [
