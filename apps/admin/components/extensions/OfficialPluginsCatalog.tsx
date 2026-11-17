@@ -11,6 +11,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ExtensionAvatar, OfficialBadge } from '@/components/extensions/ExtensionVisuals';
 import type { ManagedPackageDefinition } from '@/lib/managed-mode';
+import { useLocale } from 'shared/src/i18n/react';
+import { localizeExtensionDescription, localizeExtensionName } from '@/lib/extension-catalog-zh';
 
 // Canonical display order; must stay in sync with the official manifest category
 // enum in jiffoo-extensions-official scripts/verify-plugin-zip.js.
@@ -94,6 +96,8 @@ export function OfficialPluginsCatalog({
     const allowed = new Set(managedPackage.includedPlugins);
     return items.filter((item) => allowed.has(item.slug));
   }, [items, managedPackage]);
+  const zhName = (item: OfficialCatalogItem) => localizeExtensionName(item.slug, item.name, locale);
+  const zhDescription = (item: OfficialCatalogItem) => localizeExtensionDescription(item.slug, item.description, locale);
 
   const categories = useMemo(
     () =>
@@ -229,10 +233,10 @@ export function OfficialPluginsCatalog({
                   <ExtensionAvatar slug={item.slug} name={item.name} kind="plugin" thumbnailUrl={item.thumbnailUrl} className="h-20 w-20 shrink-0" />
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="text-xl font-bold text-slate-950">{item.name}</h3>
+                      <h3 className="text-xl font-bold text-slate-950">{zhName(item)}</h3>
                       <OfficialBadge compact />
                     </div>
-                    <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">{item.description}</p>
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">{zhDescription(item)}</p>
                     <p className="mt-2 text-xs text-slate-500">v{item.version} <span className="mx-1">•</span> {item.category ? getText(`merchant.extensions.category.${item.category}`, item.category) : ''} <span className="mx-1">•</span> {item.downloads ?? 0} installs</p>
                   </div>
                 </div>
@@ -314,7 +318,7 @@ export function OfficialPluginsCatalog({
 
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <h4 className="text-base font-semibold text-slate-950">{item.name}</h4>
+                          <h4 className="text-base font-semibold text-slate-950">{zhName(item)}</h4>
                           <OfficialBadge compact />
                           {hasSolutionSemantics ? (
                             <Badge variant="outline" className="rounded-full border-blue-200 bg-blue-50 text-blue-700">
@@ -347,7 +351,7 @@ export function OfficialPluginsCatalog({
                           <span className="capitalize">{item.category}</span>
                         </div>
 
-                        <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-600">{item.description}</p>
+                        <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-600">{zhDescription(item)}</p>
 
                         {hasSolutionSemantics ? (
                           <div className="mt-3 rounded-lg border border-blue-100 bg-blue-50/70 px-3 py-2 text-sm text-blue-900">

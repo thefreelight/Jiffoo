@@ -154,3 +154,99 @@ describe('unknown plugin slugs fail fast natively', () => {
     expect(response?.status).toBe(401);
   });
 });
+
+describe('seo and catalog pre-seeded plugins surface in the installed list', () => {
+  it('lists the seo definition with its instance-enabled state', async () => {
+    authenticateNativeAdmin.mockResolvedValue({ id: 'admin-1', email: 'admin@example.com', role: 'ADMIN' });
+    const seoRow = {
+      id: 'baseline-seo-default', plugin_slug: 'seo', instance_key: 'default',
+      enabled: 1, config_json: '{}', encrypted_secrets_json: '{}',
+      created_at: '2026-01-01', updated_at: '2026-01-01',
+    };
+    const db = {
+      prepare: vi.fn((sql: string) => {
+        if (sql.includes('plugin_slug, enabled')) {
+          return statement(null, [{ plugin_slug: 'seo', enabled: 1 }]);
+        }
+        if (sql.includes("instance_key = 'default'")) {
+          return statement(seoRow);
+        }
+        return statement(null);
+      }),
+    };
+    const response = await tryNativePluginSettings(
+      new Request('https://api.example/api/v1/extensions/plugin', { headers: { authorization: 'Bearer admin-token' } }),
+      { DB: db } as never,
+    );
+    expect(response?.status).toBe(200);
+    const payload = await response?.json() as any;
+    const seo = payload.data.items.find((item: any) => item.slug === 'seo');
+    expect(seo).toMatchObject({
+      name: 'SEO Manager',
+      category: 'seo',
+      runtimeType: 'cloudflare-native',
+      enabled: true,
+    });
+  });
+
+  it('surfaces catalog pre-seeded slugs (cms) that have no native definition', async () => {
+    authenticateNativeAdmin.mockResolvedValue({ id: 'admin-1', email: 'admin@example.com', role: 'ADMIN' });
+    const db = {
+      prepare: vi.fn((sql: string) => {
+        if (sql.includes('instance_key = ?1') && sql.includes('plugin_slug, enabled')) {
+          return statement(null, [
+            { plugin_slug: 'cms', enabled: 1 },
+            { plugin_slug: 'media-storage', enabled: 0 },
+          ]);
+        }
+        return statement(null);
+      }),
+    };
+    const response = await tryNativePluginSettings(
+      new Request('https://api.example/api/v1/extensions/plugin', { headers: { authorization: 'Bearer admin-token' } }),
+      { DB: db } as never,
+    );
+    const payload = await response?.json() as any;
+    const cms = payload.data.items.find((item: any) => item.slug === 'cms');
+    expect(cms).toMatchObject({ name: 'Cms', enabled: true, source: 'native' });
+    const media = payload.data.items.find((item: any) => item.slug === 'media-storage');
+    expect(media).toMatchObject({ name: 'Media Storage', enabled: false });
+  });
+
+  it('answers a catalog pre-seeded unknown slug detail natively when an instance row exists', async () => {
+    authenticateNativeAdmin.mockResolvedValue({ id: 'admin-1', email: 'admin@example.com', role: 'ADMIN' });
+    const row = {
+      id: 'baseline-seo-default', plugin_slug: 'cms', instance_key: 'default',
+      enabled: 1, config_json: '{}', encrypted_secrets_json: '{}',
+      created_at: '2026-01-01', updated_at: '2026-01-01',
+    };
+    const db = {
+      prepare: vi.fn((sql: string) => {
+        if (sql.includes('plugin_slug = ?1') && sql.includes('instance_key')) {
+          return statement(row);
+        }
+        return statement(null);
+      }),
+    };
+    const response = await tryNativePluginSettings(
+      new Request('https://api.example/api/v1/extensions/plugin/cms', { headers: { authorization: 'Bearer admin-token' } }),
+      { DB: db } as never,
+    );
+    expect(response?.status).toBe(200);
+    const payload = await response?.json() as any;
+    expect(payload.data).toMatchObject({ slug: 'cms', name: 'Cms', runtimeType: 'cloudflare-native', source: 'native' });
+  });
+
+  it('keeps the structured 404 for slugs with no instance row', async () => {
+    authenticateNativeAdmin.mockResolvedValue({ id: 'admin-1', email: 'admin@example.com', role: 'ADMIN' });
+    const response = await tryNativePluginSettings(
+      new Request('https://api.example/api/v1/extensions/plugin/does-not-exist', { headers: { authorization: 'Bearer admin-token' } }),
+      { DB: { prepare: vi.fn(() => statement(null)) } } as never,
+    );
+    expect(response?.status).toBe(404);
+    await expect(response?.json()).resolves.toMatchObject({
+      success: false,
+      error: { code: 'PLUGIN_NOT_INSTALLED' },
+    });
+  });
+});

@@ -1386,7 +1386,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
   );
   const selectedConfigMeta = selectedInstance?.configMeta || data?.configMeta;
   const selectedReadiness = evaluateConfigReadiness(configSchema, selectedConfig, selectedConfigMeta);
-  const hasNativeWorkspace = slug === 'odoo' || slug === 'i18n' || slug === 'remoteradar-jobs' || Boolean(configSchema);
+  const hasNativeWorkspace = slug === 'odoo' || slug === 'i18n' || slug === 'remoteradar-jobs' || slug === 'seo' || Boolean(configSchema);
 
   useEffect(() => {
     setConfigDraft(selectedConfig);
@@ -1772,6 +1772,32 @@ export function PluginWorkspace({ slug }: { slug: string }) {
 
               {data.runtimeType === 'cloudflare-native' && ['smtp-email', 'stripe', 'odoo'].includes(slug) ? (
                 <NativeConnectionTest slug={slug} disabled={!selectedInstance?.enabled} onEnable={handleToggleSelectedInstance} />
+              ) : null}
+
+              {slug === 'seo' ? (
+                <Card className="rounded-2xl border-slate-200/80 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
+                  <CardHeader>
+                    <CardTitle className="text-lg tracking-tight">
+                      {locale.startsWith('zh') ? 'SEO 管理入口' : 'SEO management'}
+                    </CardTitle>
+                    <CardDescription>
+                      {locale.startsWith('zh')
+                        ? '重定向管理、审计与设置已内置于 Merchant Admin；robots.txt、sitemap.xml 与产品页元数据由店面自动生成并生效。'
+                        : 'Redirects, audit, and settings live in the built-in SEO pages; storefront robots.txt, sitemap.xml, and product metadata are generated automatically.'}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex flex-wrap gap-3">
+                    <Button asChild variant="outline" className="rounded-lg">
+                      <Link href={`/${locale}/seo/redirects`}>{locale.startsWith('zh') ? '重定向管理' : 'Redirects'}</Link>
+                    </Button>
+                    <Button asChild variant="outline" className="rounded-lg">
+                      <Link href={`/${locale}/seo/audit`}>{locale.startsWith('zh') ? 'SEO 审计' : 'SEO audit'}</Link>
+                    </Button>
+                    <Button asChild variant="outline" className="rounded-lg">
+                      <Link href={`/${locale}/seo`}>{locale.startsWith('zh') ? 'SEO 设置' : 'SEO settings'}</Link>
+                    </Button>
+                  </CardContent>
+                </Card>
               ) : null}
 
               {!hasNativeWorkspace ? (
