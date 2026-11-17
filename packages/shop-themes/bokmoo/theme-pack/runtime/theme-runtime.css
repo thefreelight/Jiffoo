@@ -1,20 +1,22 @@
+@import "https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600;700;800&display=swap";
+
 /* src/tokens.css */
 :root {
-  --bokmoo-bg: oklch(0.055 0.006 75);
-  --bokmoo-bg-elevated: oklch(0.082 0.008 75);
-  --bokmoo-bg-soft: oklch(0.118 0.01 75);
-  --bokmoo-panel: oklch(0.095 0.009 75 / 0.96);
-  --bokmoo-panel-strong: oklch(0.14 0.013 75 / 0.98);
+  --bokmoo-bg: #0d0d0d;
+  --bokmoo-bg-elevated: #141414;
+  --bokmoo-bg-soft: #1c1c1e;
+  --bokmoo-panel: rgba(20, 20, 20, 0.96);
+  --bokmoo-panel-strong: rgba(28, 28, 30, 0.98);
   --bokmoo-surface: var(--bokmoo-bg-elevated);
   --bokmoo-surface-alt: var(--bokmoo-bg-soft);
-  --bokmoo-ink: oklch(0.97 0.006 86);
-  --bokmoo-copy: oklch(0.78 0.011 82);
-  --bokmoo-copy-soft: oklch(0.57 0.01 82);
-  --bokmoo-line: oklch(0.29 0.019 78 / 0.34);
-  --bokmoo-line-strong: oklch(0.52 0.034 78 / 0.52);
-  --bokmoo-gold: oklch(0.76 0.105 80);
-  --bokmoo-gold-strong: oklch(0.86 0.11 82);
-  --bokmoo-gold-soft: oklch(0.2 0.042 79);
+  --bokmoo-ink: #f2f2f4;
+  --bokmoo-copy: #a8a8ad;
+  --bokmoo-copy-soft: #6f6f75;
+  --bokmoo-line: rgba(255, 255, 255, 0.08);
+  --bokmoo-line-strong: rgba(212, 175, 55, 0.22);
+  --bokmoo-gold: #d4af37;
+  --bokmoo-gold-strong: #e5c378;
+  --bokmoo-gold-soft: rgba(212, 175, 55, 0.1);
   --bokmoo-primary: var(--bokmoo-gold);
   --bokmoo-primary-strong: var(--bokmoo-gold-strong);
   --bokmoo-primary-soft: var(--bokmoo-gold-soft);
@@ -37,13 +39,14 @@
   --bokmoo-radius-md: 1rem;
   --bokmoo-radius-sm: 0.75rem;
   --bokmoo-display:
+    "Hanken Grotesk",
     "Avenir Next",
-    "Satoshi",
     "PingFang SC",
     "Microsoft YaHei",
     "Segoe UI",
     sans-serif;
   --bokmoo-sans:
+    "Hanken Grotesk",
     "Avenir Next",
     "PingFang SC",
     "Microsoft YaHei",

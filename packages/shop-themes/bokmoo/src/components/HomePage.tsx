@@ -1,24 +1,18 @@
 import React from 'react';
 import {
-  ArrowLeftRight,
   ArrowRight,
   Check,
+  ChevronDown,
+  Copy,
+  Download,
+  Globe,
   Layers,
-  QrCode,
   Search,
-  Smartphone,
+  Zap,
 } from 'lucide-react';
 import type { HomePageProps } from 'shared/src/types/theme';
 import { PromoBanner } from './PromoBanner';
 import { isExternalHref, pickCopy, resolveBokmooSiteConfig } from '../site';
-
-type HeroPillarProps = {
-  className: string;
-};
-
-function HeroPillar({ className }: HeroPillarProps) {
-  return <div className={`pointer-events-none absolute rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_26%,transparent)] ${className}`} />;
-}
 
 function AppleIcon() {
   return (
@@ -36,26 +30,12 @@ function PlayIcon() {
   );
 }
 
-function SectionEyebrow({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--bokmoo-gold)]">
-      {children}
-    </p>
-  );
-}
+const HAIRLINE = 'border-[color:rgba(255,255,255,0.08)]';
 
-const HERO_STATS: Array<{ value: string; label: { en: string; hans: string; hant: string } }> = [
-  { value: '200+', label: { en: 'Countries & regions', hans: '国家和地区', hant: '國家和地區' } },
-  { value: '1000+', label: { en: 'Carrier plans', hans: '运营商套餐', hant: '營運商套餐' } },
-  { value: '15–20', label: { en: 'Plans per card', hans: '套餐/张卡', hant: '套餐/張卡' } },
-];
-
-const DESTINATIONS: Array<{ name: { en: string; hans: string; hant: string }; flag: string; image: string }> = [
-  { name: { en: 'Japan', hans: '日本', hant: '日本' }, flag: '🇯🇵', image: '/theme-assets/bokmoo/bokmoo-dest-japan.jpg' },
-  { name: { en: 'France', hans: '法国', hant: '法國' }, flag: '🇫🇷', image: '/theme-assets/bokmoo/bokmoo-dest-france.jpg' },
-  { name: { en: 'Singapore', hans: '新加坡', hant: '新加坡' }, flag: '🇸🇬', image: '/theme-assets/bokmoo/bokmoo-dest-singapore.jpg' },
-  { name: { en: 'United States', hans: '美国', hant: '美國' }, flag: '🇺🇸', image: '/theme-assets/bokmoo/bokmoo-dest-usa.jpg' },
-];
+/* Placeholder device identifiers shown inside the phone UI. Randomised on
+   purpose — never ship real card identifiers on the storefront. */
+const PHONE_ICCIDS = ['897823828746375807', '891296012124251779', '894643707593644071'];
+const PHONE_EID = '88888888888888888888888888888888';
 
 export const HomePage = React.memo(function HomePage({ locale, config, onNavigate }: HomePageProps) {
   const site = resolveBokmooSiteConfig(config, locale);
@@ -72,374 +52,379 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
     [onNavigate]
   );
 
-  const heroStats = HERO_STATS.map((stat) => ({
-    value: stat.value,
-    label: t(stat.label),
-  }));
+  const [openFaq, setOpenFaq] = React.useState<number | null>(0);
+
+  const faqItems = [
+    {
+      q: { en: 'What is BOKMOO?', hans: 'BOKMOO 是什么？', hant: 'BOKMOO 是什麼？' },
+      a: {
+        en: 'BOKMOO is a mobile connectivity product: a physical SIM card and an eSIM that work as one account, so your phone stays connected as you travel — no local shop visits, no swapping trays at the border.',
+        hans: 'BOKMOO 是一个移动连接产品：实体 SIM 卡与 eSIM 共用一个帐户，出境旅行时手机保持在线，无需在当地门店办卡，也无需在过境时换卡。',
+        hant: 'BOKMOO 是一個行動連線產品：實體 SIM 卡與 eSIM 共用同一個帳戶，出境旅行時手機保持在線，無需在當地門市辦卡，也無需在過境時換卡。',
+      },
+    },
+    {
+      q: { en: "What's the difference between the physical SIM and the eSIM?", hans: '实体 SIM 和 eSIM 有什么区别？', hant: '實體 SIM 和 eSIM 有什麼區別？' },
+      a: {
+        en: 'The physical SIM ships to you and slots into any unlocked phone. The eSIM installs digitally in minutes, with no shipping and no tray. Both live in the same account and switch from the BOKMOO app.',
+        hans: '实体 SIM 卡邮寄到手，插入任意无锁手机即可使用；eSIM 数分钟内完成安装，无需邮寄、无需取卡针。两者共用同一帐户，在 BOKMOO App 内即可切换。',
+        hant: '實體 SIM 卡郵寄到手，插入任意無鎖手機即可使用；eSIM 數分鐘內完成安裝，無需郵寄、無需取卡針。兩者共用同一帳戶，在 BOKMOO App 內即可切換。',
+      },
+    },
+    {
+      q: { en: 'Where can I use BOKMOO?', hans: 'BOKMOO 可以在哪些地方使用？', hant: 'BOKMOO 可以在哪些地方使用？' },
+      a: {
+        en: 'BOKMOO covers the destinations listed in the app and in the destination search above; search your destination to see its coverage and plans before you fly.',
+        hans: 'BOKMOO 覆盖 App 内与上方目的地搜索中列出的国家和地区；出发前搜索你的目的地，即可查看对应的套餐与覆盖范围。',
+        hant: 'BOKMOO 覆蓋 App 內與上方目的地搜索中列出的國家和地區；出發前搜索你的目的地，即可查看對應的套餐與覆蓋範圍。',
+      },
+    },
+  ];
 
   return (
-    <div className="min-h-screen bg-[#08070a] text-[var(--bokmoo-ink)]">
+    <div className="min-h-screen bg-[#0d0d0d] text-[var(--bokmoo-ink)]">
       <PromoBanner locale={locale} config={config} />
+
       {/* Hero */}
-      <section className="relative overflow-hidden border-b border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,transparent)]">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_75%_35%,color-mix(in_oklab,var(--bokmoo-gold)_16%,transparent),transparent_55%)]" />
-        <HeroPillar className="left-[58%] top-[-20%] hidden h-[130%] w-[28rem] lg:block" />
-        <HeroPillar className="left-[70%] top-[-10%] hidden h-[150%] w-[36rem] lg:block" />
-        <div className="relative mx-auto grid max-w-[1180px] items-center gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:py-20">
+      <section className="relative overflow-hidden">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_72%_30%,rgba(212,175,55,0.1),transparent_58%)]" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[rgba(255,255,255,0.08)]" />
+        <div className="relative mx-auto grid max-w-[1280px] items-center gap-12 px-5 py-16 sm:px-8 lg:grid-cols-2 lg:py-24">
           <div>
-            <h1 className="text-[clamp(3.4rem,8vw,6.4rem)] font-bold leading-[0.92] tracking-[-0.02em] text-white">
-              BOKMOO
+            <h1 className="text-[clamp(2.9rem,6vw,4.6rem)] font-light leading-[1.04] tracking-[-0.015em] text-white">
+              {t({ en: 'One Card,', hans: '一张卡，', hant: '一張卡，' })}
+              <br />
+              {t({ en: 'One World.', hans: '连世界。', hant: '連世界。' })}
             </h1>
-            <p className="mt-3 text-[clamp(1.5rem,3vw,2.2rem)] font-semibold tracking-[-0.02em] text-[var(--bokmoo-gold)]">
-              {t({ en: 'One card, connected to your world.', hans: '一张卡，连接你的世界。', hant: '一張卡，連接你的世界。' })}
-            </p>
-            <p className="mt-6 max-w-xl text-base leading-8 text-[var(--bokmoo-copy)]">
+            <p className="mt-6 max-w-md text-base leading-7 text-[var(--bokmoo-copy)]">
               {t({
-                en: 'A physical eSIM card that makes global connectivity simple. 200+ countries and regions, flexible plans, effortless management.',
-                hans: '实体 eSIM 卡，让全球连接更简单。支持 200+ 国家和地区，灵活套餐，轻松管理。',
-                hant: '實體 eSIM 卡，讓全球連接更簡單。支援 200+ 國家和地區，靈活套餐，輕鬆管理。',
+                en: 'Physical SIM and eSIM for borderless, reliable mobile connectivity.',
+                hans: '实体 SIM 与 eSIM，带来无边界、可靠的移动连接。',
+                hant: '實體 SIM 與 eSIM，帶來無邊界、可靠的行動連線。',
               })}
             </p>
-            <div className="mt-8 flex flex-wrap items-center gap-4">
+            <div className="mt-9">
               <button
                 onClick={() => openHref('/products')}
-                className="btn-shimmer inline-flex min-h-12 items-center gap-2 rounded-[0.9rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] px-6 text-sm font-semibold text-[#141210]"
+                className="btn-shimmer inline-flex min-h-12 items-center gap-2 rounded-full bg-[var(--bokmoo-gold)] px-7 text-sm font-medium text-[#0d0d0d] transition-colors hover:bg-[var(--bokmoo-gold-strong)]"
                 type="button"
               >
-                {t({ en: 'Explore BOKMOO', hans: '探索 BOKMOO', hant: '探索 BOKMOO' })}
+                {t({ en: 'Get BOKMOO', hans: '获取 BOKMOO', hant: '獲取 BOKMOO' })}
                 <ArrowRight className="h-4 w-4" />
               </button>
-              <button
-                onClick={() => openHref('/download/app')}
-                className="btn-shimmer inline-flex min-h-12 items-center gap-2 rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_36%,transparent)] px-6 text-sm font-semibold text-[var(--bokmoo-ink)]"
-                type="button"
-              >
-                {t({ en: 'Download the App', hans: '下载 App', hant: '下載 App' })}
-                <ArrowRight className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="mt-12 grid max-w-lg grid-cols-3 gap-6 border-t border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,transparent)] pt-7">
-              {heroStats.map((stat) => (
-                <div key={stat.value}>
-                  <p className="text-2xl font-bold tracking-[-0.02em] text-white sm:text-3xl">{stat.value}</p>
-                  <p className="mt-1.5 text-xs leading-5 text-[var(--bokmoo-copy-soft)]">{stat.label}</p>
-                </div>
-              ))}
             </div>
           </div>
           <div className="relative">
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_60%_50%,color-mix(in_oklab,var(--bokmoo-gold)_22%,transparent),transparent_60%)]" />
-            <img
-              src="/theme-assets/bokmoo/bokmoo-hero-card-pair.jpg"
-              alt="BOKMOO"
-              className="relative w-full rounded-[1.2rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_20%,transparent)] object-cover"
-              loading="eager"
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* Product */}
-      <section className="border-b border-[color:color-mix(in_oklab,var(--bokmoo-gold)_12%,transparent)] bg-[#0b0a0d]">
-        <div className="mx-auto max-w-[1180px] px-4 py-16 sm:px-6 lg:py-20">
-          <SectionEyebrow>{t({ en: 'BOKMOO products', hans: 'BOKMOO 产品', hant: 'BOKMOO 產品' })}</SectionEyebrow>
-          <h2 className="mt-4 text-[clamp(1.9rem,3.4vw,2.8rem)] font-bold tracking-[-0.02em] text-white">
-            {t({ en: 'Find the connection that fits you', hans: '找到适合你的连接方式', hant: '找到適合你的連接方式' })}
-          </h2>
-          <p className="mt-4 max-w-2xl text-base leading-8 text-[var(--bokmoo-copy)]">
-            {t({
-              en: 'One physical card managing multiple eSIM plans — built for different countries and every kind of trip.',
-              hans: '一张实体卡，管理多个 eSIM 套餐，满足不同国家、不同场景的出行需求。',
-              hant: '一張實體卡，管理多個 eSIM 套餐，滿足不同國家、不同場景的出行需求。',
-            })}
-          </p>
-          <div className="mt-12 grid items-center gap-10 overflow-hidden rounded-[1.4rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent)] bg-[linear-gradient(120deg,#171310_0%,#0c0b0e_55%,#08070a_100%)] p-6 sm:p-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-            <div className="relative">
-              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_35%_50%,color-mix(in_oklab,var(--bokmoo-gold)_20%,transparent),transparent_62%)]" />
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_62%_42%,rgba(212,175,55,0.16),transparent_62%)]" />
+            <div className="relative mx-auto w-full max-w-[24rem]">
               <img
                 src="/theme-assets/bokmoo/bokmoo-hero-card-pair.jpg"
-                alt={t({ en: 'BOKMOO eSIM Card', hans: 'BOKMOO eSIM 卡', hant: 'BOKMOO eSIM 卡' })}
-                className="relative w-full rounded-[1rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,transparent)] object-cover"
-                loading="lazy"
+                alt={t({ en: 'BOKMOO physical SIM card and eSIM', hans: 'BOKMOO 实体 SIM 卡与 eSIM', hant: 'BOKMOO 實體 SIM 卡與 eSIM' })}
+                className="relative w-full rounded-[1.1rem] border border-[rgba(212,175,55,0.22)] object-cover shadow-[0_44px_120px_rgba(0,0,0,0.8)]"
+                loading="eager"
               />
-            </div>
-            <div>
-              <h3 className="text-2xl font-bold tracking-[-0.02em] text-white">
-                {t({ en: 'BOKMOO eSIM Card', hans: 'BOKMOO eSIM 卡', hant: 'BOKMOO eSIM 卡' })}
-              </h3>
-              <p className="mt-3 text-sm leading-7 text-[var(--bokmoo-copy)]">
-                {t({ en: 'One physical card, multiple eSIM plans.', hans: '一张实体卡，管理多个 eSIM 套餐。', hant: '一張實體卡，管理多個 eSIM 套餐。' })}
-              </p>
-              <ul className="mt-7 grid gap-4 sm:grid-cols-2">
-                {[
-                  { en: '1.6MB capacity', hans: '1.6MB 大容量', hant: '1.6MB 大容量' },
-                  { en: 'SGP.22 / SGP.32', hans: 'SGP.22 / SGP.32', hant: 'SGP.22 / SGP.32' },
-                  { en: '15–20 plans per card', hans: '支持 15-20 个套餐', hant: '支援 15-20 個套餐' },
-                  { en: 'GSMA certified', hans: 'GSMA 认证', hant: 'GSMA 認證' },
-                ].map((feature) => (
-                  <li key={feature.en} className="flex items-center gap-3 text-sm text-[var(--bokmoo-ink)]">
-                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_24%,transparent)] text-[var(--bokmoo-gold)]">
-                      <Check className="h-3.5 w-3.5" />
-                    </span>
-                    {t(feature)}
-                  </li>
-                ))}
-              </ul>
-              <button
-                onClick={() => openHref('/products')}
-                className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-[var(--bokmoo-gold)] hover:underline"
-                type="button"
-              >
-                {t({ en: 'Learn more', hans: '了解产品', hant: '了解產品' })}
-                <ArrowRight className="h-4 w-4" />
-              </button>
+              {/* Pedestal ring */}
+              <div aria-hidden="true" className="pointer-events-none absolute -bottom-9 left-1/2 h-10 w-[86%] -translate-x-1/2 rounded-[50%] border border-[rgba(212,175,55,0.42)] bg-[linear-gradient(180deg,rgba(20,18,14,0.9),rgba(10,10,10,0.98))] shadow-[0_18px_44px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(229,195,120,0.35)]" />
             </div>
           </div>
         </div>
+        <div aria-hidden="true" className="h-px w-full bg-[rgba(255,255,255,0.08)]" />
       </section>
 
       {/* App */}
-      <section className="border-b border-[color:color-mix(in_oklab,var(--bokmoo-gold)_12%,transparent)]">
-        <div className="mx-auto max-w-[1180px] px-4 py-16 sm:px-6 lg:py-20">
-          <SectionEyebrow>{t({ en: 'BOKMOO App', hans: 'BOKMOO App', hant: 'BOKMOO App' })}</SectionEyebrow>
-          <h2 className="mt-4 text-[clamp(1.9rem,3.4vw,2.8rem)] font-bold tracking-[-0.02em] text-white">
-            {t({ en: 'Your plans, in your grasp.', hans: '你的套餐，尽在掌握。', hant: '你的套餐，盡在掌握。' })}
-          </h2>
-          <p className="mt-4 max-w-2xl text-base leading-8 text-[var(--bokmoo-copy)]">
-            {t({
-              en: 'Scan to add, review cards, switch plans — one app does it all.',
-              hans: '扫码添加、查看卡片、切换套餐，一个 App 完成。',
-              hant: '掃碼添加、查看卡片、切換套餐，一個 App 完成。',
-            })}
-          </p>
-          <div className="mt-12 grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
-            <div>
-              <ul className="grid gap-8">
-                {[
-                  {
-                    icon: <QrCode className="h-5 w-5" />,
-                    title: { en: 'Scan to add eSIMs', hans: '扫码添加 eSIM', hant: '掃碼添加 eSIM' },
-                    copy: { en: 'Quick scan, effortless plan setup.', hans: '快速扫描，轻松添加套餐。', hant: '快速掃描，輕鬆添加套餐。' },
-                  },
-                  {
-                    icon: <Layers className="h-5 w-5" />,
-                    title: { en: 'Manage plans per card', hans: '按卡片管理套餐', hant: '按卡片管理套餐' },
-                    copy: { en: 'Multiple cards, clearly organized.', hans: '多张卡片，清晰管理。', hant: '多張卡片，清晰管理。' },
-                  },
-                  {
-                    icon: <ArrowLeftRight className="h-5 w-5" />,
-                    title: { en: 'View & switch anytime', hans: '随时查看与切换', hant: '隨時查看與切換' },
-                    copy: { en: 'One-tap switching for flexible travel.', hans: '一键切换，出行更灵活。', hant: '一鍵切換，出行更靈活。' },
-                  },
-                ].map((feature) => (
-                  <li key={feature.title.en} className="flex gap-5">
-                    <span className="mt-1 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_26%,transparent)] text-[var(--bokmoo-gold)]">
-                      {feature.icon}
-                    </span>
-                    <div>
-                      <p className="text-base font-semibold text-[var(--bokmoo-ink)]">{t(feature.title)}</p>
-                      <p className="mt-1.5 text-sm leading-6 text-[var(--bokmoo-copy)]">{t(feature.copy)}</p>
+      <section className="relative overflow-hidden">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_22%_45%,rgba(212,175,55,0.07),transparent_55%)]" />
+        <div className="relative mx-auto grid max-w-[1280px] items-center gap-12 px-5 py-16 sm:px-8 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1fr)] lg:py-24">
+          <div className="relative mx-auto w-full max-w-[18.5rem]">
+            <div className="rounded-[2.4rem] border border-[rgba(255,255,255,0.1)] bg-[#0b0b0c] p-2 shadow-[0_36px_110px_rgba(0,0,0,0.75)]">
+              <div className="rounded-[1.9rem] bg-[#101012] px-4 pb-5 pt-3">
+                <div className="flex items-center justify-between text-[0.66rem] text-[var(--bokmoo-copy-soft)]">
+                  <span>9:41</span>
+                  <span className="flex items-center gap-1.5">
+                    <svg viewBox="0 0 16 10" className="h-2.5 w-3.5" fill="currentColor" aria-hidden="true"><rect x="0" y="6" width="3" height="4" rx="0.6" /><rect x="4.4" y="4" width="3" height="6" rx="0.6" /><rect x="8.8" y="2" width="3" height="8" rx="0.6" /><rect x="13.2" y="0" width="2.6" height="10" rx="0.6" /></svg>
+                    <svg viewBox="0 0 24 12" className="h-2.5 w-5" fill="none" stroke="currentColor" aria-hidden="true"><rect x="0.6" y="0.6" width="19" height="10.8" rx="3" /><rect x="2.4" y="2.4" width="14" height="7.2" rx="1.6" fill="currentColor" stroke="none" /><path d="M22 4v4" stroke-linecap="round" /></svg>
+                  </span>
+                </div>
+                <div className="mt-3 flex items-center justify-between">
+                  <ChevronDown className="h-4 w-4 -rotate-90 text-[var(--bokmoo-copy-soft)]" aria-hidden="true" />
+                  <span className="text-[0.82rem] font-semibold text-[var(--bokmoo-ink)]">
+                    {t({ en: 'My eSIM Card', hans: '我的 eSIM 卡片', hant: '我的 eSIM 卡片' })}
+                  </span>
+                  <span className="text-[0.72rem] text-[var(--bokmoo-gold)]">
+                    {t({ en: 'Close', hans: '关闭', hant: '關閉' })}
+                  </span>
+                </div>
+                {/* Bluetooth card panel */}
+                <div className="mt-3 rounded-[1rem] border border-[rgba(212,175,55,0.28)] bg-[linear-gradient(150deg,#181512,#0e0d10_70%)] p-3.5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[0.62rem] uppercase tracking-[0.14em] text-[var(--bokmoo-gold)]">
+                        {t({ en: 'Bluetooth card', hans: '蓝牙卡片', hant: '藍牙卡片' })}
+                      </p>
+                      <p className="mt-1 text-base font-bold tracking-[0.06em] text-white">BOKMOO</p>
                     </div>
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-10 flex flex-wrap gap-4">
-                <button
-                  onClick={() => openHref('/download/app')}
-                  className="btn-shimmer inline-flex min-h-13 items-center gap-3 rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_30%,transparent)] bg-[#0d0c0f] px-6 py-3 text-left"
-                  type="button"
-                >
-                  <AppleIcon />
-                  <span>
-                    <span className="block text-[0.65rem] uppercase tracking-wide text-[var(--bokmoo-copy-soft)]">
-                      {t({ en: 'Download on the', hans: '下载到', hant: '下載到' })}
-                    </span>
-                    <span className="block text-base font-semibold text-[var(--bokmoo-ink)]">App Store</span>
+                    <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-[0.55rem] border border-[rgba(212,175,55,0.3)] bg-[#141210]">
+                      <svg viewBox="0 0 24 24" className="h-5 w-5 text-[var(--bokmoo-gold)]" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6.5 6.5l11 11M6.5 17.5l11-11M12 2v20a3.5 3.5 0 002.4-1.2L17 17M12 22V2a3.5 3.5 0 012.4 1.2L17 7" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    title={t({ en: 'Copy EID', hans: '复制 EID', hant: '複製 EID' })}
+                    className="mt-2.5 flex w-full items-center gap-1.5 text-left"
+                  >
+                    <span className="text-[0.62rem] text-[var(--bokmoo-copy-soft)]">EID</span>
+                    <span className="truncate font-mono text-[0.62rem] tracking-wide text-[var(--bokmoo-gold)]">{PHONE_EID}</span>
+                    <Copy className="h-3 w-3 shrink-0 text-[var(--bokmoo-copy-soft)]" aria-hidden="true" />
+                  </button>
+                  <span className="mt-2.5 inline-flex items-center gap-1.5 rounded-full border border-[rgba(110,200,120,0.35)] bg-[rgba(110,200,120,0.08)] px-2.5 py-1 text-[0.66rem] text-[#8fdc8f]">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#8fdc8f]" />
+                    {t({ en: 'Connected', hans: '已连接', hant: '已連線' })}
                   </span>
-                </button>
-                <button
-                  onClick={() => openHref('/download/app')}
-                  className="btn-shimmer inline-flex min-h-13 items-center gap-3 rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_30%,transparent)] bg-[#0d0c0f] px-6 py-3 text-left"
-                  type="button"
-                >
-                  <PlayIcon />
-                  <span>
-                    <span className="block text-[0.65rem] uppercase tracking-wide text-[var(--bokmoo-copy-soft)]">
-                      {t({ en: 'Download on', hans: '下载到', hant: '下載到' })}
-                    </span>
-                    <span className="block text-base font-semibold text-[var(--bokmoo-ink)]">Google Play</span>
+                </div>
+                {/* Bottom diagnostics */}
+                <div className="mt-2 grid grid-cols-2 divide-x divide-[rgba(255,255,255,0.06)] rounded-[0.9rem] border border-[rgba(255,255,255,0.07)] bg-[#131315]">
+                  <div className="flex items-center gap-2 px-3 py-2.5">
+                    <Globe className="h-3.5 w-3.5 text-[var(--bokmoo-copy-soft)]" aria-hidden="true" />
+                    <div className="min-w-0">
+                      <p className="text-[0.58rem] text-[var(--bokmoo-copy-soft)]">
+                        {t({ en: 'Reader', hans: '读卡器', hant: '讀卡器' })}
+                      </p>
+                      <p className="truncate text-[0.66rem] text-[var(--bokmoo-ink)]">eSIM-BLE-BF4FDA5A</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 px-3 py-2.5">
+                    <Layers className="h-3.5 w-3.5 text-[var(--bokmoo-copy-soft)]" aria-hidden="true" />
+                    <div>
+                      <p className="text-[0.58rem] text-[var(--bokmoo-copy-soft)]">
+                        {t({ en: 'Card plans', hans: '卡内套餐', hant: '卡內套餐' })}
+                      </p>
+                      <p className="text-[0.66rem] text-[var(--bokmoo-ink)]">5 ↑</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-3 flex items-center justify-between">
+                  <p className="text-xs font-semibold text-[var(--bokmoo-ink)]">
+                    {t({ en: 'eSIM list (5)', hans: 'eSIM 列表（5）', hant: 'eSIM 列表（5）' })}
+                  </p>
+                  <span className="rounded-full border border-[rgba(212,175,55,0.3)] px-2.5 py-1 text-[0.62rem] text-[var(--bokmoo-gold)]">
+                    + {t({ en: 'Add eSIM', hans: '添加 eSIM', hant: '添加 eSIM' })}
                   </span>
-                </button>
-              </div>
-            </div>
-            <div className="relative mx-auto w-full max-w-[19rem]">
-              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent),transparent_65%)]" />
-              <div className="relative rounded-[2.2rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_26%,transparent)] bg-[#050408] p-2 shadow-[0_24px_80px_rgba(0,0,0,0.6)]">
-                <div className="rounded-[1.8rem] bg-[#0b0a0d] p-4">
-                  <div className="flex items-center justify-between text-[0.65rem] text-[var(--bokmoo-copy-soft)]">
-                    <span>9:41</span>
-                    <span className="flex items-center gap-1">
-                      <span className="inline-block h-1 w-3 rounded-full bg-[var(--bokmoo-copy-soft)]" />
-                      <span className="inline-block h-2 w-2 rounded-full border border-[var(--bokmoo-copy-soft)]" />
-                    </span>
-                  </div>
-                  <div className="mt-4 flex items-center justify-between">
-                    <span className="text-sm font-bold tracking-tight text-[var(--bokmoo-gold)]">BOKMOO</span>
-                    <span className="text-[var(--bokmoo-copy-soft)]">⚙</span>
-                  </div>
-                  <div className="mt-4 rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_20%,transparent)] bg-[#121016] p-3">
-                    <p className="flex items-center gap-1.5 text-[0.65rem] text-[#4ade80]">
-                      <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#4ade80]" />
-                      {t({ en: 'Connected', hans: '已连接', hant: '已連線' })}
-                    </p>
-                    <p className="mt-2 text-xs font-semibold text-[var(--bokmoo-ink)]">
-                      {t({ en: 'BOKMOO Card', hans: 'BOKMOO 卡片', hant: 'BOKMOO 卡片' })}
-                    </p>
-                    <p className="mt-0.5 text-[0.6rem] tracking-wide text-[var(--bokmoo-copy-soft)]">EID 8903****…S287</p>
-                  </div>
-                  <div className="mt-4 flex items-center justify-between">
-                    <p className="text-xs font-semibold text-[var(--bokmoo-ink)]">
-                      {t({ en: 'eSIM list (2)', hans: 'eSIM 列表（2）', hant: 'eSIM 列表（2）' })}
-                    </p>
-                    <span className="rounded-full bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_20%,transparent)] px-2 py-0.5 text-[0.6rem] text-[var(--bokmoo-gold)]">
-                      + eSIM
-                    </span>
-                  </div>
-                  <div className="mt-3 space-y-2">
-                    {[
-                      { flag: '🇯🇵', name: { en: 'Japan', hans: '日本', hant: '日本' }, state: { en: 'Active', hans: '使用中', hant: '使用中' }, on: true },
-                      { flag: '🇫🇷', name: { en: 'France', hans: '法国', hant: '法國' }, state: { en: 'Unused', hans: '未应用', hant: '未應用' }, on: false },
-                      { flag: '🇸🇬', name: { en: 'Singapore', hans: '新加坡', hant: '新加坡' }, state: { en: 'Unused', hans: '未应用', hant: '未應用' }, on: false },
-                    ].map((row) => (
-                      <div key={row.name.en} className="flex items-center justify-between rounded-[0.8rem] bg-[#141218] px-3 py-2.5">
-                        <span className="flex items-center gap-2 text-xs text-[var(--bokmoo-ink)]">
-                          <span>{row.flag}</span>
-                          <span>
-                            {t(row.name)}
-                            <span className="ml-1.5 rounded bg-[#221e28] px-1 py-0.5 text-[0.55rem] text-[var(--bokmoo-copy-soft)]">{t(row.state)}</span>
-                          </span>
-                        </span>
-                        <span className={`inline-flex h-3.5 w-6 items-center rounded-full p-0.5 ${row.on ? 'bg-[var(--bokmoo-gold)]' : 'bg-[#2c2830]'}`}>
-                          <span className={`h-2.5 w-2.5 rounded-full bg-white transition-transform ${row.on ? 'translate-x-3' : ''}`} />
-                        </span>
+                </div>
+                <div className="mt-2.5 space-y-2">
+                  {[
+                    { icon: 'T', name: { en: 'Tigo', hans: 'Tigo', hant: 'Tigo' }, iccid: PHONE_ICCIDS[0], on: true },
+                    { icon: '🇨🇳', name: { en: 'China Mobile', hans: 'China Mobile', hant: 'China Mobile' }, state: { en: 'In use', hans: '使用中', hant: '使用中' }, iccid: PHONE_ICCIDS[1], on: true },
+                    { icon: '5G', name: { en: 'Global Roam 5G', hans: 'Global Roam 5G', hant: 'Global Roam 5G' }, iccid: PHONE_ICCIDS[2], on: false },
+                  ].map((row) => (
+                    <div key={row.iccid} className="flex items-center justify-between rounded-[0.8rem] border border-[rgba(255,255,255,0.06)] bg-[#161618] px-3 py-2.5">
+                      <div className="min-w-0">
+                        <p className="flex items-center gap-1.5 text-xs font-medium text-[var(--bokmoo-ink)]">
+                          {!row.icon.startsWith('🇨🇳') && (
+                            <span className="inline-flex h-4 w-4 items-center justify-center rounded-[0.3rem] bg-[#2a2a2e] text-[0.5rem] font-bold text-neutral-300">
+                              {row.icon}
+                            </span>
+                          )}
+                          <span className="truncate">{t(row.name)}</span>
+                          {row.state ? (
+                            <span className="rounded bg-[rgba(212,175,55,0.12)] px-1 py-0.5 text-[0.55rem] text-[var(--bokmoo-gold)]">{t(row.state)}</span>
+                          ) : null}
+                        </p>
+                        <p className="mt-0.5 truncate font-mono text-[0.58rem] text-[var(--bokmoo-copy-soft)]">ICCID: {row.iccid}</p>
                       </div>
-                    ))}
-                  </div>
+                      <span className={`inline-flex h-4 w-7 shrink-0 items-center rounded-full p-0.5 ${row.on ? 'bg-[#4ade80]' : 'bg-[#2c2c30]'}`}>
+                        <span className={`h-3 w-3 rounded-full bg-white transition-transform ${row.on ? 'translate-x-3' : ''}`} />
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
           </div>
+          <div>
+            <h2 className="text-[clamp(1.9rem,3.2vw,2.7rem)] font-medium leading-[1.15] tracking-[-0.015em] text-white">
+              {t({
+                en: 'Manage Your Connectivity with the BOKMOO App',
+                hans: '用 BOKMOO App 管理你的连接',
+                hant: '用 BOKMOO App 管理你的連線',
+              })}
+            </h2>
+            <p className="mt-5 max-w-lg text-base leading-7 text-[var(--bokmoo-copy)]">
+              {t({
+                en: 'Switch profiles instantly, monitor data usage in real-time, and purchase destination packages directly inside the official BOKMOO application. Designed for effortless international control.',
+                hans: '在官方 BOKMOO App 内即时切换配置、实时监控流量，并直接购买目的地套餐，为轻松掌控全球连接而设计。',
+                hant: '在官方 BOKMOO App 內即時切換設定檔、即時監控流量，並直接購買目的地套餐，為輕鬆掌控全球連線而設計。',
+              })}
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3.5">
+              {[
+                { icon: <AppleIcon />, top: { en: 'Download on the', hans: '下载到', hant: '下載到' }, label: 'App Store' },
+                { icon: <PlayIcon />, top: { en: 'Download on', hans: '下载于', hant: '下載於' }, label: 'Google Play' },
+                { icon: <Download className="h-5 w-5" />, top: { en: 'Direct install', hans: '直接安装', hant: '直接安裝' }, label: 'Direct APK' },
+              ].map((store) => (
+                <button
+                  key={store.label}
+                  onClick={() => openHref('/download/app')}
+                  className={`inline-flex min-h-13 items-center gap-3 rounded-full border border-[rgba(255,255,255,0.12)] px-6 py-3 text-left transition-colors hover:border-[rgba(212,175,55,0.3)] hover:bg-[rgba(255,255,255,0.04)]`}
+                  type="button"
+                >
+                  {store.icon}
+                  <span>
+                    <span className="block text-[0.62rem] uppercase tracking-wide text-[var(--bokmoo-copy-soft)]">{t(store.top)}</span>
+                    <span className="block text-sm font-semibold text-[var(--bokmoo-ink)]">{store.label}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Feature strip */}
+      <section className="border-y border-[rgba(255,255,255,0.08)]">
+        <div className="mx-auto grid max-w-[1280px] gap-10 px-5 py-14 sm:px-8 md:grid-cols-3">
+          {[
+            {
+              icon: <Zap className="h-6 w-6" />,
+              title: { en: 'Fast Activation', hans: '极速激活', hant: '極速激活' },
+              copy: { en: 'Get online in minutes', hans: '几分钟即可上网', hant: '幾分鐘即可上網' },
+            },
+            {
+              icon: <Globe className="h-6 w-6" />,
+              title: { en: 'Global Coverage', hans: '全球覆盖', hant: '全球覆蓋' },
+              copy: { en: 'Stay connected abroad', hans: '海外保持在线', hant: '海外保持在線' },
+            },
+            {
+              icon: <Layers className="h-6 w-6" />,
+              title: { en: 'Flexible Options', hans: '灵活选择', hant: '靈活選擇' },
+              copy: { en: 'SIM and eSIM, your choice', hans: 'SIM 与 eSIM，随你选择', hant: 'SIM 與 eSIM，隨你選擇' },
+            },
+          ].map((feature, index) => (
+            <div key={feature.title.en} className={`flex items-start gap-4 ${index > 0 ? 'md:border-l md:border-[rgba(255,255,255,0.08)] md:pl-10' : ''}`}>
+              <span className="text-[var(--bokmoo-gold)]">{feature.icon}</span>
+              <div>
+                <p className="text-sm font-semibold text-[var(--bokmoo-ink)]">{t(feature.title)}</p>
+                <p className="mt-1 text-sm text-[var(--bokmoo-copy)]">{t(feature.copy)}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 
       {/* Destinations */}
-      <section id="destinations" className="scroll-mt-24 border-b border-[color:color-mix(in_oklab,var(--bokmoo-gold)_12%,transparent)] bg-[#0b0a0d]">
-        <div className="mx-auto max-w-[1180px] px-4 py-16 sm:px-6 lg:py-20">
-          <div className="flex flex-wrap items-end justify-between gap-6">
-            <div>
-              <SectionEyebrow>{t({ en: 'Popular destinations', hans: '热门目的地', hant: '熱門目的地' })}</SectionEyebrow>
-              <h2 className="mt-4 text-[clamp(1.9rem,3.4vw,2.8rem)] font-bold tracking-[-0.02em] text-white">
-                {t({ en: 'Where to next?', hans: '下一站，去哪里？', hant: '下一站，去哪裡？' })}
-              </h2>
-            </div>
-            <label className="flex min-h-11 w-full max-w-xs items-center gap-3 rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent)] bg-[#0d0c0f] px-4 text-sm text-[var(--bokmoo-copy-soft)]">
-              <Search className="h-4 w-4" />
-              <input
-                aria-label={t({ en: 'Search a country or region', hans: '搜索国家或地区', hant: '搜尋國家或地區' })}
-                placeholder={t({ en: 'Search a country or region', hans: '搜索国家或地区', hant: '搜尋國家或地區' })}
-                className="w-full border-0 bg-transparent p-0 outline-none ring-0 placeholder:text-[var(--bokmoo-copy-soft)] focus:ring-0"
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    const value = (event.target as HTMLInputElement).value.trim();
-                    openHref(value ? `/products?search=${encodeURIComponent(value)}` : '/products');
-                  }
-                }}
-              />
-            </label>
+      <section id="destinations" className="scroll-mt-24">
+        <div className="mx-auto max-w-[1280px] px-5 py-16 sm:px-8 lg:py-24">
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="text-[clamp(1.9rem,3.2vw,2.7rem)] font-medium tracking-[-0.015em] text-white">
+              {t({ en: 'Find Your Destination', hans: '找到你的目的地', hant: '找到你的目的地' })}
+            </h2>
+            <p className="mt-4 text-base leading-7 text-[var(--bokmoo-copy)]">
+              {t({
+                en: 'Search for a country or region to explore connectivity options.',
+                hans: '搜索国家或地区，探索可用的连接方案。',
+                hant: '搜索國家或地區，探索可用的連線方案。',
+              })}
+            </p>
           </div>
-          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {DESTINATIONS.map((destination) => (
-              <button
-                key={destination.name.en}
-                onClick={() => openHref('/products')}
-                className="group relative overflow-hidden rounded-[1.1rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,transparent)] text-left"
-                type="button"
-              >
-                <img
-                  src={destination.image}
-                  alt={t(destination.name)}
-                  className="aspect-[6/5] w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  loading="lazy"
-                />
-                <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_45%,rgba(4,3,6,0.88)_100%)]" />
-                <div className="absolute inset-x-0 bottom-0 flex items-center justify-between p-4">
-                  <span className="flex items-center gap-2 text-sm font-semibold text-white">
-                    <span>{destination.flag}</span>
-                    {t(destination.name)}
-                  </span>
-                  <span className="inline-flex items-center gap-1 text-xs font-medium text-[var(--bokmoo-gold)]">
-                    {t({ en: 'View plans', hans: '查看套餐', hant: '查看套餐' })}
-                    <ArrowRight className="h-3 w-3" />
-                  </span>
-                </div>
-              </button>
-            ))}
+          <div className="mx-auto mt-9 flex max-w-xl items-center gap-3 rounded-full border border-[rgba(255,255,255,0.1)] bg-[#141414] px-5 py-1.5 transition-colors focus-within:border-[rgba(212,175,55,0.55)]">
+            <Search className="h-4 w-4 shrink-0 text-[var(--bokmoo-copy-soft)]" aria-hidden="true" />
+            <input
+              aria-label={t({ en: 'Search a country or region', hans: '搜索国家或地区', hant: '搜尋國家或地區' })}
+              placeholder={t({ en: 'Search a country or region', hans: '搜索国家或地区', hant: '搜尋國家或地區' })}
+              className="min-h-10 w-full border-0 bg-transparent p-0 text-sm text-[var(--bokmoo-ink)] outline-none ring-0 placeholder:text-[var(--bokmoo-copy-soft)] focus:ring-0"
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  const value = (event.target as HTMLInputElement).value.trim();
+                  openHref(value ? `/products?search=${encodeURIComponent(value)}` : '/products');
+                }
+              }}
+            />
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--bokmoo-gold)] text-[#0d0d0d]" aria-hidden="true">
+              <ArrowRight className="h-4 w-4" />
+            </span>
           </div>
         </div>
       </section>
 
       {/* How it works */}
-      <section>
-        <div className="mx-auto max-w-[1180px] px-4 py-16 sm:px-6 lg:py-20">
-          <SectionEyebrow>{t({ en: 'How to start', hans: '如何开始', hant: '如何開始' })}</SectionEyebrow>
-          <h2 className="mt-4 text-[clamp(1.9rem,3.4vw,2.8rem)] font-bold tracking-[-0.02em] text-white">
-            {t({ en: 'From card to connected world.', hans: '从连接卡片，到连接世界。', hant: '從連接卡片，到連接世界。' })}
-          </h2>
-          <div className="mt-12 grid gap-10 md:grid-cols-3">
+      <section id="how-it-works" className="scroll-mt-24 border-t border-[rgba(255,255,255,0.08)]">
+        <div className="mx-auto max-w-[1280px] px-5 py-16 sm:px-8 lg:py-24">
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="text-[clamp(1.9rem,3.2vw,2.7rem)] font-medium tracking-[-0.015em] text-white">
+              {t({ en: 'Get Connected in 3 Steps', hans: '三步完成连接', hant: '三步完成連線' })}
+            </h2>
+          </div>
+          <div className="mt-14 grid gap-10 md:grid-cols-3">
             {[
               {
-                step: '01',
-                icon: <Smartphone className="h-5 w-5" />,
-                title: { en: 'Connect the card', hans: '连接卡片', hant: '連接卡片' },
-                copy: { en: 'Connect the physical eSIM card to the app.', hans: '通过实体 eSIM 卡连接到 App。', hant: '透過實體 eSIM 卡連接到 App。' },
+                step: '1',
+                icon: <Check className="h-4 w-4" />,
+                title: { en: 'Get BOKMOO', hans: '获取 BOKMOO', hant: '獲取 BOKMOO' },
+                copy: { en: 'Use the physical SIM or eSIM.', hans: '使用实体 SIM 或 eSIM。', hant: '使用實體 SIM 或 eSIM。' },
               },
               {
-                step: '02',
-                icon: <QrCode className="h-5 w-5" />,
-                title: { en: 'Add an eSIM', hans: '添加 eSIM', hant: '添加 eSIM' },
-                copy: { en: 'Scan or pick a plan and add it to your card.', hans: '扫码或选择套餐，添加到卡片。', hant: '掃碼或選擇套餐，添加到卡片。' },
+                step: '2',
+                icon: <Download className="h-4 w-4" />,
+                title: { en: 'Add & Activate', hans: '添加并激活', hant: '添加並激活' },
+                copy: { en: 'Set up in the BOKMOO app.', hans: '在 BOKMOO App 中完成设置。', hant: '在 BOKMOO App 中完成設定。' },
               },
               {
-                step: '03',
-                icon: <ArrowLeftRight className="h-5 w-5" />,
-                title: { en: 'Switch plans', hans: '切换套餐', hant: '切換套餐' },
-                copy: { en: 'Review and switch in the app — one card, many destinations.', hans: '在 App 中随时查看与切换，一张卡轻松管理多个目的地。', hant: '在 App 中隨時查看與切換，一張卡輕鬆管理多個目的地。' },
+                step: '3',
+                icon: <ArrowRight className="h-4 w-4" />,
+                title: { en: 'Stay Online', hans: '保持在线', hant: '保持在線' },
+                copy: { en: 'Enjoy reliable connectivity around the world.', hans: '在全球享受可靠的连接。', hant: '在全球享受可靠的連線。' },
               },
-            ].map((step) => (
-              <div key={step.step} className="flex gap-5">
-                <span className="text-3xl font-bold text-[var(--bokmoo-gold)]">{step.step}</span>
-                <div>
-                  <span className="inline-flex h-11 w-11 items-center justify-center rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_26%,transparent)] text-[var(--bokmoo-gold)]">
-                    {step.icon}
-                  </span>
-                  <p className="mt-4 text-base font-semibold text-[var(--bokmoo-ink)]">{t(step.title)}</p>
-                  <p className="mt-2 text-sm leading-6 text-[var(--bokmoo-copy)]">{t(step.copy)}</p>
-                </div>
+            ].map((step, index) => (
+              <div key={step.step} className="relative text-center">
+                <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-[rgba(212,175,55,0.45)] text-base font-semibold text-[var(--bokmoo-gold)]">
+                  {step.step}
+                </span>
+                {index < 2 ? (
+                  <span aria-hidden="true" className="pointer-events-none absolute right-[-30%] top-6 hidden h-px w-[60%] bg-[rgba(255,255,255,0.08)] md:block" />
+                ) : null}
+                <p className="mt-5 text-base font-semibold text-[var(--bokmoo-ink)]">{t(step.title)}</p>
+                <p className="mt-2 text-sm leading-6 text-[var(--bokmoo-copy)]">{t(step.copy)}</p>
               </div>
             ))}
           </div>
-          <div className="mt-14 flex flex-wrap items-center justify-center gap-5 rounded-[1.3rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,transparent)] bg-[linear-gradient(120deg,color-mix(in_oklab,var(--bokmoo-gold)_8%,transparent),transparent_60%)] px-6 py-8 text-center">
-            <p className="text-lg font-semibold text-[var(--bokmoo-ink)]">
-              {t({ en: 'Ready to get started?', hans: '准备好开始了吗？', hant: '準備好開始了嗎？' })}
-            </p>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="border-t border-[rgba(255,255,255,0.08)]">
+        <div className="mx-auto max-w-[1280px] px-5 py-16 sm:px-8 lg:py-24">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <h2 className="text-[clamp(1.9rem,3.2vw,2.7rem)] font-medium tracking-[-0.015em] text-white">
+              {t({ en: 'FAQ', hans: '常见问题', hant: '常見問題' })}
+            </h2>
             <button
-              onClick={() => openHref('/download/app')}
-              className="btn-shimmer inline-flex min-h-12 items-center gap-2 rounded-[0.9rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] px-6 text-sm font-semibold text-[#141210]"
+              onClick={() => openHref('/help')}
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--bokmoo-gold)] hover:underline"
               type="button"
             >
-              {t({ en: 'Download the BOKMOO App', hans: '下载 BOKMOO App', hant: '下載 BOKMOO App' })}
-              <ArrowRight className="h-4 w-4" />
+              {t({ en: 'View All Questions', hans: '查看全部问题', hant: '查看全部問題' })}
+              <ArrowRight className="h-3.5 w-3.5" />
             </button>
+          </div>
+          <div className="mt-8 border-t border-[rgba(255,255,255,0.08)]">
+            {faqItems.map((item, index) => {
+              const isOpen = openFaq === index;
+              return (
+                <div key={item.q.en} className="border-b border-[rgba(255,255,255,0.08)]">
+                  <button
+                    onClick={() => setOpenFaq(isOpen ? null : index)}
+                    aria-expanded={isOpen}
+                    className={`flex w-full items-center justify-between gap-6 py-5 text-left text-base font-medium text-[var(--bokmoo-ink)] transition-colors hover:text-[var(--bokmoo-gold)]`}
+                    type="button"
+                  >
+                    {t(item.q)}
+                    <ChevronDown className={`h-4 w-4 shrink-0 text-[var(--bokmoo-copy-soft)] transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
+                  </button>
+                  {isOpen ? (
+                    <p className="max-w-3xl pb-5 text-sm leading-7 text-[var(--bokmoo-copy)]">{t(item.a)}</p>
+                  ) : null}
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>

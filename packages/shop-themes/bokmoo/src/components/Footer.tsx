@@ -54,7 +54,7 @@ export const Footer = React.memo(function Footer({
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <button
                 onClick={() => openHref(site.primaryCtaHref)}
-                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-[0.9rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] px-6 text-sm font-semibold text-[var(--bokmoo-bg)]"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[var(--bokmoo-gold)] transition-colors hover:bg-[var(--bokmoo-gold-strong)] px-6 text-sm font-semibold text-[var(--bokmoo-bg)]"
                 type="button"
               >
                 {site.primaryCtaLabel}

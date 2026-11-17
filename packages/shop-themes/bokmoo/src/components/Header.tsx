@@ -14,28 +14,21 @@ function BokmooLogoMark() {
       fill="none"
       aria-hidden="true"
     >
-      <defs>
-        <linearGradient id="bokmoo-mark-gold" x1="4" y1="43" x2="126" y2="94" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#F4CD63" />
-          <stop offset="0.52" stopColor="var(--bokmoo-gold)" />
-          <stop offset="1" stopColor="#C99B3E" />
-        </linearGradient>
-      </defs>
       <path
         d="M1 85C1 61.25 17.65 42 38.2 42C58.75 42 75.4 61.25 75.4 85H57.3C57.3 72.85 48.75 63 38.2 63C27.65 63 19.1 72.85 19.1 85H1Z"
-        fill="url(#bokmoo-mark-gold)"
+        fill="#E5C365"
       />
       <path
         d="M56.2 85C56.2 61.25 73.35 42 94.5 42C115.65 42 132.8 61.25 132.8 85H114.2C114.2 72.85 105.38 63 94.5 63C83.62 63 74.8 72.85 74.8 85H56.2Z"
-        fill="url(#bokmoo-mark-gold)"
+        fill="#E5C365"
       />
       <path
         d="M27.3 85C27.3 78.08 32.18 72.48 38.2 72.48C44.22 72.48 49.1 78.08 49.1 85H27.3Z"
-        fill="url(#bokmoo-mark-gold)"
+        fill="#E5C365"
       />
       <path
         d="M83.25 85C83.25 78.08 88.29 72.48 94.5 72.48C100.71 72.48 105.75 78.08 105.75 85H83.25Z"
-        fill="url(#bokmoo-mark-gold)"
+        fill="#E5C365"
       />
     </svg>
   );
@@ -114,7 +107,7 @@ export const Header = React.memo(function Header({
   ];
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[color:color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent)] bg-[radial-gradient(circle_at_8%_-24%,color-mix(in_oklab,var(--bokmoo-gold)_14%,transparent),transparent_34%),linear-gradient(180deg,oklch(0.055_0.007_75_/_0.98),oklch(0.028_0.004_75_/_0.96))] shadow-[0_18px_52px_rgba(0,0,0,0.3)] backdrop-blur-2xl">
+    <header className="sticky top-0 z-50 border-b border-[rgba(255,255,255,0.08)] bg-[rgba(13,13,13,0.75)] backdrop-blur-[20px]">
       <div className="mx-auto flex max-w-[107rem] items-center gap-3 px-4 py-2.5 sm:px-6 xl:min-h-[4.35rem] xl:gap-5 xl:px-0">
         <button
           onClick={onNavigateToHome}
@@ -196,7 +189,7 @@ export const Header = React.memo(function Header({
               </button>
               <button
                 onClick={onNavigateToRegister}
-                className={`inline-flex min-h-[2.75rem] items-center justify-center rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_46%,white)] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_88%,white),color-mix(in_oklab,var(--bokmoo-gold)_64%,black))] px-6 text-sm font-bold tracking-[0.01em] text-[var(--bokmoo-bg)] shadow-[0_14px_30px_color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent),inset_0_1px_0_rgba(255,255,255,0.34)] transition-transform duration-300 hover:-translate-y-0.5 ${FOCUS_VISIBLE_RING}`}
+                className={`inline-flex min-h-[2.75rem] items-center justify-center rounded-full bg-[var(--bokmoo-gold)] px-6 text-sm font-semibold text-[#0d0d0d] transition-colors hover:bg-[var(--bokmoo-gold-strong)] ${FOCUS_VISIBLE_RING}`}
                 type="button"
               >
                 {pickCopy(locale, { en: 'Get Started', hans: '立即开始', hant: '立即開始' })}
