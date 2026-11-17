@@ -58,10 +58,10 @@ export const Footer = React.memo(function Footer({
   );
 
   const footerLinks = [
-    { label: pickCopy(locale, { en: 'Products', hans: '产品', hant: '產品' }), onClick: onNavigateToProducts },
-    { label: pickCopy(locale, { en: 'Support', hans: '支持', hant: '支援' }), onClick: onNavigateToHelp },
-    { label: pickCopy(locale, { en: 'Terms', hans: '条款', hant: '條款' }), onClick: onNavigateToTerms },
-    { label: pickCopy(locale, { en: 'Privacy', hans: '隐私', hant: '隱私' }), onClick: onNavigateToPrivacy },
+    { label: pickCopy(locale, { en: 'Products', hans: '产品', hant: '產品', ja: '製品', ko: '제품', fr: 'Produits', de: 'Produkte' }), onClick: onNavigateToProducts },
+    { label: pickCopy(locale, { en: 'Support', hans: '支持', hant: '支援', ja: 'サポート', ko: '지원', fr: 'Assistance', de: 'Support' }), onClick: onNavigateToHelp },
+    { label: pickCopy(locale, { en: 'Terms', hans: '条款', hant: '條款', ja: '利用規約', ko: '이용약관', fr: 'Conditions d’utilisation', de: 'AGB' }), onClick: onNavigateToTerms },
+    { label: pickCopy(locale, { en: 'Privacy', hans: '隐私', hant: '隱私', ja: 'プライバシー', ko: '개인정보', fr: 'Confidentialité', de: 'Datenschutz' }), onClick: onNavigateToPrivacy },
   ];
 
   return (

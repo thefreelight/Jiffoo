@@ -39,7 +39,7 @@ const PHONE_EID = '88888888888888888888888888888888';
 
 export const HomePage = React.memo(function HomePage({ locale, config, onNavigate }: HomePageProps) {
   const site = resolveBokmooSiteConfig(config, locale);
-  const t = (copy: { en: string; hans: string; hant: string }) => pickCopy(locale, copy);
+  const t = (copy: { en: string; hans: string; hant: string; ja?: string; ko?: string; fr?: string; de?: string }) => pickCopy(locale, copy);
 
   const openHref = React.useCallback(
     (href: string) => {
@@ -59,32 +59,6 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
     onNavigate?.(value ? `/products?search=${encodeURIComponent(value)}` : '/products');
   };
 
-  const faqItems = [
-    {
-      q: { en: 'What is BOKMOO?', hans: 'BOKMOO 是什么？', hant: 'BOKMOO 是什麼？' },
-      a: {
-        en: 'BOKMOO is a mobile connectivity product: a physical SIM card and an eSIM that work as one account, so your phone stays connected as you travel — no local shop visits, no swapping trays at the border.',
-        hans: 'BOKMOO 是一个移动连接产品：实体 SIM 卡与 eSIM 共用一个帐户，出境旅行时手机保持在线，无需在当地门店办卡，也无需在过境时换卡。',
-        hant: 'BOKMOO 是一個行動連線產品：實體 SIM 卡與 eSIM 共用同一個帳戶，出境旅行時手機保持在線，無需在當地門市辦卡，也無需在過境時換卡。',
-      },
-    },
-    {
-      q: { en: "What's the difference between the physical SIM and the eSIM?", hans: '实体 SIM 和 eSIM 有什么区别？', hant: '實體 SIM 和 eSIM 有什麼區別？' },
-      a: {
-        en: 'The physical SIM ships to you and slots into any unlocked phone. The eSIM installs digitally in minutes, with no shipping and no tray. Both live in the same account and switch from the BOKMOO app.',
-        hans: '实体 SIM 卡邮寄到手，插入任意无锁手机即可使用；eSIM 数分钟内完成安装，无需邮寄、无需取卡针。两者共用同一帐户，在 BOKMOO App 内即可切换。',
-        hant: '實體 SIM 卡郵寄到手，插入任意無鎖手機即可使用；eSIM 數分鐘內完成安裝，無需郵寄、無需取卡針。兩者共用同一帳戶，在 BOKMOO App 內即可切換。',
-      },
-    },
-    {
-      q: { en: 'Where can I use BOKMOO?', hans: 'BOKMOO 可以在哪些地方使用？', hant: 'BOKMOO 可以在哪些地方使用？' },
-      a: {
-        en: 'BOKMOO covers the destinations listed in the app and in the destination search above; search your destination to see its coverage and plans before you fly.',
-        hans: 'BOKMOO 覆盖 App 内与上方目的地搜索中列出的国家和地区；出发前搜索你的目的地，即可查看对应的套餐与覆盖范围。',
-        hant: 'BOKMOO 覆蓋 App 內與上方目的地搜索中列出的國家和地區；出發前搜索你的目的地，即可查看對應的套餐與覆蓋範圍。',
-      },
-    },
-  ];
 
   return (
     <div className="min-h-screen bg-[#0d0d0d] text-[var(--bokmoo-ink)]">
@@ -97,9 +71,9 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
         <div className="relative mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-6 pt-16 pb-20 lg:grid-cols-12 lg:gap-8 lg:py-24">
           <div className="space-y-6 text-left lg:col-span-6">
             <h1 className="text-4xl font-light leading-[1.15] tracking-tight text-white sm:text-5xl lg:text-6xl">
-              {t({ en: 'One Card,', hans: '一张卡，', hant: '一張卡，' })}
+              {t({ en: 'One Card,', hans: '一张卡，', hant: '一張卡，', ja: '一枚のカードで、', ko: '하나의 카드,', fr: 'Une carte,', de: 'Eine Karte,' })}
               <br />
-              <span className="font-normal">{t({ en: 'One World.', hans: '连世界。', hant: '連世界。' })}</span>
+              <span className="font-normal">{t({ en: 'One World.', hans: '连世界。', hant: '連世界。', ja: '世界をつなぐ。', ko: '하나의 세계.', fr: 'Un monde.', de: 'Eine Welt.' })}</span>
             </h1>
             <p className="max-w-md text-base font-light leading-relaxed text-[var(--bokmoo-copy)] sm:text-lg">
               {t({
@@ -114,7 +88,7 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
                 className="inline-flex items-center gap-3 rounded-full bg-[#E5C365] px-6 py-3.5 text-sm font-semibold text-[#111113] shadow-[0_2px_20px_rgba(229,195,101,0.25)] transition-all duration-200 hover:gap-4 hover:bg-[#F3D482]"
                 type="button"
               >
-                <span>{t({ en: 'Get BOKMOO', hans: '获取 BOKMOO', hant: '獲取 BOKMOO' })}</span>
+                <span>{t({ en: 'Get BOKMOO', hans: '获取 BOKMOO', hant: '獲取 BOKMOO', ja: 'BOKMOOを入手', ko: 'BOKMOO 받기', fr: 'Obtenir BOKMOO', de: 'BOKMOO holen' })}</span>
                 <ArrowRight className="h-4 w-4" />
               </button>
             </div>
@@ -281,11 +255,11 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
                     <path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                   <span className="text-sm font-semibold tracking-tight text-white">
-                    {t({ en: 'My eSIM Card', hans: '我的 eSIM 卡片', hant: '我的 eSIM 卡片' })}
+                    {t({ en: 'My eSIM Card', hans: '我的 eSIM 卡片', hant: '我的 eSIM 卡片', ja: '私のeSIMカード', ko: '내 eSIM 카드', fr: 'Ma carte eSIM', de: 'Meine eSIM-Karte' })}
                   </span>
                 </div>
                 <span className="text-xs font-medium text-[#e5c365]">
-                  {t({ en: 'Close', hans: '关闭', hant: '關閉' })}
+                  {t({ en: 'Close', hans: '关闭', hant: '關閉', ja: '閉じる', ko: '닫기', fr: 'Fermer', de: 'Schließen' })}
                 </span>
               </div>
               {/* Bluetooth Reader Card Component */}
@@ -296,7 +270,7 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
                   <div className="min-w-0 flex-1 space-y-1">
                     <div className="flex items-center gap-1.5">
                       <span className="text-[9px] font-medium tracking-wide text-neutral-400">
-                        {t({ en: 'Bluetooth card', hans: '蓝牙卡片', hant: '藍牙卡片' })}
+                        {t({ en: 'Bluetooth card', hans: '蓝牙卡片', hant: '藍牙卡片', ja: 'Bluetoothカード', ko: '블루투스 카드', fr: 'Carte Bluetooth', de: 'Bluetooth-Karte' })}
                       </span>
                     </div>
                     <div className="flex items-center gap-1.5">
@@ -306,7 +280,7 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
                       <span className="select-all truncate font-mono text-[8px] tracking-tight text-[#d0c5af]/80 sm:text-[9px]">EID {PHONE_EID}</span>
                       <button
                         className="shrink-0 text-neutral-500 transition-colors hover:text-[#E5C365]"
-                        title={t({ en: 'Copy EID', hans: '复制 EID', hant: '複製 EID' })}
+                        title={t({ en: 'Copy EID', hans: '复制 EID', hant: '複製 EID', ja: 'EIDをコピー', ko: 'EID 복사', fr: 'Copier l’EID', de: 'EID kopieren' })}
                         type="button"
                         onClick={() => navigator.clipboard?.writeText(PHONE_EID)}
                       >
@@ -322,7 +296,7 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
                           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#4ade80] opacity-75" />
                           <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#4ade80]" />
                         </span>
-                        <span>{t({ en: 'Connected', hans: '已连接', hant: '已連線' })}</span>
+                        <span>{t({ en: 'Connected', hans: '已连接', hant: '已連線', ja: '接続済み', ko: '연결됨', fr: 'Connecté', de: 'Verbunden' })}</span>
                       </div>
                     </div>
                   </div>
@@ -350,19 +324,19 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
                     </svg>
                     <div className="flex flex-col">
                       <span className="text-[8px] text-neutral-400">
-                        {t({ en: 'Reader', hans: '读卡器', hant: '讀卡器' })}
+                        {t({ en: 'Reader', hans: '读卡器', hant: '讀卡器', ja: 'リーダー', ko: '리더기', fr: 'Lecteur', de: 'Lesegerät' })}
                       </span>
                       <span className="font-mono font-medium text-neutral-200">eSIM-BLE-BF4FDA5A</span>
                     </div>
                   </div>
                   <div className="flex flex-col items-end">
                     <span className="text-[8px] text-neutral-400">
-                      {t({ en: 'Card plans', hans: '卡内套餐', hant: '卡內套餐' })}
+                      {t({ en: 'Card plans', hans: '卡内套餐', hant: '卡內套餐', ja: 'カード内プラン', ko: '카드 내 플랜', fr: 'Forfaits de la carte', de: 'Karten-Tarife' })}
                     </span>
                     <div className="flex items-center gap-1">
                       <span className="font-mono text-xs font-semibold leading-none text-[#e5c365]">5</span>
                       <span className="text-[9px] text-neutral-400">
-                        {t({ en: 'plans', hans: '个', hant: '個' })}
+                        {t({ en: 'plans', hans: '个', hant: '個', ja: '件', ko: '개', fr: 'forfaits', de: 'Tarife' })}
                       </span>
                     </div>
                   </div>
@@ -372,14 +346,14 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
               <div className="flex items-center justify-between pt-1">
                 <div className="flex items-center gap-1.5">
                   <span className="text-sm font-semibold tracking-tight text-neutral-100">
-                    {t({ en: 'eSIM list (5)', hans: 'eSIM 列表（5）', hant: 'eSIM 列表（5）' })}
+                    {t({ en: 'eSIM list (5)', hans: 'eSIM 列表（5）', hant: 'eSIM 列表（5）', ja: 'eSIM リスト（5）', ko: 'eSIM 목록(5)', fr: 'Liste eSIM (5)', de: 'eSIM-Liste (5)' })}
                   </span>
                   <svg className="h-3.5 w-3.5 cursor-pointer text-neutral-400 transition-colors hover:text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </div>
                 <button className="flex items-center gap-1 rounded-full border border-[#E5C365]/60 bg-[#242119] px-2.5 py-1 text-[11px] font-medium text-[#E5C365] shadow-sm transition-all hover:border-[#E5C365] hover:bg-[#E5C365]/15" type="button">
-                  <span>+</span> {t({ en: 'Add eSIM', hans: '添加 eSIM', hant: '添加 eSIM' })}
+                  <span>+</span> {t({ en: 'Add eSIM', hans: '添加 eSIM', hant: '添加 eSIM', ja: 'eSIMを追加', ko: 'eSIM 추가', fr: 'Ajouter une eSIM', de: 'eSIM hinzufügen' })}
                 </button>
               </div>
               <div className="space-y-2">
@@ -392,7 +366,7 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
                   {
                     badge: '★', badgeClass: 'bg-red-600 text-yellow-300',
                     name: { en: 'China Mobile', hans: 'China Mobile', hant: 'China Mobile' },
-                    state: { en: 'In use', hans: '使用中', hant: '使用中' },
+                    state: { en: 'In use', hans: '使用中', hant: '使用中', ja: '使用中', ko: '사용 중', fr: 'Utilisé', de: 'In Nutzung' },
                     iccid: PHONE_ICCIDS[1], active: true,
                   },
                   {
@@ -487,8 +461,8 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
                   <path d="M13 10V3L4 14h7v7l9-11h-7z" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               ),
-              title: { en: 'Fast Activation', hans: '极速激活', hant: '極速激活' },
-              copy: { en: 'Get online in minutes', hans: '几分钟即可上网', hant: '幾分鐘即可上網' },
+              title: { en: 'Fast Activation', hans: '极速激活', hant: '極速激活', ja: '迅速なアクティベーション', ko: '빠른 활성화', fr: 'Activation rapide', de: 'Schnelle Aktivierung' },
+              copy: { en: 'Get online in minutes', hans: '几分钟即可上网', hant: '幾分鐘即可上網', ja: '数分でオンラインに', ko: '몇 분 만에 온라인', fr: 'En ligne en quelques minutes', de: 'In Minuten online' },
             },
             {
               icon: (
@@ -498,8 +472,8 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
                   <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
                 </svg>
               ),
-              title: { en: 'Global Coverage', hans: '全球覆盖', hant: '全球覆蓋' },
-              copy: { en: 'Stay connected abroad', hans: '海外保持在线', hant: '海外保持在線' },
+              title: { en: 'Global Coverage', hans: '全球覆盖', hant: '全球覆蓋', ja: 'グローバルカバレッジ', ko: '글로벌 커버리지', fr: 'Couverture mondiale', de: 'Globale Abdeckung' },
+              copy: { en: 'Stay connected abroad', hans: '海外保持在线', hant: '海外保持在線', ja: '海外でも接続を維持', ko: '해외에서도 연결 유지', fr: 'Restez connecté à l’étranger', de: 'Im Ausland verbunden bleiben' },
             },
             {
               icon: (
@@ -507,8 +481,8 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
                   <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               ),
-              title: { en: 'Flexible Options', hans: '灵活选择', hant: '靈活選擇' },
-              copy: { en: 'SIM and eSIM, your choice', hans: 'SIM 与 eSIM，随你选择', hant: 'SIM 與 eSIM，隨你選擇' },
+              title: { en: 'Flexible Options', hans: '灵活选择', hant: '靈活選擇', ja: '柔軟な選択肢', ko: '유연한 옵션', fr: 'Options flexibles', de: 'Flexible Optionen' },
+              copy: { en: 'SIM and eSIM, your choice', hans: 'SIM 与 eSIM，随你选择', hant: 'SIM 與 eSIM，隨你選擇', ja: 'SIMとeSIM、選べる', ko: 'SIM과 eSIM, 선택은 자유', fr: 'SIM et eSIM, à vous de choisir', de: 'SIM und eSIM, Ihre Wahl' },
             },
           ].map((feature) => (
             <div className="flex items-start gap-4 pt-4 md:pt-0 md:px-4 first:pl-0" key={feature.title.en}>
@@ -525,7 +499,7 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
       {/* Destinations */}
       <section className="mx-auto max-w-4xl px-6 py-16 text-center" data-purpose="destination-search">
         <h2 className="text-3xl font-light tracking-tight text-white sm:text-4xl">
-          {t({ en: 'Find Your Destination', hans: '找到你的目的地', hant: '找到你的目的地' })}
+          {t({ en: 'Find Your Destination', hans: '找到你的目的地', hant: '找到你的目的地', ja: '目的地を探す', ko: '목적지 찾기', fr: 'Trouvez votre destination', de: 'Finden Sie Ihr Reiseziel' })}
         </h2>
         <p className="mt-2 mb-8 text-sm text-neutral-400 sm:text-base">
           {t({
@@ -540,15 +514,15 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
               <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
             </svg>
             <input
-              aria-label={t({ en: 'Search a country or region', hans: '搜索国家或地区', hant: '搜尋國家或地區' })}
+              aria-label={t({ en: 'Search a country or region', hans: '搜索国家或地区', hant: '搜尋國家或地區', ja: '国または地域を検索', ko: '국가 또는 지역 검색', fr: 'Rechercher un pays ou une région', de: 'Land oder Region suchen' })}
               className="w-full border-none bg-transparent py-2 text-sm text-neutral-200 placeholder-neutral-500 focus:ring-0"
               onChange={(event) => setSearchValue(event.target.value)}
-              placeholder={t({ en: 'Search a country or region', hans: '搜索国家或地区', hant: '搜尋國家或地區' })}
+              placeholder={t({ en: 'Search a country or region', hans: '搜索国家或地区', hant: '搜尋國家或地區', ja: '国または地域を検索', ko: '국가 또는 지역 검색', fr: 'Rechercher un pays ou une région', de: 'Land oder Region suchen' })}
               type="text"
               value={searchValue}
             />
             <button
-              aria-label={t({ en: 'Search', hans: '搜索', hant: '搜索' })}
+              aria-label={t({ en: 'Search', hans: '搜索', hant: '搜索', ja: '検索', ko: '검색', fr: 'Rechercher', de: 'Suchen' })}
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#E5C365] text-black transition-transform active:scale-95 hover:bg-[#F3D482]"
               type="submit"
             >
@@ -563,24 +537,24 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
       {/* How it works */}
       <section className="mx-auto border-t border-neutral-800/60 px-6 py-16" data-purpose="three-steps" id="how-it-works">
         <h2 className="mb-12 text-center text-3xl font-light tracking-tight text-white sm:text-4xl">
-          {t({ en: 'Get Connected in 3 Steps', hans: '三步完成连接', hant: '三步完成連線' })}
+          {t({ en: 'Get Connected in 3 Steps', hans: '三步完成连接', hant: '三步完成連線', ja: '3 ステップで接続', ko: '3단계로 연결하기', fr: 'Connectez-vous en 3 étapes', de: 'In 3 Schritten verbunden' })}
         </h2>
         <div className="relative grid grid-cols-1 items-start gap-8 md:grid-cols-3">
           {[
             {
               step: '1',
-              title: { en: 'Get BOKMOO', hans: '获取 BOKMOO', hant: '獲取 BOKMOO' },
-              copy: { en: 'Use the physical SIM or eSIM.', hans: '使用实体 SIM 或 eSIM。', hant: '使用實體 SIM 或 eSIM。' },
+              title: { en: 'Get BOKMOO', hans: '获取 BOKMOO', hant: '獲取 BOKMOO', ja: 'BOKMOOを入手', ko: 'BOKMOO 받기', fr: 'Obtenir BOKMOO', de: 'BOKMOO holen' },
+              copy: { en: 'Use the physical SIM or eSIM.', hans: '使用实体 SIM 或 eSIM。', hant: '使用實體 SIM 或 eSIM。', ja: '物理SIMまたはeSIMをご利用ください。', ko: '물리 SIM 또는 eSIM을 사용하세요.', fr: 'Utilisez la SIM physique ou l’eSIM.', de: 'Nutzen Sie die physische SIM oder eSIM.' },
             },
             {
               step: '2',
-              title: { en: 'Add & Activate', hans: '添加并激活', hant: '添加並激活' },
-              copy: { en: 'Set up in the BOKMOO app.', hans: '在 BOKMOO App 中完成设置。', hant: '在 BOKMOO App 中完成設定。' },
+              title: { en: 'Add & Activate', hans: '添加并激活', hant: '添加並激活', ja: '追加と有効化', ko: '추가 및 활성화', fr: 'Ajouter et activer', de: 'Hinzufügen und aktivieren' },
+              copy: { en: 'Set up in the BOKMOO app.', hans: '在 BOKMOO App 中完成设置。', hant: '在 BOKMOO App 中完成設定。', ja: 'BOKMOO アプリで設定します。', ko: 'BOKMOO 앱에서 설정하세요.', fr: 'Configurez-la dans l’application BOKMOO.', de: 'Richten Sie sie in der BOKMOO App ein.' },
             },
             {
               step: '3',
-              title: { en: 'Stay Online', hans: '保持在线', hant: '保持在線' },
-              copy: { en: 'Enjoy reliable connectivity around the world.', hans: '在全球享受可靠的连接。', hant: '在全球享受可靠的連線。' },
+              title: { en: 'Stay Online', hans: '保持在线', hant: '保持在線', ja: '常にオンライン', ko: '온라인 유지', fr: 'Restez en ligne', de: 'Bleiben Sie online' },
+              copy: { en: 'Enjoy reliable connectivity around the world.', hans: '在全球享受可靠的连接。', hant: '在全球享受可靠的連線。', ja: '世界中で信頼性の高い接続をお楽しみください。', ko: '전 세계 어디서나 신뢰할 수 있는 연결을 즐기세요.', fr: 'Profitez d’une connectivité fiable partout dans le monde.', de: 'Genießen Sie zuverlässige Konnektivität weltweit.' },
             },
           ].map((step, index) => (
             <div className="flex items-start gap-4" key={step.step}>
@@ -607,14 +581,14 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
       <section className="mx-auto border-t border-neutral-800/60 px-6 py-16" data-purpose="faq-section" id="support">
         <div className="mb-8 flex items-center justify-between">
           <h2 className="text-2xl font-light tracking-tight text-white sm:text-3xl">
-            {t({ en: 'FAQ', hans: '常见问题', hant: '常見問題' })}
+            {t({ en: 'FAQ', hans: '常见问题', hant: '常見問題', ja: 'よくある質問', ko: '자주 묻는 질문', fr: 'FAQ', de: 'Häufige Fragen' })}
           </h2>
           <button
             className="inline-flex items-center gap-1.5 text-xs text-[#E5C365] hover:underline sm:text-sm"
             onClick={() => openHref('/help')}
             type="button"
           >
-            <span>{t({ en: 'View All Questions', hans: '查看全部问题', hant: '查看全部問題' })}</span>
+            <span>{t({ en: 'View All Questions', hans: '查看全部问题', hant: '查看全部問題', ja: 'すべての質問を見る', ko: '모든 질문 보기', fr: 'Voir toutes les questions', de: 'Alle Fragen ansehen' })}</span>
             <svg className="h-3.5 w-3.5 stroke-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path d="M14 5l7 7m0 0l-7 7m7-7H3" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
@@ -623,7 +597,7 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
         <div className="divide-y divide-neutral-800 border-y border-neutral-800">
           {[
             {
-              q: { en: 'What is BOKMOO?', hans: 'BOKMOO 是什么？', hant: 'BOKMOO 是什麼？' },
+              q: { en: 'What is BOKMOO?', hans: 'BOKMOO 是什么？', hant: 'BOKMOO 是什麼？', ja: 'BOKMOOとは？', ko: 'BOKMOO란 무엇인가요?', fr: 'Qu’est-ce que BOKMOO ?', de: 'Was ist BOKMOO?' },
               a: {
                 en: 'BOKMOO is a premier global connectivity solution offering physical SIM cards and instant digital eSIM profiles designed to keep travelers and global professionals smoothly connected across hundreds of worldwide destinations without expensive roaming fees.',
                 hans: 'BOKMOO 是全球领先的连接解决方案：实体 SIM 卡与即时数字 eSIM 配置文件，让旅行者与全球专业人士在数百个目的地之间顺畅保持连接，无需支付昂贵的漫游费。',
@@ -631,7 +605,7 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
               },
             },
             {
-              q: { en: "What's the difference between the physical SIM and eSIM?", hans: '实体 SIM 和 eSIM 有什么区别？', hant: '實體 SIM 和 eSIM 有什麼區別？' },
+              q: { en: "What's the difference between the physical SIM and eSIM?", hans: '实体 SIM 和 eSIM 有什么区别？', hant: '實體 SIM 和 eSIM 有什麼區別？', ja: '物理SIMとeSIMの違いは？', ko: '물리 SIM과 eSIM의 차이점은 무엇인가요?', fr: 'Quelle est la différence entre la SIM physique et l’eSIM ?', de: 'Was ist der Unterschied zwischen der physischen SIM und der eSIM?' },
               a: {
                 en: 'Our physical SIM is delivered directly to your door and works seamlessly with all unlocked mobile phones and mobile Wi-Fi routers. The eSIM is completely digital and can be instantly downloaded, scanned, and activated on modern eSIM-compatible devices via our mobile application.',
                 hans: '实体 SIM 卡直送到家，兼容所有无锁手机与随身 Wi-Fi；eSIM 完全数字化，可通过移动 App 即时下载、扫码并激活于支持 eSIM 的现代设备。',
@@ -639,7 +613,7 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
               },
             },
             {
-              q: { en: 'Where can I use BOKMOO?', hans: 'BOKMOO 可以在哪些地方使用？', hant: 'BOKMOO 可以在哪些地方使用？' },
+              q: { en: 'Where can I use BOKMOO?', hans: 'BOKMOO 可以在哪些地方使用？', hant: 'BOKMOO 可以在哪些地方使用？', ja: 'BOKMOOはどこで使えますか？', ko: 'BOKMOO는 어디에서 사용할 수 있나요?', fr: 'Où puis-je utiliser BOKMOO ?', de: 'Wo kann ich BOKMOO nutzen?' },
               a: {
                 en: 'BOKMOO operates in over 190+ countries and territories worldwide, collaborating with top-tier telecommunications carriers to ensure high-speed 4G LTE and 5G connectivity wherever your journeys take you.',
                 hans: 'BOKMOO 覆盖全球 190+ 个国家和地区，与顶级运营商合作，无论旅程走到哪里都确保高速 4G LTE 与 5G 连接。',
