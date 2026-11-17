@@ -231,13 +231,6 @@
     ["path", { d: "M5 21h14", key: "11awu3" }]
   ]);
 
-  // ../../../node_modules/lucide-react/dist/esm/icons/download.js
-  var Download = createLucideIcon("Download", [
-    ["path", { d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4", key: "ih7n3h" }],
-    ["polyline", { points: "7 10 12 15 17 10", key: "2ggqvy" }],
-    ["line", { x1: "12", x2: "12", y1: "15", y2: "3", key: "1vk2je" }]
-  ]);
-
   // ../../../node_modules/lucide-react/dist/esm/icons/earth.js
   var Earth = createLucideIcon("Earth", [
     ["path", { d: "M21.54 15H17a2 2 0 0 0-2 2v4.54", key: "1djwo0" }],
@@ -291,13 +284,6 @@
     ["circle", { cx: "12", cy: "12", r: "3", key: "1v7zrd" }]
   ]);
 
-  // ../../../node_modules/lucide-react/dist/esm/icons/globe.js
-  var Globe = createLucideIcon("Globe", [
-    ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
-    ["path", { d: "M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20", key: "13o1zl" }],
-    ["path", { d: "M2 12h20", key: "9i4pu4" }]
-  ]);
-
   // ../../../node_modules/lucide-react/dist/esm/icons/grid-3x3.js
   var Grid3x3 = createLucideIcon("Grid3x3", [
     ["rect", { width: "18", height: "18", x: "3", y: "3", rx: "2", key: "afitv7" }],
@@ -328,19 +314,6 @@
         key: "1d0kgt"
       }
     ]
-  ]);
-
-  // ../../../node_modules/lucide-react/dist/esm/icons/layers.js
-  var Layers = createLucideIcon("Layers", [
-    [
-      "path",
-      {
-        d: "m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z",
-        key: "8b97xw"
-      }
-    ],
-    ["path", { d: "m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65", key: "dd6zsq" }],
-    ["path", { d: "m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65", key: "ep9fru" }]
   ]);
 
   // ../../../node_modules/lucide-react/dist/esm/icons/layout-grid.js
@@ -699,17 +672,6 @@
   var X = createLucideIcon("X", [
     ["path", { d: "M18 6 6 18", key: "1bl5f8" }],
     ["path", { d: "m6 6 12 12", key: "d8bk6v" }]
-  ]);
-
-  // ../../../node_modules/lucide-react/dist/esm/icons/zap.js
-  var Zap = createLucideIcon("Zap", [
-    [
-      "path",
-      {
-        d: "M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z",
-        key: "1xq2db"
-      }
-    ]
   ]);
 
   // theme-host:react/jsx-runtime
@@ -14981,6 +14943,24 @@
   });
 
   // src/components/Footer.tsx
+  function BokmooLogoLockup({ className }) {
+    return /* @__PURE__ */ jsx("svg", { "aria-label": "BOKMOO", className, role: "img", viewBox: "0 0 750 82", xmlns: "http://www.w3.org/2000/svg", children: /* @__PURE__ */ jsxs("g", { fill: "#e2c26a", children: [
+      /* @__PURE__ */ jsxs("g", { transform: "translate(0 0) scale(.08) translate(-49.42 -140.06)", children: [
+        /* @__PURE__ */ jsx("path", { d: "M909.71,140.06c-475.11,0-860.29,385.18-860.29,860.67,0,36.3,2.32,71.8,6.95,106.93h404.86c-8.48-34.36-12.72-70.26-12.72-106.93,0-254.71,206.87-461.2,461.2-461.2,255.13,0,461.6,206.49,461.6,461.2,0,36.67-4.24,72.57-12.74,106.93h405.25c4.64-35.13,6.95-70.63,6.95-106.93,0-475.49-385.56-860.67-861.06-860.67Z" }),
+        /* @__PURE__ */ jsx("path", { d: "M1166.39,1000.73c0,38.22-8.12,74.5-23.56,106.93h-465.84c-15.43-32.43-23.54-68.71-23.54-106.93,0-141.64,114.62-256.66,256.66-256.66,141.64,0,256.28,115.01,256.28,256.66Z" }),
+        /* @__PURE__ */ jsx("path", { d: "M2497.53,1000.73c0,38.22-8.1,74.5-23.54,106.93h-466.23c-15.43-32.43-23.56-68.71-23.56-106.93,0-141.64,115.03-256.66,256.67-256.66,141.64,0,256.66,115.01,256.66,256.66Z" }),
+        /* @__PURE__ */ jsx("path", { d: "M2232,140.06c-231.19,0-441.53,91.48-595.91,240.07,93.77,109.6,162.86,240.45,199.53,384.41,80.66-135.08,227.71-225.01,396.37-225.01,254.73,0,461.2,206.49,461.2,461.2,0,36.67-4.24,72.57-12.74,106.93h405.25c4.64-35.13,6.95-70.63,6.95-106.93,0-475.49-385.18-860.67-860.67-860.67Z" })
+      ] }),
+      /* @__PURE__ */ jsxs("g", { transform: "translate(270 15) scale(.9) translate(-42.62 -30)", children: [
+        /* @__PURE__ */ jsx("path", { d: "M42.62,83.03V31.56h25.19c6.36,0,11.78,1.44,16.27,4.31,4.49,2.9,6.73,6.38,6.73,10.43,0,3.62-1.82,6.8-5.44,9.53,3.1,1.36,5.53,3.12,7.29,5.25,1.87,2.18,2.8,4.52,2.8,7.01,0,4.13-2.28,7.64-6.84,10.54-4.53,2.92-9.99,4.39-16.38,4.39h-29.62ZM54.8,53.25h13.01c2.99,0,5.53-.68,7.63-2.05,2.13-1.35,3.2-2.97,3.2-4.89,0-1.92-1.07-3.55-3.2-4.89-2.1-1.37-4.63-2.05-7.63-2.05h-13.01s0,13.88,0,13.88ZM54.8,75.22h17.45c3.03,0,5.63-.7,7.8-2.09,2.13-1.39,3.19-3.06,3.19-5.03,0-1.94-1.06-3.59-3.19-4.96-2.17-1.39-4.77-2.09-7.8-2.09h-17.45s0,14.17,0,14.17Z" }),
+        /* @__PURE__ */ jsx("path", { d: "M112.91,75.83c-8-5.13-12.01-11.31-12.01-18.56,0-7.24,4-13.42,12.01-18.55,8-5.14,17.65-7.7,28.95-7.7,11.29,0,20.94,2.56,28.95,7.7,8,5.13,12.01,11.31,12.01,18.55,0,7.24-4,13.43-12.01,18.56-8,5.14-17.65,7.7-28.95,7.7-11.3,0-20.95-2.56-28.95-7.7ZM121.56,44.26c-5.61,3.59-8.42,7.93-8.42,13.01,0,5.09,2.8,9.43,8.42,13.02,5.61,3.59,12.38,5.39,20.31,5.39,7.93,0,14.7-1.8,20.3-5.39,5.61-3.59,8.42-7.93,8.42-13.02s-2.8-9.42-8.42-13.01c-5.61-3.59-12.38-5.39-20.3-5.39-7.93,0-14.7,1.8-20.31,5.39Z" }),
+        /* @__PURE__ */ jsx("path", { d: "M248.62,31.56l-32.09,25.6,33.21,25.86h-15.82s-25.19-19.64-25.19-19.64l-3.76,2.99v16.65h-12.17V31.56h12.17v22.33s28.05-22.33,28.05-22.33h15.6Z" }),
+        /* @__PURE__ */ jsx("path", { d: "M342.42,31.56v51.46h-12.18v-32.69s-22.32,32.69-22.32,32.69h-13.75s-21.93-32.48-21.93-32.48v32.48h-12.18V31.56h12.74s28.27,42.01,28.27,42.01l28.61-42.01h12.74Z" }),
+        /* @__PURE__ */ jsx("path", { d: "M363.74,75.83c-8-5.13-12.01-11.31-12.01-18.56,0-7.24,4-13.42,12.01-18.55,8-5.14,17.65-7.7,28.95-7.7,11.29,0,20.94,2.56,28.95,7.7,8,5.13,12.01,11.31,12.01,18.55,0,7.24-4,13.43-12.01,18.56-8,5.14-17.65,7.7-28.95,7.7-11.3,0-20.95-2.56-28.95-7.7ZM372.38,44.26c-5.61,3.59-8.42,7.93-8.42,13.01s2.8,9.43,8.42,13.02c5.61,3.59,12.38,5.39,20.31,5.39,7.93,0,14.7-1.8,20.3-5.39,5.61-3.59,8.42-7.93,8.42-13.02,0-5.08-2.8-9.42-8.42-13.01-5.61-3.59-12.38-5.39-20.3-5.39-7.93,0-14.7,1.8-20.31,5.39Z" }),
+        /* @__PURE__ */ jsx("path", { d: "M450.81,75.83c-8-5.13-12.01-11.31-12.01-18.56,0-7.24,4-13.42,12.01-18.55,8-5.14,17.65-7.7,28.95-7.7,11.29,0,20.94,2.56,28.95,7.7,8,5.13,12.01,11.31,12.01,18.55,0,7.24-4,13.43-12.01,18.56-8,5.14-17.65,7.7-28.95,7.7-11.3,0-20.95-2.56-28.95-7.7ZM459.45,44.26c-5.61,3.59-8.42,7.93-8.42,13.01,0,5.09,2.8,9.43,8.42,13.02,5.61,3.59,12.38,5.39,20.31,5.39,7.93,0,14.7-1.8,20.3-5.39,5.61-3.59,8.42-7.93,8.42-13.02,0-5.08-2.8-9.42-8.42-13.01-5.61-3.59-12.38-5.39-20.3-5.39-7.93,0-14.7,1.8-20.31,5.39Z" })
+      ] })
+    ] }) });
+  }
   var Footer = react_default.memo(function Footer2({
     locale,
     config,
@@ -15000,7 +14980,7 @@
     const poweredByLabel = platformBranding?.poweredByLabel || "Jiffoo";
     const openHref = react_default.useCallback(
       (href) => {
-        if (isExternalHref(href)) {
+        if (isExternalHref2(href)) {
           window.open(href, "_blank", "noopener,noreferrer");
           return;
         }
@@ -15008,106 +14988,55 @@
       },
       [onNavigate]
     );
-    return /* @__PURE__ */ jsxs("footer", { className: "border-t border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_72%,black),var(--bokmoo-bg))] px-4 pb-28 pt-14 sm:px-6 sm:pb-16 lg:px-8", children: [
-      /* @__PURE__ */ jsxs("div", { className: "mx-auto max-w-[1280px]", children: [
-        /* @__PURE__ */ jsxs("div", { className: "grid gap-9 rounded-[1.5rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_84%,black)] p-5 sm:p-7 lg:grid-cols-[minmax(0,1fr)_minmax(24rem,0.9fr)]", children: [
-          /* @__PURE__ */ jsxs("div", { children: [
-            /* @__PURE__ */ jsxs("div", { className: "inline-flex items-center gap-2 rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_24%,var(--bokmoo-line))] bg-[var(--bokmoo-bg)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-gold)]", children: [
-              /* @__PURE__ */ jsx(ShieldCheck, { className: "h-4 w-4" }),
-              pickCopy(locale, { en: "Global eSIM Infrastructure", hans: "\u5168\u7403 eSIM \u57FA\u7840\u8BBE\u65BD", hant: "\u5168\u7403 eSIM \u57FA\u790E\u8A2D\u65BD" })
-            ] }),
-            /* @__PURE__ */ jsx("h2", { className: "mt-6 text-[clamp(2.4rem,4vw,4.4rem)] font-semibold leading-[0.95] tracking-[-0.06em] text-[var(--bokmoo-ink)]", children: pickCopy(locale, { en: "Build your travel setup before departure, not after landing.", hans: "\u51FA\u53D1\u524D\u5B8C\u6210\u65C5\u6E38\u8FDE\u7EBF\u8BBE\u5B9A\uFF0C\u843D\u5730\u5373\u53EF\u4F7F\u7528\u3002", hant: "\u51FA\u767C\u524D\u5B8C\u6210\u65C5\u904A\u9023\u7DDA\u8A2D\u5B9A\uFF0C\u843D\u5730\u5373\u53EF\u4F7F\u7528\u3002" }) }),
-            /* @__PURE__ */ jsx("p", { className: "mt-4 max-w-2xl text-base leading-8 text-[var(--bokmoo-copy)]", children: pickCopy(locale, { en: "Explore destination-ready eSIM plans, activate profiles instantly, and manage your next trip from one premium control surface.", hans: "\u63A2\u7D22\u9002\u7528\u4E8E\u5404\u76EE\u7684\u5730\u7684 eSIM \u65B9\u6848\u3001\u5373\u65F6\u542F\u7528\u8BBE\u5B9A\u6863\uFF0C\u5E76\u96C6\u4E2D\u7BA1\u7406\u4E0B\u4E00\u8D9F\u65C5\u7A0B\u3002", hant: "\u63A2\u7D22\u9069\u7528\u65BC\u5404\u76EE\u7684\u5730\u7684 eSIM \u65B9\u6848\u3001\u5373\u6642\u555F\u7528\u8A2D\u5B9A\u6A94\uFF0C\u4E26\u96C6\u4E2D\u7BA1\u7406\u4E0B\u4E00\u8D9F\u65C5\u7A0B\u3002" }) }),
-            /* @__PURE__ */ jsxs("div", { className: "mt-8 flex flex-col gap-3 sm:flex-row", children: [
-              /* @__PURE__ */ jsxs(
-                "button",
-                {
-                  onClick: () => openHref(site.primaryCtaHref),
-                  className: "inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[var(--bokmoo-gold)] transition-colors hover:bg-[var(--bokmoo-gold-strong)] px-6 text-sm font-semibold text-[var(--bokmoo-bg)]",
-                  type: "button",
-                  children: [
-                    site.primaryCtaLabel,
-                    /* @__PURE__ */ jsx(ArrowRight, { className: "h-4 w-4" })
-                  ]
-                }
-              ),
-              /* @__PURE__ */ jsx(
-                "button",
-                {
-                  onClick: () => openHref(site.secondaryCtaHref),
-                  className: "inline-flex min-h-12 items-center justify-center rounded-[0.9rem] border border-[var(--bokmoo-line)] px-6 text-sm font-medium text-[var(--bokmoo-ink)]",
-                  type: "button",
-                  children: site.secondaryCtaLabel
-                }
-              )
-            ] })
-          ] }),
-          /* @__PURE__ */ jsxs("div", { className: "grid gap-6 sm:grid-cols-3", children: [
-            /* @__PURE__ */ jsxs("div", { children: [
-              /* @__PURE__ */ jsxs("div", { className: "mb-4 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: [
-                /* @__PURE__ */ jsx(Earth, { className: "h-4 w-4 text-[var(--bokmoo-gold)]" }),
-                pickCopy(locale, { en: "Product", hans: "\u4EA7\u54C1", hant: "\u7522\u54C1" })
-              ] }),
-              /* @__PURE__ */ jsxs("div", { className: "grid gap-2 text-sm", children: [
-                /* @__PURE__ */ jsx("button", { onClick: onNavigateToProducts, className: "rounded-[0.75rem] px-0 py-1 text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]", type: "button", children: pickCopy(locale, { en: "eSIM Plans", hans: "eSIM \u65B9\u6848", hant: "eSIM \u65B9\u6848" }) }),
-                /* @__PURE__ */ jsx("button", { onClick: onNavigateToCategories, className: "rounded-[0.75rem] px-0 py-1 text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]", type: "button", children: pickCopy(locale, { en: "eUICC Cards", hans: "eUICC \u5361", hant: "eUICC \u5361" }) }),
-                /* @__PURE__ */ jsx("button", { onClick: onNavigateToHelp, className: "rounded-[0.75rem] px-0 py-1 text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]", type: "button", children: pickCopy(locale, { en: "How It Works", hans: "\u4F7F\u7528\u65B9\u5F0F", hant: "\u4F7F\u7528\u65B9\u5F0F" }) })
-              ] })
-            ] }),
-            /* @__PURE__ */ jsxs("div", { children: [
-              /* @__PURE__ */ jsxs("div", { className: "mb-4 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: [
-                /* @__PURE__ */ jsx(Smartphone, { className: "h-4 w-4 text-[var(--bokmoo-gold)]" }),
-                pickCopy(locale, { en: "Company", hans: "\u516C\u53F8", hant: "\u516C\u53F8" })
-              ] }),
-              /* @__PURE__ */ jsxs("div", { className: "grid gap-2 text-sm", children: [
-                /* @__PURE__ */ jsx("button", { onClick: onNavigateToContact, className: "rounded-[0.75rem] px-0 py-1 text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]", type: "button", children: pickCopy(locale, { en: "Support", hans: "\u652F\u63F4", hant: "\u652F\u63F4" }) }),
-                /* @__PURE__ */ jsx("button", { onClick: onNavigateToPrivacy, className: "rounded-[0.75rem] px-0 py-1 text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]", type: "button", children: pickCopy(locale, { en: "Privacy", hans: "\u9690\u79C1\u6743", hant: "\u96B1\u79C1\u6B0A" }) }),
-                /* @__PURE__ */ jsx("button", { onClick: onNavigateToTerms, className: "rounded-[0.75rem] px-0 py-1 text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]", type: "button", children: pickCopy(locale, { en: "Terms", hans: "\u670D\u52A1\u6761\u6B3E", hant: "\u670D\u52D9\u689D\u6B3E" }) })
-              ] })
-            ] }),
-            /* @__PURE__ */ jsxs("div", { children: [
-              /* @__PURE__ */ jsx("p", { className: "mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: pickCopy(locale, { en: "Contact", hans: "\u8054\u7EDC\u6211\u4EEC", hant: "\u806F\u7D61\u6211\u5011" }) }),
-              /* @__PURE__ */ jsx(
-                "a",
-                {
-                  href: `mailto:${site.supportEmail}`,
-                  className: "text-sm text-[var(--bokmoo-ink)] underline decoration-[var(--bokmoo-line)] underline-offset-4",
-                  children: site.supportEmail
-                }
-              ),
-              /* @__PURE__ */ jsx("p", { className: "mt-4 text-sm leading-7 text-[var(--bokmoo-copy)]", children: pickCopy(locale, { en: "24/7 global support for activation, compatibility, and travel profile management.", hans: "\u5168\u5929\u5019\u63D0\u4F9B\u542F\u7528\u3001\u76F8\u5BB9\u6027\u4E0E\u65C5\u6E38\u8BBE\u5B9A\u6863\u7BA1\u7406\u652F\u63F4\u3002", hant: "\u5168\u5929\u5019\u63D0\u4F9B\u555F\u7528\u3001\u76F8\u5BB9\u6027\u8207\u65C5\u904A\u8A2D\u5B9A\u6A94\u7BA1\u7406\u652F\u63F4\u3002" }) })
-            ] })
-          ] })
+    const footerLinks = [
+      { label: pickCopy(locale, { en: "Products", hans: "\u4EA7\u54C1", hant: "\u7522\u54C1" }), onClick: onNavigateToProducts },
+      { label: pickCopy(locale, { en: "Support", hans: "\u652F\u6301", hant: "\u652F\u63F4" }), onClick: onNavigateToHelp },
+      { label: pickCopy(locale, { en: "Terms", hans: "\u6761\u6B3E", hant: "\u689D\u6B3E" }), onClick: onNavigateToTerms },
+      { label: pickCopy(locale, { en: "Privacy", hans: "\u9690\u79C1", hant: "\u96B1\u79C1" }), onClick: onNavigateToPrivacy }
+    ];
+    return /* @__PURE__ */ jsxs("footer", { className: "border-t border-neutral-900 bg-[#08080A] py-12 mt-12", "data-purpose": "site-footer", children: [
+      /* @__PURE__ */ jsxs("div", { className: "mx-auto max-w-6xl px-6 flex flex-col md:flex-row items-center justify-between gap-6", children: [
+        /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap items-center gap-4 text-xs sm:text-sm", children: [
+          /* @__PURE__ */ jsx("div", { className: "flex items-center gap-2.5", children: /* @__PURE__ */ jsx(BokmooLogoLockup, { className: "h-6 w-auto fill-[#e2c26a] drop-shadow-[0_1px_4px_rgba(212,175,55,0.35)] shrink-0" }) }),
+          /* @__PURE__ */ jsx("span", { className: "text-neutral-500", children: site.supportEmail })
         ] }),
-        /* @__PURE__ */ jsxs("div", { className: "mt-8 flex flex-col gap-3 border-t border-[var(--bokmoo-line)] pt-6 text-sm text-[var(--bokmoo-copy)] sm:mt-12 sm:flex-row sm:items-center sm:justify-between", children: [
-          /* @__PURE__ */ jsxs("p", { children: [
+        /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-8 text-xs sm:text-sm text-neutral-400", children: [
+          /* @__PURE__ */ jsx("nav", { className: "flex items-center gap-6", children: footerLinks.map((link) => /* @__PURE__ */ jsx(
+            "a",
+            {
+              className: "hover:text-[#E5C365] transition-colors cursor-pointer",
+              onClick: (event) => {
+                event.preventDefault();
+                link.onClick?.();
+              },
+              href: "#",
+              children: link.label
+            },
+            link.label
+          )) }),
+          /* @__PURE__ */ jsxs("span", { className: "text-neutral-500", children: [
             "\xA9 ",
             year,
             " ",
-            site.brandName.toUpperCase(),
-            ". ",
-            pickCopy(locale, { en: "Official global eSIM storefront.", hans: "\u5B98\u65B9\u5168\u7403 eSIM \u5546\u5E97\u3002", hant: "\u5B98\u65B9\u5168\u7403 eSIM \u5546\u5E97\u3002" })
-          ] }),
-          /* @__PURE__ */ jsxs("div", { className: "flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-4", children: [
-            /* @__PURE__ */ jsx("p", { children: pickCopy(locale, { en: "Boundless connectivity, secure activation, and premium travel data management.", hans: "\u65E0\u754C\u8FDE\u7EBF\u3001\u5B89\u5168\u542F\u7528\u4E0E\u4F18\u8D28\u65C5\u6E38\u6570\u636E\u7BA1\u7406\u3002", hant: "\u7121\u754C\u9023\u7DDA\u3001\u5B89\u5168\u555F\u7528\u8207\u512A\u8CEA\u65C5\u904A\u6578\u64DA\u7BA1\u7406\u3002" }) }),
-            showPoweredByJiffoo ? /* @__PURE__ */ jsxs(
-              "a",
-              {
-                href: poweredByHref,
-                target: "_blank",
-                rel: "noopener noreferrer",
-                className: "inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.16em] text-[var(--bokmoo-copy-soft)] transition-colors hover:text-[var(--bokmoo-gold)]",
-                children: [
-                  "Powered by ",
-                  poweredByLabel,
-                  /* @__PURE__ */ jsx(ArrowRight, { className: "h-3 w-3" })
-                ]
-              }
-            ) : null
+            site.brandName.charAt(0).toUpperCase() + site.brandName.slice(1),
+            ". All rights reserved."
           ] })
         ] })
       ] }),
-      /* @__PURE__ */ jsx("div", { className: "fixed inset-x-0 bottom-0 z-40 border-t border-[color:color-mix(in_oklab,var(--bokmoo-gold)_22%,var(--bokmoo-line))] bg-[color:oklch(0.07_0.01_75_/_0.96)] px-3 pb-[calc(0.65rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-18px_50px_rgba(0,0,0,0.36)] backdrop-blur-xl sm:hidden", children: /* @__PURE__ */ jsx("div", { className: "mx-auto grid max-w-[420px] grid-cols-5 gap-1", children: [
+      showPoweredByJiffoo ? /* @__PURE__ */ jsx("div", { className: "mx-auto mt-4 max-w-6xl px-6 text-center md:text-left", children: /* @__PURE__ */ jsxs(
+        "a",
+        {
+          href: poweredByHref,
+          target: "_blank",
+          rel: "noopener noreferrer",
+          className: "text-[11px] uppercase tracking-[0.16em] text-[var(--bokmoo-copy-soft)] transition-colors hover:text-[#E5C365]",
+          children: [
+            "Powered by ",
+            poweredByLabel
+          ]
+        }
+      ) }) : null,
+      /* @__PURE__ */ jsx("div", { className: "fixed inset-x-0 bottom-0 z-40 border-t border-[rgba(255,255,255,0.08)] bg-[#0B0B0D]/95 px-3 pb-[calc(0.65rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-18px_50px_rgba(0,0,0,0.36)] backdrop-blur-xl sm:hidden", children: /* @__PURE__ */ jsx("div", { className: "mx-auto grid max-w-[420px] grid-cols-5 gap-1", children: [
         { label: pickCopy(locale, { en: "Home", hans: "\u9996\u9875", hant: "\u9996\u9801" }), icon: House, onClick: () => onNavigate?.("/") },
         { label: pickCopy(locale, { en: "Store", hans: "\u5546\u5E97", hant: "\u5546\u5E97" }), icon: LayoutGrid, onClick: onNavigateToProducts },
         { label: pickCopy(locale, { en: "Orders", hans: "\u8BA2\u5355", hant: "\u8A02\u55AE" }), icon: ReceiptText, onClick: () => onNavigate?.("/orders") },
@@ -15117,7 +15046,7 @@
         "button",
         {
           onClick,
-          className: "flex flex-col items-center justify-center gap-1 rounded-[0.85rem] border border-transparent px-2 py-2 text-[11px] text-[var(--bokmoo-copy-soft)] transition-colors hover:border-[color:color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent)] hover:bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_8%,transparent)] hover:text-[var(--bokmoo-gold)]",
+          className: "flex flex-col items-center justify-center gap-1 rounded-[0.85rem] border border-transparent px-2 py-2 text-[11px] text-[var(--bokmoo-copy-soft)] transition-colors hover:border-[rgba(212,175,55,0.18)] hover:bg-[rgba(212,175,55,0.08)] hover:text-[#E5C365]",
           type: "button",
           children: [
             /* @__PURE__ */ jsx(Icon2, { className: "h-4 w-4" }),
@@ -15129,56 +15058,46 @@
       /* @__PURE__ */ jsx(SupportChat, { locale })
     ] });
   });
+  function isExternalHref2(href) {
+    if (!href) return false;
+    return /^(https?:)?\/\//.test(href);
+  }
 
   // src/components/Header.tsx
-  var FOCUS_VISIBLE_RING2 = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bokmoo-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bokmoo-bg)]";
-  function BokmooLogoMark() {
-    return /* @__PURE__ */ jsxs(
+  function BokmooLogoLockup2({ className }) {
+    return /* @__PURE__ */ jsx(
       "svg",
       {
-        className: "h-7 w-[4.7rem] shrink-0 drop-shadow-[0_10px_22px_color-mix(in_oklab,var(--bokmoo-gold)_16%,transparent)] transition-transform duration-300 group-hover:-translate-y-0.5 sm:h-8 sm:w-[5.35rem] xl:h-9 xl:w-24",
-        viewBox: "0 38 134 50",
-        fill: "none",
-        "aria-hidden": "true",
-        children: [
-          /* @__PURE__ */ jsx(
-            "path",
-            {
-              d: "M1 85C1 61.25 17.65 42 38.2 42C58.75 42 75.4 61.25 75.4 85H57.3C57.3 72.85 48.75 63 38.2 63C27.65 63 19.1 72.85 19.1 85H1Z",
-              fill: "#E5C365"
-            }
-          ),
-          /* @__PURE__ */ jsx(
-            "path",
-            {
-              d: "M56.2 85C56.2 61.25 73.35 42 94.5 42C115.65 42 132.8 61.25 132.8 85H114.2C114.2 72.85 105.38 63 94.5 63C83.62 63 74.8 72.85 74.8 85H56.2Z",
-              fill: "#E5C365"
-            }
-          ),
-          /* @__PURE__ */ jsx(
-            "path",
-            {
-              d: "M27.3 85C27.3 78.08 32.18 72.48 38.2 72.48C44.22 72.48 49.1 78.08 49.1 85H27.3Z",
-              fill: "#E5C365"
-            }
-          ),
-          /* @__PURE__ */ jsx(
-            "path",
-            {
-              d: "M83.25 85C83.25 78.08 88.29 72.48 94.5 72.48C100.71 72.48 105.75 78.08 105.75 85H83.25Z",
-              fill: "#E5C365"
-            }
-          )
-        ]
+        "aria-label": "BOKMOO",
+        className,
+        role: "img",
+        viewBox: "0 0 750 82",
+        xmlns: "http://www.w3.org/2000/svg",
+        children: /* @__PURE__ */ jsxs("g", { fill: "#e2c26a", children: [
+          /* @__PURE__ */ jsxs("g", { transform: "translate(0 0) scale(.08) translate(-49.42 -140.06)", children: [
+            /* @__PURE__ */ jsx("path", { d: "M909.71,140.06c-475.11,0-860.29,385.18-860.29,860.67,0,36.3,2.32,71.8,6.95,106.93h404.86c-8.48-34.36-12.72-70.26-12.72-106.93,0-254.71,206.87-461.2,461.2-461.2,255.13,0,461.6,206.49,461.6,461.2,0,36.67-4.24,72.57-12.74,106.93h405.25c4.64-35.13,6.95-70.63,6.95-106.93,0-475.49-385.56-860.67-861.06-860.67Z" }),
+            /* @__PURE__ */ jsx("path", { d: "M1166.39,1000.73c0,38.22-8.12,74.5-23.56,106.93h-465.84c-15.43-32.43-23.54-68.71-23.54-106.93,0-141.64,114.62-256.66,256.66-256.66,141.64,0,256.28,115.01,256.28,256.66Z" }),
+            /* @__PURE__ */ jsx("path", { d: "M2497.53,1000.73c0,38.22-8.1,74.5-23.54,106.93h-466.23c-15.43-32.43-23.56-68.71-23.56-106.93,0-141.64,115.03-256.66,256.67-256.66,141.64,0,256.66,115.01,256.66,256.66Z" }),
+            /* @__PURE__ */ jsx("path", { d: "M2232,140.06c-231.19,0-441.53,91.48-595.91,240.07,93.77,109.6,162.86,240.45,199.53,384.41,80.66-135.08,227.71-225.01,396.37-225.01,254.73,0,461.2,206.49,461.2,461.2,0,36.67-4.24,72.57-12.74,106.93h405.25c4.64-35.13,6.95-70.63,6.95-106.93,0-475.49-385.18-860.67-860.67-860.67Z" })
+          ] }),
+          /* @__PURE__ */ jsxs("g", { transform: "translate(270 15) scale(.9) translate(-42.62 -30)", children: [
+            /* @__PURE__ */ jsx("path", { d: "M42.62,83.03V31.56h25.19c6.36,0,11.78,1.44,16.27,4.31,4.49,2.9,6.73,6.38,6.73,10.43,0,3.62-1.82,6.8-5.44,9.53,3.1,1.36,5.53,3.12,7.29,5.25,1.87,2.18,2.8,4.52,2.8,7.01,0,4.13-2.28,7.64-6.84,10.54-4.53,2.92-9.99,4.39-16.38,4.39h-29.62ZM54.8,53.25h13.01c2.99,0,5.53-.68,7.63-2.05,2.13-1.35,3.2-2.97,3.2-4.89,0-1.92-1.07-3.55-3.2-4.89-2.1-1.37-4.63-2.05-7.63-2.05h-13.01s0,13.88,0,13.88ZM54.8,75.22h17.45c3.03,0,5.63-.7,7.8-2.09,2.13-1.39,3.19-3.06,3.19-5.03,0-1.94-1.06-3.59-3.19-4.96-2.17-1.39-4.77-2.09-7.8-2.09h-17.45s0,14.17,0,14.17Z" }),
+            /* @__PURE__ */ jsx("path", { d: "M112.91,75.83c-8-5.13-12.01-11.31-12.01-18.56,0-7.24,4-13.42,12.01-18.55,8-5.14,17.65-7.7,28.95-7.7,11.29,0,20.94,2.56,28.95,7.7,8,5.13,12.01,11.31,12.01,18.55,0,7.24-4,13.43-12.01,18.56-8,5.14-17.65,7.7-28.95,7.7-11.3,0-20.95-2.56-28.95-7.7ZM121.56,44.26c-5.61,3.59-8.42,7.93-8.42,13.01,0,5.09,2.8,9.43,8.42,13.02,5.61,3.59,12.38,5.39,20.31,5.39,7.93,0,14.7-1.8,20.3-5.39,5.61-3.59,8.42-7.93,8.42-13.02s-2.8-9.42-8.42-13.01c-5.61-3.59-12.38-5.39-20.3-5.39-7.93,0-14.7,1.8-20.31,5.39Z" }),
+            /* @__PURE__ */ jsx("path", { d: "M248.62,31.56l-32.09,25.6,33.21,25.86h-15.82s-25.19-19.64-25.19-19.64l-3.76,2.99v16.65h-12.17V31.56h12.17v22.33s28.05-22.33,28.05-22.33h15.6Z" }),
+            /* @__PURE__ */ jsx("path", { d: "M342.42,31.56v51.46h-12.18v-32.69s-22.32,32.69-22.32,32.69h-13.75s-21.93-32.48-21.93-32.48v32.48h-12.18V31.56h12.74s28.27,42.01,28.27,42.01l28.61-42.01h12.74Z" }),
+            /* @__PURE__ */ jsx("path", { d: "M363.74,75.83c-8-5.13-12.01-11.31-12.01-18.56,0-7.24,4-13.42,12.01-18.55,8-5.14,17.65-7.7,28.95-7.7,11.29,0,20.94,2.56,28.95,7.7,8,5.13,12.01,11.31,12.01,18.55,0,7.24-4,13.43-12.01,18.56-8,5.14-17.65,7.7-28.95,7.7-11.3,0-20.95-2.56-28.95-7.7ZM372.38,44.26c-5.61,3.59-8.42,7.93-8.42,13.01s2.8,9.43,8.42,13.02c5.61,3.59,12.38,5.39,20.31,5.39,7.93,0,14.7-1.8,20.3-5.39,5.61-3.59,8.42-7.93,8.42-13.02,0-5.08-2.8-9.42-8.42-13.01-5.61-3.59-12.38-5.39-20.3-5.39-7.93,0-14.7,1.8-20.31,5.39Z" }),
+            /* @__PURE__ */ jsx("path", { d: "M450.81,75.83c-8-5.13-12.01-11.31-12.01-18.56,0-7.24,4-13.42,12.01-18.55,8-5.14,17.65-7.7,28.95-7.7,11.29,0,20.94,2.56,28.95,7.7,8,5.13,12.01,11.31,12.01,18.55,0,7.24-4,13.43-12.01,18.56-8,5.14-17.65,7.7-28.95,7.7-11.3,0-20.95-2.56-28.95-7.7ZM459.45,44.26c-5.61,3.59-8.42,7.93-8.42,13.01,0,5.09,2.8,9.43,8.42,13.02,5.61,3.59,12.38,5.39,20.31,5.39,7.93,0,14.7-1.8,20.3-5.39,5.61-3.59,8.42-7.93,8.42-13.02,0-5.08-2.8-9.42-8.42-13.01-5.61-3.59-12.38-5.39-20.3-5.39-7.93,0-14.7,1.8-20.31,5.39Z" })
+          ] })
+        ] })
       }
     );
   }
+  var FOCUS_VISIBLE_RING2 = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bokmoo-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bokmoo-bg)]";
   var Header = react_default.memo(function Header2({
     locale,
     isAuthenticated,
     user,
     cartItemCount,
-    config,
     onNavigate,
     onLogout,
     onNavigateToCart,
@@ -15189,26 +15108,25 @@
     onNavigateToProducts
   }) {
     const [isMenuOpen, setIsMenuOpen] = react_default.useState(false);
+    const mobileMenuId = "bokmoo-mobile-menu";
+    const accountInitial = ((user?.firstName || user?.email || "B").trim().charAt(0) || "B").toUpperCase();
+    const openHref = react_default.useCallback(
+      (href) => {
+        if (isExternalHrefSafe(href)) {
+          window.open(href, "_blank", "noopener,noreferrer");
+          return;
+        }
+        onNavigate?.(href);
+      },
+      [onNavigate]
+    );
     const LOCALE_OPTIONS = [
-      { value: "en", label: "English" },
-      { value: "zh-Hans", label: "\u7B80\u4F53\u4E2D\u6587" },
-      { value: "zh-Hant", label: "\u7E41\u9AD4\u4E2D\u6587" }
+      { value: "en", label: "English (US)", short: "EN" },
+      { value: "zh-Hans", label: "\u7B80\u4F53\u4E2D\u6587", short: "\u7B80" },
+      { value: "zh-Hant", label: "\u7E41\u9AD4\u4E2D\u6587", short: "\u7E41" }
     ];
     const [isLocaleOpen, setIsLocaleOpen] = react_default.useState(false);
-    const currentLocaleLabel = LOCALE_OPTIONS.find((option) => option.value === locale)?.label ?? "English";
-    const [cartPulse, setCartPulse] = react_default.useState(false);
-    const prevCartCount = react_default.useRef(cartItemCount);
-    react_default.useEffect(() => {
-      if (cartItemCount > prevCartCount.current) {
-        setCartPulse(true);
-        const timer = window.setTimeout(() => setCartPulse(false), 900);
-        return () => window.clearTimeout(timer);
-      }
-      prevCartCount.current = cartItemCount;
-    }, [cartItemCount]);
-    react_default.useEffect(() => {
-      prevCartCount.current = cartItemCount;
-    }, [cartItemCount]);
+    const currentLocale = LOCALE_OPTIONS.find((option) => option.value === locale) ?? LOCALE_OPTIONS[0];
     const switchLocale = (next) => {
       if (next === locale) {
         setIsLocaleOpen(false);
@@ -15220,128 +15138,127 @@
       setIsLocaleOpen(false);
       window.location.href = `/${next}${rest === "/" ? "" : rest}`;
     };
-    const site = resolveBokmooSiteConfig(config);
-    const mobileMenuId = "bokmoo-mobile-menu";
-    const accountInitial = ((user?.firstName || user?.email || "B").trim().charAt(0) || "B").toUpperCase();
-    const openHref = react_default.useCallback(
-      (href) => {
-        if (isExternalHref(href)) {
-          window.open(href, "_blank", "noopener,noreferrer");
-          return;
-        }
-        onNavigate?.(href);
-      },
-      [onNavigate]
-    );
     const navItems = [
-      { label: pickCopy(locale, { en: "Products", hans: "\u4EA7\u54C1", hant: "\u7522\u54C1", ja: "\u88FD\u54C1", ko: "\uC81C\uD488", fr: "Produits", de: "Produkte" }), onClick: onNavigateToProducts },
-      { label: pickCopy(locale, { en: "Global Plans", hans: "\u5168\u7403\u5957\u9910", hant: "\u5168\u7403\u5957\u9910", ja: "\u30B0\u30ED\u30FC\u30D0\u30EB\u30D7\u30E9\u30F3", ko: "\uAE00\uB85C\uBC8C \uD50C\uB79C", fr: "Forfaits mondiaux", de: "Weltweite Tarife" }), onClick: () => openHref("/#destinations") },
-      { label: pickCopy(locale, { en: "Download App", hans: "\u4E0B\u8F7D App", hant: "\u4E0B\u8F09 App", ja: "\u30A2\u30D7\u30EA\u3092\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9", ko: "\uC571 \uB2E4\uC6B4\uB85C\uB4DC", fr: "T\xE9l\xE9charger l\u2019app", de: "App herunterladen" }), onClick: () => openHref("/download/app") },
-      { label: pickCopy(locale, { en: "Support", hans: "\u652F\u6301", hant: "\u652F\u63F4", ja: "\u30B5\u30DD\u30FC\u30C8", ko: "\uC9C0\uC6D0", fr: "Assistance", de: "Support" }), onClick: () => openHref("/help") },
-      { label: pickCopy(locale, { en: "Affiliate", hans: "\u8054\u76DF\u8BA1\u5212", hant: "\u806F\u76DF\u8A08\u5283", ja: "\u30A2\u30D5\u30A3\u30EA\u30A8\u30A4\u30C8", ko: "\uC81C\uD734 \uD504\uB85C\uADF8\uB7A8", fr: "Affiliation", de: "Partnerprogramm" }), onClick: () => openHref("/affiliate") }
+      { label: pickCopy(locale, { en: "Products", hans: "\u4EA7\u54C1", hant: "\u7522\u54C1" }), onClick: onNavigateToProducts },
+      { label: pickCopy(locale, { en: "Global Plans", hans: "\u5168\u7403\u5957\u9910", hant: "\u5168\u7403\u5957\u9910" }), onClick: () => openHref("/#destinations") },
+      { label: pickCopy(locale, { en: "Download App", hans: "\u4E0B\u8F7D App", hant: "\u4E0B\u8F09 App" }), onClick: () => openHref("/download/app") },
+      { label: pickCopy(locale, { en: "Support", hans: "\u652F\u6301", hant: "\u652F\u63F4" }), onClick: () => openHref("/help") },
+      { label: pickCopy(locale, { en: "Affiliate Program", hans: "\u8054\u76DF\u8BA1\u5212", hant: "\u806F\u76DF\u8A08\u5283" }), onClick: () => openHref("/affiliate") }
     ];
-    return /* @__PURE__ */ jsxs("header", { className: "sticky top-0 z-50 border-b border-[rgba(255,255,255,0.08)] bg-[rgba(13,13,13,0.75)] backdrop-blur-[20px]", children: [
-      /* @__PURE__ */ jsxs("div", { className: "mx-auto flex max-w-[107rem] items-center gap-3 px-4 py-2.5 sm:px-6 xl:min-h-[4.35rem] xl:gap-5 xl:px-0", children: [
-        /* @__PURE__ */ jsxs(
-          "button",
+    return /* @__PURE__ */ jsxs("header", { className: "w-full border-b border-white/5 backdrop-blur-md sticky top-0 z-50 bg-[#0B0B0D]/80", children: [
+      /* @__PURE__ */ jsxs("div", { className: "w-full max-w-7xl mx-auto px-6 h-20 flex items-center justify-between gap-6 flex-nowrap overflow-visible", children: [
+        /* @__PURE__ */ jsx(
+          "a",
           {
-            onClick: onNavigateToHome,
-            className: `group flex shrink-0 items-center gap-2.5 rounded-[0.95rem] text-left sm:gap-3 ${FOCUS_VISIBLE_RING2}`,
-            type: "button",
-            "aria-label": `${site.brandName} home`,
-            children: [
-              /* @__PURE__ */ jsx(BokmooLogoMark, {}),
-              /* @__PURE__ */ jsx("span", { className: "text-[0.98rem] font-bold tracking-[0.16em] text-[var(--bokmoo-ink)] drop-shadow-[0_0_14px_color-mix(in_oklab,var(--bokmoo-gold)_10%,transparent)] sm:text-[1.08rem] xl:text-[1.18rem] xl:tracking-[0.18em]", children: site.brandName.toUpperCase() })
-            ]
+            className: `flex items-center gap-3 shrink-0 group py-1 select-none ${FOCUS_VISIBLE_RING2}`,
+            "data-purpose": "brand-logo",
+            href: "#read",
+            onClick: (event) => {
+              event.preventDefault();
+              onNavigateToHome();
+            },
+            children: /* @__PURE__ */ jsx(BokmooLogoLockup2, { className: "h-7 w-auto fill-[#e2c26a] drop-shadow-[0_1px_4px_rgba(212,175,55,0.35)] shrink-0" })
           }
         ),
-        /* @__PURE__ */ jsx("nav", { className: "ml-8 hidden items-center gap-8 xl:flex 2xl:ml-14 2xl:gap-10", children: navItems.map((item) => /* @__PURE__ */ jsxs(
-          "button",
+        /* @__PURE__ */ jsx("nav", { className: "hidden md:flex items-center gap-6 lg:gap-8 flex-nowrap shrink-0 text-sm tracking-wide text-neutral-300 font-medium whitespace-nowrap", children: navItems.map((item) => /* @__PURE__ */ jsx(
+          "a",
           {
-            onClick: () => {
+            className: `hover:text-[#E5C365] transition-colors whitespace-nowrap ${FOCUS_VISIBLE_RING2}`,
+            href: "#",
+            onClick: (event) => {
+              event.preventDefault();
               item.onClick();
               setIsMenuOpen(false);
             },
-            className: `group relative rounded-[0.75rem] px-1 py-2.5 text-[0.95rem] font-medium tracking-[-0.01em] text-[color:color-mix(in_oklab,var(--bokmoo-copy)_88%,white)] transition-colors duration-300 hover:text-[var(--bokmoo-ink)] ${FOCUS_VISIBLE_RING2}`,
-            type: "button",
-            children: [
-              /* @__PURE__ */ jsx("span", { className: "absolute inset-x-0 bottom-1 h-px origin-left scale-x-0 bg-[linear-gradient(90deg,var(--bokmoo-gold),transparent)] transition-transform duration-300 group-hover:scale-x-100" }),
-              item.label
-            ]
+            children: item.label
           },
           item.label
         )) }),
-        /* @__PURE__ */ jsxs("div", { className: "ml-auto hidden items-center gap-3 xl:flex", children: [
-          /* @__PURE__ */ jsxs("div", { className: "relative", children: [
+        /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 md:gap-4 shrink-0 flex-nowrap", children: [
+          /* @__PURE__ */ jsxs("div", { className: "relative group", "data-purpose": "language-selector", children: [
             /* @__PURE__ */ jsxs(
               "button",
               {
+                "aria-expanded": isLocaleOpen,
+                "aria-haspopup": "true",
+                className: `text-xs md:text-sm font-medium text-neutral-300 hover:text-[#E5C365] transition-all px-2.5 md:px-3 py-1.5 flex items-center gap-1.5 rounded-full border border-white/10 hover:border-[#E5C365]/40 bg-white/[0.03] hover:bg-white/[0.08] backdrop-blur-md cursor-pointer select-none whitespace-nowrap ${FOCUS_VISIBLE_RING2}`,
                 onClick: () => setIsLocaleOpen((open) => !open),
-                className: `inline-flex min-h-[2.75rem] items-center gap-2 rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_20%,transparent)] bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.012))] px-4 text-sm text-[var(--bokmoo-copy)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-colors hover:border-[color:color-mix(in_oklab,var(--bokmoo-gold)_48%,transparent)] hover:text-[var(--bokmoo-ink)] ${FOCUS_VISIBLE_RING2}`,
                 type: "button",
                 children: [
-                  /* @__PURE__ */ jsx(Earth, { className: "h-4 w-4 text-[var(--bokmoo-gold)]" }),
-                  currentLocaleLabel,
-                  /* @__PURE__ */ jsx(ChevronDown, { className: "h-4 w-4" })
+                  /* @__PURE__ */ jsx(Earth, { className: "w-3.5 h-3.5 md:w-4 md:h-4 text-[#E5C365] shrink-0" }),
+                  /* @__PURE__ */ jsx("span", { className: "tracking-wide", children: currentLocale.short }),
+                  /* @__PURE__ */ jsx(ChevronDown, { className: `w-3 h-3 text-neutral-400 group-hover:text-[#E5C365] transition-transform duration-200 ${isLocaleOpen ? "rotate-180" : ""}` })
                 ]
               }
             ),
-            isLocaleOpen && /* @__PURE__ */ jsx("div", { className: "absolute right-0 top-full z-30 mt-2 w-44 overflow-hidden rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_24%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg-elevated)_96%,black)] p-1.5 shadow-[0_16px_48px_rgba(0,0,0,0.5)]", children: LOCALE_OPTIONS.map((option) => /* @__PURE__ */ jsxs(
+            isLocaleOpen ? /* @__PURE__ */ jsx("div", { className: "absolute right-0 top-full mt-2 w-36 py-1.5 rounded-xl bg-[#17171c]/95 border border-neutral-700/80 shadow-2xl backdrop-blur-md transition-all duration-200 z-50 flex flex-col", children: LOCALE_OPTIONS.map((option) => /* @__PURE__ */ jsxs(
               "button",
               {
+                className: `w-full px-3 py-2 text-left text-xs font-medium flex items-center justify-between cursor-pointer transition-colors ${option.value === locale ? "text-[#E5C365] bg-[#E5C365]/10 hover:bg-[#E5C365]/15" : "text-neutral-300 hover:text-[#E5C365] hover:bg-white/[0.04]"}`,
                 onClick: () => switchLocale(option.value),
-                className: `flex w-full items-center justify-between rounded-[0.6rem] px-3 py-2.5 text-left text-sm transition-colors hover:bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_12%,transparent)] ${option.value === locale ? "font-semibold text-[var(--bokmoo-gold)]" : "text-[var(--bokmoo-copy)]"}`,
                 type: "button",
                 children: [
-                  option.label,
-                  option.value === locale && /* @__PURE__ */ jsx("span", { className: "text-xs", children: "\u2713" })
+                  /* @__PURE__ */ jsx("span", { children: option.label }),
+                  option.value === locale ? /* @__PURE__ */ jsx("svg", { className: "w-3.5 h-3.5 fill-none stroke-current stroke-2", viewBox: "0 0 24 24", "aria-hidden": "true", children: /* @__PURE__ */ jsx("path", { d: "M5 13l4 4L19 7", strokeLinecap: "round", strokeLinejoin: "round" }) }) : null
                 ]
               },
               option.value
-            )) })
+            )) }) : null
           ] }),
           isAuthenticated ? /* @__PURE__ */ jsxs(
             "button",
             {
               onClick: onNavigateToProfile,
-              className: `inline-flex min-h-[2.75rem] items-center gap-2.5 rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_26%,transparent)] bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(0,0,0,0.16))] pl-1.5 pr-4 text-sm font-semibold text-[var(--bokmoo-ink)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-colors hover:border-[color:color-mix(in_oklab,var(--bokmoo-gold)_54%,transparent)] ${FOCUS_VISIBLE_RING2}`,
+              className: `inline-flex items-center gap-2 rounded-full border border-[rgba(212,175,55,0.3)] bg-white/[0.03] pl-1 pr-3 py-1 text-sm font-medium text-[var(--bokmoo-ink)] transition-colors hover:border-[#E5C365]/50 ${FOCUS_VISIBLE_RING2}`,
               type: "button",
               children: [
-                /* @__PURE__ */ jsx("span", { className: "flex h-8 w-8 items-center justify-center rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_86%,white),color-mix(in_oklab,var(--bokmoo-gold)_66%,black))] text-[0.8rem] font-bold text-[var(--bokmoo-bg)]", children: accountInitial }),
-                pickCopy(locale, { en: "My Account", hans: "\u6211\u7684\u5E10\u6237", hant: "\u6211\u7684\u5E33\u6236", ja: "\u30DE\u30A4\u30A2\u30AB\u30A6\u30F3\u30C8", ko: "\uB0B4 \uACC4\uC815", fr: "Mon compte", de: "Mein Konto" }),
-                /* @__PURE__ */ jsx(ChevronDown, { className: "h-4 w-4 text-[var(--bokmoo-copy-soft)]" })
+                /* @__PURE__ */ jsx("span", { className: "flex h-7 w-7 items-center justify-center rounded-full bg-[#E5C365] text-[0.72rem] font-bold text-[#0d0d0d]", children: accountInitial }),
+                pickCopy(locale, { en: "My Account", hans: "\u6211\u7684\u5E10\u6237", hant: "\u6211\u7684\u5E33\u6236" })
               ]
             }
-          ) : /* @__PURE__ */ jsxs(Fragment2, { children: [
-            /* @__PURE__ */ jsx(
-              "button",
-              {
-                onClick: onNavigateToLogin,
-                className: `inline-flex min-h-[2.75rem] items-center justify-center rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_28%,transparent)] bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(0,0,0,0.16))] px-5 text-sm font-medium text-[var(--bokmoo-ink)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING2}`,
-                type: "button",
-                children: pickCopy(locale, { en: "Log In", hans: "\u767B\u5165", hant: "\u767B\u5165" })
-              }
-            ),
-            /* @__PURE__ */ jsx(
-              "button",
-              {
-                onClick: onNavigateToRegister,
-                className: `inline-flex min-h-[2.75rem] items-center justify-center rounded-full bg-[var(--bokmoo-gold)] px-6 text-sm font-semibold text-[#0d0d0d] transition-colors hover:bg-[var(--bokmoo-gold-strong)] ${FOCUS_VISIBLE_RING2}`,
-                type: "button",
-                children: pickCopy(locale, { en: "Get Started", hans: "\u7ACB\u5373\u5F00\u59CB", hant: "\u7ACB\u5373\u958B\u59CB" })
-              }
-            )
-          ] }),
+          ) : /* @__PURE__ */ jsxs(
+            "a",
+            {
+              className: `text-xs md:text-sm font-medium text-neutral-300 hover:text-[#E5C365] transition-colors px-2 md:px-3 py-1.5 flex items-center gap-1.5 rounded-full hover:bg-white/[0.04] whitespace-nowrap ${FOCUS_VISIBLE_RING2}`,
+              href: "#login",
+              onClick: (event) => {
+                event.preventDefault();
+                onNavigateToLogin();
+              },
+              title: pickCopy(locale, { en: "Sign In / Manage My Cards", hans: "\u767B\u5165 / \u7BA1\u7406\u6211\u7684\u5361\u7247", hant: "\u767B\u5165 / \u7BA1\u7406\u6211\u7684\u5361\u7247" }),
+              children: [
+                /* @__PURE__ */ jsx("svg", { className: "w-4 h-4 text-neutral-400 transition-colors shrink-0", fill: "none", stroke: "currentColor", strokeWidth: "1.8", viewBox: "0 0 24 24", "aria-hidden": "true", children: /* @__PURE__ */ jsx("path", { d: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z", strokeLinecap: "round", strokeLinejoin: "round" }) }),
+                /* @__PURE__ */ jsx("span", { children: pickCopy(locale, { en: "Sign In", hans: "\u767B\u5165", hant: "\u767B\u5165" }) })
+              ]
+            }
+          ),
           /* @__PURE__ */ jsxs(
             "button",
             {
+              "aria-label": pickCopy(locale, { en: "Shopping Cart", hans: "\u8D2D\u7269\u8F66", hant: "\u8CFC\u7269\u8ECA" }),
+              className: `relative p-2 text-neutral-300 hover:text-[#E5C365] hover:bg-white/[0.04] rounded-full transition-all flex items-center justify-center shrink-0 ${FOCUS_VISIBLE_RING2}`,
               onClick: onNavigateToCart,
-              className: `relative inline-flex h-[2.75rem] w-[2.75rem] items-center justify-center rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_24%,transparent)] bg-[linear-gradient(180deg,rgba(255,255,255,0.035),rgba(0,0,0,0.18))] text-[var(--bokmoo-ink)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING2}`,
-              "aria-label": pickCopy(locale, { en: "Open cart", hans: "\u5F00\u542F\u8D2D\u7269\u8F66", hant: "\u958B\u555F\u8CFC\u7269\u8ECA", ja: "\u30AB\u30FC\u30C8\u3092\u958B\u304F", ko: "\uC7A5\uBC14\uAD6C\uB2C8 \uC5F4\uAE30", fr: "Ouvrir le panier", de: "Warenkorb \xF6ffnen" }),
               type: "button",
               children: [
-                /* @__PURE__ */ jsx(ShoppingBag, { className: "h-4 w-4" }),
-                cartItemCount > 0 ? /* @__PURE__ */ jsx("span", { className: "absolute -right-1 -top-1 flex min-h-[1.2rem] min-w-[1.2rem] items-center justify-center rounded-full bg-[var(--bokmoo-gold)] px-1 text-[10px] font-bold text-[var(--bokmoo-bg)] cart-pulse", children: cartItemCount > 99 ? "99+" : cartItemCount }) : null
+                /* @__PURE__ */ jsx("svg", { className: "w-4 h-4 stroke-[1.8] shrink-0", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", "aria-hidden": "true", children: /* @__PURE__ */ jsx("path", { d: "M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z", strokeLinecap: "round", strokeLinejoin: "round" }) }),
+                cartItemCount > 0 ? /* @__PURE__ */ jsx("span", { className: "absolute top-1 right-1 min-w-[1rem] h-4 px-0.5 rounded-full bg-[#E5C365] shadow-[0_0_6px_rgba(229,195,101,0.6)] text-[9px] font-bold leading-4 text-[#0B0B0D] text-center cart-pulse", children: cartItemCount > 99 ? "99+" : cartItemCount }) : /* @__PURE__ */ jsx("span", { className: "absolute top-1 right-1 w-2 h-2 rounded-full bg-[#E5C365] shadow-[0_0_6px_rgba(229,195,101,0.6)]" })
+              ]
+            }
+          ),
+          /* @__PURE__ */ jsxs(
+            "a",
+            {
+              className: `px-4 md:px-5 py-2 rounded-full bg-[#E5C365] hover:bg-[#F3D482] text-[#111113] text-xs md:text-sm font-semibold transition-all shadow-[0_2px_12px_rgba(229,195,101,0.25)] hover:shadow-[0_4px_16px_rgba(229,195,101,0.4)] flex items-center gap-1.5 shrink-0 whitespace-nowrap ${FOCUS_VISIBLE_RING2}`,
+              href: "https://bokmoo.com/products",
+              onClick: (event) => {
+                if (!window.location.host.includes("bokmoo.com")) {
+                  event.preventDefault();
+                  onNavigate?.("/products");
+                }
+              },
+              children: [
+                /* @__PURE__ */ jsx("span", { children: pickCopy(locale, { en: "Get BOKMOO", hans: "\u83B7\u53D6 BOKMOO", hant: "\u7372\u53D6 BOKMOO" }) }),
+                /* @__PURE__ */ jsx("svg", { className: "w-3.5 h-3.5 stroke-2 shrink-0", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", "aria-hidden": "true", children: /* @__PURE__ */ jsx("path", { d: "M14 5l7 7m0 0l-7 7m7-7H3", strokeLinecap: "round", strokeLinejoin: "round" }) })
               ]
             }
           )
@@ -15350,7 +15267,7 @@
           "button",
           {
             onClick: () => setIsMenuOpen((value) => !value),
-            className: `ml-auto flex h-11 w-11 items-center justify-center rounded-[0.8rem] border border-[var(--bokmoo-line)] text-[var(--bokmoo-ink)] xl:hidden ${FOCUS_VISIBLE_RING2}`,
+            className: `ml-auto md:ml-0 flex h-11 w-11 items-center justify-center rounded-[0.8rem] border border-white/10 text-[var(--bokmoo-ink)] md:hidden ${FOCUS_VISIBLE_RING2}`,
             "aria-controls": mobileMenuId,
             "aria-expanded": isMenuOpen,
             "aria-label": isMenuOpen ? pickCopy(locale, { en: "Close menu", hans: "\u5173\u95ED\u9009\u5355", hant: "\u95DC\u9589\u9078\u55AE" }) : pickCopy(locale, { en: "Open menu", hans: "\u5F00\u542F\u9009\u5355", hant: "\u958B\u555F\u9078\u55AE" }),
@@ -15359,7 +15276,7 @@
           }
         )
       ] }),
-      isMenuOpen ? /* @__PURE__ */ jsx("div", { id: mobileMenuId, className: "border-t border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] px-4 py-4 xl:hidden", children: /* @__PURE__ */ jsxs("div", { className: "grid gap-2", children: [
+      isMenuOpen ? /* @__PURE__ */ jsx("div", { id: mobileMenuId, className: "border-t border-white/5 bg-[#0B0B0D]/95 backdrop-blur-md px-4 py-4 md:hidden", children: /* @__PURE__ */ jsxs("div", { className: "grid gap-2", children: [
         navItems.map((item) => /* @__PURE__ */ jsx(
           "button",
           {
@@ -15367,7 +15284,7 @@
               item.onClick();
               setIsMenuOpen(false);
             },
-            className: `rounded-[0.9rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-ink)] ${FOCUS_VISIBLE_RING2}`,
+            className: `rounded-[0.9rem] border border-white/10 bg-[#141414] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-ink)] ${FOCUS_VISIBLE_RING2}`,
             type: "button",
             children: item.label
           },
@@ -15380,7 +15297,7 @@
               onNavigateToCart();
               setIsMenuOpen(false);
             },
-            className: `rounded-[0.9rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-ink)] ${FOCUS_VISIBLE_RING2}`,
+            className: `rounded-[0.9rem] border border-white/10 bg-[#141414] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-ink)] ${FOCUS_VISIBLE_RING2}`,
             type: "button",
             children: pickCopy(locale, { en: "Cart", hans: "\u8D2D\u7269\u8F66", hant: "\u8CFC\u7269\u8ECA" })
           }
@@ -15393,9 +15310,9 @@
                 onNavigateToProfile();
                 setIsMenuOpen(false);
               },
-              className: `rounded-[0.9rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-ink)] ${FOCUS_VISIBLE_RING2}`,
+              className: `rounded-[0.9rem] border border-white/10 bg-[#141414] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-ink)] ${FOCUS_VISIBLE_RING2}`,
               type: "button",
-              children: pickCopy(locale, { en: "My Account", hans: "\u6211\u7684\u5E10\u6237", hant: "\u6211\u7684\u5E33\u6236", ja: "\u30DE\u30A4\u30A2\u30AB\u30A6\u30F3\u30C8", ko: "\uB0B4 \uACC4\uC815", fr: "Mon compte", de: "Mein Konto" })
+              children: pickCopy(locale, { en: "My Account", hans: "\u6211\u7684\u5E10\u6237", hant: "\u6211\u7684\u5E33\u6236" })
             }
           ),
           /* @__PURE__ */ jsx(
@@ -15405,7 +15322,7 @@
                 onLogout();
                 setIsMenuOpen(false);
               },
-              className: `rounded-[0.9rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-copy)] ${FOCUS_VISIBLE_RING2}`,
+              className: `rounded-[0.9rem] border border-white/10 bg-[#141414] px-4 py-3 text-left text-sm text-[var(--bokmoo-copy)] ${FOCUS_VISIBLE_RING2}`,
               type: "button",
               children: pickCopy(locale, { en: "Log Out", hans: "\u767B\u51FA", hant: "\u767B\u51FA" })
             }
@@ -15418,9 +15335,9 @@
                 onNavigateToLogin();
                 setIsMenuOpen(false);
               },
-              className: `rounded-[0.9rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-ink)] ${FOCUS_VISIBLE_RING2}`,
+              className: `rounded-[0.9rem] border border-white/10 bg-[#141414] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-ink)] ${FOCUS_VISIBLE_RING2}`,
               type: "button",
-              children: pickCopy(locale, { en: "Log In", hans: "\u767B\u5165", hant: "\u767B\u5165" })
+              children: pickCopy(locale, { en: "Sign In", hans: "\u767B\u5165", hant: "\u767B\u5165" })
             }
           ),
           /* @__PURE__ */ jsx(
@@ -15430,7 +15347,7 @@
                 onNavigateToRegister();
                 setIsMenuOpen(false);
               },
-              className: `rounded-[0.9rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] px-4 py-3 text-left text-sm font-semibold text-[var(--bokmoo-bg)] ${FOCUS_VISIBLE_RING2}`,
+              className: `rounded-[0.9rem] bg-[#E5C365] px-4 py-3 text-left text-sm font-semibold text-[#0d0d0d] ${FOCUS_VISIBLE_RING2}`,
               type: "button",
               children: pickCopy(locale, { en: "Get Started", hans: "\u7ACB\u5373\u5F00\u59CB", hant: "\u7ACB\u5373\u958B\u59CB" })
             }
@@ -15439,6 +15356,10 @@
       ] }) }) : null
     ] });
   });
+  function isExternalHrefSafe(href) {
+    if (!href) return false;
+    return /^(https?:)?\/\//.test(href);
+  }
 
   // src/components/HelpPage.tsx
   var topics = [
@@ -15627,6 +15548,12 @@
       [onNavigate]
     );
     const [openFaq, setOpenFaq] = react_default.useState(0);
+    const [searchValue, setSearchValue] = react_default.useState("");
+    const submitSearch = (event) => {
+      event.preventDefault();
+      const value = searchValue.trim();
+      onNavigate?.(value ? `/products?search=${encodeURIComponent(value)}` : "/products");
+    };
     const faqItems = [
       {
         q: { en: "What is BOKMOO?", hans: "BOKMOO \u662F\u4EC0\u4E48\uFF1F", hant: "BOKMOO \u662F\u4EC0\u9EBC\uFF1F" },
@@ -15799,248 +15726,330 @@
           ] })
         ] })
       ] }),
-      /* @__PURE__ */ jsxs("section", { className: "relative overflow-hidden", children: [
-        /* @__PURE__ */ jsx("div", { className: "pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_22%_45%,rgba(212,175,55,0.07),transparent_55%)]" }),
-        /* @__PURE__ */ jsxs("div", { className: "relative mx-auto grid max-w-[1280px] items-center gap-12 px-5 py-16 sm:px-8 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1fr)] lg:py-24", children: [
-          /* @__PURE__ */ jsx("div", { className: "relative mx-auto w-full max-w-[18.5rem]", children: /* @__PURE__ */ jsx("div", { className: "rounded-[2.4rem] border border-[rgba(255,255,255,0.1)] bg-[#0b0b0c] p-2 shadow-[0_36px_110px_rgba(0,0,0,0.75)]", children: /* @__PURE__ */ jsxs("div", { className: "rounded-[1.9rem] bg-[#101012] px-4 pb-5 pt-3", children: [
-            /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between text-[0.66rem] text-[var(--bokmoo-copy-soft)]", children: [
-              /* @__PURE__ */ jsx("span", { children: "9:41" }),
-              /* @__PURE__ */ jsxs("span", { className: "flex items-center gap-1.5", children: [
-                /* @__PURE__ */ jsxs("svg", { viewBox: "0 0 16 10", className: "h-2.5 w-3.5", fill: "currentColor", "aria-hidden": "true", children: [
-                  /* @__PURE__ */ jsx("rect", { x: "0", y: "6", width: "3", height: "4", rx: "0.6" }),
-                  /* @__PURE__ */ jsx("rect", { x: "4.4", y: "4", width: "3", height: "6", rx: "0.6" }),
-                  /* @__PURE__ */ jsx("rect", { x: "8.8", y: "2", width: "3", height: "8", rx: "0.6" }),
-                  /* @__PURE__ */ jsx("rect", { x: "13.2", y: "0", width: "2.6", height: "10", rx: "0.6" })
-                ] }),
-                /* @__PURE__ */ jsxs("svg", { viewBox: "0 0 24 12", className: "h-2.5 w-5", fill: "none", stroke: "currentColor", "aria-hidden": "true", children: [
-                  /* @__PURE__ */ jsx("rect", { x: "0.6", y: "0.6", width: "19", height: "10.8", rx: "3" }),
-                  /* @__PURE__ */ jsx("rect", { x: "2.4", y: "2.4", width: "14", height: "7.2", rx: "1.6", fill: "currentColor", stroke: "none" }),
-                  /* @__PURE__ */ jsx("path", { d: "M22 4v4", "stroke-linecap": "round" })
-                ] })
-              ] })
-            ] }),
-            /* @__PURE__ */ jsxs("div", { className: "mt-3 flex items-center justify-between", children: [
-              /* @__PURE__ */ jsx(ChevronDown, { className: "h-4 w-4 -rotate-90 text-[var(--bokmoo-copy-soft)]", "aria-hidden": "true" }),
-              /* @__PURE__ */ jsx("span", { className: "text-[0.82rem] font-semibold text-[var(--bokmoo-ink)]", children: t({ en: "My eSIM Card", hans: "\u6211\u7684 eSIM \u5361\u7247", hant: "\u6211\u7684 eSIM \u5361\u7247" }) }),
-              /* @__PURE__ */ jsx("span", { className: "text-[0.72rem] text-[var(--bokmoo-gold)]", children: t({ en: "Close", hans: "\u5173\u95ED", hant: "\u95DC\u9589" }) })
-            ] }),
-            /* @__PURE__ */ jsxs("div", { className: "mt-3 rounded-[1rem] border border-[rgba(212,175,55,0.28)] bg-[linear-gradient(150deg,#181512,#0e0d10_70%)] p-3.5", children: [
-              /* @__PURE__ */ jsxs("div", { className: "flex items-start justify-between gap-3", children: [
-                /* @__PURE__ */ jsxs("div", { className: "min-w-0", children: [
-                  /* @__PURE__ */ jsx("p", { className: "text-[0.62rem] uppercase tracking-[0.14em] text-[var(--bokmoo-gold)]", children: t({ en: "Bluetooth card", hans: "\u84DD\u7259\u5361\u7247", hant: "\u85CD\u7259\u5361\u7247" }) }),
-                  /* @__PURE__ */ jsx("p", { className: "mt-1 text-base font-bold tracking-[0.06em] text-white", children: "BOKMOO" })
-                ] }),
-                /* @__PURE__ */ jsx("div", { className: "relative flex h-12 w-12 shrink-0 items-center justify-center rounded-[0.55rem] border border-[rgba(212,175,55,0.3)] bg-[#141210]", children: /* @__PURE__ */ jsx("svg", { viewBox: "0 0 24 24", className: "h-5 w-5 text-[var(--bokmoo-gold)]", fill: "none", stroke: "currentColor", "stroke-width": "1.8", "aria-hidden": "true", children: /* @__PURE__ */ jsx("path", { d: "M6.5 6.5l11 11M6.5 17.5l11-11M12 2v20a3.5 3.5 0 002.4-1.2L17 17M12 22V2a3.5 3.5 0 012.4 1.2L17 7", "stroke-linecap": "round", "stroke-linejoin": "round" }) }) })
-              ] }),
-              /* @__PURE__ */ jsxs(
-                "button",
-                {
-                  type: "button",
-                  title: t({ en: "Copy EID", hans: "\u590D\u5236 EID", hant: "\u8907\u88FD EID" }),
-                  className: "mt-2.5 flex w-full items-center gap-1.5 text-left",
-                  children: [
-                    /* @__PURE__ */ jsx("span", { className: "text-[0.62rem] text-[var(--bokmoo-copy-soft)]", children: "EID" }),
-                    /* @__PURE__ */ jsx("span", { className: "truncate font-mono text-[0.62rem] tracking-wide text-[var(--bokmoo-gold)]", children: PHONE_EID }),
-                    /* @__PURE__ */ jsx(Copy, { className: "h-3 w-3 shrink-0 text-[var(--bokmoo-copy-soft)]", "aria-hidden": "true" })
-                  ]
-                }
-              ),
-              /* @__PURE__ */ jsxs("span", { className: "mt-2.5 inline-flex items-center gap-1.5 rounded-full border border-[rgba(110,200,120,0.35)] bg-[rgba(110,200,120,0.08)] px-2.5 py-1 text-[0.66rem] text-[#8fdc8f]", children: [
-                /* @__PURE__ */ jsx("span", { className: "h-1.5 w-1.5 rounded-full bg-[#8fdc8f]" }),
-                t({ en: "Connected", hans: "\u5DF2\u8FDE\u63A5", hant: "\u5DF2\u9023\u7DDA" })
-              ] })
-            ] }),
-            /* @__PURE__ */ jsxs("div", { className: "mt-2 grid grid-cols-2 divide-x divide-[rgba(255,255,255,0.06)] rounded-[0.9rem] border border-[rgba(255,255,255,0.07)] bg-[#131315]", children: [
-              /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 px-3 py-2.5", children: [
-                /* @__PURE__ */ jsx(Globe, { className: "h-3.5 w-3.5 text-[var(--bokmoo-copy-soft)]", "aria-hidden": "true" }),
-                /* @__PURE__ */ jsxs("div", { className: "min-w-0", children: [
-                  /* @__PURE__ */ jsx("p", { className: "text-[0.58rem] text-[var(--bokmoo-copy-soft)]", children: t({ en: "Reader", hans: "\u8BFB\u5361\u5668", hant: "\u8B80\u5361\u5668" }) }),
-                  /* @__PURE__ */ jsx("p", { className: "truncate text-[0.66rem] text-[var(--bokmoo-ink)]", children: "eSIM-BLE-BF4FDA5A" })
-                ] })
-              ] }),
-              /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 px-3 py-2.5", children: [
-                /* @__PURE__ */ jsx(Layers, { className: "h-3.5 w-3.5 text-[var(--bokmoo-copy-soft)]", "aria-hidden": "true" }),
-                /* @__PURE__ */ jsxs("div", { children: [
-                  /* @__PURE__ */ jsx("p", { className: "text-[0.58rem] text-[var(--bokmoo-copy-soft)]", children: t({ en: "Card plans", hans: "\u5361\u5185\u5957\u9910", hant: "\u5361\u5167\u5957\u9910" }) }),
-                  /* @__PURE__ */ jsx("p", { className: "text-[0.66rem] text-[var(--bokmoo-ink)]", children: "5 \u2191" })
-                ] })
-              ] })
-            ] }),
-            /* @__PURE__ */ jsxs("div", { className: "mt-3 flex items-center justify-between", children: [
-              /* @__PURE__ */ jsx("p", { className: "text-xs font-semibold text-[var(--bokmoo-ink)]", children: t({ en: "eSIM list (5)", hans: "eSIM \u5217\u8868\uFF085\uFF09", hant: "eSIM \u5217\u8868\uFF085\uFF09" }) }),
-              /* @__PURE__ */ jsxs("span", { className: "rounded-full border border-[rgba(212,175,55,0.3)] px-2.5 py-1 text-[0.62rem] text-[var(--bokmoo-gold)]", children: [
-                "+ ",
-                t({ en: "Add eSIM", hans: "\u6DFB\u52A0 eSIM", hant: "\u6DFB\u52A0 eSIM" })
-              ] })
-            ] }),
-            /* @__PURE__ */ jsx("div", { className: "mt-2.5 space-y-2", children: [
-              { icon: "T", name: { en: "Tigo", hans: "Tigo", hant: "Tigo" }, iccid: PHONE_ICCIDS[0], on: true },
-              { icon: "\u{1F1E8}\u{1F1F3}", name: { en: "China Mobile", hans: "China Mobile", hant: "China Mobile" }, state: { en: "In use", hans: "\u4F7F\u7528\u4E2D", hant: "\u4F7F\u7528\u4E2D" }, iccid: PHONE_ICCIDS[1], on: true },
-              { icon: "5G", name: { en: "Global Roam 5G", hans: "Global Roam 5G", hant: "Global Roam 5G" }, iccid: PHONE_ICCIDS[2], on: false }
-            ].map((row) => /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between rounded-[0.8rem] border border-[rgba(255,255,255,0.06)] bg-[#161618] px-3 py-2.5", children: [
-              /* @__PURE__ */ jsxs("div", { className: "min-w-0", children: [
-                /* @__PURE__ */ jsxs("p", { className: "flex items-center gap-1.5 text-xs font-medium text-[var(--bokmoo-ink)]", children: [
-                  !row.icon.startsWith("\u{1F1E8}\u{1F1F3}") && /* @__PURE__ */ jsx("span", { className: "inline-flex h-4 w-4 items-center justify-center rounded-[0.3rem] bg-[#2a2a2e] text-[0.5rem] font-bold text-neutral-300", children: row.icon }),
-                  /* @__PURE__ */ jsx("span", { className: "truncate", children: t(row.name) }),
-                  row.state ? /* @__PURE__ */ jsx("span", { className: "rounded bg-[rgba(212,175,55,0.12)] px-1 py-0.5 text-[0.55rem] text-[var(--bokmoo-gold)]", children: t(row.state) }) : null
-                ] }),
-                /* @__PURE__ */ jsxs("p", { className: "mt-0.5 truncate font-mono text-[0.58rem] text-[var(--bokmoo-copy-soft)]", children: [
-                  "ICCID: ",
-                  row.iccid
-                ] })
-              ] }),
-              /* @__PURE__ */ jsx("span", { className: `inline-flex h-4 w-7 shrink-0 items-center rounded-full p-0.5 ${row.on ? "bg-[#4ade80]" : "bg-[#2c2c30]"}`, children: /* @__PURE__ */ jsx("span", { className: `h-3 w-3 rounded-full bg-white transition-transform ${row.on ? "translate-x-3" : ""}` }) })
-            ] }, row.iccid)) })
-          ] }) }) }),
-          /* @__PURE__ */ jsxs("div", { children: [
-            /* @__PURE__ */ jsx("h2", { className: "text-[clamp(1.9rem,3.2vw,2.7rem)] font-medium leading-[1.15] tracking-[-0.015em] text-white", children: t({
-              en: "Manage Your Connectivity with the BOKMOO App",
-              hans: "\u7528 BOKMOO App \u7BA1\u7406\u4F60\u7684\u8FDE\u63A5",
-              hant: "\u7528 BOKMOO App \u7BA1\u7406\u4F60\u7684\u9023\u7DDA"
-            }) }),
-            /* @__PURE__ */ jsx("p", { className: "mt-5 max-w-lg text-base leading-7 text-[var(--bokmoo-copy)]", children: t({
-              en: "Switch profiles instantly, monitor data usage in real-time, and purchase destination packages directly inside the official BOKMOO application. Designed for effortless international control.",
-              hans: "\u5728\u5B98\u65B9 BOKMOO App \u5185\u5373\u65F6\u5207\u6362\u914D\u7F6E\u3001\u5B9E\u65F6\u76D1\u63A7\u6D41\u91CF\uFF0C\u5E76\u76F4\u63A5\u8D2D\u4E70\u76EE\u7684\u5730\u5957\u9910\uFF0C\u4E3A\u8F7B\u677E\u638C\u63A7\u5168\u7403\u8FDE\u63A5\u800C\u8BBE\u8BA1\u3002",
-              hant: "\u5728\u5B98\u65B9 BOKMOO App \u5167\u5373\u6642\u5207\u63DB\u8A2D\u5B9A\u6A94\u3001\u5373\u6642\u76E3\u63A7\u6D41\u91CF\uFF0C\u4E26\u76F4\u63A5\u8CFC\u8CB7\u76EE\u7684\u5730\u5957\u9910\uFF0C\u70BA\u8F15\u9B06\u638C\u63A7\u5168\u7403\u9023\u7DDA\u800C\u8A2D\u8A08\u3002"
-            }) }),
-            /* @__PURE__ */ jsx("div", { className: "mt-8 flex flex-wrap gap-3.5", children: [
-              { icon: /* @__PURE__ */ jsx(AppleIcon2, {}), top: { en: "Download on the", hans: "\u4E0B\u8F7D\u5230", hant: "\u4E0B\u8F09\u5230" }, label: "App Store" },
-              { icon: /* @__PURE__ */ jsx(PlayIcon, {}), top: { en: "Download on", hans: "\u4E0B\u8F7D\u4E8E", hant: "\u4E0B\u8F09\u65BC" }, label: "Google Play" },
-              { icon: /* @__PURE__ */ jsx(Download, { className: "h-5 w-5" }), top: { en: "Direct install", hans: "\u76F4\u63A5\u5B89\u88C5", hant: "\u76F4\u63A5\u5B89\u88DD" }, label: "Direct APK" }
-            ].map((store) => /* @__PURE__ */ jsxs(
-              "button",
-              {
-                onClick: () => openHref("/download/app"),
-                className: `inline-flex min-h-13 items-center gap-3 rounded-full border border-[rgba(255,255,255,0.12)] px-6 py-3 text-left transition-colors hover:border-[rgba(212,175,55,0.3)] hover:bg-[rgba(255,255,255,0.04)]`,
-                type: "button",
-                children: [
-                  store.icon,
-                  /* @__PURE__ */ jsxs("span", { children: [
-                    /* @__PURE__ */ jsx("span", { className: "block text-[0.62rem] uppercase tracking-wide text-[var(--bokmoo-copy-soft)]", children: t(store.top) }),
-                    /* @__PURE__ */ jsx("span", { className: "block text-sm font-semibold text-[var(--bokmoo-ink)]", children: store.label })
-                  ] })
-                ]
-              },
-              store.label
-            )) })
-          ] })
-        ] })
-      ] }),
-      /* @__PURE__ */ jsx("section", { className: "border-y border-[rgba(255,255,255,0.08)]", children: /* @__PURE__ */ jsx("div", { className: "mx-auto grid max-w-[1280px] gap-10 px-5 py-14 sm:px-8 md:grid-cols-3", children: [
+      /* @__PURE__ */ jsx(
+        "section",
         {
-          icon: /* @__PURE__ */ jsx(Zap, { className: "h-6 w-6" }),
+          className: "mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-6 py-16 lg:grid-cols-12 lg:gap-8 lg:py-20",
+          id: "products",
+          children: /* @__PURE__ */ jsxs("div", { className: "order-2 flex justify-center lg:order-1 lg:col-span-6", "data-purpose": "app-phone-mockup", children: [
+            /* @__PURE__ */ jsx("div", { className: "w-[310px] rounded-[48px] border border-neutral-700/80 bg-[#17171c] p-3.5 shadow-2xl sm:w-[340px] relative", children: /* @__PURE__ */ jsxs("div", { className: "phone-glass relative space-y-3.5 overflow-hidden rounded-[38px] border border-white/10 p-4 sm:p-5", children: [
+              /* @__PURE__ */ jsx("div", { className: "absolute left-1/2 top-2 z-20 flex h-4 w-24 -translate-x-1/2 items-center justify-end rounded-full bg-black px-2", children: /* @__PURE__ */ jsx("div", { className: "h-2 w-2 rounded-full border border-neutral-800 bg-neutral-900" }) }),
+              /* @__PURE__ */ jsxs("div", { className: "relative z-30 flex select-none items-center justify-between px-2 pt-0.5 text-[11px] font-semibold tracking-tight text-white/90", children: [
+                /* @__PURE__ */ jsx("span", { className: "font-sans tracking-tight text-white", children: "9:41" }),
+                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-1.5", children: [
+                  /* @__PURE__ */ jsxs("svg", { className: "h-3 w-4 fill-current text-white", fill: "none", viewBox: "0 0 17 12", "aria-hidden": "true", children: [
+                    /* @__PURE__ */ jsx("rect", { height: "3.5", rx: "0.75", width: "2.5", x: "0.5", y: "8.5" }),
+                    /* @__PURE__ */ jsx("rect", { height: "6", rx: "0.75", width: "2.5", x: "4.5", y: "6" }),
+                    /* @__PURE__ */ jsx("rect", { height: "8.5", rx: "0.75", width: "2.5", x: "8.5", y: "3.5" }),
+                    /* @__PURE__ */ jsx("rect", { height: "11.5", rx: "0.75", width: "2.5", x: "12.5", y: "0.5" })
+                  ] }),
+                  /* @__PURE__ */ jsx("svg", { className: "h-3.5 w-3.5 fill-current text-white", fill: "none", viewBox: "0 0 16 12", "aria-hidden": "true", children: /* @__PURE__ */ jsx("path", { clipRule: "evenodd", d: "M8 9.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3zm-3.626-2.54a5.13 5.13 0 017.252 0 .8.8 0 001.132-1.13 6.73 6.73 0 00-9.516 0 .8.8 0 001.132 1.13zm-2.83-2.83a9.13 9.13 0 0112.912 0 .8.8 0 001.132-1.132A10.73 10.73 0 00.412 2.998a.8.8 0 101.132 1.132z", fillRule: "evenodd" }) }),
+                  /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-0.5", children: [
+                    /* @__PURE__ */ jsx("div", { className: "flex h-2.5 w-5 items-center rounded-[4px] border border-white/80 p-0.5", children: /* @__PURE__ */ jsx("div", { className: "h-full w-3 rounded-[1.5px] bg-white" }) }),
+                    /* @__PURE__ */ jsx("div", { className: "h-1 w-0.5 rounded-r-[1px] bg-white/60" })
+                  ] })
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between pt-1", children: [
+                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2", children: [
+                  /* @__PURE__ */ jsx("svg", { className: "h-4 w-4 cursor-pointer text-neutral-400", fill: "none", stroke: "currentColor", strokeWidth: "2", viewBox: "0 0 24 24", "aria-hidden": "true", children: /* @__PURE__ */ jsx("path", { d: "M15 19l-7-7 7-7", strokeLinecap: "round", strokeLinejoin: "round" }) }),
+                  /* @__PURE__ */ jsx("span", { className: "text-sm font-semibold tracking-tight text-white", children: t({ en: "My eSIM Card", hans: "\u6211\u7684 eSIM \u5361\u7247", hant: "\u6211\u7684 eSIM \u5361\u7247" }) })
+                ] }),
+                /* @__PURE__ */ jsx("span", { className: "text-xs font-medium text-[#e5c365]", children: t({ en: "Close", hans: "\u5173\u95ED", hant: "\u95DC\u9589" }) })
+              ] }),
+              /* @__PURE__ */ jsxs("div", { className: "group relative w-full select-none overflow-hidden rounded-[18px] border border-[#e5c365]/35 bg-gradient-to-br from-[#1d1b17] via-[#131211] to-[#0c0c0d] p-3.5 shadow-[0_10px_28px_rgba(0,0,0,0.85)]", children: [
+                /* @__PURE__ */ jsx("div", { className: "pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full bg-[#e5c365]/15 blur-2xl" }),
+                /* @__PURE__ */ jsx("div", { className: "pointer-events-none absolute -bottom-8 -left-8 h-28 w-28 rounded-full bg-[#d4af37]/10 blur-xl" }),
+                /* @__PURE__ */ jsxs("div", { className: "relative z-10 flex items-start justify-between gap-2", children: [
+                  /* @__PURE__ */ jsxs("div", { className: "min-w-0 flex-1 space-y-1", children: [
+                    /* @__PURE__ */ jsx("div", { className: "flex items-center gap-1.5", children: /* @__PURE__ */ jsx("span", { className: "text-[9px] font-medium tracking-wide text-neutral-400", children: t({ en: "Bluetooth card", hans: "\u84DD\u7259\u5361\u7247", hant: "\u85CD\u7259\u5361\u7247" }) }) }),
+                    /* @__PURE__ */ jsx("div", { className: "flex items-center gap-1.5", children: /* @__PURE__ */ jsx("span", { className: "text-base font-bold tracking-[0.16em] text-[#e5c365] drop-shadow-[0_1px_3px_rgba(212,175,55,0.4)]", children: "BOKMOO" }) }),
+                    /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-1 overflow-hidden whitespace-nowrap pt-0.5", children: [
+                      /* @__PURE__ */ jsxs("span", { className: "select-all truncate font-mono text-[8px] tracking-tight text-[#d0c5af]/80 sm:text-[9px]", children: [
+                        "EID ",
+                        PHONE_EID
+                      ] }),
+                      /* @__PURE__ */ jsx(
+                        "button",
+                        {
+                          className: "shrink-0 text-neutral-500 transition-colors hover:text-[#E5C365]",
+                          title: t({ en: "Copy EID", hans: "\u590D\u5236 EID", hant: "\u8907\u88FD EID" }),
+                          type: "button",
+                          onClick: () => navigator.clipboard?.writeText(PHONE_EID),
+                          children: /* @__PURE__ */ jsxs("svg", { className: "h-2.5 w-2.5 fill-none stroke-[2] stroke-current", viewBox: "0 0 24 24", "aria-hidden": "true", children: [
+                            /* @__PURE__ */ jsx("rect", { height: "13", rx: "2", ry: "2", width: "13", x: "9", y: "9" }),
+                            /* @__PURE__ */ jsx("path", { d: "M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" })
+                          ] })
+                        }
+                      )
+                    ] }),
+                    /* @__PURE__ */ jsx("div", { className: "pt-1.5", children: /* @__PURE__ */ jsxs("div", { className: "inline-flex items-center gap-1.5 rounded-full border border-[#2d6a3f]/70 bg-[#1b3323] px-2 py-0.5 text-[10px] font-medium text-[#4ade80]", children: [
+                      /* @__PURE__ */ jsxs("span", { className: "relative flex h-1.5 w-1.5", children: [
+                        /* @__PURE__ */ jsx("span", { className: "absolute inline-flex h-full w-full animate-ping rounded-full bg-[#4ade80] opacity-75" }),
+                        /* @__PURE__ */ jsx("span", { className: "relative inline-flex h-1.5 w-1.5 rounded-full bg-[#4ade80]" })
+                      ] }),
+                      /* @__PURE__ */ jsx("span", { children: t({ en: "Connected", hans: "\u5DF2\u8FDE\u63A5", hant: "\u5DF2\u9023\u7DDA" }) })
+                    ] }) })
+                  ] }),
+                  /* @__PURE__ */ jsxs("div", { className: "relative flex h-20 w-16 shrink-0 flex-col items-center justify-between rounded-xl border border-[#e5c365]/30 bg-gradient-to-b from-[#24211a] via-[#1a1815] to-[#121110] p-1.5 shadow-[inset_0_1px_2px_rgba(255,255,255,0.1),0_4px_12px_rgba(0,0,0,0.6)]", children: [
+                    /* @__PURE__ */ jsxs("div", { className: "flex w-full items-center justify-between px-1", children: [
+                      /* @__PURE__ */ jsx("div", { className: "h-1.5 w-1.5 animate-pulse rounded-full bg-[#38bdf8] shadow-[0_0_6px_#38bdf8]", title: "BLE Active" }),
+                      /* @__PURE__ */ jsx("svg", { className: "h-3 w-3 fill-none stroke-[2] stroke-current text-[#e5c365]", viewBox: "0 0 24 24", "aria-hidden": "true", children: /* @__PURE__ */ jsx("path", { d: "M6.5 6.5l11 11L12 23V1l5.5 5.5-11 11", strokeLinecap: "round", strokeLinejoin: "round" }) })
+                    ] }),
+                    /* @__PURE__ */ jsxs("div", { className: "my-auto flex flex-col items-center", children: [
+                      /* @__PURE__ */ jsxs("svg", { className: "h-3 w-auto fill-[#e2c26a]", viewBox: "0 0 750 82", "aria-hidden": "true", children: [
+                        /* @__PURE__ */ jsx("path", { d: "M909.71,140.06c-475.11,0-860.29,385.18-860.29,860.67,0,36.3,2.32,71.8,6.95,106.93h404.86c-8.48-34.36-12.72-70.26-12.72-106.93,0-254.71,206.87-461.2,461.2-461.2,255.13,0,461.6,206.49,461.6,461.2,0,36.67-4.24,72.57-12.74,106.93h405.25c4.64-35.13,6.95-70.63,6.95-106.93,0-475.49-385.56-860.67-861.06-860.67Z" }),
+                        /* @__PURE__ */ jsx("path", { d: "M1166.39,1000.73c0,38.22-8.12,74.5-23.56,106.93h-465.84c-15.43-32.43-23.54-68.71-23.54-106.93,0-141.64,114.62-256.66,256.66-256.66,141.64,0,256.28,115.01,256.28,256.66Z" })
+                      ] }),
+                      /* @__PURE__ */ jsx("span", { className: "mt-0.5 text-[7px] font-bold tracking-widest text-[#e5c365]", children: "BOKMOO" })
+                    ] }),
+                    /* @__PURE__ */ jsx("div", { className: "h-0.5 w-8 rounded-full bg-neutral-700/80" })
+                  ] })
+                ] }),
+                /* @__PURE__ */ jsxs("div", { className: "relative z-10 mt-3 flex items-center justify-between border-t border-white/5 pt-2.5 text-[10px]", children: [
+                  /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-1.5", children: [
+                    /* @__PURE__ */ jsx("svg", { className: "h-3 w-3 shrink-0 text-neutral-400", fill: "none", stroke: "currentColor", strokeWidth: "2", viewBox: "0 0 24 24", "aria-hidden": "true", children: /* @__PURE__ */ jsx("path", { d: "M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0", strokeLinecap: "round", strokeLinejoin: "round" }) }),
+                    /* @__PURE__ */ jsxs("div", { className: "flex flex-col", children: [
+                      /* @__PURE__ */ jsx("span", { className: "text-[8px] text-neutral-400", children: t({ en: "Reader", hans: "\u8BFB\u5361\u5668", hant: "\u8B80\u5361\u5668" }) }),
+                      /* @__PURE__ */ jsx("span", { className: "font-mono font-medium text-neutral-200", children: "eSIM-BLE-BF4FDA5A" })
+                    ] })
+                  ] }),
+                  /* @__PURE__ */ jsxs("div", { className: "flex flex-col items-end", children: [
+                    /* @__PURE__ */ jsx("span", { className: "text-[8px] text-neutral-400", children: t({ en: "Card plans", hans: "\u5361\u5185\u5957\u9910", hant: "\u5361\u5167\u5957\u9910" }) }),
+                    /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-1", children: [
+                      /* @__PURE__ */ jsx("span", { className: "font-mono text-xs font-semibold leading-none text-[#e5c365]", children: "5" }),
+                      /* @__PURE__ */ jsx("span", { className: "text-[9px] text-neutral-400", children: t({ en: "plans", hans: "\u4E2A", hant: "\u500B" }) })
+                    ] })
+                  ] })
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between pt-1", children: [
+                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-1.5", children: [
+                  /* @__PURE__ */ jsx("span", { className: "text-sm font-semibold tracking-tight text-neutral-100", children: t({ en: "eSIM list (5)", hans: "eSIM \u5217\u8868\uFF085\uFF09", hant: "eSIM \u5217\u8868\uFF085\uFF09" }) }),
+                  /* @__PURE__ */ jsx("svg", { className: "h-3.5 w-3.5 cursor-pointer text-neutral-400 transition-colors hover:text-white", fill: "none", stroke: "currentColor", strokeWidth: "2", viewBox: "0 0 24 24", "aria-hidden": "true", children: /* @__PURE__ */ jsx("path", { d: "M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15", strokeLinecap: "round", strokeLinejoin: "round" }) })
+                ] }),
+                /* @__PURE__ */ jsxs("button", { className: "flex items-center gap-1 rounded-full border border-[#E5C365]/60 bg-[#242119] px-2.5 py-1 text-[11px] font-medium text-[#E5C365] shadow-sm transition-all hover:border-[#E5C365] hover:bg-[#E5C365]/15", type: "button", children: [
+                  /* @__PURE__ */ jsx("span", { children: "+" }),
+                  " ",
+                  t({ en: "Add eSIM", hans: "\u6DFB\u52A0 eSIM", hant: "\u6DFB\u52A0 eSIM" })
+                ] })
+              ] }),
+              /* @__PURE__ */ jsx("div", { className: "space-y-2", children: [
+                {
+                  badge: "T",
+                  badgeClass: "bg-blue-950/80 border-blue-500/40 text-blue-300",
+                  name: { en: "Tigo", hans: "Tigo", hant: "Tigo" },
+                  iccid: PHONE_ICCIDS[0],
+                  active: true
+                },
+                {
+                  badge: "\u2605",
+                  badgeClass: "bg-red-600 text-yellow-300",
+                  name: { en: "China Mobile", hans: "China Mobile", hant: "China Mobile" },
+                  state: { en: "In use", hans: "\u4F7F\u7528\u4E2D", hant: "\u4F7F\u7528\u4E2D" },
+                  iccid: PHONE_ICCIDS[1],
+                  active: true
+                },
+                {
+                  badge: "5G",
+                  badgeClass: "bg-amber-950/60 border-[#E5C365]/40 text-[#E5C365]",
+                  name: { en: "Global Roam 5G", hans: "Global Roam 5G", hant: "Global Roam 5G" },
+                  iccid: PHONE_ICCIDS[2],
+                  active: false
+                }
+              ].map((row) => /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between rounded-xl border border-neutral-700/60 bg-[#202025] px-3 py-2.5 transition-colors hover:bg-[#25252b]", children: [
+                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2.5", children: [
+                  /* @__PURE__ */ jsx("div", { className: `flex h-6 w-6 items-center justify-center rounded-md border text-[10px] font-bold ${row.badgeClass}`, children: row.badge }),
+                  /* @__PURE__ */ jsxs("div", { children: [
+                    /* @__PURE__ */ jsxs("p", { className: "flex items-center gap-1.5 text-xs font-medium text-neutral-200", children: [
+                      t(row.name),
+                      row.state ? /* @__PURE__ */ jsx("span", { className: "rounded border border-[#E5C365]/30 bg-[#E5C365]/20 px-1 py-0.2 font-sans text-[9px] text-[#E5C365]", children: t(row.state) }) : null
+                    ] }),
+                    /* @__PURE__ */ jsxs("p", { className: "font-mono text-[9px] tracking-tight text-neutral-400", children: [
+                      "ICCID: ",
+                      row.iccid
+                    ] })
+                  ] })
+                ] }),
+                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2", children: [
+                  /* @__PURE__ */ jsx("div", { className: `flex h-5 w-9 items-center rounded-full p-0.5 shadow-[0_0_8px_rgba(52,199,89,0.4)] ${row.active ? "justify-end bg-[#34C759]" : "justify-start bg-neutral-600"}`, children: /* @__PURE__ */ jsx("div", { className: "h-4 w-4 rounded-full bg-white shadow-md" }) }),
+                  /* @__PURE__ */ jsx("svg", { className: "h-3 w-3 text-neutral-500", fill: "none", stroke: "currentColor", strokeWidth: "2.5", viewBox: "0 0 24 24", "aria-hidden": "true", children: /* @__PURE__ */ jsx("path", { d: "M9 5l7 7-7 7", strokeLinecap: "round", strokeLinejoin: "round" }) })
+                ] })
+              ] }, row.iccid)) })
+            ] }) }),
+            /* @__PURE__ */ jsxs("div", { className: "order-1 space-y-6 text-left lg:order-2 lg:col-span-6", children: [
+              /* @__PURE__ */ jsx("h2", { className: "text-3xl font-light leading-tight tracking-tight text-white sm:text-4xl", children: t({
+                en: "Manage Your Connectivity with the BOKMOO App",
+                hans: "\u7528 BOKMOO App \u7BA1\u7406\u4F60\u7684\u8FDE\u63A5",
+                hant: "\u7528 BOKMOO App \u7BA1\u7406\u4F60\u7684\u9023\u7DDA"
+              }) }),
+              /* @__PURE__ */ jsx("p", { className: "text-sm font-light leading-relaxed text-neutral-400 sm:text-base", children: t({
+                en: "Switch profiles instantly, monitor data usage in real-time, and purchase destination packages directly inside the official BOKMOO application. Designed for effortless international control.",
+                hans: "\u5728\u5B98\u65B9 BOKMOO App \u5185\u5373\u65F6\u5207\u6362\u914D\u7F6E\u3001\u5B9E\u65F6\u76D1\u63A7\u6D41\u91CF\uFF0C\u5E76\u76F4\u63A5\u8D2D\u4E70\u76EE\u7684\u5730\u5957\u9910\uFF0C\u4E3A\u8F7B\u677E\u638C\u63A7\u5168\u7403\u8FDE\u63A5\u800C\u8BBE\u8BA1\u3002",
+                hant: "\u5728\u5B98\u65B9 BOKMOO App \u5167\u5373\u6642\u5207\u63DB\u8A2D\u5B9A\u6A94\u3001\u5373\u6642\u76E3\u63A7\u6D41\u91CF\uFF0C\u4E26\u76F4\u63A5\u8CFC\u8CB7\u76EE\u7684\u5730\u5957\u9910\uFF0C\u70BA\u8F15\u9B06\u638C\u63A7\u5168\u7403\u9023\u7DDA\u800C\u8A2D\u8A08\u3002"
+              }) }),
+              /* @__PURE__ */ jsx("div", { className: "flex flex-wrap items-center gap-4 pt-2", children: [
+                { icon: /* @__PURE__ */ jsx(AppleIcon2, {}), label: "App Store", href: "#ios" },
+                { icon: /* @__PURE__ */ jsx(PlayIcon, {}), label: "Google Play", href: "#android" },
+                {
+                  icon: /* @__PURE__ */ jsx("svg", { className: "h-4 w-4 fill-none stroke-current stroke-2", viewBox: "0 0 24 24", "aria-hidden": "true", children: /* @__PURE__ */ jsx("path", { d: "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4", strokeLinecap: "round", strokeLinejoin: "round" }) }),
+                  label: "Direct APK",
+                  href: "#download-apk"
+                }
+              ].map((store) => /* @__PURE__ */ jsxs(
+                "a",
+                {
+                  className: "inline-flex items-center gap-2 rounded-full border border-neutral-700 px-5 py-2.5 text-sm font-medium text-neutral-200 transition-colors hover:border-[#E5C365] hover:text-white",
+                  href: store.href,
+                  onClick: (event) => {
+                    event.preventDefault();
+                    openHref("/download/app");
+                  },
+                  children: [
+                    store.icon,
+                    /* @__PURE__ */ jsx("span", { children: store.label })
+                  ]
+                },
+                store.label
+              )) })
+            ] })
+          ] })
+        }
+      ),
+      /* @__PURE__ */ jsx("section", { className: "mx-auto border-t border-neutral-800/60 px-6 py-12", "data-purpose": "features-summary", children: /* @__PURE__ */ jsx("div", { className: "grid grid-cols-1 divide-y divide-neutral-800/80 gap-8 md:grid-cols-3 md:gap-6 md:divide-y-0 md:divide-x", children: [
+        {
+          icon: /* @__PURE__ */ jsx("svg", { className: "h-8 w-8", fill: "none", stroke: "currentColor", strokeWidth: "1.5", viewBox: "0 0 24 24", "aria-hidden": "true", children: /* @__PURE__ */ jsx("path", { d: "M13 10V3L4 14h7v7l9-11h-7z", strokeLinecap: "round", strokeLinejoin: "round" }) }),
           title: { en: "Fast Activation", hans: "\u6781\u901F\u6FC0\u6D3B", hant: "\u6975\u901F\u6FC0\u6D3B" },
           copy: { en: "Get online in minutes", hans: "\u51E0\u5206\u949F\u5373\u53EF\u4E0A\u7F51", hant: "\u5E7E\u5206\u9418\u5373\u53EF\u4E0A\u7DB2" }
         },
         {
-          icon: /* @__PURE__ */ jsx(Globe, { className: "h-6 w-6" }),
+          icon: /* @__PURE__ */ jsxs("svg", { className: "h-8 w-8", fill: "none", stroke: "currentColor", strokeWidth: "1.5", viewBox: "0 0 24 24", "aria-hidden": "true", children: [
+            /* @__PURE__ */ jsx("circle", { cx: "12", cy: "12", r: "10" }),
+            /* @__PURE__ */ jsx("line", { x1: "2", x2: "22", y1: "12", y2: "12" }),
+            /* @__PURE__ */ jsx("path", { d: "M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" })
+          ] }),
           title: { en: "Global Coverage", hans: "\u5168\u7403\u8986\u76D6", hant: "\u5168\u7403\u8986\u84CB" },
           copy: { en: "Stay connected abroad", hans: "\u6D77\u5916\u4FDD\u6301\u5728\u7EBF", hant: "\u6D77\u5916\u4FDD\u6301\u5728\u7DDA" }
         },
         {
-          icon: /* @__PURE__ */ jsx(Layers, { className: "h-6 w-6" }),
+          icon: /* @__PURE__ */ jsx("svg", { className: "h-8 w-8", fill: "none", stroke: "currentColor", strokeWidth: "1.5", viewBox: "0 0 24 24", "aria-hidden": "true", children: /* @__PURE__ */ jsx("path", { d: "M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10", strokeLinecap: "round", strokeLinejoin: "round" }) }),
           title: { en: "Flexible Options", hans: "\u7075\u6D3B\u9009\u62E9", hant: "\u9748\u6D3B\u9078\u64C7" },
           copy: { en: "SIM and eSIM, your choice", hans: "SIM \u4E0E eSIM\uFF0C\u968F\u4F60\u9009\u62E9", hant: "SIM \u8207 eSIM\uFF0C\u96A8\u4F60\u9078\u64C7" }
         }
-      ].map((feature, index) => /* @__PURE__ */ jsxs("div", { className: `flex items-start gap-4 ${index > 0 ? "md:border-l md:border-[rgba(255,255,255,0.08)] md:pl-10" : ""}`, children: [
-        /* @__PURE__ */ jsx("span", { className: "text-[var(--bokmoo-gold)]", children: feature.icon }),
+      ].map((feature) => /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-4 pt-4 md:pt-0 md:px-4 first:pl-0", children: [
+        /* @__PURE__ */ jsx("div", { className: "mt-1 shrink-0 text-[#E5C365]", children: feature.icon }),
         /* @__PURE__ */ jsxs("div", { children: [
-          /* @__PURE__ */ jsx("p", { className: "text-sm font-semibold text-[var(--bokmoo-ink)]", children: t(feature.title) }),
-          /* @__PURE__ */ jsx("p", { className: "mt-1 text-sm text-[var(--bokmoo-copy)]", children: t(feature.copy) })
+          /* @__PURE__ */ jsx("h3", { className: "text-base font-medium text-white", children: t(feature.title) }),
+          /* @__PURE__ */ jsx("p", { className: "mt-1 text-sm text-neutral-400", children: t(feature.copy) })
         ] })
       ] }, feature.title.en)) }) }),
-      /* @__PURE__ */ jsx("section", { id: "destinations", className: "scroll-mt-24", children: /* @__PURE__ */ jsxs("div", { className: "mx-auto max-w-[1280px] px-5 py-16 sm:px-8 lg:py-24", children: [
-        /* @__PURE__ */ jsxs("div", { className: "mx-auto max-w-2xl text-center", children: [
-          /* @__PURE__ */ jsx("h2", { className: "text-[clamp(1.9rem,3.2vw,2.7rem)] font-medium tracking-[-0.015em] text-white", children: t({ en: "Find Your Destination", hans: "\u627E\u5230\u4F60\u7684\u76EE\u7684\u5730", hant: "\u627E\u5230\u4F60\u7684\u76EE\u7684\u5730" }) }),
-          /* @__PURE__ */ jsx("p", { className: "mt-4 text-base leading-7 text-[var(--bokmoo-copy)]", children: t({
-            en: "Search for a country or region to explore connectivity options.",
-            hans: "\u641C\u7D22\u56FD\u5BB6\u6216\u5730\u533A\uFF0C\u63A2\u7D22\u53EF\u7528\u7684\u8FDE\u63A5\u65B9\u6848\u3002",
-            hant: "\u641C\u7D22\u570B\u5BB6\u6216\u5730\u5340\uFF0C\u63A2\u7D22\u53EF\u7528\u7684\u9023\u7DDA\u65B9\u6848\u3002"
-          }) })
-        ] }),
-        /* @__PURE__ */ jsxs("div", { className: "mx-auto mt-9 flex max-w-xl items-center gap-3 rounded-full border border-[rgba(255,255,255,0.1)] bg-[#141414] px-5 py-1.5 transition-colors focus-within:border-[rgba(212,175,55,0.55)]", children: [
-          /* @__PURE__ */ jsx(Search, { className: "h-4 w-4 shrink-0 text-[var(--bokmoo-copy-soft)]", "aria-hidden": "true" }),
+      /* @__PURE__ */ jsxs("section", { className: "mx-auto max-w-4xl px-6 py-16 text-center", "data-purpose": "destination-search", children: [
+        /* @__PURE__ */ jsx("h2", { className: "text-3xl font-light tracking-tight text-white sm:text-4xl", children: t({ en: "Find Your Destination", hans: "\u627E\u5230\u4F60\u7684\u76EE\u7684\u5730", hant: "\u627E\u5230\u4F60\u7684\u76EE\u7684\u5730" }) }),
+        /* @__PURE__ */ jsx("p", { className: "mt-2 mb-8 text-sm text-neutral-400 sm:text-base", children: t({
+          en: "Search for a country or region to explore connectivity options.",
+          hans: "\u641C\u7D22\u56FD\u5BB6\u6216\u5730\u533A\uFF0C\u63A2\u7D22\u53EF\u7528\u7684\u8FDE\u63A5\u65B9\u6848\u3002",
+          hant: "\u641C\u7D22\u570B\u5BB6\u6216\u5730\u5340\uFF0C\u63A2\u7D22\u53EF\u7528\u7684\u9023\u7DDA\u65B9\u6848\u3002"
+        }) }),
+        /* @__PURE__ */ jsx("form", { className: "relative mx-auto max-w-xl", onSubmit: submitSearch, children: /* @__PURE__ */ jsxs("div", { className: "flex items-center rounded-full border border-neutral-700/80 bg-[#1d1d21] py-1.5 pl-5 pr-2 shadow-lg transition-colors focus-within:border-[#E5C365]", children: [
+          /* @__PURE__ */ jsx("svg", { className: "mr-3 h-5 w-5 shrink-0 text-neutral-400", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", "aria-hidden": "true", children: /* @__PURE__ */ jsx("path", { d: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z", strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "2" }) }),
           /* @__PURE__ */ jsx(
             "input",
             {
               "aria-label": t({ en: "Search a country or region", hans: "\u641C\u7D22\u56FD\u5BB6\u6216\u5730\u533A", hant: "\u641C\u5C0B\u570B\u5BB6\u6216\u5730\u5340" }),
+              className: "w-full border-none bg-transparent py-2 text-sm text-neutral-200 placeholder-neutral-500 focus:ring-0",
+              onChange: (event) => setSearchValue(event.target.value),
               placeholder: t({ en: "Search a country or region", hans: "\u641C\u7D22\u56FD\u5BB6\u6216\u5730\u533A", hant: "\u641C\u5C0B\u570B\u5BB6\u6216\u5730\u5340" }),
-              className: "min-h-10 w-full border-0 bg-transparent p-0 text-sm text-[var(--bokmoo-ink)] outline-none ring-0 placeholder:text-[var(--bokmoo-copy-soft)] focus:ring-0",
-              onKeyDown: (event) => {
-                if (event.key === "Enter") {
-                  const value = event.target.value.trim();
-                  openHref(value ? `/products?search=${encodeURIComponent(value)}` : "/products");
-                }
-              }
+              type: "text",
+              value: searchValue
             }
           ),
-          /* @__PURE__ */ jsx("span", { className: "flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--bokmoo-gold)] text-[#0d0d0d]", "aria-hidden": "true", children: /* @__PURE__ */ jsx(ArrowRight, { className: "h-4 w-4" }) })
-        ] })
-      ] }) }),
-      /* @__PURE__ */ jsx("section", { id: "how-it-works", className: "scroll-mt-24 border-t border-[rgba(255,255,255,0.08)]", children: /* @__PURE__ */ jsxs("div", { className: "mx-auto max-w-[1280px] px-5 py-16 sm:px-8 lg:py-24", children: [
-        /* @__PURE__ */ jsx("div", { className: "mx-auto max-w-2xl text-center", children: /* @__PURE__ */ jsx("h2", { className: "text-[clamp(1.9rem,3.2vw,2.7rem)] font-medium tracking-[-0.015em] text-white", children: t({ en: "Get Connected in 3 Steps", hans: "\u4E09\u6B65\u5B8C\u6210\u8FDE\u63A5", hant: "\u4E09\u6B65\u5B8C\u6210\u9023\u7DDA" }) }) }),
-        /* @__PURE__ */ jsx("div", { className: "mt-14 grid gap-10 md:grid-cols-3", children: [
+          /* @__PURE__ */ jsx(
+            "button",
+            {
+              "aria-label": t({ en: "Search", hans: "\u641C\u7D22", hant: "\u641C\u7D22" }),
+              className: "flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#E5C365] text-black transition-transform active:scale-95 hover:bg-[#F3D482]",
+              type: "submit",
+              children: /* @__PURE__ */ jsx("svg", { className: "h-4 w-4 stroke-[2.5]", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", "aria-hidden": "true", children: /* @__PURE__ */ jsx("path", { d: "M14 5l7 7m0 0l-7 7m7-7H3", strokeLinecap: "round", strokeLinejoin: "round" }) })
+            }
+          )
+        ] }) })
+      ] }),
+      /* @__PURE__ */ jsxs("section", { className: "mx-auto border-t border-neutral-800/60 px-6 py-16", "data-purpose": "three-steps", id: "how-it-works", children: [
+        /* @__PURE__ */ jsx("h2", { className: "mb-12 text-center text-3xl font-light tracking-tight text-white sm:text-4xl", children: t({ en: "Get Connected in 3 Steps", hans: "\u4E09\u6B65\u5B8C\u6210\u8FDE\u63A5", hant: "\u4E09\u6B65\u5B8C\u6210\u9023\u7DDA" }) }),
+        /* @__PURE__ */ jsx("div", { className: "relative grid grid-cols-1 items-start gap-8 md:grid-cols-3", children: [
           {
             step: "1",
-            icon: /* @__PURE__ */ jsx(Check, { className: "h-4 w-4" }),
             title: { en: "Get BOKMOO", hans: "\u83B7\u53D6 BOKMOO", hant: "\u7372\u53D6 BOKMOO" },
             copy: { en: "Use the physical SIM or eSIM.", hans: "\u4F7F\u7528\u5B9E\u4F53 SIM \u6216 eSIM\u3002", hant: "\u4F7F\u7528\u5BE6\u9AD4 SIM \u6216 eSIM\u3002" }
           },
           {
             step: "2",
-            icon: /* @__PURE__ */ jsx(Download, { className: "h-4 w-4" }),
             title: { en: "Add & Activate", hans: "\u6DFB\u52A0\u5E76\u6FC0\u6D3B", hant: "\u6DFB\u52A0\u4E26\u6FC0\u6D3B" },
             copy: { en: "Set up in the BOKMOO app.", hans: "\u5728 BOKMOO App \u4E2D\u5B8C\u6210\u8BBE\u7F6E\u3002", hant: "\u5728 BOKMOO App \u4E2D\u5B8C\u6210\u8A2D\u5B9A\u3002" }
           },
           {
             step: "3",
-            icon: /* @__PURE__ */ jsx(ArrowRight, { className: "h-4 w-4" }),
             title: { en: "Stay Online", hans: "\u4FDD\u6301\u5728\u7EBF", hant: "\u4FDD\u6301\u5728\u7DDA" },
             copy: { en: "Enjoy reliable connectivity around the world.", hans: "\u5728\u5168\u7403\u4EAB\u53D7\u53EF\u9760\u7684\u8FDE\u63A5\u3002", hant: "\u5728\u5168\u7403\u4EAB\u53D7\u53EF\u9760\u7684\u9023\u7DDA\u3002" }
           }
-        ].map((step, index) => /* @__PURE__ */ jsxs("div", { className: "relative text-center", children: [
-          /* @__PURE__ */ jsx("span", { className: "mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-[rgba(212,175,55,0.45)] text-base font-semibold text-[var(--bokmoo-gold)]", children: step.step }),
-          index < 2 ? /* @__PURE__ */ jsx("span", { "aria-hidden": "true", className: "pointer-events-none absolute right-[-30%] top-6 hidden h-px w-[60%] bg-[rgba(255,255,255,0.08)] md:block" }) : null,
-          /* @__PURE__ */ jsx("p", { className: "mt-5 text-base font-semibold text-[var(--bokmoo-ink)]", children: t(step.title) }),
-          /* @__PURE__ */ jsx("p", { className: "mt-2 text-sm leading-6 text-[var(--bokmoo-copy)]", children: t(step.copy) })
+        ].map((step, index) => /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-4", children: [
+          /* @__PURE__ */ jsx("div", { className: "flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#E5C365]/60 text-sm font-medium text-[#E5C365]", children: step.step }),
+          /* @__PURE__ */ jsxs("div", { children: [
+            /* @__PURE__ */ jsx("h3", { className: "text-base font-semibold text-white", children: t(step.title) }),
+            /* @__PURE__ */ jsx("p", { className: "mt-1 text-xs text-neutral-400 sm:text-sm", children: t(step.copy) })
+          ] }),
+          index < 2 ? /* @__PURE__ */ jsx("div", { "aria-hidden": "true", className: "ml-auto hidden pt-2 text-neutral-600 md:flex", children: /* @__PURE__ */ jsx("svg", { className: "h-6 w-6", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", children: /* @__PURE__ */ jsx("path", { d: "M14 5l7 7m0 0l-7 7m7-7H3", strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "1.5" }) }) }) : null
         ] }, step.step)) })
-      ] }) }),
-      /* @__PURE__ */ jsx("section", { className: "border-t border-[rgba(255,255,255,0.08)]", children: /* @__PURE__ */ jsxs("div", { className: "mx-auto max-w-[1280px] px-5 py-16 sm:px-8 lg:py-24", children: [
-        /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap items-end justify-between gap-4", children: [
-          /* @__PURE__ */ jsx("h2", { className: "text-[clamp(1.9rem,3.2vw,2.7rem)] font-medium tracking-[-0.015em] text-white", children: t({ en: "FAQ", hans: "\u5E38\u89C1\u95EE\u9898", hant: "\u5E38\u898B\u554F\u984C" }) }),
+      ] }),
+      /* @__PURE__ */ jsxs("section", { className: "mx-auto border-t border-neutral-800/60 px-6 py-16", "data-purpose": "faq-section", id: "support", children: [
+        /* @__PURE__ */ jsxs("div", { className: "mb-8 flex items-center justify-between", children: [
+          /* @__PURE__ */ jsx("h2", { className: "text-2xl font-light tracking-tight text-white sm:text-3xl", children: t({ en: "FAQ", hans: "\u5E38\u89C1\u95EE\u9898", hant: "\u5E38\u898B\u554F\u984C" }) }),
           /* @__PURE__ */ jsxs(
             "button",
             {
+              className: "inline-flex items-center gap-1.5 text-xs text-[#E5C365] hover:underline sm:text-sm",
               onClick: () => openHref("/help"),
-              className: "inline-flex items-center gap-1.5 text-sm font-medium text-[var(--bokmoo-gold)] hover:underline",
               type: "button",
               children: [
-                t({ en: "View All Questions", hans: "\u67E5\u770B\u5168\u90E8\u95EE\u9898", hant: "\u67E5\u770B\u5168\u90E8\u554F\u984C" }),
-                /* @__PURE__ */ jsx(ArrowRight, { className: "h-3.5 w-3.5" })
+                /* @__PURE__ */ jsx("span", { children: t({ en: "View All Questions", hans: "\u67E5\u770B\u5168\u90E8\u95EE\u9898", hant: "\u67E5\u770B\u5168\u90E8\u554F\u984C" }) }),
+                /* @__PURE__ */ jsx("svg", { className: "h-3.5 w-3.5 stroke-2", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", "aria-hidden": "true", children: /* @__PURE__ */ jsx("path", { d: "M14 5l7 7m0 0l-7 7m7-7H3", strokeLinecap: "round", strokeLinejoin: "round" }) })
               ]
             }
           )
         ] }),
-        /* @__PURE__ */ jsx("div", { className: "mt-8 border-t border-[rgba(255,255,255,0.08)]", children: faqItems.map((item, index) => {
-          const isOpen = openFaq === index;
-          return /* @__PURE__ */ jsxs("div", { className: "border-b border-[rgba(255,255,255,0.08)]", children: [
-            /* @__PURE__ */ jsxs(
-              "button",
-              {
-                onClick: () => setOpenFaq(isOpen ? null : index),
-                "aria-expanded": isOpen,
-                className: `flex w-full items-center justify-between gap-6 py-5 text-left text-base font-medium text-[var(--bokmoo-ink)] transition-colors hover:text-[var(--bokmoo-gold)]`,
-                type: "button",
-                children: [
-                  t(item.q),
-                  /* @__PURE__ */ jsx(ChevronDown, { className: `h-4 w-4 shrink-0 text-[var(--bokmoo-copy-soft)] transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`, "aria-hidden": "true" })
-                ]
-              }
-            ),
-            isOpen ? /* @__PURE__ */ jsx("p", { className: "max-w-3xl pb-5 text-sm leading-7 text-[var(--bokmoo-copy)]", children: t(item.a) }) : null
-          ] }, item.q.en);
-        }) })
-      ] }) })
+        /* @__PURE__ */ jsx("div", { className: "divide-y divide-neutral-800 border-y border-neutral-800", children: [
+          {
+            q: { en: "What is BOKMOO?", hans: "BOKMOO \u662F\u4EC0\u4E48\uFF1F", hant: "BOKMOO \u662F\u4EC0\u9EBC\uFF1F" },
+            a: {
+              en: "BOKMOO is a premier global connectivity solution offering physical SIM cards and instant digital eSIM profiles designed to keep travelers and global professionals smoothly connected across hundreds of worldwide destinations without expensive roaming fees.",
+              hans: "BOKMOO \u662F\u5168\u7403\u9886\u5148\u7684\u8FDE\u63A5\u89E3\u51B3\u65B9\u6848\uFF1A\u5B9E\u4F53 SIM \u5361\u4E0E\u5373\u65F6\u6570\u5B57 eSIM \u914D\u7F6E\u6587\u4EF6\uFF0C\u8BA9\u65C5\u884C\u8005\u4E0E\u5168\u7403\u4E13\u4E1A\u4EBA\u58EB\u5728\u6570\u767E\u4E2A\u76EE\u7684\u5730\u4E4B\u95F4\u987A\u7545\u4FDD\u6301\u8FDE\u63A5\uFF0C\u65E0\u9700\u652F\u4ED8\u6602\u8D35\u7684\u6F2B\u6E38\u8D39\u3002",
+              hant: "BOKMOO \u662F\u5168\u7403\u9818\u5148\u7684\u9023\u7DDA\u89E3\u6C7A\u65B9\u6848\uFF1A\u5BE6\u9AD4 SIM \u5361\u8207\u5373\u6642\u6578\u4F4D eSIM \u8A2D\u5B9A\u6A94\uFF0C\u8B93\u65C5\u884C\u8005\u8207\u5168\u7403\u5C08\u696D\u4EBA\u58EB\u5728\u6578\u767E\u500B\u76EE\u7684\u5730\u4E4B\u9593\u9806\u66A2\u4FDD\u6301\u9023\u7DDA\uFF0C\u7121\u9700\u652F\u4ED8\u6602\u8CB4\u7684\u6F2B\u904A\u8CBB\u3002"
+            }
+          },
+          {
+            q: { en: "What's the difference between the physical SIM and eSIM?", hans: "\u5B9E\u4F53 SIM \u548C eSIM \u6709\u4EC0\u4E48\u533A\u522B\uFF1F", hant: "\u5BE6\u9AD4 SIM \u548C eSIM \u6709\u4EC0\u9EBC\u5340\u5225\uFF1F" },
+            a: {
+              en: "Our physical SIM is delivered directly to your door and works seamlessly with all unlocked mobile phones and mobile Wi-Fi routers. The eSIM is completely digital and can be instantly downloaded, scanned, and activated on modern eSIM-compatible devices via our mobile application.",
+              hans: "\u5B9E\u4F53 SIM \u5361\u76F4\u9001\u5230\u5BB6\uFF0C\u517C\u5BB9\u6240\u6709\u65E0\u9501\u624B\u673A\u4E0E\u968F\u8EAB Wi-Fi\uFF1BeSIM \u5B8C\u5168\u6570\u5B57\u5316\uFF0C\u53EF\u901A\u8FC7\u79FB\u52A8 App \u5373\u65F6\u4E0B\u8F7D\u3001\u626B\u7801\u5E76\u6FC0\u6D3B\u4E8E\u652F\u6301 eSIM \u7684\u73B0\u4EE3\u8BBE\u5907\u3002",
+              hant: "\u5BE6\u9AD4 SIM \u5361\u76F4\u9001\u5230\u5BB6\uFF0C\u76F8\u5BB9\u6240\u6709\u7121\u9396\u624B\u6A5F\u8207\u884C\u52D5 Wi-Fi\uFF1BeSIM \u5B8C\u5168\u6578\u4F4D\u5316\uFF0C\u53EF\u900F\u904E\u884C\u52D5 App \u5373\u6642\u4E0B\u8F09\u3001\u6383\u63CF\u4E26\u555F\u7528\u65BC\u652F\u63F4 eSIM \u7684\u73FE\u4EE3\u88DD\u7F6E\u3002"
+            }
+          },
+          {
+            q: { en: "Where can I use BOKMOO?", hans: "BOKMOO \u53EF\u4EE5\u5728\u54EA\u4E9B\u5730\u65B9\u4F7F\u7528\uFF1F", hant: "BOKMOO \u53EF\u4EE5\u5728\u54EA\u4E9B\u5730\u65B9\u4F7F\u7528\uFF1F" },
+            a: {
+              en: "BOKMOO operates in over 190+ countries and territories worldwide, collaborating with top-tier telecommunications carriers to ensure high-speed 4G LTE and 5G connectivity wherever your journeys take you.",
+              hans: "BOKMOO \u8986\u76D6\u5168\u7403 190+ \u4E2A\u56FD\u5BB6\u548C\u5730\u533A\uFF0C\u4E0E\u9876\u7EA7\u8FD0\u8425\u5546\u5408\u4F5C\uFF0C\u65E0\u8BBA\u65C5\u7A0B\u8D70\u5230\u54EA\u91CC\u90FD\u786E\u4FDD\u9AD8\u901F 4G LTE \u4E0E 5G \u8FDE\u63A5\u3002",
+              hant: "BOKMOO \u8986\u84CB\u5168\u7403 190+ \u500B\u570B\u5BB6\u548C\u5730\u5340\uFF0C\u8207\u9802\u7D1A\u96FB\u4FE1\u904B\u71DF\u5546\u5408\u4F5C\uFF0C\u7121\u8AD6\u65C5\u7A0B\u8D70\u5230\u54EA\u88E1\u90FD\u78BA\u4FDD\u9AD8\u901F 4G LTE \u8207 5G \u9023\u7DDA\u3002"
+            }
+          }
+        ].map((item) => /* @__PURE__ */ jsxs("details", { className: "group py-5 transition-colors", children: [
+          /* @__PURE__ */ jsxs("summary", { className: "flex cursor-pointer list-none items-center justify-between text-neutral-200 transition-colors group-hover:text-white", children: [
+            /* @__PURE__ */ jsx("span", { className: "text-sm font-medium sm:text-base", children: t(item.q) }),
+            /* @__PURE__ */ jsx("span", { className: "faq-icon text-neutral-400 transition-transform duration-200", children: /* @__PURE__ */ jsx("svg", { className: "h-5 w-5", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", "aria-hidden": "true", children: /* @__PURE__ */ jsx("path", { d: "M12 4v16m8-8H4", strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "1.8" }) }) })
+          ] }),
+          /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm font-light leading-relaxed text-neutral-400", children: t(item.a) })
+        ] }, item.q.en)) })
+      ] })
     ] });
   });
 
@@ -18233,6 +18242,10 @@ body[data-theme='bokmoo'] ::selection {
 @media (prefers-reduced-motion: reduce) {
   .animate-ambient-breath, .animate-pedestal-breath { animation: none !important; }
 }
+
+/* FAQ native disclosure (design: plus icon rotates into a close cross) */
+details summary::-webkit-details-marker { display: none; }
+details[open] summary .faq-icon { transform: rotate(45deg); }
 `;
   var existingMeta = runtime_default && typeof runtime_default === "object" && runtime_default.meta && typeof runtime_default.meta === "object" ? runtime_default.meta : {};
   window.__JIFFOO_THEME_RUNTIME__ = {

@@ -324,3 +324,7 @@ body[data-theme='bokmoo'] ::selection {
 @media (prefers-reduced-motion: reduce) {
   .animate-ambient-breath, .animate-pedestal-breath { animation: none !important; }
 }
+
+/* FAQ native disclosure (design: plus icon rotates into a close cross) */
+details summary::-webkit-details-marker { display: none; }
+details[open] summary .faq-icon { transform: rotate(45deg); }
