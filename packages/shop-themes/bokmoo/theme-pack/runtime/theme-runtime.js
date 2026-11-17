@@ -15569,7 +15569,11 @@
             /* @__PURE__ */ jsx("p", { className: "max-w-md text-base font-light leading-relaxed text-[var(--bokmoo-copy)] sm:text-lg", children: t({
               en: "Physical SIM and eSIM for borderless, reliable mobile connectivity.",
               hans: "\u5B9E\u4F53 SIM \u4E0E eSIM\uFF0C\u5E26\u6765\u65E0\u8FB9\u754C\u3001\u53EF\u9760\u7684\u79FB\u52A8\u8FDE\u63A5\u3002",
-              hant: "\u5BE6\u9AD4 SIM \u8207 eSIM\uFF0C\u5E36\u4F86\u7121\u908A\u754C\u3001\u53EF\u9760\u7684\u884C\u52D5\u9023\u7DDA\u3002"
+              hant: "\u5BE6\u9AD4 SIM \u8207 eSIM\uFF0C\u5E36\u4F86\u7121\u908A\u754C\u3001\u53EF\u9760\u7684\u884C\u52D5\u9023\u7DDA\u3002",
+              ja: "\u56FD\u5883\u3092\u8D8A\u3048\u305F\u3001\u4FE1\u983C\u6027\u306E\u9AD8\u3044\u30E2\u30D0\u30A4\u30EB\u63A5\u7D9A\u306E\u305F\u3081\u306E\u7269\u7406SIM\u3068eSIM\u3002",
+              ko: "\uAD6D\uACBD \uC5C6\uC774 \uC2E0\uB8B0\uD560 \uC218 \uC788\uB294 \uBAA8\uBC14\uC77C \uC5F0\uACB0\uC744 \uC704\uD55C \uBB3C\uB9AC SIM\uACFC eSIM.",
+              fr: "SIM physique et eSIM pour une connectivit\xE9 mobile fiable et sans fronti\xE8res.",
+              de: "Physische SIM und eSIM f\xFCr grenzenlose, zuverl\xE4ssige mobile Konnektivit\xE4t."
             }) }),
             /* @__PURE__ */ jsx("div", { className: "pt-2", children: /* @__PURE__ */ jsxs(
               "button",
@@ -15860,7 +15864,11 @@
               /* @__PURE__ */ jsx("p", { className: "text-sm font-light leading-relaxed text-neutral-400 sm:text-base", children: t({
                 en: "Switch profiles instantly, monitor data usage in real-time, and purchase destination packages directly inside the official BOKMOO application. Designed for effortless international control.",
                 hans: "\u5728\u5B98\u65B9 BOKMOO App \u5185\u5373\u65F6\u5207\u6362\u914D\u7F6E\u3001\u5B9E\u65F6\u76D1\u63A7\u6D41\u91CF\uFF0C\u5E76\u76F4\u63A5\u8D2D\u4E70\u76EE\u7684\u5730\u5957\u9910\uFF0C\u4E3A\u8F7B\u677E\u638C\u63A7\u5168\u7403\u8FDE\u63A5\u800C\u8BBE\u8BA1\u3002",
-                hant: "\u5728\u5B98\u65B9 BOKMOO App \u5167\u5373\u6642\u5207\u63DB\u8A2D\u5B9A\u6A94\u3001\u5373\u6642\u76E3\u63A7\u6D41\u91CF\uFF0C\u4E26\u76F4\u63A5\u8CFC\u8CB7\u76EE\u7684\u5730\u5957\u9910\uFF0C\u70BA\u8F15\u9B06\u638C\u63A7\u5168\u7403\u9023\u7DDA\u800C\u8A2D\u8A08\u3002"
+                hant: "\u5728\u5B98\u65B9 BOKMOO App \u5167\u5373\u6642\u5207\u63DB\u8A2D\u5B9A\u6A94\u3001\u5373\u6642\u76E3\u63A7\u6D41\u91CF\uFF0C\u4E26\u76F4\u63A5\u8CFC\u8CB7\u76EE\u7684\u5730\u5957\u9910\uFF0C\u70BA\u8F15\u9B06\u638C\u63A7\u5168\u7403\u9023\u7DDA\u800C\u8A2D\u8A08\u3002",
+                ja: "\u516C\u5F0F BOKMOO \u30A2\u30D7\u30EA\u3067\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3092\u5373\u5EA7\u306B\u5207\u308A\u66FF\u3048\u3001\u30C7\u30FC\u30BF\u4F7F\u7528\u91CF\u3092\u30EA\u30A2\u30EB\u30BF\u30A4\u30E0\u3067\u76E3\u8996\u3057\u3001\u76EE\u7684\u5730\u30D1\u30C3\u30B1\u30FC\u30B8\u3092\u76F4\u63A5\u8CFC\u5165\u3067\u304D\u307E\u3059\u3002\u4E16\u754C\u4E2D\u3092\u7C21\u5358\u306B\u7BA1\u7406\u3059\u308B\u305F\u3081\u306B\u8A2D\u8A08\u3055\u308C\u3066\u3044\u307E\u3059\u3002",
+                ko: "\uACF5\uC2DD BOKMOO \uC571\uC5D0\uC11C \uD504\uB85C\uD544\uC744 \uC989\uC2DC \uC804\uD658\uD558\uACE0, \uB370\uC774\uD130 \uC0AC\uC6A9\uB7C9\uC744 \uC2E4\uC2DC\uAC04\uC73C\uB85C \uBAA8\uB2C8\uD130\uB9C1\uD558\uACE0, \uBAA9\uC801\uC9C0 \uD328\uD0A4\uC9C0\uB97C \uC9C1\uC811 \uAD6C\uB9E4\uD558\uC138\uC694. \uC190\uC26C\uC6B4 \uAE00\uB85C\uBC8C \uAD00\uB9AC\uB97C \uC704\uD574 \uC124\uACC4\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
+                fr: "Changez de profil instantan\xE9ment, suivez votre consommation en temps r\xE9el et achetez des forfaits de destination directement dans l\u2019application officielle BOKMOO. Con\xE7u pour un contr\xF4le international sans effort.",
+                de: "Profile sofort wechseln, Datennutzung in Echtzeit \xFCberwachen und Zielpakete direkt in der offiziellen BOKMOO App kaufen. F\xFCr m\xFChelose internationale Kontrolle entwickelt."
               }) }),
               /* @__PURE__ */ jsx("div", { className: "flex flex-wrap items-center gap-4 pt-2", children: [
                 { icon: /* @__PURE__ */ jsx(AppleIcon2, {}), label: "App Store", href: "#ios" },
@@ -16013,7 +16021,11 @@
             a: {
               en: "BOKMOO operates in over 190+ countries and territories worldwide, collaborating with top-tier telecommunications carriers to ensure high-speed 4G LTE and 5G connectivity wherever your journeys take you.",
               hans: "BOKMOO \u8986\u76D6\u5168\u7403 190+ \u4E2A\u56FD\u5BB6\u548C\u5730\u533A\uFF0C\u4E0E\u9876\u7EA7\u8FD0\u8425\u5546\u5408\u4F5C\uFF0C\u65E0\u8BBA\u65C5\u7A0B\u8D70\u5230\u54EA\u91CC\u90FD\u786E\u4FDD\u9AD8\u901F 4G LTE \u4E0E 5G \u8FDE\u63A5\u3002",
-              hant: "BOKMOO \u8986\u84CB\u5168\u7403 190+ \u500B\u570B\u5BB6\u548C\u5730\u5340\uFF0C\u8207\u9802\u7D1A\u96FB\u4FE1\u904B\u71DF\u5546\u5408\u4F5C\uFF0C\u7121\u8AD6\u65C5\u7A0B\u8D70\u5230\u54EA\u88E1\u90FD\u78BA\u4FDD\u9AD8\u901F 4G LTE \u8207 5G \u9023\u7DDA\u3002"
+              hant: "BOKMOO \u8986\u84CB\u5168\u7403 190+ \u500B\u570B\u5BB6\u548C\u5730\u5340\uFF0C\u8207\u9802\u7D1A\u96FB\u4FE1\u904B\u71DF\u5546\u5408\u4F5C\uFF0C\u7121\u8AD6\u65C5\u7A0B\u8D70\u5230\u54EA\u88E1\u90FD\u78BA\u4FDD\u9AD8\u901F 4G LTE \u8207 5G \u9023\u7DDA\u3002",
+              ja: "BOKMOO\u306F\u4E16\u754C\u4E2D\u306E190\u4EE5\u4E0A\u306E\u56FD\u3068\u5730\u57DF\u3067\u5229\u7528\u3067\u304D\u3001\u30C8\u30C3\u30D7\u30AF\u30E9\u30B9\u306E\u901A\u4FE1\u30AD\u30E3\u30EA\u30A2\u3068\u63D0\u643A\u3057\u3001\u65C5\u306E\u3069\u3053\u3067\u3082\u9AD8\u901F\u306A4G LTE\u304A\u3088\u30735G\u63A5\u7D9A\u3092\u4FDD\u8A3C\u3057\u307E\u3059\u3002",
+              ko: "BOKMOO\uB294 \uC804 \uC138\uACC4 190\uAC1C \uC774\uC0C1\uC758 \uAD6D\uAC00\uC640 \uC9C0\uC5ED\uC5D0\uC11C \uC0AC\uC6A9 \uAC00\uB2A5\uD558\uBA70, \uCD5C\uC0C1\uC704 \uD1B5\uC2E0\uC0AC\uC640 \uD611\uB825\uD558\uC5EC \uC5B4\uB514\uB97C \uAC00\uB4E0 \uACE0\uC18D 4G LTE \uBC0F 5G \uC5F0\uACB0\uC744 \uBCF4\uC7A5\uD569\uB2C8\uB2E4.",
+              fr: "BOKMOO est disponible dans plus de 190 pays et territoires, en partenariat avec des op\xE9rateurs de premier plan pour une connectivit\xE9 4G LTE et 5G haut d\xE9bit o\xF9 que vous alliez.",
+              de: "BOKMOO ist in \xFCber 190 L\xE4ndern und Regionen weltweit verf\xFCgbar und arbeitet mit Top-Netzbetreibern zusammen, um \xFCberall schnelles 4G LTE und 5G zu gew\xE4hrleisten."
             }
           }
         ].map((item) => /* @__PURE__ */ jsxs("details", { className: "group py-5 transition-colors", children: [
@@ -18227,7 +18239,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.51",
+      version: "1.1.52",
       target: "shop"
     }
   };
