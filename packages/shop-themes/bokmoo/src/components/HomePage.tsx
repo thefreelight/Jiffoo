@@ -55,8 +55,14 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
   const [searchValue, setSearchValue] = React.useState('');
   const submitSearch = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    // Destination search hands off to the eSIM mall (esim.bokmoo.com) where the
+    // visitor picks a plan; the mall search page filters its catalog client-side
+    // on ?q=. The mall instance currently serves en/zh-Hans/zh-Hant only, so
+    // other storefront locales fall back to the English mall.
+    const mallLocale = locale === 'zh-Hans' || locale === 'zh-Hant' ? locale : 'en';
+    const mallSearchUrl = `https://esim.bokmoo.com/${mallLocale}/search`;
     const value = searchValue.trim();
-    onNavigate?.(value ? `/products?search=${encodeURIComponent(value)}` : '/products');
+    window.location.assign(value ? `${mallSearchUrl}?q=${encodeURIComponent(value)}` : mallSearchUrl);
   };
 
 
