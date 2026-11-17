@@ -92,23 +92,23 @@ export const Footer = React.memo(function Footer({
           </nav>
           <span className="text-neutral-500">
             © {year} {site.brandName.toUpperCase()}. All rights reserved.
+            {showPoweredByJiffoo ? (
+              <>
+                {' '}·{' '}
+                <a
+                  href={poweredByHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="transition-colors hover:text-[#E5C365]"
+                >
+                  Powered by {poweredByLabel}
+                </a>
+              </>
+            ) : null}
           </span>
         </div>
       </div>
 
-      {/* Powered by (platform branding contract) */}
-      {showPoweredByJiffoo ? (
-        <div className="mx-auto mt-4 max-w-6xl px-6 text-center md:text-left">
-          <a
-            href={poweredByHref}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[11px] uppercase tracking-[0.16em] text-[var(--bokmoo-copy-soft)] transition-colors hover:text-[#E5C365]"
-          >
-            Powered by {poweredByLabel}
-          </a>
-        </div>
-      ) : null}
 
       {/* Mobile bottom navigation (theme feature) */}
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[rgba(255,255,255,0.08)] bg-[#0B0B0D]/95 px-3 pb-[calc(0.65rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-18px_50px_rgba(0,0,0,0.36)] backdrop-blur-xl sm:hidden">

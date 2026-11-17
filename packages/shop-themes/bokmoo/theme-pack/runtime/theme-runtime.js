@@ -15016,23 +15016,28 @@
             year,
             " ",
             site.brandName.toUpperCase(),
-            ". All rights reserved."
+            ". All rights reserved.",
+            showPoweredByJiffoo ? /* @__PURE__ */ jsxs(Fragment2, { children: [
+              " ",
+              "\xB7",
+              " ",
+              /* @__PURE__ */ jsxs(
+                "a",
+                {
+                  href: poweredByHref,
+                  target: "_blank",
+                  rel: "noopener noreferrer",
+                  className: "transition-colors hover:text-[#E5C365]",
+                  children: [
+                    "Powered by ",
+                    poweredByLabel
+                  ]
+                }
+              )
+            ] }) : null
           ] })
         ] })
       ] }),
-      showPoweredByJiffoo ? /* @__PURE__ */ jsx("div", { className: "mx-auto mt-4 max-w-6xl px-6 text-center md:text-left", children: /* @__PURE__ */ jsxs(
-        "a",
-        {
-          href: poweredByHref,
-          target: "_blank",
-          rel: "noopener noreferrer",
-          className: "text-[11px] uppercase tracking-[0.16em] text-[var(--bokmoo-copy-soft)] transition-colors hover:text-[#E5C365]",
-          children: [
-            "Powered by ",
-            poweredByLabel
-          ]
-        }
-      ) }) : null,
       /* @__PURE__ */ jsx("div", { className: "fixed inset-x-0 bottom-0 z-40 border-t border-[rgba(255,255,255,0.08)] bg-[#0B0B0D]/95 px-3 pb-[calc(0.65rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-18px_50px_rgba(0,0,0,0.36)] backdrop-blur-xl sm:hidden", children: /* @__PURE__ */ jsx("div", { className: "mx-auto grid max-w-[420px] grid-cols-5 gap-1", children: [
         { label: pickCopy(locale, { en: "Home", hans: "\u9996\u9875", hant: "\u9996\u9801", ja: "\u30DB\u30FC\u30E0", ko: "\uD648", fr: "Accueil", de: "Startseite" }), icon: House, onClick: () => onNavigate?.("/") },
         { label: pickCopy(locale, { en: "Store", hans: "\u5546\u5E97", hant: "\u5546\u5E97", ja: "\u30B9\u30C8\u30A2", ko: "\uC2A4\uD1A0\uC5B4", fr: "Boutique", de: "Shop" }), icon: LayoutGrid, onClick: onNavigateToProducts },
