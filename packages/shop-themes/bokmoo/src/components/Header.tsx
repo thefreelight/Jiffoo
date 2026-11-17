@@ -66,14 +66,18 @@ export const Header = React.memo(function Header({
     [onNavigate]
   );
 
-  const LOCALE_OPTIONS: Array<{ value: 'en' | 'zh-Hans' | 'zh-Hant'; label: string; short: string }> = [
+  const LOCALE_OPTIONS: Array<{ value: 'en' | 'zh-Hans' | 'zh-Hant' | 'ja' | 'ko' | 'fr' | 'de'; label: string; short: string }> = [
     { value: 'en', label: 'English (US)', short: 'EN' },
     { value: 'zh-Hans', label: '简体中文', short: '简' },
     { value: 'zh-Hant', label: '繁體中文', short: '繁' },
+    { value: 'ja', label: '日本語', short: '日本語' },
+    { value: 'ko', label: '한국어', short: '한국어' },
+    { value: 'fr', label: 'Français', short: 'FR' },
+    { value: 'de', label: 'Deutsch', short: 'DE' },
   ];
   const [isLocaleOpen, setIsLocaleOpen] = React.useState(false);
   const currentLocale = LOCALE_OPTIONS.find((option) => option.value === locale) ?? LOCALE_OPTIONS[0];
-  const switchLocale = (next: 'en' | 'zh-Hans' | 'zh-Hant') => {
+  const switchLocale = (next: 'en' | 'zh-Hans' | 'zh-Hant' | 'ja' | 'ko' | 'fr' | 'de') => {
     if (next === locale) {
       setIsLocaleOpen(false);
       return;
@@ -86,11 +90,11 @@ export const Header = React.memo(function Header({
   };
 
   const navItems = [
-    { label: pickCopy(locale, { en: 'Products', hans: '产品', hant: '產品' }), onClick: onNavigateToProducts },
-    { label: pickCopy(locale, { en: 'Global Plans', hans: '全球套餐', hant: '全球套餐' }), onClick: () => openHref('/#destinations') },
-    { label: pickCopy(locale, { en: 'Download App', hans: '下载 App', hant: '下載 App' }), onClick: () => openHref('/download/app') },
-    { label: pickCopy(locale, { en: 'Support', hans: '支持', hant: '支援' }), onClick: () => openHref('/help') },
-    { label: pickCopy(locale, { en: 'Affiliate Program', hans: '联盟计划', hant: '聯盟計劃' }), onClick: () => openHref('/affiliate') },
+    { label: pickCopy(locale, { en: 'Products', hans: '产品', hant: '產品', ja: '製品', ko: '제품', fr: 'Produits', de: 'Produkte' }), onClick: onNavigateToProducts },
+    { label: pickCopy(locale, { en: 'Global Plans', hans: '全球套餐', hant: '全球套餐', ja: 'グローバルプラン', ko: '글로벌 플랜', fr: 'Forfaits mondiaux', de: 'Weltweite Tarife' }), onClick: () => openHref('/#destinations') },
+    { label: pickCopy(locale, { en: 'Download App', hans: '下载 App', hant: '下載 App', ja: 'アプリをダウンロード', ko: '앱 다운로드', fr: 'Télécharger l’app', de: 'App herunterladen' }), onClick: () => openHref('/download/app') },
+    { label: pickCopy(locale, { en: 'Support', hans: '支持', hant: '支援', ja: 'サポート', ko: '지원', fr: 'Assistance', de: 'Support' }), onClick: () => openHref('/help') },
+    { label: pickCopy(locale, { en: 'Affiliate Program', hans: '联盟计划', hant: '聯盟計劃', ja: 'アフィリエイト', ko: '제휴 프로그램', fr: 'Affiliation', de: 'Partnerprogramm' }), onClick: () => openHref('/affiliate') },
   ];
 
   return (
@@ -168,7 +172,7 @@ export const Header = React.memo(function Header({
               <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#E5C365] text-[0.72rem] font-bold text-[#0d0d0d]">
                 {accountInitial}
               </span>
-              {pickCopy(locale, { en: 'My Account', hans: '我的帐户', hant: '我的帳戶' })}
+              {pickCopy(locale, { en: 'My Account', hans: '我的帐户', hant: '我的帳戶', ja: 'マイアカウント', ko: '내 계정', fr: 'Mon compte', de: 'Mein Konto' })}
             </button>
           ) : (
             <a
@@ -178,17 +182,17 @@ export const Header = React.memo(function Header({
                 event.preventDefault();
                 onNavigateToLogin();
               }}
-              title={pickCopy(locale, { en: 'Sign In / Manage My Cards', hans: '登入 / 管理我的卡片', hant: '登入 / 管理我的卡片' })}
+              title={pickCopy(locale, { en: 'Sign In / Manage My Cards', hans: '登入 / 管理我的卡片', hant: '登入 / 管理我的卡片', ja: 'サインイン・カード管理', ko: '로그인 · 카드 관리', fr: 'Connexion / Gérer mes cartes', de: 'Anmelden / Karten verwalten' })}
             >
               <svg className="w-4 h-4 text-neutral-400 transition-colors shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-              <span>{pickCopy(locale, { en: 'Sign In', hans: '登入', hant: '登入' })}</span>
+              <span>{pickCopy(locale, { en: 'Sign In', hans: '登入', hant: '登入', ja: 'サインイン', ko: '로그인', fr: 'Connexion', de: 'Anmelden' })}</span>
             </a>
           )}
 
           <button
-            aria-label={pickCopy(locale, { en: 'Shopping Cart', hans: '购物车', hant: '購物車' })}
+            aria-label={pickCopy(locale, { en: 'Shopping Cart', hans: '购物车', hant: '購物車', ja: 'カートを開く', ko: '장바구니 열기', fr: 'Ouvrir le panier', de: 'Warenkorb öffnen' })}
             className={`relative p-2 text-neutral-300 hover:text-[#E5C365] hover:bg-white/[0.04] rounded-full transition-all flex items-center justify-center shrink-0 ${FOCUS_VISIBLE_RING}`}
             onClick={onNavigateToCart}
             type="button"
@@ -215,7 +219,7 @@ export const Header = React.memo(function Header({
               }
             }}
           >
-            <span>{pickCopy(locale, { en: 'Get BOKMOO', hans: '获取 BOKMOO', hant: '獲取 BOKMOO' })}</span>
+            <span>{pickCopy(locale, { en: 'Get BOKMOO', hans: '获取 BOKMOO', hant: '獲取 BOKMOO', ja: 'BOKMOOを入手', ko: 'BOKMOO 받기', fr: 'Obtenir BOKMOO', de: 'BOKMOO holen' })}</span>
             <svg className="w-3.5 h-3.5 stroke-2 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path d="M14 5l7 7m0 0l-7 7m7-7H3" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
@@ -227,7 +231,7 @@ export const Header = React.memo(function Header({
           className={`ml-auto md:ml-0 flex h-11 w-11 items-center justify-center rounded-[0.8rem] border border-white/10 text-[var(--bokmoo-ink)] md:hidden ${FOCUS_VISIBLE_RING}`}
           aria-controls={mobileMenuId}
           aria-expanded={isMenuOpen}
-          aria-label={isMenuOpen ? pickCopy(locale, { en: 'Close menu', hans: '关闭选单', hant: '關閉選單' }) : pickCopy(locale, { en: 'Open menu', hans: '开启选单', hant: '開啟選單' })}
+          aria-label={isMenuOpen ? pickCopy(locale, { en: 'Close menu', hans: '关闭选单', hant: '關閉選單', ja: 'メニューを閉じる', ko: '메뉴 닫기', fr: 'Fermer le menu', de: 'Menü schließen' }) : pickCopy(locale, { en: 'Open menu', hans: '开启选单', hant: '開啟選單', ja: 'メニューを開く', ko: '메뉴 열기', fr: 'Ouvrir le menu', de: 'Menü öffnen' })}
           type="button"
         >
           {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -258,7 +262,7 @@ export const Header = React.memo(function Header({
               className={`rounded-[0.9rem] border border-white/10 bg-[#141414] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-ink)] ${FOCUS_VISIBLE_RING}`}
               type="button"
             >
-              {pickCopy(locale, { en: 'Cart', hans: '购物车', hant: '購物車' })}
+              {pickCopy(locale, { en: 'Cart', hans: '购物车', hant: '購物車', ja: 'カート', ko: '장바구니', fr: 'Panier', de: 'Warenkorb' })}
             </button>
             {isAuthenticated ? (
               <>
@@ -270,7 +274,7 @@ export const Header = React.memo(function Header({
                   className={`rounded-[0.9rem] border border-white/10 bg-[#141414] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-ink)] ${FOCUS_VISIBLE_RING}`}
                   type="button"
                 >
-                  {pickCopy(locale, { en: 'My Account', hans: '我的帐户', hant: '我的帳戶' })}
+                  {pickCopy(locale, { en: 'My Account', hans: '我的帐户', hant: '我的帳戶', ja: 'マイアカウント', ko: '내 계정', fr: 'Mon compte', de: 'Mein Konto' })}
                 </button>
                 <button
                   onClick={() => {
@@ -280,7 +284,7 @@ export const Header = React.memo(function Header({
                   className={`rounded-[0.9rem] border border-white/10 bg-[#141414] px-4 py-3 text-left text-sm text-[var(--bokmoo-copy)] ${FOCUS_VISIBLE_RING}`}
                   type="button"
                 >
-                  {pickCopy(locale, { en: 'Log Out', hans: '登出', hant: '登出' })}
+                  {pickCopy(locale, { en: 'Log Out', hans: '登出', hant: '登出', ja: 'ログアウト', ko: '로그아웃', fr: 'Se déconnecter', de: 'Abmelden' })}
                 </button>
               </>
             ) : (
@@ -293,7 +297,7 @@ export const Header = React.memo(function Header({
                   className={`rounded-[0.9rem] border border-white/10 bg-[#141414] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-ink)] ${FOCUS_VISIBLE_RING}`}
                   type="button"
                 >
-                  {pickCopy(locale, { en: 'Sign In', hans: '登入', hant: '登入' })}
+                  {pickCopy(locale, { en: 'Sign In', hans: '登入', hant: '登入', ja: 'サインイン', ko: '로그인', fr: 'Connexion', de: 'Anmelden' })}
                 </button>
                 <button
                   onClick={() => {
@@ -303,7 +307,7 @@ export const Header = React.memo(function Header({
                   className={`rounded-[0.9rem] bg-[#E5C365] px-4 py-3 text-left text-sm font-semibold text-[#0d0d0d] ${FOCUS_VISIBLE_RING}`}
                   type="button"
                 >
-                  {pickCopy(locale, { en: 'Get Started', hans: '立即开始', hant: '立即開始' })}
+                  {pickCopy(locale, { en: 'Get Started', hans: '立即开始', hant: '立即開始', ja: 'はじめる', ko: '시작하기', fr: 'Commencer', de: 'Los geht es' })}
                 </button>
               </>
             )}

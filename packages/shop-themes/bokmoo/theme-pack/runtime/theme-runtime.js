@@ -14989,10 +14989,10 @@
       [onNavigate]
     );
     const footerLinks = [
-      { label: pickCopy(locale, { en: "Products", hans: "\u4EA7\u54C1", hant: "\u7522\u54C1" }), onClick: onNavigateToProducts },
-      { label: pickCopy(locale, { en: "Support", hans: "\u652F\u6301", hant: "\u652F\u63F4" }), onClick: onNavigateToHelp },
-      { label: pickCopy(locale, { en: "Terms", hans: "\u6761\u6B3E", hant: "\u689D\u6B3E" }), onClick: onNavigateToTerms },
-      { label: pickCopy(locale, { en: "Privacy", hans: "\u9690\u79C1", hant: "\u96B1\u79C1" }), onClick: onNavigateToPrivacy }
+      { label: pickCopy(locale, { en: "Products", hans: "\u4EA7\u54C1", hant: "\u7522\u54C1", ja: "\u88FD\u54C1", ko: "\uC81C\uD488", fr: "Produits", de: "Produkte" }), onClick: onNavigateToProducts },
+      { label: pickCopy(locale, { en: "Support", hans: "\u652F\u6301", hant: "\u652F\u63F4", ja: "\u30B5\u30DD\u30FC\u30C8", ko: "\uC9C0\uC6D0", fr: "Assistance", de: "Support" }), onClick: onNavigateToHelp },
+      { label: pickCopy(locale, { en: "Terms", hans: "\u6761\u6B3E", hant: "\u689D\u6B3E", ja: "\u5229\u7528\u898F\u7D04", ko: "\uC774\uC6A9\uC57D\uAD00", fr: "Conditions d\u2019utilisation", de: "AGB" }), onClick: onNavigateToTerms },
+      { label: pickCopy(locale, { en: "Privacy", hans: "\u9690\u79C1", hant: "\u96B1\u79C1", ja: "\u30D7\u30E9\u30A4\u30D0\u30B7\u30FC", ko: "\uAC1C\uC778\uC815\uBCF4", fr: "Confidentialit\xE9", de: "Datenschutz" }), onClick: onNavigateToPrivacy }
     ];
     return /* @__PURE__ */ jsxs("footer", { className: "border-t border-neutral-900 bg-[#08080A] py-12 mt-12", "data-purpose": "site-footer", children: [
       /* @__PURE__ */ jsxs("div", { className: "mx-auto max-w-6xl px-6 flex flex-col md:flex-row items-center justify-between gap-6", children: [
@@ -15120,7 +15120,11 @@
     const LOCALE_OPTIONS = [
       { value: "en", label: "English (US)", short: "EN" },
       { value: "zh-Hans", label: "\u7B80\u4F53\u4E2D\u6587", short: "\u7B80" },
-      { value: "zh-Hant", label: "\u7E41\u9AD4\u4E2D\u6587", short: "\u7E41" }
+      { value: "zh-Hant", label: "\u7E41\u9AD4\u4E2D\u6587", short: "\u7E41" },
+      { value: "ja", label: "\u65E5\u672C\u8A9E", short: "\u65E5\u672C\u8A9E" },
+      { value: "ko", label: "\uD55C\uAD6D\uC5B4", short: "\uD55C\uAD6D\uC5B4" },
+      { value: "fr", label: "Fran\xE7ais", short: "FR" },
+      { value: "de", label: "Deutsch", short: "DE" }
     ];
     const [isLocaleOpen, setIsLocaleOpen] = react_default.useState(false);
     const currentLocale = LOCALE_OPTIONS.find((option) => option.value === locale) ?? LOCALE_OPTIONS[0];
@@ -15136,11 +15140,11 @@
       window.location.href = `/${next}${rest === "/" ? "" : rest}`;
     };
     const navItems = [
-      { label: pickCopy(locale, { en: "Products", hans: "\u4EA7\u54C1", hant: "\u7522\u54C1" }), onClick: onNavigateToProducts },
-      { label: pickCopy(locale, { en: "Global Plans", hans: "\u5168\u7403\u5957\u9910", hant: "\u5168\u7403\u5957\u9910" }), onClick: () => openHref("/#destinations") },
-      { label: pickCopy(locale, { en: "Download App", hans: "\u4E0B\u8F7D App", hant: "\u4E0B\u8F09 App" }), onClick: () => openHref("/download/app") },
-      { label: pickCopy(locale, { en: "Support", hans: "\u652F\u6301", hant: "\u652F\u63F4" }), onClick: () => openHref("/help") },
-      { label: pickCopy(locale, { en: "Affiliate Program", hans: "\u8054\u76DF\u8BA1\u5212", hant: "\u806F\u76DF\u8A08\u5283" }), onClick: () => openHref("/affiliate") }
+      { label: pickCopy(locale, { en: "Products", hans: "\u4EA7\u54C1", hant: "\u7522\u54C1", ja: "\u88FD\u54C1", ko: "\uC81C\uD488", fr: "Produits", de: "Produkte" }), onClick: onNavigateToProducts },
+      { label: pickCopy(locale, { en: "Global Plans", hans: "\u5168\u7403\u5957\u9910", hant: "\u5168\u7403\u5957\u9910", ja: "\u30B0\u30ED\u30FC\u30D0\u30EB\u30D7\u30E9\u30F3", ko: "\uAE00\uB85C\uBC8C \uD50C\uB79C", fr: "Forfaits mondiaux", de: "Weltweite Tarife" }), onClick: () => openHref("/#destinations") },
+      { label: pickCopy(locale, { en: "Download App", hans: "\u4E0B\u8F7D App", hant: "\u4E0B\u8F09 App", ja: "\u30A2\u30D7\u30EA\u3092\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9", ko: "\uC571 \uB2E4\uC6B4\uB85C\uB4DC", fr: "T\xE9l\xE9charger l\u2019app", de: "App herunterladen" }), onClick: () => openHref("/download/app") },
+      { label: pickCopy(locale, { en: "Support", hans: "\u652F\u6301", hant: "\u652F\u63F4", ja: "\u30B5\u30DD\u30FC\u30C8", ko: "\uC9C0\uC6D0", fr: "Assistance", de: "Support" }), onClick: () => openHref("/help") },
+      { label: pickCopy(locale, { en: "Affiliate Program", hans: "\u8054\u76DF\u8BA1\u5212", hant: "\u806F\u76DF\u8A08\u5283", ja: "\u30A2\u30D5\u30A3\u30EA\u30A8\u30A4\u30C8", ko: "\uC81C\uD734 \uD504\uB85C\uADF8\uB7A8", fr: "Affiliation", de: "Partnerprogramm" }), onClick: () => openHref("/affiliate") }
     ];
     return /* @__PURE__ */ jsxs("header", { className: "w-full border-b border-white/5 backdrop-blur-md sticky top-0 z-50 bg-[#0B0B0D]/80", children: [
       /* @__PURE__ */ jsxs("div", { className: "w-full max-w-7xl mx-auto px-6 h-20 flex items-center justify-between gap-6 flex-nowrap overflow-visible", children: [
@@ -15210,7 +15214,7 @@
               type: "button",
               children: [
                 /* @__PURE__ */ jsx("span", { className: "flex h-7 w-7 items-center justify-center rounded-full bg-[#E5C365] text-[0.72rem] font-bold text-[#0d0d0d]", children: accountInitial }),
-                pickCopy(locale, { en: "My Account", hans: "\u6211\u7684\u5E10\u6237", hant: "\u6211\u7684\u5E33\u6236" })
+                pickCopy(locale, { en: "My Account", hans: "\u6211\u7684\u5E10\u6237", hant: "\u6211\u7684\u5E33\u6236", ja: "\u30DE\u30A4\u30A2\u30AB\u30A6\u30F3\u30C8", ko: "\uB0B4 \uACC4\uC815", fr: "Mon compte", de: "Mein Konto" })
               ]
             }
           ) : /* @__PURE__ */ jsxs(
@@ -15222,17 +15226,17 @@
                 event.preventDefault();
                 onNavigateToLogin();
               },
-              title: pickCopy(locale, { en: "Sign In / Manage My Cards", hans: "\u767B\u5165 / \u7BA1\u7406\u6211\u7684\u5361\u7247", hant: "\u767B\u5165 / \u7BA1\u7406\u6211\u7684\u5361\u7247" }),
+              title: pickCopy(locale, { en: "Sign In / Manage My Cards", hans: "\u767B\u5165 / \u7BA1\u7406\u6211\u7684\u5361\u7247", hant: "\u767B\u5165 / \u7BA1\u7406\u6211\u7684\u5361\u7247", ja: "\u30B5\u30A4\u30F3\u30A4\u30F3\u30FB\u30AB\u30FC\u30C9\u7BA1\u7406", ko: "\uB85C\uADF8\uC778 \xB7 \uCE74\uB4DC \uAD00\uB9AC", fr: "Connexion / G\xE9rer mes cartes", de: "Anmelden / Karten verwalten" }),
               children: [
                 /* @__PURE__ */ jsx("svg", { className: "w-4 h-4 text-neutral-400 transition-colors shrink-0", fill: "none", stroke: "currentColor", strokeWidth: "1.8", viewBox: "0 0 24 24", "aria-hidden": "true", children: /* @__PURE__ */ jsx("path", { d: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z", strokeLinecap: "round", strokeLinejoin: "round" }) }),
-                /* @__PURE__ */ jsx("span", { children: pickCopy(locale, { en: "Sign In", hans: "\u767B\u5165", hant: "\u767B\u5165" }) })
+                /* @__PURE__ */ jsx("span", { children: pickCopy(locale, { en: "Sign In", hans: "\u767B\u5165", hant: "\u767B\u5165", ja: "\u30B5\u30A4\u30F3\u30A4\u30F3", ko: "\uB85C\uADF8\uC778", fr: "Connexion", de: "Anmelden" }) })
               ]
             }
           ),
           /* @__PURE__ */ jsxs(
             "button",
             {
-              "aria-label": pickCopy(locale, { en: "Shopping Cart", hans: "\u8D2D\u7269\u8F66", hant: "\u8CFC\u7269\u8ECA" }),
+              "aria-label": pickCopy(locale, { en: "Shopping Cart", hans: "\u8D2D\u7269\u8F66", hant: "\u8CFC\u7269\u8ECA", ja: "\u30AB\u30FC\u30C8\u3092\u958B\u304F", ko: "\uC7A5\uBC14\uAD6C\uB2C8 \uC5F4\uAE30", fr: "Ouvrir le panier", de: "Warenkorb \xF6ffnen" }),
               className: `relative p-2 text-neutral-300 hover:text-[#E5C365] hover:bg-white/[0.04] rounded-full transition-all flex items-center justify-center shrink-0 ${FOCUS_VISIBLE_RING2}`,
               onClick: onNavigateToCart,
               type: "button",
@@ -15254,7 +15258,7 @@
                 }
               },
               children: [
-                /* @__PURE__ */ jsx("span", { children: pickCopy(locale, { en: "Get BOKMOO", hans: "\u83B7\u53D6 BOKMOO", hant: "\u7372\u53D6 BOKMOO" }) }),
+                /* @__PURE__ */ jsx("span", { children: pickCopy(locale, { en: "Get BOKMOO", hans: "\u83B7\u53D6 BOKMOO", hant: "\u7372\u53D6 BOKMOO", ja: "BOKMOO\u3092\u5165\u624B", ko: "BOKMOO \uBC1B\uAE30", fr: "Obtenir BOKMOO", de: "BOKMOO holen" }) }),
                 /* @__PURE__ */ jsx("svg", { className: "w-3.5 h-3.5 stroke-2 shrink-0", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", "aria-hidden": "true", children: /* @__PURE__ */ jsx("path", { d: "M14 5l7 7m0 0l-7 7m7-7H3", strokeLinecap: "round", strokeLinejoin: "round" }) })
               ]
             }
@@ -15267,7 +15271,7 @@
             className: `ml-auto md:ml-0 flex h-11 w-11 items-center justify-center rounded-[0.8rem] border border-white/10 text-[var(--bokmoo-ink)] md:hidden ${FOCUS_VISIBLE_RING2}`,
             "aria-controls": mobileMenuId,
             "aria-expanded": isMenuOpen,
-            "aria-label": isMenuOpen ? pickCopy(locale, { en: "Close menu", hans: "\u5173\u95ED\u9009\u5355", hant: "\u95DC\u9589\u9078\u55AE" }) : pickCopy(locale, { en: "Open menu", hans: "\u5F00\u542F\u9009\u5355", hant: "\u958B\u555F\u9078\u55AE" }),
+            "aria-label": isMenuOpen ? pickCopy(locale, { en: "Close menu", hans: "\u5173\u95ED\u9009\u5355", hant: "\u95DC\u9589\u9078\u55AE", ja: "\u30E1\u30CB\u30E5\u30FC\u3092\u9589\u3058\u308B", ko: "\uBA54\uB274 \uB2EB\uAE30", fr: "Fermer le menu", de: "Men\xFC schlie\xDFen" }) : pickCopy(locale, { en: "Open menu", hans: "\u5F00\u542F\u9009\u5355", hant: "\u958B\u555F\u9078\u55AE", ja: "\u30E1\u30CB\u30E5\u30FC\u3092\u958B\u304F", ko: "\uBA54\uB274 \uC5F4\uAE30", fr: "Ouvrir le menu", de: "Men\xFC \xF6ffnen" }),
             type: "button",
             children: isMenuOpen ? /* @__PURE__ */ jsx(X, { className: "h-5 w-5" }) : /* @__PURE__ */ jsx(Menu, { className: "h-5 w-5" })
           }
@@ -15296,7 +15300,7 @@
             },
             className: `rounded-[0.9rem] border border-white/10 bg-[#141414] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-ink)] ${FOCUS_VISIBLE_RING2}`,
             type: "button",
-            children: pickCopy(locale, { en: "Cart", hans: "\u8D2D\u7269\u8F66", hant: "\u8CFC\u7269\u8ECA" })
+            children: pickCopy(locale, { en: "Cart", hans: "\u8D2D\u7269\u8F66", hant: "\u8CFC\u7269\u8ECA", ja: "\u30AB\u30FC\u30C8", ko: "\uC7A5\uBC14\uAD6C\uB2C8", fr: "Panier", de: "Warenkorb" })
           }
         ),
         isAuthenticated ? /* @__PURE__ */ jsxs(Fragment2, { children: [
@@ -15309,7 +15313,7 @@
               },
               className: `rounded-[0.9rem] border border-white/10 bg-[#141414] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-ink)] ${FOCUS_VISIBLE_RING2}`,
               type: "button",
-              children: pickCopy(locale, { en: "My Account", hans: "\u6211\u7684\u5E10\u6237", hant: "\u6211\u7684\u5E33\u6236" })
+              children: pickCopy(locale, { en: "My Account", hans: "\u6211\u7684\u5E10\u6237", hant: "\u6211\u7684\u5E33\u6236", ja: "\u30DE\u30A4\u30A2\u30AB\u30A6\u30F3\u30C8", ko: "\uB0B4 \uACC4\uC815", fr: "Mon compte", de: "Mein Konto" })
             }
           ),
           /* @__PURE__ */ jsx(
@@ -15321,7 +15325,7 @@
               },
               className: `rounded-[0.9rem] border border-white/10 bg-[#141414] px-4 py-3 text-left text-sm text-[var(--bokmoo-copy)] ${FOCUS_VISIBLE_RING2}`,
               type: "button",
-              children: pickCopy(locale, { en: "Log Out", hans: "\u767B\u51FA", hant: "\u767B\u51FA" })
+              children: pickCopy(locale, { en: "Log Out", hans: "\u767B\u51FA", hant: "\u767B\u51FA", ja: "\u30ED\u30B0\u30A2\u30A6\u30C8", ko: "\uB85C\uADF8\uC544\uC6C3", fr: "Se d\xE9connecter", de: "Abmelden" })
             }
           )
         ] }) : /* @__PURE__ */ jsxs(Fragment2, { children: [
@@ -15334,7 +15338,7 @@
               },
               className: `rounded-[0.9rem] border border-white/10 bg-[#141414] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-ink)] ${FOCUS_VISIBLE_RING2}`,
               type: "button",
-              children: pickCopy(locale, { en: "Sign In", hans: "\u767B\u5165", hant: "\u767B\u5165" })
+              children: pickCopy(locale, { en: "Sign In", hans: "\u767B\u5165", hant: "\u767B\u5165", ja: "\u30B5\u30A4\u30F3\u30A4\u30F3", ko: "\uB85C\uADF8\uC778", fr: "Connexion", de: "Anmelden" })
             }
           ),
           /* @__PURE__ */ jsx(
@@ -15346,7 +15350,7 @@
               },
               className: `rounded-[0.9rem] bg-[#E5C365] px-4 py-3 text-left text-sm font-semibold text-[#0d0d0d] ${FOCUS_VISIBLE_RING2}`,
               type: "button",
-              children: pickCopy(locale, { en: "Get Started", hans: "\u7ACB\u5373\u5F00\u59CB", hant: "\u7ACB\u5373\u958B\u59CB" })
+              children: pickCopy(locale, { en: "Get Started", hans: "\u7ACB\u5373\u5F00\u59CB", hant: "\u7ACB\u5373\u958B\u59CB", ja: "\u306F\u3058\u3081\u308B", ko: "\uC2DC\uC791\uD558\uAE30", fr: "Commencer", de: "Los geht es" })
             }
           )
         ] })
@@ -15550,32 +15554,6 @@
       const value = searchValue.trim();
       onNavigate?.(value ? `/products?search=${encodeURIComponent(value)}` : "/products");
     };
-    const faqItems = [
-      {
-        q: { en: "What is BOKMOO?", hans: "BOKMOO \u662F\u4EC0\u4E48\uFF1F", hant: "BOKMOO \u662F\u4EC0\u9EBC\uFF1F" },
-        a: {
-          en: "BOKMOO is a mobile connectivity product: a physical SIM card and an eSIM that work as one account, so your phone stays connected as you travel \u2014 no local shop visits, no swapping trays at the border.",
-          hans: "BOKMOO \u662F\u4E00\u4E2A\u79FB\u52A8\u8FDE\u63A5\u4EA7\u54C1\uFF1A\u5B9E\u4F53 SIM \u5361\u4E0E eSIM \u5171\u7528\u4E00\u4E2A\u5E10\u6237\uFF0C\u51FA\u5883\u65C5\u884C\u65F6\u624B\u673A\u4FDD\u6301\u5728\u7EBF\uFF0C\u65E0\u9700\u5728\u5F53\u5730\u95E8\u5E97\u529E\u5361\uFF0C\u4E5F\u65E0\u9700\u5728\u8FC7\u5883\u65F6\u6362\u5361\u3002",
-          hant: "BOKMOO \u662F\u4E00\u500B\u884C\u52D5\u9023\u7DDA\u7522\u54C1\uFF1A\u5BE6\u9AD4 SIM \u5361\u8207 eSIM \u5171\u7528\u540C\u4E00\u500B\u5E33\u6236\uFF0C\u51FA\u5883\u65C5\u884C\u6642\u624B\u6A5F\u4FDD\u6301\u5728\u7DDA\uFF0C\u7121\u9700\u5728\u7576\u5730\u9580\u5E02\u8FA6\u5361\uFF0C\u4E5F\u7121\u9700\u5728\u904E\u5883\u6642\u63DB\u5361\u3002"
-        }
-      },
-      {
-        q: { en: "What's the difference between the physical SIM and the eSIM?", hans: "\u5B9E\u4F53 SIM \u548C eSIM \u6709\u4EC0\u4E48\u533A\u522B\uFF1F", hant: "\u5BE6\u9AD4 SIM \u548C eSIM \u6709\u4EC0\u9EBC\u5340\u5225\uFF1F" },
-        a: {
-          en: "The physical SIM ships to you and slots into any unlocked phone. The eSIM installs digitally in minutes, with no shipping and no tray. Both live in the same account and switch from the BOKMOO app.",
-          hans: "\u5B9E\u4F53 SIM \u5361\u90AE\u5BC4\u5230\u624B\uFF0C\u63D2\u5165\u4EFB\u610F\u65E0\u9501\u624B\u673A\u5373\u53EF\u4F7F\u7528\uFF1BeSIM \u6570\u5206\u949F\u5185\u5B8C\u6210\u5B89\u88C5\uFF0C\u65E0\u9700\u90AE\u5BC4\u3001\u65E0\u9700\u53D6\u5361\u9488\u3002\u4E24\u8005\u5171\u7528\u540C\u4E00\u5E10\u6237\uFF0C\u5728 BOKMOO App \u5185\u5373\u53EF\u5207\u6362\u3002",
-          hant: "\u5BE6\u9AD4 SIM \u5361\u90F5\u5BC4\u5230\u624B\uFF0C\u63D2\u5165\u4EFB\u610F\u7121\u9396\u624B\u6A5F\u5373\u53EF\u4F7F\u7528\uFF1BeSIM \u6578\u5206\u9418\u5167\u5B8C\u6210\u5B89\u88DD\uFF0C\u7121\u9700\u90F5\u5BC4\u3001\u7121\u9700\u53D6\u5361\u91DD\u3002\u5169\u8005\u5171\u7528\u540C\u4E00\u5E33\u6236\uFF0C\u5728 BOKMOO App \u5167\u5373\u53EF\u5207\u63DB\u3002"
-        }
-      },
-      {
-        q: { en: "Where can I use BOKMOO?", hans: "BOKMOO \u53EF\u4EE5\u5728\u54EA\u4E9B\u5730\u65B9\u4F7F\u7528\uFF1F", hant: "BOKMOO \u53EF\u4EE5\u5728\u54EA\u4E9B\u5730\u65B9\u4F7F\u7528\uFF1F" },
-        a: {
-          en: "BOKMOO covers the destinations listed in the app and in the destination search above; search your destination to see its coverage and plans before you fly.",
-          hans: "BOKMOO \u8986\u76D6 App \u5185\u4E0E\u4E0A\u65B9\u76EE\u7684\u5730\u641C\u7D22\u4E2D\u5217\u51FA\u7684\u56FD\u5BB6\u548C\u5730\u533A\uFF1B\u51FA\u53D1\u524D\u641C\u7D22\u4F60\u7684\u76EE\u7684\u5730\uFF0C\u5373\u53EF\u67E5\u770B\u5BF9\u5E94\u7684\u5957\u9910\u4E0E\u8986\u76D6\u8303\u56F4\u3002",
-          hant: "BOKMOO \u8986\u84CB App \u5167\u8207\u4E0A\u65B9\u76EE\u7684\u5730\u641C\u7D22\u4E2D\u5217\u51FA\u7684\u570B\u5BB6\u548C\u5730\u5340\uFF1B\u51FA\u767C\u524D\u641C\u7D22\u4F60\u7684\u76EE\u7684\u5730\uFF0C\u5373\u53EF\u67E5\u770B\u5C0D\u61C9\u7684\u5957\u9910\u8207\u8986\u84CB\u7BC4\u570D\u3002"
-        }
-      }
-    ];
     return /* @__PURE__ */ jsxs("div", { className: "min-h-screen bg-[#0d0d0d] text-[var(--bokmoo-ink)]", children: [
       /* @__PURE__ */ jsx(PromoBanner, { locale, config }),
       /* @__PURE__ */ jsxs("section", { className: "relative overflow-hidden", children: [
@@ -15584,9 +15562,9 @@
         /* @__PURE__ */ jsxs("div", { className: "relative mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-6 pt-16 pb-20 lg:grid-cols-12 lg:gap-8 lg:py-24", children: [
           /* @__PURE__ */ jsxs("div", { className: "space-y-6 text-left lg:col-span-6", children: [
             /* @__PURE__ */ jsxs("h1", { className: "text-4xl font-light leading-[1.15] tracking-tight text-white sm:text-5xl lg:text-6xl", children: [
-              t({ en: "One Card,", hans: "\u4E00\u5F20\u5361\uFF0C", hant: "\u4E00\u5F35\u5361\uFF0C" }),
+              t({ en: "One Card,", hans: "\u4E00\u5F20\u5361\uFF0C", hant: "\u4E00\u5F35\u5361\uFF0C", ja: "\u4E00\u679A\u306E\u30AB\u30FC\u30C9\u3067\u3001", ko: "\uD558\uB098\uC758 \uCE74\uB4DC,", fr: "Une carte,", de: "Eine Karte," }),
               /* @__PURE__ */ jsx("br", {}),
-              /* @__PURE__ */ jsx("span", { className: "font-normal", children: t({ en: "One World.", hans: "\u8FDE\u4E16\u754C\u3002", hant: "\u9023\u4E16\u754C\u3002" }) })
+              /* @__PURE__ */ jsx("span", { className: "font-normal", children: t({ en: "One World.", hans: "\u8FDE\u4E16\u754C\u3002", hant: "\u9023\u4E16\u754C\u3002", ja: "\u4E16\u754C\u3092\u3064\u306A\u3050\u3002", ko: "\uD558\uB098\uC758 \uC138\uACC4.", fr: "Un monde.", de: "Eine Welt." }) })
             ] }),
             /* @__PURE__ */ jsx("p", { className: "max-w-md text-base font-light leading-relaxed text-[var(--bokmoo-copy)] sm:text-lg", children: t({
               en: "Physical SIM and eSIM for borderless, reliable mobile connectivity.",
@@ -15600,7 +15578,7 @@
                 className: "inline-flex items-center gap-3 rounded-full bg-[#E5C365] px-6 py-3.5 text-sm font-semibold text-[#111113] shadow-[0_2px_20px_rgba(229,195,101,0.25)] transition-all duration-200 hover:gap-4 hover:bg-[#F3D482]",
                 type: "button",
                 children: [
-                  /* @__PURE__ */ jsx("span", { children: t({ en: "Get BOKMOO", hans: "\u83B7\u53D6 BOKMOO", hant: "\u7372\u53D6 BOKMOO" }) }),
+                  /* @__PURE__ */ jsx("span", { children: t({ en: "Get BOKMOO", hans: "\u83B7\u53D6 BOKMOO", hant: "\u7372\u53D6 BOKMOO", ja: "BOKMOO\u3092\u5165\u624B", ko: "BOKMOO \uBC1B\uAE30", fr: "Obtenir BOKMOO", de: "BOKMOO holen" }) }),
                   /* @__PURE__ */ jsx(ArrowRight, { className: "h-4 w-4" })
                 ]
               }
@@ -15749,16 +15727,16 @@
               /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between pt-1", children: [
                 /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2", children: [
                   /* @__PURE__ */ jsx("svg", { className: "h-4 w-4 cursor-pointer text-neutral-400", fill: "none", stroke: "currentColor", strokeWidth: "2", viewBox: "0 0 24 24", "aria-hidden": "true", children: /* @__PURE__ */ jsx("path", { d: "M15 19l-7-7 7-7", strokeLinecap: "round", strokeLinejoin: "round" }) }),
-                  /* @__PURE__ */ jsx("span", { className: "text-sm font-semibold tracking-tight text-white", children: t({ en: "My eSIM Card", hans: "\u6211\u7684 eSIM \u5361\u7247", hant: "\u6211\u7684 eSIM \u5361\u7247" }) })
+                  /* @__PURE__ */ jsx("span", { className: "text-sm font-semibold tracking-tight text-white", children: t({ en: "My eSIM Card", hans: "\u6211\u7684 eSIM \u5361\u7247", hant: "\u6211\u7684 eSIM \u5361\u7247", ja: "\u79C1\u306EeSIM\u30AB\u30FC\u30C9", ko: "\uB0B4 eSIM \uCE74\uB4DC", fr: "Ma carte eSIM", de: "Meine eSIM-Karte" }) })
                 ] }),
-                /* @__PURE__ */ jsx("span", { className: "text-xs font-medium text-[#e5c365]", children: t({ en: "Close", hans: "\u5173\u95ED", hant: "\u95DC\u9589" }) })
+                /* @__PURE__ */ jsx("span", { className: "text-xs font-medium text-[#e5c365]", children: t({ en: "Close", hans: "\u5173\u95ED", hant: "\u95DC\u9589", ja: "\u9589\u3058\u308B", ko: "\uB2EB\uAE30", fr: "Fermer", de: "Schlie\xDFen" }) })
               ] }),
               /* @__PURE__ */ jsxs("div", { className: "group relative w-full select-none overflow-hidden rounded-[18px] border border-[#e5c365]/35 bg-gradient-to-br from-[#1d1b17] via-[#131211] to-[#0c0c0d] p-3.5 shadow-[0_10px_28px_rgba(0,0,0,0.85)]", children: [
                 /* @__PURE__ */ jsx("div", { className: "pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full bg-[#e5c365]/15 blur-2xl" }),
                 /* @__PURE__ */ jsx("div", { className: "pointer-events-none absolute -bottom-8 -left-8 h-28 w-28 rounded-full bg-[#d4af37]/10 blur-xl" }),
                 /* @__PURE__ */ jsxs("div", { className: "relative z-10 flex items-start justify-between gap-2", children: [
                   /* @__PURE__ */ jsxs("div", { className: "min-w-0 flex-1 space-y-1", children: [
-                    /* @__PURE__ */ jsx("div", { className: "flex items-center gap-1.5", children: /* @__PURE__ */ jsx("span", { className: "text-[9px] font-medium tracking-wide text-neutral-400", children: t({ en: "Bluetooth card", hans: "\u84DD\u7259\u5361\u7247", hant: "\u85CD\u7259\u5361\u7247" }) }) }),
+                    /* @__PURE__ */ jsx("div", { className: "flex items-center gap-1.5", children: /* @__PURE__ */ jsx("span", { className: "text-[9px] font-medium tracking-wide text-neutral-400", children: t({ en: "Bluetooth card", hans: "\u84DD\u7259\u5361\u7247", hant: "\u85CD\u7259\u5361\u7247", ja: "Bluetooth\u30AB\u30FC\u30C9", ko: "\uBE14\uB8E8\uD22C\uC2A4 \uCE74\uB4DC", fr: "Carte Bluetooth", de: "Bluetooth-Karte" }) }) }),
                     /* @__PURE__ */ jsx("div", { className: "flex items-center gap-1.5", children: /* @__PURE__ */ jsx("span", { className: "text-base font-bold tracking-[0.16em] text-[#e5c365] drop-shadow-[0_1px_3px_rgba(212,175,55,0.4)]", children: "BOKMOO" }) }),
                     /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-1 overflow-hidden whitespace-nowrap pt-0.5", children: [
                       /* @__PURE__ */ jsxs("span", { className: "select-all truncate font-mono text-[8px] tracking-tight text-[#d0c5af]/80 sm:text-[9px]", children: [
@@ -15769,7 +15747,7 @@
                         "button",
                         {
                           className: "shrink-0 text-neutral-500 transition-colors hover:text-[#E5C365]",
-                          title: t({ en: "Copy EID", hans: "\u590D\u5236 EID", hant: "\u8907\u88FD EID" }),
+                          title: t({ en: "Copy EID", hans: "\u590D\u5236 EID", hant: "\u8907\u88FD EID", ja: "EID\u3092\u30B3\u30D4\u30FC", ko: "EID \uBCF5\uC0AC", fr: "Copier l\u2019EID", de: "EID kopieren" }),
                           type: "button",
                           onClick: () => navigator.clipboard?.writeText(PHONE_EID),
                           children: /* @__PURE__ */ jsxs("svg", { className: "h-2.5 w-2.5 fill-none stroke-[2] stroke-current", viewBox: "0 0 24 24", "aria-hidden": "true", children: [
@@ -15784,7 +15762,7 @@
                         /* @__PURE__ */ jsx("span", { className: "absolute inline-flex h-full w-full animate-ping rounded-full bg-[#4ade80] opacity-75" }),
                         /* @__PURE__ */ jsx("span", { className: "relative inline-flex h-1.5 w-1.5 rounded-full bg-[#4ade80]" })
                       ] }),
-                      /* @__PURE__ */ jsx("span", { children: t({ en: "Connected", hans: "\u5DF2\u8FDE\u63A5", hant: "\u5DF2\u9023\u7DDA" }) })
+                      /* @__PURE__ */ jsx("span", { children: t({ en: "Connected", hans: "\u5DF2\u8FDE\u63A5", hant: "\u5DF2\u9023\u7DDA", ja: "\u63A5\u7D9A\u6E08\u307F", ko: "\uC5F0\uACB0\uB428", fr: "Connect\xE9", de: "Verbunden" }) })
                     ] }) })
                   ] }),
                   /* @__PURE__ */ jsxs("div", { className: "relative flex h-20 w-16 shrink-0 flex-col items-center justify-between rounded-xl border border-[#e5c365]/30 bg-gradient-to-b from-[#24211a] via-[#1a1815] to-[#121110] p-1.5 shadow-[inset_0_1px_2px_rgba(255,255,255,0.1),0_4px_12px_rgba(0,0,0,0.6)]", children: [
@@ -15806,28 +15784,28 @@
                   /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-1.5", children: [
                     /* @__PURE__ */ jsx("svg", { className: "h-3 w-3 shrink-0 text-neutral-400", fill: "none", stroke: "currentColor", strokeWidth: "2", viewBox: "0 0 24 24", "aria-hidden": "true", children: /* @__PURE__ */ jsx("path", { d: "M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0", strokeLinecap: "round", strokeLinejoin: "round" }) }),
                     /* @__PURE__ */ jsxs("div", { className: "flex flex-col", children: [
-                      /* @__PURE__ */ jsx("span", { className: "text-[8px] text-neutral-400", children: t({ en: "Reader", hans: "\u8BFB\u5361\u5668", hant: "\u8B80\u5361\u5668" }) }),
+                      /* @__PURE__ */ jsx("span", { className: "text-[8px] text-neutral-400", children: t({ en: "Reader", hans: "\u8BFB\u5361\u5668", hant: "\u8B80\u5361\u5668", ja: "\u30EA\u30FC\u30C0\u30FC", ko: "\uB9AC\uB354\uAE30", fr: "Lecteur", de: "Leseger\xE4t" }) }),
                       /* @__PURE__ */ jsx("span", { className: "font-mono font-medium text-neutral-200", children: "eSIM-BLE-BF4FDA5A" })
                     ] })
                   ] }),
                   /* @__PURE__ */ jsxs("div", { className: "flex flex-col items-end", children: [
-                    /* @__PURE__ */ jsx("span", { className: "text-[8px] text-neutral-400", children: t({ en: "Card plans", hans: "\u5361\u5185\u5957\u9910", hant: "\u5361\u5167\u5957\u9910" }) }),
+                    /* @__PURE__ */ jsx("span", { className: "text-[8px] text-neutral-400", children: t({ en: "Card plans", hans: "\u5361\u5185\u5957\u9910", hant: "\u5361\u5167\u5957\u9910", ja: "\u30AB\u30FC\u30C9\u5185\u30D7\u30E9\u30F3", ko: "\uCE74\uB4DC \uB0B4 \uD50C\uB79C", fr: "Forfaits de la carte", de: "Karten-Tarife" }) }),
                     /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-1", children: [
                       /* @__PURE__ */ jsx("span", { className: "font-mono text-xs font-semibold leading-none text-[#e5c365]", children: "5" }),
-                      /* @__PURE__ */ jsx("span", { className: "text-[9px] text-neutral-400", children: t({ en: "plans", hans: "\u4E2A", hant: "\u500B" }) })
+                      /* @__PURE__ */ jsx("span", { className: "text-[9px] text-neutral-400", children: t({ en: "plans", hans: "\u4E2A", hant: "\u500B", ja: "\u4EF6", ko: "\uAC1C", fr: "forfaits", de: "Tarife" }) })
                     ] })
                   ] })
                 ] })
               ] }),
               /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between pt-1", children: [
                 /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-1.5", children: [
-                  /* @__PURE__ */ jsx("span", { className: "text-sm font-semibold tracking-tight text-neutral-100", children: t({ en: "eSIM list (5)", hans: "eSIM \u5217\u8868\uFF085\uFF09", hant: "eSIM \u5217\u8868\uFF085\uFF09" }) }),
+                  /* @__PURE__ */ jsx("span", { className: "text-sm font-semibold tracking-tight text-neutral-100", children: t({ en: "eSIM list (5)", hans: "eSIM \u5217\u8868\uFF085\uFF09", hant: "eSIM \u5217\u8868\uFF085\uFF09", ja: "eSIM \u30EA\u30B9\u30C8\uFF085\uFF09", ko: "eSIM \uBAA9\uB85D(5)", fr: "Liste eSIM (5)", de: "eSIM-Liste (5)" }) }),
                   /* @__PURE__ */ jsx("svg", { className: "h-3.5 w-3.5 cursor-pointer text-neutral-400 transition-colors hover:text-white", fill: "none", stroke: "currentColor", strokeWidth: "2", viewBox: "0 0 24 24", "aria-hidden": "true", children: /* @__PURE__ */ jsx("path", { d: "M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15", strokeLinecap: "round", strokeLinejoin: "round" }) })
                 ] }),
                 /* @__PURE__ */ jsxs("button", { className: "flex items-center gap-1 rounded-full border border-[#E5C365]/60 bg-[#242119] px-2.5 py-1 text-[11px] font-medium text-[#E5C365] shadow-sm transition-all hover:border-[#E5C365] hover:bg-[#E5C365]/15", type: "button", children: [
                   /* @__PURE__ */ jsx("span", { children: "+" }),
                   " ",
-                  t({ en: "Add eSIM", hans: "\u6DFB\u52A0 eSIM", hant: "\u6DFB\u52A0 eSIM" })
+                  t({ en: "Add eSIM", hans: "\u6DFB\u52A0 eSIM", hant: "\u6DFB\u52A0 eSIM", ja: "eSIM\u3092\u8FFD\u52A0", ko: "eSIM \uCD94\uAC00", fr: "Ajouter une eSIM", de: "eSIM hinzuf\xFCgen" })
                 ] })
               ] }),
               /* @__PURE__ */ jsx("div", { className: "space-y-2", children: [
@@ -15842,7 +15820,7 @@
                   badge: "\u2605",
                   badgeClass: "bg-red-600 text-yellow-300",
                   name: { en: "China Mobile", hans: "China Mobile", hant: "China Mobile" },
-                  state: { en: "In use", hans: "\u4F7F\u7528\u4E2D", hant: "\u4F7F\u7528\u4E2D" },
+                  state: { en: "In use", hans: "\u4F7F\u7528\u4E2D", hant: "\u4F7F\u7528\u4E2D", ja: "\u4F7F\u7528\u4E2D", ko: "\uC0AC\uC6A9 \uC911", fr: "Utilis\xE9", de: "In Nutzung" },
                   iccid: PHONE_ICCIDS[1],
                   active: true
                 },
@@ -15915,8 +15893,8 @@
       /* @__PURE__ */ jsx("section", { className: "mx-auto border-t border-neutral-800/60 px-6 py-12", "data-purpose": "features-summary", children: /* @__PURE__ */ jsx("div", { className: "grid grid-cols-1 divide-y divide-neutral-800/80 gap-8 md:grid-cols-3 md:gap-6 md:divide-y-0 md:divide-x", children: [
         {
           icon: /* @__PURE__ */ jsx("svg", { className: "h-8 w-8", fill: "none", stroke: "currentColor", strokeWidth: "1.5", viewBox: "0 0 24 24", "aria-hidden": "true", children: /* @__PURE__ */ jsx("path", { d: "M13 10V3L4 14h7v7l9-11h-7z", strokeLinecap: "round", strokeLinejoin: "round" }) }),
-          title: { en: "Fast Activation", hans: "\u6781\u901F\u6FC0\u6D3B", hant: "\u6975\u901F\u6FC0\u6D3B" },
-          copy: { en: "Get online in minutes", hans: "\u51E0\u5206\u949F\u5373\u53EF\u4E0A\u7F51", hant: "\u5E7E\u5206\u9418\u5373\u53EF\u4E0A\u7DB2" }
+          title: { en: "Fast Activation", hans: "\u6781\u901F\u6FC0\u6D3B", hant: "\u6975\u901F\u6FC0\u6D3B", ja: "\u8FC5\u901F\u306A\u30A2\u30AF\u30C6\u30A3\u30D9\u30FC\u30B7\u30E7\u30F3", ko: "\uBE60\uB978 \uD65C\uC131\uD654", fr: "Activation rapide", de: "Schnelle Aktivierung" },
+          copy: { en: "Get online in minutes", hans: "\u51E0\u5206\u949F\u5373\u53EF\u4E0A\u7F51", hant: "\u5E7E\u5206\u9418\u5373\u53EF\u4E0A\u7DB2", ja: "\u6570\u5206\u3067\u30AA\u30F3\u30E9\u30A4\u30F3\u306B", ko: "\uBA87 \uBD84 \uB9CC\uC5D0 \uC628\uB77C\uC778", fr: "En ligne en quelques minutes", de: "In Minuten online" }
         },
         {
           icon: /* @__PURE__ */ jsxs("svg", { className: "h-8 w-8", fill: "none", stroke: "currentColor", strokeWidth: "1.5", viewBox: "0 0 24 24", "aria-hidden": "true", children: [
@@ -15924,13 +15902,13 @@
             /* @__PURE__ */ jsx("line", { x1: "2", x2: "22", y1: "12", y2: "12" }),
             /* @__PURE__ */ jsx("path", { d: "M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" })
           ] }),
-          title: { en: "Global Coverage", hans: "\u5168\u7403\u8986\u76D6", hant: "\u5168\u7403\u8986\u84CB" },
-          copy: { en: "Stay connected abroad", hans: "\u6D77\u5916\u4FDD\u6301\u5728\u7EBF", hant: "\u6D77\u5916\u4FDD\u6301\u5728\u7DDA" }
+          title: { en: "Global Coverage", hans: "\u5168\u7403\u8986\u76D6", hant: "\u5168\u7403\u8986\u84CB", ja: "\u30B0\u30ED\u30FC\u30D0\u30EB\u30AB\u30D0\u30EC\u30C3\u30B8", ko: "\uAE00\uB85C\uBC8C \uCEE4\uBC84\uB9AC\uC9C0", fr: "Couverture mondiale", de: "Globale Abdeckung" },
+          copy: { en: "Stay connected abroad", hans: "\u6D77\u5916\u4FDD\u6301\u5728\u7EBF", hant: "\u6D77\u5916\u4FDD\u6301\u5728\u7DDA", ja: "\u6D77\u5916\u3067\u3082\u63A5\u7D9A\u3092\u7DAD\u6301", ko: "\uD574\uC678\uC5D0\uC11C\uB3C4 \uC5F0\uACB0 \uC720\uC9C0", fr: "Restez connect\xE9 \xE0 l\u2019\xE9tranger", de: "Im Ausland verbunden bleiben" }
         },
         {
           icon: /* @__PURE__ */ jsx("svg", { className: "h-8 w-8", fill: "none", stroke: "currentColor", strokeWidth: "1.5", viewBox: "0 0 24 24", "aria-hidden": "true", children: /* @__PURE__ */ jsx("path", { d: "M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10", strokeLinecap: "round", strokeLinejoin: "round" }) }),
-          title: { en: "Flexible Options", hans: "\u7075\u6D3B\u9009\u62E9", hant: "\u9748\u6D3B\u9078\u64C7" },
-          copy: { en: "SIM and eSIM, your choice", hans: "SIM \u4E0E eSIM\uFF0C\u968F\u4F60\u9009\u62E9", hant: "SIM \u8207 eSIM\uFF0C\u96A8\u4F60\u9078\u64C7" }
+          title: { en: "Flexible Options", hans: "\u7075\u6D3B\u9009\u62E9", hant: "\u9748\u6D3B\u9078\u64C7", ja: "\u67D4\u8EDF\u306A\u9078\u629E\u80A2", ko: "\uC720\uC5F0\uD55C \uC635\uC158", fr: "Options flexibles", de: "Flexible Optionen" },
+          copy: { en: "SIM and eSIM, your choice", hans: "SIM \u4E0E eSIM\uFF0C\u968F\u4F60\u9009\u62E9", hant: "SIM \u8207 eSIM\uFF0C\u96A8\u4F60\u9078\u64C7", ja: "SIM\u3068eSIM\u3001\u9078\u3079\u308B", ko: "SIM\uACFC eSIM, \uC120\uD0DD\uC740 \uC790\uC720", fr: "SIM et eSIM, \xE0 vous de choisir", de: "SIM und eSIM, Ihre Wahl" }
         }
       ].map((feature) => /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-4 pt-4 md:pt-0 md:px-4 first:pl-0", children: [
         /* @__PURE__ */ jsx("div", { className: "mt-1 shrink-0 text-[#E5C365]", children: feature.icon }),
@@ -15940,7 +15918,7 @@
         ] })
       ] }, feature.title.en)) }) }),
       /* @__PURE__ */ jsxs("section", { className: "mx-auto max-w-4xl px-6 py-16 text-center", "data-purpose": "destination-search", children: [
-        /* @__PURE__ */ jsx("h2", { className: "text-3xl font-light tracking-tight text-white sm:text-4xl", children: t({ en: "Find Your Destination", hans: "\u627E\u5230\u4F60\u7684\u76EE\u7684\u5730", hant: "\u627E\u5230\u4F60\u7684\u76EE\u7684\u5730" }) }),
+        /* @__PURE__ */ jsx("h2", { className: "text-3xl font-light tracking-tight text-white sm:text-4xl", children: t({ en: "Find Your Destination", hans: "\u627E\u5230\u4F60\u7684\u76EE\u7684\u5730", hant: "\u627E\u5230\u4F60\u7684\u76EE\u7684\u5730", ja: "\u76EE\u7684\u5730\u3092\u63A2\u3059", ko: "\uBAA9\uC801\uC9C0 \uCC3E\uAE30", fr: "Trouvez votre destination", de: "Finden Sie Ihr Reiseziel" }) }),
         /* @__PURE__ */ jsx("p", { className: "mt-2 mb-8 text-sm text-neutral-400 sm:text-base", children: t({
           en: "Search for a country or region to explore connectivity options.",
           hans: "\u641C\u7D22\u56FD\u5BB6\u6216\u5730\u533A\uFF0C\u63A2\u7D22\u53EF\u7528\u7684\u8FDE\u63A5\u65B9\u6848\u3002",
@@ -15951,10 +15929,10 @@
           /* @__PURE__ */ jsx(
             "input",
             {
-              "aria-label": t({ en: "Search a country or region", hans: "\u641C\u7D22\u56FD\u5BB6\u6216\u5730\u533A", hant: "\u641C\u5C0B\u570B\u5BB6\u6216\u5730\u5340" }),
+              "aria-label": t({ en: "Search a country or region", hans: "\u641C\u7D22\u56FD\u5BB6\u6216\u5730\u533A", hant: "\u641C\u5C0B\u570B\u5BB6\u6216\u5730\u5340", ja: "\u56FD\u307E\u305F\u306F\u5730\u57DF\u3092\u691C\u7D22", ko: "\uAD6D\uAC00 \uB610\uB294 \uC9C0\uC5ED \uAC80\uC0C9", fr: "Rechercher un pays ou une r\xE9gion", de: "Land oder Region suchen" }),
               className: "w-full border-none bg-transparent py-2 text-sm text-neutral-200 placeholder-neutral-500 focus:ring-0",
               onChange: (event) => setSearchValue(event.target.value),
-              placeholder: t({ en: "Search a country or region", hans: "\u641C\u7D22\u56FD\u5BB6\u6216\u5730\u533A", hant: "\u641C\u5C0B\u570B\u5BB6\u6216\u5730\u5340" }),
+              placeholder: t({ en: "Search a country or region", hans: "\u641C\u7D22\u56FD\u5BB6\u6216\u5730\u533A", hant: "\u641C\u5C0B\u570B\u5BB6\u6216\u5730\u5340", ja: "\u56FD\u307E\u305F\u306F\u5730\u57DF\u3092\u691C\u7D22", ko: "\uAD6D\uAC00 \uB610\uB294 \uC9C0\uC5ED \uAC80\uC0C9", fr: "Rechercher un pays ou une r\xE9gion", de: "Land oder Region suchen" }),
               type: "text",
               value: searchValue
             }
@@ -15962,7 +15940,7 @@
           /* @__PURE__ */ jsx(
             "button",
             {
-              "aria-label": t({ en: "Search", hans: "\u641C\u7D22", hant: "\u641C\u7D22" }),
+              "aria-label": t({ en: "Search", hans: "\u641C\u7D22", hant: "\u641C\u7D22", ja: "\u691C\u7D22", ko: "\uAC80\uC0C9", fr: "Rechercher", de: "Suchen" }),
               className: "flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#E5C365] text-black transition-transform active:scale-95 hover:bg-[#F3D482]",
               type: "submit",
               children: /* @__PURE__ */ jsx("svg", { className: "h-4 w-4 stroke-[2.5]", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", "aria-hidden": "true", children: /* @__PURE__ */ jsx("path", { d: "M14 5l7 7m0 0l-7 7m7-7H3", strokeLinecap: "round", strokeLinejoin: "round" }) })
@@ -15971,22 +15949,22 @@
         ] }) })
       ] }),
       /* @__PURE__ */ jsxs("section", { className: "mx-auto border-t border-neutral-800/60 px-6 py-16", "data-purpose": "three-steps", id: "how-it-works", children: [
-        /* @__PURE__ */ jsx("h2", { className: "mb-12 text-center text-3xl font-light tracking-tight text-white sm:text-4xl", children: t({ en: "Get Connected in 3 Steps", hans: "\u4E09\u6B65\u5B8C\u6210\u8FDE\u63A5", hant: "\u4E09\u6B65\u5B8C\u6210\u9023\u7DDA" }) }),
+        /* @__PURE__ */ jsx("h2", { className: "mb-12 text-center text-3xl font-light tracking-tight text-white sm:text-4xl", children: t({ en: "Get Connected in 3 Steps", hans: "\u4E09\u6B65\u5B8C\u6210\u8FDE\u63A5", hant: "\u4E09\u6B65\u5B8C\u6210\u9023\u7DDA", ja: "3 \u30B9\u30C6\u30C3\u30D7\u3067\u63A5\u7D9A", ko: "3\uB2E8\uACC4\uB85C \uC5F0\uACB0\uD558\uAE30", fr: "Connectez-vous en 3 \xE9tapes", de: "In 3 Schritten verbunden" }) }),
         /* @__PURE__ */ jsx("div", { className: "relative grid grid-cols-1 items-start gap-8 md:grid-cols-3", children: [
           {
             step: "1",
-            title: { en: "Get BOKMOO", hans: "\u83B7\u53D6 BOKMOO", hant: "\u7372\u53D6 BOKMOO" },
-            copy: { en: "Use the physical SIM or eSIM.", hans: "\u4F7F\u7528\u5B9E\u4F53 SIM \u6216 eSIM\u3002", hant: "\u4F7F\u7528\u5BE6\u9AD4 SIM \u6216 eSIM\u3002" }
+            title: { en: "Get BOKMOO", hans: "\u83B7\u53D6 BOKMOO", hant: "\u7372\u53D6 BOKMOO", ja: "BOKMOO\u3092\u5165\u624B", ko: "BOKMOO \uBC1B\uAE30", fr: "Obtenir BOKMOO", de: "BOKMOO holen" },
+            copy: { en: "Use the physical SIM or eSIM.", hans: "\u4F7F\u7528\u5B9E\u4F53 SIM \u6216 eSIM\u3002", hant: "\u4F7F\u7528\u5BE6\u9AD4 SIM \u6216 eSIM\u3002", ja: "\u7269\u7406SIM\u307E\u305F\u306FeSIM\u3092\u3054\u5229\u7528\u304F\u3060\u3055\u3044\u3002", ko: "\uBB3C\uB9AC SIM \uB610\uB294 eSIM\uC744 \uC0AC\uC6A9\uD558\uC138\uC694.", fr: "Utilisez la SIM physique ou l\u2019eSIM.", de: "Nutzen Sie die physische SIM oder eSIM." }
           },
           {
             step: "2",
-            title: { en: "Add & Activate", hans: "\u6DFB\u52A0\u5E76\u6FC0\u6D3B", hant: "\u6DFB\u52A0\u4E26\u6FC0\u6D3B" },
-            copy: { en: "Set up in the BOKMOO app.", hans: "\u5728 BOKMOO App \u4E2D\u5B8C\u6210\u8BBE\u7F6E\u3002", hant: "\u5728 BOKMOO App \u4E2D\u5B8C\u6210\u8A2D\u5B9A\u3002" }
+            title: { en: "Add & Activate", hans: "\u6DFB\u52A0\u5E76\u6FC0\u6D3B", hant: "\u6DFB\u52A0\u4E26\u6FC0\u6D3B", ja: "\u8FFD\u52A0\u3068\u6709\u52B9\u5316", ko: "\uCD94\uAC00 \uBC0F \uD65C\uC131\uD654", fr: "Ajouter et activer", de: "Hinzuf\xFCgen und aktivieren" },
+            copy: { en: "Set up in the BOKMOO app.", hans: "\u5728 BOKMOO App \u4E2D\u5B8C\u6210\u8BBE\u7F6E\u3002", hant: "\u5728 BOKMOO App \u4E2D\u5B8C\u6210\u8A2D\u5B9A\u3002", ja: "BOKMOO \u30A2\u30D7\u30EA\u3067\u8A2D\u5B9A\u3057\u307E\u3059\u3002", ko: "BOKMOO \uC571\uC5D0\uC11C \uC124\uC815\uD558\uC138\uC694.", fr: "Configurez-la dans l\u2019application BOKMOO.", de: "Richten Sie sie in der BOKMOO App ein." }
           },
           {
             step: "3",
-            title: { en: "Stay Online", hans: "\u4FDD\u6301\u5728\u7EBF", hant: "\u4FDD\u6301\u5728\u7DDA" },
-            copy: { en: "Enjoy reliable connectivity around the world.", hans: "\u5728\u5168\u7403\u4EAB\u53D7\u53EF\u9760\u7684\u8FDE\u63A5\u3002", hant: "\u5728\u5168\u7403\u4EAB\u53D7\u53EF\u9760\u7684\u9023\u7DDA\u3002" }
+            title: { en: "Stay Online", hans: "\u4FDD\u6301\u5728\u7EBF", hant: "\u4FDD\u6301\u5728\u7DDA", ja: "\u5E38\u306B\u30AA\u30F3\u30E9\u30A4\u30F3", ko: "\uC628\uB77C\uC778 \uC720\uC9C0", fr: "Restez en ligne", de: "Bleiben Sie online" },
+            copy: { en: "Enjoy reliable connectivity around the world.", hans: "\u5728\u5168\u7403\u4EAB\u53D7\u53EF\u9760\u7684\u8FDE\u63A5\u3002", hant: "\u5728\u5168\u7403\u4EAB\u53D7\u53EF\u9760\u7684\u9023\u7DDA\u3002", ja: "\u4E16\u754C\u4E2D\u3067\u4FE1\u983C\u6027\u306E\u9AD8\u3044\u63A5\u7D9A\u3092\u304A\u697D\u3057\u307F\u304F\u3060\u3055\u3044\u3002", ko: "\uC804 \uC138\uACC4 \uC5B4\uB514\uC11C\uB098 \uC2E0\uB8B0\uD560 \uC218 \uC788\uB294 \uC5F0\uACB0\uC744 \uC990\uAE30\uC138\uC694.", fr: "Profitez d\u2019une connectivit\xE9 fiable partout dans le monde.", de: "Genie\xDFen Sie zuverl\xE4ssige Konnektivit\xE4t weltweit." }
           }
         ].map((step, index) => /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-4", children: [
           /* @__PURE__ */ jsx("div", { className: "flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#E5C365]/60 text-sm font-medium text-[#E5C365]", children: step.step }),
@@ -15999,7 +15977,7 @@
       ] }),
       /* @__PURE__ */ jsxs("section", { className: "mx-auto border-t border-neutral-800/60 px-6 py-16", "data-purpose": "faq-section", id: "support", children: [
         /* @__PURE__ */ jsxs("div", { className: "mb-8 flex items-center justify-between", children: [
-          /* @__PURE__ */ jsx("h2", { className: "text-2xl font-light tracking-tight text-white sm:text-3xl", children: t({ en: "FAQ", hans: "\u5E38\u89C1\u95EE\u9898", hant: "\u5E38\u898B\u554F\u984C" }) }),
+          /* @__PURE__ */ jsx("h2", { className: "text-2xl font-light tracking-tight text-white sm:text-3xl", children: t({ en: "FAQ", hans: "\u5E38\u89C1\u95EE\u9898", hant: "\u5E38\u898B\u554F\u984C", ja: "\u3088\u304F\u3042\u308B\u8CEA\u554F", ko: "\uC790\uC8FC \uBB3B\uB294 \uC9C8\uBB38", fr: "FAQ", de: "H\xE4ufige Fragen" }) }),
           /* @__PURE__ */ jsxs(
             "button",
             {
@@ -16007,7 +15985,7 @@
               onClick: () => openHref("/help"),
               type: "button",
               children: [
-                /* @__PURE__ */ jsx("span", { children: t({ en: "View All Questions", hans: "\u67E5\u770B\u5168\u90E8\u95EE\u9898", hant: "\u67E5\u770B\u5168\u90E8\u554F\u984C" }) }),
+                /* @__PURE__ */ jsx("span", { children: t({ en: "View All Questions", hans: "\u67E5\u770B\u5168\u90E8\u95EE\u9898", hant: "\u67E5\u770B\u5168\u90E8\u554F\u984C", ja: "\u3059\u3079\u3066\u306E\u8CEA\u554F\u3092\u898B\u308B", ko: "\uBAA8\uB4E0 \uC9C8\uBB38 \uBCF4\uAE30", fr: "Voir toutes les questions", de: "Alle Fragen ansehen" }) }),
                 /* @__PURE__ */ jsx("svg", { className: "h-3.5 w-3.5 stroke-2", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", "aria-hidden": "true", children: /* @__PURE__ */ jsx("path", { d: "M14 5l7 7m0 0l-7 7m7-7H3", strokeLinecap: "round", strokeLinejoin: "round" }) })
               ]
             }
@@ -16015,7 +15993,7 @@
         ] }),
         /* @__PURE__ */ jsx("div", { className: "divide-y divide-neutral-800 border-y border-neutral-800", children: [
           {
-            q: { en: "What is BOKMOO?", hans: "BOKMOO \u662F\u4EC0\u4E48\uFF1F", hant: "BOKMOO \u662F\u4EC0\u9EBC\uFF1F" },
+            q: { en: "What is BOKMOO?", hans: "BOKMOO \u662F\u4EC0\u4E48\uFF1F", hant: "BOKMOO \u662F\u4EC0\u9EBC\uFF1F", ja: "BOKMOO\u3068\u306F\uFF1F", ko: "BOKMOO\uB780 \uBB34\uC5C7\uC778\uAC00\uC694?", fr: "Qu\u2019est-ce que BOKMOO ?", de: "Was ist BOKMOO?" },
             a: {
               en: "BOKMOO is a premier global connectivity solution offering physical SIM cards and instant digital eSIM profiles designed to keep travelers and global professionals smoothly connected across hundreds of worldwide destinations without expensive roaming fees.",
               hans: "BOKMOO \u662F\u5168\u7403\u9886\u5148\u7684\u8FDE\u63A5\u89E3\u51B3\u65B9\u6848\uFF1A\u5B9E\u4F53 SIM \u5361\u4E0E\u5373\u65F6\u6570\u5B57 eSIM \u914D\u7F6E\u6587\u4EF6\uFF0C\u8BA9\u65C5\u884C\u8005\u4E0E\u5168\u7403\u4E13\u4E1A\u4EBA\u58EB\u5728\u6570\u767E\u4E2A\u76EE\u7684\u5730\u4E4B\u95F4\u987A\u7545\u4FDD\u6301\u8FDE\u63A5\uFF0C\u65E0\u9700\u652F\u4ED8\u6602\u8D35\u7684\u6F2B\u6E38\u8D39\u3002",
@@ -16023,7 +16001,7 @@
             }
           },
           {
-            q: { en: "What's the difference between the physical SIM and eSIM?", hans: "\u5B9E\u4F53 SIM \u548C eSIM \u6709\u4EC0\u4E48\u533A\u522B\uFF1F", hant: "\u5BE6\u9AD4 SIM \u548C eSIM \u6709\u4EC0\u9EBC\u5340\u5225\uFF1F" },
+            q: { en: "What's the difference between the physical SIM and eSIM?", hans: "\u5B9E\u4F53 SIM \u548C eSIM \u6709\u4EC0\u4E48\u533A\u522B\uFF1F", hant: "\u5BE6\u9AD4 SIM \u548C eSIM \u6709\u4EC0\u9EBC\u5340\u5225\uFF1F", ja: "\u7269\u7406SIM\u3068eSIM\u306E\u9055\u3044\u306F\uFF1F", ko: "\uBB3C\uB9AC SIM\uACFC eSIM\uC758 \uCC28\uC774\uC810\uC740 \uBB34\uC5C7\uC778\uAC00\uC694?", fr: "Quelle est la diff\xE9rence entre la SIM physique et l\u2019eSIM ?", de: "Was ist der Unterschied zwischen der physischen SIM und der eSIM?" },
             a: {
               en: "Our physical SIM is delivered directly to your door and works seamlessly with all unlocked mobile phones and mobile Wi-Fi routers. The eSIM is completely digital and can be instantly downloaded, scanned, and activated on modern eSIM-compatible devices via our mobile application.",
               hans: "\u5B9E\u4F53 SIM \u5361\u76F4\u9001\u5230\u5BB6\uFF0C\u517C\u5BB9\u6240\u6709\u65E0\u9501\u624B\u673A\u4E0E\u968F\u8EAB Wi-Fi\uFF1BeSIM \u5B8C\u5168\u6570\u5B57\u5316\uFF0C\u53EF\u901A\u8FC7\u79FB\u52A8 App \u5373\u65F6\u4E0B\u8F7D\u3001\u626B\u7801\u5E76\u6FC0\u6D3B\u4E8E\u652F\u6301 eSIM \u7684\u73B0\u4EE3\u8BBE\u5907\u3002",
@@ -16031,7 +16009,7 @@
             }
           },
           {
-            q: { en: "Where can I use BOKMOO?", hans: "BOKMOO \u53EF\u4EE5\u5728\u54EA\u4E9B\u5730\u65B9\u4F7F\u7528\uFF1F", hant: "BOKMOO \u53EF\u4EE5\u5728\u54EA\u4E9B\u5730\u65B9\u4F7F\u7528\uFF1F" },
+            q: { en: "Where can I use BOKMOO?", hans: "BOKMOO \u53EF\u4EE5\u5728\u54EA\u4E9B\u5730\u65B9\u4F7F\u7528\uFF1F", hant: "BOKMOO \u53EF\u4EE5\u5728\u54EA\u4E9B\u5730\u65B9\u4F7F\u7528\uFF1F", ja: "BOKMOO\u306F\u3069\u3053\u3067\u4F7F\u3048\u307E\u3059\u304B\uFF1F", ko: "BOKMOO\uB294 \uC5B4\uB514\uC5D0\uC11C \uC0AC\uC6A9\uD560 \uC218 \uC788\uB098\uC694?", fr: "O\xF9 puis-je utiliser BOKMOO ?", de: "Wo kann ich BOKMOO nutzen?" },
             a: {
               en: "BOKMOO operates in over 190+ countries and territories worldwide, collaborating with top-tier telecommunications carriers to ensure high-speed 4G LTE and 5G connectivity wherever your journeys take you.",
               hans: "BOKMOO \u8986\u76D6\u5168\u7403 190+ \u4E2A\u56FD\u5BB6\u548C\u5730\u533A\uFF0C\u4E0E\u9876\u7EA7\u8FD0\u8425\u5546\u5408\u4F5C\uFF0C\u65E0\u8BBA\u65C5\u7A0B\u8D70\u5230\u54EA\u91CC\u90FD\u786E\u4FDD\u9AD8\u901F 4G LTE \u4E0E 5G \u8FDE\u63A5\u3002",
@@ -18249,7 +18227,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.50",
+      version: "1.1.51",
       target: "shop"
     }
   };
