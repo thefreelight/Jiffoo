@@ -37,3 +37,9 @@ service = "bokmoo-esim-shop"
 [[r2_buckets]]
 binding = "THEME_ASSETS"
 bucket_name = "bokmoo-production-assets"
+
+# Custom domain on the bokmoo.com zone (DNS record + cert are provisioned
+# by Workers custom domains on first deploy).
+[[routes]]
+pattern = "esim.bokmoo.com"
+custom_domain = true
