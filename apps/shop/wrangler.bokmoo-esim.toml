@@ -1,0 +1,39 @@
+name = "bokmoo-esim-shop"
+main = "cloudflare-entry.ts"
+compatibility_date = "2026-07-12"
+compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
+workers_dev = true
+preview_urls = true
+
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
+
+[vars]
+NEXT_PUBLIC_API_URL = "/api"
+# Shared core API + D1 + R2 with the bokmoo.com storefront (users, orders,
+# payments are instance-global); this worker only differs by theme pin.
+API_SERVICE_URL = "https://api.bokmoo.com"
+SERVER_STORE_CONTEXT_TIMEOUT_MS = "2000"
+THEME_APP_PROXY_DISABLED = "1"
+THEME_APP_PROXY_TIMEOUT_MS = "1000"
+# Deployment theme pin: always serve the esim theme regardless of the
+# instance-global themes/active row (which stays on bokmoo).
+THEME_SLUG_PIN = "esim"
+THEME_VERSION_PIN = "0.0.1"
+# Outage fallback keeps the same theme so a core API blip cannot flip the
+# storefront to the bokmoo look.
+NEXT_PUBLIC_FALLBACK_STORE_NAME = "Bokmoo"
+NEXT_PUBLIC_FALLBACK_THEME_SLUG = "esim"
+NEXT_PUBLIC_FALLBACK_THEME_VERSION = "0.0.1"
+NEXT_PUBLIC_FALLBACK_DEFAULT_LOCALE = "zh-Hans"
+NEXT_PUBLIC_FALLBACK_SUPPORTED_LOCALES = "en,zh-Hans,zh-Hant"
+NEXT_PUBLIC_FALLBACK_POWERED_BY_JIFFOO = "0"
+
+[[services]]
+binding = "WORKER_SELF_REFERENCE"
+service = "bokmoo-esim-shop"
+
+[[r2_buckets]]
+binding = "THEME_ASSETS"
+bucket_name = "bokmoo-production-assets"
