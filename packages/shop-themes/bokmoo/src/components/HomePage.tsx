@@ -34,7 +34,7 @@ const HAIRLINE = 'border-[color:rgba(255,255,255,0.08)]';
 
 /* Placeholder device identifiers shown inside the phone UI. Randomised on
    purpose — never ship real card identifiers on the storefront. */
-const PHONE_ICCIDS = ['897823828746375807', '891296012124251779', '894643707593644071'];
+const PHONE_ICCIDS = ['894502187391048201', '896648729183847291', '890126048193018472'];
 const PHONE_EID = '88888888888888888888888888888888';
 
 export const HomePage = React.memo(function HomePage({ locale, config, onNavigate }: HomePageProps) {
@@ -52,7 +52,6 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
     [onNavigate]
   );
 
-  const [openFaq, setOpenFaq] = React.useState<number | null>(0);
   const [searchValue, setSearchValue] = React.useState('');
   const submitSearch = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -95,7 +94,7 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
       <section className="relative overflow-hidden">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_72%_30%,rgba(212,175,55,0.1),transparent_58%)]" />
         <div aria-hidden="true" className="absolute top-0 h-px w-full bg-[rgba(255,255,255,0.08)]" />
-        <div className="relative mx-auto grid max-w-[1280px] grid-cols-1 items-center gap-12 px-5 pt-16 pb-20 sm:px-8 lg:grid-cols-12 lg:gap-8 lg:py-24">
+        <div className="relative mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-6 pt-16 pb-20 lg:grid-cols-12 lg:gap-8 lg:py-24">
           <div className="space-y-6 text-left lg:col-span-6">
             <h1 className="text-4xl font-light leading-[1.15] tracking-tight text-white sm:text-5xl lg:text-6xl">
               {t({ en: 'One Card,', hans: '一张卡，', hant: '一張卡，' })}
@@ -430,6 +429,7 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
               </div>
             </div>
           </div>
+        </div>
           {/* App Description & CTA (Right) */}
           <div className="order-1 space-y-6 text-left lg:order-2 lg:col-span-6">
             <h2 className="text-3xl font-light leading-tight tracking-tight text-white sm:text-4xl">
@@ -475,7 +475,6 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
               ))}
             </div>
           </div>
-        </div>
       </section>
 
       {/* Feature strip */}

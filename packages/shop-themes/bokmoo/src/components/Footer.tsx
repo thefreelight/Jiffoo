@@ -72,7 +72,6 @@ export const Footer = React.memo(function Footer({
           <div className="flex items-center gap-2.5">
             <BokmooLogoLockup className="h-6 w-auto fill-[#e2c26a] drop-shadow-[0_1px_4px_rgba(212,175,55,0.35)] shrink-0" />
           </div>
-          <span className="text-neutral-500">{site.supportEmail}</span>
         </div>
         {/* Footer Navigation Links */}
         <div className="flex items-center gap-8 text-xs sm:text-sm text-neutral-400">
@@ -92,7 +91,7 @@ export const Footer = React.memo(function Footer({
             ))}
           </nav>
           <span className="text-neutral-500">
-            © {year} {site.brandName.charAt(0).toUpperCase() + site.brandName.slice(1)}. All rights reserved.
+            © {year} {site.brandName.toUpperCase()}. All rights reserved.
           </span>
         </div>
       </div>
