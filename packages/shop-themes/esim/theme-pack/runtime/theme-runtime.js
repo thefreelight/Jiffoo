@@ -14307,7 +14307,11 @@
           ) : response.items;
           const scopedItems = filteredItems.filter((item) => matchesCatalogFilter(item, selectedFilter));
           const isLocalScope = Boolean(search || selectedFilter !== "All");
-          setRemoteProducts(scopedItems.map(mapEsimApiProductToThemeProduct));
+          setRemoteProducts(scopedItems.map((item) => ({
+            ...mapEsimApiProductToThemeProduct(item),
+            typeData: item.typeData,
+            currency: item.currency
+          })));
           setRemoteTotal(isLocalScope ? scopedItems.length : Number(response.total || scopedItems.length || 0));
           setRemoteTotalPages(Math.max(1, Math.ceil((isLocalScope ? scopedItems.length : Number(response.total || scopedItems.length || 0)) / 12)));
         } catch (error) {
@@ -18838,7 +18842,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "esim",
-      version: "0.0.7",
+      version: "0.0.8",
       target: "shop"
     }
   };

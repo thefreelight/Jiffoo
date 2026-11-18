@@ -159,7 +159,14 @@ export const ProductsPage = React.memo(function ProductsPage({
         const scopedItems = filteredItems.filter((item) => matchesCatalogFilter(item, selectedFilter));
         const isLocalScope = Boolean(search || selectedFilter !== 'All');
 
-        setRemoteProducts(scopedItems.map(mapEsimApiProductToThemeProduct));
+        // Keep the structured BOSS facts (typeData.esim destinations /
+        // validityDays / defaultCode) alive through the theme mapping —
+        // the plan cards read them instead of text-inferred labels.
+        setRemoteProducts(scopedItems.map((item) => ({
+          ...mapEsimApiProductToThemeProduct(item),
+          typeData: item.typeData,
+          currency: item.currency,
+        })));
         setRemoteTotal(isLocalScope ? scopedItems.length : Number(response.total || scopedItems.length || 0));
         setRemoteTotalPages(Math.max(1, Math.ceil((isLocalScope ? scopedItems.length : Number(response.total || scopedItems.length || 0)) / 12)));
       } catch (error) {
