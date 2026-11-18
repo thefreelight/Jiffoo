@@ -507,6 +507,8 @@ export function mapEsimApiProductToThemeProduct(product: EsimApiProduct): ThemeP
     name: displayProductTitle(product.name),
     description: product.description ?? '',
     price: sellablePrice,
+    currency: product.currency,
+    typeData: product.typeData,
     sku: product.slug || product.id,
     productKind: product.productKind,
     category: {

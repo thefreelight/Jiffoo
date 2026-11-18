@@ -4,6 +4,11 @@ export interface Product {
   description: string;
   price: number;
   originalPrice?: number;
+  /** Billing currency (ISO 4217), e.g. CNY for the BOSS catalog. */
+  currency?: string;
+  /** Structured plan facts carried by upstream catalogs (BOSS eSIM etc). */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  typeData?: { esim?: any };
   sku: string;
   productKind?: string;
   category: ProductCategory;
