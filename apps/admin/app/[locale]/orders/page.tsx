@@ -83,6 +83,9 @@ function statusMeta(status: string, getText: (key: string, fallback: string) => 
     return { label: getText('merchant.pages.processingPaid', '已付款·处理中'), className: 'bg-blue-50 text-blue-600' }
   }
   if (normalized === 'SHIPPED') {
+    return { label: getText('merchant.pages.statShipped', '已发货'), className: 'bg-indigo-50 text-indigo-600' }
+  }
+  if (normalized === 'PROCESSING') {
     return { label: getText('merchant.pages.processing', '处理中'), className: 'bg-blue-50 text-blue-600' }
   }
   if (normalized === 'PAID') {

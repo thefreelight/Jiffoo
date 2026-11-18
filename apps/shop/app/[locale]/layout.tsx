@@ -15,6 +15,9 @@ import {
 } from 'shared/src/i18n';
 import { I18nProvider } from 'shared/src/i18n/react';
 import { ConditionalLayout } from '@/components/conditional-layout';
+import { getServerStoreContext } from '@/lib/server-store-context';
+import { buildPinnedActiveTheme } from '@/lib/theme-pin';
+import type { StoreContext } from '@/lib/store-context';
 import { PageTracker } from '@/components/page-tracker';
 import { Toaster } from '@/components/ui/toaster';
 import { OfflineDetector } from '@/components/offline-detector';
@@ -35,13 +38,28 @@ export default async function LocaleLayout({ children, params }: Props) {
   // Get messages for this locale
   const messages = getMessages(locale as Locale, 'shop');
 
+  // Server-fetched store context: lets StoreContextProvider render the
+  // subtree during SSR (crawlable content) instead of gating on the
+  // client-side fetch. The client still refreshes after hydration.
+  let initialContext: StoreContext | null = null;
+  try {
+    initialContext = (await getServerStoreContext({ cache: 'no-store' })) as unknown as StoreContext | null;
+  } catch {
+    initialContext = null;
+  }
+
+  // Deployment theme pin (THEME_SLUG_PIN / THEME_VERSION_PIN): when set,
+  // this worker serves the pinned theme regardless of the API-reported
+  // active theme. Null on unpinned workers — no behavior change there.
+  const initialActiveTheme = buildPinnedActiveTheme();
+
   return (
     <I18nProvider locale={locale as Locale} messages={messages}>
       <Suspense fallback={<div className="min-h-screen" />}>
         <SkipToMain />
         <OfflineDetector position="top" />
         <PageTracker />
-        <ConditionalLayout>{children}</ConditionalLayout>
+        <ConditionalLayout initialContext={initialContext} initialActiveTheme={initialActiveTheme}>{children}</ConditionalLayout>
         <Toaster />
       </Suspense>
     </I18nProvider>

@@ -81,6 +81,13 @@ interface ThemePackProviderProps {
   previewSlug?: string;
   /** Fallback content while loading */
   fallback?: ReactNode;
+  /**
+   * Server-pinned active theme (deployment `THEME_SLUG_PIN`). When present
+   * it replaces the client `/themes/active` lookup entirely — manifest,
+   * tokens and templates still load from the versioned asset library for
+   * the pinned slug/version. Focus/visibility reloads keep the pin.
+   */
+  initialActiveTheme?: ActiveTheme | null;
 }
 
 /**
@@ -93,9 +100,10 @@ export function ThemePackProvider({
   children,
   previewSlug,
   fallback,
+  initialActiveTheme,
 }: ThemePackProviderProps) {
   const [state, setState] = useState<ThemeRuntimeState>({
-    activeTheme: null,
+    activeTheme: initialActiveTheme ?? null,
     tokensLoaded: false,
     currentTemplate: null,
     isLoading: true,
@@ -119,8 +127,9 @@ export function ThemePackProvider({
       try {
         setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
-        // 1. Fetch active theme info
-        const activeTheme = await fetchActiveTheme();
+        // 1. Resolve active theme info. A deployment theme pin replaces the
+        //    API lookup; without a pin the client fetches as before.
+        const activeTheme = initialActiveTheme ?? await fetchActiveTheme();
         if (!mounted) return;
 
         if (!activeTheme) {
@@ -205,7 +214,7 @@ export function ThemePackProvider({
     return () => {
       mounted = false;
     };
-  }, [previewSlug, reloadToken]);
+  }, [previewSlug, reloadToken, initialActiveTheme]);
 
   // Reload theme
   const reloadTheme = useCallback(async () => {

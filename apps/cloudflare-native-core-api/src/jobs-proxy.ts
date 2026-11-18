@@ -126,9 +126,11 @@ export async function tryNativeJobsProxy(
     ? '/api/jobs'
     : incoming.pathname === '/api/v1/jobs/stats'
       ? '/api/jobs/stats'
-      : (incoming.pathname === '/api/v1/jobs/search-profiles' || incoming.pathname.startsWith('/api/v1/jobs/search-profiles/'))
-        ? incoming.pathname.replace('/api/v1/jobs/search-profiles', '/api/search-profiles')
-        : null;
+      : incoming.pathname === '/api/v1/jobs/companies'
+        ? '/api/jobs/companies'
+        : (incoming.pathname === '/api/v1/jobs/search-profiles' || incoming.pathname.startsWith('/api/v1/jobs/search-profiles/'))
+          ? incoming.pathname.replace('/api/v1/jobs/search-profiles', '/api/search-profiles')
+          : null;
   if (!upstreamPath) return null;
   const profileRequest = upstreamPath.startsWith('/api/search-profiles') || (
     upstreamPath === '/api/jobs' && incoming.searchParams.has('profileId')

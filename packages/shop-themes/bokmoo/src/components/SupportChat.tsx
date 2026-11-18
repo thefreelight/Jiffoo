@@ -213,6 +213,7 @@ export const SupportChat = React.memo(function SupportChat({ locale }: ThemeI18n
         body: JSON.stringify({
           visitorToken,
           ...(conversationId ? { conversationId } : {}),
+          ...(locale ? { locale } : {}),
           message: text,
         }),
       });

@@ -9,7 +9,7 @@
 
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { Menu, Search, Bot, Globe, ChevronDown } from 'lucide-react'
 import Link from 'next/link'
@@ -112,11 +112,14 @@ export function BlueMinimalLayout({ children }: BlueMinimalLayoutProps) {
       <ManagedModeProvider>
         <ManagedDocumentTitle />
         <div className="flex h-screen overflow-hidden bg-[#f5f7fb] font-sans">
-          {/* Sidebar */}
-          <BlueMinimalSidebar
-            isOpen={isSidebarOpen}
-            onClose={handleCloseSidebar}
-          />
+          {/* Sidebar — Suspense boundary for useSearchParams (plugins
+              marketplace/installed view highlight). */}
+          <Suspense fallback={null}>
+            <BlueMinimalSidebar
+              isOpen={isSidebarOpen}
+              onClose={handleCloseSidebar}
+            />
+          </Suspense>
 
           <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
             {/* Mobile Menu Button - Fixed at top left, hidden when sidebar is open */}

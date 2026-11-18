@@ -34,6 +34,7 @@ import { OfficialBadge } from '@/components/extensions/ExtensionVisuals';
 import { PluginInstanceManager } from '@/components/plugins/PluginInstanceManager';
 import { RemoteRadarJobsNativeWorkspace } from '@/components/plugins/RemoteRadarJobsNativeWorkspace';
 import { SupportHubInboxWorkspace } from '@/components/plugins/SupportHubInboxWorkspace';
+import { SupportHubAiPanel } from '@/components/plugins/SupportHubAiPanel';
 import { useJobsAdminCapability } from '@/hooks/use-jobs-admin-capability';
 import { toast } from 'sonner';
 
@@ -267,13 +268,20 @@ function GenericConfigEditor(props: {
 
   return (
     <Card className="rounded-2xl border-slate-200/80 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
-      <CardHeader className="px-7 pt-7">
-        <CardTitle className="text-2xl tracking-tight">Configuration</CardTitle>
-        <CardDescription>
-          Update plugin settings from a native Merchant Admin form. iframe-based plugin pages are no longer used here.
-        </CardDescription>
+      <CardHeader className="flex flex-row items-start justify-between space-y-0 px-7 pt-7">
+        <div className="space-y-1.5">
+          <CardTitle className="text-2xl tracking-tight">Configuration</CardTitle>
+          <CardDescription>
+            Update plugin settings from a native Merchant Admin form. iframe-based plugin pages are no longer used here.
+          </CardDescription>
+        </div>
+        <Button onClick={onSave} disabled={saving} className="shrink-0 rounded-xl px-5">
+          {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+          Save configuration
+        </Button>
       </CardHeader>
-      <CardContent className="space-y-6 px-7 pb-7">
+      <CardContent className="px-7 pb-7">
+        <div className="grid gap-4 md:grid-cols-2">
         {Object.entries(configSchema).map(([field, descriptor]) => {
           const type = getDescriptorType(descriptor);
           const label = getConfigFieldLabel(field, descriptor);
@@ -289,13 +297,13 @@ function GenericConfigEditor(props: {
                 : descriptor.enum[0];
 
             return (
-              <div key={field} className="space-y-2">
-                <Label>
+              <div key={field} className="rounded-xl border border-slate-200/80 bg-slate-50/60 p-4">
+                <Label className="text-sm font-medium">
                   {label}
                   {required ? ' *' : ''}
                 </Label>
                 <Select value={normalizedValue} onValueChange={(nextValue) => onUpdateField(field, nextValue)}>
-                  <SelectTrigger className="h-11 rounded-xl">
+                  <SelectTrigger className="mt-3 h-11 rounded-xl border-slate-200 bg-white">
                     <SelectValue placeholder={label} />
                   </SelectTrigger>
                   <SelectContent>
@@ -306,20 +314,20 @@ function GenericConfigEditor(props: {
                     ))}
                   </SelectContent>
                 </Select>
-                {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
+                {description ? <p className="mt-2 text-xs leading-5 text-muted-foreground">{description}</p> : null}
               </div>
             );
           }
 
           if (type === 'boolean') {
             return (
-              <div key={field} className="flex items-center justify-between rounded-lg border border-slate-200 px-4 py-3">
-                <div className="space-y-1 pr-4">
+              <div key={field} className="flex items-center justify-between gap-4 rounded-xl border border-slate-200/80 bg-slate-50/60 p-4">
+                <div className="min-w-0 space-y-1">
                   <Label className="text-sm font-medium">
                     {label}
                     {required ? ' *' : ''}
                   </Label>
-                  {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
+                  {description ? <p className="text-xs leading-5 text-muted-foreground">{description}</p> : null}
                 </div>
                 <Switch checked={Boolean(value)} onCheckedChange={(checked) => onUpdateField(field, checked)} />
               </div>
@@ -330,26 +338,26 @@ function GenericConfigEditor(props: {
             const error = jsonFieldErrors[field];
 
             return (
-              <div key={field} className="space-y-2">
-                <Label>
+              <div key={field} className="rounded-xl border border-slate-200/80 bg-slate-50/60 p-4 md:col-span-2">
+                <Label className="text-sm font-medium">
                   {label}
                   {required ? ' *' : ''}
                 </Label>
                 <Textarea
                   value={jsonFieldDrafts[field] ?? JSON.stringify(value ?? (type === 'array' ? [] : {}), null, 2)}
                   onChange={(event) => onUpdateJsonField(field, event.target.value, type)}
-                  className="min-h-[180px] rounded-xl font-mono"
+                  className="mt-3 min-h-[180px] rounded-xl border-slate-200 bg-white font-mono"
                 />
-                {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
-                {error ? <p className="text-xs text-red-600">{error}</p> : null}
+                {description ? <p className="mt-2 text-xs leading-5 text-muted-foreground">{description}</p> : null}
+                {error ? <p className="mt-2 text-xs text-red-600">{error}</p> : null}
               </div>
             );
           }
 
           if (type === 'number' || type === 'integer') {
             return (
-              <div key={field} className="space-y-2">
-                <Label>
+              <div key={field} className="rounded-xl border border-slate-200/80 bg-slate-50/60 p-4">
+                <Label className="text-sm font-medium">
                   {label}
                   {required ? ' *' : ''}
                 </Label>
@@ -359,9 +367,9 @@ function GenericConfigEditor(props: {
                     onChange={(event) =>
                       onUpdateField(field, event.target.value === '' ? '' : Number(event.target.value))
                     }
-                    className="h-11 rounded-xl"
+                    className="mt-3 h-11 rounded-xl border-slate-200 bg-white"
                   />
-                {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
+                {description ? <p className="mt-2 text-xs leading-5 text-muted-foreground">{description}</p> : null}
               </div>
             );
           }
@@ -369,8 +377,8 @@ function GenericConfigEditor(props: {
           const inputType = type === 'secret' ? 'password' : 'text';
 
           return (
-            <div key={field} className="space-y-2">
-              <Label>
+            <div key={field} className="rounded-xl border border-slate-200/80 bg-slate-50/60 p-4">
+              <Label className="text-sm font-medium">
                 {label}
                 {required ? ' *' : ''}
               </Label>
@@ -383,19 +391,20 @@ function GenericConfigEditor(props: {
                     ? 'Stored securely. Leave blank to keep the current value.'
                     : undefined
                 }
-                className="h-11 rounded-xl"
+                className="mt-3 h-11 rounded-xl border-slate-200 bg-white"
               />
-              {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
+              {description ? <p className="mt-2 text-xs leading-5 text-muted-foreground">{description}</p> : null}
               {type === 'secret' && secretConfigured ? (
-                <p className="text-xs text-muted-foreground">
+                <p className="mt-2 text-xs text-muted-foreground">
                   A secure value is already stored. Enter a new value only if you want to replace it.
                 </p>
               ) : null}
             </div>
           );
         })}
+        </div>
 
-        <div className="flex justify-end">
+        <div className="mt-6 flex justify-end">
           <Button onClick={onSave} disabled={saving} className="rounded-xl px-6">
             {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             Save configuration
@@ -1334,6 +1343,20 @@ export function PluginWorkspace({ slug }: { slug: string }) {
     [officialCatalogData?.items]
   );
   const configSchema = isPlainObject(data?.configSchema) ? (data?.configSchema as PluginConfigSchema) : undefined;
+  // Support Hub renders its AI/chat controls in the dedicated SupportHubAiPanel;
+  // keep those fields out of the generic schema editor to avoid double editing.
+  const supportHubEditorConfigSchema = useMemo(() => {
+    if (slug !== 'support-hub' || !configSchema) return configSchema;
+    const panelFields = new Set([
+      'chatEnabled', 'aiEnabled', 'aiProvider', 'aiBaseUrl', 'aiApiKey', 'aiModel',
+      'aiSystemPrompt', 'aiWelcomeMessage', 'aiHandoffMessage',
+    ]);
+    const filtered: PluginConfigSchema = {};
+    for (const [field, descriptor] of Object.entries(configSchema)) {
+      if (!panelFields.has(field)) filtered[field] = descriptor;
+    }
+    return filtered;
+  }, [configSchema, slug]);
 
   useEffect(() => {
     if (instances.length === 0) {
@@ -1363,7 +1386,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
   );
   const selectedConfigMeta = selectedInstance?.configMeta || data?.configMeta;
   const selectedReadiness = evaluateConfigReadiness(configSchema, selectedConfig, selectedConfigMeta);
-  const hasNativeWorkspace = slug === 'odoo' || slug === 'i18n' || slug === 'remoteradar-jobs' || Boolean(configSchema);
+  const hasNativeWorkspace = slug === 'odoo' || slug === 'i18n' || slug === 'remoteradar-jobs' || slug === 'seo' || Boolean(configSchema);
 
   useEffect(() => {
     setConfigDraft(selectedConfig);
@@ -1568,7 +1591,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
         />
 
         <div className="space-y-5">
-          <div className="rounded-2xl border border-slate-200/80 bg-white px-7 py-6 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
+          <div className="overflow-hidden rounded-3xl border border-blue-100 bg-gradient-to-r from-blue-50 via-indigo-50/70 to-white px-7 py-7 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
               <div className="min-w-0">
                 <div className="mb-2 flex items-center gap-2 text-sm text-slate-500">
@@ -1576,15 +1599,15 @@ export function PluginWorkspace({ slug }: { slug: string }) {
                   <span>/</span>
                   <span>Installed</span>
                   <span>/</span>
-                  <span className="truncate text-slate-900">{data.name || slug}</span>
+                  <span className="truncate font-medium text-slate-700">{data.name || slug}</span>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   {officialPluginSlugs.has(slug) ? <OfficialBadge compact /> : null}
                 </div>
-                <h1 className="mt-2 text-[30px] font-bold tracking-tight text-slate-950">
+                <h1 className="mt-2 text-[32px] font-bold tracking-tight text-slate-950">
                   {data.name || slug}
                 </h1>
-                <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">
+                <p className="mt-1.5 max-w-3xl text-sm leading-6 text-slate-600">
                   {getText(
                     'merchant.plugins.workspaceDescription',
                     'Manage plugin-specific configuration, instance targeting, and native Admin controls from a dedicated workspace.'
@@ -1625,19 +1648,40 @@ export function PluginWorkspace({ slug }: { slug: string }) {
             </div>
           </div>
 
-          <div className="grid gap-3 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)] sm:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {[
-              ['Runtime', data.runtimeType || 'n/a'],
-              ['Instance', selectedInstance?.instanceKey || 'default'],
-              ['Config readiness', selectedReadiness.configReady ? 'Ready' : 'Needs config'],
-              ['Last updated', selectedInstance?.updatedAt ? new Date(selectedInstance.updatedAt).toLocaleDateString() : 'n/a'],
-            ].map(([label, value], index) => (
-              <div key={label} className="flex items-center gap-3 border-slate-200 sm:border-r sm:px-3 first:pl-0 last:border-0">
-                {index === 0 ? <Cloud className="h-5 w-5 text-slate-500" /> : index === 2 ? <CheckCircle2 className="h-5 w-5 text-emerald-600" /> : <Settings2 className="h-5 w-5 text-slate-500" />}
-                <div><p className="text-xs text-slate-500">{label}</p><p className="text-sm font-semibold text-slate-900">{value}</p></div>
+              { label: 'Runtime', value: data.runtimeType || 'n/a', icon: <Cloud className="h-5 w-5" />, chip: 'bg-blue-50 text-blue-600' },
+              { label: 'Instance', value: selectedInstance?.instanceKey || 'default', icon: <Settings2 className="h-5 w-5" />, chip: 'bg-indigo-50 text-indigo-600' },
+              {
+                label: 'Config readiness',
+                value: selectedReadiness.configReady ? 'Ready' : 'Needs config',
+                icon: <CheckCircle2 className="h-5 w-5" />,
+                chip: selectedReadiness.configReady ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600',
+              },
+              {
+                label: 'Version',
+                value: data.version || 'n/a',
+                icon: <Settings2 className="h-5 w-5" />,
+                chip: 'bg-purple-50 text-purple-600',
+              },
+            ].map((tile) => (
+              <div key={tile.label} className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
+                <div className="flex items-center gap-3">
+                  <span className={tile.chip}>
+                    {tile.icon}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-xs text-slate-500">{tile.label}</p>
+                    <p className="truncate text-base font-bold text-slate-900">{tile.value}</p>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
+
+          <p className="px-1 text-xs text-slate-400">
+            {`Source: ${data.source || 'installed'} · Instance: ${selectedInstance?.instanceKey || 'default'} · Installation ID: ${selectedInstance?.installationId || 'default'}${selectedInstance?.updatedAt ? ` · Last updated ${new Date(selectedInstance.updatedAt).toLocaleString()}` : ''}`}
+          </p>
 
           <Alert className="border-blue-200 bg-blue-50 text-blue-950">
             <CheckCircle2 className="h-4 w-4" />
@@ -1647,27 +1691,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
             </AlertDescription>
           </Alert>
 
-          <div className="rounded-2xl border border-slate-200/80 bg-white px-6 py-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
-            <div className="flex flex-wrap items-center gap-4 text-sm text-slate-600">
-              <span>
-                <strong className="text-slate-900">Plugin:</strong> {data.name || slug}
-              </span>
-              <span>
-                <strong className="text-slate-900">Version:</strong> {data.version || 'n/a'}
-              </span>
-              <span>
-                <strong className="text-slate-900">Source:</strong> {data.source || 'installed'}
-              </span>
-              <span>
-                <strong className="text-slate-900">Instance:</strong> {selectedInstance?.instanceKey || 'default'}
-              </span>
-              <span>
-                <strong className="text-slate-900">Installation ID:</strong> {selectedInstance?.installationId || 'default'}
-              </span>
-            </div>
-          </div>
-
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr),360px]">
+          <div className="space-y-5">
             <div className="space-y-5">
               {slug === 'i18n' ? (
                 <I18nNativeWorkspace
@@ -1699,6 +1723,16 @@ export function PluginWorkspace({ slug }: { slug: string }) {
               ) : null}
 
               {slug === 'support-hub' ? (
+                <SupportHubAiPanel
+                  configDraft={configDraft}
+                  onUpdateField={updateConfigField}
+                  onSave={() => handleSaveGenericConfig()}
+                  saving={isCreatingInstance || isUpdatingInstance}
+                  disabled={!selectedInstance?.enabled}
+                />
+              ) : null}
+
+              {slug === 'support-hub' ? (
                 <SupportHubInboxWorkspace
                   installationId={selectedInstance?.installationId || 'default'}
                   disabled={!selectedInstance?.enabled}
@@ -1723,7 +1757,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
                     )
                   ) : null}
                   <GenericConfigEditor
-                    configSchema={configSchema}
+                    configSchema={slug === 'support-hub' ? (supportHubEditorConfigSchema ?? {}) : configSchema}
                     configDraft={configDraft}
                     configMeta={selectedConfigMeta}
                     jsonFieldDrafts={jsonFieldDrafts}
@@ -1740,6 +1774,32 @@ export function PluginWorkspace({ slug }: { slug: string }) {
                 <NativeConnectionTest slug={slug} disabled={!selectedInstance?.enabled} onEnable={handleToggleSelectedInstance} />
               ) : null}
 
+              {slug === 'seo' ? (
+                <Card className="rounded-2xl border-slate-200/80 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
+                  <CardHeader>
+                    <CardTitle className="text-lg tracking-tight">
+                      {locale.startsWith('zh') ? 'SEO 管理入口' : 'SEO management'}
+                    </CardTitle>
+                    <CardDescription>
+                      {locale.startsWith('zh')
+                        ? '重定向管理、审计与设置已内置于 Merchant Admin；robots.txt、sitemap.xml 与产品页元数据由店面自动生成并生效。'
+                        : 'Redirects, audit, and settings live in the built-in SEO pages; storefront robots.txt, sitemap.xml, and product metadata are generated automatically.'}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex flex-wrap gap-3">
+                    <Button asChild variant="outline" className="rounded-lg">
+                      <Link href={`/${locale}/seo/redirects`}>{locale.startsWith('zh') ? '重定向管理' : 'Redirects'}</Link>
+                    </Button>
+                    <Button asChild variant="outline" className="rounded-lg">
+                      <Link href={`/${locale}/seo/audit`}>{locale.startsWith('zh') ? 'SEO 审计' : 'SEO audit'}</Link>
+                    </Button>
+                    <Button asChild variant="outline" className="rounded-lg">
+                      <Link href={`/${locale}/seo`}>{locale.startsWith('zh') ? 'SEO 设置' : 'SEO settings'}</Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : null}
+
               {!hasNativeWorkspace ? (
                 <Alert className="border-amber-200 bg-amber-50 text-amber-900">
                   <AlertCircle className="h-4 w-4" />
@@ -1751,6 +1811,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
               ) : null}
             </div>
 
+            {/* Instance controls sit below the full-width config form. */}
             <div className="space-y-5">
               <Card className="rounded-2xl border-slate-200/80 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
                 <CardHeader>

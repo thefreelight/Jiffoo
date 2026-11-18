@@ -52,6 +52,9 @@ const definitions: Record<string, PluginDefinition> = {
       kuaidi100Customer: { type: 'string', label: 'Kuaidi100 Customer ID' },
       kuaidi100Secret: { type: 'secret', sensitive: true, label: 'Kuaidi100 Secret' },
       kuaidi100CallbackSalt: { type: 'secret', sensitive: true, label: 'Kuaidi100 Callback Salt' },
+      kuaidi100ApiBaseUrl: { type: 'string', label: 'Kuaidi100 API Base URL', description: 'Override for https://api.kuaidi100.com (label orders), e.g. a CN-egress relay.' },
+      kuaidi100PollBaseUrl: { type: 'string', label: 'Kuaidi100 Poll Base URL', description: 'Override for https://poll.kuaidi100.com (query/subscribe/pickup), e.g. a CN-egress relay.' },
+      kuaidi100CallbackUrl: { type: 'string', label: 'Kuaidi100 Callback URL', description: 'Public webhook endpoint that receives Kuaidi100 tracking pushes (e.g. https://api.example.com/api/v1/extensions/plugin/shipping/api/admin/webhooks/kuaidi100).' },
       fourpxEnabled: { type: 'boolean', label: 'Enable 4PX' },
       fourpxAppKey: { type: 'string', label: '4PX App Key' },
       fourpxAppSecret: { type: 'secret', sensitive: true, label: '4PX App Secret' },
@@ -74,6 +77,35 @@ const definitions: Record<string, PluginDefinition> = {
       smtpTestSubject: { type: 'string', label: 'Test email subject template' },
       smtpTestText: { type: 'string', label: 'Test email text template' },
       smtpTestHtml: { type: 'string', label: 'Test email HTML template' },
+    },
+  },
+  'google-auth': {
+    slug: 'google-auth', name: 'Google Identity Login', version: '0.2.0', category: 'social',
+    description: 'Customer sign-in and account linking with Google (OAuth 2.0 / OpenID Connect, PKCE). Enable and fill the OAuth client credentials from Google Cloud Console; register the storefront callback path as an authorized redirect URI. Android/iOS client IDs are optional and only used to verify native app tokens.',
+    configSchema: {
+      clientId: { type: 'string', required: true, label: 'Google OAuth Client ID', placeholder: '...apps.googleusercontent.com' },
+      clientSecret: { type: 'secret', required: true, sensitive: true, label: 'Google OAuth Client Secret', placeholder: 'GOCSPX-...' },
+      androidClientId: { type: 'string', required: false, label: 'Android Client ID (app token verification)', placeholder: '...apps.googleusercontent.com' },
+      iosClientId: { type: 'string', required: false, label: 'iOS Client ID (app token verification)', placeholder: '...apps.googleusercontent.com' },
+    },
+  },
+  'facebook-auth': {
+    slug: 'facebook-auth', name: 'Facebook Identity Login', version: '0.1.0', category: 'social',
+    description: 'Customer sign-in and account linking with Facebook (Facebook Login in OIDC mode). Enable and fill the app credentials from Meta for Developers; register the storefront callback path under Valid OAuth Redirect URIs.',
+    configSchema: {
+      appId: { type: 'string', required: true, label: 'Facebook App ID', placeholder: '1234567890123456' },
+      appSecret: { type: 'secret', required: true, sensitive: true, label: 'Facebook App Secret', placeholder: 'Meta app secret' },
+    },
+  },
+  'apple-auth': {
+    slug: 'apple-auth', name: 'Apple Identity Login', version: '0.1.0', category: 'social',
+    description: 'Customer sign-in and account linking with Sign in with Apple (Services ID for web; the ES256 client secret is minted from your .p8 key at request time). Register the storefront callback path in the Apple developer console. The bundle ID is optional and only used to verify native app tokens.',
+    configSchema: {
+      servicesId: { type: 'string', required: true, label: 'Services ID (web client)', placeholder: 'com.example.store.web' },
+      teamId: { type: 'string', required: true, label: 'Apple Developer Team ID', placeholder: '10-char team id' },
+      keyId: { type: 'string', required: true, label: 'Key ID (.p8 key)', placeholder: '10-char key id' },
+      privateKey: { type: 'secret', required: true, sensitive: true, label: 'Private Key (.p8 contents)', placeholder: '-----BEGIN PRIVATE KEY-----' },
+      bundleId: { type: 'string', required: false, label: 'App Bundle ID (app token verification)', placeholder: 'com.example.store' },
     },
   },
   stripe: {
@@ -140,7 +172,7 @@ const definitions: Record<string, PluginDefinition> = {
     configSchema: {},
   },
   'support-hub': {
-    slug: 'support-hub', name: 'Support Hub', version: '0.0.4', category: 'social',
+    slug: 'support-hub', name: 'Support Hub', version: '0.0.9', category: 'social',
     description: 'Contact launcher plus AI customer-service chat: OpenAI-compatible AI replies, handoff to human channels, persisted conversations, and an optional bot webhook.',
     configSchema: {
       enabled: { type: 'boolean', label: 'Enable Support Hub' },
@@ -157,6 +189,7 @@ const definitions: Record<string, PluginDefinition> = {
       defaultQueue: { type: 'string', label: 'Default queue' },
       chatEnabled: { type: 'boolean', label: 'Enable support chat' },
       aiEnabled: { type: 'boolean', label: 'Enable AI replies' },
+      aiProvider: { type: 'string', label: 'AI provider', enum: ['glm', 'zai', 'deepseek', 'moonshot', 'qwen', 'openai', 'custom'] },
       aiBaseUrl: { type: 'string', label: 'AI API base URL' },
       aiApiKey: { type: 'string', label: 'AI API key' },
       aiModel: { type: 'string', label: 'AI model' },
@@ -176,6 +209,11 @@ const definitions: Record<string, PluginDefinition> = {
       apiKey: { type: 'secret', required: true, sensitive: true, label: 'Provider API Key' },
       creditCost: { type: 'number', label: 'Credits per generation' },
     },
+  },
+  seo: {
+    slug: 'seo', name: 'SEO Manager', version: '0.0.2', category: 'seo',
+    description: 'Storefront SEO manager: redirects with hit counts and 404 conversion. Storefront robots.txt, sitemap.xml, canonical/hreflang metadata, and product JSON-LD are built into the framework and always active.',
+    configSchema: {},
   },
 };
 
@@ -410,6 +448,23 @@ export async function getNativeStripeSecret(
   return { mode, value: '' };
 }
 
+function synthesizedDefinition(slug: string): PluginDefinition {
+  const name = slug
+    .split('-')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+  return { slug, name, version: '', category: 'other', description: '', configSchema: {} };
+}
+
+async function tryFindInstance(env: PluginSettingsEnv, slug: string): Promise<StoredInstance | null> {
+  try {
+    return await findInstance(env, slug);
+  } catch {
+    // Broken/mock DB: treat as not installed so the fast-fail contract holds.
+    return null;
+  }
+}
+
 export async function tryNativePluginSettings(request: Request, env: PluginSettingsEnv): Promise<Response | null> {
   const url = new URL(request.url);
   if (url.pathname === '/api/v1/extensions/plugin' && request.method === 'GET') {
@@ -419,7 +474,10 @@ export async function tryNativePluginSettings(request: Request, env: PluginSetti
     if (!adminHasPermission(catalogAccess, ADMIN_PERMISSIONS.PLUGINS_READ)) {
       return response({ code: 'FORBIDDEN', message: 'Permission required: plugins.read' }, 403);
     }
-    const items = await Promise.all(Object.values(definitions).map(async (definition) => {
+    const knownSlugs = new Set(Object.keys(definitions));
+    const items: Array<(typeof definitions)[string] & {
+      runtimeType: string; source: string; deletedAt: null; enabled: boolean; manifestJson: string;
+    }> = await Promise.all(Object.values(definitions).map(async (definition) => {
       const instance = await findInstance(env, definition.slug);
       return {
         ...definition,
@@ -428,6 +486,35 @@ export async function tryNativePluginSettings(request: Request, env: PluginSetti
         manifestJson: JSON.stringify({ ...definition, schemaVersion: 1 }),
       };
     }));
+    // Instances outside the native registry (e.g. catalog plugins pre-seeded by
+    // migration 0038 such as cms/i18n/reviews/media-storage) must still show up
+    // in the installed list — the marketplace card reads native_plugin_instances
+    // directly, so omitting them here made install and the installed list
+    // disagree. Metadata falls back to a prettified slug until the plugin ships
+    // a native definition.
+    const allInstances = await env.DB.prepare(
+      'SELECT plugin_slug, enabled FROM native_plugin_instances WHERE instance_key = ?1',
+    ).bind('default').all<{ plugin_slug: string; enabled: number }>();
+    for (const row of allInstances.results ?? []) {
+      if (knownSlugs.has(row.plugin_slug)) continue;
+      const name = row.plugin_slug
+        .split('-')
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(' ');
+      items.push({
+        slug: row.plugin_slug,
+        name,
+        version: '',
+        category: 'other',
+        description: '',
+        configSchema: {},
+        runtimeType: 'cloudflare-native',
+        source: 'native',
+        deletedAt: null,
+        enabled: row.enabled === 1,
+        manifestJson: JSON.stringify({ slug: row.plugin_slug, name, schemaVersion: 1 }),
+      } as (typeof items)[number]);
+    }
     return response({ items, page: 1, limit: items.length, total: items.length, totalPages: 1 });
   }
   const detailMatch = url.pathname.match(/^\/api\/v1\/extensions\/plugin\/([^/]+)$/);
@@ -450,7 +537,26 @@ export async function tryNativePluginSettings(request: Request, env: PluginSetti
     // navigation until Cloudflare gives up with a 522.
     if (instancesMatch && request.method === 'GET') {
       const limit = Number(new URL(request.url).searchParams.get('limit') ?? 20) || 20;
+      const existingRow = await tryFindInstance(env, slug);
+      if (existingRow) {
+        const synthesized = synthesizedDefinition(slug);
+        return response({ items: [await adminInstance(existingRow, synthesized)], page: 1, limit, total: 1, totalPages: 1 });
+      }
       return response({ items: [], page: 1, limit, total: 0, totalPages: 0 });
+    }
+    // Installed-but-not-native-registry plugins (catalog pre-seeds such as
+    // cms/i18n) still deserve an openable detail page; truly unknown slugs
+    // keep the structured 404.
+    if (request.method === 'GET') {
+      const existingRow = await tryFindInstance(env, slug);
+      if (existingRow) {
+        const synthesized = synthesizedDefinition(slug);
+        return response({
+          ...synthesized,
+          runtimeType: 'cloudflare-native', source: 'native',
+          manifestJson: JSON.stringify({ ...synthesized, schemaVersion: 1 }),
+        });
+      }
     }
     return response({ code: 'PLUGIN_NOT_INSTALLED', message: `Plugin "${slug}" is not installed on this native runtime` }, 404);
   }

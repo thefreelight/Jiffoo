@@ -1,6 +1,6 @@
 {
   "name": "bokmoo-production-core-api",
-  "main": "/Users/jordan/Projects/Jiffoo/.worktrees/bokmoo-deploy/apps/cloudflare-native-core-api/src/index.ts",
+  "main": "./src/index.ts",
   "compatibility_date": "2026-07-29",
   "compatibility_flags": [
     "nodejs_compat"
@@ -16,7 +16,7 @@
       "binding": "DB",
       "database_name": "bokmoo-production",
       "database_id": "2a174c03-a459-4c80-882f-8585b5d76541",
-      "migrations_dir": "/Users/jordan/Projects/Jiffoo/.worktrees/bokmoo-deploy/apps/cloudflare-native-core-api/migrations"
+      "migrations_dir": "migrations"
     }
   ],
   "r2_buckets": [
@@ -54,5 +54,10 @@
     "SMTP_REPLY_TO": "support@bokmoo.com",
     "SMTP_SECURE": "false",
     "SMTP_USERNAME": "support@bokmoo.com"
+  },
+  "triggers": {
+    "crons": [
+      "*/1 * * * *"
+    ]
   }
 }

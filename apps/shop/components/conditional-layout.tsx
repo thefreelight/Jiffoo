@@ -1,11 +1,19 @@
 'use client';
 
+import React from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { StoreContextProvider } from '@/components/store-context-provider';
+import { useAuthStore } from '@/store/auth';
+import type { StoreContext } from '@/lib/store-context';
+import type { ActiveTheme } from '@/lib/theme-pack/types';
 import { ThemePackProvider } from '@/lib/theme-pack';
 
 interface ConditionalLayoutProps {
   children: React.ReactNode;
+  /** Server-fetched store context so the subtree SSRs instead of gating on client fetch. */
+  initialContext?: StoreContext | null;
+  /** Server-pinned active theme (deployment `THEME_SLUG_PIN`), passed straight to ThemePackProvider. */
+  initialActiveTheme?: ActiveTheme | null;
 }
 
 /**
@@ -17,9 +25,18 @@ interface ConditionalLayoutProps {
  *
  * The actual theme-based layout is handled by ThemedLayout component inside StoreContextProvider.
  */
-export function ConditionalLayout({ children }: ConditionalLayoutProps) {
+export function ConditionalLayout({ children, initialContext, initialActiveTheme }: ConditionalLayoutProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const bootstrapSession = useAuthStore((state) => state.bootstrapSession);
+
+  // Cross-subdomain session sharing: an auth token that arrived via the
+  // parent-domain cookie (or was already in localStorage) rehydrates the
+  // auth store here, before any page decides whether the visitor is
+  // signed in. Idempotent — the store skips when already authenticated.
+  React.useEffect(() => {
+    void bootstrapSession();
+  }, [bootstrapSession]);
 
   // Read ?theme= param for Theme Pack preview
   const previewSlug = searchParams.get('theme') ?? undefined;
@@ -40,8 +57,8 @@ export function ConditionalLayout({ children }: ConditionalLayoutProps) {
   // ThemePackProvider handles tokens CSS injection and template loading
   // StoreContextProvider handles store context and the default theme renderer
   return (
-    <ThemePackProvider previewSlug={previewSlug}>
-      <StoreContextProvider>
+    <ThemePackProvider previewSlug={previewSlug} initialActiveTheme={initialActiveTheme}>
+      <StoreContextProvider initialContext={initialContext}>
         {children}
       </StoreContextProvider>
     </ThemePackProvider>

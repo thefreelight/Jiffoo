@@ -146,10 +146,20 @@ export interface Kuaidi100Config {
   customer?: string;
   environment?: 'test' | 'live';
   timeoutMs?: number;
+  /** Override for https://api.kuaidi100.com (label orders); e.g. a CN-egress relay. */
+  apiBaseUrl?: string;
+  /** Override for https://poll.kuaidi100.com (query/subscribe/pickup); e.g. a CN-egress relay. */
+  pollBaseUrl?: string;
 }
 
 export class Kuaidi100NativeProvider {
-  constructor(private readonly config: Kuaidi100Config, private readonly fetchImpl: FetchLike = fetch, private readonly clock = Date.now) {}
+  private readonly apiBase: string;
+  private readonly pollBase: string;
+
+  constructor(private readonly config: Kuaidi100Config, private readonly fetchImpl: FetchLike = (...args) => fetch(...args), private readonly clock = Date.now) {
+    this.apiBase = (config.apiBaseUrl ?? 'https://api.kuaidi100.com').replace(/\/$/, '');
+    this.pollBase = (config.pollBaseUrl ?? 'https://poll.kuaidi100.com').replace(/\/$/, '');
+  }
 
   private async signed(url: string, method: string, payload: JsonObject): Promise<JsonObject> {
     const rawParam = JSON.stringify(payload);
@@ -172,7 +182,7 @@ export class Kuaidi100NativeProvider {
     requiredContact(payload.recMan, 'recMan');
     requiredContact(payload.sendMan, 'sendMan');
     if (!Number.isInteger(payload.count) || Number(payload.count) < 1) throw new ShippingProviderError('count must be a positive integer', 'VALIDATION_ERROR');
-    return this.signed('https://api.kuaidi100.com/label/order', 'order', payload);
+    return this.signed(`${this.apiBase}/label/order`, 'order', payload);
   }
 
   createPickup(payload: JsonObject): Promise<JsonObject> {
@@ -181,7 +191,7 @@ export class Kuaidi100NativeProvider {
     if (!stringValue(payload.sendManMobile) && !stringValue(payload.sendManTel)) throw new ShippingProviderError('sendManMobile or sendManTel is required', 'VALIDATION_ERROR');
     const endpoint = this.config.environment === 'test'
       ? 'http://e-test.kuaidilab.com/api/order/borderapi.do'
-      : 'https://poll.kuaidi100.com/order/borderapi.do';
+      : `${this.pollBase}/order/borderapi.do`;
     return this.signed(endpoint, 'bOrder', payload);
   }
 
@@ -194,7 +204,7 @@ export class Kuaidi100NativeProvider {
     if (number.length < 6 || number.length > 32) throw new ShippingProviderError('num must contain 6 to 32 characters', 'VALIDATION_ERROR');
     const timeout = timeoutSignal(this.config.timeoutMs ?? 15_000);
     try {
-      return assertKuaidi100Success(await responseJson(await this.fetchImpl('https://poll.kuaidi100.com/poll/query.do', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body, signal: timeout.signal }), 'Kuaidi100', false), false);
+      return assertKuaidi100Success(await responseJson(await this.fetchImpl(`${this.pollBase}/poll/query.do`, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body, signal: timeout.signal }), 'Kuaidi100', false), false);
     } catch (error) {
       if (error instanceof ShippingProviderError) throw error;
       throw new ShippingProviderError(timeout.signal.aborted ? 'Kuaidi100 request timed out' : 'Kuaidi100 network request failed', timeout.signal.aborted ? 'TIMEOUT' : 'NETWORK_ERROR', true, false);
@@ -213,7 +223,7 @@ export class Kuaidi100NativeProvider {
     const body = new URLSearchParams({ schema: 'json', param: rawParam });
     const timeout = timeoutSignal(this.config.timeoutMs ?? 15_000);
     try {
-      return assertKuaidi100Success(await responseJson(await this.fetchImpl('https://poll.kuaidi100.com/poll', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body, signal: timeout.signal }), 'Kuaidi100', false), false);
+      return assertKuaidi100Success(await responseJson(await this.fetchImpl(`${this.pollBase}/poll`, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body, signal: timeout.signal }), 'Kuaidi100', false), false);
     } catch (error) {
       if (error instanceof ShippingProviderError) throw error;
       throw new ShippingProviderError(timeout.signal.aborted ? 'Kuaidi100 request timed out' : 'Kuaidi100 network request failed', timeout.signal.aborted ? 'TIMEOUT' : 'NETWORK_ERROR', true, false);
@@ -231,7 +241,7 @@ export function signFourPx(input: { appKey: string; appSecret: string; method: s
 }
 
 export class FourPxNativeProvider {
-  constructor(private readonly config: { appKey: string; appSecret: string; environment: 'test' | 'live'; accessToken?: string; language?: string; timeoutMs?: number }, private readonly fetchImpl: FetchLike = fetch, private readonly clock = Date.now) {}
+  constructor(private readonly config: { appKey: string; appSecret: string; environment: 'test' | 'live'; accessToken?: string; language?: string; timeoutMs?: number }, private readonly fetchImpl: FetchLike = (...args) => fetch(...args), private readonly clock = Date.now) {}
 
   private async call(operation: keyof typeof FOURPX_METHODS, payload: JsonObject): Promise<JsonObject> {
     const [method, version] = FOURPX_METHODS[operation];

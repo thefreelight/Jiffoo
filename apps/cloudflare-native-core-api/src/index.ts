@@ -1,4 +1,5 @@
 import { tryNativeAuth, type NativeAuthEnv } from './auth';
+import { tryNativeIdentityLogin } from './identity-login';
 import { tryNativeCart } from './cart';
 import { tryNativeOrderRead } from './orders';
 import { tryNativeAdminOrders } from './admin-orders';
@@ -37,8 +38,10 @@ import { captureNativeError, tryNativeAdminErrors } from './admin-errors';
 import { tryNativeSeoRedirects } from './seo-redirects';
 import { tryNativeSeoStore } from './seo-store';
 import { tryNativeMailBounces } from './mail-bounces';
+import { tryNativeMailReceipts } from './mail-receipts';
 import { processScheduledOdooCatalogSync, tryNativeOdooCatalogSync } from './odoo-catalog';
 import { snapshotFallbackKey, snapshotKey } from './snapshot-key';
+import { processScheduledBossCatalogSync } from './boss-upstream';
 import { applyProductCopyOverrides, loadProductCopyOverrides, productCopyPathKind } from './product-copy';
 import { authenticateNativeAdmin } from './auth';
 import { authenticateJobsUser, processNativeJobsSync, tryNativeJobsAdminProxy, tryNativeJobsProxy, type NativeJobsProxyEnv } from './jobs-proxy';
@@ -65,10 +68,12 @@ import { processScheduledToolDiscovery, tryNativeToolDirectoryTrending, tryNativ
 import { nativeOdooMediaUrl } from './odoo';
 import { tryNativeBokmooConnect } from './bokmoo-connect';
 import { tryNativeFirepathCore } from './firepath-core';
+import { tryNativeCrosspilotBridge } from './crosspilot-bridge';
 
 type WorkerEnv = Cloudflare.Env & NativeAuthEnv & NativeJobsProxyEnv & {
   DEMO_MODE?: string;
   EXPECTED_D1_SCHEMA_VERSION?: string;
+  BOSS_API_KEY?: string;
 };
 
 interface Snapshot {
@@ -313,6 +318,8 @@ async function routeNativeRequest(request: Request, env: WorkerEnv, ctx: Executi
     if (nativeSeoStore) return nativeSeoStore;
     const nativeMailBounces = await tryNativeMailBounces(nativeRequest, env);
     if (nativeMailBounces) return nativeMailBounces;
+    const nativeMailReceipts = await tryNativeMailReceipts(nativeRequest, env);
+    if (nativeMailReceipts) return nativeMailReceipts;
     const nativePublicAuthConfig = tryNativePublicAuthConfig(nativeRequest, env);
     if (nativePublicAuthConfig) return nativePublicAuthConfig;
     const nativeGatewayFallbacks = tryNativeGatewayFallbacks(nativeRequest);
@@ -343,6 +350,8 @@ async function routeNativeRequest(request: Request, env: WorkerEnv, ctx: Executi
     if (nativeBokmooConnect) return nativeBokmooConnect;
     const nativeFirepathCore = await tryNativeFirepathCore(nativeRequest, env);
     if (nativeFirepathCore) return nativeFirepathCore;
+    const nativeCrosspilotBridge = await tryNativeCrosspilotBridge(nativeRequest, env);
+    if (nativeCrosspilotBridge) return nativeCrosspilotBridge;
     const nativeRemoteRadarApplications = await tryNativeRemoteRadarApplications(nativeRequest, env);
     if (nativeRemoteRadarApplications) return nativeRemoteRadarApplications;
     const nativeWallet = await tryNativeWallet(nativeRequest, env);
@@ -397,6 +406,8 @@ async function routeNativeRequest(request: Request, env: WorkerEnv, ctx: Executi
     if (postoryCompat) return postoryCompat;
     const nativeAuth = await tryNativeAuth(nativeRequest, env, () => proxy(nativeRequest, env), (promise) => ctx.waitUntil(promise));
     if (nativeAuth) return nativeAuth;
+    const nativeIdentityLogin = await tryNativeIdentityLogin(nativeRequest, env);
+    if (nativeIdentityLogin) return nativeIdentityLogin;
     const nativeCart = await tryNativeCart(
       nativeRequest,
       env,
@@ -469,10 +480,11 @@ export default {
     }
   },
   async scheduled(_controller: ScheduledController, env: WorkerEnv): Promise<void> {
-    const [checkout, email, odooCatalog, odooShipments, jobs, walletReservations, creditGrants, resumeExtraction, videoTasks, toolDiscovery, staleReservations] = await Promise.allSettled([
+    const [checkout, email, odooCatalog, odooShipments, jobs, walletReservations, creditGrants, resumeExtraction, videoTasks, toolDiscovery, staleReservations, bossCatalog] = await Promise.allSettled([
       processCheckoutOutbox(env),
       processNativeEmailOutbox(env),
       processScheduledOdooCatalogSync(env),
+      processScheduledBossCatalogSync(env),
       processNativeOdooShipmentPoll(env),
       processNativeJobsSync(env),
       expireNativeWalletReservations(env),
@@ -507,6 +519,7 @@ export default {
       staleReservations: staleReservations.status === 'fulfilled'
         ? staleReservations.value
         : { error: String(staleReservations.reason) },
+      bossCatalog: bossCatalog.status === 'fulfilled' ? bossCatalog.value : { error: String(bossCatalog.reason) },
     }));
   },
 } satisfies ExportedHandler<WorkerEnv>;

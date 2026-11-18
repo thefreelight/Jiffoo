@@ -34,17 +34,14 @@ export function ThemedLayout({ children }: ThemedLayoutProps) {
   const t = useT();
   const locale = useLocale();
 
-  // Show loading state while theme is loading
+  // While the theme renderer loads (remote runtimes load client-side),
+  // render the page content itself: crawlers and first paint get real
+  // content instead of a bare skeleton. The themed header/footer/content
+  // take over once the theme is ready.
   if (themeLoading || !theme) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <div className="container mx-auto px-4 py-8">
-          <div className="animate-pulse space-y-4">
-            <div className="h-12 bg-gray-200 rounded w-1/4"></div>
-            <div className="h-64 bg-gray-200 rounded"></div>
-            <div className="h-32 bg-gray-200 rounded"></div>
-          </div>
-        </div>
+        <main className="container mx-auto px-4 py-8">{children}</main>
       </div>
     );
   }

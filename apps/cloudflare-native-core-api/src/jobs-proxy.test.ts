@@ -40,6 +40,19 @@ describe('native jobs proxy', () => {
     await expect(response?.json()).resolves.toEqual({ activeJobs: 872, addedToday: 1 });
   });
 
+  it('forwards public company directory requests with pagination and search params', async () => {
+    const service = { fetch: vi.fn(async () => Response.json({ companies: [{ company: 'Canonical', jobs: 316 }], total: 1 })) };
+    const response = await tryNativeJobsProxy(
+      new Request('https://api.example/api/v1/jobs/companies?limit=50&q=canonical'),
+      { JOBS_SERVICE: service },
+    );
+    expect(service.fetch).toHaveBeenCalledOnce();
+    const forwarded = service.fetch.mock.calls[0][0] as Request;
+    expect(new URL(forwarded.url).pathname).toBe('/api/jobs/companies');
+    expect(new URL(forwarded.url).search).toBe('?limit=50&q=canonical');
+    await expect(response?.json()).resolves.toMatchObject({ companies: [{ company: 'Canonical', jobs: 316 }] });
+  });
+
   it('requires a valid native session before forwarding search profile requests', async () => {
     const service = { fetch: vi.fn(async () => Response.json({ profiles: [] })) };
     const authenticate = vi.fn(async () => null);

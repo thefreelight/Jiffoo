@@ -1,5 +1,5 @@
 import React from 'react';
-import { Apple, Chrome, Eye, EyeOff, Loader2, LockKeyhole, Mail, ShieldCheck, UserRound } from 'lucide-react';
+import { Apple, Chrome, Facebook, Eye, EyeOff, Loader2, LockKeyhole, Mail, ShieldCheck, UserRound } from 'lucide-react';
 import type { RegisterPageProps } from 'shared/src/types/theme';
 import { resolveBokmooSiteConfig } from '../site';
 
@@ -13,6 +13,7 @@ export function RegisterPage({
   onSubmit,
   onOAuthClick,
   onAppleOAuthClick,
+  onFacebookOAuthClick,
   onNavigateToLogin,
 }: RegisterPageProps) {
   const site = resolveBokmooSiteConfig(config);
@@ -80,7 +81,7 @@ export function RegisterPage({
               Start with a secure profile for purchases and global activation support.
             </p>
 
-            <div className="mt-7 grid gap-3 sm:grid-cols-2">
+            <div className="mt-7 grid gap-3 sm:grid-cols-3">
               <button
                 type="button"
                 onClick={() => onOAuthClick('google')}
@@ -98,6 +99,15 @@ export function RegisterPage({
               >
                 <Apple className="h-4 w-4" />
                 Apple
+              </button>
+              <button
+                type="button"
+                onClick={() => onFacebookOAuthClick?.()}
+                className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_86%,black)] px-4 text-sm font-semibold text-[var(--bokmoo-ink)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)] disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING}`}
+                disabled={isLoading || !onFacebookOAuthClick}
+              >
+                <Facebook className="h-4 w-4" />
+                Facebook
               </button>
             </div>
 

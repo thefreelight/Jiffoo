@@ -4,7 +4,8 @@ import {
   constantTimeTextEqual, FourPxNativeProvider, Kuaidi100NativeProvider,
   sha256Hex, ShippingProviderError, signKuaidi100Webhook,
 } from './shipping-providers';
-import { upsertSupplierShipment } from './shipments';
+import { detectCarriers, kuaidi100CodeFor, SHIPPING_CARRIERS } from './shipping-carriers';
+import { shipmentStatuses, upsertSupplierShipment } from './shipments';
 
 interface NativeShippingEnv extends NativeAuthEnv, PluginSettingsEnv {
   DB: D1Database;
@@ -348,6 +349,14 @@ async function kuaidi100Webhook(request: Request, env: NativeShippingEnv): Promi
        ORDER BY updated_at DESC LIMIT 1`,
     ).bind(trackingNumber).first<{ order_id: string }>();
     matchedOrderId = operation?.order_id ?? null;
+      if (!matchedOrderId) {
+        // Shipments recorded directly by the admin ship flow (no provider
+        // operation row) still receive pushes: fall back to the shipment.
+        const shipment = await env.DB.prepare(
+          'SELECT order_id FROM native_shipments WHERE tracking_number = ?1 ORDER BY created_at DESC LIMIT 1',
+        ).bind(trackingNumber).first<{ order_id: string }>();
+        matchedOrderId = shipment?.order_id ?? null;
+      }
       if (matchedOrderId) {
         const overallStatus = callbackStatus(event, lastResult);
         await upsertSupplierShipment(env.DB, {
@@ -389,11 +398,171 @@ function calculate(body: ShippingRequest): { methods: typeof manualMethod[]; req
   return { methods: requiresShipping ? [manualMethod] : [], requiresShipping };
 }
 
+/**
+ * Carrier picker + tracking auto-detection for the admin ship dialog.
+ * Gated on the shipping plugin being enabled so instances without the
+ * plugin keep serving plain 404s and the dialog falls back to free text.
+ */
+async function adminShipForm(request: Request, env: NativeShippingEnv, path: string): Promise<Response | null> {
+  const isForm = path === '/admin/ship-form' && request.method === 'GET';
+  const isDetect = path === '/admin/carriers/detect' && request.method === 'POST';
+  if (!isForm && !isDetect) return null;
+  const administrator = await authenticateNativeAdmin(request, env);
+  if (!administrator) return failure(401, 'UNAUTHORIZED', 'Administrator authentication is required');
+  const stored = await getNativePluginConfig(env, 'shipping');
+  if (!stored?.enabled) return failure(404, 'PLUGIN_DISABLED', 'The shipping plugin is not enabled');
+  if (isForm) {
+    const kuaidi100 = kuaidi100Settings(stored.config);
+    const carriers = SHIPPING_CARRIERS
+      .filter((carrier) => carrier.defaultEnabled)
+      .sort((left, right) => left.sortOrder - right.sortOrder)
+      .map((carrier) => ({
+        code: carrier.code,
+        name: carrier.name,
+        nameZh: carrier.nameZh,
+        aliases: carrier.aliases ?? [],
+        trackingUrlTemplate: carrier.trackingUrlTemplate ?? null,
+        kuaidi100Code: kuaidi100.enabled ? carrier.kuaidi100Code ?? null : null,
+      }));
+    return success({
+      available: carriers.length > 0,
+      carriers,
+      defaultCarrierCode: carriers[0]?.code ?? null,
+      kuaidi100: { enabled: kuaidi100.enabled, callbackConfigured: Boolean(kuaidi100.callbackUrl) },
+    });
+  }
+  const body = object(await request.json<unknown>().catch(() => null));
+  const trackingNumber = string(body.trackingNumber);
+  if (!trackingNumber) return failure(400, 'TRACKING_NUMBER_REQUIRED', 'trackingNumber is required');
+  const candidates = detectCarriers(trackingNumber);
+  return success({
+    candidates: candidates.map((candidate) => ({
+      code: candidate.code,
+      name: candidate.name,
+      nameZh: candidate.nameZh,
+      confidence: candidate.confidence,
+    })),
+    trackingNumber,
+  });
+}
+
+interface Kuaidi100RuntimeSettings {
+  enabled: boolean;
+  key: string | null;
+  secret: string | null;
+  customer: string | null;
+  callbackUrl: string | null;
+  callbackSalt: string | null;
+  environment: 'test' | 'live';
+  apiBaseUrl: string | null;
+  pollBaseUrl: string | null;
+}
+
+function kuaidi100Settings(config: JsonObject): Kuaidi100RuntimeSettings {
+  return {
+    enabled: config.kuaidi100Enabled === true,
+    key: string(config.kuaidi100Key),
+    secret: string(config.kuaidi100Secret),
+    customer: string(config.kuaidi100Customer),
+    callbackUrl: string(config.kuaidi100CallbackUrl),
+    callbackSalt: string(config.kuaidi100CallbackSalt),
+    environment: config.mode === 'test' ? 'test' : 'live',
+    apiBaseUrl: string(config.kuaidi100ApiBaseUrl),
+    pollBaseUrl: string(config.kuaidi100PollBaseUrl),
+  };
+}
+
+/**
+ * Auto-subscribe a freshly shipped order to Kuaidi100 tracking push, so
+ * domestic shipments update their timeline without any operator action.
+ * Best-effort: a failed subscription never fails the ship operation; the
+ * subscription is recorded in native_shipping_provider_orders so the
+ * webhook can match incoming pushes back to the order.
+ */
+export async function subscribeKuaidi100Tracking(
+  env: NativeShippingEnv, orderId: string, carrierCode: string, trackingNumber: string,
+): Promise<{ subscribed: boolean; reason?: string }> {
+  const stored = await getNativePluginConfig(env, 'shipping');
+  if (!stored?.enabled) return { subscribed: false, reason: 'PLUGIN_DISABLED' };
+  const settings = kuaidi100Settings(stored.config);
+  if (!settings.enabled || !settings.key || !settings.secret) return { subscribed: false, reason: 'KUAIDI100_NOT_CONFIGURED' };
+  if (!settings.callbackUrl) return { subscribed: false, reason: 'CALLBACK_URL_MISSING' };
+  const company = kuaidi100CodeFor(carrierCode);
+  if (!company) return { subscribed: false, reason: 'CARRIER_NOT_SUPPORTED' };
+  const number = trackingNumber.trim().toUpperCase();
+  if (number.length < 6 || number.length > 32) return { subscribed: false, reason: 'TRACKING_NUMBER_OUT_OF_RANGE' };
+
+  const existing = await env.DB.prepare(
+    "SELECT state FROM native_shipping_provider_orders WHERE provider_key = 'kuaidi100' AND operation = 'tracking.subscribe' AND merchant_reference = ?1",
+  ).bind(number).first<{ state: string }>();
+  if (existing?.state === 'COMPLETED') return { subscribed: true, reason: 'ALREADY_SUBSCRIBED' };
+
+  const provider = new Kuaidi100NativeProvider({
+    key: settings.key,
+    secret: settings.secret,
+    customer: settings.customer ?? undefined,
+    environment: settings.environment,
+    ...(settings.apiBaseUrl ? { apiBaseUrl: settings.apiBaseUrl } : {}),
+    ...(settings.pollBaseUrl ? { pollBaseUrl: settings.pollBaseUrl } : {}),
+  });
+  let response: JsonObject | null = null;
+  try {
+    // The Kuaidi100 edge from Cloudflare egresses is unreliable (resets and
+    // 520s within seconds); one immediate retry covers the transient tail.
+    for (let attempt = 1; attempt <= 2 && response === null; attempt++) {
+      if (attempt > 1) await new Promise((resolve) => setTimeout(resolve, 750));
+      try {
+        response = await provider.subscribe({
+          company,
+          number,
+          parameters: {
+            callbackurl: settings.callbackUrl,
+            ...(settings.callbackSalt ? { salt: settings.callbackSalt } : {}),
+          },
+        });
+      } catch (error) {
+        if (error instanceof ShippingProviderError && !error.retryable) throw error;
+        if (attempt === 2) throw error;
+      }
+    }
+    await env.DB.prepare(
+      `INSERT INTO native_shipping_provider_orders
+       (id, provider_key, merchant_reference, order_id, operation, request_hash, state, tracking_number, response_json, created_at, updated_at)
+       VALUES (?1, 'kuaidi100', ?2, ?3, 'tracking.subscribe', ?4, 'COMPLETED', ?5, ?6, ?7, ?7)
+       ON CONFLICT (provider_key, operation, merchant_reference) DO UPDATE SET
+         state = 'COMPLETED', order_id = excluded.order_id, response_json = excluded.response_json,
+         tracking_number = excluded.tracking_number, error_code = NULL, error_message = NULL, updated_at = excluded.updated_at`,
+    ).bind(
+      crypto.randomUUID(), number, orderId,
+      await sha256Hex(`${company}:${number}`), number,
+      JSON.stringify(response), new Date().toISOString(),
+    ).run();
+    return { subscribed: true };
+  } catch (error) {
+    const normalized = error instanceof ShippingProviderError ? error : new ShippingProviderError('Kuaidi100 subscribe failed', 'PROVIDER_ERROR');
+    await env.DB.prepare(
+      `INSERT INTO native_shipping_provider_orders
+       (id, provider_key, merchant_reference, order_id, operation, request_hash, state, tracking_number, error_code, error_message, created_at, updated_at)
+       VALUES (?1, 'kuaidi100', ?2, ?3, 'tracking.subscribe', ?4, 'FAILED', ?5, ?6, ?7, ?8, ?8)
+       ON CONFLICT (provider_key, operation, merchant_reference) DO UPDATE SET
+         state = 'FAILED', order_id = excluded.order_id, error_code = excluded.error_code,
+         error_message = excluded.error_message, updated_at = excluded.updated_at`,
+    ).bind(
+      crypto.randomUUID(), number, orderId,
+      await sha256Hex(`${company}:${number}`), number,
+      normalized.code, normalized.message, new Date().toISOString(),
+    ).run().catch(() => undefined);
+    return { subscribed: false, reason: normalized.code };
+  }
+}
+
 export async function tryNativeShipping(request: Request, env: NativeShippingEnv): Promise<Response | null> {
   const url = new URL(request.url);
   const path = providerPath(url.pathname);
   if (path === '/admin/webhooks/kuaidi100' && request.method === 'POST') return kuaidi100Webhook(request, env);
   if (path?.startsWith('/admin/providers/') && request.method === 'POST') return adminProviderRequest(request, env, path);
+  const shipForm = path ? await adminShipForm(request, env, path) : null;
+  if (shipForm) return shipForm;
   if (url.pathname === '/api/v1/shipping/calculate' && request.method === 'POST') {
     const body = await request.json<ShippingRequest>().catch(() => null);
     const result = body ? calculate(body) : null;

@@ -9,6 +9,7 @@
 
 import type { ThemePackage, ThemeMeta, ThemeRegistryEntry, ThemeRegistry } from 'shared/src/types/theme';
 import bokmooTheme from '@shop-themes/bokmoo/src/runtime';
+import esimRouteTheme from '@shop-themes/esim/src/runtime';
 import esimMallTheme from '@shop-themes/esim-mall/src/runtime';
 import yevbiTheme from '@shop-themes/yevbi/src/runtime';
 import imagicStudioTheme from '@shop-themes/imagic-studio/src/runtime';
@@ -96,6 +97,22 @@ export const BUILTIN_THEMES: ThemeRegistry = {
       tags: ['esim', 'travel', 'premium', 'connectivity'],
     },
     load: async () => bokmooTheme,
+  },
+  // eSIM Route Mall (esim.bokmoo.com) — packaged-runtime theme for the
+  // route-first eSIM storefront. Deployment pins this worker to slug `esim`
+  // via THEME_SLUG_PIN; this builtin entry is the fallback bridge only.
+  'esim': {
+    meta: {
+      slug: 'esim',
+      name: 'eSIM Route Mall',
+      version: '0.0.5',
+      description: 'Route-first eSIM mall storefront (One trip, one eSIM) on the black-and-gold Bokmoo design language.',
+      category: 'esim',
+      author: 'Jiffoo',
+      target: 'shop',
+      tags: ['esim', 'travel', 'route-planner', 'premium'],
+    },
+    load: async () => esimRouteTheme,
   },
   // Migration-only compatibility bridges. Official themes that publish a
   // packaged runtime must resolve from the installed artifact instead.

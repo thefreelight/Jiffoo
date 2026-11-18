@@ -219,6 +219,7 @@ export interface OrderShipment {
   id: string
   carrier: string
   trackingNumber: string
+  trackingUrl?: string | null
   status: string
   shippedAt?: string | null
   deliveredAt?: string | null
@@ -492,4 +493,31 @@ export interface ErrorListParams extends PaginationParams {
   endDate?: string
   sortBy?: 'lastSeenAt' | 'occurrenceCount' | 'firstSeenAt'
   sortOrder?: 'asc' | 'desc'
+}
+
+// Carrier picker for the ship dialog, served by the shipping plugin.
+export interface ShipFormCarrier {
+  code: string
+  name: string
+  nameZh: string
+  aliases?: string[]
+  trackingUrlTemplate?: string | null
+}
+
+export interface ShipFormOptions {
+  available: boolean
+  carriers: ShipFormCarrier[]
+  defaultCarrierCode: string | null
+}
+
+export interface CarrierCandidate {
+  code: string
+  name: string
+  nameZh: string
+  confidence: 'high' | 'medium'
+}
+
+export interface CarrierDetectResult {
+  candidates: CarrierCandidate[]
+  trackingNumber: string
 }

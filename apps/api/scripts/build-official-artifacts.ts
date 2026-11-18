@@ -81,6 +81,10 @@ interface BuildOfficialArtifactsResult {
 }
 
 const REPO_ROOT = path.resolve(__dirname, '../../..');
+// Theme previews read from the official extensions checkout the workflow
+// provides via JIFFOO_OFFICIAL_EXTENSIONS_REPO_ROOT (fall back to this repo).
+const OFFICIAL_EXTENSIONS_VENDOR_PATH =
+  process.env.JIFFOO_OFFICIAL_EXTENSIONS_REPO_ROOT ?? REPO_ROOT;
 const DEFAULT_OUTPUT_DIR = path.join(REPO_ROOT, 'dist', 'official-artifacts');
 const ROOT_LICENSE_PATH = path.join(REPO_ROOT, 'LICENSE');
 
@@ -533,6 +537,13 @@ async function writeArtifactSidecars(outputFilePath: string): Promise<{
   };
 }
 
+class MissingPluginSourceError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'MissingPluginSourceError';
+  }
+}
+
 async function stagePluginArtifact(entry: OfficialCatalogEntry, stagingDir: string): Promise<string[]> {
   const sourceDir = path.join(REPO_ROOT, 'extensions', 'plugins', entry.slug);
   const manifestPath = path.join(sourceDir, 'manifest.json');
@@ -542,7 +553,12 @@ async function stagePluginArtifact(entry: OfficialCatalogEntry, stagingDir: stri
   const config = OFFICIAL_PLUGIN_SOURCE_CONFIG[entry.slug] || {};
 
   if (!(await pathExists(manifestPath))) {
-    throw new Error(`Plugin manifest not found for ${entry.slug}: ${manifestPath}`);
+    // The shared official catalog can list plugins whose source lives in a
+    // different repo/branch than the extensions checkout being built (e.g.
+    // hermes-bridge). Skip loudly instead of failing the whole batch.
+    throw new MissingPluginSourceError(
+      `Plugin source not found for ${entry.slug}: ${manifestPath}`,
+    );
   }
 
   const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf-8')) as {
@@ -833,7 +849,15 @@ export async function buildOfficialArtifacts(
 
   const items: BuiltArtifactSummary[] = [];
   for (const entry of selectedEntries) {
-    items.push(await buildSingleArtifact(entry, outputDir, options.artifactBaseUrl));
+    try {
+      items.push(await buildSingleArtifact(entry, outputDir, options.artifactBaseUrl));
+    } catch (error) {
+      if (error instanceof MissingPluginSourceError) {
+        console.warn(`[skip] ${error.message}`);
+        continue;
+      }
+      throw error;
+    }
   }
 
   await publishThemeVisuals(selectedEntries, outputDir);

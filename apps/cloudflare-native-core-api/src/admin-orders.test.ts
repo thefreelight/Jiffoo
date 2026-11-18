@@ -43,7 +43,7 @@ function fakeEnv(orders: OrderRow[], users: UserRow[]) {
         return null;
       },
       all: async () => {
-        if (sql.includes('FROM native_order_snapshots') && sql.includes('ORDER BY source_updated_at')) {
+        if (sql.includes('FROM native_order_snapshots') && sql.includes('ORDER BY')) {
           return { results: orders.map((order) => ({ payload: order.payload })) };
         }
         if (sql.includes('FROM native_users WHERE id IN')) {
