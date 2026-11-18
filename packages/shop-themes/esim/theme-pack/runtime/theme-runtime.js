@@ -14081,6 +14081,8 @@
   }
 
   // src/components/ProductsPage.tsx
+  var GOLD_CTA = "bg-[linear-gradient(135deg,var(--esim-gold-strong),var(--esim-gold)_55%,color-mix(in_oklab,var(--esim-gold)_70%,#7a5c14))]";
+  var FOCUS_VISIBLE_RING2 = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--esim-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--esim-bg)]";
   var CATALOG_FILTERS = ["All", "Popular", "Local", "Regional", "Global"];
   var FILTER_LABELS = {
     All: { en: "All", hans: "\u5168\u90E8", hant: "\u5168\u90E8" },
@@ -14094,11 +14096,6 @@
     price: { en: "Price", hans: "\u4EF7\u683C", hant: "\u50F9\u683C" },
     name: { en: "Name", hans: "\u540D\u79F0", hant: "\u540D\u7A31" }
   };
-  function getProductImage(product) {
-    if (!product?.images?.length) return null;
-    const primary = product.images.find((image) => image.isMain) || product.images[0];
-    return primary?.url || null;
-  }
   function productText(product) {
     const esim = product.typeData?.esim;
     return [product.name, product.description, esim?.country, esim?.region, esim?.carrier].filter(Boolean).join(" ").toLowerCase();
@@ -14112,30 +14109,6 @@
     if (filter2 === "Regional") return Boolean(region && !region.includes("global") && region !== country);
     if (filter2 === "Local") return Boolean(country && (!region || region === country || !region.includes("global")));
     return true;
-  }
-  function ProductMedia({ product, apiBaseUrl }) {
-    const image = resolveEsimMediaUrl(getProductImage(product), apiBaseUrl);
-    const profile = getEsimTravelProfile(product);
-    if (image) {
-      return /* @__PURE__ */ jsx(
-        "img",
-        {
-          src: image,
-          alt: displayProductTitle(product.name),
-          className: "h-full w-full object-cover"
-        }
-      );
-    }
-    return /* @__PURE__ */ jsxs("div", { className: "flex h-full w-full flex-col justify-between bg-[linear-gradient(160deg,color-mix(in_oklab,var(--esim-gold)_12%,transparent),transparent_55%),linear-gradient(180deg,var(--esim-bg-soft),var(--esim-bg))] p-5", children: [
-      /* @__PURE__ */ jsxs("div", { className: "flex items-start justify-between gap-3", children: [
-        /* @__PURE__ */ jsx("span", { className: "rounded-full border border-[var(--esim-line)] px-3 py-1 text-[10px] tracking-[0.2em] text-[var(--esim-gold)]", children: profile.cardEyebrow }),
-        /* @__PURE__ */ jsx("span", { className: "rounded-full border border-[var(--esim-line)] px-3 py-1 text-[10px] tracking-[0.16em] text-[var(--esim-copy)]", children: profile.planBadge })
-      ] }),
-      /* @__PURE__ */ jsxs("div", { children: [
-        /* @__PURE__ */ jsx("p", { className: "text-sm tracking-[0.22em] text-[var(--esim-copy-soft)]", children: "BOKMOO" }),
-        /* @__PURE__ */ jsx("p", { className: "mt-3 text-2xl leading-[0.98] tracking-[-0.04em] text-[var(--esim-ink)]", children: profile.coverageLabel })
-      ] })
-    ] });
   }
   var ProductsPage = react_default.memo(function ProductsPage2({
     products,
@@ -14336,74 +14309,91 @@
             const variantSalePrices = (Array.isArray(product.variants) ? product.variants : []).map((variant) => Number(variant.salePrice ?? variant.price ?? 0)).filter((price) => price > 0);
             const listPrice = Number(product.price || 0);
             const displayPrice = variantSalePrices.length > 0 ? Math.min(listPrice > 0 ? listPrice : Number.POSITIVE_INFINITY, ...variantSalePrices) : listPrice;
+            const planEsim = product.typeData?.esim || {};
+            const planValidityDays2 = typeof planEsim.validityDays === "number" && planEsim.validityDays > 0 ? planEsim.validityDays : null;
+            const planCurrency = product.currency || "USD";
+            const currencySymbol = planCurrency === "CNY" ? "\xA5" : planCurrency === "USD" ? "$" : `${planCurrency} `;
+            const dailyAverage = planValidityDays2 && Number.isFinite(displayPrice) && displayPrice > 0 ? displayPrice / planValidityDays2 : null;
             return /* @__PURE__ */ jsxs(
               "article",
               {
                 className: cn2(
-                  "overflow-hidden rounded-[1.35rem] border border-[color:color-mix(in_oklab,var(--esim-gold)_14%,var(--esim-line))] bg-[color:color-mix(in_oklab,var(--esim-bg-elevated)_82%,black)] shadow-[var(--esim-shadow)] transition-transform duration-300 hover:-translate-y-1 sm:rounded-[var(--esim-radius-xl)]",
-                  viewMode === "list" && "grid gap-4 p-4 md:grid-cols-[14rem_minmax(0,1fr)_12rem] md:items-center md:gap-5 md:p-5"
+                  "relative flex flex-col overflow-hidden rounded-2xl border-2 border-[color:color-mix(in_oklab,var(--esim-gold)_26%,transparent)] bg-[linear-gradient(160deg,#23262d_via_40%,#1a1c22_to_75%,#121418)] shadow-[0_16px_50px_rgba(0,0,0,0.65)] ring-1 ring-[color:color-mix(in_oklab,var(--esim-gold)_14%,transparent)] transition-transform duration-300 hover:-translate-y-1",
+                  viewMode === "list" && "md:flex-row md:items-stretch md:gap-6 md:p-6"
                 ),
                 children: [
+                  /* @__PURE__ */ jsx("div", { className: "pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-[color:color-mix(in_oklab,var(--esim-gold)_13%,transparent)] blur-3xl", "aria-hidden": "true" }),
+                  /* @__PURE__ */ jsx("div", { className: "pointer-events-none absolute -bottom-14 -left-16 h-48 w-48 rounded-full bg-[color:color-mix(in_oklab,var(--esim-gold)_7%,transparent)] blur-3xl", "aria-hidden": "true" }),
                   /* @__PURE__ */ jsxs(
                     "button",
                     {
                       onClick: () => onProductClick(product.id),
-                      className: cn2(viewMode === "grid" ? "block text-left" : "contents"),
+                      className: "relative z-10 flex min-h-11 flex-1 flex-col gap-5 p-6 text-left lg:p-7",
                       type: "button",
                       children: [
-                        /* @__PURE__ */ jsx(
-                          "div",
-                          {
-                            className: cn2(
-                              "overflow-hidden border-[var(--esim-line)]",
-                              viewMode === "grid" ? "aspect-[1.28/1] border-b sm:aspect-[1.18/1]" : "aspect-[1.45/1] rounded-[1rem] border md:aspect-auto md:h-full md:rounded-[var(--esim-radius-lg)]"
-                            ),
-                            children: /* @__PURE__ */ jsx(ProductMedia, { product, apiBaseUrl: site.apiBaseUrl })
-                          }
-                        ),
-                        /* @__PURE__ */ jsxs("div", { className: cn2(viewMode === "grid" ? "p-5" : "min-w-0"), children: [
-                          /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap items-center gap-2", children: [
-                            /* @__PURE__ */ jsx("span", { className: "rounded-full border border-[var(--esim-line)] px-3 py-1 text-[10px] tracking-[0.18em] text-[var(--esim-gold)]", children: profile.cardEyebrow }),
-                            /* @__PURE__ */ jsx("span", { className: "rounded-full border border-[var(--esim-line)] px-3 py-1 text-[10px] tracking-[0.18em] text-[var(--esim-copy)]", children: profile.deliveryLabel })
+                        /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between gap-3", children: [
+                          /* @__PURE__ */ jsx("span", { className: "rounded-full border border-[color:color-mix(in_oklab,var(--esim-gold)_30%,transparent)] bg-[#1c1f26]/90 px-3 py-1 font-mono text-[11px] font-semibold uppercase tracking-wider text-[var(--esim-gold)]", children: profile.cardEyebrow }),
+                          /* @__PURE__ */ jsx("span", { className: "rounded-full bg-[linear-gradient(90deg,var(--esim-gold),var(--esim-gold-strong))] px-3 py-1 font-mono text-[11px] font-bold text-[#141414] shadow-sm", children: profile.deliveryLabel })
+                        ] }),
+                        /* @__PURE__ */ jsx("h2", { className: "font-serif text-2xl font-normal leading-[1.12] tracking-tight text-[var(--esim-ink)] lg:text-3xl", children: displayProductTitle(product.name) }),
+                        /* @__PURE__ */ jsxs("p", { className: "inline-flex items-center gap-2 text-sm text-[var(--esim-gold)]", children: [
+                          /* @__PURE__ */ jsx("span", { className: "inline-flex h-[18px] w-[18px] items-center justify-center rounded-full bg-[var(--esim-gold)] text-[10px] font-bold text-[#141414]", children: "\u2713" }),
+                          /* @__PURE__ */ jsx("span", { className: "font-semibold text-[var(--esim-ink)]", children: profile.coverageLabel })
+                        ] }),
+                        /* @__PURE__ */ jsxs("div", { className: "flex items-baseline justify-between gap-4 rounded-xl border border-white/[0.06] bg-black/30 p-4", children: [
+                          /* @__PURE__ */ jsxs("p", { className: "flex items-baseline gap-1.5", children: [
+                            /* @__PURE__ */ jsxs("span", { className: "font-serif text-4xl font-normal tracking-tight text-[var(--esim-gold)] lg:text-5xl", children: [
+                              currencySymbol,
+                              Number(Number.isFinite(displayPrice) ? displayPrice : 0).toFixed(2)
+                            ] }),
+                            /* @__PURE__ */ jsx("span", { className: "font-mono text-xs text-[var(--esim-copy-soft)]", children: t({ en: "/ full trip", hans: "/ \u5168\u7A0B\u5305\u8D39", hant: "/ \u5168\u7A0B\u5305\u8CBB" }) })
                           ] }),
-                          /* @__PURE__ */ jsx("h2", { className: "mt-4 text-[clamp(1.7rem,2vw,2.4rem)] leading-[1] tracking-[-0.04em] text-[var(--esim-ink)]", children: displayProductTitle(product.name) }),
-                          /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm leading-6 text-[var(--esim-copy)]", children: product.description || profile.summary }),
-                          /* @__PURE__ */ jsx("div", { className: "mt-5 grid gap-2 sm:grid-cols-3", children: [
-                            [t({ en: "Coverage", hans: "\u8986\u76D6\u8303\u56F4", hant: "\u8986\u84CB\u7BC4\u570D" }), profile.coverageLabel],
-                            [t({ en: "Plan", hans: "\u5957\u9910", hant: "\u5957\u9910" }), profile.planLabel],
-                            [t({ en: "Validity", hans: "\u6709\u6548\u671F", hant: "\u6709\u6548\u671F" }), profile.durationLabel]
-                          ].map(([label, value]) => /* @__PURE__ */ jsxs(
-                            "div",
-                            {
-                              className: "rounded-[var(--esim-radius-md)] border border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_88%,black)] px-3 py-3",
-                              children: [
-                                /* @__PURE__ */ jsx("p", { className: "text-[10px] tracking-[0.16em] text-[var(--esim-copy-soft)]", children: label }),
-                                /* @__PURE__ */ jsx("p", { className: "mt-2 text-sm font-medium text-[var(--esim-ink)]", children: value })
-                              ]
-                            },
-                            label
-                          )) })
-                        ] })
+                          dailyAverage ? /* @__PURE__ */ jsxs("p", { className: "text-right font-mono text-xs text-[var(--esim-copy-soft)]", children: [
+                            /* @__PURE__ */ jsxs("span", { className: "block font-bold text-[var(--esim-gold)]", children: [
+                              "\u2248 ",
+                              currencySymbol,
+                              dailyAverage.toFixed(1),
+                              t({ en: "/day", hans: "/\u5929", hant: "/\u5929" })
+                            ] }),
+                            /* @__PURE__ */ jsx("span", { children: t({ en: "daily average", hans: "\u5355\u65E5\u5747\u644A", hant: "\u55AE\u65E5\u5747\u6524" }) })
+                          ] }) : null
+                        ] }),
+                        /* @__PURE__ */ jsx("div", { className: "grid grid-cols-3 gap-2 text-center", children: [
+                          [profile.planLabel, t({ en: "data included", hans: "\u6D41\u91CF\u5305\u542B", hant: "\u6D41\u91CF\u5305\u542B" })],
+                          [profile.durationLabel, t({ en: "validity", hans: "\u6709\u6548\u671F", hant: "\u6709\u6548\u671F" })],
+                          [profile.deliveryLabel, t({ en: "instant delivery", hans: "\u5373\u65F6\u6570\u5B57\u53D1\u653E", hant: "\u5373\u6642\u6578\u5B57\u767C\u653E" })]
+                        ].map(([value, label]) => /* @__PURE__ */ jsxs("div", { className: "rounded-lg border border-white/[0.06] bg-black/25 p-2.5", children: [
+                          /* @__PURE__ */ jsx("span", { className: "block font-mono text-xs font-bold text-[var(--esim-gold)]", children: value }),
+                          /* @__PURE__ */ jsx("span", { className: "mt-0.5 block text-[11px] text-[var(--esim-copy-soft)]", children: label })
+                        ] }, label)) }),
+                        /* @__PURE__ */ jsx("p", { className: "mt-auto line-clamp-2 text-xs leading-5 text-[var(--esim-copy-soft)]", children: product.description || profile.summary })
                       ]
                     }
                   ),
-                  /* @__PURE__ */ jsx("div", { className: cn2(viewMode === "grid" ? "px-5 pb-5" : "md:w-[12rem]"), children: /* @__PURE__ */ jsxs("div", { className: "rounded-[1rem] border border-[color:color-mix(in_oklab,var(--esim-gold)_16%,var(--esim-line))] bg-[color:color-mix(in_oklab,var(--esim-bg)_90%,black)] p-4", children: [
-                    /* @__PURE__ */ jsx("p", { className: "text-[10px] tracking-[0.18em] text-[var(--esim-copy-soft)]", children: t({ en: "Starting at", hans: "\u8D77\u4EF7", hant: "\u8D77\u50F9" }) }),
-                    /* @__PURE__ */ jsxs("p", { className: "mt-2 text-3xl font-semibold tracking-[-0.04em] text-[var(--esim-ink)]", children: [
-                      "$",
-                      Number(Number.isFinite(displayPrice) ? displayPrice : 0).toFixed(2)
-                    ] }),
-                    /* @__PURE__ */ jsx("p", { className: "mt-2 text-xs text-[var(--esim-copy)]", children: profile.planBadge }),
+                  /* @__PURE__ */ jsxs("div", { className: cn2("relative z-10 flex flex-col justify-end gap-2 px-6 pb-6", viewMode === "list" && "md:w-[14rem] md:justify-center md:px-0 md:pb-6"), children: [
+                    /* @__PURE__ */ jsxs(
+                      "button",
+                      {
+                        onClick: () => onProductClick(product.id),
+                        className: `inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full px-6 py-4 text-sm font-bold text-[#141414] shadow-lg transition-transform duration-150 active:scale-[0.98] ${GOLD_CTA}`,
+                        type: "button",
+                        children: [
+                          t({ en: "View coverage & plans", hans: "\u67E5\u770B\u8986\u76D6\u4E0E\u5957\u9910", hant: "\u67E5\u770B\u8986\u84CB\u8207\u5957\u9910" }),
+                          /* @__PURE__ */ jsx(ArrowRight, { className: "h-4 w-4", "aria-hidden": "true" })
+                        ]
+                      }
+                    ),
+                    /* @__PURE__ */ jsx("p", { className: "text-center text-[11px] text-[var(--esim-copy-soft)]", children: t({ en: "Instant QR delivery \xB7 Refundable before activation", hans: "\u5373\u65F6\u4E8C\u7EF4\u7801\u53D1\u653E \xB7 \u672A\u6FC0\u6D3B\u968F\u65F6\u9000\u6B3E", hant: "\u5373\u6642\u4E8C\u7DAD\u78BC\u767C\u653E \xB7 \u672A\u6FC0\u6D3B\u96A8\u6642\u9000\u6B3E" }) }),
                     /* @__PURE__ */ jsx(
                       "button",
                       {
                         onClick: () => onAddToCart(product.id),
-                        className: "mt-4 w-full rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--esim-gold)_82%,white),color-mix(in_oklab,var(--esim-gold)_65%,black))] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--esim-bg)]",
+                        className: `inline-flex min-h-11 w-full items-center justify-center rounded-full border border-[var(--esim-line)] px-4 text-xs font-medium text-[var(--esim-copy)] transition-colors hover:border-[color:color-mix(in_oklab,var(--esim-gold)_45%,var(--esim-line))] hover:text-[var(--esim-gold)] ${FOCUS_VISIBLE_RING2}`,
                         type: "button",
-                        children: t({ en: "Buy Now", hans: "\u7ACB\u5373\u8D2D\u4E70", hant: "\u7ACB\u5373\u8CFC\u8CB7" })
+                        children: t({ en: "Add to cart", hans: "\u52A0\u5165\u8D2D\u7269\u8F66", hant: "\u52A0\u5165\u8CFC\u7269\u8ECA" })
                       }
                     )
-                  ] }) })
+                  ] })
                 ]
               },
               product.id
@@ -15107,7 +15097,7 @@
       }
     );
   }
-  var FOCUS_VISIBLE_RING2 = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--esim-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--esim-bg)]";
+  var FOCUS_VISIBLE_RING3 = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--esim-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--esim-bg)]";
   var Header = react_default.memo(function Header2({
     locale,
     isAuthenticated,
@@ -15187,7 +15177,7 @@
         /* @__PURE__ */ jsx(
           "a",
           {
-            className: `flex items-center gap-3 shrink-0 group py-1 select-none ${FOCUS_VISIBLE_RING2}`,
+            className: `flex items-center gap-3 shrink-0 group py-1 select-none ${FOCUS_VISIBLE_RING3}`,
             "data-purpose": "brand-logo",
             href: "#read",
             onClick: (event) => {
@@ -15200,7 +15190,7 @@
         /* @__PURE__ */ jsx("nav", { className: "hidden md:flex items-center gap-6 lg:gap-8 flex-nowrap shrink-0 text-sm tracking-wide text-neutral-300 font-medium whitespace-nowrap", children: navItems.map((item) => /* @__PURE__ */ jsx(
           "a",
           {
-            className: `hover:text-[#E5C365] transition-colors whitespace-nowrap ${FOCUS_VISIBLE_RING2}`,
+            className: `hover:text-[#E5C365] transition-colors whitespace-nowrap ${FOCUS_VISIBLE_RING3}`,
             href: "#",
             onClick: (event) => {
               event.preventDefault();
@@ -15218,7 +15208,7 @@
               {
                 "aria-expanded": isLocaleOpen,
                 "aria-haspopup": "true",
-                className: `text-xs md:text-sm font-medium text-neutral-300 hover:text-[#E5C365] transition-all px-2.5 md:px-3 py-1.5 flex items-center gap-1.5 rounded-full border border-white/10 hover:border-[#E5C365]/40 bg-white/[0.03] hover:bg-white/[0.08] backdrop-blur-md cursor-pointer select-none whitespace-nowrap ${FOCUS_VISIBLE_RING2}`,
+                className: `text-xs md:text-sm font-medium text-neutral-300 hover:text-[#E5C365] transition-all px-2.5 md:px-3 py-1.5 flex items-center gap-1.5 rounded-full border border-white/10 hover:border-[#E5C365]/40 bg-white/[0.03] hover:bg-white/[0.08] backdrop-blur-md cursor-pointer select-none whitespace-nowrap ${FOCUS_VISIBLE_RING3}`,
                 onClick: () => setIsLocaleOpen((open) => !open),
                 type: "button",
                 children: [
@@ -15249,7 +15239,7 @@
                 onClick: () => setAccountMenuOpen((value) => !value),
                 "aria-haspopup": "menu",
                 "aria-expanded": accountMenuOpen,
-                className: `inline-flex items-center gap-2 rounded-full border border-[rgba(212,175,55,0.3)] bg-white/[0.03] pl-1 pr-3 py-1 text-sm font-medium text-[var(--esim-ink)] transition-colors hover:border-[#E5C365]/50 ${FOCUS_VISIBLE_RING2}`,
+                className: `inline-flex items-center gap-2 rounded-full border border-[rgba(212,175,55,0.3)] bg-white/[0.03] pl-1 pr-3 py-1 text-sm font-medium text-[var(--esim-ink)] transition-colors hover:border-[#E5C365]/50 ${FOCUS_VISIBLE_RING3}`,
                 type: "button",
                 children: [
                   /* @__PURE__ */ jsx("span", { className: "flex h-7 w-7 items-center justify-center rounded-full bg-[#E5C365] text-[0.72rem] font-bold text-[#0d0d0d]", children: accountInitial }),
@@ -15297,7 +15287,7 @@
           ] }) : /* @__PURE__ */ jsxs(
             "a",
             {
-              className: `text-xs md:text-sm font-medium text-neutral-300 hover:text-[#E5C365] transition-colors px-2 md:px-3 py-1.5 flex items-center gap-1.5 rounded-full hover:bg-white/[0.04] whitespace-nowrap ${FOCUS_VISIBLE_RING2}`,
+              className: `text-xs md:text-sm font-medium text-neutral-300 hover:text-[#E5C365] transition-colors px-2 md:px-3 py-1.5 flex items-center gap-1.5 rounded-full hover:bg-white/[0.04] whitespace-nowrap ${FOCUS_VISIBLE_RING3}`,
               href: "#login",
               onClick: (event) => {
                 event.preventDefault();
@@ -15314,7 +15304,7 @@
             "button",
             {
               "aria-label": pickCopy(locale, { en: "Shopping Cart", hans: "\u8D2D\u7269\u8F66", hant: "\u8CFC\u7269\u8ECA", ja: "\u30AB\u30FC\u30C8\u3092\u958B\u304F", ko: "\uC7A5\uBC14\uAD6C\uB2C8 \uC5F4\uAE30", fr: "Ouvrir le panier", de: "Warenkorb \xF6ffnen" }),
-              className: `relative p-2 text-neutral-300 hover:text-[#E5C365] hover:bg-white/[0.04] rounded-full transition-all flex items-center justify-center shrink-0 ${FOCUS_VISIBLE_RING2}`,
+              className: `relative p-2 text-neutral-300 hover:text-[#E5C365] hover:bg-white/[0.04] rounded-full transition-all flex items-center justify-center shrink-0 ${FOCUS_VISIBLE_RING3}`,
               onClick: onNavigateToCart,
               type: "button",
               children: [
@@ -15326,7 +15316,7 @@
           /* @__PURE__ */ jsxs(
             "a",
             {
-              className: `px-4 md:px-5 py-2 rounded-full bg-[#E5C365] hover:bg-[#F3D482] text-[#111113] text-xs md:text-sm font-semibold transition-all shadow-[0_2px_12px_rgba(229,195,101,0.25)] hover:shadow-[0_4px_16px_rgba(229,195,101,0.4)] flex items-center gap-1.5 shrink-0 whitespace-nowrap ${FOCUS_VISIBLE_RING2}`,
+              className: `px-4 md:px-5 py-2 rounded-full bg-[#E5C365] hover:bg-[#F3D482] text-[#111113] text-xs md:text-sm font-semibold transition-all shadow-[0_2px_12px_rgba(229,195,101,0.25)] hover:shadow-[0_4px_16px_rgba(229,195,101,0.4)] flex items-center gap-1.5 shrink-0 whitespace-nowrap ${FOCUS_VISIBLE_RING3}`,
               href: "https://bokmoo.com/products",
               onClick: (event) => {
                 if (!window.location.host.includes("bokmoo.com")) {
@@ -15345,7 +15335,7 @@
           "button",
           {
             onClick: () => setIsMenuOpen((value) => !value),
-            className: `ml-auto md:ml-0 flex h-11 w-11 items-center justify-center rounded-[0.8rem] border border-white/10 text-[var(--esim-ink)] md:hidden ${FOCUS_VISIBLE_RING2}`,
+            className: `ml-auto md:ml-0 flex h-11 w-11 items-center justify-center rounded-[0.8rem] border border-white/10 text-[var(--esim-ink)] md:hidden ${FOCUS_VISIBLE_RING3}`,
             "aria-controls": mobileMenuId,
             "aria-expanded": isMenuOpen,
             "aria-label": isMenuOpen ? pickCopy(locale, { en: "Close menu", hans: "\u5173\u95ED\u9009\u5355", hant: "\u95DC\u9589\u9078\u55AE", ja: "\u30E1\u30CB\u30E5\u30FC\u3092\u9589\u3058\u308B", ko: "\uBA54\uB274 \uB2EB\uAE30", fr: "Fermer le menu", de: "Men\xFC schlie\xDFen" }) : pickCopy(locale, { en: "Open menu", hans: "\u5F00\u542F\u9009\u5355", hant: "\u958B\u555F\u9078\u55AE", ja: "\u30E1\u30CB\u30E5\u30FC\u3092\u958B\u304F", ko: "\uBA54\uB274 \uC5F4\uAE30", fr: "Ouvrir le menu", de: "Men\xFC \xF6ffnen" }),
@@ -15362,7 +15352,7 @@
               item.onClick();
               setIsMenuOpen(false);
             },
-            className: `rounded-[0.9rem] border border-white/10 bg-[#141414] px-4 py-3 text-left text-sm font-medium text-[var(--esim-ink)] ${FOCUS_VISIBLE_RING2}`,
+            className: `rounded-[0.9rem] border border-white/10 bg-[#141414] px-4 py-3 text-left text-sm font-medium text-[var(--esim-ink)] ${FOCUS_VISIBLE_RING3}`,
             type: "button",
             children: item.label
           },
@@ -15375,7 +15365,7 @@
               onNavigateToCart();
               setIsMenuOpen(false);
             },
-            className: `rounded-[0.9rem] border border-white/10 bg-[#141414] px-4 py-3 text-left text-sm font-medium text-[var(--esim-ink)] ${FOCUS_VISIBLE_RING2}`,
+            className: `rounded-[0.9rem] border border-white/10 bg-[#141414] px-4 py-3 text-left text-sm font-medium text-[var(--esim-ink)] ${FOCUS_VISIBLE_RING3}`,
             type: "button",
             children: pickCopy(locale, { en: "Cart", hans: "\u8D2D\u7269\u8F66", hant: "\u8CFC\u7269\u8ECA", ja: "\u30AB\u30FC\u30C8", ko: "\uC7A5\uBC14\uAD6C\uB2C8", fr: "Panier", de: "Warenkorb" })
           }
@@ -15388,7 +15378,7 @@
                 onNavigateToProfile();
                 setIsMenuOpen(false);
               },
-              className: `rounded-[0.9rem] border border-white/10 bg-[#141414] px-4 py-3 text-left text-sm font-medium text-[var(--esim-ink)] ${FOCUS_VISIBLE_RING2}`,
+              className: `rounded-[0.9rem] border border-white/10 bg-[#141414] px-4 py-3 text-left text-sm font-medium text-[var(--esim-ink)] ${FOCUS_VISIBLE_RING3}`,
               type: "button",
               children: pickCopy(locale, { en: "My Account", hans: "\u6211\u7684\u5E10\u6237", hant: "\u6211\u7684\u5E33\u6236", ja: "\u30DE\u30A4\u30A2\u30AB\u30A6\u30F3\u30C8", ko: "\uB0B4 \uACC4\uC815", fr: "Mon compte", de: "Mein Konto" })
             }
@@ -15400,7 +15390,7 @@
                 onLogout();
                 setIsMenuOpen(false);
               },
-              className: `rounded-[0.9rem] border border-white/10 bg-[#141414] px-4 py-3 text-left text-sm text-[var(--esim-copy)] ${FOCUS_VISIBLE_RING2}`,
+              className: `rounded-[0.9rem] border border-white/10 bg-[#141414] px-4 py-3 text-left text-sm text-[var(--esim-copy)] ${FOCUS_VISIBLE_RING3}`,
               type: "button",
               children: pickCopy(locale, { en: "Log Out", hans: "\u767B\u51FA", hant: "\u767B\u51FA", ja: "\u30ED\u30B0\u30A2\u30A6\u30C8", ko: "\uB85C\uADF8\uC544\uC6C3", fr: "Se d\xE9connecter", de: "Abmelden" })
             }
@@ -15413,7 +15403,7 @@
                 onNavigateToLogin();
                 setIsMenuOpen(false);
               },
-              className: `rounded-[0.9rem] border border-white/10 bg-[#141414] px-4 py-3 text-left text-sm font-medium text-[var(--esim-ink)] ${FOCUS_VISIBLE_RING2}`,
+              className: `rounded-[0.9rem] border border-white/10 bg-[#141414] px-4 py-3 text-left text-sm font-medium text-[var(--esim-ink)] ${FOCUS_VISIBLE_RING3}`,
               type: "button",
               children: pickCopy(locale, { en: "Sign In", hans: "\u767B\u5165", hant: "\u767B\u5165", ja: "\u30B5\u30A4\u30F3\u30A4\u30F3", ko: "\uB85C\uADF8\uC778", fr: "Connexion", de: "Anmelden" })
             }
@@ -15425,7 +15415,7 @@
                 onNavigateToRegister();
                 setIsMenuOpen(false);
               },
-              className: `rounded-[0.9rem] bg-[#E5C365] px-4 py-3 text-left text-sm font-semibold text-[#0d0d0d] ${FOCUS_VISIBLE_RING2}`,
+              className: `rounded-[0.9rem] bg-[#E5C365] px-4 py-3 text-left text-sm font-semibold text-[#0d0d0d] ${FOCUS_VISIBLE_RING3}`,
               type: "button",
               children: pickCopy(locale, { en: "Get Started", hans: "\u7ACB\u5373\u5F00\u59CB", hant: "\u7ACB\u5373\u958B\u59CB", ja: "\u306F\u3058\u3081\u308B", ko: "\uC2DC\uC791\uD558\uAE30", fr: "Commencer", de: "Los geht es" })
             }
@@ -16592,7 +16582,7 @@
   });
 
   // src/components/LoginPage.tsx
-  var FOCUS_VISIBLE_RING3 = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--esim-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--esim-bg)]";
+  var FOCUS_VISIBLE_RING4 = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--esim-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--esim-bg)]";
   function LoginPage({
     isLoading,
     error,
@@ -16665,7 +16655,7 @@
               {
                 type: "button",
                 onClick: () => onOAuthClick("google"),
-                className: `inline-flex min-h-12 items-center justify-center gap-2 rounded-[0.95rem] border border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_86%,black)] px-4 text-sm font-semibold text-[var(--esim-ink)] transition-colors hover:border-[var(--esim-gold)] hover:text-[var(--esim-gold)] disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING3}`,
+                className: `inline-flex min-h-12 items-center justify-center gap-2 rounded-[0.95rem] border border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_86%,black)] px-4 text-sm font-semibold text-[var(--esim-ink)] transition-colors hover:border-[var(--esim-gold)] hover:text-[var(--esim-gold)] disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING4}`,
                 disabled: isLoading,
                 children: [
                   /* @__PURE__ */ jsx(Chrome, { className: "h-4 w-4" }),
@@ -16678,7 +16668,7 @@
               {
                 type: "button",
                 onClick: () => onAppleOAuthClick?.(),
-                className: `inline-flex min-h-12 items-center justify-center gap-2 rounded-[0.95rem] border border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_86%,black)] px-4 text-sm font-semibold text-[var(--esim-ink)] transition-colors hover:border-[var(--esim-gold)] hover:text-[var(--esim-gold)] disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING3}`,
+                className: `inline-flex min-h-12 items-center justify-center gap-2 rounded-[0.95rem] border border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_86%,black)] px-4 text-sm font-semibold text-[var(--esim-ink)] transition-colors hover:border-[var(--esim-gold)] hover:text-[var(--esim-gold)] disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING4}`,
                 disabled: isLoading || !onAppleOAuthClick,
                 children: [
                   /* @__PURE__ */ jsx(Apple, { className: "h-4 w-4" }),
@@ -16707,7 +16697,7 @@
                     onChange: (event) => setEmail(event.target.value),
                     onAnimationStart: handleAutofill(setEmail),
                     placeholder: "you@example.com",
-                    className: `h-12 w-full rounded-[1rem] border border-[color:color-mix(in_oklab,var(--esim-gold)_34%,var(--esim-line))] bg-[color:color-mix(in_oklab,var(--esim-bg)_62%,#1a1720)] py-3 pl-11 pr-4 text-sm font-medium text-[var(--esim-ink)] outline-none placeholder:text-[color:color-mix(in_oklab,var(--esim-copy)_80%,transparent)] transition-colors focus:border-[var(--esim-gold)] ${FOCUS_VISIBLE_RING3}`,
+                    className: `h-12 w-full rounded-[1rem] border border-[color:color-mix(in_oklab,var(--esim-gold)_34%,var(--esim-line))] bg-[color:color-mix(in_oklab,var(--esim-bg)_62%,#1a1720)] py-3 pl-11 pr-4 text-sm font-medium text-[var(--esim-ink)] outline-none placeholder:text-[color:color-mix(in_oklab,var(--esim-copy)_80%,transparent)] transition-colors focus:border-[var(--esim-gold)] ${FOCUS_VISIBLE_RING4}`,
                     disabled: isLoading,
                     autoComplete: "email"
                   }
@@ -16727,7 +16717,7 @@
                     onChange: (event) => setPassword(event.target.value),
                     onAnimationStart: handleAutofill(setPassword),
                     placeholder: "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022",
-                    className: `h-12 w-full rounded-[1rem] border border-[var(--esim-line)] bg-[var(--esim-bg)] py-3 pl-11 pr-12 text-sm font-medium text-[var(--esim-ink)] outline-none placeholder:text-[var(--esim-copy-soft)] transition-colors focus:border-[var(--esim-gold)] ${FOCUS_VISIBLE_RING3}`,
+                    className: `h-12 w-full rounded-[1rem] border border-[var(--esim-line)] bg-[var(--esim-bg)] py-3 pl-11 pr-12 text-sm font-medium text-[var(--esim-ink)] outline-none placeholder:text-[var(--esim-copy-soft)] transition-colors focus:border-[var(--esim-gold)] ${FOCUS_VISIBLE_RING4}`,
                     disabled: isLoading,
                     autoComplete: "current-password"
                   }
@@ -16737,7 +16727,7 @@
                   {
                     type: "button",
                     onClick: () => setShowPassword((value) => !value),
-                    className: `absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-[0.8rem] text-[var(--esim-copy-soft)] hover:text-[var(--esim-gold)] ${FOCUS_VISIBLE_RING3}`,
+                    className: `absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-[0.8rem] text-[var(--esim-copy-soft)] hover:text-[var(--esim-gold)] ${FOCUS_VISIBLE_RING4}`,
                     disabled: isLoading,
                     "aria-label": showPassword ? "Hide password" : "Show password",
                     children: showPassword ? /* @__PURE__ */ jsx(EyeOff, { className: "h-4 w-4" }) : /* @__PURE__ */ jsx(Eye, { className: "h-4 w-4" })
@@ -16750,7 +16740,7 @@
               {
                 type: "button",
                 onClick: onNavigateToForgotPassword,
-                className: `text-sm font-medium text-[var(--esim-copy)] underline decoration-[var(--esim-line)] underline-offset-4 hover:text-[var(--esim-gold)] ${FOCUS_VISIBLE_RING3}`,
+                className: `text-sm font-medium text-[var(--esim-copy)] underline decoration-[var(--esim-line)] underline-offset-4 hover:text-[var(--esim-gold)] ${FOCUS_VISIBLE_RING4}`,
                 disabled: isLoading,
                 children: "Forgot password"
               }
@@ -16760,7 +16750,7 @@
               {
                 type: "submit",
                 disabled: isLoading,
-                className: `inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-[1rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--esim-gold)_88%,white),color-mix(in_oklab,var(--esim-gold)_64%,black))] px-5 text-sm font-black uppercase tracking-[0.2em] text-[var(--esim-bg)] shadow-[0_18px_42px_color-mix(in_oklab,var(--esim-gold)_16%,transparent)] transition-transform duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING3}`,
+                className: `inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-[1rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--esim-gold)_88%,white),color-mix(in_oklab,var(--esim-gold)_64%,black))] px-5 text-sm font-black uppercase tracking-[0.2em] text-[var(--esim-bg)] shadow-[0_18px_42px_color-mix(in_oklab,var(--esim-gold)_16%,transparent)] transition-transform duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING4}`,
                 children: isLoading ? /* @__PURE__ */ jsxs(Fragment2, { children: [
                   /* @__PURE__ */ jsx(LoaderCircle, { className: "h-4 w-4 animate-spin" }),
                   "Signing in"
@@ -16779,7 +16769,7 @@
               {
                 type: "button",
                 onClick: onNavigateToRegister,
-                className: `mt-3 text-sm font-semibold text-[var(--esim-gold)] hover:text-[var(--esim-gold-strong)] ${FOCUS_VISIBLE_RING3}`,
+                className: `mt-3 text-sm font-semibold text-[var(--esim-gold)] hover:text-[var(--esim-gold-strong)] ${FOCUS_VISIBLE_RING4}`,
                 disabled: isLoading,
                 children: "Create account"
               }
@@ -16794,7 +16784,7 @@
                 "a",
                 {
                   href: `https://bokmoo.com/auth-sync?back=${encodeURIComponent(window.location.origin + window.location.pathname)}`,
-                  className: `mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-[0.95rem] border border-[var(--esim-line)] px-4 text-sm font-medium text-[var(--esim-copy)] transition-colors hover:border-[var(--esim-gold)] hover:text-[var(--esim-gold)] ${FOCUS_VISIBLE_RING3}`,
+                  className: `mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-[0.95rem] border border-[var(--esim-line)] px-4 text-sm font-medium text-[var(--esim-copy)] transition-colors hover:border-[var(--esim-gold)] hover:text-[var(--esim-gold)] ${FOCUS_VISIBLE_RING4}`,
                   children: [
                     "Use your ",
                     site.brandName,
@@ -17826,7 +17816,7 @@
   });
 
   // src/components/RegisterPage.tsx
-  var FOCUS_VISIBLE_RING4 = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--esim-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--esim-bg)]";
+  var FOCUS_VISIBLE_RING5 = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--esim-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--esim-bg)]";
   function RegisterPage({
     isLoading,
     error,
@@ -17854,7 +17844,7 @@
       if (!canSubmit) return;
       await onSubmit(formData);
     };
-    const inputClassName = `h-12 w-full rounded-[1rem] border border-[color:color-mix(in_oklab,var(--esim-gold)_34%,var(--esim-line))] bg-[color:color-mix(in_oklab,var(--esim-bg)_62%,#1a1720)] py-3 pl-11 pr-4 text-sm font-medium text-[var(--esim-ink)] outline-none placeholder:text-[color:color-mix(in_oklab,var(--esim-copy)_80%,transparent)] transition-colors focus:border-[var(--esim-gold)] ${FOCUS_VISIBLE_RING4}`;
+    const inputClassName = `h-12 w-full rounded-[1rem] border border-[color:color-mix(in_oklab,var(--esim-gold)_34%,var(--esim-line))] bg-[color:color-mix(in_oklab,var(--esim-bg)_62%,#1a1720)] py-3 pl-11 pr-4 text-sm font-medium text-[var(--esim-ink)] outline-none placeholder:text-[color:color-mix(in_oklab,var(--esim-copy)_80%,transparent)] transition-colors focus:border-[var(--esim-gold)] ${FOCUS_VISIBLE_RING5}`;
     return /* @__PURE__ */ jsxs("div", { className: "relative min-h-screen overflow-hidden bg-[var(--esim-bg)] px-4 py-12 text-[var(--esim-ink)] sm:px-6 lg:px-8", children: [
       /* @__PURE__ */ jsxs("div", { className: "pointer-events-none absolute inset-0", children: [
         /* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-[radial-gradient(circle_at_80%_18%,color-mix(in_oklab,var(--esim-gold)_18%,transparent),transparent_25%),radial-gradient(circle_at_12%_76%,color-mix(in_oklab,var(--esim-gold)_8%,transparent),transparent_26%),linear-gradient(180deg,var(--esim-bg),color-mix(in_oklab,var(--esim-bg)_86%,black))]" }),
@@ -17882,7 +17872,7 @@
               {
                 type: "button",
                 onClick: () => onOAuthClick("google"),
-                className: `inline-flex min-h-12 items-center justify-center gap-2 rounded-[0.95rem] border border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_86%,black)] px-4 text-sm font-semibold text-[var(--esim-ink)] transition-colors hover:border-[var(--esim-gold)] hover:text-[var(--esim-gold)] disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING4}`,
+                className: `inline-flex min-h-12 items-center justify-center gap-2 rounded-[0.95rem] border border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_86%,black)] px-4 text-sm font-semibold text-[var(--esim-ink)] transition-colors hover:border-[var(--esim-gold)] hover:text-[var(--esim-gold)] disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING5}`,
                 disabled: isLoading,
                 children: [
                   /* @__PURE__ */ jsx(Chrome, { className: "h-4 w-4" }),
@@ -17895,7 +17885,7 @@
               {
                 type: "button",
                 onClick: () => onAppleOAuthClick?.(),
-                className: `inline-flex min-h-12 items-center justify-center gap-2 rounded-[0.95rem] border border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_86%,black)] px-4 text-sm font-semibold text-[var(--esim-ink)] transition-colors hover:border-[var(--esim-gold)] hover:text-[var(--esim-gold)] disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING4}`,
+                className: `inline-flex min-h-12 items-center justify-center gap-2 rounded-[0.95rem] border border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_86%,black)] px-4 text-sm font-semibold text-[var(--esim-ink)] transition-colors hover:border-[var(--esim-gold)] hover:text-[var(--esim-gold)] disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING5}`,
                 disabled: isLoading || !onAppleOAuthClick,
                 children: [
                   /* @__PURE__ */ jsx(Apple, { className: "h-4 w-4" }),
@@ -17969,7 +17959,7 @@
                     {
                       type: "button",
                       onClick: () => setShowPassword((value) => !value),
-                      className: `absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-[0.8rem] text-[var(--esim-copy-soft)] hover:text-[var(--esim-gold)] ${FOCUS_VISIBLE_RING4}`,
+                      className: `absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-[0.8rem] text-[var(--esim-copy-soft)] hover:text-[var(--esim-gold)] ${FOCUS_VISIBLE_RING5}`,
                       disabled: isLoading,
                       "aria-label": showPassword ? "Hide password" : "Show password",
                       children: showPassword ? /* @__PURE__ */ jsx(EyeOff, { className: "h-4 w-4" }) : /* @__PURE__ */ jsx(Eye, { className: "h-4 w-4" })
@@ -17998,7 +17988,7 @@
                     {
                       type: "button",
                       onClick: () => setShowConfirmPassword((value) => !value),
-                      className: `absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-[0.8rem] text-[var(--esim-copy-soft)] hover:text-[var(--esim-gold)] ${FOCUS_VISIBLE_RING4}`,
+                      className: `absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-[0.8rem] text-[var(--esim-copy-soft)] hover:text-[var(--esim-gold)] ${FOCUS_VISIBLE_RING5}`,
                       disabled: isLoading,
                       "aria-label": showConfirmPassword ? "Hide password" : "Show password",
                       children: showConfirmPassword ? /* @__PURE__ */ jsx(EyeOff, { className: "h-4 w-4" }) : /* @__PURE__ */ jsx(Eye, { className: "h-4 w-4" })
@@ -18013,7 +18003,7 @@
               {
                 type: "submit",
                 disabled: isLoading || !canSubmit,
-                className: `inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-[1rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--esim-gold)_88%,white),color-mix(in_oklab,var(--esim-gold)_64%,black))] px-5 text-sm font-black uppercase tracking-[0.2em] text-[var(--esim-bg)] shadow-[0_18px_42px_color-mix(in_oklab,var(--esim-gold)_16%,transparent)] transition-transform duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING4}`,
+                className: `inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-[1rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--esim-gold)_88%,white),color-mix(in_oklab,var(--esim-gold)_64%,black))] px-5 text-sm font-black uppercase tracking-[0.2em] text-[var(--esim-bg)] shadow-[0_18px_42px_color-mix(in_oklab,var(--esim-gold)_16%,transparent)] transition-transform duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING5}`,
                 children: isLoading ? /* @__PURE__ */ jsxs(Fragment2, { children: [
                   /* @__PURE__ */ jsx(LoaderCircle, { className: "h-4 w-4 animate-spin" }),
                   "Creating"
@@ -18028,7 +18018,7 @@
               {
                 type: "button",
                 onClick: onNavigateToLogin,
-                className: `mt-3 text-sm font-semibold text-[var(--esim-gold)] hover:text-[var(--esim-gold-strong)] ${FOCUS_VISIBLE_RING4}`,
+                className: `mt-3 text-sm font-semibold text-[var(--esim-gold)] hover:text-[var(--esim-gold-strong)] ${FOCUS_VISIBLE_RING5}`,
                 disabled: isLoading,
                 children: "Sign in"
               }
@@ -18040,7 +18030,7 @@
   }
 
   // src/components/ProductDetailPage.tsx
-  function getProductImage2(product) {
+  function getProductImage(product) {
     if (!product?.images?.length) return null;
     const primary = product.images.find((image) => image.isMain) || product.images[0];
     return primary?.url || null;
@@ -18102,7 +18092,7 @@
     const stockValue = Number(currentVariant?.inventory ?? normalizedProduct?.inventory?.available ?? 0);
     const priceValue = Number(currentVariant?.price ?? normalizedProduct?.price ?? 0);
     const maxQuantity = Math.max(1, Math.min(stockValue || 1, 10));
-    const image = resolveEsimMediaUrl(getProductImage2(normalizedProduct), site.apiBaseUrl);
+    const image = resolveEsimMediaUrl(getProductImage(normalizedProduct), site.apiBaseUrl);
     const [adding, setAdding] = react_default.useState(false);
     const [justAdded, setJustAdded] = react_default.useState(false);
     const addedTimer = react_default.useRef(null);
@@ -18195,31 +18185,32 @@
       ),
       /* @__PURE__ */ jsx("div", { className: "mt-5 rounded-[1.35rem] border border-[color:color-mix(in_oklab,var(--esim-gold)_18%,var(--esim-line))] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--esim-bg-elevated)_80%,black),color-mix(in_oklab,var(--esim-bg-elevated)_92%,black))] p-3 shadow-[var(--esim-shadow)] sm:rounded-[1.55rem] sm:p-5", children: /* @__PURE__ */ jsxs("div", { className: "grid gap-6 lg:grid-cols-[minmax(0,0.96fr)_22rem]", children: [
         /* @__PURE__ */ jsxs("div", { children: [
-          /* @__PURE__ */ jsx("div", { className: "overflow-hidden rounded-[1.05rem] border border-[var(--esim-line)] sm:rounded-[1.2rem]", children: image ? /* @__PURE__ */ jsx(
+          isGoodsProduct ? /* @__PURE__ */ jsx("div", { className: "overflow-hidden rounded-[1.05rem] border border-[var(--esim-line)] sm:rounded-[1.2rem]", children: image ? /* @__PURE__ */ jsx(
             "img",
             {
               src: image,
               alt: normalizedProduct.name,
-              className: cn2(
-                "object-cover",
-                isGoodsProduct ? "esim-pdp-media-goods" : "aspect-[1.28/1] h-full w-full sm:aspect-[1.6/1]"
-              )
+              className: "esim-pdp-media-goods object-cover"
             }
-          ) : /* @__PURE__ */ jsx("div", { className: "aspect-[1.28/1] bg-[linear-gradient(160deg,#924a57_0%,#261922_44%,#0f1115_100%)] sm:aspect-[1.6/1]" }) }),
+          ) : /* @__PURE__ */ jsx("div", { className: "aspect-[1.28/1] bg-[linear-gradient(160deg,#924a57_0%,#261922_44%,#0f1115_100%)] sm:aspect-[1.6/1]" }) }) : /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap items-center gap-2", children: [
+            /* @__PURE__ */ jsx("span", { className: "rounded-full border border-[color:color-mix(in_oklab,var(--esim-gold)_34%,transparent)] bg-[color:color-mix(in_oklab,var(--esim-gold)_10%,transparent)] px-3 py-1 text-[10px] font-bold tracking-[0.18em] text-[var(--esim-gold)]", children: profile.cardEyebrow }),
+            /* @__PURE__ */ jsx("span", { className: "rounded-full border border-[var(--esim-line)] px-3 py-1 text-[10px] tracking-[0.16em] text-[var(--esim-copy)]", children: profile.deliveryLabel })
+          ] }),
           /* @__PURE__ */ jsxs("div", { className: "mt-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4", children: [
             /* @__PURE__ */ jsxs("div", { children: [
-              /* @__PURE__ */ jsx("h1", { className: "esim-pdp-title font-semibold tracking-[-0.05em] text-[var(--esim-ink)]", children: normalizedProduct.name }),
+              /* @__PURE__ */ jsx("h1", { className: "esim-pdp-title font-serif text-3xl font-normal tracking-tight text-[var(--esim-ink)] lg:text-4xl", children: normalizedProduct.name }),
+              !isGoodsProduct ? /* @__PURE__ */ jsxs("p", { className: "mt-3 inline-flex items-center gap-2 text-sm text-[var(--esim-copy)]", children: [
+                /* @__PURE__ */ jsx("span", { className: "inline-flex h-4 w-4 items-center justify-center rounded-full bg-[var(--esim-gold)] text-[9px] font-bold text-[#0d0d0d]", children: "\u2713" }),
+                profile.coverageLabel
+              ] }) : null,
               normalizedProduct.description ? /* @__PURE__ */ jsx("p", { className: "esim-pdp-description", children: normalizedProduct.description }) : /* @__PURE__ */ jsx("p", { className: "mt-2 text-lg text-[var(--esim-copy)]", children: isGoodsProduct ? pickCopy(locale, goodsSubtitle) : profile.networkLabel })
             ] }),
-            /* @__PURE__ */ jsx("div", { className: "sm:text-right", children: /* @__PURE__ */ jsxs("p", { className: "esim-pdp-price font-semibold tracking-[-0.05em] text-[var(--esim-gold)]", children: [
-              "$",
-              priceValue.toFixed(2)
-            ] }) })
+            /* @__PURE__ */ jsx("div", { className: "sm:text-right", children: /* @__PURE__ */ jsx("p", { className: "font-serif text-4xl font-normal tracking-tight text-[var(--esim-gold)] lg:text-5xl", children: (normalizedProduct.currency === "CNY" ? "\xA5" : "$") + priceValue.toFixed(2) }) })
           ] }),
           /* @__PURE__ */ jsx("div", { className: "mt-5 grid gap-3 sm:grid-cols-3", children: (isGoodsProduct ? goodsSpecCards : [
-            { label: pickCopy(locale, { en: "Data", hans: "\u6570\u636E", hant: "\u6578\u64DA" }), value: profile.planLabel },
+            { label: pickCopy(locale, { en: "Data", hans: "\u6D41\u91CF", hant: "\u6D41\u91CF" }), value: profile.planLabel },
             { label: pickCopy(locale, { en: "Validity", hans: "\u6709\u6548\u671F", hant: "\u6709\u6548\u671F" }), value: profile.durationLabel },
-            { label: pickCopy(locale, { en: "Network", hans: "\u7F51\u7EDC", hant: "\u7DB2\u8DEF" }), value: profile.networkLabel }
+            { label: pickCopy(locale, { en: "Delivery", hans: "\u53D1\u653E", hant: "\u767C\u653E" }), value: profile.deliveryLabel }
           ]).map((item) => /* @__PURE__ */ jsxs(
             "div",
             {
@@ -18812,7 +18803,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "esim",
-      version: "0.0.5",
+      version: "0.0.6",
       target: "shop"
     }
   };
