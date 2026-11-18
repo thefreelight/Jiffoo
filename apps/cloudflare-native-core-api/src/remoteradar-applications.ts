@@ -5,7 +5,9 @@ import { generateApplicationPack, type RemoteRadarPackGeneratorEnv } from './rem
 import { renderRemoteRadarPdf } from './remoteradar-pdf';
 import { sendSmtpEmail } from './smtp';
 
-interface RemoteRadarApplicationsEnv extends NativeAuthEnv, RemoteRadarPackGeneratorEnv { DB: D1Database }
+interface RemoteRadarApplicationsEnv extends NativeAuthEnv, RemoteRadarPackGeneratorEnv {
+  DB: D1Database;
+}
 
 const STATUSES = new Set(['saved', 'planned', 'applied', 'screening', 'interview', 'offer', 'rejected', 'archived']);
 function isoDate(value: unknown): string | null {
@@ -231,6 +233,64 @@ async function confirmFact(request: Request, env: RemoteRadarApplicationsEnv, us
   await env.DB.prepare(`INSERT INTO native_rr_resume_facts (id, user_id, resume_id, kind, label, value, confirmed_at, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?7) ON CONFLICT(user_id, resume_id, kind, label) DO UPDATE SET value = excluded.value, confirmed_at = excluded.confirmed_at, updated_at = excluded.updated_at`).bind(id, userId, resumeId, kind, label, value, now, existing?.created_at ?? now).run();
   return response(fact({ id, resume_id: resumeId, kind, label, value, confirmed_at: now, created_at: existing?.created_at ?? now, updated_at: now }));
 }
+type TailoredResumeDraft = {
+  summary: string;
+  facts: Array<{ kind: string; label: string; value: string; reason: string }>;
+  dropped: string[];
+  rationale: string;
+};
+
+/**
+ * AI resume tailoring: reads the resume's confirmed facts and a target job,
+ * returns a tailored draft (re-written summary, reordered relevant facts,
+ * rationale per fact) for the operator to review before saving as a NEW
+ * resume. The master resume is never modified.
+ */
+async function tailorResume(request: Request, env: RemoteRadarApplicationsEnv, userId: string, resumeId: string): Promise<Response> {
+  if (!env.AI) return fail(503, 'AI_UNAVAILABLE', 'AI is not configured for this instance');
+  const input = await body(request);
+  const savedJobId = text(input.savedJobId, 80, '');
+  let jobTitle = text(input.jobTitle, 240, '') ?? '';
+  let jobDescription = text(input.jobDescription, 20000, '') ?? '';
+  let jobCompany = '';
+  if (savedJobId) {
+    const job = await env.DB.prepare('SELECT title, company, description FROM native_rr_saved_jobs WHERE id = ?1 AND user_id = ?2').bind(savedJobId, userId).first<{ title: string; company: string; description: string }>();
+    if (!job) return fail(404, 'SAVED_JOB_NOT_FOUND', 'Saved job was not found');
+    jobTitle = job.title; jobCompany = job.company ?? ''; jobDescription = job.description ?? '';
+  }
+  if (!jobTitle.trim()) return fail(400, 'VALIDATION_ERROR', 'savedJobId or jobTitle is required');
+
+  const resumeRow = await env.DB.prepare('SELECT name, summary FROM native_rr_resumes WHERE id = ?1 AND user_id = ?2').bind(resumeId, userId).first<{ name: string; summary: string }>();
+  if (!resumeRow) return fail(404, 'RESUME_NOT_FOUND', 'Resume was not found');
+  const factRows = await env.DB.prepare('SELECT kind, label, value FROM native_rr_resume_facts WHERE resume_id = ?1 AND user_id = ?2 AND is_active = 1 ORDER BY created_at ASC').bind(resumeId, userId).all<{ kind: string; label: string; value: string }>();
+  if (!(factRows.results ?? []).length) return fail(400, 'RESUME_EMPTY', 'This resume has no facts to tailor');
+
+  const model = env.REMOTERADAR_AI_MODEL || '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
+  const factsText = (factRows.results ?? []).map((row) => `- [${row.kind}] ${row.label}: ${row.value}`).join('\n');
+  const companyText = jobCompany ? `（${jobCompany}）` : '';
+  const completion = await env.AI.run(model, {
+    messages: [
+      { role: 'system', content: '你是资深简历顾问。只输出一个 JSON 对象，不要 markdown 代码围栏。规则：只允许使用用户提供的事实，禁止编造新经历；为每条保留的事实给出一句入选理由；重写 summary 使其针对目标岗位；输出语言与事实库语言一致。JSON 结构：{"summary": string, "facts": [{"kind": string, "label": string, "value": string, "reason": string}], "dropped": [string], "rationale": string}。' },
+      { role: 'user', content: `目标岗位：${jobTitle}${companyText}\n岗位描述：\n${jobDescription.slice(0, 6000)}\n\n简历现有事实：\n${factsText}\n现有 summary：${resumeRow.summary}\n\n请针对该岗位定制这份简历：重写 summary，从事实中挑选并排序与岗位最相关的条目（保留原始 value，可微调措辞），给出每条的 reason，列出被剔除的事实（dropped），并用 rationale 总结取舍逻辑。` },
+    ],
+  }) as { response?: string };
+  const raw = typeof completion?.response === 'string' ? completion.response : '';
+  const jsonText = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+  const start = jsonText.indexOf('{');
+  const end = jsonText.lastIndexOf('}');
+  if (start < 0 || end <= start) return fail(502, 'AI_RESPONSE_INVALID', 'AI returned an unparsable response');
+  let tailored: TailoredResumeDraft;
+  try {
+    tailored = JSON.parse(jsonText.slice(start, end + 1)) as TailoredResumeDraft;
+  } catch {
+    return fail(502, 'AI_RESPONSE_INVALID', 'AI returned an unparsable response');
+  }
+  if (!tailored || typeof tailored.summary !== 'string' || !Array.isArray(tailored.facts)) {
+    return fail(502, 'AI_RESPONSE_INVALID', 'AI response was missing summary or facts');
+  }
+  return response({ tailored, model });
+}
+
 async function listSavedJobs(env: RemoteRadarApplicationsEnv, userId: string): Promise<Response> { const rows = await env.DB.prepare('SELECT * FROM native_rr_saved_jobs WHERE user_id = ?1 ORDER BY updated_at DESC').bind(userId).all<Record<string, unknown>>(); return response(rows.results.map(savedJob)); }
 async function saveJob(request: Request, env: RemoteRadarApplicationsEnv, userId: string): Promise<Response> {
   const input = await body(request); if (rejectProvenance(input)) return fail(400, 'PROVENANCE_FORBIDDEN', 'Source and provenance fields are not accepted in user requests');
@@ -434,6 +494,7 @@ export async function tryNativeRemoteRadarApplications(request: Request, env: Re
   const current = await user(request, env); if (!current) return fail(401, 'UNAUTHORIZED', 'Login required'); const path = url.pathname.slice(base.length);
   if (request.method === 'GET' && path === '/resumes') return listResumes(env, current.id);
   if (request.method === 'POST' && path === '/resumes') return createResume(request, env, current.id);
+  const tailorMatch = path.match(/^\/resumes\/([^/]+)\/tailor$/); if (tailorMatch && request.method === 'POST') return tailorResume(request, env, current.id, decodeURIComponent(tailorMatch[1]!));
   const factMatch = path.match(/^\/resumes\/([^/]+)\/facts\/confirm$/); if (factMatch && request.method === 'POST') return confirmFact(request, env, current.id, decodeURIComponent(factMatch[1]!));
   if (request.method === 'GET' && path === '/saved-jobs') return listSavedJobs(env, current.id);
   if (request.method === 'POST' && path === '/saved-jobs') return saveJob(request, env, current.id);
