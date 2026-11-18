@@ -16733,7 +16733,7 @@
               /* @__PURE__ */ jsxs(
                 "a",
                 {
-                  href: `https://bokmoo.com/auth-sync.html?back=${encodeURIComponent(window.location.origin + window.location.pathname)}`,
+                  href: `https://bokmoo.com/auth-sync?back=${encodeURIComponent(window.location.origin + window.location.pathname)}`,
                   className: `mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-[0.95rem] border border-[var(--esim-line)] px-4 text-sm font-medium text-[var(--esim-copy)] transition-colors hover:border-[var(--esim-gold)] hover:text-[var(--esim-gold)] ${FOCUS_VISIBLE_RING3}`,
                   children: [
                     "Use your ",
