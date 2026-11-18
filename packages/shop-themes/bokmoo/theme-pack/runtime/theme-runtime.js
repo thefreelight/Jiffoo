@@ -15146,7 +15146,7 @@
     };
     const navItems = [
       { label: pickCopy(locale, { en: "Products", hans: "\u4EA7\u54C1", hant: "\u7522\u54C1", ja: "\u88FD\u54C1", ko: "\uC81C\uD488", fr: "Produits", de: "Produkte" }), onClick: onNavigateToProducts },
-      { label: pickCopy(locale, { en: "Global Plans", hans: "\u5168\u7403\u5957\u9910", hant: "\u5168\u7403\u5957\u9910", ja: "\u30B0\u30ED\u30FC\u30D0\u30EB\u30D7\u30E9\u30F3", ko: "\uAE00\uB85C\uBC8C \uD50C\uB79C", fr: "Forfaits mondiaux", de: "Weltweite Tarife" }), onClick: () => openHref("/#destinations") },
+      { label: pickCopy(locale, { en: "eSIM", hans: "eSIM", hant: "eSIM", ja: "eSIM", ko: "eSIM", fr: "eSIM", de: "eSIM" }), onClick: () => openHref("https://esim.bokmoo.com") },
       { label: pickCopy(locale, { en: "Download App", hans: "\u4E0B\u8F7D App", hant: "\u4E0B\u8F09 App", ja: "\u30A2\u30D7\u30EA\u3092\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9", ko: "\uC571 \uB2E4\uC6B4\uB85C\uB4DC", fr: "T\xE9l\xE9charger l\u2019app", de: "App herunterladen" }), onClick: () => openHref("/download/app") },
       { label: pickCopy(locale, { en: "Support", hans: "\u652F\u6301", hant: "\u652F\u63F4", ja: "\u30B5\u30DD\u30FC\u30C8", ko: "\uC9C0\uC6D0", fr: "Assistance", de: "Support" }), onClick: () => openHref("/help") },
       { label: pickCopy(locale, { en: "Affiliate Program", hans: "\u8054\u76DF\u8BA1\u5212", hant: "\u806F\u76DF\u8A08\u5283", ja: "\u30A2\u30D5\u30A3\u30EA\u30A8\u30A4\u30C8", ko: "\uC81C\uD734 \uD504\uB85C\uADF8\uB7A8", fr: "Affiliation", de: "Partnerprogramm" }), onClick: () => openHref("/affiliate") }
@@ -18262,7 +18262,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.54",
+      version: "1.1.55",
       target: "shop"
     }
   };
