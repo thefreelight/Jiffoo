@@ -1,6 +1,6 @@
 interface RateLimitEnv { DB: D1Database }
 
-type VerificationAction = 'register' | 'resend' | 'verify' | 'forgot-password' | 'reset-password';
+type VerificationAction = 'register' | 'resend' | 'verify' | 'forgot-password' | 'reset-password' | 'social';
 
 const limits: Record<VerificationAction, { windowSeconds: number; email: number; ip: number }> = {
   register: { windowSeconds: 3600, email: 3, ip: 10 },
@@ -8,6 +8,10 @@ const limits: Record<VerificationAction, { windowSeconds: number; email: number;
   verify: { windowSeconds: 900, email: 20, ip: 40 },
   'forgot-password': { windowSeconds: 3600, email: 3, ip: 10 },
   'reset-password': { windowSeconds: 3600, email: 5, ip: 20 },
+  // Identity login: the "email" slot carries the provider slug, so a flooding
+  // client is bounded per provider and per IP. Generous on purpose — a legit
+  // visitor may retry a cancelled sign-in — but far below oracle territory.
+  social: { windowSeconds: 900, email: 60, ip: 30 },
 };
 
 async function digest(value: string): Promise<string> {

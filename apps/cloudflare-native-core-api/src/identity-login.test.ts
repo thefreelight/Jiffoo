@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('cloudflare:sockets', () => ({ connect: vi.fn() }));
 vi.mock('./plugin-settings', () => ({ getNativePluginConfig: vi.fn() }));
@@ -38,7 +38,8 @@ function state() {
   const identities: IdentityRow[] = [];
   const transactions: TxRow[] = [];
   const memberships: { user_id: string; role: string; status: string }[] = [];
-  return { users, identities, transactions, memberships };
+  const rateLimits = new Map<string, number>();
+  return { users, identities, transactions, memberships, rateLimits };
 }
 
 let db: ReturnType<typeof state>;
@@ -51,6 +52,12 @@ function makeEnv() {
         const stmt = {
           bind: (...next: unknown[]) => { args = next; return stmt; },
           first: async () => {
+            if (sql.includes('INSERT INTO native_auth_rate_limits')) {
+              const key = `${args[0]}:${args[1]}:${args[2]}`;
+              const next = (db.rateLimits.get(key) ?? 0) + 1;
+              db.rateLimits.set(key, next);
+              return { request_count: next };
+            }
             if (sql.includes('FROM native_identity_transactions WHERE state_hash')) {
               return db.transactions.find((t) => t.state_hash === args[0] && t.provider_slug === args[1]) ?? null;
             }
@@ -549,5 +556,299 @@ describe('identity removal guards', () => {
     const response = await tryNativeIdentityLogin(new Request('https://api.instance.test/api/v1/auth/identity/connections/i-other', { method: 'DELETE' }), makeEnv());
     expect(response?.status).toBe(400);
     expect(db.identities).toHaveLength(1);
+  });
+});
+
+// --- Multi-provider + native channel tests -----------------------------------
+
+function facebookConfig(enabled = true) {
+  return { enabled, config: { appId: 'fb-app-id', appSecret: 'fb-app-secret' } };
+}
+
+// Apple test material: a real EC P-256 keypair so the ES256 client secret and
+// native id_token verification exercise real crypto instead of mocks.
+let applePem = '';
+let applePrivateKey: CryptoKey = {} as CryptoKey;
+let applePublicJwk: JsonWebKey = {};
+const APPLE_SERVICES_ID = 'com.bokmoo.store.web';
+const APPLE_BUNDLE_ID = 'com.bokmoo.store';
+
+beforeAll(async () => {
+  const pair = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']) as CryptoKeyPair;
+  applePrivateKey = pair.privateKey;
+  const pkcs8 = await crypto.subtle.exportKey('pkcs8', pair.privateKey);
+  const der = btoa(String.fromCharCode(...new Uint8Array(pkcs8)));
+  // pemToPkcs8 strips all whitespace, so no line folding is required.
+  applePem = `-----BEGIN PRIVATE KEY-----\n${der}\n-----END PRIVATE KEY-----`;
+  applePublicJwk = await crypto.subtle.exportKey('jwk', pair.publicKey);
+});
+
+function appleConfig(enabled = true) {
+  return {
+    enabled,
+    config: { servicesId: APPLE_SERVICES_ID, teamId: 'TEAM1234567', keyId: 'KEY1234567', privateKey: applePem, bundleId: APPLE_BUNDLE_ID },
+  };
+}
+
+function multiProviderConfig() {
+  return async (_env: unknown, slug: string) => {
+    if (slug === 'google-auth') return googleConfig();
+    if (slug === 'facebook-auth') return facebookConfig();
+    if (slug === 'apple-auth') return appleConfig();
+    return null;
+  };
+}
+
+function b64url(value: string): string {
+  return btoa(value).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+async function es256Token(claims: Record<string, unknown>, options: { kid?: string; tamper?: boolean } = {}): Promise<string> {
+  const input = `${b64url(JSON.stringify({ alg: 'ES256', kid: options.kid ?? 'apple-key-1' }))}.${b64url(JSON.stringify(claims))}`;
+  const signature = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, applePrivateKey, new TextEncoder().encode(input));
+  let sig = b64url(String.fromCharCode(...new Uint8Array(signature)));
+  if (options.tamper) sig = `${sig.slice(0, -2)}AA`;
+  return `${input}.${sig}`;
+}
+
+async function startAndCallbackProvider(options: {
+  slug: string;
+  claims: Record<string, unknown>;
+  method?: 'GET' | 'POST';
+  onTokenRequest?: (url: string, body: string) => void;
+}): Promise<{ location: string | null; binding: string | null; state: string }> {
+  const env = makeEnv();
+  const start = await tryNativeIdentityLogin(post('/api/v1/auth/identity/start', {
+    providerSlug: options.slug,
+    intent: 'login',
+    returnTo: '/en/account',
+    locale: 'en',
+  }, { 'content-type': 'application/json', origin: 'https://shop.instance.test' }), env);
+  expect(start?.status).toBe(200);
+  const binding = ((start as Response).headers.get('set-cookie') ?? '').match(/identity_binding=([^;]+)/)?.[1] ?? null;
+  const startBody = await (start as Response).json() as { data: { authorizationUrl: string } };
+  const authorizationUrl = new URL(startBody.data.authorizationUrl);
+  const state = authorizationUrl.searchParams.get('state')!;
+
+  const tx = db.transactions[db.transactions.length - 1];
+  const material = await (await import('./identity-crypto')).openIdentityMaterial({ JWT_SECRET: 'test-jwt-secret' } as never, tx.encrypted_payload!);
+  const claims = { ...options.claims, nonce: material.nonce, exp: Math.floor(Date.now() / 1000) + 600 };
+
+  const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input instanceof Request ? input.url : input);
+    if (url.includes('appleid.apple.com/auth/token') && options.onTokenRequest) {
+      options.onTokenRequest(url, String(init?.body ?? ''));
+    }
+    return new Response(JSON.stringify({ id_token: idToken(claims) }), { status: 200 });
+  });
+  vi.stubGlobal('fetch', fetchMock);
+
+  const callbackUrl = `https://api.instance.test/api/v1/auth/identity/${options.slug}/callback`;
+  let callback: Response | null;
+  if (options.method === 'POST') {
+    callback = await tryNativeIdentityLogin(new Request(callbackUrl, {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ state, code: 'auth-code-1' }).toString(),
+    }), env);
+  } else {
+    callback = await tryNativeIdentityLogin(new Request(`${callbackUrl}?state=${encodeURIComponent(state)}&code=auth-code-1`), env);
+  }
+  const location = callback?.headers.get('location') ?? null;
+  vi.unstubAllGlobals();
+  return { location, binding, state };
+}
+
+describe('multi-provider web flows', () => {
+  beforeEach(() => {
+    db = state();
+    getNativePluginConfig.mockReset();
+    getNativePluginConfig.mockImplementation(multiProviderConfig());
+    findNativeUserByEmail.mockResolvedValue(null);
+    createNativeSession.mockImplementation(async (_env, user) => ({
+      body: { success: true, data: { user, access_token: 'access', token_type: 'Bearer', expires_in: 604800, refresh_token: 'refresh', token: 'access' } },
+      headers: new Headers(),
+    }));
+  });
+
+  it('reports all three providers when configured', async () => {
+    const response = await tryNativeIdentityLogin(new Request('https://api.instance.test/api/v1/auth/identity/providers'), makeEnv());
+    const body = await (response as Response).json() as { data: { providers: { slug: string }[] } };
+    expect(body.data.providers.map((provider) => provider.slug)).toEqual(['google-auth', 'facebook-auth', 'apple-auth']);
+  });
+
+  it('keeps google-only behavior when the new providers are unconfigured', async () => {
+    getNativePluginConfig.mockImplementation(async (_env: unknown, slug: string) => (slug === 'google-auth' ? googleConfig() : null));
+    const response = await tryNativeIdentityLogin(new Request('https://api.instance.test/api/v1/auth/identity/providers'), makeEnv());
+    const body = await (response as Response).json() as { data: { providers: { slug: string }[] } };
+    expect(body.data.providers).toEqual([{ slug: 'google-auth', label: 'Google', ready: true }]);
+  });
+
+  it('builds a Facebook OIDC authorization URL with PKCE', async () => {
+    const env = makeEnv();
+    const response = await tryNativeIdentityLogin(post('/api/v1/auth/identity/start', { providerSlug: 'facebook-auth', returnTo: '/en/account', locale: 'en' }, { origin: 'https://shop.instance.test' }), env);
+    expect(response?.status).toBe(200);
+    const body = await (response as Response).json() as { data: { authorizationUrl: string } };
+    const url = new URL(body.data.authorizationUrl);
+    expect(url.origin).toBe('https://www.facebook.com');
+    expect(url.pathname).toContain('/dialog/oauth');
+    expect(url.searchParams.get('client_id')).toBe('fb-app-id');
+    expect(url.searchParams.get('scope')).toBe('openid email profile');
+    expect(url.searchParams.get('code_challenge_method')).toBe('S256');
+    expect(url.searchParams.get('nonce')).toBeTruthy();
+  });
+
+  it('completes a Facebook OIDC callback into a handoff', async () => {
+    const { location } = await startAndCallbackProvider({
+      slug: 'facebook-auth',
+      claims: { iss: 'https://facebook.com', aud: 'fb-app-id', sub: 'fb-sub-1', email: 'buyer@example.com', email_verified: true, name: 'FB Buyer' },
+    });
+    expect(location).toContain('#code=');
+    expect(location).toContain('/auth/identity/finish');
+  });
+
+  it('builds an Apple authorization URL with form_post and no PKCE', async () => {
+    const env = makeEnv();
+    const response = await tryNativeIdentityLogin(post('/api/v1/auth/identity/start', { providerSlug: 'apple-auth', returnTo: '/en/account', locale: 'en' }, { origin: 'https://shop.instance.test' }), env);
+    expect(response?.status).toBe(200);
+    const body = await (response as Response).json() as { data: { authorizationUrl: string } };
+    const url = new URL(body.data.authorizationUrl);
+    expect(url.origin).toBe('https://appleid.apple.com');
+    expect(url.searchParams.get('response_mode')).toBe('form_post');
+    expect(url.searchParams.get('scope')).toBe('name email');
+    expect(url.searchParams.get('client_id')).toBe(APPLE_SERVICES_ID);
+    expect(url.searchParams.get('code_challenge')).toBeNull();
+    expect(url.searchParams.get('nonce')).toBeTruthy();
+  });
+
+  it('accepts an Apple form_post callback and mints an ES256 client secret', async () => {
+    let tokenBody = '';
+    const { location } = await startAndCallbackProvider({
+      slug: 'apple-auth',
+      method: 'POST',
+      claims: { iss: 'https://appleid.apple.com', aud: APPLE_SERVICES_ID, sub: 'apple-sub-1', email: 'buyer@icloud.com', email_verified: 'true', name: 'Apple Buyer' },
+      onTokenRequest: (_url, body) => { tokenBody = body; },
+    });
+    expect(location).toContain('#code=');
+    // The token request carries a three-segment ES256 client secret JWT, the
+    // Services ID as client_id, and — Apple having no PKCE — no verifier.
+    const params = new URLSearchParams(tokenBody);
+    expect(params.get('grant_type')).toBe('authorization_code');
+    expect(params.get('client_id')).toBe(APPLE_SERVICES_ID);
+    expect(params.get('code')).toBe('auth-code-1');
+    expect(params.get('code_verifier')).toBeNull();
+    const secret = (params.get('client_secret') ?? '').split('.');
+    expect(secret).toHaveLength(3);
+    const header = JSON.parse(atob(secret[0].replace(/-/g, '+').replace(/_/g, '/'))) as { alg: string; kid: string };
+    const payload = JSON.parse(atob(secret[1].replace(/-/g, '+').replace(/_/g, '/'))) as { iss: string; sub: string; aud: string };
+    expect(header.alg).toBe('ES256');
+    expect(header.kid).toBe('KEY1234567');
+    expect(payload.iss).toBe('TEAM1234567');
+    expect(payload.sub).toBe(APPLE_SERVICES_ID);
+    expect(payload.aud).toBe('https://appleid.apple.com');
+  });
+
+  it('accepts a Google callback whose query carries both state and code', async () => {
+    // Regression: the ported implementation fed the OAuth state to the token
+    // endpoint as if it were the authorization code; real callbacks deliver
+    // ?state=...&code=... and only the code redeems a token.
+    const env = makeEnv();
+    const start = await tryNativeIdentityLogin(post('/api/v1/auth/identity/start', { providerSlug: 'google-auth', returnTo: '/en/account', locale: 'en' }, { origin: 'https://shop.instance.test' }), env);
+    const binding = ((start as Response).headers.get('set-cookie') ?? '').match(/identity_binding=([^;]+)/)?.[1] ?? null;
+    const startBody = await (start as Response).json() as { data: { authorizationUrl: string } };
+    const state = new URL(startBody.data.authorizationUrl).searchParams.get('state')!;
+    const tx = db.transactions[db.transactions.length - 1];
+    const material = await (await import('./identity-crypto')).openIdentityMaterial({ JWT_SECRET: 'test-jwt-secret' } as never, tx.encrypted_payload!);
+    const claims = { iss: 'https://accounts.google.com', aud: 'test-client-id', sub: 'sub-code-1', email: 'buyer@example.com', email_verified: true, exp: Math.floor(Date.now() / 1000) + 600, nonce: material.nonce };
+    let tokenCode = '';
+    vi.stubGlobal('fetch', vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      tokenCode = new URLSearchParams(String(init?.body ?? '')).get('code') ?? '';
+      return new Response(JSON.stringify({ id_token: idToken(claims) }), { status: 200 });
+    }));
+    const callback = await tryNativeIdentityLogin(new Request(`https://api.instance.test/api/v1/auth/identity/google-auth/callback?state=${encodeURIComponent(state)}&code=real-auth-code`), env);
+    vi.unstubAllGlobals();
+    expect(callback?.status).toBe(302);
+    expect(tokenCode).toBe('real-auth-code');
+    const code = (callback!.headers.get('location') ?? '').match(/#code=([^&]+|[^#]*)/)?.[0]?.replace('#code=', '')!;
+    const response = await exchange(binding!, decodeURIComponent(code));
+    expect(response.status).toBe(200);
+    expect(db.identities[0].provider_slug).toBe('google-auth');
+  });
+});
+
+describe('native token channel', () => {
+  beforeEach(() => {
+    db = state();
+    getNativePluginConfig.mockReset();
+    getNativePluginConfig.mockImplementation(multiProviderConfig());
+    findNativeUserByEmail.mockResolvedValue(null);
+    createNativeSession.mockImplementation(async (_env, user) => ({
+      body: { success: true, data: { user, access_token: 'access', token_type: 'Bearer', expires_in: 604800, refresh_token: 'refresh', token: 'access' } },
+      headers: new Headers(),
+    }));
+  });
+
+  function nativeRequest(body: Record<string, unknown>): Request {
+    return post('/api/v1/auth/identity/native', body, { 'content-type': 'application/json', 'cf-connecting-ip': '203.0.113.9' });
+  }
+
+  it('answers 503 when the provider has no native audiences configured', async () => {
+    getNativePluginConfig.mockImplementation(async (_env: unknown, slug: string) => (slug === 'google-auth' ? googleConfig() : null));
+    const response = await tryNativeIdentityLogin(nativeRequest({ providerSlug: 'google-auth', idToken: 'a.b.c' }), makeEnv());
+    expect(response?.status).toBe(503);
+  });
+
+  it('verifies an Apple app token end to end and issues a shop session', async () => {
+    const claims = { iss: 'https://appleid.apple.com', aud: APPLE_BUNDLE_ID, sub: 'apple-native-1', email: 'buyer@icloud.com', email_verified: 'true', exp: Math.floor(Date.now() / 1000) + 600, nonce: 'n-123' };
+    const token = await es256Token(claims);
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ keys: [{ ...applePublicJwk, kid: 'apple-key-1', alg: 'ES256' }] }), { status: 200 })));
+    const response = await tryNativeIdentityLogin(nativeRequest({ providerSlug: 'apple-auth', idToken: token, nonce: 'n-123', fullName: 'Apple Buyer' }), makeEnv());
+    vi.unstubAllGlobals();
+    expect(response?.status).toBe(200);
+    const body = await (response as Response).json() as { data: { access_token: string; user: { username: string } } };
+    expect(body.data.access_token).toBe('access');
+    expect(body.data.user.username).toContain('Apple-Buyer');
+    expect(db.users).toHaveLength(1);
+    expect(db.identities).toHaveLength(1);
+    expect(db.identities[0].issuer).toBe('https://appleid.apple.com');
+    expect(db.identities[0].subject).toBe('apple-native-1');
+  });
+
+  it('rejects a tampered signature, a foreign audience, and a nonce mismatch', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ keys: [{ ...applePublicJwk, kid: 'apple-key-1', alg: 'ES256' }] }), { status: 200 })));
+    const base = { iss: 'https://appleid.apple.com', sub: 'apple-native-1', email: 'buyer@icloud.com', email_verified: 'true', exp: Math.floor(Date.now() / 1000) + 600 };
+    const tampered = await es256Token({ ...base, aud: APPLE_BUNDLE_ID }, { tamper: true });
+    const wrongAud = await es256Token({ ...base, aud: 'com.other.app' });
+    const wrongNonce = await es256Token({ ...base, aud: APPLE_BUNDLE_ID, nonce: 'other' });
+    for (const token of [tampered, wrongAud, wrongNonce]) {
+      const response = await tryNativeIdentityLogin(nativeRequest({ providerSlug: 'apple-auth', idToken: token, nonce: 'n-123' }), makeEnv());
+      expect(response?.status).toBe(400);
+      const body = await (response as Response).json() as { error: { code: string } };
+      expect(body.error.code).toBe('IDENTITY_REJECTED');
+    }
+    expect(db.users).toHaveLength(0);
+    vi.unstubAllGlobals();
+  });
+
+  it('rejects an unsigned (structural-only) token on the native channel', async () => {
+    // The web flow accepts structural tokens because they arrive over TLS;
+    // the native channel must refuse anything that is not signature-verified.
+    const claims = { iss: 'https://appleid.apple.com', aud: APPLE_BUNDLE_ID, sub: 'forged-1', email: 'attacker@example.com', email_verified: 'true', exp: Math.floor(Date.now() / 1000) + 600 };
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ keys: [{ ...applePublicJwk, kid: 'apple-key-1', alg: 'ES256' }] }), { status: 200 })));
+    const response = await tryNativeIdentityLogin(nativeRequest({ providerSlug: 'apple-auth', idToken: idToken(claims) }), makeEnv());
+    vi.unstubAllGlobals();
+    expect(response?.status).toBe(400);
+    expect(db.users).toHaveLength(0);
+  });
+
+  it('throttles burst traffic per IP', async () => {
+    const env = makeEnv();
+    let last: Response | null = null;
+    for (let i = 0; i < 31; i += 1) {
+      last = await tryNativeIdentityLogin(nativeRequest({ providerSlug: 'google-auth', idToken: 'a.b.c' }), env);
+    }
+    expect(last?.status).toBe(429);
+    const body = await (last as Response).json() as { error: { code: string } };
+    expect(body.error.code).toBe('IDENTITY_RATE_LIMITED');
   });
 });

@@ -215,12 +215,79 @@ node scripts/smoke-bokmoo-app-api.mjs \
 
 Only run the signed webhook check against a disposable smoke order or a controlled test user because it creates or updates a fulfillment record.
 
+## Social Sign-In For The App (Native Token Channel)
+
+The native worker owns identity login (`identity-login.ts`). The web flow
+(authorization-code redirect through the storefront) and the app channel share
+the same account layer: identities bind strictly by (issuer, subject), an
+identical email never merges accounts (`IDENTITY_EMAIL_IN_USE`), and every
+login lands as a plain shop session.
+
+### Endpoint
+
+```text
+POST https://api.bokmoo.com/api/v1/auth/identity/native
+Content-Type: application/json
+
+{
+  "providerSlug": "apple-auth",   // apple-auth | google-auth | facebook-auth
+  "idToken": "<token from the provider SDK>",
+  "nonce": "<nonce the app generated for this sign-in>",  // recommended, replay guard
+  "fullName": "Display Name"      // optional; Apple reveals the name only once, outside the token
+}
+```
+
+Response: the same shape as `POST /api/v1/auth/login` —
+`{ user, access_token, token_type: "Bearer", expires_in, refresh_token, token }`
+plus the `auth_token`/`refresh_token` cookies for webview shells. The app keeps
+the Bearer tokens and sends `Authorization: Bearer <access_token>`.
+
+### Verification the app cannot bypass
+
+The `idToken` arrives from the wire, so Core signature-verifies it against the
+provider JWKS before any account is touched:
+
+- **Apple** (`apple-auth`): ES256, JWKS `https://appleid.apple.com/auth/keys`,
+  `iss=https://appleid.apple.com`, `aud` = the configured **bundle ID**,
+  `email_verified` = `"true"`, optional `nonce` equality.
+- **Google** (`google-auth`): RS256, JWKS
+  `https://www.googleapis.com/oauth2/v3/certs`,
+  `iss=https://accounts.google.com`, `aud` = the configured **Android or iOS
+  client ID** (`androidClientId` / `iosClientId` in the google-auth plugin
+  settings — the web client ID is NOT an accepted app audience).
+- **Facebook** (`facebook-auth`): RS256/ES256 per JWKS
+  `https://www.facebook.com/.well-known/jwks.json`,
+  `iss=https://facebook.com`, `aud` = the App ID.
+
+### Nonce flow (recommended)
+
+1. The app generates a random nonce per sign-in attempt and keeps it locally.
+2. The app passes the same nonce into the provider SDK request.
+3. The returned id_token carries the nonce inside its claims; the app posts
+   the nonce together with the token — a mismatch, or reuse of an old token
+   pair, is rejected (`IDENTITY_REJECTED`).
+
+### Configuration
+
+Everything is configured in the admin plugin settings (no env vars on the
+worker itself): `google-auth` (web client + optional android/ios client IDs),
+`facebook-auth` (app ID + app secret), `apple-auth` (Services ID, team ID,
+key ID, .p8 private key, optional bundle ID). Disabling a provider in the
+admin makes `POST /identity/native` answer `503 IDENTITY_UNAVAILABLE` for it
+immediately. Errors: `400 IDENTITY_REJECTED` (token failed verification),
+`409 IDENTITY_EMAIL_IN_USE` (an account already owns the email; link from
+account settings instead), `429 IDENTITY_RATE_LIMITED`.
+
+The legacy `/api/auth/google` and `/api/auth/apple` paths in this runbook's
+acceptance list are superseded by `POST /api/v1/auth/identity/native`; treat
+the identity route as the contract and the old paths as removed.
+
 ## Acceptance Criteria
 
 Production is ready for the Android MVP only when all of these are true:
 
 - `GET /api/products?type=esim&country=JP&page=1&limit=12` returns public eSIM plans.
-- `/api/auth/google` and `/api/auth/apple` are routed and reject invalid tokens without 404/500.
+- `POST /api/v1/auth/identity/native` is routed and rejects invalid tokens with `400 IDENTITY_REJECTED` (never 404/500).
 - Google and Apple real tokens exchange for BOKMOO sessions in app QA.
 - `POST /api/orders` creates an eSIM order with `expectedTotal`, `currency`, and `paymentMethodId`.
 - native payment confirmation or Stripe webhook marks the order paid.
