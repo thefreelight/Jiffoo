@@ -12352,6 +12352,8 @@
       name: displayProductTitle(product.name),
       description: product.description ?? "",
       price: sellablePrice,
+      currency: product.currency,
+      typeData: product.typeData,
       sku: product.slug || product.id,
       productKind: product.productKind,
       category: {
@@ -14311,11 +14313,6 @@
           ) : response.items;
           const scopedItems = filteredItems.filter((item) => matchesCatalogFilter(item, selectedFilter));
           const isLocalScope = Boolean(search || selectedFilter !== "All");
-          setRemoteProducts(scopedItems.map((item) => ({
-            ...mapEsimApiProductToThemeProduct(item),
-            typeData: item.typeData,
-            currency: item.currency
-          })));
           setRemoteTotal(isLocalScope ? scopedItems.length : Number(response.total || scopedItems.length || 0));
           setRemoteTotalPages(Math.max(1, Math.ceil((isLocalScope ? scopedItems.length : Number(response.total || scopedItems.length || 0)) / 12)));
         } catch (error) {
