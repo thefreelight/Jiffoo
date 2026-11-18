@@ -105,7 +105,7 @@ export const BUILTIN_THEMES: ThemeRegistry = {
     meta: {
       slug: 'esim',
       name: 'eSIM Route Mall',
-      version: '0.0.3',
+      version: '0.0.4',
       description: 'Route-first eSIM mall storefront (One trip, one eSIM) on the black-and-gold Bokmoo design language.',
       category: 'esim',
       author: 'Jiffoo',
