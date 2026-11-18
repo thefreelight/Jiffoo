@@ -85,7 +85,7 @@ function toRecommendation(product: EsimApiProduct, draft: RouteDraft, estimatedG
   return {
     product,
     price: planPrice(product),
-    currency: 'USD',
+    currency: product.currency || 'USD',
     gb,
     validityDays: validity,
     coverageCodes: coverage,

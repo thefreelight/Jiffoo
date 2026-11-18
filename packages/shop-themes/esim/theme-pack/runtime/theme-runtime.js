@@ -15712,7 +15712,7 @@
     return {
       product,
       price: planPrice(product),
-      currency: "USD",
+      currency: product.currency || "USD",
       gb,
       validityDays: validity,
       coverageCodes: coverage,
@@ -18812,7 +18812,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "esim",
-      version: "0.0.4",
+      version: "0.0.5",
       target: "shop"
     }
   };
