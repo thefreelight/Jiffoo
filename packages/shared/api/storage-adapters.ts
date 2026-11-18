@@ -11,6 +11,45 @@ export interface StorageAdapter {
 }
 
 /**
+ * Keys mirrored into a parent-domain cookie so sibling subdomains of the
+ * same storefront family share the session (e.g. bokmoo.com and
+ * esim.bokmoo.com). Themes read these cookies as their token fallback.
+ * Only the short-lived access token is mirrored; refresh tokens stay in
+ * localStorage only.
+ */
+const PARENT_DOMAIN_COOKIE_KEYS = new Set(['auth_token']);
+
+/**
+ * Widest cookie domain that still scopes to the current site family:
+ * the last two labels of the hostname (bokmoo.com from esim.bokmoo.com).
+ * Returns null for localhost / IP hosts / single-label hosts, where a
+ * Domain attribute would be wrong or invalid.
+ */
+export function parentCookieDomain(hostname: string): string | null {
+  if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') return null;
+  if (/^\d+\.\d+\.\d+\.\d+$/.test(hostname) || hostname.includes(':')) return null;
+  const labels = hostname.split('.').filter(Boolean);
+  if (labels.length < 2) return null;
+  return labels.slice(-2).join('.');
+}
+
+export function writeParentDomainCookie(key: string, value: string | null, hostname?: string): void {
+  if (typeof document === 'undefined') return;
+  const domain = parentCookieDomain(hostname ?? window.location.hostname);
+  const base = domain ? `Domain=${domain}; Path=/; Secure; SameSite=Lax` : null;
+  if (value === null) {
+    // Clear the parent-domain cookie and any host-scoped cookie left by
+    // older builds. Host-scoped clear also applies on localhost, where no
+    // parent-domain cookie can exist.
+    if (base) document.cookie = `${key}=; ${base}; Max-Age=0`;
+    document.cookie = `${key}=; Path=/; Max-Age=0`;
+    return;
+  }
+  if (!base) return;
+  document.cookie = `${key}=${encodeURIComponent(value)}; ${base}; Max-Age=15552000`;
+}
+
+/**
  * Browser localStorage adapter
  * Suitable for client-side rendering environments
  */
@@ -32,6 +71,13 @@ export class BrowserStorageAdapter implements StorageAdapter {
     } catch (error) {
       console.warn('localStorage write failed:', error);
     }
+    if (PARENT_DOMAIN_COOKIE_KEYS.has(key)) {
+      try {
+        writeParentDomainCookie(key, value);
+      } catch {
+        // Cookie write failures must not break auth storage.
+      }
+    }
   }
 
   removeItem(key: string): void {
@@ -41,6 +87,13 @@ export class BrowserStorageAdapter implements StorageAdapter {
     } catch (error) {
       console.warn('localStorage remove failed:', error);
     }
+    if (PARENT_DOMAIN_COOKIE_KEYS.has(key)) {
+      try {
+        writeParentDomainCookie(key, null);
+      } catch {
+        // Best effort.
+      }
+    }
   }
 
   clear(): void {
@@ -49,6 +102,13 @@ export class BrowserStorageAdapter implements StorageAdapter {
       localStorage.clear();
     } catch (error) {
       console.warn('localStorage clear failed:', error);
+    }
+    for (const key of PARENT_DOMAIN_COOKIE_KEYS) {
+      try {
+        writeParentDomainCookie(key, null);
+      } catch {
+        // Best effort.
+      }
     }
   }
 }
