@@ -150,12 +150,14 @@ export default function LoginPage() {
       socialAuthStatus={{
         google: socialAuth.google,
         apple: socialAuth.apple,
+        facebook: socialAuth.facebook,
         isLoading: socialAuth.isLoading,
       }}
       onSubmit={handleSubmit}
       onNavigateToRegister={handleNavigateToRegister}
       onOAuthClick={() => handleOAuthClick('google')}
       onAppleOAuthClick={() => handleOAuthClick('apple')}
+      onFacebookOAuthClick={() => handleOAuthClick('facebook')}
       onNavigateToForgotPassword={handleNavigateToForgotPassword}
     />
   );

@@ -128,12 +128,14 @@ export default function RegisterPage() {
       socialAuthStatus={{
         google: socialAuth.google,
         apple: socialAuth.apple,
+        facebook: socialAuth.facebook,
         isLoading: socialAuth.isLoading,
       }}
       onSubmit={handleSubmit}
       onNavigateToLogin={handleNavigateToLogin}
       onOAuthClick={() => handleOAuthClick('google')}
       onAppleOAuthClick={() => handleOAuthClick('apple')}
+      onFacebookOAuthClick={() => handleOAuthClick('facebook')}
     />
   );
 }
