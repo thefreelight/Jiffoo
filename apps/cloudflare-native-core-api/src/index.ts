@@ -40,6 +40,7 @@ import { tryNativeMailBounces } from './mail-bounces';
 import { tryNativeMailReceipts } from './mail-receipts';
 import { processScheduledOdooCatalogSync, tryNativeOdooCatalogSync } from './odoo-catalog';
 import { snapshotFallbackKey, snapshotKey } from './snapshot-key';
+import { processScheduledBossCatalogSync } from './boss-upstream';
 import { applyProductCopyOverrides, loadProductCopyOverrides, productCopyPathKind } from './product-copy';
 import { authenticateNativeAdmin } from './auth';
 import { authenticateJobsUser, processNativeJobsSync, tryNativeJobsAdminProxy, tryNativeJobsProxy, type NativeJobsProxyEnv } from './jobs-proxy';
@@ -71,6 +72,7 @@ import { tryNativeCrosspilotBridge } from './crosspilot-bridge';
 type WorkerEnv = Cloudflare.Env & NativeAuthEnv & NativeJobsProxyEnv & {
   DEMO_MODE?: string;
   EXPECTED_D1_SCHEMA_VERSION?: string;
+  BOSS_API_KEY?: string;
 };
 
 interface Snapshot {
@@ -474,10 +476,11 @@ export default {
     }
   },
   async scheduled(_controller: ScheduledController, env: WorkerEnv): Promise<void> {
-    const [checkout, email, odooCatalog, odooShipments, jobs, walletReservations, creditGrants, resumeExtraction, videoTasks, toolDiscovery, staleReservations] = await Promise.allSettled([
+    const [checkout, email, odooCatalog, odooShipments, jobs, walletReservations, creditGrants, resumeExtraction, videoTasks, toolDiscovery, staleReservations, bossCatalog] = await Promise.allSettled([
       processCheckoutOutbox(env),
       processNativeEmailOutbox(env),
       processScheduledOdooCatalogSync(env),
+      processScheduledBossCatalogSync(env),
       processNativeOdooShipmentPoll(env),
       processNativeJobsSync(env),
       expireNativeWalletReservations(env),
@@ -512,6 +515,7 @@ export default {
       staleReservations: staleReservations.status === 'fulfilled'
         ? staleReservations.value
         : { error: String(staleReservations.reason) },
+      bossCatalog: bossCatalog.status === 'fulfilled' ? bossCatalog.value : { error: String(bossCatalog.reason) },
     }));
   },
 } satisfies ExportedHandler<WorkerEnv>;
