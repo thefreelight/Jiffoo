@@ -391,3 +391,60 @@ describe('native RemoteRadar applications adapter', () => {
     expect(invalidDate?.status).toBe(400);
   });
 });
+
+describe('AI resume tailoring', () => {
+  it('tailors a resume against a saved job without touching the master resume', async () => {
+    authenticateNativeUser.mockResolvedValue({ id: 'user-1', email: 'u@example.com', username: 'u', role: 'USER' });
+    const ai = vi.fn(async () => ({ response: JSON.stringify({
+      summary: '增长向运营负责人，专注 Web3 用户增长与转化',
+      facts: [{ kind: 'skill', label: 'TypeScript', value: '6 years', reason: 'JD 明确要求工程背景' }],
+      dropped: [],
+      rationale: '保留与增长直接相关的工程事实',
+    }) }));
+    const prepare = vi.fn((sql: string) => ({
+      bind: (...args: unknown[]) => ({
+        first: async () => {
+          if (sql.includes('native_rr_saved_jobs WHERE id')) return { title: 'Growth Manager', company: 'Acme', description: 'Own growth loops' };
+          if (sql.includes('native_rr_resumes WHERE id')) return { name: 'Primary resume', summary: 'Engineer' };
+          return null;
+        },
+        all: async () => ({ results: sql.includes('native_rr_resume_facts') ? [{ kind: 'skill', label: 'TypeScript', value: '6 years' }] : [] }),
+        run: vi.fn(async () => ({ success: true })),
+      }),
+    }));
+    const db = { prepare, batch: vi.fn(async () => []) };
+    const env = { DB: db, AI: { run: ai }, REMOTERADAR_AI_MODEL: 'test-model' };
+
+    const response = await tryNativeRemoteRadarApplications(new Request(`${baseUrl}/resumes/resume-1/tailor`, {
+      method: 'POST', body: JSON.stringify({ savedJobId: 'job-1' }),
+    }), env as never);
+
+    expect(response.status).toBe(200);
+    const payload = await response.json() as { data: { tailored: { summary: string; facts: Array<{ reason: string }> }; model: string } };
+    expect(payload.data.tailored.summary).toContain('增长');
+    expect(payload.data.tailored.facts[0].reason).toBeTruthy();
+    expect(payload.data.model).toBe('test-model');
+    expect(ai).toHaveBeenCalledOnce();
+    // The master resume rows are only READ — no UPDATE/DELETE against them.
+    for (const call of prepare.mock.calls) {
+      expect(call[0]).not.toMatch(/UPDATE native_rr_resumes|DELETE FROM native_rr_resumes/);
+    }
+  });
+
+  it('rejects tailoring without a job target', async () => {
+    authenticateNativeUser.mockResolvedValue({ id: 'user-1', email: 'u@example.com', username: 'u', role: 'USER' });
+    const prepare = vi.fn((sql: string) => ({
+      bind: vi.fn(() => ({
+        first: vi.fn(async () => ({ name: 'Primary resume', summary: 'Engineer' })),
+        all: vi.fn(async () => ({ results: [{ kind: 'skill', label: 'TypeScript', value: '6 years' }] })),
+        run: vi.fn(async () => ({ success: true })),
+      })),
+    }));
+    const env = { DB: { prepare }, AI: vi.fn() };
+    const response = await tryNativeRemoteRadarApplications(new Request(`${baseUrl}/resumes/resume-1/tailor`, {
+      method: 'POST', body: JSON.stringify({}),
+    }), env as never);
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({ error: { code: 'VALIDATION_ERROR' } });
+  });
+});
