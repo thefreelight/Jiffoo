@@ -208,28 +208,44 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
         </button>
 
         <div className="mt-5 rounded-[1.35rem] border border-[color:color-mix(in_oklab,var(--esim-gold)_18%,var(--esim-line))] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--esim-bg-elevated)_80%,black),color-mix(in_oklab,var(--esim-bg-elevated)_92%,black))] p-3 shadow-[var(--esim-shadow)] sm:rounded-[1.55rem] sm:p-5">
+          {/* Design-spec plan panel (套餐对比 spec): typographic, no product
+              image concept. Physical goods keep their media block. */}
           <div className="grid gap-6 lg:grid-cols-[minmax(0,0.96fr)_22rem]">
             <div>
-              <div className="overflow-hidden rounded-[1.05rem] border border-[var(--esim-line)] sm:rounded-[1.2rem]">
-                {image ? (
-                  <img
-                    src={image}
-                    alt={normalizedProduct.name}
-                    className={cn(
-                      'object-cover',
-                      isGoodsProduct ? 'esim-pdp-media-goods' : 'aspect-[1.28/1] h-full w-full sm:aspect-[1.6/1]',
-                    )}
-                  />
-                ) : (
-                  <div className="aspect-[1.28/1] bg-[linear-gradient(160deg,#924a57_0%,#261922_44%,#0f1115_100%)] sm:aspect-[1.6/1]" />
-                )}
-              </div>
+              {isGoodsProduct ? (
+                <div className="overflow-hidden rounded-[1.05rem] border border-[var(--esim-line)] sm:rounded-[1.2rem]">
+                  {image ? (
+                    <img
+                      src={image}
+                      alt={normalizedProduct.name}
+                      className="esim-pdp-media-goods object-cover"
+                    />
+                  ) : (
+                    <div className="aspect-[1.28/1] bg-[linear-gradient(160deg,#924a57_0%,#261922_44%,#0f1115_100%)] sm:aspect-[1.6/1]" />
+                  )}
+                </div>
+              ) : (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full border border-[color:color-mix(in_oklab,var(--esim-gold)_34%,transparent)] bg-[color:color-mix(in_oklab,var(--esim-gold)_10%,transparent)] px-3 py-1 text-[10px] font-bold tracking-[0.18em] text-[var(--esim-gold)]">
+                    {profile.cardEyebrow}
+                  </span>
+                  <span className="rounded-full border border-[var(--esim-line)] px-3 py-1 text-[10px] tracking-[0.16em] text-[var(--esim-copy)]">
+                    {profile.deliveryLabel}
+                  </span>
+                </div>
+              )}
 
               <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                 <div>
-                  <h1 className="esim-pdp-title font-semibold tracking-[-0.05em] text-[var(--esim-ink)]">
+                  <h1 className="esim-pdp-title font-serif text-3xl font-normal tracking-tight text-[var(--esim-ink)] lg:text-4xl">
                     {normalizedProduct.name}
                   </h1>
+                  {!isGoodsProduct ? (
+                    <p className="mt-3 inline-flex items-center gap-2 text-sm text-[var(--esim-copy)]">
+                      <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-[var(--esim-gold)] text-[9px] font-bold text-[#0d0d0d]">✓</span>
+                      {profile.coverageLabel}
+                    </p>
+                  ) : null}
                   {normalizedProduct.description ? (
                     <p className="esim-pdp-description">{normalizedProduct.description}</p>
                   ) : (
@@ -239,8 +255,8 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
                   )}
                 </div>
                 <div className="sm:text-right">
-                  <p className="esim-pdp-price font-semibold tracking-[-0.05em] text-[var(--esim-gold)]">
-                    ${priceValue.toFixed(2)}
+                  <p className="font-serif text-4xl font-normal tracking-tight text-[var(--esim-gold)] lg:text-5xl">
+                    {((normalizedProduct as any).currency === 'CNY' ? '¥' : '$') + priceValue.toFixed(2)}
                   </p>
                 </div>
               </div>
@@ -249,9 +265,9 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
                 {(isGoodsProduct
                   ? goodsSpecCards
                   : [
-                      { label: pickCopy(locale, { en: 'Data', hans: '数据', hant: '數據' }), value: profile.planLabel },
+                      { label: pickCopy(locale, { en: 'Data', hans: '流量', hant: '流量' }), value: profile.planLabel },
                       { label: pickCopy(locale, { en: 'Validity', hans: '有效期', hant: '有效期' }), value: profile.durationLabel },
-                      { label: pickCopy(locale, { en: 'Network', hans: '网络', hant: '網路' }), value: profile.networkLabel },
+                      { label: pickCopy(locale, { en: 'Delivery', hans: '发放', hant: '發放' }), value: profile.deliveryLabel },
                     ]
                 ).map((item) => (
                   <div
