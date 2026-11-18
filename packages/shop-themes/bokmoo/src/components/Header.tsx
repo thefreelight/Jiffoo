@@ -91,7 +91,7 @@ export const Header = React.memo(function Header({
 
   const navItems = [
     { label: pickCopy(locale, { en: 'Products', hans: '产品', hant: '產品', ja: '製品', ko: '제품', fr: 'Produits', de: 'Produkte' }), onClick: onNavigateToProducts },
-    { label: pickCopy(locale, { en: 'Global Plans', hans: '全球套餐', hant: '全球套餐', ja: 'グローバルプラン', ko: '글로벌 플랜', fr: 'Forfaits mondiaux', de: 'Weltweite Tarife' }), onClick: () => openHref('/#destinations') },
+    { label: pickCopy(locale, { en: 'eSIM', hans: 'eSIM', hant: 'eSIM', ja: 'eSIM', ko: 'eSIM', fr: 'eSIM', de: 'eSIM' }), onClick: () => openHref('https://esim.bokmoo.com') },
     { label: pickCopy(locale, { en: 'Download App', hans: '下载 App', hant: '下載 App', ja: 'アプリをダウンロード', ko: '앱 다운로드', fr: 'Télécharger l’app', de: 'App herunterladen' }), onClick: () => openHref('/download/app') },
     { label: pickCopy(locale, { en: 'Support', hans: '支持', hant: '支援', ja: 'サポート', ko: '지원', fr: 'Assistance', de: 'Support' }), onClick: () => openHref('/help') },
     { label: pickCopy(locale, { en: 'Affiliate Program', hans: '联盟计划', hant: '聯盟計劃', ja: 'アフィリエイト', ko: '제휴 프로그램', fr: 'Affiliation', de: 'Partnerprogramm' }), onClick: () => openHref('/affiliate') },
