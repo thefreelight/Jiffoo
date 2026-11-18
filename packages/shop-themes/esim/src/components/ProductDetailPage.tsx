@@ -18,6 +18,7 @@ import { getEsimProduct, getProductIdFromLocation, mapEsimApiProductToThemeProdu
 import { pickCopy } from '../site';
 import { getEsimTravelProfile } from '../lib/digital-fulfillment';
 import { resolveEsimSiteConfig } from '../site';
+import { destinationLabel, type EsimPlanAttributes } from '../lib/esim/catalog';
 
 function getProductImage(product: Product | null): string | null {
   if (!product?.images?.length) return null;
@@ -44,6 +45,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
 }: ProductDetailPageProps) {
   const site = resolveEsimSiteConfig(config);
   const [remoteProduct, setRemoteProduct] = React.useState<Product | null>(null);
+  const [remoteEsim, setRemoteEsim] = React.useState<EsimPlanAttributes | undefined>(undefined);
   const [remoteLoading, setRemoteLoading] = React.useState(false);
   const normalizedProduct = React.useMemo(
     () => (product ? normalizeProductForTheme(product as unknown as Product) : remoteProduct),
@@ -154,6 +156,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
       .then((response) => {
         if (!cancelled) {
           setRemoteProduct(mapEsimApiProductToThemeProduct(response));
+          setRemoteEsim(((response as any).typeData?.esim || undefined) as EsimPlanAttributes | undefined);
         }
       })
       .catch(() => undefined)
@@ -243,7 +246,14 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
                   {!isGoodsProduct ? (
                     <p className="mt-3 inline-flex items-center gap-2 text-sm text-[var(--esim-copy)]">
                       <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-[var(--esim-gold)] text-[9px] font-bold text-[#0d0d0d]">✓</span>
-                      {profile.coverageLabel}
+                      {(() => {
+                        const dests = remoteEsim?.destinations || [];
+                        if (dests.length === 0) return profile.coverageLabel;
+                        const names = dests.map((code) => destinationLabel(code, locale)).join(' · ');
+                        return dests.length === 1
+                          ? `${pickCopy(locale, { en: 'Covers', hans: '覆盖', hant: '覆蓋' })} ${names}`
+                          : `${pickCopy(locale, { en: 'Covers', hans: '覆盖', hant: '覆蓋' })} ${dests.length} ${pickCopy(locale, { en: 'destinations', hans: '个目的地', hant: '個目的地' })}（${names}）`;
+                      })()}
                     </p>
                   ) : null}
                   {normalizedProduct.description ? (

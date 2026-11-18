@@ -3,8 +3,9 @@ import { ArrowRight, ChevronLeft, ChevronRight, Grid3X3, List, Search, ShieldChe
 import { cn } from '@jiffoo/ui';
 import type { Product } from 'shared/src/types/product';
 import type { ProductsPageProps } from 'shared/src/types/theme';
-import { displayProductTitle, getEsimProducts, mapEsimApiProductToThemeProduct, normalizeProductForTheme, resolveEsimMediaUrl } from '../lib/api';
+import { displayProductTitle, getEsimProducts, mapEsimApiProductToThemeProduct, normalizeProductForTheme, resolveEsimMediaUrl, type EsimApiProduct } from '../lib/api';
 import { getEsimTravelProfile } from '../lib/digital-fulfillment';
+import { destinationLabel, regionLabelOf, type EsimPlanAttributes } from '../lib/esim/catalog';
 import { pickCopy, resolveEsimSiteConfig } from '../site';
 
 const GOLD_CTA = 'bg-[linear-gradient(135deg,var(--esim-gold-strong),var(--esim-gold)_55%,color-mix(in_oklab,var(--esim-gold)_70%,#7a5c14))]';
@@ -112,9 +113,14 @@ export const ProductsPage = React.memo(function ProductsPage({
   const t = (copy: { en: string; hans: string; hant: string }) => pickCopy(locale, copy);
   const normalizedProducts = React.useMemo(
     () =>
-      (remoteProducts.length > 0 ? remoteProducts : products).map((product) =>
-        normalizeProductForTheme(product as unknown as Product)
-      ),
+      (remoteProducts.length > 0 ? remoteProducts : (products as unknown as EsimApiProduct[])).map((raw) => {
+        const esimAttrs = ((raw as EsimApiProduct).typeData?.esim || undefined) as EsimPlanAttributes | undefined;
+        return {
+          product: normalizeProductForTheme(raw as unknown as Product),
+          esim: esimAttrs,
+          currency: (raw as EsimApiProduct).currency,
+        };
+      }),
     [products, remoteProducts]
   );
 
@@ -302,8 +308,19 @@ export const ProductsPage = React.memo(function ProductsPage({
                 viewMode === 'grid' ? 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3' : 'grid-cols-1'
               )}
             >
-              {normalizedProducts.map((product) => {
+              {normalizedProducts.map(({ product, esim, currency: rawCurrency }) => {
                 const profile = getEsimTravelProfile(product);
+                const destinations = esim?.destinations || [];
+                const regionInfo = regionLabelOf(esim?.defaultCode || '', locale);
+                const isMultiCountry = destinations.length > 1;
+                const coverageLine = destinations.length > 0
+                  ? (isMultiCountry
+                    ? `${regionInfo ? regionInfo.zh : ''}${regionInfo && locale && !locale.startsWith('zh') ? ` ${regionInfo.en}` : ''} · ${t({ en: `covers ${destinations.length} destinations`, hans: `覆盖 ${destinations.length} 个目的地`, hant: `覆蓋 ${destinations.length} 個目的地` })}`
+                    : `${t({ en: 'Covers', hans: '覆盖', hant: '覆蓋' })} ${destinations.map((code) => destinationLabel(code, locale)).join('/')}`)
+                  : profile.coverageLabel;
+                const eyebrowLabel = destinations.length > 1
+                  ? (regionInfo ? regionInfo.zh : t({ en: 'Multi-country', hans: '多国联程', hant: '多國聯程' }))
+                  : (regionInfo ? regionInfo.zh : profile.cardEyebrow);
                 // The core's product-level price is the odoo list price; the
                 // amount checkout bills is the variant sale price. Show the
                 // cheapest sellable figure so the card matches the cart.
@@ -317,9 +334,8 @@ export const ProductsPage = React.memo(function ProductsPage({
 
                 // Design-spec plan card (套餐对比 spec): pure typographic —
                 // no product-image concept anywhere on this storefront.
-                const planEsim = ((product as any).typeData?.esim || {}) as { validityDays?: number };
-                const planValidityDays = typeof planEsim.validityDays === 'number' && planEsim.validityDays > 0 ? planEsim.validityDays : null;
-                const planCurrency = (product as any).currency || 'USD';
+                const planValidityDays = typeof esim?.validityDays === 'number' && esim.validityDays > 0 ? esim.validityDays : null;
+                const planCurrency = rawCurrency || 'USD';
                 const currencySymbol = planCurrency === 'CNY' ? '¥' : planCurrency === 'USD' ? '$' : `${planCurrency} `;
                 const dailyAverage = planValidityDays && Number.isFinite(displayPrice) && displayPrice > 0
                   ? displayPrice / planValidityDays
@@ -343,7 +359,7 @@ export const ProductsPage = React.memo(function ProductsPage({
                     >
                       <div className="flex items-center justify-between gap-3">
                         <span className="rounded-full border border-[color:color-mix(in_oklab,var(--esim-gold)_30%,transparent)] bg-[#1c1f26]/90 px-3 py-1 font-mono text-[11px] font-semibold uppercase tracking-wider text-[var(--esim-gold)]">
-                          {profile.cardEyebrow}
+                          {eyebrowLabel}
                         </span>
                         <span className="rounded-full bg-[linear-gradient(90deg,var(--esim-gold),var(--esim-gold-strong))] px-3 py-1 font-mono text-[11px] font-bold text-[#141414] shadow-sm">
                           {profile.deliveryLabel}
@@ -356,7 +372,7 @@ export const ProductsPage = React.memo(function ProductsPage({
 
                       <p className="inline-flex items-center gap-2 text-sm text-[var(--esim-gold)]">
                         <span className="inline-flex h-[18px] w-[18px] items-center justify-center rounded-full bg-[var(--esim-gold)] text-[10px] font-bold text-[#141414]">✓</span>
-                        <span className="font-semibold text-[var(--esim-ink)]">{profile.coverageLabel}</span>
+                        <span className="font-semibold text-[var(--esim-ink)]">{coverageLine}</span>
                       </p>
 
                       <div className="flex items-baseline justify-between gap-4 rounded-xl border border-white/[0.06] bg-black/30 p-4">

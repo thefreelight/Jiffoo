@@ -89,6 +89,7 @@ export function searchDestinations(query: string, limit = 8): DestinationInfo[] 
  */
 export interface EsimPlanAttributes {
   country?: string;
+  defaultCode?: string;
   destinations?: string[]; // ISO 3166-1 alpha-2 coverage list
   region?: string;
   carrier?: string;
@@ -165,6 +166,28 @@ export function buildDestinationCatalog(products: EsimApiProduct[]): Destination
     return a.info.en.localeCompare(b.info.en);
   });
   return entries;
+}
+
+/** BOSS region prefix -> storefront display name (zh primary). */
+export const REGION_LABELS: Record<string, { zh: string; en: string }> = {
+  HKMO: { zh: '港澳', en: 'Hong Kong & Macao' },
+  SEA: { zh: '东南亚', en: 'Southeast Asia' },
+  JK: { zh: '日韩', en: 'Japan & Korea' },
+  APAC: { zh: '亚太', en: 'Asia-Pacific' },
+  EU: { zh: '欧洲', en: 'Europe' },
+  US: { zh: '美国', en: 'United States' },
+  AU: { zh: '澳新', en: 'Australia & NZ' },
+  GLOBAL: { zh: '全球', en: 'Global' },
+  JP: { zh: '日本', en: 'Japan' },
+  KR: { zh: '韩国', en: 'South Korea' },
+  TH: { zh: '泰国', en: 'Thailand' },
+  SG: { zh: '新加坡', en: 'Singapore' },
+  UK: { zh: '英国', en: 'United Kingdom' },
+};
+
+export function regionLabelOf(defaultCode: string, locale?: string): { zh: string; en: string } | null {
+  const prefix = (defaultCode || '').split('-')[0];
+  return REGION_LABELS[prefix] || null;
 }
 
 export function destinationLabel(code: string, locale?: string): string {
