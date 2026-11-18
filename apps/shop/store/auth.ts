@@ -42,6 +42,14 @@ interface AuthActions {
 
   clearError: () => void;
   setLoading: (loading: boolean) => void;
+  /**
+   * Rehydrate the session from an existing auth token (localStorage or the
+   * parent-domain cookie shared across subdomains) without credentials.
+   * No-op when already authenticated or when no token exists. A token that
+   * fails profile lookup is cleared everywhere so stale sessions cannot
+   * linger.
+   */
+  bootstrapSession: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState & AuthActions>()(
@@ -280,6 +288,55 @@ export const useAuthStore = create<AuthState & AuthActions>()(
 
       setAuthenticated: (authenticated: boolean) => {
         set({ isAuthenticated: authenticated });
+      },
+
+      bootstrapSession: async () => {
+        if (typeof window === 'undefined') return;
+        const current = get();
+        if (current.isAuthenticated || current.isLoading) return;
+
+        let hasToken = false;
+        try {
+          hasToken = !!window.localStorage.getItem('auth_token');
+        } catch {
+          hasToken = false;
+        }
+        if (!hasToken && typeof document !== 'undefined') {
+          hasToken = /(?:^|; )auth_token=([^;]+)/.test(document.cookie);
+        }
+        if (!hasToken) return;
+
+        try {
+          const profileResponse = await accountApi.getProfile();
+          if (profileResponse.success && profileResponse.data) {
+            set({
+              user: profileResponse.data as unknown as UserProfile,
+              isAuthenticated: true,
+              error: null,
+            });
+            return;
+          }
+        } catch {
+          // fall through to cleanup
+        }
+
+        // Token exists but is no longer valid: clear it everywhere so the
+        // stale session cannot resurrect on sibling subdomains either.
+        try {
+          window.localStorage.removeItem('auth_token');
+        } catch {
+          // Storage unavailable.
+        }
+        if (typeof document !== 'undefined') {
+          const labels = window.location.hostname.split('.').filter(Boolean);
+          const domain = labels.length >= 2 ? labels.slice(-2).join('.') : null;
+          const maxAge = 'Path=/; Max-Age=0';
+          document.cookie = `auth_token=; ${maxAge}`;
+          if (domain && window.location.hostname !== 'localhost') {
+            document.cookie = `auth_token=; Domain=${domain}; ${maxAge}`;
+          }
+        }
+        set({ user: null, isAuthenticated: false, error: null });
       },
 
       clearError: () => {
