@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Session sync</title>
+<style>
+  body { font-family: system-ui, -apple-system, sans-serif; background: #0d0d0d; color: #f2f2f4;
+         display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+  .card { text-align: center; font-size: 14px; opacity: 0.85; }
+  .card a { color: #d4af37; }
+</style>
+</head>
+<body>
+<!--
+  Cross-subdomain session migration bridge.
+
+  Copy the auth token from this origin's localStorage into the parent-domain
+  cookie (Domain=<site family>), then hand the browser back to the requested
+  subdomain. Sibling storefronts (e.g. esim.bokmoo.com) read that cookie as
+  their token fallback, so an existing login propagates without re-typing
+  credentials.
+
+  Usage: /auth-sync.html?back=https://esim.bokmoo.com/zh-Hans
+  The `back` target is restricted to the same site family.
+-->
+<div class="card" id="msg">Syncing session…</div>
+<script>
+(function () {
+  var msg = document.getElementById('msg');
+  var params = new URLSearchParams(location.search);
+  var back = params.get('back');
+
+  function sameSiteFamily(url) {
+    try {
+      var target = new URL(url).hostname.toLowerCase();
+      var here = location.hostname.toLowerCase();
+      if (target === here) return true;
+      return target.endsWith('.' + here) || here.endsWith('.' + target);
+    } catch (e) { return false; }
+  }
+
+  var token = null;
+  try { token = window.localStorage.getItem('auth_token'); } catch (e) {}
+
+  if (token) {
+    var host = location.hostname;
+    var labels = host.split('.').filter(Boolean);
+    var domain = (labels.length >= 2) ? labels.slice(-2).join('.') : null;
+    if (domain && host !== 'localhost') {
+      document.cookie = 'auth_token=' + encodeURIComponent(token) +
+        '; Domain=' + domain + '; Path=/; Secure; SameSite=Lax; Max-Age=15552000';
+    }
+  }
+
+  if (back && sameSiteFamily(back)) {
+    location.replace(back);
+  } else if (back) {
+    msg.textContent = 'Invalid redirect target.';
+  } else {
+    msg.innerHTML = token
+      ? 'Session synced. You can close this tab.'
+      : 'No active session found on this site. <a href="/">Back to store</a>';
+  }
+})();
+</script>
+</body>
+</html>

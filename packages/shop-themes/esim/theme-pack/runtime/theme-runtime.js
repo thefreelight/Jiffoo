@@ -12192,7 +12192,14 @@
     const cookieValue = `; ${document.cookie}`;
     const parts = cookieValue.split("; auth_token=");
     if (parts.length === 2) {
-      return parts.pop()?.split(";").shift() || null;
+      const cookieToken = parts.pop()?.split(";").shift() || null;
+      if (cookieToken) {
+        try {
+          window.localStorage.setItem("auth_token", cookieToken);
+        } catch {
+        }
+      }
+      return cookieToken;
     }
     return null;
   }
@@ -16716,7 +16723,26 @@
                 disabled: isLoading,
                 children: "Create account"
               }
-            )
+            ),
+            typeof window !== "undefined" && window.location.hostname.split(".").filter(Boolean).length > 2 ? /* @__PURE__ */ jsxs(Fragment2, { children: [
+              /* @__PURE__ */ jsxs("div", { className: "mt-6 flex items-center gap-3", children: [
+                /* @__PURE__ */ jsx("div", { className: "h-px flex-1 bg-[var(--esim-line)]" }),
+                /* @__PURE__ */ jsx("span", { className: "text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--esim-copy-soft)]", children: "already with us" }),
+                /* @__PURE__ */ jsx("div", { className: "h-px flex-1 bg-[var(--esim-line)]" })
+              ] }),
+              /* @__PURE__ */ jsxs(
+                "a",
+                {
+                  href: `https://bokmoo.com/auth-sync.html?back=${encodeURIComponent(window.location.origin + window.location.pathname)}`,
+                  className: `mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-[0.95rem] border border-[var(--esim-line)] px-4 text-sm font-medium text-[var(--esim-copy)] transition-colors hover:border-[var(--esim-gold)] hover:text-[var(--esim-gold)] ${FOCUS_VISIBLE_RING3}`,
+                  children: [
+                    "Use your ",
+                    site.brandName,
+                    " session to sign in"
+                  ]
+                }
+              )
+            ] }) : null
           ] })
         ] }) })
       ] })
@@ -18726,7 +18752,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "esim",
-      version: "0.0.2",
+      version: "0.0.3",
       target: "shop"
     }
   };

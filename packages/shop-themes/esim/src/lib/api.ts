@@ -262,7 +262,18 @@ function getClientToken(): string | null {
   const cookieValue = `; ${document.cookie}`;
   const parts = cookieValue.split('; auth_token=');
   if (parts.length === 2) {
-    return parts.pop()?.split(';').shift() || null;
+    const cookieToken = parts.pop()?.split(';').shift() || null;
+    if (cookieToken) {
+      // Parent-domain session sharing: a sibling subdomain's login lands
+      // here first. Promote the cookie token into localStorage so
+      // localStorage-only readers (cart guard, push hooks) see it too.
+      try {
+        window.localStorage.setItem('auth_token', cookieToken);
+      } catch {
+        // Storage may be unavailable; the cookie fallback still works.
+      }
+    }
+    return cookieToken;
   }
 
   return null;
