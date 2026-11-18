@@ -3,7 +3,7 @@ import { ArrowRight, ChevronLeft, ChevronRight, Grid3X3, List, Search, ShieldChe
 import { cn } from '@jiffoo/ui';
 import type { Product } from 'shared/src/types/product';
 import type { ProductsPageProps } from 'shared/src/types/theme';
-import { displayProductTitle, getEsimProducts, mapEsimApiProductToThemeProduct, normalizeProductForTheme, resolveEsimMediaUrl, type EsimApiProduct } from '../lib/api';
+import { displayProductTitle, getEsimProducts, mapEsimApiProductToThemeProduct, normalizeProductForTheme, readProductCurrency, resolveEsimMediaUrl, type EsimApiProduct } from '../lib/api';
 import { getEsimTravelProfile } from '../lib/digital-fulfillment';
 import { destinationLabel, regionLabelOf, type EsimPlanAttributes } from '../lib/esim/catalog';
 import { pickCopy, resolveEsimSiteConfig } from '../site';
@@ -118,7 +118,7 @@ export const ProductsPage = React.memo(function ProductsPage({
         return {
           product: normalizeProductForTheme(raw as unknown as Product),
           esim: esimAttrs,
-          currency: (raw as EsimApiProduct).currency,
+          currency: readProductCurrency(raw),
         };
       }),
     [products, remoteProducts]
@@ -342,7 +342,7 @@ export const ProductsPage = React.memo(function ProductsPage({
                 // Design-spec plan card (套餐对比 spec): pure typographic —
                 // no product-image concept anywhere on this storefront.
                 const planValidityDays = typeof esim?.validityDays === 'number' && esim.validityDays > 0 ? esim.validityDays : null;
-                const planCurrency = rawCurrency || 'USD';
+                const planCurrency = rawCurrency || readProductCurrency(product) || 'USD';
                 const currencySymbol = planCurrency === 'CNY' ? '¥' : planCurrency === 'USD' ? '$' : `${planCurrency} `;
                 const dailyAverage = planValidityDays && Number.isFinite(displayPrice) && displayPrice > 0
                   ? displayPrice / planValidityDays

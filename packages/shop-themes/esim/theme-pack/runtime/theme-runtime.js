@@ -12429,6 +12429,10 @@
       cancelledAt: null
     };
   }
+  function readProductCurrency(product) {
+    const source = product;
+    return source?.currency || source?.typeData?.esim?.currency || null;
+  }
   function normalizeProductForTheme(product) {
     const candidate = product;
     if (candidate && typeof candidate === "object" && Array.isArray(candidate.images) && Array.isArray(candidate.variants) && candidate.category && candidate.inventory) {
@@ -14273,7 +14277,7 @@
         return {
           product: normalizeProductForTheme(raw),
           esim: esimAttrs,
-          currency: raw.currency
+          currency: readProductCurrency(raw)
         };
       }),
       [products, remoteProducts]
@@ -14454,7 +14458,7 @@
             const listPrice = Number(product.price || 0);
             const displayPrice = variantSalePrices.length > 0 ? Math.min(listPrice > 0 ? listPrice : Number.POSITIVE_INFINITY, ...variantSalePrices) : listPrice;
             const planValidityDays2 = typeof esim?.validityDays === "number" && esim.validityDays > 0 ? esim.validityDays : null;
-            const planCurrency = rawCurrency || "USD";
+            const planCurrency = rawCurrency || readProductCurrency(product) || "USD";
             const currencySymbol = planCurrency === "CNY" ? "\xA5" : planCurrency === "USD" ? "$" : `${planCurrency} `;
             const dailyAverage = planValidityDays2 && Number.isFinite(displayPrice) && displayPrice > 0 ? displayPrice / planValidityDays2 : null;
             return /* @__PURE__ */ jsxs(
@@ -18236,7 +18240,7 @@
               !isGoodsProduct ? /* @__PURE__ */ jsxs("p", { className: "mt-3 inline-flex items-center gap-2 text-sm text-[var(--esim-copy)]", children: [
                 /* @__PURE__ */ jsx("span", { className: "inline-flex h-4 w-4 items-center justify-center rounded-full bg-[var(--esim-gold)] text-[9px] font-bold text-[#0d0d0d]", children: "\u2713" }),
                 (() => {
-                  const dests = remoteEsim?.destinations || [];
+                  const dests = normalizedProduct?.typeData?.esim?.destinations || remoteEsim?.destinations || [];
                   if (dests.length === 0) return profile.coverageLabel;
                   const names = dests.map((code) => destinationLabel(code, locale)).join(" \xB7 ");
                   return dests.length === 1 ? `${pickCopy(locale, { en: "Covers", hans: "\u8986\u76D6", hant: "\u8986\u84CB" })} ${names}` : `${pickCopy(locale, { en: "Covers", hans: "\u8986\u76D6", hant: "\u8986\u84CB" })} ${dests.length} ${pickCopy(locale, { en: "destinations", hans: "\u4E2A\u76EE\u7684\u5730", hant: "\u500B\u76EE\u7684\u5730" })}\uFF08${names}\uFF09`;
@@ -18244,7 +18248,7 @@
               ] }) : null,
               normalizedProduct.description ? /* @__PURE__ */ jsx("p", { className: "esim-pdp-description", children: normalizedProduct.description }) : /* @__PURE__ */ jsx("p", { className: "mt-2 text-lg text-[var(--esim-copy)]", children: isGoodsProduct ? pickCopy(locale, goodsSubtitle) : profile.networkLabel })
             ] }),
-            /* @__PURE__ */ jsx("div", { className: "sm:text-right", children: /* @__PURE__ */ jsx("p", { className: "font-serif text-4xl font-normal tracking-tight text-[var(--esim-gold)] lg:text-5xl", children: (normalizedProduct.currency === "CNY" ? "\xA5" : "$") + priceValue.toFixed(2) }) })
+            /* @__PURE__ */ jsx("div", { className: "sm:text-right", children: /* @__PURE__ */ jsx("p", { className: "font-serif text-4xl font-normal tracking-tight text-[var(--esim-gold)] lg:text-5xl", children: (readProductCurrency(normalizedProduct) === "CNY" ? "\xA5" : "$") + priceValue.toFixed(2) }) })
           ] }),
           /* @__PURE__ */ jsx("div", { className: "mt-5 grid gap-3 sm:grid-cols-3", children: (isGoodsProduct ? goodsSpecCards : [
             { label: pickCopy(locale, { en: "Data", hans: "\u6D41\u91CF", hant: "\u6D41\u91CF" }), value: profile.planLabel },
@@ -18842,7 +18846,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "esim",
-      version: "0.0.8",
+      version: "0.0.9",
       target: "shop"
     }
   };
