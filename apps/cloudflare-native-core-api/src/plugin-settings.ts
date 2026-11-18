@@ -80,11 +80,32 @@ const definitions: Record<string, PluginDefinition> = {
     },
   },
   'google-auth': {
-    slug: 'google-auth', name: 'Google Identity Login', version: '0.1.0', category: 'social',
-    description: 'Customer sign-in and account linking with Google (OAuth 2.0 / OpenID Connect, PKCE). Enable and fill the OAuth client credentials from Google Cloud Console; register the storefront callback path as an authorized redirect URI.',
+    slug: 'google-auth', name: 'Google Identity Login', version: '0.2.0', category: 'social',
+    description: 'Customer sign-in and account linking with Google (OAuth 2.0 / OpenID Connect, PKCE). Enable and fill the OAuth client credentials from Google Cloud Console; register the storefront callback path as an authorized redirect URI. Android/iOS client IDs are optional and only used to verify native app tokens.',
     configSchema: {
       clientId: { type: 'string', required: true, label: 'Google OAuth Client ID', placeholder: '...apps.googleusercontent.com' },
       clientSecret: { type: 'secret', required: true, sensitive: true, label: 'Google OAuth Client Secret', placeholder: 'GOCSPX-...' },
+      androidClientId: { type: 'string', required: false, label: 'Android Client ID (app token verification)', placeholder: '...apps.googleusercontent.com' },
+      iosClientId: { type: 'string', required: false, label: 'iOS Client ID (app token verification)', placeholder: '...apps.googleusercontent.com' },
+    },
+  },
+  'facebook-auth': {
+    slug: 'facebook-auth', name: 'Facebook Identity Login', version: '0.1.0', category: 'social',
+    description: 'Customer sign-in and account linking with Facebook (Facebook Login in OIDC mode). Enable and fill the app credentials from Meta for Developers; register the storefront callback path under Valid OAuth Redirect URIs.',
+    configSchema: {
+      appId: { type: 'string', required: true, label: 'Facebook App ID', placeholder: '1234567890123456' },
+      appSecret: { type: 'secret', required: true, sensitive: true, label: 'Facebook App Secret', placeholder: 'Meta app secret' },
+    },
+  },
+  'apple-auth': {
+    slug: 'apple-auth', name: 'Apple Identity Login', version: '0.1.0', category: 'social',
+    description: 'Customer sign-in and account linking with Sign in with Apple (Services ID for web; the ES256 client secret is minted from your .p8 key at request time). Register the storefront callback path in the Apple developer console. The bundle ID is optional and only used to verify native app tokens.',
+    configSchema: {
+      servicesId: { type: 'string', required: true, label: 'Services ID (web client)', placeholder: 'com.example.store.web' },
+      teamId: { type: 'string', required: true, label: 'Apple Developer Team ID', placeholder: '10-char team id' },
+      keyId: { type: 'string', required: true, label: 'Key ID (.p8 key)', placeholder: '10-char key id' },
+      privateKey: { type: 'secret', required: true, sensitive: true, label: 'Private Key (.p8 contents)', placeholder: '-----BEGIN PRIVATE KEY-----' },
+      bundleId: { type: 'string', required: false, label: 'App Bundle ID (app token verification)', placeholder: 'com.example.store' },
     },
   },
   stripe: {

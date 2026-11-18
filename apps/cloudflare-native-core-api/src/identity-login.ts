@@ -12,7 +12,9 @@ import {
   openIdentityMaterial,
   sealIdentityMaterial,
 } from './identity-crypto';
+import { appleClientSecret, OidcTokenError, verifyOidcToken, type OidcClaims } from './identity-oidc';
 import { getNativePluginConfig, type PluginSettingsEnv } from './plugin-settings';
+import { consumeVerificationRateLimit } from './auth-rate-limit';
 import { recordNativeLoginSuccess } from './security-audit';
 
 /**
@@ -46,14 +48,6 @@ export class IdentityError extends Error {
   constructor(readonly code: string, readonly status = 400) {
     super(code);
   }
-}
-
-interface ReadyProvider {
-  slug: string;
-  label: string;
-  issuer: string;
-  clientId: string;
-  clientSecret: string;
 }
 
 interface VerifiedIdentity {
@@ -118,6 +112,14 @@ function mergeRuntime(headers?: Headers): Headers {
   return result;
 }
 
+// Both unauthenticated entry points (/start and the native token channel) are
+// throttled per IP and per provider so a flooding client cannot turn the
+// instance into a free OAuth oracle.
+async function enforceIdentityRateLimit(env: IdentityEnv, request: Request, providerSlug: string): Promise<void> {
+  const result = await consumeVerificationRateLimit(request, env, 'social', providerSlug);
+  if (!result.allowed) throw new IdentityError('IDENTITY_RATE_LIMITED', 429);
+}
+
 function requestOrigin(request: Request): string | null {
   const direct = request.headers.get('origin');
   if (direct) return validateFinishOrigin(direct);
@@ -171,99 +173,280 @@ function nowIso(): string {
   return new Date().toISOString();
 }
 
-// --- Provider adapter (Google OAuth 2.0 / OIDC, settings-driven) ------------
+// --- Provider adapters (OAuth 2.0 / OIDC, settings-driven) ------------------
+//
+// Every provider is a ReadyProvider: the dispatch skeleton (routes, transac-
+// tions, handoff, binding, sessions) is provider-agnostic and only ever sees
+// slug/label/issuer/clientId plus the authorize/complete closures. Web flow
+// ID tokens arrive over TLS from the provider token endpoint in exchange for
+// our code + confidential client credential, so structural claim validation
+// gates them; the NATIVE (app) channel additionally verifies signatures via
+// identity-oidc because that token comes straight off the wire.
 
-async function googleProvider(env: IdentityEnv): Promise<ReadyProvider | null> {
-  const stored = await getNativePluginConfig(env, 'google-auth');
-  if (!stored?.enabled) return null;
-  const clientId = typeof stored.config.clientId === 'string' ? stored.config.clientId.trim() : '';
-  const clientSecret = typeof stored.config.clientSecret === 'string' ? stored.config.clientSecret.trim() : '';
-  if (!clientId || !clientSecret) return null;
-  return { slug: 'google-auth', label: 'Google', issuer: 'https://accounts.google.com', clientId, clientSecret };
+interface AuthorizeInput {
+  redirectUri: string;
+  state: string;
+  nonce: string;
+  codeChallenge: string;
 }
 
-export async function readyIdentityProviders(env: IdentityEnv): Promise<ReadyProvider[]> {
-  const provider = await googleProvider(env);
-  return provider ? [provider] : [];
+interface CompleteInput {
+  redirectUri: string;
+  code: string;
+  nonce: string;
+  verifier: string;
 }
 
-async function providerAuthorize(provider: ReadyProvider, redirectUri: string, state: string, nonce: string, codeChallenge: string): Promise<string> {
-  const url = new URL('https://accounts.google.com/o/oauth2/v2/auth');
-  url.searchParams.set('response_type', 'code');
-  url.searchParams.set('client_id', provider.clientId);
-  url.searchParams.set('redirect_uri', redirectUri);
-  url.searchParams.set('scope', 'openid email profile');
-  url.searchParams.set('state', state);
-  url.searchParams.set('nonce', nonce);
-  url.searchParams.set('code_challenge', codeChallenge);
-  url.searchParams.set('code_challenge_method', 'S256');
-  url.searchParams.set('prompt', 'select_account');
-  return url.href;
+interface ReadyProvider {
+  slug: string;
+  label: string;
+  issuer: string;
+  clientId: string;
+  authorize: (input: AuthorizeInput) => Promise<string>;
+  complete: (input: CompleteInput) => Promise<VerifiedIdentity>;
+  /** Present when the provider can also verify app-native id_tokens. */
+  native?: { jwksUri: string; audiences: () => Promise<string[]> };
 }
 
-interface GoogleTokenResponse {
+interface OidcTokenResponse {
   id_token?: string;
   error?: string;
 }
 
-interface GoogleIdTokenClaims {
+interface OidcIdTokenClaims {
   iss?: string;
-  aud?: string;
+  aud?: string | string[];
   sub?: string;
   email?: string;
-  email_verified?: boolean;
+  email_verified?: boolean | string;
   exp?: number;
   nonce?: string;
   name?: string;
 }
 
-// The ID token arrives over TLS from Google's token endpoint in exchange for
-// our code + confidential client secret; structural claim validation (issuer,
-// audience, expiry, nonce, verified email) gates every identity. Signature
-// verification is unnecessary for this channel and not a substitute for the
-// claim checks.
-async function providerComplete(provider: ReadyProvider, redirectUri: string, code: string, nonce: string, verifier: string): Promise<VerifiedIdentity> {
-  const response = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      code,
-      client_id: provider.clientId,
-      client_secret: provider.clientSecret,
-      redirect_uri: redirectUri,
-      grant_type: 'authorization_code',
-      code_verifier: verifier,
-    }).toString(),
-  });
-  if (!response.ok) throw new IdentityError('IDENTITY_REJECTED');
-  const payload = await response.json<GoogleTokenResponse>().catch(() => ({}) as GoogleTokenResponse);
-  if (!payload.id_token) throw new IdentityError('IDENTITY_REJECTED');
-  const [, body] = payload.id_token.split('.');
-  if (!body) throw new IdentityError('IDENTITY_REJECTED');
-  let claims: GoogleIdTokenClaims;
-  try {
-    claims = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(body.replace(/-/g, '+').replace(/_/g, '/')), (char) => char.charCodeAt(0)))) as GoogleIdTokenClaims;
-  } catch {
-    throw new IdentityError('IDENTITY_REJECTED');
-  }
+function tokenAudience(claims: OidcIdTokenClaims): string[] {
+  return Array.isArray(claims.aud) ? claims.aud : claims.aud ? [claims.aud] : [];
+}
+
+function oidcEmailVerified(claims: OidcIdTokenClaims): boolean {
+  // Google/Facebook send a boolean, Apple sends the string "true"/"false".
+  return claims.email_verified === true || claims.email_verified === 'true';
+}
+
+// Shared structural ID-token gate for the web (TLS-confidential) channel.
+function verifyWebClaims(claims: OidcIdTokenClaims, input: {
+  issuers: string[];
+  audience: string;
+  nonce: string;
+}): void {
+  const expired = typeof claims.exp !== 'number' || claims.exp * 1000 <= Date.now();
   if (
-    claims.iss !== provider.issuer && claims.iss !== 'https://accounts.google.com'
-    || claims.aud !== provider.clientId
+    !input.issuers.includes(claims.iss ?? '')
+    || !tokenAudience(claims).includes(input.audience)
     || typeof claims.sub !== 'string' || !claims.sub
     || typeof claims.email !== 'string' || !claims.email.includes('@')
-    || claims.email_verified !== true
-    || typeof claims.exp !== 'number' || claims.exp * 1000 <= Date.now()
-    || claims.nonce !== nonce
+    || !oidcEmailVerified(claims)
+    || expired
+    || claims.nonce !== input.nonce
   ) {
     throw new IdentityError('IDENTITY_REJECTED');
   }
+}
+
+function verifiedIdentity(claims: OidcIdTokenClaims, issuer: string): VerifiedIdentity {
   return {
-    issuer: provider.issuer,
-    subject: claims.sub,
-    email: claims.email.trim().toLowerCase(),
+    issuer,
+    subject: claims.sub!,
+    email: claims.email!.trim().toLowerCase(),
     emailVerified: true,
     displayName: typeof claims.name === 'string' && claims.name.trim() ? claims.name.trim().slice(0, 200) : undefined,
   };
+}
+
+async function readProviderConfig(env: IdentityEnv, slug: string): Promise<Record<string, unknown> | null> {
+  const stored = await getNativePluginConfig(env, slug);
+  if (!stored?.enabled) return null;
+  return stored.config as Record<string, unknown>;
+}
+
+function configString(config: Record<string, unknown>, key: string): string {
+  const value = config[key];
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+// Generic OIDC authorization URL builder (Google/Facebook share it; Apple
+// overrides authorize entirely for its form_post flow).
+async function oidcAuthorize(input: {
+  endpoint: string;
+  clientId: string;
+  scope: string;
+  extraParams?: Record<string, string>;
+}, providerInput: AuthorizeInput): Promise<string> {
+  const url = new URL(input.endpoint);
+  url.searchParams.set('response_type', 'code');
+  url.searchParams.set('client_id', input.clientId);
+  url.searchParams.set('redirect_uri', providerInput.redirectUri);
+  url.searchParams.set('scope', input.scope);
+  url.searchParams.set('state', providerInput.state);
+  url.searchParams.set('nonce', providerInput.nonce);
+  url.searchParams.set('code_challenge', providerInput.codeChallenge);
+  url.searchParams.set('code_challenge_method', 'S256');
+  for (const [key, value] of Object.entries(input.extraParams ?? {})) url.searchParams.set(key, value);
+  return url.href;
+}
+
+// Shared web-channel token exchange + structural claim gate.
+async function oidcComplete(input: {
+  tokenEndpoint: string;
+  clientSecret: () => Promise<string>;
+  issuers: string[];
+  audience: string;
+  includeVerifier: boolean;
+}, providerInput: CompleteInput): Promise<VerifiedIdentity> {
+  const clientSecret = await input.clientSecret();
+  const body: Record<string, string> = {
+    code: providerInput.code,
+    client_id: input.audience,
+    client_secret: clientSecret,
+    redirect_uri: providerInput.redirectUri,
+    grant_type: 'authorization_code',
+  };
+  if (input.includeVerifier) body.code_verifier = providerInput.verifier;
+  const response = await fetch(input.tokenEndpoint, {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams(body).toString(),
+  });
+  if (!response.ok) throw new IdentityError('IDENTITY_REJECTED');
+  const payload = await response.json<OidcTokenResponse>().catch(() => ({}) as OidcTokenResponse);
+  if (!payload.id_token) throw new IdentityError('IDENTITY_REJECTED');
+  const [, encodedClaims] = payload.id_token.split('.');
+  if (!encodedClaims) throw new IdentityError('IDENTITY_REJECTED');
+  let claims: OidcIdTokenClaims;
+  try {
+    claims = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(encodedClaims.replace(/-/g, '+').replace(/_/g, '/')), (char) => char.charCodeAt(0)))) as OidcIdTokenClaims;
+  } catch {
+    throw new IdentityError('IDENTITY_REJECTED');
+  }
+  verifyWebClaims(claims, { issuers: input.issuers, audience: input.audience, nonce: providerInput.nonce });
+  return verifiedIdentity(claims, input.issuers[0]!);
+}
+
+const FACEBOOK_API_VERSION = 'v21.0';
+
+async function googleProvider(env: IdentityEnv): Promise<ReadyProvider | null> {
+  const config = await readProviderConfig(env, 'google-auth');
+  if (!config) return null;
+  const clientId = configString(config, 'clientId');
+  const clientSecret = configString(config, 'clientSecret');
+  if (!clientId || !clientSecret) return null;
+  const issuers = ['https://accounts.google.com'];
+  return {
+    slug: 'google-auth',
+    label: 'Google',
+    issuer: issuers[0]!,
+    clientId,
+    authorize: (providerInput) => oidcAuthorize({
+      endpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
+      clientId,
+      scope: 'openid email profile',
+      extraParams: { prompt: 'select_account' },
+    }, providerInput),
+    complete: (providerInput) => oidcComplete({
+      tokenEndpoint: 'https://oauth2.googleapis.com/token',
+      clientSecret: async () => clientSecret,
+      issuers,
+      audience: clientId,
+      includeVerifier: true,
+    }, providerInput),
+    // App channel: the same web client is not an accepted audience for SDK
+    // tokens; Android/iOS clients are configured when the app goes live.
+    native: {
+      jwksUri: 'https://www.googleapis.com/oauth2/v3/certs',
+      audiences: async () => [configString(config, 'androidClientId'), configString(config, 'iosClientId')].filter(Boolean),
+    },
+  };
+}
+
+async function facebookProvider(env: IdentityEnv): Promise<ReadyProvider | null> {
+  const config = await readProviderConfig(env, 'facebook-auth');
+  if (!config) return null;
+  const clientId = configString(config, 'appId');
+  const clientSecret = configString(config, 'appSecret');
+  if (!clientId || !clientSecret) return null;
+  const issuers = ['https://facebook.com'];
+  return {
+    slug: 'facebook-auth',
+    label: 'Facebook',
+    issuer: issuers[0]!,
+    clientId,
+    authorize: (providerInput) => oidcAuthorize({
+      endpoint: `https://www.facebook.com/${FACEBOOK_API_VERSION}/dialog/oauth`,
+      clientId,
+      scope: 'openid email profile',
+    }, providerInput),
+    complete: (providerInput) => oidcComplete({
+      tokenEndpoint: `https://graph.facebook.com/${FACEBOOK_API_VERSION}/oauth/access_token`,
+      clientSecret: async () => clientSecret,
+      issuers,
+      audience: clientId,
+      includeVerifier: true,
+    }, providerInput),
+    // Facebook OIDC tokens carry the app id as audience, web and app alike.
+    native: {
+      jwksUri: 'https://www.facebook.com/.well-known/jwks.json',
+      audiences: async () => [clientId],
+    },
+  };
+}
+
+async function appleProvider(env: IdentityEnv): Promise<ReadyProvider | null> {
+  const config = await readProviderConfig(env, 'apple-auth');
+  if (!config) return null;
+  const servicesId = configString(config, 'servicesId');
+  const teamId = configString(config, 'teamId');
+  const keyId = configString(config, 'keyId');
+  const privateKeyPem = configString(config, 'privateKey');
+  if (!servicesId || !teamId || !keyId || !privateKeyPem) return null;
+  const issuers = ['https://appleid.apple.com'];
+  return {
+    slug: 'apple-auth',
+    label: 'Apple',
+    issuer: issuers[0]!,
+    clientId: servicesId,
+    authorize: async (providerInput) => {
+      // Apple rejects PKCE and requires form_post for web flows; the callback
+      // route already accepts POST with the state in the body. Nonce is
+      // allowed on the authorize request and echoed inside the id_token.
+      const url = new URL('https://appleid.apple.com/auth/authorize');
+      url.searchParams.set('response_type', 'code');
+      url.searchParams.set('response_mode', 'form_post');
+      url.searchParams.set('client_id', servicesId);
+      url.searchParams.set('redirect_uri', providerInput.redirectUri);
+      url.searchParams.set('scope', 'name email');
+      url.searchParams.set('state', providerInput.state);
+      url.searchParams.set('nonce', providerInput.nonce);
+      return url.href;
+    },
+    complete: (providerInput) => oidcComplete({
+      tokenEndpoint: 'https://appleid.apple.com/auth/token',
+      clientSecret: () => appleClientSecret({ teamId, keyId, servicesId, privateKeyPem }),
+      issuers,
+      audience: servicesId,
+      // Apple does not support PKCE; the one-time code + rotating ES256
+      // client secret carry the anti-replay role instead.
+      includeVerifier: false,
+    }, providerInput),
+    native: {
+      jwksUri: 'https://appleid.apple.com/auth/keys',
+      audiences: async () => [configString(config, 'bundleId') || servicesId],
+    },
+  };
+}
+
+export async function readyIdentityProviders(env: IdentityEnv): Promise<ReadyProvider[]> {
+  const providers = await Promise.all([googleProvider(env), facebookProvider(env), appleProvider(env)]);
+  return providers.filter((provider): provider is ReadyProvider => provider !== null);
 }
 
 // --- Customer guards ---------------------------------------------------------
@@ -336,7 +519,12 @@ async function beginIdentity(
   }
   let authorizationUrl: string;
   try {
-    authorizationUrl = await providerAuthorize(provider, callbackUrl.href, state, nonce, await identityChallenge(verifier));
+    authorizationUrl = await provider.authorize({
+      redirectUri: callbackUrl.href,
+      state,
+      nonce,
+      codeChallenge: await identityChallenge(verifier),
+    });
     const parsed = new URL(authorizationUrl);
     if (parsed.protocol !== 'https:' || parsed.username || parsed.password || parsed.hash) {
       throw new IdentityError('IDENTITY_UNAVAILABLE', 503);
@@ -369,7 +557,8 @@ function finishRedirect(transaction: TransactionRow, values: Record<string, stri
   return new Response(null, { status: 302, headers: mergeRuntime(new Headers({ location: url.href })) });
 }
 
-async function identityCallback(env: IdentityEnv, slug: string, request: Request, state: string, error?: string): Promise<Response> {
+async function identityCallback(env: IdentityEnv, slug: string, request: Request, input: { state: string; code: string }, error?: string): Promise<Response> {
+  const { state, code } = input;
   await pruneExpiredTransactions(env);
   const stateHash = await identityHash(env, state, 'state');
   const row = await env.DB.prepare(
@@ -404,7 +593,12 @@ async function identityCallback(env: IdentityEnv, slug: string, request: Request
     if (error) throw new IdentityError(error === 'access_denied' ? 'IDENTITY_CANCELLED' : 'IDENTITY_REJECTED');
     const provider = (await readyIdentityProviders(env)).find((candidate) => candidate.slug === slug && candidate.issuer === row.issuer);
     if (!provider) throw new IdentityError('IDENTITY_UNAVAILABLE', 503);
-    identity = await providerComplete(provider, `${row.finish_origin}/api/v1/auth/identity/${encodeURIComponent(slug)}/callback`, state, material.nonce, material.verifier);
+    identity = await provider.complete({
+      redirectUri: `${row.finish_origin}/api/v1/auth/identity/${encodeURIComponent(slug)}/callback`,
+      code,
+      nonce: material.nonce,
+      verifier: material.verifier,
+    });
   } catch (claimError) {
     await env.DB.prepare('UPDATE native_identity_transactions SET consumed_at = ?1 WHERE id = ?2')
       .bind(nowIso(), row.id).run();
@@ -464,6 +658,13 @@ async function exchangeIdentity(env: IdentityEnv, request: Request, code: string
     return json({ linked: true, returnTo: row.return_to });
   }
 
+  return loginWithIdentity(env, request, identity, row.provider_slug);
+}
+
+// Shared login leg for the browser handoff (exchangeIdentity) and the native
+// app channel (loginWithNativeToken): bind-or-create strictly by (issuer,
+// subject), then mint a plain shop session.
+async function loginWithIdentity(env: IdentityEnv, request: Request, identity: VerifiedIdentity, providerSlug: string): Promise<Response> {
   let user: NativeUserRow;
   const existing = await env.DB.prepare(
     'SELECT id, user_id FROM native_external_identities WHERE issuer = ?1 AND subject = ?2',
@@ -499,7 +700,7 @@ async function exchangeIdentity(env: IdentityEnv, request: Request, code: string
     ).run();
     await env.DB.prepare(
       'INSERT INTO native_external_identities (id, user_id, provider_slug, issuer, subject, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)',
-    ).bind(crypto.randomUUID(), userId, row.provider_slug, identity.issuer, identity.subject, nowIso()).run();
+    ).bind(crypto.randomUUID(), userId, providerSlug, identity.issuer, identity.subject, nowIso()).run();
     user = (await findUserRow(env, userId))!;
   }
   user = await requireCustomerUser(env, user);
@@ -524,6 +725,55 @@ async function exchangeIdentity(env: IdentityEnv, request: Request, code: string
 
 function base64Url(bytes: Uint8Array): string {
   return btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+// --- Native (app) channel ----------------------------------------------------
+//
+// Mobile apps sign the visitor in with the provider's own SDK and hand Core
+// the resulting id_token. Unlike the web flow, that token comes straight from
+// the wire, so it is signature-verified against the provider's JWKS before
+// any account is touched. The response is a plain shop session (Bearer body
+// plus cookies), so both native shells and webviews can adopt it. The
+// fullName is display-only (Apple only reveals it on first authorization and
+// never inside the token); identity binding always uses (issuer, subject).
+
+async function loginWithNativeToken(
+  env: IdentityEnv,
+  request: Request,
+  input: { providerSlug?: string; idToken?: string; nonce?: string; fullName?: string },
+): Promise<Response> {
+  const slug = (input.providerSlug ?? '').trim();
+  const idToken = (input.idToken ?? '').trim();
+  if (!idToken) throw new IdentityError('IDENTITY_REJECTED');
+  const provider = (await readyIdentityProviders(env)).find((candidate) => candidate.slug === slug);
+  if (!provider?.native) throw new IdentityError('IDENTITY_UNAVAILABLE', 503);
+  const audiences = (await provider.native.audiences()).filter(Boolean);
+  if (audiences.length === 0) throw new IdentityError('IDENTITY_UNAVAILABLE', 503);
+  let claims: OidcClaims;
+  try {
+    claims = await verifyOidcToken(idToken, {
+      jwksUri: provider.native.jwksUri,
+      issuer: provider.issuer,
+      audiences,
+      nonce: input.nonce?.trim() || undefined,
+    });
+  } catch (error) {
+    if (error instanceof OidcTokenError) {
+      if (error.code === 'OIDC_JWKS_UNAVAILABLE') throw new IdentityError('IDENTITY_UNAVAILABLE', 503);
+      throw new IdentityError('IDENTITY_REJECTED');
+    }
+    throw error;
+  }
+  const identity: VerifiedIdentity = {
+    issuer: provider.issuer,
+    subject: claims.sub!,
+    email: claims.email!.trim().toLowerCase(),
+    emailVerified: true,
+    displayName: typeof input.fullName === 'string' && input.fullName.trim()
+      ? input.fullName.trim().slice(0, 200)
+      : typeof claims.name === 'string' && claims.name.trim() ? claims.name.trim().slice(0, 200) : undefined,
+  };
+  return loginWithIdentity(env, request, identity, provider.slug);
 }
 
 async function identityConnections(env: IdentityEnv, request: Request): Promise<Response> {
@@ -580,16 +830,42 @@ export async function tryNativeIdentityLogin(request: Request, env: IdentityEnv)
     }
 
     if (request.method === 'POST' && path === '/api/v1/auth/identity/start') {
-      const body = await request.clone().json<{ providerSlug?: string; intent?: string; returnTo?: string; locale?: string }>().catch(() => ({}));
+      const body = await request.clone().json<{ providerSlug?: string; intent?: string; returnTo?: string; locale?: string }>().catch(() => ({}) as { providerSlug?: string; intent?: string; returnTo?: string; locale?: string });
+      await enforceIdentityRateLimit(env, request, (body.providerSlug ?? '').trim() || 'unknown');
       const { response } = await beginIdentity(env, request, body);
       return response;
     }
 
+    if (request.method === 'POST' && path === '/api/v1/auth/identity/native') {
+      const body = await request.clone().json<{ providerSlug?: string; idToken?: string; nonce?: string; fullName?: string }>().catch(() => ({}) as { providerSlug?: string; idToken?: string; nonce?: string; fullName?: string });
+      await enforceIdentityRateLimit(env, request, (body.providerSlug ?? '').trim() || 'unknown');
+      return await loginWithNativeToken(env, request, body);
+    }
+
     const callbackMatch = path.match(/^\/api\/v1\/auth\/identity\/([a-z0-9][a-z0-9-]{0,63})\/callback$/);
     if (callbackMatch && (request.method === 'GET' || request.method === 'POST')) {
-      const state = url.searchParams.get('state') ?? (request.method === 'POST' ? await request.clone().json<{ state?: string }>().catch(() => ({}) as { state?: string }).then((body) => body.state ?? '') : '');
+      // GET callbacks (Google/Facebook) carry state+code in the query; Apple's
+      // form_post delivers them as an urlencoded POST body. JSON bodies remain
+      // supported for the programmatic path.
+      let state = url.searchParams.get('state') ?? '';
+      let code = url.searchParams.get('code') ?? '';
+      const errorParam = url.searchParams.get('error') ?? undefined;
+      if (request.method === 'POST' && (!state || !code)) {
+        const contentType = request.headers.get('content-type') ?? '';
+        if (contentType.includes('application/x-www-form-urlencoded')) {
+          const form = await request.clone().formData().catch(() => null);
+          if (form) {
+            state = state || (form.get('state') as string | null) || '';
+            code = code || (form.get('code') as string | null) || '';
+          }
+        } else {
+          const body = await request.clone().json<{ state?: string; code?: string }>().catch(() => ({}) as { state?: string; code?: string });
+          state = state || body.state || '';
+          code = code || body.code || '';
+        }
+      }
       if (!state) return fail('IDENTITY_TRANSACTION_INVALID', identityErrorMessage('IDENTITY_TRANSACTION_INVALID'), 400);
-      return await identityCallback(env, callbackMatch[1], request, state, url.searchParams.get('error') ?? undefined);
+      return await identityCallback(env, callbackMatch[1], request, { state, code }, errorParam);
     }
 
     if (request.method === 'POST' && path === '/api/v1/auth/identity/exchange') {
@@ -635,6 +911,7 @@ function identityErrorMessage(code: string): string {
     case 'IDENTITY_LAST_METHOD': return 'Set a password before removing the last sign-in method';
     case 'IDENTITY_CANCELLED': return 'Sign-in was cancelled';
     case 'IDENTITY_REJECTED': return 'The identity provider did not verify this sign-in';
+    case 'IDENTITY_RATE_LIMITED': return 'Too many sign-in attempts; please retry later';
     case 'UNAUTHORIZED': return 'Authentication is required';
     default: return 'Identity sign-in failed';
   }
