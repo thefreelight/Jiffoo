@@ -589,6 +589,12 @@ export function mapEsimApiOrderToThemeOrder(order: EsimApiOrder) {
   };
 }
 
+/** Billing currency carried from the API product (BOSS catalog is CNY). */
+export function readProductCurrency(product: unknown): string | null {
+  const source = product as { currency?: string; typeData?: { esim?: { currency?: string } } };
+  return source?.currency || source?.typeData?.esim?.currency || null;
+}
+
 export function normalizeProductForTheme(product: ThemeProduct | EsimApiProduct): ThemeProduct {
   const candidate = product as ThemeProduct;
 

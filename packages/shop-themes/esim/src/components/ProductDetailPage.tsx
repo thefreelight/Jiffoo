@@ -19,6 +19,7 @@ import { pickCopy } from '../site';
 import { getEsimTravelProfile } from '../lib/digital-fulfillment';
 import { resolveEsimSiteConfig } from '../site';
 import { destinationLabel, type EsimPlanAttributes } from '../lib/esim/catalog';
+import { readProductCurrency } from '../lib/api';
 
 function getProductImage(product: Product | null): string | null {
   if (!product?.images?.length) return null;
@@ -247,9 +248,14 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
                     <p className="mt-3 inline-flex items-center gap-2 text-sm text-[var(--esim-copy)]">
                       <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-[var(--esim-gold)] text-[9px] font-bold text-[#0d0d0d]">✓</span>
                       {(() => {
-                        const dests = remoteEsim?.destinations || [];
+                        // Prefer the structured destinations carried by the
+                        // SSR product (and mirrored into remoteEsim); fall
+                        // back to the text-inferred coverage label.
+                        const dests = (normalizedProduct as any)?.typeData?.esim?.destinations
+                          || remoteEsim?.destinations
+                          || [];
                         if (dests.length === 0) return profile.coverageLabel;
-                        const names = dests.map((code) => destinationLabel(code, locale)).join(' · ');
+                        const names = dests.map((code: string) => destinationLabel(code, locale)).join(' · ');
                         return dests.length === 1
                           ? `${pickCopy(locale, { en: 'Covers', hans: '覆盖', hant: '覆蓋' })} ${names}`
                           : `${pickCopy(locale, { en: 'Covers', hans: '覆盖', hant: '覆蓋' })} ${dests.length} ${pickCopy(locale, { en: 'destinations', hans: '个目的地', hant: '個目的地' })}（${names}）`;
@@ -266,7 +272,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
                 </div>
                 <div className="sm:text-right">
                   <p className="font-serif text-4xl font-normal tracking-tight text-[var(--esim-gold)] lg:text-5xl">
-                    {((normalizedProduct as any).currency === 'CNY' ? '¥' : '$') + priceValue.toFixed(2)}
+                    {(readProductCurrency(normalizedProduct) === 'CNY' ? '¥' : '$') + priceValue.toFixed(2)}
                   </p>
                 </div>
               </div>
