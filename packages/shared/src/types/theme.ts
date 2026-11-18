@@ -132,6 +132,7 @@ export interface ThemePackage {
     LoginPage: React.ComponentType<LoginPageProps>;
     RegisterPage: React.ComponentType<RegisterPageProps>;
     AuthCallbackPage: React.ComponentType<AuthCallbackPageProps>;
+    AuthIdentityFinishPage?: React.ComponentType<AuthIdentityFinishPageProps>;
     ForgotPasswordPage?: React.ComponentType<ForgotPasswordPageProps>;
     // Layout components
     Header: React.ComponentType<HeaderProps>;
@@ -602,6 +603,7 @@ export interface DealsPageProps extends ThemeI18nProps {
 export interface SocialAuthStatus {
   google?: boolean;
   apple?: boolean;
+  facebook?: boolean;
   isLoading?: boolean;
 }
 
@@ -614,6 +616,8 @@ export interface LoginPageProps extends ThemeI18nProps {
   onOAuthClick: (provider: 'google') => Promise<void>;
   /** Optional Apple Sign-In entry point (themes render the button only when provided) */
   onAppleOAuthClick?: () => Promise<void>;
+  /** Optional Facebook Login entry point (themes render the button only when provided) */
+  onFacebookOAuthClick?: () => Promise<void>;
   onNavigateToRegister: () => void;
   onNavigateToForgotPassword: () => void;
 }
@@ -657,6 +661,8 @@ export interface RegisterPageProps extends ThemeI18nProps {
   onOAuthClick: (provider: 'google') => Promise<void>;
   /** Optional Apple Sign-In entry point (themes render the button only when provided) */
   onAppleOAuthClick?: () => Promise<void>;
+  /** Optional Facebook Login entry point (themes render the button only when provided) */
+  onFacebookOAuthClick?: () => Promise<void>;
   onNavigateToLogin: () => void;
 }
 
@@ -665,6 +671,22 @@ export interface RegisterPageProps extends ThemeI18nProps {
  */
 export interface AuthCallbackPageProps extends ThemeI18nProps {
   provider: string;
+  isLoading: boolean;
+  error?: string | null;
+  config?: ThemeConfig;
+  onRetry: () => void;
+  onNavigateToHome: () => void;
+}
+
+/**
+ * Identity Finish Page Component Props
+ *
+ * Rendered at /{locale}/auth/identity/finish while the app shell exchanges
+ * the one-time handoff code (60 seconds, fragment-only) for a shop session.
+ * Themes render a branded working/error card; the shell falls back to its
+ * built-in card when the theme does not implement the component.
+ */
+export interface AuthIdentityFinishPageProps extends ThemeI18nProps {
   isLoading: boolean;
   error?: string | null;
   config?: ThemeConfig;
