@@ -14080,6 +14080,136 @@
     return sections3.codes.length + sections3.credentials.length + sections3.links.length;
   }
 
+  // src/lib/esim/catalog.ts
+  var DESTINATION_REGISTRY = [
+    { code: "JP", en: "Japan", hans: "\u65E5\u672C", hant: "\u65E5\u672C", aliases: ["\u4E1C\u4EAC", "tokyo", "\u5927\u962A", "osaka", "\u4EAC\u90FD", "kyoto", "japan"], popular: true },
+    { code: "KR", en: "South Korea", hans: "\u97E9\u56FD", hant: "\u97D3\u570B", aliases: ["\u9996\u5C14", "seoul", "\u91DC\u5C71", "busan", "korea"], popular: true },
+    { code: "SG", en: "Singapore", hans: "\u65B0\u52A0\u5761", hant: "\u65B0\u52A0\u5761", aliases: ["\u72EE\u57CE", "singapore"], popular: true },
+    { code: "HK", en: "Hong Kong", hans: "\u9999\u6E2F", hant: "\u9999\u6E2F", aliases: ["\u9999\u6E2F", "hongkong", "hong kong"], popular: true },
+    { code: "TW", en: "Taiwan", hans: "\u53F0\u6E7E", hant: "\u53F0\u7063", aliases: ["\u53F0\u5317", "taipei", "taiwan"], popular: true },
+    { code: "TH", en: "Thailand", hans: "\u6CF0\u56FD", hant: "\u6CF0\u570B", aliases: ["\u66FC\u8C37", "bangkok", "\u6E05\u8FC8", "thailand"], popular: true },
+    { code: "MY", en: "Malaysia", hans: "\u9A6C\u6765\u897F\u4E9A", hant: "\u99AC\u4F86\u897F\u4E9E", aliases: ["\u5409\u9686\u5761", "kuala lumpur", "malaysia"], popular: false },
+    { code: "US", en: "United States", hans: "\u7F8E\u56FD", hant: "\u7F8E\u570B", aliases: ["\u7F8E\u56FD", "usa", "united states", "\u6D1B\u6749\u77F6", "new york", "\u7EBD\u7EA6"], popular: true },
+    { code: "GB", en: "United Kingdom", hans: "\u82F1\u56FD", hant: "\u82F1\u570B", aliases: ["\u82F1\u56FD", "uk", "london", "\u4F26\u6566"], popular: false },
+    { code: "AE", en: "United Arab Emirates", hans: "\u963F\u8054\u914B", hant: "\u963F\u806F\u914B", aliases: ["\u8FEA\u62DC", "dubai", "uae"], popular: false },
+    { code: "IT", en: "Italy", hans: "\u610F\u5927\u5229", hant: "\u7FA9\u5927\u5229", aliases: ["\u7F57\u9A6C", "rome", "italy"], popular: false },
+    { code: "FR", en: "France", hans: "\u6CD5\u56FD", hant: "\u6CD5\u570B", aliases: ["\u5DF4\u9ECE", "paris", "france"], popular: false },
+    { code: "DE", en: "Germany", hans: "\u5FB7\u56FD", hant: "\u5FB7\u570B", aliases: ["\u67CF\u6797", "berlin", "germany"], popular: false },
+    { code: "ES", en: "Spain", hans: "\u897F\u73ED\u7259", hant: "\u897F\u73ED\u7259", aliases: ["\u5DF4\u585E\u7F57\u90A3", "barcelona", "spain"], popular: false },
+    { code: "AU", en: "Australia", hans: "\u6FB3\u5927\u5229\u4E9A", hant: "\u6FB3\u5927\u5229\u4E9E", aliases: ["\u6089\u5C3C", "sydney", "australia"], popular: false },
+    { code: "CA", en: "Canada", hans: "\u52A0\u62FF\u5927", hant: "\u52A0\u62FF\u5927", aliases: ["\u591A\u4F26\u591A", "toronto", "canada"], popular: false },
+    { code: "MO", en: "Macao", hans: "\u6FB3\u95E8", hant: "\u6FB3\u9580", aliases: ["\u6FB3\u95E8", "macau", "macao"], popular: false },
+    { code: "PH", en: "Philippines", hans: "\u83F2\u5F8B\u5BBE", hant: "\u83F2\u5F8B\u8CD3", aliases: ["\u9A6C\u5C3C\u62C9", "manila", "philippines"], popular: false },
+    { code: "ID", en: "Indonesia", hans: "\u5370\u5EA6\u5C3C\u897F\u4E9A", hant: "\u5370\u5C3C", aliases: ["\u5DF4\u5398\u5C9B", "bali", "jakarta", "indonesia"], popular: false },
+    { code: "VN", en: "Vietnam", hans: "\u8D8A\u5357", hant: "\u8D8A\u5357", aliases: ["\u80E1\u5FD7\u660E\u5E02", "\u6CB3\u5185", "vietnam"], popular: false }
+  ];
+  var REGISTRY_BY_CODE = new Map(DESTINATION_REGISTRY.map((entry) => [entry.code, entry]));
+  function normalizeCountryCode(value) {
+    if (!value) return null;
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    return trimmed.length === 2 ? trimmed.toUpperCase() : null;
+  }
+  function lookupDestination(code) {
+    return REGISTRY_BY_CODE.get(code.toUpperCase()) || null;
+  }
+  function searchDestinations(query, limit = 8) {
+    const q = query.trim().toLowerCase();
+    if (!q) {
+      return DESTINATION_REGISTRY.filter((entry) => entry.popular).slice(0, limit);
+    }
+    const scored = [];
+    for (const entry of DESTINATION_REGISTRY) {
+      let score = 0;
+      if (entry.code.toLowerCase() === q) score = 100;
+      else if (entry.en.toLowerCase() === q) score = 95;
+      else if (entry.hans === query.trim() || entry.hant === query.trim()) score = 95;
+      else if (entry.aliases.some((alias) => alias.toLowerCase() === q)) score = 90;
+      else if (entry.en.toLowerCase().includes(q)) score = 60;
+      else if (entry.hans.includes(query.trim()) || entry.hant.includes(query.trim())) score = 60;
+      else if (entry.aliases.some((alias) => alias.toLowerCase().includes(q))) score = 50;
+      if (score > 0) scored.push({ entry, score: score + (entry.popular ? 5 : 0) });
+    }
+    scored.sort((a, b) => b.score - a.score);
+    return scored.slice(0, limit).map((item) => item.entry);
+  }
+  function readPlanAttributes(product) {
+    const fromTypeData = product.typeData?.esim;
+    if (fromTypeData && (fromTypeData.destinations?.length || fromTypeData.country)) {
+      return fromTypeData;
+    }
+    const variant = product.variants?.find((candidate) => candidate.attributes?.esim);
+    if (variant?.attributes?.esim) {
+      return variant.attributes.esim;
+    }
+    return fromTypeData || {};
+  }
+  function planCoverageCodes(product) {
+    const attrs = readPlanAttributes(product);
+    const codes = /* @__PURE__ */ new Set();
+    for (const code of attrs.destinations || []) {
+      const normalized = normalizeCountryCode(code);
+      if (normalized) codes.add(normalized);
+    }
+    const single = normalizeCountryCode(attrs.country);
+    if (single) codes.add(single);
+    return [...codes];
+  }
+  function planPrice(product) {
+    const variantPrice = product.variants?.find((candidate) => candidate.isActive !== false)?.salePrice;
+    return typeof variantPrice === "number" && variantPrice > 0 ? variantPrice : product.price || 0;
+  }
+  function buildDestinationCatalog(products) {
+    const byCode = /* @__PURE__ */ new Map();
+    for (const product of products) {
+      const price = planPrice(product);
+      for (const code of planCoverageCodes(product)) {
+        const current = byCode.get(code) || { planCount: 0, cheapest: null };
+        current.planCount += 1;
+        if (current.cheapest === null || price < current.cheapest) current.cheapest = price;
+        byCode.set(code, current);
+      }
+    }
+    const entries = [];
+    for (const [code, stats] of byCode) {
+      const info = lookupDestination(code);
+      if (!info) continue;
+      entries.push({ info, planCount: stats.planCount, cheapestPrice: stats.cheapest, currency: "USD" });
+    }
+    entries.sort((a, b) => {
+      if (a.info.popular !== b.info.popular) return a.info.popular ? -1 : 1;
+      if (b.planCount !== a.planCount) return b.planCount - a.planCount;
+      return a.info.en.localeCompare(b.info.en);
+    });
+    return entries;
+  }
+  var REGION_LABELS = {
+    HKMO: { zh: "\u6E2F\u6FB3", en: "Hong Kong & Macao" },
+    SEA: { zh: "\u4E1C\u5357\u4E9A", en: "Southeast Asia" },
+    JK: { zh: "\u65E5\u97E9", en: "Japan & Korea" },
+    APAC: { zh: "\u4E9A\u592A", en: "Asia-Pacific" },
+    EU: { zh: "\u6B27\u6D32", en: "Europe" },
+    US: { zh: "\u7F8E\u56FD", en: "United States" },
+    AU: { zh: "\u6FB3\u65B0", en: "Australia & NZ" },
+    GLOBAL: { zh: "\u5168\u7403", en: "Global" },
+    JP: { zh: "\u65E5\u672C", en: "Japan" },
+    KR: { zh: "\u97E9\u56FD", en: "South Korea" },
+    TH: { zh: "\u6CF0\u56FD", en: "Thailand" },
+    SG: { zh: "\u65B0\u52A0\u5761", en: "Singapore" },
+    UK: { zh: "\u82F1\u56FD", en: "United Kingdom" }
+  };
+  function regionLabelOf(defaultCode, locale) {
+    const prefix = (defaultCode || "").split("-")[0];
+    return REGION_LABELS[prefix] || null;
+  }
+  function destinationLabel(code, locale) {
+    const info = lookupDestination(code);
+    if (!info) return code;
+    if (locale === "zh-Hant") return info.hant;
+    if (locale && locale.startsWith("zh")) return info.hans;
+    return info.en;
+  }
+
   // src/components/ProductsPage.tsx
   var GOLD_CTA = "bg-[linear-gradient(135deg,var(--esim-gold-strong),var(--esim-gold)_55%,color-mix(in_oklab,var(--esim-gold)_70%,#7a5c14))]";
   var FOCUS_VISIBLE_RING2 = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--esim-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--esim-bg)]";
@@ -14138,9 +14268,14 @@
     const site = resolveEsimSiteConfig(config);
     const t = (copy) => pickCopy(locale, copy);
     const normalizedProducts = react_default.useMemo(
-      () => (remoteProducts.length > 0 ? remoteProducts : products).map(
-        (product) => normalizeProductForTheme(product)
-      ),
+      () => (remoteProducts.length > 0 ? remoteProducts : products).map((raw) => {
+        const esimAttrs = raw.typeData?.esim || void 0;
+        return {
+          product: normalizeProductForTheme(raw),
+          esim: esimAttrs,
+          currency: raw.currency
+        };
+      }),
       [products, remoteProducts]
     );
     const submitSearch = (event) => {
@@ -14304,14 +14439,18 @@
             "grid gap-3 sm:gap-4",
             viewMode === "grid" ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3" : "grid-cols-1"
           ),
-          children: normalizedProducts.map((product) => {
+          children: normalizedProducts.map(({ product, esim, currency: rawCurrency }) => {
             const profile = getEsimTravelProfile(product);
+            const destinations = esim?.destinations || [];
+            const regionInfo = regionLabelOf(esim?.defaultCode || "", locale);
+            const isMultiCountry = destinations.length > 1;
+            const coverageLine = destinations.length > 0 ? isMultiCountry ? `${regionInfo ? regionInfo.zh : ""}${regionInfo && locale && !locale.startsWith("zh") ? ` ${regionInfo.en}` : ""} \xB7 ${t({ en: `covers ${destinations.length} destinations`, hans: `\u8986\u76D6 ${destinations.length} \u4E2A\u76EE\u7684\u5730`, hant: `\u8986\u84CB ${destinations.length} \u500B\u76EE\u7684\u5730` })}` : `${t({ en: "Covers", hans: "\u8986\u76D6", hant: "\u8986\u84CB" })} ${destinations.map((code) => destinationLabel(code, locale)).join("/")}` : profile.coverageLabel;
+            const eyebrowLabel = destinations.length > 1 ? regionInfo ? regionInfo.zh : t({ en: "Multi-country", hans: "\u591A\u56FD\u8054\u7A0B", hant: "\u591A\u570B\u806F\u7A0B" }) : regionInfo ? regionInfo.zh : profile.cardEyebrow;
             const variantSalePrices = (Array.isArray(product.variants) ? product.variants : []).map((variant) => Number(variant.salePrice ?? variant.price ?? 0)).filter((price) => price > 0);
             const listPrice = Number(product.price || 0);
             const displayPrice = variantSalePrices.length > 0 ? Math.min(listPrice > 0 ? listPrice : Number.POSITIVE_INFINITY, ...variantSalePrices) : listPrice;
-            const planEsim = product.typeData?.esim || {};
-            const planValidityDays2 = typeof planEsim.validityDays === "number" && planEsim.validityDays > 0 ? planEsim.validityDays : null;
-            const planCurrency = product.currency || "USD";
+            const planValidityDays2 = typeof esim?.validityDays === "number" && esim.validityDays > 0 ? esim.validityDays : null;
+            const planCurrency = rawCurrency || "USD";
             const currencySymbol = planCurrency === "CNY" ? "\xA5" : planCurrency === "USD" ? "$" : `${planCurrency} `;
             const dailyAverage = planValidityDays2 && Number.isFinite(displayPrice) && displayPrice > 0 ? displayPrice / planValidityDays2 : null;
             return /* @__PURE__ */ jsxs(
@@ -14332,13 +14471,13 @@
                       type: "button",
                       children: [
                         /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between gap-3", children: [
-                          /* @__PURE__ */ jsx("span", { className: "rounded-full border border-[color:color-mix(in_oklab,var(--esim-gold)_30%,transparent)] bg-[#1c1f26]/90 px-3 py-1 font-mono text-[11px] font-semibold uppercase tracking-wider text-[var(--esim-gold)]", children: profile.cardEyebrow }),
+                          /* @__PURE__ */ jsx("span", { className: "rounded-full border border-[color:color-mix(in_oklab,var(--esim-gold)_30%,transparent)] bg-[#1c1f26]/90 px-3 py-1 font-mono text-[11px] font-semibold uppercase tracking-wider text-[var(--esim-gold)]", children: eyebrowLabel }),
                           /* @__PURE__ */ jsx("span", { className: "rounded-full bg-[linear-gradient(90deg,var(--esim-gold),var(--esim-gold-strong))] px-3 py-1 font-mono text-[11px] font-bold text-[#141414] shadow-sm", children: profile.deliveryLabel })
                         ] }),
                         /* @__PURE__ */ jsx("h2", { className: "font-serif text-2xl font-normal leading-[1.12] tracking-tight text-[var(--esim-ink)] lg:text-3xl", children: displayProductTitle(product.name) }),
                         /* @__PURE__ */ jsxs("p", { className: "inline-flex items-center gap-2 text-sm text-[var(--esim-gold)]", children: [
                           /* @__PURE__ */ jsx("span", { className: "inline-flex h-[18px] w-[18px] items-center justify-center rounded-full bg-[var(--esim-gold)] text-[10px] font-bold text-[#141414]", children: "\u2713" }),
-                          /* @__PURE__ */ jsx("span", { className: "font-semibold text-[var(--esim-ink)]", children: profile.coverageLabel })
+                          /* @__PURE__ */ jsx("span", { className: "font-semibold text-[var(--esim-ink)]", children: coverageLine })
                         ] }),
                         /* @__PURE__ */ jsxs("div", { className: "flex items-baseline justify-between gap-4 rounded-xl border border-white/[0.06] bg-black/30 p-4", children: [
                           /* @__PURE__ */ jsxs("p", { className: "flex items-baseline gap-1.5", children: [
@@ -15504,117 +15643,6 @@
       )
     ] }) }) });
   });
-
-  // src/lib/esim/catalog.ts
-  var DESTINATION_REGISTRY = [
-    { code: "JP", en: "Japan", hans: "\u65E5\u672C", hant: "\u65E5\u672C", aliases: ["\u4E1C\u4EAC", "tokyo", "\u5927\u962A", "osaka", "\u4EAC\u90FD", "kyoto", "japan"], popular: true },
-    { code: "KR", en: "South Korea", hans: "\u97E9\u56FD", hant: "\u97D3\u570B", aliases: ["\u9996\u5C14", "seoul", "\u91DC\u5C71", "busan", "korea"], popular: true },
-    { code: "SG", en: "Singapore", hans: "\u65B0\u52A0\u5761", hant: "\u65B0\u52A0\u5761", aliases: ["\u72EE\u57CE", "singapore"], popular: true },
-    { code: "HK", en: "Hong Kong", hans: "\u9999\u6E2F", hant: "\u9999\u6E2F", aliases: ["\u9999\u6E2F", "hongkong", "hong kong"], popular: true },
-    { code: "TW", en: "Taiwan", hans: "\u53F0\u6E7E", hant: "\u53F0\u7063", aliases: ["\u53F0\u5317", "taipei", "taiwan"], popular: true },
-    { code: "TH", en: "Thailand", hans: "\u6CF0\u56FD", hant: "\u6CF0\u570B", aliases: ["\u66FC\u8C37", "bangkok", "\u6E05\u8FC8", "thailand"], popular: true },
-    { code: "MY", en: "Malaysia", hans: "\u9A6C\u6765\u897F\u4E9A", hant: "\u99AC\u4F86\u897F\u4E9E", aliases: ["\u5409\u9686\u5761", "kuala lumpur", "malaysia"], popular: false },
-    { code: "US", en: "United States", hans: "\u7F8E\u56FD", hant: "\u7F8E\u570B", aliases: ["\u7F8E\u56FD", "usa", "united states", "\u6D1B\u6749\u77F6", "new york", "\u7EBD\u7EA6"], popular: true },
-    { code: "GB", en: "United Kingdom", hans: "\u82F1\u56FD", hant: "\u82F1\u570B", aliases: ["\u82F1\u56FD", "uk", "london", "\u4F26\u6566"], popular: false },
-    { code: "AE", en: "United Arab Emirates", hans: "\u963F\u8054\u914B", hant: "\u963F\u806F\u914B", aliases: ["\u8FEA\u62DC", "dubai", "uae"], popular: false },
-    { code: "IT", en: "Italy", hans: "\u610F\u5927\u5229", hant: "\u7FA9\u5927\u5229", aliases: ["\u7F57\u9A6C", "rome", "italy"], popular: false },
-    { code: "FR", en: "France", hans: "\u6CD5\u56FD", hant: "\u6CD5\u570B", aliases: ["\u5DF4\u9ECE", "paris", "france"], popular: false },
-    { code: "DE", en: "Germany", hans: "\u5FB7\u56FD", hant: "\u5FB7\u570B", aliases: ["\u67CF\u6797", "berlin", "germany"], popular: false },
-    { code: "ES", en: "Spain", hans: "\u897F\u73ED\u7259", hant: "\u897F\u73ED\u7259", aliases: ["\u5DF4\u585E\u7F57\u90A3", "barcelona", "spain"], popular: false },
-    { code: "AU", en: "Australia", hans: "\u6FB3\u5927\u5229\u4E9A", hant: "\u6FB3\u5927\u5229\u4E9E", aliases: ["\u6089\u5C3C", "sydney", "australia"], popular: false },
-    { code: "CA", en: "Canada", hans: "\u52A0\u62FF\u5927", hant: "\u52A0\u62FF\u5927", aliases: ["\u591A\u4F26\u591A", "toronto", "canada"], popular: false },
-    { code: "MO", en: "Macao", hans: "\u6FB3\u95E8", hant: "\u6FB3\u9580", aliases: ["\u6FB3\u95E8", "macau", "macao"], popular: false },
-    { code: "PH", en: "Philippines", hans: "\u83F2\u5F8B\u5BBE", hant: "\u83F2\u5F8B\u8CD3", aliases: ["\u9A6C\u5C3C\u62C9", "manila", "philippines"], popular: false },
-    { code: "ID", en: "Indonesia", hans: "\u5370\u5EA6\u5C3C\u897F\u4E9A", hant: "\u5370\u5C3C", aliases: ["\u5DF4\u5398\u5C9B", "bali", "jakarta", "indonesia"], popular: false },
-    { code: "VN", en: "Vietnam", hans: "\u8D8A\u5357", hant: "\u8D8A\u5357", aliases: ["\u80E1\u5FD7\u660E\u5E02", "\u6CB3\u5185", "vietnam"], popular: false }
-  ];
-  var REGISTRY_BY_CODE = new Map(DESTINATION_REGISTRY.map((entry) => [entry.code, entry]));
-  function normalizeCountryCode(value) {
-    if (!value) return null;
-    const trimmed = value.trim();
-    if (!trimmed) return null;
-    return trimmed.length === 2 ? trimmed.toUpperCase() : null;
-  }
-  function lookupDestination(code) {
-    return REGISTRY_BY_CODE.get(code.toUpperCase()) || null;
-  }
-  function searchDestinations(query, limit = 8) {
-    const q = query.trim().toLowerCase();
-    if (!q) {
-      return DESTINATION_REGISTRY.filter((entry) => entry.popular).slice(0, limit);
-    }
-    const scored = [];
-    for (const entry of DESTINATION_REGISTRY) {
-      let score = 0;
-      if (entry.code.toLowerCase() === q) score = 100;
-      else if (entry.en.toLowerCase() === q) score = 95;
-      else if (entry.hans === query.trim() || entry.hant === query.trim()) score = 95;
-      else if (entry.aliases.some((alias) => alias.toLowerCase() === q)) score = 90;
-      else if (entry.en.toLowerCase().includes(q)) score = 60;
-      else if (entry.hans.includes(query.trim()) || entry.hant.includes(query.trim())) score = 60;
-      else if (entry.aliases.some((alias) => alias.toLowerCase().includes(q))) score = 50;
-      if (score > 0) scored.push({ entry, score: score + (entry.popular ? 5 : 0) });
-    }
-    scored.sort((a, b) => b.score - a.score);
-    return scored.slice(0, limit).map((item) => item.entry);
-  }
-  function readPlanAttributes(product) {
-    const fromTypeData = product.typeData?.esim;
-    if (fromTypeData && (fromTypeData.destinations?.length || fromTypeData.country)) {
-      return fromTypeData;
-    }
-    const variant = product.variants?.find((candidate) => candidate.attributes?.esim);
-    if (variant?.attributes?.esim) {
-      return variant.attributes.esim;
-    }
-    return fromTypeData || {};
-  }
-  function planCoverageCodes(product) {
-    const attrs = readPlanAttributes(product);
-    const codes = /* @__PURE__ */ new Set();
-    for (const code of attrs.destinations || []) {
-      const normalized = normalizeCountryCode(code);
-      if (normalized) codes.add(normalized);
-    }
-    const single = normalizeCountryCode(attrs.country);
-    if (single) codes.add(single);
-    return [...codes];
-  }
-  function planPrice(product) {
-    const variantPrice = product.variants?.find((candidate) => candidate.isActive !== false)?.salePrice;
-    return typeof variantPrice === "number" && variantPrice > 0 ? variantPrice : product.price || 0;
-  }
-  function buildDestinationCatalog(products) {
-    const byCode = /* @__PURE__ */ new Map();
-    for (const product of products) {
-      const price = planPrice(product);
-      for (const code of planCoverageCodes(product)) {
-        const current = byCode.get(code) || { planCount: 0, cheapest: null };
-        current.planCount += 1;
-        if (current.cheapest === null || price < current.cheapest) current.cheapest = price;
-        byCode.set(code, current);
-      }
-    }
-    const entries = [];
-    for (const [code, stats] of byCode) {
-      const info = lookupDestination(code);
-      if (!info) continue;
-      entries.push({ info, planCount: stats.planCount, cheapestPrice: stats.cheapest, currency: "USD" });
-    }
-    entries.sort((a, b) => {
-      if (a.info.popular !== b.info.popular) return a.info.popular ? -1 : 1;
-      if (b.planCount !== a.planCount) return b.planCount - a.planCount;
-      return a.info.en.localeCompare(b.info.en);
-    });
-    return entries;
-  }
-  function destinationLabel(code, locale) {
-    const info = lookupDestination(code);
-    if (!info) return code;
-    if (locale === "zh-Hant") return info.hant;
-    if (locale && locale.startsWith("zh")) return info.hans;
-    return info.en;
-  }
 
   // src/lib/esim/itinerary.ts
   function createEmptyDraft() {
@@ -18053,6 +18081,7 @@
   }) {
     const site = resolveEsimSiteConfig(config);
     const [remoteProduct, setRemoteProduct] = react_default.useState(null);
+    const [remoteEsim, setRemoteEsim] = react_default.useState(void 0);
     const [remoteLoading, setRemoteLoading] = react_default.useState(false);
     const normalizedProduct = react_default.useMemo(
       () => product ? normalizeProductForTheme(product) : remoteProduct,
@@ -18136,6 +18165,7 @@
       ).then((response) => {
         if (!cancelled) {
           setRemoteProduct(mapEsimApiProductToThemeProduct(response));
+          setRemoteEsim(response.typeData?.esim || void 0);
         }
       }).catch(() => void 0).finally(() => {
         if (!cancelled) {
@@ -18201,7 +18231,12 @@
               /* @__PURE__ */ jsx("h1", { className: "esim-pdp-title font-serif text-3xl font-normal tracking-tight text-[var(--esim-ink)] lg:text-4xl", children: normalizedProduct.name }),
               !isGoodsProduct ? /* @__PURE__ */ jsxs("p", { className: "mt-3 inline-flex items-center gap-2 text-sm text-[var(--esim-copy)]", children: [
                 /* @__PURE__ */ jsx("span", { className: "inline-flex h-4 w-4 items-center justify-center rounded-full bg-[var(--esim-gold)] text-[9px] font-bold text-[#0d0d0d]", children: "\u2713" }),
-                profile.coverageLabel
+                (() => {
+                  const dests = remoteEsim?.destinations || [];
+                  if (dests.length === 0) return profile.coverageLabel;
+                  const names = dests.map((code) => destinationLabel(code, locale)).join(" \xB7 ");
+                  return dests.length === 1 ? `${pickCopy(locale, { en: "Covers", hans: "\u8986\u76D6", hant: "\u8986\u84CB" })} ${names}` : `${pickCopy(locale, { en: "Covers", hans: "\u8986\u76D6", hant: "\u8986\u84CB" })} ${dests.length} ${pickCopy(locale, { en: "destinations", hans: "\u4E2A\u76EE\u7684\u5730", hant: "\u500B\u76EE\u7684\u5730" })}\uFF08${names}\uFF09`;
+                })()
               ] }) : null,
               normalizedProduct.description ? /* @__PURE__ */ jsx("p", { className: "esim-pdp-description", children: normalizedProduct.description }) : /* @__PURE__ */ jsx("p", { className: "mt-2 text-lg text-[var(--esim-copy)]", children: isGoodsProduct ? pickCopy(locale, goodsSubtitle) : profile.networkLabel })
             ] }),
@@ -18803,7 +18838,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "esim",
-      version: "0.0.6",
+      version: "0.0.7",
       target: "shop"
     }
   };
