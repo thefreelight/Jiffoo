@@ -95,7 +95,9 @@ export async function generateMetadata(): Promise<Metadata> {
   const description = resolveMetadataDescription(brandName, themeConfig);
   const publicOrigin = await resolvePublicOrigin();
   const metadataBase = new URL(publicOrigin);
-  const isBokmoo = context?.theme?.slug === 'bokmoo';
+  // Bokmoo brand family (main storefront + esim.bokmoo.com route-planner
+  // theme) share the bokmoo favicon/social icon set.
+  const isBokmoo = context?.theme?.slug === 'bokmoo' || context?.theme?.slug === 'esim';
   const socialImagePath = isBokmoo ? '/bokmoo-icon-512x512.png' : '/icon-512x512.png';
   const socialImageUrl = new URL(socialImagePath, metadataBase).toString();
 

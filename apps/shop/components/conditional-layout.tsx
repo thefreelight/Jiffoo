@@ -1,7 +1,9 @@
 'use client';
 
+import React from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { StoreContextProvider } from '@/components/store-context-provider';
+import { useAuthStore } from '@/store/auth';
 import type { StoreContext } from '@/lib/store-context';
 import type { ActiveTheme } from '@/lib/theme-pack/types';
 import { ThemePackProvider } from '@/lib/theme-pack';
@@ -26,6 +28,15 @@ interface ConditionalLayoutProps {
 export function ConditionalLayout({ children, initialContext, initialActiveTheme }: ConditionalLayoutProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const bootstrapSession = useAuthStore((state) => state.bootstrapSession);
+
+  // Cross-subdomain session sharing: an auth token that arrived via the
+  // parent-domain cookie (or was already in localStorage) rehydrates the
+  // auth store here, before any page decides whether the visitor is
+  // signed in. Idempotent — the store skips when already authenticated.
+  React.useEffect(() => {
+    void bootstrapSession();
+  }, [bootstrapSession]);
 
   // Read ?theme= param for Theme Pack preview
   const previewSlug = searchParams.get('theme') ?? undefined;
