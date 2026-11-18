@@ -30,6 +30,7 @@ import { tryNativeAdminDashboard } from './admin-dashboard';
 import { tryNativeAdminProducts } from './admin-products';
 import { tryNativeAdminApiTokens } from './admin-api-tokens';
 import { nativeUpgradeVersion } from './upgrade-version';
+import { handleAppVersionLatest } from './app-version';
 import { tryNativeUpgradeStatus } from './upgrade-status';
 import { tryNativeAdminSettings } from './admin-settings';
 import { tryNativeAdminThemes } from './admin-themes';
@@ -299,6 +300,9 @@ async function routeNativeRequest(request: Request, env: WorkerEnv, ctx: Executi
     }
     if (nativeRequest.method === 'GET' && nativeRequest.url.includes('/api/v1/upgrade/version')) {
       return nativeUpgradeVersion(env);
+    }
+    if (nativeRequest.method === 'GET' && url.pathname === '/api/v1/app/version/latest') {
+      return handleAppVersionLatest(nativeRequest, env);
     }
     const nativeUpgradeStatus = await tryNativeUpgradeStatus(nativeRequest, env);
     if (nativeUpgradeStatus) return nativeUpgradeStatus;

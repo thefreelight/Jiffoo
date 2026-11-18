@@ -4,7 +4,18 @@ import { getNativePluginConfig, getNativePluginSecret, getNativeStripeSecret } f
 import { settleNativeWalletCheckout } from './native-wallet';
 
 type CheckoutEnv = Pick<Cloudflare.Env,
-  'DB' | 'JWT_SECRET' | 'STRIPE_SECRET_KEY' | 'STRIPE_WEBHOOK_SECRET' | 'NATIVE_CHECKOUT_ENABLED'>;
+  'DB' | 'JWT_SECRET' | 'STRIPE_SECRET_KEY' | 'STRIPE_WEBHOOK_SECRET' | 'NATIVE_CHECKOUT_ENABLED'> & {
+  // chfastpay easy-pay channel (owner-provided aggregate Alipay/WeChat gateway).
+  // Configured as plain vars/secret on the deployed instance, not present in
+  // the generated worker types.
+  EPAY_GATEWAY?: string;
+  EPAY_PID?: string;
+  EPAY_KEY?: string;
+  // Easy-pay gateways charge in CNY while the storefront prices in USD.
+  // The conversion rate is Owner-controlled (wrangler var), never fetched
+  // live, so session and notify amounts are computed identically.
+  EPAY_USD_CNY_RATE?: string;
+};
 
 interface ProductVariant {
   id: string;
@@ -519,18 +530,12 @@ async function createPaymentIntent(request: Request, env: CheckoutEnv, user: Nat
   ).bind(body.orderId, user.id).first<OrderSnapshotRow>();
   if (!row) return failure(404, 'NOT_FOUND', 'Order not found');
   if (row.payment_status === 'PAID') return failure(409, 'ORDER_ALREADY_PAID', 'Order is already paid');
-  // WeChat Pay (and Alipay once the account is approved) are redirect wallets:
-  // they render only in hosted Checkout, never in the native PaymentSheet.
-  // Respond without a clientSecret for mainland-China-geo / Chinese-language
-  // shoppers so the apps route them to the hosted session, which also gives
-  // CNY adaptive pricing.
-  const geoCountry = typeof request.cf?.country === 'string'
-    ? request.cf.country
-    : (request.headers.get('cf-ipcountry') ?? '');
-  const acceptLanguage = (request.headers.get('accept-language') ?? '').trim().toLowerCase();
-  if (geoCountry === 'CN' || acceptLanguage.startsWith('zh')) {
-    return success({ route: 'hosted_checkout' });
-  }
+  // Mainland-China / Chinese-language shoppers used to be gated to hosted
+  // Checkout here (WeChat Pay/Alipay are redirect wallets that only render on
+  // the hosted page, plus CNY adaptive pricing). Owner decision 2026-11-13:
+  // the browser hop makes card payment unusable on mainland phones — every
+  // shopper gets the native PaymentSheet (cards + Apple Pay/Google Pay wake
+  // in-app); wallet-scan shoppers use the chfastpay easy-pay channel instead.
   const idempotencyKey = typeof body.idempotencyKey === 'string' && body.idempotencyKey.trim()
     ? `intent:${body.idempotencyKey.trim()}`
     : `order:${body.orderId}:stripe-intent`;
@@ -738,6 +743,201 @@ async function verifyPaymentSession(env: CheckoutEnv, user: NativeSessionUser, s
   });
 }
 
+// ── chfastpay easy-pay channel (aggregated Alipay/WeChat for mainland
+// shoppers) ── Rainbow easy-pay protocol: redirect the shopper to the gateway
+// submit.php with md5-signed params; the gateway calls notify_url (GET) with
+// the same signature scheme and expects a literal "success" body.
+
+function epayConfigured(env: CheckoutEnv): boolean {
+  return Boolean(env.EPAY_GATEWAY && env.EPAY_PID && env.EPAY_KEY);
+}
+
+const EPAY_DEFAULT_USD_CNY_RATE = 7.2;
+
+/**
+ * Easy-pay cashiers charge CNY. Convert the order total deterministically:
+ * USD orders multiply by the configured rate, CNY orders pass through, and
+ * any other currency is unsupported (the gateway cannot settle it).
+ */
+function epayCnyAmount(totalAmount: number, currency: string, env: CheckoutEnv): string | null {
+  if (currency === 'CNY') return totalAmount.toFixed(2);
+  if (currency !== 'USD') return null;
+  const rate = Number(env.EPAY_USD_CNY_RATE ?? '') || EPAY_DEFAULT_USD_CNY_RATE;
+  if (!Number.isFinite(rate) || rate <= 0) return null;
+  return (Math.round(totalAmount * rate * 100) / 100).toFixed(2);
+}
+
+async function md5Hex(input: string): Promise<string> {
+  // Cloudflare Workers' subtle.digest supports MD5 for legacy gateway signing.
+  const digest = await crypto.subtle.digest('MD5', new TextEncoder().encode(input));
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/** Rainbow easy-pay signature: sorted `k=v&…` + key, md5 hex. */
+async function epaySign(params: Record<string, string>, key: string): Promise<string> {
+  const filtered = Object.keys(params)
+    .filter((k) => k !== 'sign' && k !== 'sign_type' && params[k] !== '' && params[k] != null)
+    .sort();
+  const plain = `${filtered.map((k) => `${k}=${params[k]}`).join('&')}${key}`;
+  return md5Hex(plain);
+}
+
+async function createEpaySession(request: Request, env: CheckoutEnv, user: NativeSessionUser): Promise<Response | null> {
+  try {
+    return await createEpaySessionInner(request, env, user);
+  } catch (error) {
+    // Never crash the worker (1101): surface gateway/DB failures as JSON.
+    return failure(500, 'EPAY_SESSION_ERROR', error instanceof Error ? error.message : String(error));
+  }
+}
+
+async function createEpaySessionInner(request: Request, env: CheckoutEnv, user: NativeSessionUser): Promise<Response> {
+  const body = await request.json<{ orderId?: unknown; payType?: unknown }>().catch(() => null);
+  if (!body || typeof body.orderId !== 'string' || !body.orderId.trim()) {
+    return failure(400, 'VALIDATION_ERROR', 'orderId is required');
+  }
+  const payType = typeof body.payType === 'string' && ['alipay', 'wxpay', 'qqpay'].includes(body.payType)
+    ? body.payType
+    : 'alipay';
+  if (!epayConfigured(env)) {
+    return failure(503, 'EPAY_NOT_CONFIGURED', 'Easy-pay channel is not configured');
+  }
+  const row = await env.DB.prepare(
+    `SELECT snapshots.payload, metadata.total_amount, metadata.currency, metadata.payment_status
+     FROM native_order_snapshots snapshots JOIN native_order_metadata metadata ON metadata.order_id = snapshots.id
+     WHERE snapshots.id = ?1 AND snapshots.user_id = ?2`,
+  ).bind(body.orderId, user.id).first<OrderSnapshotRow>();
+  if (!row) return failure(404, 'NOT_FOUND', 'Order not found');
+  if (row.payment_status === 'PAID') return failure(409, 'ORDER_ALREADY_PAID', 'Order is already paid');
+  const order = JSON.parse(row.payload) as Record<string, unknown>;
+  const items = Array.isArray(order.items) ? order.items as Array<Record<string, unknown>> : [];
+  const productName = String(items[0]?.productName ?? `BOKMOO order ${body.orderId}`).slice(0, 120);
+  const gateway = String(env.EPAY_GATEWAY).replace(/\/+$/, '');
+  // The gateway server calls this URL from outside — it must be the public
+  // API host, not the storefront origin (which is the buyer-facing site).
+  const notifyUrl = 'https://api.bokmoo.com/api/v1/payments/webhook/epay';
+  const orderCurrency = String(row.currency ?? 'USD').toUpperCase();
+  const money = epayCnyAmount(Number(row.total_amount ?? 0), orderCurrency, env);
+  if (!money) {
+    return failure(503, 'EPAY_CURRENCY_UNSUPPORTED', `Easy-pay cannot settle ${orderCurrency} orders`);
+  }
+  const params: Record<string, string> = {
+    pid: String(env.EPAY_PID),
+    type: payType,
+    out_trade_no: String(body.orderId),
+    notify_url: notifyUrl,
+    return_url: `${storefrontOrigin(request)}/payment/success?orderId=${encodeURIComponent(String(body.orderId))}`,
+    name: productName,
+    // The gateway charges CNY; USD totals convert at the configured rate.
+    money,
+    // mapi.php requires the shopper IP; submit.php is 404 on this gateway.
+    clientip: request.headers.get('cf-connecting-ip') ?? '127.0.0.1',
+  };
+  params.sign = await epaySign(params, String(env.EPAY_KEY));
+  let gatewayResponse: Response;
+  try {
+    gatewayResponse = await fetch(`${gateway}/mapi.php`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ ...params, sign_type: 'MD5' }).toString(),
+    });
+  } catch (gatewayError) {
+    // Surface the transport failure instead of crashing the worker (1101).
+    return failure(502, 'EPAY_GATEWAY_ERROR', `Easy-pay gateway unreachable: ${gatewayError instanceof Error ? gatewayError.message : String(gatewayError)}`);
+  }
+  if (!gatewayResponse.ok) {
+    return failure(502, 'EPAY_GATEWAY_ERROR', `Easy-pay gateway returned ${gatewayResponse.status}`);
+  }
+  const result = await gatewayResponse.json<{ code?: number; msg?: string; payurl?: string; qrcode?: string; urlscheme?: string }>().catch(() => null);
+  if (!result || result.code !== 1) {
+    return failure(502, 'EPAY_GATEWAY_ERROR', result?.msg ?? 'Easy-pay gateway rejected the request');
+  }
+  const payUrl = result.payurl ?? result.qrcode ?? result.urlscheme ?? '';
+  if (!payUrl) {
+    return failure(502, 'EPAY_GATEWAY_ERROR', 'Easy-pay gateway returned no payment URL');
+  }
+  const now = new Date().toISOString();
+  // Gateway casher pages stay valid for a day, same default as Stripe sessions.
+  const expiresAt = new Date(Date.now() + 86400 * 1000).toISOString();
+  await env.DB.prepare(
+    `INSERT INTO native_payment_sessions (id, order_id, user_id, provider, idempotency_key, session_url, payment_intent_id, status, expires_at, created_at, updated_at)
+     VALUES (?1, ?2, ?3, 'epay', ?4, ?5, NULL, 'PENDING', ?6, ?7, ?7)
+     ON CONFLICT(idempotency_key) DO NOTHING`,
+  ).bind(
+    `epay_${body.orderId}_${payType}`,
+    body.orderId,
+    user.id,
+    `order:${body.orderId}:epay:${payType}`,
+    payUrl,
+    expiresAt,
+    now,
+  ).run();
+  return success({ route: 'epay', payUrl, orderId: body.orderId, payType, amount: money, currency: 'CNY' });
+}
+
+async function handleEpayNotify(request: Request, env: CheckoutEnv): Promise<Response> {
+  if (!epayConfigured(env)) return new Response('fail: not configured', { status: 503 });
+  const url = new URL(request.url);
+  const params: Record<string, string> = {};
+  url.searchParams.forEach((value, key) => { params[key] = value; });
+  if (request.method === 'POST') {
+    const form = await request.formData().catch(() => null);
+    form?.forEach((value, key) => { if (!params[key]) params[key] = String(value); });
+  }
+  const sign = params.sign ?? '';
+  const expected = await epaySign(params, String(env.EPAY_KEY));
+  if (!sign || sign.toLowerCase() !== expected.toLowerCase()) {
+    return new Response('fail: bad sign', { status: 400 });
+  }
+  const orderId = params.out_trade_no ?? '';
+  const tradeNo = params.trade_no ?? '';
+  const paid = (params.trade_status ?? '').toUpperCase() === 'TRADE_SUCCESS';
+  if (!orderId || !paid) return new Response('success');
+  const duplicate = await env.DB.prepare(
+    'SELECT provider_event_id FROM native_payment_events WHERE provider_event_id = ?1',
+  ).bind(`epay:${tradeNo}:${orderId}`).first<{ provider_event_id: string }>();
+  if (duplicate) return new Response('success');
+  const row = await env.DB.prepare('SELECT payload, user_id FROM native_order_snapshots WHERE id = ?1').bind(orderId).first<{ payload: string; user_id: string }>();
+  if (!row) return new Response('success');
+  const now = new Date().toISOString();
+  const order = JSON.parse(row.payload) as Record<string, unknown>;
+  // Anti-underpayment guard: the gateway charges CNY, so recompute what the
+  // session should have charged and refuse to settle mismatches (a tampered
+  // or drifted notify must never mark a $20 order PAID for ¥20).
+  const items = Array.isArray(order.items) ? order.items as Array<Record<string, unknown>> : [];
+  const orderTotalUsd = Number(order.totalAmount ?? items.reduce((sum, item) => sum + Number(item.totalPrice ?? 0), 0));
+  const expectedCny = epayCnyAmount(orderTotalUsd, String(order.currency ?? 'USD').toUpperCase(), env);
+  const paidMoney = Number(params.money ?? NaN);
+  if (expectedCny === null || !Number.isFinite(paidMoney) || Math.abs(paidMoney - Number(expectedCny)) > 0.05) {
+    return new Response('fail: amount mismatch', { status: 400 });
+  }
+  Object.assign(order, { status: 'PAID', paymentStatus: 'PAID', updatedAt: now });
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT INTO native_payment_events (provider_event_id, provider, event_type, received_at)
+       VALUES (?1, 'epay', 'trade_success', ?2)`,
+    ).bind(`epay:${tradeNo}:${orderId}`, now),
+    env.DB.prepare("UPDATE native_order_metadata SET payment_status = 'PAID' WHERE order_id = ?1").bind(orderId),
+    env.DB.prepare("UPDATE native_order_snapshots SET status = 'PAID', payload = ?1, source_updated_at = ?2 WHERE id = ?3").bind(JSON.stringify(order), now, orderId),
+    env.DB.prepare(
+      `INSERT INTO native_checkout_outbox (id, event_type, aggregate_id, payload, created_at)
+       VALUES (?1, 'payment.succeeded', ?2, ?3, ?4)`,
+    ).bind(crypto.randomUUID(), orderId, JSON.stringify({ orderId, tradeNo, provider: 'epay' }), now),
+    env.DB.prepare(
+      `INSERT INTO native_bokmoo_notifications (id, user_id, type, title, body, metadata_json, created_at)
+       VALUES (?1, ?2, 'order', ?3, ?4, ?5, ?6)`,
+    ).bind(
+      crypto.randomUUID(),
+      row.user_id,
+      'Payment confirmed',
+      `Order ${orderId} has been paid. We are preparing it for delivery.`,
+      JSON.stringify({ orderId, tradeNo, provider: 'epay' }),
+      now,
+    ),
+  ]);
+  return new Response('success');
+}
+
 export async function tryNativeCheckout(
   request: Request,
   env: CheckoutEnv,
@@ -746,6 +946,15 @@ export async function tryNativeCheckout(
   const url = new URL(request.url);
   if (url.pathname === '/api/v1/payments/webhook/stripe' && request.method === 'POST') {
     return handleStripeWebhook(request.clone(), env);
+  }
+  if (url.pathname === '/api/v1/payments/webhook/epay' && (request.method === 'GET' || request.method === 'POST')) {
+    return handleEpayNotify(request, env);
+  }
+  if (url.pathname === '/api/v1/payments/epay/session' && request.method === 'POST') {
+    if (String(env.NATIVE_CHECKOUT_ENABLED) !== 'true') return null;
+    const user = await authenticateNativeUser(request, env);
+    if (!user) return null;
+    return createEpaySession(request, env, user);
   }
   const relevant = (url.pathname === '/api/v1/orders' && request.method === 'POST')
     || (/^\/api\/v1\/orders\/[^/]+\/cancel$/.test(url.pathname) && request.method === 'POST')

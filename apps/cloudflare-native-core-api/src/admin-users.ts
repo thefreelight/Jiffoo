@@ -40,7 +40,7 @@ async function hashPassword(password: string): Promise<{ salt: string; hash: str
   return { salt: base64Url(saltBytes), hash: base64Url(new Uint8Array(bits)), iterations };
 }
 
-function userView(row: NativeUserRow, orders = 0): Record<string, unknown> {
+function userView(row: NativeUserRow, orders = 0, spent = 0): Record<string, unknown> {
   return {
     id: row.id,
     email: row.email,
@@ -51,11 +51,26 @@ function userView(row: NativeUserRow, orders = 0): Record<string, unknown> {
     createdAt: row.created_at ?? row.migrated_at,
     updatedAt: row.updated_at,
     totalOrders: orders,
-    totalSpent: 0,
+    totalSpent: spent,
     lastLoginAt: row.last_login_at,
     lastLoginIp: row.last_login_ip,
   };
 }
+
+// Paid-order aggregate per user: the admin customer list previously hardcoded
+// totalSpent: 0, so paid orders (e.g. PROCESSING after payment) never showed
+// up in the customer lifetime spend column.
+// Two single-column subqueries: SQLite scalar sub-selects must return one
+// column — a multi-column one breaks D1 with SQLITE_ERROR "sub-select
+// returns 2 columns", which 500'd the whole customer list in production.
+const USER_PAID_ORDER_STATS = `(
+  SELECT COUNT(*) FROM native_order_metadata m
+   WHERE m.user_id = native_users.id AND m.payment_status = 'PAID'
+) AS paid_orders,
+(
+  SELECT COALESCE(SUM(total_amount), 0) FROM native_order_metadata mm
+   WHERE mm.user_id = native_users.id AND mm.payment_status = 'PAID'
+) AS paid_spent`;
 
 const USER_ROW_COLUMNS = 'id,email,username,role,avatar,is_active,migrated_at,updated_at,created_at,last_login_at,last_login_ip';
 
@@ -137,10 +152,10 @@ export async function tryNativeAdminUsers(request: Request, env: AdminUserEnv): 
   const userId = parseId(url.pathname);
   const isPasswordPath = /\/password\/?$/.test(url.pathname);
   if (request.method === 'GET' && userId && !isPasswordPath) {
-    const row = await env.DB.prepare("SELECT id,email,username,role,avatar,is_active,migrated_at,updated_at,created_at,last_login_at,last_login_ip FROM native_users WHERE id = ?1")
-      .bind(userId).first<NativeUserRow>();
+    const row = await env.DB.prepare(`SELECT id,email,username,role,avatar,is_active,migrated_at,updated_at,created_at,last_login_at,last_login_ip, ${USER_PAID_ORDER_STATS} FROM native_users WHERE id = ?1`)
+      .bind(userId).first<NativeUserRow & { paid_orders: number; paid_spent: number }>();
     if (!row) return error(404, 'NOT_FOUND', 'User not found');
-    return json({ ...userView(row), recentEvents: await recentSecurityEvents(env, userId) });
+    return json({ ...userView(row, Number(row.paid_orders ?? 0), Number(row.paid_spent ?? 0)), recentEvents: await recentSecurityEvents(env, userId) });
   }
 
   if (request.method === 'GET' && !userId) {
@@ -156,11 +171,14 @@ export async function tryNativeAdminUsers(request: Request, env: AdminUserEnv): 
     const clause = where.join(' AND ');
     const totalRow = await env.DB.prepare(`SELECT COUNT(*) AS total FROM native_users WHERE ${clause}`).bind(...bindings).first<{ total: number }>();
     const rows = await env.DB.prepare(
-      `SELECT id,email,username,role,avatar,is_active,migrated_at,updated_at
+      `SELECT id,email,username,role,avatar,is_active,migrated_at,updated_at, ${USER_PAID_ORDER_STATS}
          FROM native_users WHERE ${clause} ORDER BY migrated_at DESC LIMIT ? OFFSET ?`,
-    ).bind(...bindings, limit, (page - 1) * limit).all<NativeUserRow>();
+    ).bind(...bindings, limit, (page - 1) * limit).all<NativeUserRow & { paid_orders: number; paid_spent: number }>();
     const total = Number(totalRow?.total ?? 0);
-    return json({ items: (rows.results ?? []).map((row) => userView(row)), page, limit, total, totalPages: Math.ceil(total / limit) });
+    return json({
+      items: (rows.results ?? []).map((row) => userView(row, Number(row.paid_orders ?? 0), Number(row.paid_spent ?? 0))),
+      page, limit, total, totalPages: Math.ceil(total / limit),
+    });
   }
 
   if (request.method === 'POST' && !userId) {

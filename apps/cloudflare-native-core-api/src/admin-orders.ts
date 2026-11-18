@@ -1,7 +1,7 @@
 import { type NativeAuthEnv } from './auth';
 import { ADMIN_PERMISSIONS } from './native-rbac';
 import { requireAdminPermission } from './admin-access';
-import { attachShipments } from './shipments';
+import { attachShipments, upsertSupplierShipment } from './shipments';
 
 interface AdminOrderEnv extends NativeAuthEnv { DB: D1Database }
 interface AdminOrderRow { id: string; status: string; payload: string; source_updated_at: string }
@@ -18,8 +18,8 @@ function integer(value: string | null, fallback: number, max: number): number {
   return Number.isInteger(parsed) && parsed > 0 ? Math.min(parsed, max) : fallback;
 }
 
-// Admin list projection: the page renders per-order item chips, so expose
-// the count plus a small summary instead of demo placeholders.
+// Admin list/detail projection: the page renders per-order item chips, so
+// expose the count plus a small summary instead of demo placeholders.
 function applyItemsSummary(order: AdminOrder): void {
   const items = Array.isArray(order.items) ? order.items as Array<Record<string, unknown>> : [];
   order.itemsCount = items.length;
@@ -91,7 +91,9 @@ async function attachCustomers(db: D1Database, orders: AdminOrder[]): Promise<vo
 
 export async function tryNativeAdminOrders(request: Request, env: AdminOrderEnv, _proxy: ProxyRequest): Promise<Response | null> {
   const url = new URL(request.url);
-  if (request.method !== 'GET' || !/^\/api\/v1\/admin\/orders(?:\/[^/]+)?$/.test(url.pathname)) return null;
+  const isShipPost = /^\/api\/v1\/admin\/orders\/[^/]+\/ship$/.test(url.pathname) && request.method === 'POST';
+  if (request.method !== 'GET' && !isShipPost) return null;
+  if (!/^\/api\/v1\/admin\/orders(?:\/[^/]+(?:\/ship)?)?$/.test(url.pathname)) return null;
   const gate = await requireAdminPermission(request, env, ADMIN_PERMISSIONS.ORDERS_READ);
   if (!gate.ok) return gate.response;
   const admin = gate.admin;
@@ -106,6 +108,67 @@ export async function tryNativeAdminOrders(request: Request, env: AdminOrderEnv,
     applyShippingAddressDisplay(order);
     applyItemsSummary(order);
     return response(order);
+  }
+
+  // Admin manual fulfilment: record a carrier + tracking shipment, advance
+  // the order to SHIPPED, and notify the customer. Provider-based label
+  // creation (kuaidi100/4PX) plugs into the same shipments table later.
+  const shipMatch = url.pathname.match(/^\/api\/v1\/admin\/orders\/([^/]+)\/ship$/);
+  if (shipMatch && request.method === 'POST') {
+    const orderId = decodeURIComponent(shipMatch[1]);
+    const body = await request.json<Record<string, unknown>>().catch(() => null);
+    const trackingNumber = typeof body?.trackingNumber === 'string' ? body.trackingNumber.trim() : '';
+    const carrier = typeof body?.carrier === 'string' ? body.carrier.trim() : '';
+    if (!trackingNumber || !carrier) {
+      return Response.json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'carrier and trackingNumber are required' } }, { status: 400, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-admin-orders' } });
+    }
+    const row = await env.DB.prepare('SELECT payload, user_id FROM native_order_snapshots WHERE id = ?1').bind(orderId).first<{ payload: string; user_id: string }>();
+    if (!row) {
+      return Response.json({ success: false, error: { code: 'NOT_FOUND', message: 'Order not found' } }, { status: 404, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-admin-orders' } });
+    }
+    const order = JSON.parse(row.payload) as Record<string, unknown>;
+    if (String(order.status) === 'CANCELLED') {
+      return Response.json({ success: false, error: { code: 'ORDER_CANCELLED', message: 'Cancelled orders cannot be shipped' } }, { status: 409, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-admin-orders' } });
+    }
+    // Default the scope from the delivery country when the caller omits it.
+    const shipTo = order.shippingAddress as Record<string, unknown> | null | undefined;
+    const country = shipTo && typeof shipTo === 'object' ? String((shipTo as Record<string, unknown>).country ?? '') : '';
+    const scope = body?.scope === 'international' || body?.scope === 'domestic'
+      ? String(body?.scope)
+      : country.toUpperCase() === 'CN' ? 'domestic' : 'international';
+    const created = await upsertSupplierShipment(env.DB, {
+      orderId,
+      carrierName: carrier,
+      carrierCode: typeof body?.carrierCode === 'string' && body.carrierCode.trim() ? body.carrierCode.trim() : scope,
+      trackingNumber,
+      trackingUrl: typeof body?.trackingUrl === 'string' && body.trackingUrl.trim() ? body.trackingUrl.trim() : null,
+      status: 'SHIPPED',
+    });
+    if (!created) {
+      return Response.json({ success: false, error: { code: 'SHIPMENT_FAILED', message: 'Shipment could not be recorded' } }, { status: 500, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-admin-orders' } });
+    }
+    const now = new Date().toISOString();
+    Object.assign(order, { status: 'SHIPPED', updatedAt: now });
+    const trackingUrl = typeof body?.trackingUrl === 'string' && body.trackingUrl.trim() ? body.trackingUrl.trim() : null;
+    await env.DB.batch([
+      env.DB.prepare('UPDATE native_order_snapshots SET status = ?, payload = ?, source_updated_at = ? WHERE id = ?')
+        .bind('SHIPPED', JSON.stringify(order), now, orderId),
+      env.DB.prepare(
+        `INSERT INTO native_bokmoo_notifications (id, user_id, type, title, body, metadata_json, created_at)
+         VALUES (?1, ?2, 'order', ?3, ?4, ?5, ?6)`,
+      ).bind(
+        crypto.randomUUID(),
+        row.user_id,
+        'Order shipped',
+        `Order ${orderId} has shipped via ${carrier}. Tracking: ${trackingNumber}${trackingUrl ? ` (${trackingUrl})` : ''}`,
+        JSON.stringify({ orderId, trackingNumber, carrier, scope, provider: 'manual' }),
+        now,
+      ),
+    ]);
+    const refreshed = await attachCustomer(env.DB, await attachShipments(env.DB, order));
+    applyShippingAddressDisplay(refreshed);
+    applyItemsSummary(refreshed);
+    return response(refreshed);
   }
   const page = integer(url.searchParams.get('page'), 1, 1_000_000);
   const limit = integer(url.searchParams.get('limit'), 10, 100);
@@ -123,6 +186,7 @@ export async function tryNativeAdminOrders(request: Request, env: AdminOrderEnv,
      WHERE ${where} ORDER BY json_extract(payload, '$.createdAt') DESC LIMIT ?${bindings.length + 1} OFFSET ?${bindings.length + 2}`,
   ).bind(...bindings, limit, (page - 1) * limit).all<AdminOrderRow>();
   const items = await Promise.all(rows.results.map((row) => attachShipments(env.DB, JSON.parse(row.payload) as AdminOrder)));
+  items.forEach(applyItemsSummary);
   await attachCustomers(env.DB, items);
   for (const order of items) {
     applyShippingAddressDisplay(order);

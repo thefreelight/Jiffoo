@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('cloudflare:sockets', () => ({ connect: vi.fn() }));
@@ -14,6 +15,20 @@ subtle.timingSafeEqual ??= (left: ArrayBuffer, right: ArrayBuffer): boolean => {
   for (let index = 0; index < leftBytes.length; index += 1) difference |= leftBytes[index]! ^ rightBytes[index]!;
   return difference === 0;
 };
+
+// Node WebCrypto lacks the Workers-only MD5 digest used by the easy-pay
+// gateway signer; route MD5 through node:crypto in tests.
+type SubtleWithMd5 = typeof crypto.subtle & { digest: typeof crypto.subtle.digest };
+const subtleMd5 = crypto.subtle as SubtleWithMd5;
+const nativeDigest = subtleMd5.digest.bind(subtleMd5);
+subtleMd5.digest = (async (algorithm: AlgorithmIdentifier | string, data: ArrayBuffer) => {
+  const name = typeof algorithm === 'string' ? algorithm : (algorithm as { name: string }).name;
+  if (name.toUpperCase() === 'MD5') {
+    const buf = createHash('md5').update(new Uint8Array(data)).digest();
+    return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer;
+  }
+  return nativeDigest(algorithm as AlgorithmIdentifier, data);
+}) as typeof crypto.subtle.digest;
 
 const { authenticateNativeUser, getNativeStripeSecret, getNativePluginConfig } = vi.hoisted(() => ({
   authenticateNativeUser: vi.fn(),
@@ -38,8 +53,8 @@ function intentsDb(paymentStatus = 'PENDING') {
   const db = {
     prepare: (sql: string) => ({
       bind: (..._values: unknown[]) => ({
-        first: async () => (sql.includes('native_order_snapshots snapshots')
-          ? { payload: orderPayload, total_amount: 39, currency: 'USD', payment_status: paymentStatus }
+        first: async () => (sql.includes('FROM native_order_snapshots')
+          ? { payload: orderPayload, total_amount: 39, currency: 'USD', payment_status: paymentStatus, user_id: 'user-1' }
           : null),
         run: async () => {
           ran.push(sql);
@@ -105,17 +120,22 @@ describe('native PaymentSheet payment intents', () => {
     }
   });
 
-  it('routes mainland-China shoppers to hosted checkout without creating an intent', async () => {
+  it('creates a native intent for mainland-China shoppers too (gate removed 2026-11-13)', async () => {
     authenticateNativeUser.mockResolvedValue({ id: 'user-1', email: 'u@example.com', username: 'u', role: 'USER' });
     getNativeStripeSecret.mockResolvedValue({ mode: 'test', value: 'sk_test_example' });
     const originalFetch = global.fetch;
-    global.fetch = vi.fn() as unknown as typeof fetch;
+    let stripeCalls = 0;
+    global.fetch = vi.fn(async () => {
+      stripeCalls += 1;
+      return new Response(JSON.stringify({ id: 'pi_test_cn', client_secret: 'pi_test_cn_secret' }), { status: 200 });
+    }) as unknown as typeof fetch;
     try {
       const { db, ran } = intentsDb();
       for (const headers of [
         { 'content-type': 'application/json', 'accept-language': 'zh-CN,zh;q=0.9' },
         { 'content-type': 'application/json', 'cf-ipcountry': 'CN' },
       ]) {
+        stripeCalls = 0;
         const response = await tryNativeCheckout(
           new Request('https://api.example/api/v1/payments/intents', {
             method: 'POST',
@@ -126,16 +146,99 @@ describe('native PaymentSheet payment intents', () => {
           { DB: db, NATIVE_CHECKOUT_ENABLED: 'true' } as never,
           () => Promise.resolve(null),
         );
-        expect(response?.status).toBe(200);
+        expect(response?.status).toBe(201);
         const payload = await (response as Response).json();
-        expect(payload.data).toEqual({ route: 'hosted_checkout' });
-        expect(payload.data.clientSecret).toBeUndefined();
+        expect(payload.data.clientSecret).toBe('pi_test_cn_secret');
+        expect(stripeCalls).toBe(1);
       }
-      expect(global.fetch).not.toHaveBeenCalled();
-      expect(ran.some((sql) => sql.includes('INSERT INTO native_payment_sessions'))).toBe(false);
+      expect(ran.some((sql) => sql.includes('INSERT INTO native_payment_sessions'))).toBe(true);
     } finally {
       global.fetch = originalFetch;
     }
+  });
+
+  it('requests a gateway payment URL from mapi.php for easy-pay sessions', async () => {
+    authenticateNativeUser.mockResolvedValue({ id: 'user-1', email: 'u@example.com', username: 'u', role: 'USER' });
+    const originalFetch = global.fetch;
+    let mapiBody = '';
+    global.fetch = vi.fn(async (_input: unknown, init?: RequestInit) => {
+      mapiBody = String(init?.body ?? '');
+      return new Response(JSON.stringify({ code: 1, payurl: 'https://yzf.example/pay/submit/123/' }), { status: 200 });
+    }) as unknown as typeof fetch;
+    try {
+      const { db, ran } = intentsDb();
+      const response = await tryNativeCheckout(
+        new Request('https://api.example/api/v1/payments/epay/session', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'cf-connecting-ip': '8.8.8.8' },
+          body: JSON.stringify({ orderId: 'ord-test-1', payType: 'alipay' }),
+        }),
+        { DB: db, NATIVE_CHECKOUT_ENABLED: 'true', EPAY_GATEWAY: 'https://yzf.example', EPAY_PID: '1002', EPAY_KEY: 'k-test' } as never,
+        () => Promise.resolve(null),
+      );
+      expect(response?.status).toBe(200);
+      const payload = await (response as Response).json();
+      expect(payload.data.route).toBe('epay');
+      expect(payload.data.payUrl).toBe('https://yzf.example/pay/submit/123/');
+      expect(payload.data.amount).toBe('280.80');
+      expect(payload.data.currency).toBe('CNY');
+      // mapi.php requires the shopper IP; submit.php does not exist here.
+      expect(mapiBody).toContain('clientip=8.8.8.8');
+      expect(mapiBody).toContain('pid=1002');
+      // Easy-pay charges CNY: $39 converts at the default 7.2 rate.
+      expect(mapiBody).toContain('money=280.80');
+      expect(ran.some((sql) => sql.includes('INSERT INTO native_payment_sessions'))).toBe(true);
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  it('surfaces a gateway rejection as a 502 for easy-pay sessions', async () => {
+    authenticateNativeUser.mockResolvedValue({ id: 'user-1', email: 'u@example.com', username: 'u', role: 'USER' });
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn(async () => new Response(JSON.stringify({ code: -1, msg: '签名校验失败' }), { status: 200 })) as unknown as typeof fetch;
+    try {
+      const { db } = intentsDb();
+      const response = await tryNativeCheckout(
+        new Request('https://api.example/api/v1/payments/epay/session', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ orderId: 'ord-test-1' }),
+        }),
+        { DB: db, NATIVE_CHECKOUT_ENABLED: 'true', EPAY_GATEWAY: 'https://yzf.example', EPAY_PID: '1002', EPAY_KEY: 'k-test' } as never,
+        () => Promise.resolve(null),
+      );
+      expect(response?.status).toBe(502);
+      const payload = await (response as Response).json();
+      expect(payload.error.code).toBe('EPAY_GATEWAY_ERROR');
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  it('refuses to settle an easy-pay notify whose amount does not match the CNY conversion', async () => {
+    getNativeStripeSecret.mockResolvedValue({ mode: 'test', value: 'whsec_example' });
+    const params: Record<string, string> = {
+      pid: '1002',
+      trade_no: 'GW-T-1',
+      out_trade_no: 'ord-test-1',
+      type: 'alipay',
+      name: 'order',
+      money: '0.01',
+      trade_status: 'TRADE_SUCCESS',
+    };
+    const signInput = Object.keys(params).sort().map((k) => `${k}=${params[k]}`).join('&') + 'k-test';
+    const { createHash } = await import('node:crypto');
+    const signed = { ...params, sign: createHash('md5').update(signInput).digest('hex'), sign_type: 'MD5' };
+    const query = new URLSearchParams(signed).toString();
+    const { db } = intentsDb();
+    const response = await tryNativeCheckout(
+      new Request(`https://api.example/api/v1/payments/webhook/epay?${query}`),
+      { DB: db, NATIVE_CHECKOUT_ENABLED: 'true', EPAY_GATEWAY: 'https://yzf.example', EPAY_PID: '1002', EPAY_KEY: 'k-test' } as never,
+      () => Promise.resolve(null),
+    );
+    expect(response?.status).toBe(400);
+    expect(await (response as Response).text()).toContain('amount mismatch');
   });
 
   it('rejects an already paid order without calling Stripe', async () => {
