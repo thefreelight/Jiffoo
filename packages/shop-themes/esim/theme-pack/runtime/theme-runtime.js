@@ -15125,6 +15125,25 @@
     const [isMenuOpen, setIsMenuOpen] = react_default.useState(false);
     const mobileMenuId = "esim-mobile-menu";
     const accountInitial = ((user?.firstName || user?.email || "B").trim().charAt(0) || "B").toUpperCase();
+    const [accountMenuOpen, setAccountMenuOpen] = react_default.useState(false);
+    const accountMenuRef = react_default.useRef(null);
+    react_default.useEffect(() => {
+      if (!accountMenuOpen) return;
+      const onPointerDown = (event) => {
+        if (accountMenuRef.current && !accountMenuRef.current.contains(event.target)) {
+          setAccountMenuOpen(false);
+        }
+      };
+      const onKeyDown = (event) => {
+        if (event.key === "Escape") setAccountMenuOpen(false);
+      };
+      document.addEventListener("mousedown", onPointerDown);
+      document.addEventListener("keydown", onKeyDown);
+      return () => {
+        document.removeEventListener("mousedown", onPointerDown);
+        document.removeEventListener("keydown", onKeyDown);
+      };
+    }, [accountMenuOpen]);
     const openHref = react_default.useCallback(
       (href) => {
         if (isExternalHrefSafe(href)) {
@@ -15223,18 +15242,59 @@
               option.value
             )) }) : null
           ] }),
-          isAuthenticated ? /* @__PURE__ */ jsxs(
-            "button",
-            {
-              onClick: onNavigateToProfile,
-              className: `inline-flex items-center gap-2 rounded-full border border-[rgba(212,175,55,0.3)] bg-white/[0.03] pl-1 pr-3 py-1 text-sm font-medium text-[var(--esim-ink)] transition-colors hover:border-[#E5C365]/50 ${FOCUS_VISIBLE_RING2}`,
-              type: "button",
-              children: [
-                /* @__PURE__ */ jsx("span", { className: "flex h-7 w-7 items-center justify-center rounded-full bg-[#E5C365] text-[0.72rem] font-bold text-[#0d0d0d]", children: accountInitial }),
-                pickCopy(locale, { en: "My Account", hans: "\u6211\u7684\u5E10\u6237", hant: "\u6211\u7684\u5E33\u6236", ja: "\u30DE\u30A4\u30A2\u30AB\u30A6\u30F3\u30C8", ko: "\uB0B4 \uACC4\uC815", fr: "Mon compte", de: "Mein Konto" })
-              ]
-            }
-          ) : /* @__PURE__ */ jsxs(
+          isAuthenticated ? /* @__PURE__ */ jsxs("div", { className: "relative", ref: accountMenuRef, children: [
+            /* @__PURE__ */ jsxs(
+              "button",
+              {
+                onClick: () => setAccountMenuOpen((value) => !value),
+                "aria-haspopup": "menu",
+                "aria-expanded": accountMenuOpen,
+                className: `inline-flex items-center gap-2 rounded-full border border-[rgba(212,175,55,0.3)] bg-white/[0.03] pl-1 pr-3 py-1 text-sm font-medium text-[var(--esim-ink)] transition-colors hover:border-[#E5C365]/50 ${FOCUS_VISIBLE_RING2}`,
+                type: "button",
+                children: [
+                  /* @__PURE__ */ jsx("span", { className: "flex h-7 w-7 items-center justify-center rounded-full bg-[#E5C365] text-[0.72rem] font-bold text-[#0d0d0d]", children: accountInitial }),
+                  pickCopy(locale, { en: "My Account", hans: "\u6211\u7684\u5E10\u6237", hant: "\u6211\u7684\u5E33\u6236", ja: "\u30DE\u30A4\u30A2\u30AB\u30A6\u30F3\u30C8", ko: "\uB0B4 \uACC4\uC815", fr: "Mon compte", de: "Mein Konto" }),
+                  /* @__PURE__ */ jsx(ChevronDown, { className: `h-3.5 w-3.5 transition-transform ${accountMenuOpen ? "rotate-180" : ""}`, "aria-hidden": "true" })
+                ]
+              }
+            ),
+            accountMenuOpen ? /* @__PURE__ */ jsxs(
+              "div",
+              {
+                role: "menu",
+                className: "absolute right-0 top-[calc(100%+0.55rem)] z-50 w-48 overflow-hidden rounded-[0.9rem] border border-white/10 bg-[#141414] shadow-[0_18px_42px_rgba(0,0,0,0.55)]",
+                children: [
+                  /* @__PURE__ */ jsx(
+                    "button",
+                    {
+                      role: "menuitem",
+                      onClick: () => {
+                        onNavigateToProfile();
+                        setAccountMenuOpen(false);
+                      },
+                      className: "flex min-h-11 w-full items-center gap-2 px-4 py-2.5 text-left text-sm font-medium text-[var(--esim-ink)] hover:bg-white/[0.05]",
+                      type: "button",
+                      children: pickCopy(locale, { en: "My Account", hans: "\u6211\u7684\u5E10\u6237", hant: "\u6211\u7684\u5E33\u6236", ja: "\u30DE\u30A4\u30A2\u30AB\u30A6\u30F3\u30C8", ko: "\uB0B4 \uACC4\uC815", fr: "Mon compte", de: "Mein Konto" })
+                    }
+                  ),
+                  /* @__PURE__ */ jsx("div", { className: "h-px bg-white/10" }),
+                  /* @__PURE__ */ jsx(
+                    "button",
+                    {
+                      role: "menuitem",
+                      onClick: () => {
+                        onLogout();
+                        setAccountMenuOpen(false);
+                      },
+                      className: "flex min-h-11 w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-[var(--esim-copy)] hover:bg-white/[0.05]",
+                      type: "button",
+                      children: pickCopy(locale, { en: "Log Out", hans: "\u767B\u51FA", hant: "\u767B\u51FA", ja: "\u30ED\u30B0\u30A2\u30A6\u30C8", ko: "\uB85C\uADF8\uC544\uC6C3", fr: "Se d\xE9connecter", de: "Abmelden" })
+                    }
+                  )
+                ]
+              }
+            ) : null
+          ] }) : /* @__PURE__ */ jsxs(
             "a",
             {
               className: `text-xs md:text-sm font-medium text-neutral-300 hover:text-[#E5C365] transition-colors px-2 md:px-3 py-1.5 flex items-center gap-1.5 rounded-full hover:bg-white/[0.04] whitespace-nowrap ${FOCUS_VISIBLE_RING2}`,
@@ -18752,7 +18812,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "esim",
-      version: "0.0.3",
+      version: "0.0.4",
       target: "shop"
     }
   };

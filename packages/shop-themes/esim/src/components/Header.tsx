@@ -54,6 +54,27 @@ export const Header = React.memo(function Header({
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const mobileMenuId = 'esim-mobile-menu';
   const accountInitial = ((user?.firstName || user?.email || 'B').trim().charAt(0) || 'B').toUpperCase();
+  // Desktop account menu (My Account / Log Out)
+  const [accountMenuOpen, setAccountMenuOpen] = React.useState(false);
+  const accountMenuRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!accountMenuOpen) return;
+    const onPointerDown = (event: MouseEvent) => {
+      if (accountMenuRef.current && !accountMenuRef.current.contains(event.target as Node)) {
+        setAccountMenuOpen(false);
+      }
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setAccountMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [accountMenuOpen]);
 
   const openHref = React.useCallback(
     (href: string) => {
@@ -165,16 +186,51 @@ export const Header = React.memo(function Header({
           </div>
 
           {isAuthenticated ? (
-            <button
-              onClick={onNavigateToProfile}
-              className={`inline-flex items-center gap-2 rounded-full border border-[rgba(212,175,55,0.3)] bg-white/[0.03] pl-1 pr-3 py-1 text-sm font-medium text-[var(--esim-ink)] transition-colors hover:border-[#E5C365]/50 ${FOCUS_VISIBLE_RING}`}
-              type="button"
-            >
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#E5C365] text-[0.72rem] font-bold text-[#0d0d0d]">
-                {accountInitial}
-              </span>
-              {pickCopy(locale, { en: 'My Account', hans: '我的帐户', hant: '我的帳戶', ja: 'マイアカウント', ko: '내 계정', fr: 'Mon compte', de: 'Mein Konto' })}
-            </button>
+            <div className="relative" ref={accountMenuRef}>
+              <button
+                onClick={() => setAccountMenuOpen((value) => !value)}
+                aria-haspopup="menu"
+                aria-expanded={accountMenuOpen}
+                className={`inline-flex items-center gap-2 rounded-full border border-[rgba(212,175,55,0.3)] bg-white/[0.03] pl-1 pr-3 py-1 text-sm font-medium text-[var(--esim-ink)] transition-colors hover:border-[#E5C365]/50 ${FOCUS_VISIBLE_RING}`}
+                type="button"
+              >
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#E5C365] text-[0.72rem] font-bold text-[#0d0d0d]">
+                  {accountInitial}
+                </span>
+                {pickCopy(locale, { en: 'My Account', hans: '我的帐户', hant: '我的帳戶', ja: 'マイアカウント', ko: '내 계정', fr: 'Mon compte', de: 'Mein Konto' })}
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${accountMenuOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
+              </button>
+              {accountMenuOpen ? (
+                <div
+                  role="menu"
+                  className="absolute right-0 top-[calc(100%+0.55rem)] z-50 w-48 overflow-hidden rounded-[0.9rem] border border-white/10 bg-[#141414] shadow-[0_18px_42px_rgba(0,0,0,0.55)]"
+                >
+                  <button
+                    role="menuitem"
+                    onClick={() => {
+                      onNavigateToProfile();
+                      setAccountMenuOpen(false);
+                    }}
+                    className="flex min-h-11 w-full items-center gap-2 px-4 py-2.5 text-left text-sm font-medium text-[var(--esim-ink)] hover:bg-white/[0.05]"
+                    type="button"
+                  >
+                    {pickCopy(locale, { en: 'My Account', hans: '我的帐户', hant: '我的帳戶', ja: 'マイアカウント', ko: '내 계정', fr: 'Mon compte', de: 'Mein Konto' })}
+                  </button>
+                  <div className="h-px bg-white/10" />
+                  <button
+                    role="menuitem"
+                    onClick={() => {
+                      onLogout();
+                      setAccountMenuOpen(false);
+                    }}
+                    className="flex min-h-11 w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-[var(--esim-copy)] hover:bg-white/[0.05]"
+                    type="button"
+                  >
+                    {pickCopy(locale, { en: 'Log Out', hans: '登出', hant: '登出', ja: 'ログアウト', ko: '로그아웃', fr: 'Se déconnecter', de: 'Abmelden' })}
+                  </button>
+                </div>
+              ) : null}
+            </div>
           ) : (
             <a
               className={`text-xs md:text-sm font-medium text-neutral-300 hover:text-[#E5C365] transition-colors px-2 md:px-3 py-1.5 flex items-center gap-1.5 rounded-full hover:bg-white/[0.04] whitespace-nowrap ${FOCUS_VISIBLE_RING}`}
