@@ -299,6 +299,20 @@
     ["circle", { cx: "12", cy: "12", r: "3", key: "1v7zrd" }]
   ]);
 
+  // ../../../node_modules/lucide-react/dist/esm/icons/gift.js
+  var Gift = createLucideIcon("Gift", [
+    ["rect", { x: "3", y: "8", width: "18", height: "4", rx: "1", key: "bkv52" }],
+    ["path", { d: "M12 8v13", key: "1c76mn" }],
+    ["path", { d: "M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7", key: "6wjy6b" }],
+    [
+      "path",
+      {
+        d: "M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5",
+        key: "1ihvrl"
+      }
+    ]
+  ]);
+
   // ../../../node_modules/lucide-react/dist/esm/icons/grid-3x3.js
   var Grid3x3 = createLucideIcon("Grid3x3", [
     ["rect", { width: "18", height: "18", x: "3", y: "3", rx: "2", key: "afitv7" }],
@@ -11997,6 +12011,13 @@
     const result = await request(config, `${affiliateBase}/organizations/commissions`);
     return result.items || [];
   }
+  var couponRedeemEndpoint = "/api/v1/plugins/coupon/api/redeem";
+  async function redeemEsimCode(config, code, idempotencyKey) {
+    return request(config, couponRedeemEndpoint, "POST", {
+      code,
+      ...idempotencyKey ? { idempotencyKey } : {}
+    });
+  }
 
   // src/components/ProfilePage.tsx
   var SCRIPT_FONT = '"Snell Roundhand", "Savoye LET", "Segoe Script", "Brush Script MT", cursive';
@@ -12109,6 +12130,76 @@
       } catch {
       }
     }, [user?.email]);
+    const [redeemOpen, setRedeemOpen] = react_default.useState(false);
+    const [redeemValue, setRedeemValue] = react_default.useState("");
+    const [redeemBusy, setRedeemBusy] = react_default.useState(false);
+    const [redeemError, setRedeemError] = react_default.useState(null);
+    const redeemInputId = "esim-redeem-code-input";
+    const redeemErrorCopy = react_default.useCallback((code) => {
+      switch (code) {
+        case "REDEMPTION_CODE_INVALID":
+          return pickCopy(locale, {
+            en: "This code is invalid or expired. Please double-check and try again.",
+            hans: "\u5151\u6362\u7801\u65E0\u6548\u6216\u5DF2\u8FC7\u671F\uFF0C\u8BF7\u6838\u5BF9\u540E\u91CD\u8BD5\u3002",
+            hant: "\u514C\u63DB\u78BC\u7121\u6548\u6216\u5DF2\u904E\u671F\uFF0C\u8ACB\u6838\u5C0D\u5F8C\u91CD\u8A66\u3002"
+          });
+        case "REDEMPTION_CODE_ALREADY_CLAIMED":
+          return pickCopy(locale, {
+            en: "This code has already been redeemed.",
+            hans: "\u8BE5\u5151\u6362\u7801\u5DF2\u88AB\u4F7F\u7528\u3002",
+            hant: "\u8A72\u514C\u63DB\u78BC\u5DF2\u88AB\u4F7F\u7528\u3002"
+          });
+        case "REDEMPTION_CODE_EXHAUSTED":
+          return pickCopy(locale, {
+            en: "This code has reached its redemption limit.",
+            hans: "\u8BE5\u5151\u6362\u7801\u5DF2\u8FBE\u5151\u6362\u4E0A\u9650\u3002",
+            hant: "\u8A72\u514C\u63DB\u78BC\u5DF2\u9054\u514C\u63DB\u4E0A\u9650\u3002"
+          });
+        case "REDEMPTION_CODE_ASSIGNED":
+          return pickCopy(locale, {
+            en: "This code is assigned to a different account.",
+            hans: "\u8BE5\u5151\u6362\u7801\u7ED1\u5B9A\u5728\u5176\u4ED6\u5E10\u6237\u3002",
+            hant: "\u8A72\u514C\u63DB\u78BC\u7D81\u5B9A\u5728\u5176\u4ED6\u5E33\u6236\u3002"
+          });
+        case "REDEMPTION_PRODUCT_NOT_FOUND":
+        case "REDEMPTION_PRODUCT_NOT_CONFIGURED":
+          return pickCopy(locale, {
+            en: "The product tied to this code is currently unavailable. Please contact support.",
+            hans: "\u5151\u6362\u7801\u5BF9\u5E94\u7684\u5957\u9910\u6682\u65F6\u4E0D\u53EF\u7528\uFF0C\u8BF7\u8054\u7CFB\u5BA2\u670D\u3002",
+            hant: "\u514C\u63DB\u78BC\u5C0D\u61C9\u7684\u5957\u9910\u66AB\u6642\u4E0D\u53EF\u7528\uFF0C\u8ACB\u806F\u7D61\u5BA2\u670D\u3002"
+          });
+        case "REDEMPTION_CORE_UNSUPPORTED":
+          return pickCopy(locale, {
+            en: "Redemption is temporarily unavailable. Please try again later.",
+            hans: "\u5151\u6362\u529F\u80FD\u6682\u65F6\u4E0D\u53EF\u7528\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5\u3002",
+            hant: "\u514C\u63DB\u529F\u80FD\u66AB\u6642\u4E0D\u53EF\u7528\uFF0C\u8ACB\u7A0D\u5F8C\u91CD\u8A66\u3002"
+          });
+        default:
+          return pickCopy(locale, {
+            en: "Redemption failed. Please try again later.",
+            hans: "\u5151\u6362\u5931\u8D25\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5\u3002",
+            hant: "\u514C\u63DB\u5931\u6557\uFF0C\u8ACB\u7A0D\u5F8C\u91CD\u8A66\u3002"
+          });
+      }
+    }, [locale]);
+    const handleRedeem = react_default.useCallback(async () => {
+      const trimmed = redeemValue.trim();
+      if (!trimmed || redeemBusy) return;
+      setRedeemBusy(true);
+      setRedeemError(null);
+      try {
+        const result = await redeemEsimCode({ baseUrl: "" }, trimmed, `profile:${Date.now()}`);
+        if (result.orderId) {
+          go(`/orders/${encodeURIComponent(result.orderId)}`);
+          return;
+        }
+        window.location.reload();
+      } catch (error) {
+        setRedeemError(redeemErrorCopy(error instanceof EsimApiError ? error.code : void 0));
+      } finally {
+        setRedeemBusy(false);
+      }
+    }, [redeemValue, redeemBusy, redeemErrorCopy, go]);
     if (!isAuthenticated || !user) {
       return /* @__PURE__ */ jsx("div", { className: "flex min-h-screen items-center justify-center bg-[var(--esim-bg)] px-4", children: /* @__PURE__ */ jsx("div", { className: "w-full max-w-md", children: /* @__PURE__ */ jsxs("div", { className: "rounded-[var(--esim-radius-xl)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-10 text-center shadow-[var(--esim-shadow)]", children: [
         /* @__PURE__ */ jsx("div", { className: "mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[color:color-mix(in_oklab,var(--esim-gold)_14%,transparent)] text-[var(--esim-gold)]", children: /* @__PURE__ */ jsx(UserRound, { className: "h-8 w-8" }) }),
@@ -12273,6 +12364,64 @@
             ] })
           ] }),
           /* @__PURE__ */ jsx(MyEsimAssets, { apiBaseUrl: site.apiBaseUrl, email: user?.email, locale }),
+          /* @__PURE__ */ jsxs("section", { className: "rounded-[var(--esim-radius-lg)] border border-[color:color-mix(in_oklab,var(--esim-gold)_32%,var(--esim-line))] bg-[color:color-mix(in_oklab,var(--esim-gold)_6%,var(--esim-bg-elevated))] p-6 shadow-[var(--esim-shadow)]", children: [
+            /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between gap-3", children: [
+              /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2.5", children: [
+                /* @__PURE__ */ jsx(Gift, { className: "h-[1.1rem] w-[1.1rem] text-[var(--esim-gold)]" }),
+                /* @__PURE__ */ jsx("h3", { className: "text-[1.05rem] font-bold tracking-tight text-[var(--esim-ink)]", children: pickCopy(locale, { en: "Redeem a Code", hans: "\u5151\u6362\u7801", hant: "\u514C\u63DB\u78BC" }) })
+              ] }),
+              /* @__PURE__ */ jsx(
+                "button",
+                {
+                  onClick: () => setRedeemOpen((open) => !open),
+                  className: editButtonClass,
+                  type: "button",
+                  "aria-expanded": redeemOpen,
+                  "aria-controls": redeemInputId,
+                  children: redeemOpen ? pickCopy(locale, { en: "Close", hans: "\u6536\u8D77", hant: "\u6536\u8D77" }) : pickCopy(locale, { en: "Enter Code", hans: "\u8F93\u5165\u5151\u6362\u7801", hant: "\u8F38\u5165\u514C\u63DB\u78BC" })
+                }
+              )
+            ] }),
+            /* @__PURE__ */ jsx("p", { className: "mt-2 text-sm text-[var(--esim-copy-soft)]", children: pickCopy(locale, {
+              en: "Have a redemption code? Enter it to add an eSIM plan or subscription to your account.",
+              hans: "\u6301\u6709\u5151\u6362\u7801\uFF1F\u8F93\u5165\u5373\u53EF\u5C06 eSIM \u5957\u9910\u6216\u8BA2\u9605\u52A0\u5165\u60A8\u7684\u5E10\u6237\u3002",
+              hant: "\u6301\u6709\u514C\u63DB\u78BC\uFF1F\u8F38\u5165\u5373\u53EF\u5C07 eSIM \u5957\u9910\u6216\u8A02\u95B1\u52A0\u5165\u60A8\u7684\u5E33\u6236\u3002"
+            }) }),
+            redeemOpen && /* @__PURE__ */ jsxs("div", { className: "mt-4", children: [
+              /* @__PURE__ */ jsxs("div", { className: "flex flex-col gap-3 sm:flex-row", children: [
+                /* @__PURE__ */ jsx(
+                  "input",
+                  {
+                    id: redeemInputId,
+                    type: "text",
+                    value: redeemValue,
+                    onChange: (event) => setRedeemValue(event.target.value),
+                    onKeyDown: (event) => {
+                      if (event.key === "Enter") void handleRedeem();
+                    },
+                    placeholder: pickCopy(locale, {
+                      en: "e.g. ESIM-JP-7D",
+                      hans: "\u4F8B\u5982 ESIM-JP-7D",
+                      hant: "\u4F8B\u5982 ESIM-JP-7D"
+                    }),
+                    disabled: redeemBusy,
+                    className: "flex-1 rounded-[var(--esim-radius-md,0.75rem)] border border-[var(--esim-line)] bg-[var(--esim-bg)] px-4 py-2.5 uppercase tracking-wide text-[var(--esim-ink)] focus:outline-none focus:ring-2 focus:ring-[color:color-mix(in_oklab,var(--esim-gold)_55%,transparent)] disabled:opacity-60"
+                  }
+                ),
+                /* @__PURE__ */ jsx(
+                  "button",
+                  {
+                    onClick: () => void handleRedeem(),
+                    disabled: redeemBusy || !redeemValue.trim(),
+                    className: "inline-flex items-center justify-center gap-2 rounded-[var(--esim-radius-md,0.75rem)] bg-[var(--esim-gold)] px-6 py-2.5 font-semibold text-[color:color-mix(in_oklab,var(--esim-gold)_18%,black)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60",
+                    type: "button",
+                    children: redeemBusy ? pickCopy(locale, { en: "Redeeming\u2026", hans: "\u5151\u6362\u4E2D\u2026", hant: "\u514C\u63DB\u4E2D\u2026" }) : pickCopy(locale, { en: "Redeem", hans: "\u5151\u6362", hant: "\u514C\u63DB" })
+                  }
+                )
+              ] }),
+              redeemError && /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm text-red-500", children: redeemError })
+            ] })
+          ] }),
           /* @__PURE__ */ jsxs("section", { className: "grid gap-6 lg:grid-cols-2", children: [
             /* @__PURE__ */ jsxs("div", { className: "rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-6 shadow-[var(--esim-shadow)]", children: [
               /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between gap-3", children: [
@@ -18980,7 +19129,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "esim",
-      version: "0.0.12",
+      version: "0.0.13",
       target: "shop"
     }
   };

@@ -13,6 +13,7 @@ import {
   Clock3,
   Copy,
   Crown,
+  Gift,
   Globe2,
   Headphones,
   Mail,
@@ -25,7 +26,7 @@ import {
   Users, MapPin } from 'lucide-react';
 import type { ProfilePageProps } from 'shared/src/types/theme';
 import { pickCopy, resolveEsimSiteConfig } from '../site';
-import { getEsimAssets, type EsimAsset } from '../lib/api';
+import { getEsimAssets, redeemEsimCode, EsimApiError, type EsimAsset } from '../lib/api';
 
 const SCRIPT_FONT =
   '"Snell Roundhand", "Savoye LET", "Segoe Script", "Brush Script MT", cursive';
@@ -216,6 +217,81 @@ export const ProfilePage = React.memo(function ProfilePage({
       /* clipboard unavailable */
     }
   }, [user?.email]);
+
+  // Redemption code panel (coupon plugin: product grants → comped PAID order,
+  // or subscription periods).
+  const [redeemOpen, setRedeemOpen] = React.useState(false);
+  const [redeemValue, setRedeemValue] = React.useState('');
+  const [redeemBusy, setRedeemBusy] = React.useState(false);
+  const [redeemError, setRedeemError] = React.useState<string | null>(null);
+  const redeemInputId = 'esim-redeem-code-input';
+
+  const redeemErrorCopy = React.useCallback((code: string | undefined): string => {
+    switch (code) {
+      case 'REDEMPTION_CODE_INVALID':
+        return pickCopy(locale, {
+          en: 'This code is invalid or expired. Please double-check and try again.',
+          hans: '兑换码无效或已过期，请核对后重试。',
+          hant: '兌換碼無效或已過期，請核對後重試。',
+        });
+      case 'REDEMPTION_CODE_ALREADY_CLAIMED':
+        return pickCopy(locale, {
+          en: 'This code has already been redeemed.',
+          hans: '该兑换码已被使用。',
+          hant: '該兌換碼已被使用。',
+        });
+      case 'REDEMPTION_CODE_EXHAUSTED':
+        return pickCopy(locale, {
+          en: 'This code has reached its redemption limit.',
+          hans: '该兑换码已达兑换上限。',
+          hant: '該兌換碼已達兌換上限。',
+        });
+      case 'REDEMPTION_CODE_ASSIGNED':
+        return pickCopy(locale, {
+          en: 'This code is assigned to a different account.',
+          hans: '该兑换码绑定在其他帐户。',
+          hant: '該兌換碼綁定在其他帳戶。',
+        });
+      case 'REDEMPTION_PRODUCT_NOT_FOUND':
+      case 'REDEMPTION_PRODUCT_NOT_CONFIGURED':
+        return pickCopy(locale, {
+          en: 'The product tied to this code is currently unavailable. Please contact support.',
+          hans: '兑换码对应的套餐暂时不可用，请联系客服。',
+          hant: '兌換碼對應的套餐暫時不可用，請聯絡客服。',
+        });
+      case 'REDEMPTION_CORE_UNSUPPORTED':
+        return pickCopy(locale, {
+          en: 'Redemption is temporarily unavailable. Please try again later.',
+          hans: '兑换功能暂时不可用，请稍后重试。',
+          hant: '兌換功能暫時不可用，請稍後重試。',
+        });
+      default:
+        return pickCopy(locale, {
+          en: 'Redemption failed. Please try again later.',
+          hans: '兑换失败，请稍后重试。',
+          hant: '兌換失敗，請稍後重試。',
+        });
+    }
+  }, [locale]);
+
+  const handleRedeem = React.useCallback(async () => {
+    const trimmed = redeemValue.trim();
+    if (!trimmed || redeemBusy) return;
+    setRedeemBusy(true);
+    setRedeemError(null);
+    try {
+      const result = await redeemEsimCode({ baseUrl: '' }, trimmed, `profile:${Date.now()}`);
+      if (result.orderId) {
+        go(`/orders/${encodeURIComponent(result.orderId)}`);
+        return;
+      }
+      window.location.reload();
+    } catch (error) {
+      setRedeemError(redeemErrorCopy(error instanceof EsimApiError ? error.code : undefined));
+    } finally {
+      setRedeemBusy(false);
+    }
+  }, [redeemValue, redeemBusy, redeemErrorCopy, go]);
 
   if (!isAuthenticated || !user) {
     return (
@@ -443,6 +519,70 @@ export const ProfilePage = React.memo(function ProfilePage({
           </section>
 
           <MyEsimAssets apiBaseUrl={site.apiBaseUrl} email={user?.email} locale={locale} />
+          {/* Redemption code (coupon plugin) */}
+          <section className="rounded-[var(--esim-radius-lg)] border border-[color:color-mix(in_oklab,var(--esim-gold)_32%,var(--esim-line))] bg-[color:color-mix(in_oklab,var(--esim-gold)_6%,var(--esim-bg-elevated))] p-6 shadow-[var(--esim-shadow)]">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <Gift className="h-[1.1rem] w-[1.1rem] text-[var(--esim-gold)]" />
+                <h3 className="text-[1.05rem] font-bold tracking-tight text-[var(--esim-ink)]">
+                  {pickCopy(locale, { en: 'Redeem a Code', hans: '兑换码', hant: '兌換碼' })}
+                </h3>
+              </div>
+              <button
+                onClick={() => setRedeemOpen((open) => !open)}
+                className={editButtonClass}
+                type="button"
+                aria-expanded={redeemOpen}
+                aria-controls={redeemInputId}
+              >
+                {redeemOpen
+                  ? pickCopy(locale, { en: 'Close', hans: '收起', hant: '收起' })
+                  : pickCopy(locale, { en: 'Enter Code', hans: '输入兑换码', hant: '輸入兌換碼' })}
+              </button>
+            </div>
+            <p className="mt-2 text-sm text-[var(--esim-copy-soft)]">
+              {pickCopy(locale, {
+                en: 'Have a redemption code? Enter it to add an eSIM plan or subscription to your account.',
+                hans: '持有兑换码？输入即可将 eSIM 套餐或订阅加入您的帐户。',
+                hant: '持有兌換碼？輸入即可將 eSIM 套餐或訂閱加入您的帳戶。',
+              })}
+            </p>
+            {redeemOpen && (
+              <div className="mt-4">
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <input
+                    id={redeemInputId}
+                    type="text"
+                    value={redeemValue}
+                    onChange={(event) => setRedeemValue(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') void handleRedeem();
+                    }}
+                    placeholder={pickCopy(locale, {
+                      en: 'e.g. ESIM-JP-7D',
+                      hans: '例如 ESIM-JP-7D',
+                      hant: '例如 ESIM-JP-7D',
+                    })}
+                    disabled={redeemBusy}
+                    className="flex-1 rounded-[var(--esim-radius-md,0.75rem)] border border-[var(--esim-line)] bg-[var(--esim-bg)] px-4 py-2.5 uppercase tracking-wide text-[var(--esim-ink)] focus:outline-none focus:ring-2 focus:ring-[color:color-mix(in_oklab,var(--esim-gold)_55%,transparent)] disabled:opacity-60"
+                  />
+                  <button
+                    onClick={() => void handleRedeem()}
+                    disabled={redeemBusy || !redeemValue.trim()}
+                    className="inline-flex items-center justify-center gap-2 rounded-[var(--esim-radius-md,0.75rem)] bg-[var(--esim-gold)] px-6 py-2.5 font-semibold text-[color:color-mix(in_oklab,var(--esim-gold)_18%,black)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                    type="button"
+                  >
+                    {redeemBusy
+                      ? pickCopy(locale, { en: 'Redeeming…', hans: '兑换中…', hant: '兌換中…' })
+                      : pickCopy(locale, { en: 'Redeem', hans: '兑换', hant: '兌換' })}
+                  </button>
+                </div>
+                {redeemError && (
+                  <p className="mt-3 text-sm text-red-500">{redeemError}</p>
+                )}
+              </div>
+            )}
+          </section>
 
           {/* Account information + preferences */}
           <section className="grid gap-6 lg:grid-cols-2">
