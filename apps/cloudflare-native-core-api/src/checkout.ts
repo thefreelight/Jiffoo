@@ -30,6 +30,8 @@ interface ProductDetail {
   id: string;
   name: string;
   productKind: 'goods' | 'consumable' | 'service';
+  /** Billing currency (ISO 4217) — BOSS eSIM plans are CNY. */
+  currency?: string;
   variants: ProductVariant[];
 }
 
@@ -247,7 +249,9 @@ async function createOrder(
       totalPrice: unitPrice * input.quantity,
       fulfillmentStatus: 'pending',
       fulfillmentData: input.fulfillmentData ?? null,
-      currency: 'USD',
+      // Billing currency follows the catalog item (BOSS eSIM plans are CNY);
+      // legacy catalog rows without a currency settle in USD.
+      currency: product.currency || 'USD',
     };
   });
   const subtotal = items.reduce((sum, item) => sum + item.totalPrice, 0);
@@ -256,6 +260,14 @@ async function createOrder(
   ).bind(user.id).first<{ shipping_amount: number; method_name: string; plugin_slug: string }>();
   const requiresShipping = items.some((item) => item.productKind === 'goods' || item.productKind === 'consumable');
   const shippingAmount = requiresShipping ? shipping?.shipping_amount ?? 0 : 0;
+  // A single order settles in one currency: multi-currency carts (e.g. a
+  // CNY eSIM plan plus a USD physical card) must be checked out separately.
+  const itemCurrencies = [...new Set(items.map((item) => item.currency))];
+  if (itemCurrencies.length > 1) {
+    return failure(400, 'MIXED_CURRENCY_CART', 'This cart contains items in different currencies. Please check out in one currency at a time.');
+  }
+  const orderCurrency = itemCurrencies[0] ?? 'USD';
+
   // Physical goods are shipped after payment: a complete delivery address is
   // mandatory, otherwise the customer can never receive the product.
   const shippingAddress = normalizeShippingAddress(body.shippingAddress);
@@ -276,7 +288,7 @@ async function createOrder(
     appliedDiscounts: appliedPromotion
       ? [{ kind: 'promotion', id: appliedPromotion.row.id, slug: appliedPromotion.row.slug, amount: discountAmount }]
       : (affiliatePartner ? [{ kind: 'affiliate', id: affiliatePartner.id, amount: discountAmount }] : []),
-    currency: 'USD',
+    currency: orderCurrency,
     shippingAddress: shippingAddress ?? body.shippingAddress ?? null,
     customerEmail: user.email,
     locale: checkoutLocale(request, body.locale),
@@ -544,6 +556,13 @@ async function createPaymentIntent(request: Request, env: CheckoutEnv, user: Nat
     return failure(409, 'INVALID_ORDER_TOTAL', 'Order total is not chargeable');
   }
   const order = JSON.parse(row.payload) as Record<string, unknown>;
+  const orderCurrency = String(order.currency ?? 'USD').toUpperCase();
+  // The bokmoo Stripe account cannot present CNY; CNY orders settle on the
+  // Alipay/WeChat (epay) rails instead. Fail loudly so the storefront can
+  // route the customer to the CNY payment methods.
+  if (orderCurrency !== 'USD') {
+    return failure(400, 'CURRENCY_NOT_SUPPORTED', `Stripe checkout is unavailable for ${orderCurrency} orders. Please pay with Alipay or WeChat Pay.`);
+  }
   const shippingAddress = normalizeShippingAddress(order.shippingAddress);
   const secret = (await getNativeStripeSecret(env, 'secretKey', env.STRIPE_SECRET_KEY)).value;
   const form = new URLSearchParams({

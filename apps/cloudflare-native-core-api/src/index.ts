@@ -87,6 +87,8 @@ interface ProductDetail {
   name: string;
   productKind: 'goods' | 'consumable' | 'service';
   images?: string[];
+  /** Billing currency (ISO 4217) — BOSS eSIM plans are CNY. */
+  currency?: string;
   stock: number;
   variants: Array<{
     id: string;
