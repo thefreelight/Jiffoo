@@ -204,12 +204,12 @@ async function bossRequest(env: BossEnv, path: string, init?: RequestInit): Prom
 
 export interface BossEsimAsset {
   iccid: string;
-  label?: string;
-  region?: string;
+  userId?: string;
   status?: string;
-  packages?: Array<{ name?: string; status?: string; expiresAt?: string }>;
-  createdAt?: string;
-  lastOrderNo?: string;
+  /** Currently installed package name (v4: single string, not a list). */
+  currentPackage?: string;
+  label?: string;
+  sourceOrderNo?: string;
 }
 
 /**
@@ -217,9 +217,9 @@ export interface BossEsimAsset {
  * Degrades to an empty library when BOSS has not provisioned the
  * my-esims endpoint yet or the customer has no assets.
  */
-export async function fetchBossEsimAssets(env: BossEnv, customerName: string): Promise<BossEsimAsset[]> {
+export async function fetchBossEsimAssets(env: BossEnv, userId: string): Promise<BossEsimAsset[]> {
   try {
-    const data = await bossRequest(env, `/bs/openapi/my-esims?customerName=${encodeURIComponent(customerName)}`) as BossEsimAsset[] | { items?: BossEsimAsset[] };
+    const data = await bossRequest(env, `/bs/openapi/my-esims?userId=${encodeURIComponent(userId)}`) as BossEsimAsset[] | { items?: BossEsimAsset[] };
     if (Array.isArray(data)) return data;
     if (data && Array.isArray((data as { items?: BossEsimAsset[] }).items)) {
       return (data as { items: BossEsimAsset[] }).items;
@@ -240,7 +240,7 @@ export async function fetchBossPackages(env: BossEnv): Promise<BossPackage[]> {
 
 export async function createBossOrder(
   env: BossEnv,
-  input: { productOdooId: number; quantity: number; customerName: string; iccid?: string; remark?: string },
+  input: { productOdooId: number; quantity: number; customerName: string; iccid?: string; userId?: string; remark?: string },
 ): Promise<{
   orderNo: string;
   odooOrderName: string;

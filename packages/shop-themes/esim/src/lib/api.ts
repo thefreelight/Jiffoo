@@ -698,12 +698,12 @@ export async function getEsimOrder(
 
 export interface EsimAsset {
   iccid: string;
-  label?: string;
-  region?: string;
+  userId?: string;
   status?: string;
-  packages?: Array<{ name?: string; status?: string; expiresAt?: string }>;
-  createdAt?: string;
-  lastOrderNo?: string;
+  /** Currently installed package name (BOSS v4: single string, not a list). */
+  currentPackage?: string;
+  label?: string;
+  sourceOrderNo?: string;
 }
 
 /**

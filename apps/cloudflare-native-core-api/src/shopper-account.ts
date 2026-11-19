@@ -165,10 +165,13 @@ async function changePassword(request: Request, env: NativeAuthEnv): Promise<Res
   // verify: the session itself is the proof, so they set their first password
   // without one. Accounts with a password keep the re-auth requirement.
   const passwordSet = user.password_set !== 0;
-  if (passwordSet && !body.currentPassword) {
+  // Social-only accounts have no password yet: the authenticated session is
+  // the proof, so they set their first password without a current one.
+  const currentPassword = typeof body.currentPassword === 'string' ? body.currentPassword : '';
+  if (passwordSet && !currentPassword) {
     return error(400, 'VALIDATION_ERROR', 'Current password and new password are required');
   }
-  if (passwordSet && !(await verifyNativePassword(user, body.currentPassword))) {
+  if (passwordSet && !(await verifyNativePassword(user, currentPassword))) {
     return error(401, 'INVALID_PASSWORD', 'Current password is incorrect');
   }
   await updateNativePassword(env, user.id, body.newPassword);

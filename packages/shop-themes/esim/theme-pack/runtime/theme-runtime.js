@@ -12086,7 +12086,7 @@
           "ICCID \xB7\xB7\xB7\xB7",
           asset.iccid.slice(-6)
         ] }),
-        asset.packages && asset.packages.length > 0 ? /* @__PURE__ */ jsx("p", { className: "mt-1 text-xs text-[var(--esim-copy)]", children: asset.packages.map((pkg) => pkg.name).filter(Boolean).join(" \xB7 ") }) : null
+        asset.currentPackage ? /* @__PURE__ */ jsx("p", { className: "mt-1 text-xs text-[var(--esim-copy)]", children: asset.currentPackage }) : null
       ] }, asset.iccid)) })
     ] });
   }
@@ -13997,7 +13997,7 @@
                   /* @__PURE__ */ jsxs("p", { className: "mt-1 text-xs text-[var(--esim-copy-soft)]", children: [
                     "ICCID \xB7\xB7\xB7\xB7",
                     asset.iccid.slice(-6),
-                    asset.packages?.length ? ` \xB7 ${pickCopy(locale, { en: `${asset.packages.length} plan(s) on this eSIM`, hans: `\u5DF2\u88C5 ${asset.packages.length} \u4E2A\u5957\u9910`, hant: `\u5DF2\u88DD ${asset.packages.length} \u500B\u5957\u9910` })}` : ""
+                    asset.currentPackage ? ` \xB7 ${pickCopy(locale, { en: "Current", hans: "\u5F53\u524D", hant: "\u7576\u524D" })}: ${asset.currentPackage}` : ""
                   ] })
                 ] })
               ] }) }, asset.iccid)),
@@ -19129,7 +19129,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "esim",
-      version: "0.0.13",
+      version: "0.0.14",
       target: "shop"
     }
   };
