@@ -141,7 +141,8 @@ export async function processBossPaidOrder(
         fulfillmentData?: { esimIccid?: unknown };
       };
       const iccidRaw = payloadRecord.fulfillmentData?.esimIccid;
-      const iccid = typeof iccidRaw === 'string' && /^\d{10,22}$/.test(iccidRaw.trim()) ? iccidRaw.trim() : '';
+      // BOSS v4: asset ICCIDs may be short numeric ids (doc example 76010150).
+      const iccid = typeof iccidRaw === 'string' && /^\d{6,22}$/.test(iccidRaw.trim()) ? iccidRaw.trim() : '';
       bossLines.push({ lineItemId: item.id, productId: item.product_id, quantity: item.quantity, facts, iccid });
     }
   }
@@ -212,6 +213,10 @@ export async function processBossPaidOrder(
         productOdooId: line.facts.bossOdooId,
         quantity: line.quantity,
         customerName,
+        // BOSS v4 asset binding: passing the mall user id makes BOSS auto-bind
+        // the (new or reused) eSIM to this account — the prerequisite for
+        // my-esims reuse and zero provisioning fees on repeat purchases.
+        userId: metadata.user_id,
         ...(line.iccid ? { iccid: line.iccid } : {}),
         remark: `${orderId}/${line.lineItemId}`,
       });

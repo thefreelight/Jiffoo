@@ -2,6 +2,7 @@ import type { NativeAuthEnv } from './auth';
 
 export type NativeSecurityEventAction =
   | 'password.changed'
+  | 'password.set'
   | 'password.reset_requested'
   | 'password.reset'
   | 'password.admin_reset'

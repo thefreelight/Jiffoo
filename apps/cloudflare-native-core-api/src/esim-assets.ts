@@ -29,6 +29,6 @@ export async function tryNativeEsimAssets(request: Request, env: EsimAssetsEnv):
     }, { status: 401 });
   }
 
-  const items = await fetchBossEsimAssets(env, user.email);
+  const items = await fetchBossEsimAssets(env, user.id);
   return Response.json({ success: true, data: { items } });
 }

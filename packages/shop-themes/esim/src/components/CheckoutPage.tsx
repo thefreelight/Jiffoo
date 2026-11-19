@@ -322,7 +322,7 @@ export const CheckoutPage = React.memo(function CheckoutPage({
                             <p className="text-sm text-[var(--esim-ink)]">{pickCopy(locale, { en: 'Use my existing eSIM', hans: '使用已有 eSIM', hant: '使用已有 eSIM' })}{asset.label ? ` · ${asset.label}` : ''}</p>
                             <p className="mt-1 text-xs text-[var(--esim-copy-soft)]">
                               ICCID ····{asset.iccid.slice(-6)}
-                              {asset.packages?.length ? ` · ${pickCopy(locale, { en: `${asset.packages.length} plan(s) on this eSIM`, hans: `已装 ${asset.packages.length} 个套餐`, hant: `已裝 ${asset.packages.length} 個套餐` })}` : ''}
+                              {asset.currentPackage ? ` · ${pickCopy(locale, { en: 'Current', hans: '当前', hant: '當前' })}: ${asset.currentPackage}` : ''}
                             </p>
                           </div>
                         </div>

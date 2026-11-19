@@ -162,10 +162,8 @@ function MyEsimAssets({ apiBaseUrl, email, locale }: { apiBaseUrl: string; email
               </span>
             </div>
             <p className="mt-1.5 font-mono text-xs text-[var(--esim-copy-soft)]">ICCID ····{asset.iccid.slice(-6)}</p>
-            {asset.packages && asset.packages.length > 0 ? (
-              <p className="mt-1 text-xs text-[var(--esim-copy)]">
-                {asset.packages.map((pkg) => pkg.name).filter(Boolean).join(' · ')}
-              </p>
+            {asset.currentPackage ? (
+              <p className="mt-1 text-xs text-[var(--esim-copy)]">{asset.currentPackage}</p>
             ) : null}
           </div>
         ))}

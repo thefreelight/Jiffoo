@@ -240,7 +240,8 @@ async function createOrder(
   // re-checks ownership semantics upstream.
   const bodyRecord = body as { esimIccid?: unknown };
   const esimIccidRaw = typeof bodyRecord?.esimIccid === 'string' ? bodyRecord.esimIccid.trim() : '';
-  const esimIccid = /^\d{10,22}$/.test(esimIccidRaw) ? esimIccidRaw : '';
+  // BOSS v4 asset ids may be short numeric ids (doc example 76010150).
+  const esimIccid = /^\d{6,22}$/.test(esimIccidRaw) ? esimIccidRaw : '';
 
   const items = resolved.map(({ input, product, variant }) => {
     const unitPrice = discountedUnit.get(variant.id) ?? variant.salePrice;
