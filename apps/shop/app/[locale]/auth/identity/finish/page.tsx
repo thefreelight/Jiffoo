@@ -31,6 +31,10 @@ function describeError(code: string | null, fallback: string): string {
       return 'This sign-in link has expired or was already used. Please start again.';
     case 'IDENTITY_EMAIL_IN_USE':
       return 'An account already exists with this email. Sign in with your original method, then link this provider from account settings.';
+    case 'IDENTITY_ALREADY_LINKED':
+      return 'This social account is already connected to an account. Sign in with it instead.';
+    case 'IDENTITY_LAST_METHOD':
+      return 'Set a password before removing your last sign-in method.';
     case 'IDENTITY_ACCOUNT_UNAVAILABLE':
       return 'This account cannot use social sign-in.';
     case 'IDENTITY_CANCELLED':
@@ -76,11 +80,31 @@ export default function AuthIdentityFinishPage() {
         });
         const payload = (await response.json().catch(() => null)) as {
           success?: boolean;
-          data?: { user?: unknown; access_token?: string; refresh_token?: string };
+          data?: { user?: unknown; access_token?: string; refresh_token?: string; linked?: boolean; returnTo?: string };
           error?: { code?: string; message?: string };
         } | null;
 
-        if (!response.ok || payload?.success !== true || !payload.data?.access_token) {
+        if (!response.ok || payload?.success !== true) {
+          throw new Error(describeError(payload?.error?.code ?? null, payload?.error?.message || 'Sign-in could not be completed'));
+        }
+
+        // Link intent (started from account settings): the browser already
+        // holds a session, so the exchange only reports the completed link.
+        // Drop the one-time handoff from the URL so a refresh cannot replay it.
+        if (payload.data?.linked === true) {
+          // returnTo is already locale-prefixed and validated server-side
+          // (identityReturnPath), so it must not pass through getHref again.
+          const returnTo = typeof payload.data.returnTo === 'string' && payload.data.returnTo.startsWith('/')
+            ? payload.data.returnTo
+            : `${getHref('/profile/settings')}`;
+          window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+          if (!cancelled) {
+            router.replace(returnTo);
+          }
+          return;
+        }
+
+        if (!payload.data?.access_token) {
           throw new Error(describeError(payload?.error?.code ?? null, payload?.error?.message || 'Sign-in could not be completed'));
         }
 

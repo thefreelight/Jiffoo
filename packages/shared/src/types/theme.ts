@@ -516,6 +516,22 @@ export interface ProfileSettingsPageProps extends ThemeI18nProps {
   isLoading: boolean;
   isAuthenticated: boolean;
   config?: ThemeConfig;
+  // False when the account was created through social sign-in only (identity
+  // login, password_set = 0): the password section becomes "Set password"
+  // with no current-password field.
+  passwordSet?: boolean;
+  // Social sign-in connections (native identity links). All fields optional —
+  // themes without the section simply ignore them.
+  connectedAccounts?: Array<{
+    id: string;
+    providerSlug: string;
+    label: string;
+    createdAt: string;
+  }>;
+  linkableProviders?: Array<{
+    providerSlug: string;
+    label: string;
+  }>;
   onSaveProfile: (data: {
     name?: string;
     phone?: string;
@@ -525,6 +541,8 @@ export interface ProfileSettingsPageProps extends ThemeI18nProps {
     timezone?: string;
   }) => Promise<void>;
   onChangePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  onLinkProvider?: (providerSlug: string) => Promise<void>;
+  onUnlinkIdentity?: (identityId: string) => Promise<void>;
   onNavigateBack: () => void;
   onNavigateToLogin: () => void;
 }

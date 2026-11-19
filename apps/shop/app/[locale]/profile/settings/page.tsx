@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { useShopTheme } from '@/lib/themes/provider';
 import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
+import { useIdentityConnections } from '@/hooks/use-identity-connections';
 import { useAuthStore } from '@/store/auth';
 import { useT } from 'shared/src/i18n/react';
 import { LoadingState, ErrorState } from '@/components/ui/state-components';
@@ -11,6 +12,7 @@ export default function ProfileSettingsPage() {
   const { theme, config, isLoading: themeLoading } = useShopTheme();
   const nav = useLocalizedNavigation();
   const { user, isAuthenticated, isLoading, getProfile, updateProfile, changePassword } = useAuthStore();
+  const identity = useIdentityConnections(nav.locale);
   const t = useT();
 
   const displayName = user
@@ -60,12 +62,18 @@ export default function ProfileSettingsPage() {
       config={config}
       locale={nav.locale}
       t={t}
+      passwordSet={user?.passwordSet !== false}
+      connectedAccounts={identity.connected}
+      linkableProviders={identity.linkable}
       onSaveProfile={async (data) => {
         await updateProfile(data);
       }}
       onChangePassword={async (currentPassword, newPassword) => {
         await changePassword({ currentPassword, newPassword });
+        await getProfile();
       }}
+      onLinkProvider={identity.beginLinkProvider}
+      onUnlinkIdentity={identity.unlink}
       onNavigateBack={() => nav.push('/profile')}
       onNavigateToLogin={() => nav.push('/auth/login')}
     />

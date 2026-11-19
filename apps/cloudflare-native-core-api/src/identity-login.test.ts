@@ -294,6 +294,13 @@ describe('start validation', () => {
     expect(db.transactions[0].expires_at > new Date().toISOString()).toBe(true);
   });
 
+  it('accepts every storefront locale for returnTo (7-language shop)', async () => {
+    for (const locale of ['ja', 'ko', 'fr', 'de', 'zh-Hans', 'zh-Hant']) {
+      const response = await tryNativeIdentityLogin(post('/api/v1/auth/identity/start', { providerSlug: 'google-auth', returnTo: `/${locale}/account`, locale }, { origin: 'https://shop.instance.test' }), makeEnv());
+      expect(response?.status, locale).toBe(200);
+    }
+  });
+
   it('returns 503 when the provider is not ready', async () => {
     getNativePluginConfig.mockResolvedValue({ enabled: false, config: {} });
     const response = await tryNativeIdentityLogin(post('/api/v1/auth/identity/start', { providerSlug: 'google-auth', returnTo: '/en/account', locale: 'en' }, { origin: 'https://shop.instance.test' }), makeEnv());

@@ -14,9 +14,10 @@ vi.mock('./auth', () => ({
   verifyNativePassword: vi.fn(async () => true),
 }));
 vi.mock('./email-verification', () => ({ sendNativeVerificationCode: vi.fn(), verifyNativeEmailCode: vi.fn() }));
-vi.mock('./auth-rate-limit', () => ({ consumeVerificationRateLimit: vi.fn(async () => ({ allowed: true, remaining: 5 })) }));
+vi.mock('./auth-rate-limit', () => ({ consumeVerificationRateLimit: vi.fn(async () => ({ allowed: true, remaining: 5 })), requestIp: vi.fn(() => '198.51.100.9') }));
 
 const { tryNativeShopperAccount } = await import('./shopper-account');
+const { verifyNativePassword, updateNativePassword } = await import('./auth') as unknown as Record<string, ReturnType<typeof vi.fn>>;
 
 const ADMIN_USER = { id: 'admin-1', email: 'support@remoteradar.cc', username: 'support', role: 'SUPER_ADMIN', avatar: null, is_active: 1, email_verified: 1, migrated_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z' };
 
@@ -83,5 +84,49 @@ describe('shopper account admin sessions', () => {
     const missing = await tryNativeShopperAccount(new Request('https://api.example/api/v1/account/avatar', { method: 'POST', body: noFile }), envWithAssets);
     expect(missing?.status).toBe(400);
     expect(put).not.toHaveBeenCalled();
+  });
+});
+
+describe('shop change password', () => {
+  const USER_WITH_PASSWORD = { ...ADMIN_USER, id: 'shop-1', role: 'USER', email_verified: 1, password_set: 1 };
+
+  it('serves the shared SDK route /api/v1/auth/change-password', async () => {
+    authenticateNativeUser.mockResolvedValue({ id: 'shop-1' });
+    authenticateNativeAdmin.mockResolvedValue(null);
+    findNativeUserById.mockResolvedValue(USER_WITH_PASSWORD);
+    const response = await tryNativeShopperAccount(
+      new Request('https://api.example/api/v1/auth/change-password', { method: 'POST', body: JSON.stringify({ currentPassword: 'old', newPassword: 'correct-horse-9' }) }),
+      db(),
+    );
+    expect(response?.status).toBe(200);
+    expect(updateNativePassword).toHaveBeenCalledWith(expect.anything(), 'shop-1', 'correct-horse-9');
+  });
+
+  it('lets identity-only accounts set their first password without a current one', async () => {
+    verifyNativePassword.mockClear();
+    updateNativePassword.mockClear();
+    authenticateNativeUser.mockResolvedValue({ id: 'shop-2' });
+    authenticateNativeAdmin.mockResolvedValue(null);
+    findNativeUserById.mockResolvedValue({ ...ADMIN_USER, id: 'shop-2', role: 'USER', email_verified: 1, password_set: 0 });
+    const response = await tryNativeShopperAccount(
+      new Request('https://api.example/api/v1/shop/auth/password', { method: 'POST', body: JSON.stringify({ newPassword: 'correct-horse-9' }) }),
+      db(),
+    );
+    expect(response?.status).toBe(200);
+    expect(verifyNativePassword).not.toHaveBeenCalled();
+    expect(updateNativePassword).toHaveBeenCalledWith(expect.anything(), 'shop-2', 'correct-horse-9');
+  });
+
+  it('still requires the current password for accounts that have one', async () => {
+    updateNativePassword.mockClear();
+    authenticateNativeUser.mockResolvedValue({ id: 'shop-1' });
+    authenticateNativeAdmin.mockResolvedValue(null);
+    findNativeUserById.mockResolvedValue(USER_WITH_PASSWORD);
+    const response = await tryNativeShopperAccount(
+      new Request('https://api.example/api/v1/shop/auth/password', { method: 'POST', body: JSON.stringify({ newPassword: 'correct-horse-9' }) }),
+      db(),
+    );
+    expect(response?.status).toBe(400);
+    expect(updateNativePassword).not.toHaveBeenCalled();
   });
 });
