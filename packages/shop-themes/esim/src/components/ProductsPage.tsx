@@ -6,7 +6,7 @@ import type { ProductsPageProps } from 'shared/src/types/theme';
 import { displayProductTitle, getEsimProducts, mapEsimApiProductToThemeProduct, normalizeProductForTheme, readProductCurrency, resolveEsimMediaUrl, type EsimApiProduct } from '../lib/api';
 import { getEsimTravelProfile } from '../lib/digital-fulfillment';
 import { destinationLabel, regionLabelOf, type EsimPlanAttributes } from '../lib/esim/catalog';
-import { pickCopy, resolveEsimSiteConfig } from '../site';
+import { filterEsimPlans, pickCopy, resolveEsimSiteConfig } from '../site';
 
 const GOLD_CTA = 'bg-[linear-gradient(135deg,var(--esim-gold-strong),var(--esim-gold)_55%,color-mix(in_oklab,var(--esim-gold)_70%,#7a5c14))]';
 
@@ -113,7 +113,12 @@ export const ProductsPage = React.memo(function ProductsPage({
   const t = (copy: { en: string; hans: string; hant: string }) => pickCopy(locale, copy);
   const normalizedProducts = React.useMemo(
     () =>
-      (remoteProducts.length > 0 ? remoteProducts : (products as unknown as EsimApiProduct[])).map((raw) => {
+      // Host-provided fallback lists come from the shared instance catalog
+      // and may contain Bokmoo physical cards — the pure eSIM mall never
+      // shows them.
+      (remoteProducts.length > 0
+        ? remoteProducts
+        : filterEsimPlans(products as unknown as EsimApiProduct[]) as unknown as EsimApiProduct[]).map((raw) => {
         const esimAttrs = ((raw as EsimApiProduct).typeData?.esim || undefined) as EsimPlanAttributes | undefined;
         return {
           product: normalizeProductForTheme(raw as unknown as Product),
