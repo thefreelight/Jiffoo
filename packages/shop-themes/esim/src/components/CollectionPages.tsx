@@ -7,12 +7,22 @@ import type {
 } from 'shared/src/types/theme';
 import { ProductsPage } from './ProductsPage';
 import { filterEsimPlans } from '../site';
+<<<<<<< HEAD
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const esimPlansOf = (props: { products?: any[] }) => filterEsimPlans(props.products);
+=======
+>>>>>>> origin/main
 
 export const BestsellersPage = (props: BestsellersPageProps) => (
   <ProductsPage
     {...props}
     products={filterEsimPlans(props.products)}
+<<<<<<< HEAD
+    totalProducts={props.totalProducts ?? esimPlansOf(props).length ?? 0}
+=======
     totalProducts={props.totalProducts ?? props.products?.length ?? 0}
+>>>>>>> origin/main
     currentPage={props.currentPage ?? 1}
     totalPages={props.totalPages ?? 1}
     viewMode="grid"
@@ -25,7 +35,11 @@ export const NewArrivalsPage = (props: NewArrivalsPageProps) => (
   <ProductsPage
     {...props}
     products={filterEsimPlans(props.products)}
+<<<<<<< HEAD
+    totalProducts={props.totalProducts ?? esimPlansOf(props).length ?? 0}
+=======
     totalProducts={props.totalProducts ?? props.products?.length ?? 0}
+>>>>>>> origin/main
     currentPage={props.currentPage ?? 1}
     totalPages={props.totalPages ?? 1}
     viewMode="grid"
@@ -38,7 +52,7 @@ export const DealsPage = (props: DealsPageProps) => (
   <ProductsPage
     products={filterEsimPlans(props.products)}
     isLoading={props.isLoading}
-    totalProducts={props.products?.length ?? 0}
+    totalProducts={esimPlansOf(props).length}
     currentPage={1}
     totalPages={1}
     sortBy="createdAt"
@@ -59,7 +73,7 @@ export const SearchPage = (props: SearchPageProps) => (
   <ProductsPage
     products={filterEsimPlans(props.products)}
     isLoading={props.isLoading}
-    totalProducts={props.products?.length ?? 0}
+    totalProducts={esimPlansOf(props).length}
     currentPage={1}
     totalPages={1}
     sortBy={props.sortBy}
