@@ -401,17 +401,19 @@ describe('AI resume tailoring', () => {
       dropped: [],
       rationale: '保留与增长直接相关的工程事实',
     }) }));
-    const prepare = vi.fn((sql: string) => ({
-      bind: (...args: unknown[]) => ({
-        first: async () => {
-          if (sql.includes('native_rr_saved_jobs WHERE id')) return { title: 'Growth Manager', company: 'Acme', description: 'Own growth loops' };
-          if (sql.includes('native_rr_resumes WHERE id')) return { name: 'Primary resume', summary: 'Engineer' };
-          return null;
-        },
-        all: async () => ({ results: sql.includes('native_rr_resume_facts') ? [{ kind: 'skill', label: 'TypeScript', value: '6 years' }] : [] }),
+    const firstFor = (sql: string) => {
+      if (sql.includes('native_rr_saved_jobs WHERE id')) return { title: 'Growth Manager', company: 'Acme', description: 'Own growth loops' };
+      if (sql.includes('native_rr_resumes WHERE id')) return { name: 'Primary resume', summary: 'Engineer' };
+      return null;
+    };
+    const prepare = vi.fn((sql: string) => {
+      const statement = {
+        first: vi.fn(async () => firstFor(sql)),
+        all: vi.fn(async () => ({ results: sql.includes('native_rr_resume_facts') ? [{ kind: 'skill', label: 'TypeScript', value: '6 years' }] : [] })),
         run: vi.fn(async () => ({ success: true })),
-      }),
-    }));
+      };
+      return { ...statement, bind: (...args: unknown[]) => statement };
+    });
     const db = { prepare, batch: vi.fn(async () => []) };
     const env = { DB: db, AI: { run: ai }, REMOTERADAR_AI_MODEL: 'test-model' };
 
@@ -433,18 +435,62 @@ describe('AI resume tailoring', () => {
 
   it('rejects tailoring without a job target', async () => {
     authenticateNativeUser.mockResolvedValue({ id: 'user-1', email: 'u@example.com', username: 'u', role: 'USER' });
-    const prepare = vi.fn((sql: string) => ({
-      bind: vi.fn(() => ({
+    const prepare = vi.fn((sql: string) => {
+      const statement = {
         first: vi.fn(async () => ({ name: 'Primary resume', summary: 'Engineer' })),
         all: vi.fn(async () => ({ results: [{ kind: 'skill', label: 'TypeScript', value: '6 years' }] })),
         run: vi.fn(async () => ({ success: true })),
-      })),
-    }));
+      };
+      return { ...statement, bind: (...args: unknown[]) => statement };
+    });
     const env = { DB: { prepare }, AI: vi.fn() };
     const response = await tryNativeRemoteRadarApplications(new Request(`${baseUrl}/resumes/resume-1/tailor`, {
       method: 'POST', body: JSON.stringify({}),
     }), env as never);
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toMatchObject({ error: { code: 'VALIDATION_ERROR' } });
+  });
+});
+
+describe('AI resume tailoring provider selection', () => {
+  it('prefers the instance-configured OpenAI-compatible provider over Workers AI', async () => {
+    authenticateNativeUser.mockResolvedValue({ id: 'user-1', email: 'u@example.com', username: 'u', role: 'USER' });
+    const providerFetch = vi.fn(async () => Response.json({ choices: [{ message: { content: JSON.stringify({
+      summary: 'GLM 定制的摘要',
+      facts: [{ kind: 'experience', label: '拉夫德鲁', value: '3 万客户', reason: 'JD 要求增长实操' }],
+      dropped: [], rationale: '聚焦增长',
+    }) } }] }));
+    vi.stubGlobal('fetch', providerFetch);
+    const ai = vi.fn();
+    const prepare = vi.fn((sql: string) => {
+      const firstFor = (query: string) => {
+        if (query.includes('native_plugin_instances')) return { config_json: JSON.stringify({ aiBaseUrl: 'https://open.bigmodel.cn/api/paas/v4', aiApiKey: 'glm-key', aiModel: 'glm-5.3-flash' }) };
+        if (query.includes('native_rr_saved_jobs WHERE id')) return { title: 'Growth Manager', company: 'Acme', description: 'Own growth loops' };
+        if (query.includes('native_rr_resumes WHERE id')) return { name: 'Primary resume', summary: 'Engineer' };
+        return null;
+      };
+      return {
+        first: vi.fn(async () => firstFor(sql)),
+        all: vi.fn(async () => ({ results: sql.includes('native_rr_resume_facts') ? [{ kind: 'skill', label: 'TypeScript', value: '6 years' }] : [] })),
+        run: vi.fn(async () => ({ success: true })),
+        bind: (...args: unknown[]) => ({
+          first: vi.fn(async () => firstFor(sql)),
+          all: vi.fn(async () => ({ results: sql.includes('native_rr_resume_facts') ? [{ kind: 'skill', label: 'TypeScript', value: '6 years' }] : [] })),
+          run: vi.fn(async () => ({ success: true })),
+        }),
+      };
+    });
+    const env = { DB: { prepare }, AI: { run: ai } };
+    const response = await tryNativeRemoteRadarApplications(new Request(`${baseUrl}/resumes/resume-1/tailor`, {
+      method: 'POST', body: JSON.stringify({ savedJobId: 'job-1' }),
+    }), env as never);
+    expect(response.status).toBe(200);
+    expect(providerFetch).toHaveBeenCalledOnce();
+    expect(String(providerFetch.mock.calls[0][0])).toBe('https://open.bigmodel.cn/api/paas/v4/chat/completions');
+    expect(JSON.parse(String(providerFetch.mock.calls[0][1].body)).model).toBe('glm-5.3-flash');
+    const payload = await response.json() as { data: { tailored: { summary: string }; model: string } };
+    expect(payload.data.model).toBe('glm-5.3-flash');
+    expect(ai).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
   });
 });
