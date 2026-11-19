@@ -12,7 +12,7 @@ export type NativeCatalogItem = {
   paymentMode?: 'platform_collect' | 'merchant_collect';
   settlementTargetType?: 'platform' | 'developer' | 'vendor' | 'merchant' | 'none';
   settlementTargetId?: string | null;
-  pricingModel?: 'free' | 'one_time' | 'subscription';
+  pricingModel?: 'free' | 'one_time' | 'subscription' | 'member';
   price?: number | null;
   currency?: string;
   currentVersion?: string;
@@ -94,4 +94,17 @@ export function buildNativeCatalogResponse(items: NativeCatalogItem[], installed
     managedPackage: null,
     generatedAt: new Date().toISOString(),
   };
+}
+
+// Pro membership gate: extract a valid platform license key from the system
+// settings JSON stored in native_settings.
+export function parseStoredLicenseSettings(raw: string | null): string | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as { platformLicenseKey?: unknown };
+    const key = parsed.platformLicenseKey;
+    return typeof key === 'string' && /^JIF-[A-Z0-9-]{4,80}$/.test(key) ? key : null;
+  } catch {
+    return null;
+  }
 }

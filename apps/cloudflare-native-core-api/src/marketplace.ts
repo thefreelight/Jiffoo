@@ -1,5 +1,5 @@
 import { authenticateNativeAdmin, type NativeAuthEnv } from './auth';
-import { buildNativeCatalogResponse, type NativeCatalogItem } from './marketplace-mapping';
+import { buildNativeCatalogResponse, parseStoredLicenseSettings, type NativeCatalogItem } from './marketplace-mapping';
 import { installThemePackage, readActiveThemeSnapshot } from './theme-install';
 
 type Env = NativeAuthEnv & {
@@ -46,6 +46,30 @@ function failure(error: unknown): Response {
   } }, { status: 503, headers: { 'cache-control': 'no-store', 'x-jiffoo-runtime': 'cloudflare-native-marketplace' } });
 }
 
+async function storedPlatformLicenseKey(env: Env): Promise<string | null> {
+  const row = await env.DB.prepare('SELECT settings FROM native_settings WHERE id = ?1')
+    .bind('system').first<{ settings: string }>().catch(() => null);
+  return parseStoredLicenseSettings(row?.settings ?? null);
+}
+
+async function membershipLicenseValid(env: Env, licenseKey: string): Promise<boolean> {
+  const target = `${baseUrl(env)}/marketplace/licenses/validate?key=${encodeURIComponent(licenseKey)}`;
+  const response = env.PLATFORM_API
+    ? await env.PLATFORM_API.fetch(new Request(target, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(PLATFORM_FETCH_TIMEOUT_MS) }))
+    : await fetch(target, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(PLATFORM_FETCH_TIMEOUT_MS) });
+  if (!response.ok) return false;
+  const body = await response.json().catch(() => null) as { data?: { valid?: boolean } } | null;
+  return body?.data?.valid === true;
+}
+
+function membershipRequiredResponse(): Response {
+  return Response.json({ success: false, error: {
+    code: 'MEMBERSHIP_REQUIRED',
+    message: 'This official extension requires an active Pro membership. Purchase it at https://platform-api.jiffoo.com/membership and paste the license key under Admin → Settings.',
+    details: { purchaseUrl: 'https://platform-api.jiffoo.com/membership' },
+  } }, { status: 402, headers: { 'cache-control': 'no-store', 'x-jiffoo-runtime': 'cloudflare-native-marketplace' } });
+}
+
 export async function tryNativeMarketplace(request: Request, env: Env): Promise<Response | null> {
   const url = new URL(request.url);
   const path = url.pathname;
@@ -66,6 +90,11 @@ export async function tryNativeMarketplace(request: Request, env: Env): Promise<
       const catalog = await platformCatalog(env);
       const item = catalog.find((candidate) => candidate.slug === install[1] && candidate.kind === catalogKind && candidate.installable);
       if (!item) return Response.json({ success: false, error: { code: 'ARTIFACT_NOT_FOUND', message: `Official ${body.kind} "${install[1]}" is not installable` } }, { status: 404 });
+      if (item.pricingModel === 'member') {
+        const licenseKey = await storedPlatformLicenseKey(env);
+        const licenseValid = licenseKey ? await membershipLicenseValid(env, licenseKey) : false;
+        if (!licenseValid) return membershipRequiredResponse();
+      }
       const version = body.version || item.sellableVersion || item.currentVersion || item.versions?.find((entry) => entry.isCurrent)?.version || '0.0.1';
       if (body.kind === 'theme' || body.kind === 'theme-shop') {
         const packageUrl = item.versions?.find((entry) => entry.version === version)?.packageUrl

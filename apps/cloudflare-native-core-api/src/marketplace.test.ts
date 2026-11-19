@@ -62,3 +62,24 @@ describe('buildNativeCatalogResponse', () => {
     expect(result.items[1]).toMatchObject({ slug: 'paywall-tunables', category: 'content' });
   });
 });
+
+describe('membership gate plumbing', () => {
+  it('passes the member pricing model through to Merchant Admin items', () => {
+    const result = buildNativeCatalogResponse([
+      { slug: 'wallet', kind: 'plugin', installable: true, pricingModel: 'member', price: 99, currency: 'USD' },
+      { slug: 'seo', kind: 'plugin', installable: true, pricingModel: 'free' },
+    ], new Map());
+    expect(result.items[0]).toMatchObject({ slug: 'wallet', pricingModel: 'member', price: 99 });
+    expect(result.items[1]).toMatchObject({ slug: 'seo', pricingModel: 'free' });
+  });
+
+  it('extracts a valid platform license key from system settings', async () => {
+    const { parseStoredLicenseSettings } = await import('./marketplace-mapping');
+    const key = `JIF-${'A'.repeat(32)}`;
+    expect(parseStoredLicenseSettings(JSON.stringify({ platformLicenseKey: key, other: 1 }))).toBe(key);
+    expect(parseStoredLicenseSettings(JSON.stringify({ platformLicenseKey: 'not-a-key' }))).toBeNull();
+    expect(parseStoredLicenseSettings(JSON.stringify({}))).toBeNull();
+    expect(parseStoredLicenseSettings('not json')).toBeNull();
+    expect(parseStoredLicenseSettings(null)).toBeNull();
+  });
+});
