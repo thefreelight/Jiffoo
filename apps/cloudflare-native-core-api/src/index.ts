@@ -47,7 +47,7 @@ import { authenticateNativeAdmin } from './auth';
 import { authenticateJobsUser, processNativeJobsSync, tryNativeJobsAdminProxy, tryNativeJobsProxy, type NativeJobsProxyEnv } from './jobs-proxy';
 import { tryNativeRemoteRadarApplications } from './remoteradar-applications';
 import { tryNativeRemoteRadarAudit } from './remoteradar-audit';
-import { expireNativeWalletReservations, tryNativeWallet } from './native-wallet';
+import { expireNativeCurrencyReservations, expireNativeWalletReservations, tryNativeWallet } from './native-wallet';
 import { tryNativeAvailableMethods } from './available-methods';
 import { tryNativeSubscription } from './native-subscription';
 import { expireRemoteRadarCreditGrants, tryNativeRemoteRadarEntitlements } from './remoteradar-entitlements';
@@ -370,7 +370,7 @@ async function routeNativeRequest(request: Request, env: WorkerEnv, ctx: Executi
     if (nativeShopperAccount) return nativeShopperAccount;
     const nativeAffiliate = await tryNativeAffiliate(nativeRequest, env);
     if (nativeAffiliate) return nativeAffiliate;
-    const nativeCoupon = await tryNativeCoupon(nativeRequest, env);
+    const nativeCoupon = await tryNativeCoupon(nativeRequest, env, (productId) => loadProduct(productId, env));
     if (nativeCoupon) return nativeCoupon;
     const nativeVideoAi = await tryNativeVideoAi(nativeRequest, env);
     if (nativeVideoAi) return nativeVideoAi;
@@ -482,7 +482,7 @@ export default {
     }
   },
   async scheduled(_controller: ScheduledController, env: WorkerEnv): Promise<void> {
-    const [checkout, email, odooCatalog, odooShipments, jobs, walletReservations, creditGrants, resumeExtraction, videoTasks, toolDiscovery, staleReservations, bossCatalog] = await Promise.allSettled([
+    const [checkout, email, odooCatalog, odooShipments, jobs, walletReservations, currencyReservations, creditGrants, resumeExtraction, videoTasks, toolDiscovery, staleReservations, bossCatalog] = await Promise.allSettled([
       processCheckoutOutbox(env),
       processNativeEmailOutbox(env),
       processScheduledOdooCatalogSync(env),
@@ -490,6 +490,7 @@ export default {
       processNativeOdooShipmentPoll(env),
       processNativeJobsSync(env),
       expireNativeWalletReservations(env),
+      expireNativeCurrencyReservations(env),
       expireRemoteRadarCreditGrants(env),
       processPendingRemoteRadarResumeDocuments(env),
       processNativeVideoTasks(env),
@@ -506,6 +507,9 @@ export default {
       walletReservations: walletReservations.status === 'fulfilled'
         ? walletReservations.value
         : { error: String(walletReservations.reason) },
+      currencyReservations: currencyReservations.status === 'fulfilled'
+        ? currencyReservations.value
+        : { error: String(currencyReservations.reason) },
       creditGrants: creditGrants.status === 'fulfilled'
         ? creditGrants.value
         : { error: String(creditGrants.reason) },
