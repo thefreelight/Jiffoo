@@ -202,6 +202,37 @@ async function bossRequest(env: BossEnv, path: string, init?: RequestInit): Prom
   return payload.data;
 }
 
+export interface BossEsimAsset {
+  iccid: string;
+  label?: string;
+  region?: string;
+  status?: string;
+  packages?: Array<{ name?: string; status?: string; expiresAt?: string }>;
+  createdAt?: string;
+  lastOrderNo?: string;
+}
+
+/**
+ * Fetch the eSIM assets BOSS holds for a customer (by account email).
+ * Degrades to an empty library when BOSS has not provisioned the
+ * my-esims endpoint yet or the customer has no assets.
+ */
+export async function fetchBossEsimAssets(env: BossEnv, customerName: string): Promise<BossEsimAsset[]> {
+  try {
+    const data = await bossRequest(env, `/bs/openapi/my-esims?customerName=${encodeURIComponent(customerName)}`) as BossEsimAsset[] | { items?: BossEsimAsset[] };
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray((data as { items?: BossEsimAsset[] }).items)) {
+      return (data as { items: BossEsimAsset[] }).items;
+    }
+    return [];
+  } catch (error) {
+    // Not-ready endpoint or unknown customer: an empty library is the
+    // correct storefront answer (checkout falls back to "new eSIM").
+    console.warn('[BOSS] my-esims unavailable:', error instanceof Error ? error.message : String(error));
+    return [];
+  }
+}
+
 export async function fetchBossPackages(env: BossEnv): Promise<BossPackage[]> {
   const data = (await bossRequest(env, '/bs/openapi/packages')) as BossPackage[];
   return Array.isArray(data) ? data : [];

@@ -129,12 +129,20 @@ export async function processBossPaidOrder(
   ).bind(orderId).all<OrderItemRow>();
 
   // Resolve which lines are BOSS-managed before touching state.
-  const bossLines: Array<{ lineItemId: string; productId: string; quantity: number; facts: BossEsimTypeData }> = [];
+  const bossLines: Array<{ lineItemId: string; productId: string; quantity: number; facts: BossEsimTypeData; iccid: string }> = [];
   for (const item of items.results) {
     if (item.quantity <= 0) continue;
     const facts = await loadBossEsimFacts(env, item.product_id);
     if (facts) {
-      bossLines.push({ lineItemId: item.id, productId: item.product_id, quantity: item.quantity, facts });
+      // Reuse path: the checkout stamped the buyer's chosen eSIM ICCID into
+      // the item fulfillmentData — pass it so BOSS tops up that profile
+      // (Dashi addPackage) instead of paying a fresh provisioning fee.
+      const payloadRecord = (item.payload && typeof item.payload === 'object' ? item.payload : {}) as {
+        fulfillmentData?: { esimIccid?: unknown };
+      };
+      const iccidRaw = payloadRecord.fulfillmentData?.esimIccid;
+      const iccid = typeof iccidRaw === 'string' && /^\d{10,22}$/.test(iccidRaw.trim()) ? iccidRaw.trim() : '';
+      bossLines.push({ lineItemId: item.id, productId: item.product_id, quantity: item.quantity, facts, iccid });
     }
   }
   if (bossLines.length === 0) throw new Error('BOSS_ORDER_NOT_ELIGIBLE');
@@ -204,6 +212,7 @@ export async function processBossPaidOrder(
         productOdooId: line.facts.bossOdooId,
         quantity: line.quantity,
         customerName,
+        ...(line.iccid ? { iccid: line.iccid } : {}),
         remark: `${orderId}/${line.lineItemId}`,
       });
       await env.DB.prepare(

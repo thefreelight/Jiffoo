@@ -274,6 +274,8 @@ export interface CheckoutFormData {
   country: string;
   paymentMethod: string;
   promoCode?: string;
+  /** ICCID chosen at checkout (eSIM reuse); empty = provision a new eSIM. */
+  esimIccid?: string;
 }
 
 /**

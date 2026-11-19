@@ -42,6 +42,7 @@ import { tryNativeMailReceipts } from './mail-receipts';
 import { processScheduledOdooCatalogSync, tryNativeOdooCatalogSync } from './odoo-catalog';
 import { snapshotFallbackKey, snapshotKey } from './snapshot-key';
 import { processScheduledBossCatalogSync } from './boss-upstream';
+import { tryNativeEsimAssets } from './esim-assets';
 import { syncBossOrderStatuses } from './boss-orders';
 import { applyProductCopyOverrides, loadProductCopyOverrides, productCopyPathKind } from './product-copy';
 import { authenticateNativeAdmin } from './auth';
@@ -372,6 +373,8 @@ async function routeNativeRequest(request: Request, env: WorkerEnv, ctx: Executi
     if (nativeShopperAccount) return nativeShopperAccount;
     const nativeAffiliate = await tryNativeAffiliate(nativeRequest, env);
     if (nativeAffiliate) return nativeAffiliate;
+    const nativeEsimAssets = await tryNativeEsimAssets(nativeRequest, env);
+    if (nativeEsimAssets) return nativeEsimAssets;
     const nativeCoupon = await tryNativeCoupon(nativeRequest, env, (productId) => loadProduct(productId, env));
     if (nativeCoupon) return nativeCoupon;
     const nativeVideoAi = await tryNativeVideoAi(nativeRequest, env);

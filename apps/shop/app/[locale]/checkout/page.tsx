@@ -318,6 +318,13 @@ export default function CheckoutPage() {
           }
           : undefined,
         customerEmail: normalizedEmail.length > 0 ? normalizedEmail : undefined,
+        // eSIM reuse: the theme's "use my existing eSIM" selector pins the
+        // order to an ICCID already provisioned for this account; the BOSS
+        // fulfillment hook forwards it so the plan tops up that profile
+        // instead of paying a fresh provisioning fee.
+        esimIccid: typeof data.esimIccid === 'string' && /^\d{10,22}$/.test(data.esimIccid)
+          ? data.esimIccid
+          : undefined,
         locale: nav.locale,
         affiliateCode: typeof data.promoCode === 'string' && data.promoCode.trim()
           ? data.promoCode.trim().toUpperCase()
