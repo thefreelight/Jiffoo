@@ -248,6 +248,18 @@ async function redeemProductCode(
            refreshed_at = excluded.refreshed_at`,
       ).bind(product.id, variant.id, sourceStock, now),
       env.DB.prepare(
+        `INSERT INTO native_order_snapshots
+         (id, user_id, status, searchable_text, payload, source_updated_at, imported_at)
+         VALUES (?1, ?2, 'PAID', ?3, ?4, ?5, ?5)`,
+      ).bind(orderId, user.id, searchable(order), JSON.stringify(order), now),
+      // The reservation and item rows carry FKs into native_order_metadata —
+      // that row must exist before they are inserted.
+      env.DB.prepare(
+        `INSERT INTO native_order_metadata
+         (order_id, user_id, idempotency_key, payment_status, currency, total_amount, affiliate_partner_id, promotion_id)
+         VALUES (?1, ?2, ?3, 'PAID', 'USD', 0, NULL, NULL)`,
+      ).bind(orderId, user.id, idempotencyKey),
+      env.DB.prepare(
         `INSERT INTO native_inventory_reservations
          (id, order_id, product_id, variant_id, quantity, active, created_at)
          SELECT ?1, ?2, ?3, ?4, ?5, 1, ?6
@@ -255,16 +267,6 @@ async function redeemProductCode(
            - COALESCE((SELECT SUM(quantity) FROM native_inventory_reservations
                        WHERE product_id = ?3 AND variant_id = ?4 AND active = 1), 0) >= ?5`,
       ).bind(reservationId, orderId, product.id, variant.id, quantity, now),
-      env.DB.prepare(
-        `INSERT INTO native_order_snapshots
-         (id, user_id, status, searchable_text, payload, source_updated_at, imported_at)
-         VALUES (?1, ?2, 'PAID', ?3, ?4, ?5, ?5)`,
-      ).bind(orderId, user.id, searchable(order), JSON.stringify(order), now),
-      env.DB.prepare(
-        `INSERT INTO native_order_metadata
-         (order_id, user_id, idempotency_key, payment_status, currency, total_amount, affiliate_partner_id, promotion_id)
-         VALUES (?1, ?2, ?3, 'PAID', 'USD', 0, NULL, NULL)`,
-      ).bind(orderId, user.id, idempotencyKey),
       env.DB.prepare(
         `INSERT INTO native_order_items
          (id, order_id, reservation_id, product_id, variant_id, quantity, unit_price, payload)
