@@ -5,7 +5,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiClient, PaginationParams, productsApi, ordersApi, usersApi, pluginsApi, themesApi, marketApi, managedPackageApi, platformConnectionApi, uploadApi, dashboardApi, inventoryApi, accountApi, authApi, healthApi, errorsApi, promotionsApi, redirectsApi, staffApi, unwrapApiResponse, isAdminApiError, ProductStatsData, OrderStatsData, UserStatsData, InventoryStatsData, type SeoRedirect, type Promotion, type PromotionForm as PromotionFormData, type StaffCreatePayload, type StaffMutationPayload } from '../api';
+import { apiClient, PaginationParams, productsApi, ordersApi, redemptionsApi, usersApi, pluginsApi, themesApi, marketApi, managedPackageApi, platformConnectionApi, uploadApi, dashboardApi, inventoryApi, accountApi, authApi, healthApi, errorsApi, promotionsApi, redirectsApi, staffApi, unwrapApiResponse, isAdminApiError, ProductStatsData, OrderStatsData, UserStatsData, InventoryStatsData, type SeoRedirect, type Promotion, type PromotionForm as PromotionFormData, type StaffCreatePayload, type StaffMutationPayload } from '../api';
 import { toast } from 'sonner';
 import { ProductForm, DashboardStats, Product, Order, OrderDetail, User, OrderItem, ThemeMeta, ActiveTheme, HealthMetricsResponse, HealthSummaryResponse, ErrorLog, ErrorListParams } from '../types';
 import { PageResult } from 'shared';
@@ -58,6 +58,7 @@ export const queryKeys = {
   staffPermissions: ['staff-permissions'] as const,
   staffAuditLogs: (userId: string, page: number, limit: number) => ['staff', userId, 'audit', page, limit] as const,
   dashboardStats: ['dashboard-stats'] as const,
+  redemptionCodes: ['redemption-codes'] as const,
   salesStats: (period: string) => ['sales-stats', period] as const,
   productStats: ['product-stats'] as const,
   adminDashboard: ['admin-dashboard'] as const,
@@ -287,6 +288,19 @@ export function useDeleteProduct() {
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
     },
+  });
+}
+
+// Redemption code hooks (native coupon plugin)
+export function useRedemptionCodes() {
+  return useQuery({
+    queryKey: queryKeys.redemptionCodes,
+    queryFn: async () => {
+      const response = await redemptionsApi.list();
+      const data = unwrapApiResponse(response);
+      return data.items || [];
+    },
+    staleTime: 60 * 1000,
   });
 }
 

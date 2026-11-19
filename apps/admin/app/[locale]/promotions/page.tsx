@@ -44,6 +44,7 @@ export default function PromotionsPage() {
   const navItems = [
     { label: getText('merchant.promotions.allPromotions', 'All Promotions'), href: '/promotions', exact: true },
     { label: getText('merchant.promotions.addPromotion', 'Add Promotion'), href: '/promotions/create' },
+    { label: getText('merchant.promotions.redemptionCodes', 'Redemption Codes'), href: '/promotions/redemptions', exact: true },
   ]
 
   const [searchTerm, setSearchTerm] = useState('')
