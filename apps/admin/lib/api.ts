@@ -1679,3 +1679,37 @@ export const staffApi = {
 };
 
 export default apiClient;
+
+// ============================================
+// Redemption codes (native coupon plugin)
+// ============================================
+
+export interface RedemptionCodeDTO {
+  id: string;
+  code: string;
+  productId: string;
+  variantId: string | null;
+  quantity: number;
+  active: number | boolean;
+  expiresAt: string | null;
+  createdAt: string;
+  claimedByUserId: string | null;
+  claimedAt: string | null;
+  orderId: string | null;
+}
+
+export interface CreateRedemptionCodeInput {
+  code?: string;
+  productId: string;
+  variantId?: string;
+  quantity?: number;
+  expiresAt?: string;
+}
+
+export const redemptionsApi = {
+  list: (): Promise<ApiResponse<{ items: RedemptionCodeDTO[]; total: number }>> =>
+    apiClient.get('/plugins/coupon/admin/product-redemption-codes'),
+
+  create: (input: CreateRedemptionCodeInput): Promise<ApiResponse<RedemptionCodeDTO>> =>
+    apiClient.post('/plugins/coupon/admin/product-redemption-codes', input),
+};
