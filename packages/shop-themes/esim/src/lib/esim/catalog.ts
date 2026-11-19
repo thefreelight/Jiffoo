@@ -22,6 +22,8 @@ export interface DestinationInfo {
 export const DESTINATION_REGISTRY: DestinationInfo[] = [
   { code: 'JP', en: 'Japan', hans: '日本', hant: '日本', aliases: ['东京', 'tokyo', '大阪', 'osaka', '京都', 'kyoto', 'japan'], popular: true },
   { code: 'KR', en: 'South Korea', hans: '韩国', hant: '韓國', aliases: ['首尔', 'seoul', '釜山', 'busan', 'korea'], popular: true },
+  // Mainland China (roaming egress) — onboarded 2026-11-20 with CN/GC packs.
+  { code: 'CN', en: 'Mainland China', hans: '中国大陆', hant: '中國大陸', aliases: ['大陆', '内地', '中國', '中国', 'china', 'mainland', '上海', '北京', '广州', '深圳', '成都'], popular: true },
   { code: 'SG', en: 'Singapore', hans: '新加坡', hant: '新加坡', aliases: ['狮城', 'singapore'], popular: true },
   { code: 'HK', en: 'Hong Kong', hans: '香港', hant: '香港', aliases: ['香港', 'hongkong', 'hong kong'], popular: true },
   { code: 'TW', en: 'Taiwan', hans: '台湾', hant: '台灣', aliases: ['台北', 'taipei', 'taiwan'], popular: true },
@@ -183,6 +185,8 @@ export const REGION_LABELS: Record<string, { zh: string; en: string }> = {
   TH: { zh: '泰国', en: 'Thailand' },
   SG: { zh: '新加坡', en: 'Singapore' },
   UK: { zh: '英国', en: 'United Kingdom' },
+  CN: { zh: '中国大陆', en: 'Mainland China' },
+  GC: { zh: '大中华', en: 'Greater China' },
 };
 
 export function regionLabelOf(defaultCode: string, locale?: string): { zh: string; en: string } | null {
