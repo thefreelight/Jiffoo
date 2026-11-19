@@ -265,16 +265,49 @@ async function tailorResume(request: Request, env: RemoteRadarApplicationsEnv, u
   const factRows = await env.DB.prepare('SELECT kind, label, value FROM native_rr_resume_facts WHERE resume_id = ?1 AND user_id = ?2 AND is_active = 1 ORDER BY created_at ASC').bind(resumeId, userId).all<{ kind: string; label: string; value: string }>();
   if (!(factRows.results ?? []).length) return fail(400, 'RESUME_EMPTY', 'This resume has no facts to tailor');
 
-  const model = env.REMOTERADAR_AI_MODEL || '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
+  let model = env.REMOTERADAR_AI_MODEL || '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
   const factsText = (factRows.results ?? []).map((row) => `- [${row.kind}] ${row.label}: ${row.value}`).join('\n');
   const companyText = jobCompany ? `（${jobCompany}）` : '';
-  const completion = await env.AI.run(model, {
-    messages: [
-      { role: 'system', content: '你是资深简历顾问。只输出一个 JSON 对象，不要 markdown 代码围栏。规则：只允许使用用户提供的事实，禁止编造新经历；为每条保留的事实给出一句入选理由；重写 summary 使其针对目标岗位；输出语言与事实库语言一致。JSON 结构：{"summary": string, "facts": [{"kind": string, "label": string, "value": string, "reason": string}], "dropped": [string], "rationale": string}。' },
-      { role: 'user', content: `目标岗位：${jobTitle}${companyText}\n岗位描述：\n${jobDescription.slice(0, 6000)}\n\n简历现有事实：\n${factsText}\n现有 summary：${resumeRow.summary}\n\n请针对该岗位定制这份简历：重写 summary，从事实中挑选并排序与岗位最相关的条目（保留原始 value，可微调措辞），给出每条的 reason，列出被剔除的事实（dropped），并用 rationale 总结取舍逻辑。` },
-    ],
-  }) as { response?: string };
-  const raw = typeof completion?.response === 'string' ? completion.response : '';
+  const messages = [
+    { role: 'system', content: '你是资深简历顾问。只输出一个 JSON 对象，不要 markdown 代码围栏。规则：只允许使用用户提供的事实，禁止编造新经历；为每条保留的事实给出一句入选理由；重写 summary 使其针对目标岗位；输出语言与事实库语言一致。JSON 结构：{"summary": string, "facts": [{"kind": string, "label": string, "value": string, "reason": string}], "dropped": [string], "rationale": string}。' },
+    { role: 'user', content: `目标岗位：${jobTitle}${companyText}\n岗位描述：\n${jobDescription.slice(0, 6000)}\n\n简历现有事实：\n${factsText}\n现有 summary：${resumeRow.summary}\n\n请针对该岗位定制这份简历：重写 summary，从事实中挑选并排序与岗位最相关的条目（保留原始 value，可微调措辞），给出每条的 reason，列出被剔除的事实（dropped），并用 rationale 总结取舍逻辑。` },
+  ];
+  let raw = '';
+  // Prefer the instance-configured AI provider (the SupportHub AI panel:
+  // aiBaseUrl/aiApiKey/aiModel — OpenAI-compatible, e.g. 智谱 GLM) and fall
+  // back to the instance Workers AI binding when it is not configured.
+  const providerRow = await env.DB.prepare(
+    "SELECT config_json FROM native_plugin_instances WHERE plugin_slug = 'support-hub' AND instance_key = 'default'",
+  ).first<{ config_json: string }>();
+  if (providerRow?.config_json) {
+    try {
+      const settings = JSON.parse(providerRow.config_json) as Record<string, unknown>;
+      const baseUrl = typeof settings.aiBaseUrl === 'string' ? settings.aiBaseUrl.trim() : '';
+      const apiKey = typeof settings.aiApiKey === 'string' ? settings.aiApiKey.trim() : '';
+      const providerModel = typeof settings.aiModel === 'string' ? settings.aiModel.trim() : '';
+      if (baseUrl && apiKey && providerModel) {
+        const providerResponse = await fetch(`${baseUrl.replace(/\/$/, '')}/chat/completions`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
+          body: JSON.stringify({ model: providerModel, messages, temperature: 0.3 }),
+        });
+        if (!providerResponse.ok) {
+          return fail(502, 'AI_PROVIDER_FAILED', `AI provider returned ${providerResponse.status}`);
+        }
+        const providerPayload = await providerResponse.json() as { choices?: Array<{ message?: { content?: string } }> };
+        raw = providerPayload?.choices?.[0]?.message?.content ?? '';
+        model = providerModel;
+      }
+    } catch (providerError) {
+      return fail(502, 'AI_PROVIDER_FAILED', String(providerError));
+    }
+  }
+  if (!raw) {
+    const completion = await env.AI.run(model, {
+      messages,
+    }) as { response?: string };
+    raw = typeof completion?.response === 'string' ? completion.response : '';
+  }
   const jsonText = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
   const start = jsonText.indexOf('{');
   const end = jsonText.lastIndexOf('}');
