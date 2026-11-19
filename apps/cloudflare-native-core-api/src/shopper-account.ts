@@ -64,6 +64,9 @@ async function profile(env: NativeAuthEnv, user: NativeUser): Promise<Record<str
     ...nativePublicUser(user),
     isActive: user.is_active === 1,
     emailVerified: user.email_verified === 1,
+    // Own-profile only (0078): drives the settings page "Set password" mode
+    // for identity-only accounts.
+    passwordSet: user.password_set !== 0,
     orderCount: totalOrders,
     totalOrders,
     totalSpent: Number(orderStats?.total_spent ?? 0),
@@ -152,18 +155,25 @@ async function changePassword(request: Request, env: NativeAuthEnv): Promise<Res
   const user = await authenticatedUser(request, env);
   if (!user) return error(401, 'UNAUTHORIZED', 'Authentication required');
   const body = await readJson<{ currentPassword?: string; newPassword?: string }>(request);
-  if (!body?.currentPassword || !body.newPassword) {
-    return error(400, 'VALIDATION_ERROR', 'Current password and new password are required');
+  if (!body?.newPassword) {
+    return error(400, 'VALIDATION_ERROR', 'New password is required');
   }
   if (!validPassword(body.newPassword)) {
     return error(400, 'VALIDATION_ERROR', 'New password must contain between 8 and 128 characters');
   }
-  if (!(await verifyNativePassword(user, body.currentPassword))) {
+  // Identity-only accounts (0078 password_set = 0) have no current password to
+  // verify: the session itself is the proof, so they set their first password
+  // without one. Accounts with a password keep the re-auth requirement.
+  const passwordSet = user.password_set !== 0;
+  if (passwordSet && !body.currentPassword) {
+    return error(400, 'VALIDATION_ERROR', 'Current password and new password are required');
+  }
+  if (passwordSet && !(await verifyNativePassword(user, body.currentPassword))) {
     return error(401, 'INVALID_PASSWORD', 'Current password is incorrect');
   }
   await updateNativePassword(env, user.id, body.newPassword);
   await recordNativeSecurityEvent(env, {
-    action: 'password.changed',
+    action: passwordSet ? 'password.changed' : 'password.set',
     email: user.email,
     userId: user.id,
     ip: requestIp(request),
@@ -338,6 +348,11 @@ export async function tryNativeShopperAccount(request: Request, env: NativeAuthE
   if (path === '/api/v1/shop/auth/verify-email/code' && request.method === 'POST') return verifyCode(request, env);
   if (path === '/api/v1/shop/auth/resend-verification' && request.method === 'POST') return resendVerification(request, env);
   if (path === '/api/v1/shop/auth/password' && request.method === 'POST') return changePassword(request, env);
+  // The shared SDK client posts API_ENDPOINTS.AUTH.CHANGE_PASSWORD
+  // (/auth/change-password) — alias it to the same handler so the shop
+  // settings page works on native instances (login/register already carry
+  // this dual-path convention).
+  if (path === '/api/v1/auth/change-password' && request.method === 'POST') return changePassword(request, env);
   if (path === '/api/v1/account/profile' && request.method === 'GET') return getProfile(request, env);
   if (path === '/api/v1/account/profile' && request.method === 'PUT') return updateProfile(request, env);
   if (path === '/api/v1/account/email' && request.method === 'PUT') return updateEmail(request, env);

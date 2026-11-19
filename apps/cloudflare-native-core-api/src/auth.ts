@@ -34,6 +34,9 @@ export interface NativeUser {
   is_active: number;
   migrated_at: string;
   updated_at: string;
+  // 0078: 0 marks an identity-only account (no usable password). SELECT *
+  // returns the column; identity login sets it, changePassword guards on it.
+  password_set?: number;
   email_verified: number;
   verification_code_hash: string | null;
   verification_expires_at: string | null;

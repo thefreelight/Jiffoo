@@ -81,6 +81,9 @@ export interface UserProfile {
   timezone?: string;
   role: string;
   permissions?: string[];
+  // Own profile only: false marks an identity-only account (social sign-in
+  // without a password), driving the settings page "Set password" mode.
+  passwordSet?: boolean;
   // Resolved admin identity (present for staff/admin accounts)
   adminRole?: string | null;
   adminStatus?: string | null;

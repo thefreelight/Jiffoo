@@ -94,7 +94,10 @@ const RUNTIME = 'cloudflare-native-d1-identity-login';
 const TRANSACTION_TTL_MS = 10 * 60_000;
 const HANDOFF_TTL_MS = 60_000;
 const BINDING_COOKIE = 'identity_binding';
-const LOCALES = ['en', 'zh-Hans', 'zh-Hant'];
+// The shop storefront ships these locales (shared/src/i18n); returnTo and the
+// finish redirect must accept every one of them, not just the ones that
+// existed when identity login landed (the 7-language storefront came later).
+const LOCALES = ['en', 'zh-Hans', 'zh-Hant', 'ja', 'ko', 'fr', 'de'];
 const FINISH_PATH = '/auth/identity/finish';
 
 function json(data: unknown, status = 200, headers?: Headers): Response {

@@ -622,6 +622,28 @@
     ["path", { d: "M12 17h.01", key: "p32p05" }]
   ]);
 
+  // ../../../node_modules/lucide-react/dist/esm/icons/unlink.js
+  var Unlink = createLucideIcon("Unlink", [
+    [
+      "path",
+      {
+        d: "m18.84 12.25 1.72-1.71h-.02a5.004 5.004 0 0 0-.12-7.07 5.006 5.006 0 0 0-6.95 0l-1.72 1.71",
+        key: "yqzxt4"
+      }
+    ],
+    [
+      "path",
+      {
+        d: "m5.17 11.75-1.71 1.71a5.004 5.004 0 0 0 .12 7.07 5.006 5.006 0 0 0 6.95 0l1.71-1.71",
+        key: "4qinb0"
+      }
+    ],
+    ["line", { x1: "8", x2: "8", y1: "2", y2: "5", key: "1041cp" }],
+    ["line", { x1: "2", x2: "5", y1: "8", y2: "8", key: "14m1p5" }],
+    ["line", { x1: "16", x2: "16", y1: "19", y2: "22", key: "rzdirn" }],
+    ["line", { x1: "19", x2: "22", y1: "16", y2: "16", key: "ox905f" }]
+  ]);
+
   // ../../../node_modules/lucide-react/dist/esm/icons/user-plus.js
   var UserPlus = createLucideIcon("UserPlus", [
     ["path", { d: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2", key: "1yyitq" }],
@@ -17196,12 +17218,26 @@
   });
 
   // src/components/ProfileSettingsPage.tsx
+  var FOCUS_VISIBLE_RING4 = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bokmoo-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bokmoo-bg)]";
+  var PROVIDER_ICONS = {
+    "google-auth": Chrome,
+    "facebook-auth": Facebook,
+    "apple-auth": Apple
+  };
+  function providerIcon(providerSlug) {
+    return PROVIDER_ICONS[providerSlug] ?? Link2;
+  }
   var ProfileSettingsPage = react_default.memo(function ProfileSettingsPage2({
     user,
     isLoading,
     isAuthenticated,
+    passwordSet = true,
+    connectedAccounts,
+    linkableProviders,
     onSaveProfile,
     onChangePassword,
+    onLinkProvider,
+    onUnlinkIdentity,
     onNavigateBack,
     onNavigateToLogin
   }) {
@@ -17219,6 +17255,9 @@
     });
     const [savingProfile, setSavingProfile] = react_default.useState(false);
     const [savingPassword, setSavingPassword] = react_default.useState(false);
+    const [passwordError, setPasswordError] = react_default.useState(null);
+    const [connectionsError, setConnectionsError] = react_default.useState(null);
+    const [busyConnection, setBusyConnection] = react_default.useState(null);
     react_default.useEffect(() => {
       setProfile({
         name: user?.name || "",
@@ -17246,12 +17285,13 @@
         )
       ] }) });
     }
+    const hasConnections = Boolean(onLinkProvider || onUnlinkIdentity) && ((connectedAccounts?.length ?? 0) > 0 || (linkableProviders?.length ?? 0) > 0);
     return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-[var(--bokmoo-bg)] px-4 pb-16 pt-20 sm:px-6 lg:px-8", children: /* @__PURE__ */ jsxs("div", { className: "mx-auto max-w-[1080px]", children: [
       /* @__PURE__ */ jsxs(
         "button",
         {
           onClick: onNavigateBack,
-          className: "inline-flex items-center gap-2 rounded-full border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy)]",
+          className: FOCUS_VISIBLE_RING4 + " inline-flex items-center gap-2 rounded-full border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy)]",
           type: "button",
           children: [
             /* @__PURE__ */ jsx(ArrowLeft, { className: "h-4 w-4" }),
@@ -17324,43 +17364,125 @@
             ] })
           ] }),
           /* @__PURE__ */ jsxs("div", { className: "mt-6 grid gap-4", children: [
-            /* @__PURE__ */ jsxs("label", { className: "grid gap-2", children: [
+            passwordSet && /* @__PURE__ */ jsxs("label", { className: "grid gap-2", children: [
               /* @__PURE__ */ jsx("span", { className: "text-[11px] font-semibold tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: "Current password" }),
               /* @__PURE__ */ jsx("input", { type: "password", value: password.currentPassword, onChange: (event) => setPassword((prev) => ({ ...prev, currentPassword: event.target.value })), className: "h-12 rounded-[1rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 text-sm text-[var(--bokmoo-ink)] outline-none" })
             ] }),
             /* @__PURE__ */ jsxs("label", { className: "grid gap-2", children: [
-              /* @__PURE__ */ jsx("span", { className: "text-[11px] font-semibold tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: "New password" }),
+              /* @__PURE__ */ jsx("span", { className: "text-[11px] font-semibold tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: passwordSet ? "New password" : "Set a password" }),
               /* @__PURE__ */ jsx("input", { type: "password", value: password.newPassword, onChange: (event) => setPassword((prev) => ({ ...prev, newPassword: event.target.value })), className: "h-12 rounded-[1rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 text-sm text-[var(--bokmoo-ink)] outline-none" })
             ] })
           ] }),
+          passwordError && /* @__PURE__ */ jsx("p", { className: "mt-4 text-sm leading-6 text-red-400", role: "alert", children: passwordError }),
           /* @__PURE__ */ jsxs(
             "button",
             {
               onClick: async () => {
                 setSavingPassword(true);
+                setPasswordError(null);
                 try {
                   await onChangePassword(password.currentPassword, password.newPassword);
                   setPassword({ currentPassword: "", newPassword: "" });
+                } catch (changeError) {
+                  setPasswordError(changeError instanceof Error && changeError.message ? changeError.message : passwordSet ? "Could not change the password. Check your current password and try again." : "Could not set the password. Pick at least 8 characters and try again.");
                 } finally {
                   setSavingPassword(false);
                 }
               },
               className: "mt-6 inline-flex min-h-12 items-center gap-2 rounded-full border border-[var(--bokmoo-line-strong)] bg-[var(--bokmoo-bg)] px-5 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-ink)]",
-              disabled: savingPassword,
+              disabled: savingPassword || password.newPassword.length === 0,
               type: "button",
               children: [
                 /* @__PURE__ */ jsx(LockKeyhole, { className: "h-4 w-4 text-[var(--bokmoo-gold)]" }),
-                savingPassword ? "Updating..." : "Change password"
+                savingPassword ? "Updating..." : passwordSet ? "Change password" : "Set password"
               ]
             }
           )
+        ] }),
+        hasConnections && /* @__PURE__ */ jsxs("section", { className: "rounded-[var(--bokmoo-radius-xl)] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] p-6 shadow-[var(--bokmoo-shadow)] sm:p-8 lg:col-span-2", children: [
+          /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-4", children: [
+            /* @__PURE__ */ jsx("div", { className: "flex h-12 w-12 items-center justify-center rounded-[1rem] bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_14%,transparent)] text-[var(--bokmoo-gold)]", children: /* @__PURE__ */ jsx(Link2, { className: "h-6 w-6" }) }),
+            /* @__PURE__ */ jsxs("div", { children: [
+              /* @__PURE__ */ jsx("p", { className: "text-[11px] font-semibold tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: "Connected accounts" }),
+              /* @__PURE__ */ jsx("h2", { className: "mt-2 text-3xl leading-[1] tracking-[-0.04em] text-[var(--bokmoo-ink)]", children: "Sign in with one tap next time." })
+            ] })
+          ] }),
+          connectionsError && /* @__PURE__ */ jsx("p", { className: "mt-4 text-sm leading-6 text-red-400", role: "alert", children: connectionsError }),
+          (connectedAccounts?.length ?? 0) > 0 && /* @__PURE__ */ jsx("div", { className: "mt-6 divide-y divide-[var(--bokmoo-line)] rounded-[1rem] border border-[var(--bokmoo-line)]", children: connectedAccounts.map((account) => {
+            const Icon2 = providerIcon(account.providerSlug);
+            return /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between gap-4 px-4 py-3", children: [
+              /* @__PURE__ */ jsxs("div", { className: "flex min-w-0 items-center gap-3", children: [
+                /* @__PURE__ */ jsx("span", { className: "flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--bokmoo-line)] text-[var(--bokmoo-gold)]", children: /* @__PURE__ */ jsx(Icon2, { className: "h-4 w-4" }) }),
+                /* @__PURE__ */ jsxs("div", { className: "min-w-0", children: [
+                  /* @__PURE__ */ jsx("p", { className: "truncate text-sm font-semibold text-[var(--bokmoo-ink)]", children: account.label }),
+                  /* @__PURE__ */ jsxs("p", { className: "text-xs text-[var(--bokmoo-copy-soft)]", children: [
+                    "Linked",
+                    account.createdAt ? ` ${new Date(account.createdAt).toLocaleDateString()}` : ""
+                  ] })
+                ] })
+              ] }),
+              onUnlinkIdentity && /* @__PURE__ */ jsxs(
+                "button",
+                {
+                  onClick: async () => {
+                    setBusyConnection(account.id);
+                    setConnectionsError(null);
+                    try {
+                      await onUnlinkIdentity(account.id);
+                    } catch (unlinkError) {
+                      setConnectionsError(unlinkError instanceof Error && unlinkError.message ? unlinkError.message : "Could not remove this sign-in method.");
+                    } finally {
+                      setBusyConnection(null);
+                    }
+                  },
+                  className: "inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full border border-[var(--bokmoo-line)] px-4 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--bokmoo-copy)] disabled:opacity-50",
+                  disabled: busyConnection === account.id,
+                  type: "button",
+                  children: [
+                    /* @__PURE__ */ jsx(Unlink, { className: "h-3.5 w-3.5" }),
+                    busyConnection === account.id ? "Removing..." : "Unlink"
+                  ]
+                }
+              )
+            ] }, account.id);
+          }) }),
+          (linkableProviders?.length ?? 0) > 0 && /* @__PURE__ */ jsxs("div", { className: "mt-6", children: [
+            /* @__PURE__ */ jsx("p", { className: "text-[11px] font-semibold tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: "Add a sign-in method" }),
+            /* @__PURE__ */ jsx("div", { className: "mt-3 flex flex-wrap gap-3", children: linkableProviders.map((provider) => {
+              const Icon2 = providerIcon(provider.providerSlug);
+              return /* @__PURE__ */ jsxs(
+                "button",
+                {
+                  onClick: async () => {
+                    if (!onLinkProvider) return;
+                    setBusyConnection(provider.providerSlug);
+                    setConnectionsError(null);
+                    try {
+                      await onLinkProvider(provider.providerSlug);
+                    } catch (linkError) {
+                      setConnectionsError(linkError instanceof Error && linkError.message ? linkError.message : "Could not start linking. Please try again.");
+                      setBusyConnection(null);
+                    }
+                  },
+                  className: "inline-flex min-h-10 items-center gap-2 rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_28%,transparent)] px-4 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--bokmoo-ink)] disabled:opacity-50",
+                  disabled: busyConnection === provider.providerSlug,
+                  type: "button",
+                  children: [
+                    /* @__PURE__ */ jsx(Icon2, { className: "h-3.5 w-3.5 text-[var(--bokmoo-gold)]" }),
+                    busyConnection === provider.providerSlug ? "Connecting..." : `Link ${provider.label}`
+                  ]
+                },
+                provider.providerSlug
+              );
+            }) })
+          ] })
         ] })
       ] })
     ] }) });
   });
 
   // src/components/RegisterPage.tsx
-  var FOCUS_VISIBLE_RING4 = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bokmoo-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bokmoo-bg)]";
+  var FOCUS_VISIBLE_RING5 = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bokmoo-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bokmoo-bg)]";
   function RegisterPage({
     isLoading,
     error,
@@ -17389,7 +17511,7 @@
       if (!canSubmit) return;
       await onSubmit(formData);
     };
-    const inputClassName = `h-12 w-full rounded-[1rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_34%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_62%,#1a1720)] py-3 pl-11 pr-4 text-sm font-medium text-[var(--bokmoo-ink)] outline-none placeholder:text-[color:color-mix(in_oklab,var(--bokmoo-copy)_80%,transparent)] transition-colors focus:border-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING4}`;
+    const inputClassName = `h-12 w-full rounded-[1rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_34%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_62%,#1a1720)] py-3 pl-11 pr-4 text-sm font-medium text-[var(--bokmoo-ink)] outline-none placeholder:text-[color:color-mix(in_oklab,var(--bokmoo-copy)_80%,transparent)] transition-colors focus:border-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING5}`;
     return /* @__PURE__ */ jsxs("div", { className: "relative min-h-screen overflow-hidden bg-[var(--bokmoo-bg)] px-4 py-12 text-[var(--bokmoo-ink)] sm:px-6 lg:px-8", children: [
       /* @__PURE__ */ jsxs("div", { className: "pointer-events-none absolute inset-0", children: [
         /* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-[radial-gradient(circle_at_80%_18%,color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent),transparent_25%),radial-gradient(circle_at_12%_76%,color-mix(in_oklab,var(--bokmoo-gold)_8%,transparent),transparent_26%),linear-gradient(180deg,var(--bokmoo-bg),color-mix(in_oklab,var(--bokmoo-bg)_86%,black))]" }),
@@ -17417,7 +17539,7 @@
               {
                 type: "button",
                 onClick: () => onOAuthClick("google"),
-                className: `inline-flex min-h-12 items-center justify-center gap-2 rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_86%,black)] px-4 text-sm font-semibold text-[var(--bokmoo-ink)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)] disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING4}`,
+                className: `inline-flex min-h-12 items-center justify-center gap-2 rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_86%,black)] px-4 text-sm font-semibold text-[var(--bokmoo-ink)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)] disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING5}`,
                 disabled: isLoading,
                 children: [
                   /* @__PURE__ */ jsx(Chrome, { className: "h-4 w-4" }),
@@ -17430,7 +17552,7 @@
               {
                 type: "button",
                 onClick: () => onAppleOAuthClick?.(),
-                className: `inline-flex min-h-12 items-center justify-center gap-2 rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_86%,black)] px-4 text-sm font-semibold text-[var(--bokmoo-ink)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)] disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING4}`,
+                className: `inline-flex min-h-12 items-center justify-center gap-2 rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_86%,black)] px-4 text-sm font-semibold text-[var(--bokmoo-ink)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)] disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING5}`,
                 disabled: isLoading || !onAppleOAuthClick,
                 children: [
                   /* @__PURE__ */ jsx(Apple, { className: "h-4 w-4" }),
@@ -17443,7 +17565,7 @@
               {
                 type: "button",
                 onClick: () => onFacebookOAuthClick?.(),
-                className: `inline-flex min-h-12 items-center justify-center gap-2 rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_86%,black)] px-4 text-sm font-semibold text-[var(--bokmoo-ink)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)] disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING4}`,
+                className: `inline-flex min-h-12 items-center justify-center gap-2 rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_86%,black)] px-4 text-sm font-semibold text-[var(--bokmoo-ink)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)] disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING5}`,
                 disabled: isLoading || !onFacebookOAuthClick,
                 children: [
                   /* @__PURE__ */ jsx(Facebook, { className: "h-4 w-4" }),
@@ -17517,7 +17639,7 @@
                     {
                       type: "button",
                       onClick: () => setShowPassword((value) => !value),
-                      className: `absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-[0.8rem] text-[var(--bokmoo-copy-soft)] hover:text-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING4}`,
+                      className: `absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-[0.8rem] text-[var(--bokmoo-copy-soft)] hover:text-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING5}`,
                       disabled: isLoading,
                       "aria-label": showPassword ? "Hide password" : "Show password",
                       children: showPassword ? /* @__PURE__ */ jsx(EyeOff, { className: "h-4 w-4" }) : /* @__PURE__ */ jsx(Eye, { className: "h-4 w-4" })
@@ -17546,7 +17668,7 @@
                     {
                       type: "button",
                       onClick: () => setShowConfirmPassword((value) => !value),
-                      className: `absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-[0.8rem] text-[var(--bokmoo-copy-soft)] hover:text-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING4}`,
+                      className: `absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-[0.8rem] text-[var(--bokmoo-copy-soft)] hover:text-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING5}`,
                       disabled: isLoading,
                       "aria-label": showConfirmPassword ? "Hide password" : "Show password",
                       children: showConfirmPassword ? /* @__PURE__ */ jsx(EyeOff, { className: "h-4 w-4" }) : /* @__PURE__ */ jsx(Eye, { className: "h-4 w-4" })
@@ -17561,7 +17683,7 @@
               {
                 type: "submit",
                 disabled: isLoading || !canSubmit,
-                className: `inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-[1rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_88%,white),color-mix(in_oklab,var(--bokmoo-gold)_64%,black))] px-5 text-sm font-black uppercase tracking-[0.2em] text-[var(--bokmoo-bg)] shadow-[0_18px_42px_color-mix(in_oklab,var(--bokmoo-gold)_16%,transparent)] transition-transform duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING4}`,
+                className: `inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-[1rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_88%,white),color-mix(in_oklab,var(--bokmoo-gold)_64%,black))] px-5 text-sm font-black uppercase tracking-[0.2em] text-[var(--bokmoo-bg)] shadow-[0_18px_42px_color-mix(in_oklab,var(--bokmoo-gold)_16%,transparent)] transition-transform duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING5}`,
                 children: isLoading ? /* @__PURE__ */ jsxs(Fragment2, { children: [
                   /* @__PURE__ */ jsx(LoaderCircle, { className: "h-4 w-4 animate-spin" }),
                   "Creating"
@@ -17576,7 +17698,7 @@
               {
                 type: "button",
                 onClick: onNavigateToLogin,
-                className: `mt-3 text-sm font-semibold text-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold-strong)] ${FOCUS_VISIBLE_RING4}`,
+                className: `mt-3 text-sm font-semibold text-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold-strong)] ${FOCUS_VISIBLE_RING5}`,
                 disabled: isLoading,
                 children: "Sign in"
               }
