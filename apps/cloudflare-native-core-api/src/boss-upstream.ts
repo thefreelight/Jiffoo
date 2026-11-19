@@ -31,7 +31,9 @@ function bossBaseUrl(env: BossEnv): string {
 const STATE_KEY = 'boss';
 const AUTO_SYNC_INTERVAL_MS = 5 * 60 * 1000;
 const LIST_PATH = '/api/v1/products';
-const CURRENCY = 'CNY';
+/** BOSS catalog v3 prices in USD (Odoo switched from CNY in the iot
+ *  migration); USD orders settle on Stripe, epay converts to CNY 1:7.2. */
+const CURRENCY = 'USD';
 
 /** Region prefix -> destination ISO codes (route matcher coverage facts). */
 const REGION_DESTINATIONS: Record<string, string[]> = {
