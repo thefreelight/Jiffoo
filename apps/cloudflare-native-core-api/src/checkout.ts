@@ -234,6 +234,14 @@ async function createOrder(
       discountedUnit.set(variant.id, Math.max(variant.salePrice - Math.min(perUnit, variant.salePrice), 0.01));
     }
   }
+  // eSIM reuse: an authenticated buyer may pin the order to an already
+  // provisioned eSIM (ICCID) so the BOSS hook tops up that profile instead
+  // of paying a fresh provisioning fee. Validated loosely; the BOSS hook
+  // re-checks ownership semantics upstream.
+  const bodyRecord = body as { esimIccid?: unknown };
+  const esimIccidRaw = typeof bodyRecord?.esimIccid === 'string' ? bodyRecord.esimIccid.trim() : '';
+  const esimIccid = /^\d{10,22}$/.test(esimIccidRaw) ? esimIccidRaw : '';
+
   const items = resolved.map(({ input, product, variant }) => {
     const unitPrice = discountedUnit.get(variant.id) ?? variant.salePrice;
     return {
@@ -248,8 +256,9 @@ async function createOrder(
       unitPrice,
       totalPrice: unitPrice * input.quantity,
       fulfillmentStatus: 'pending',
-      fulfillmentData: input.fulfillmentData ?? null,
-      // Billing currency follows the catalog item (BOSS eSIM plans are CNY);
+      fulfillmentData: esimIccid
+        ? { ...(input.fulfillmentData ?? {}), esimIccid }
+        : input.fulfillmentData ?? null,
       // legacy catalog rows without a currency settle in USD.
       currency: product.currency || 'USD',
     };

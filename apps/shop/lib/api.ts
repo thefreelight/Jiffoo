@@ -217,6 +217,8 @@ export const ordersApi = {
       postalCode: string;
     };
     customerEmail?: string;
+    /** eSIM reuse: pin the order to an ICCID already provisioned for this account. */
+    esimIccid?: string;
     locale?: string;
     discountCodes?: string[];  // Optional discount codes to apply to order
     affiliateCode?: string;    // Referral/promo code: buyer discount + affiliate attribution

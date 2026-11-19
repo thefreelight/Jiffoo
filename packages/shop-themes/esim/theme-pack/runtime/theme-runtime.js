@@ -11589,573 +11589,6 @@
     return (products || []).filter((product) => isEsimPlanProduct(product));
   }
 
-  // src/components/ProfilePage.tsx
-  var SCRIPT_FONT = '"Snell Roundhand", "Savoye LET", "Segoe Script", "Brush Script MT", cursive';
-  function svgBackgroundUri(svg) {
-    return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
-  }
-  var CLUBS_SCENE = svgBackgroundUri(
-    `<svg xmlns='http://www.w3.org/2000/svg' width='640' height='380' viewBox='0 0 640 380'><defs><linearGradient id='sky' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='#0f1824'/><stop offset='0.42' stop-color='#1e2d3d'/><stop offset='0.68' stop-color='#5a4530'/><stop offset='1' stop-color='#0a0805'/></linearGradient><radialGradient id='glow' cx='0.64' cy='0.62' r='0.55'><stop offset='0' stop-color='#f2b552' stop-opacity='0.5'/><stop offset='1' stop-color='#f2b552' stop-opacity='0'/></radialGradient></defs><rect width='640' height='380' fill='url(#sky)'/><rect width='640' height='380' fill='url(#glow)'/><g fill='#f4c169'><circle cx='446' cy='232' r='2.4'/><circle cx='468' cy='240' r='1.6'/><circle cx='428' cy='243' r='1.4'/><circle cx='488' cy='230' r='1.2'/></g><g stroke='#060503' stroke-linecap='round' fill='none'><path d='M84 380C90 312 86 268 96 218' stroke-width='9'/><path d='M96 218C64 200 34 202 12 218M96 218C112 188 142 176 176 180M96 218C84 184 60 166 28 162M96 218C126 204 158 208 184 226M96 218C100 186 116 162 144 152' stroke-width='7'/><path d='M560 380C556 336 560 306 552 270' stroke-width='8'/><path d='M552 270C526 256 500 258 482 270M552 270C566 244 590 234 618 238M552 270C542 242 522 226 494 224M552 270C578 258 606 262 626 278M552 270C556 242 570 222 594 214' stroke-width='6'/></g><g fill='#f0b45c'><rect x='376' y='252' width='128' height='3' rx='1.5' opacity='0.4'/><rect x='296' y='274' width='208' height='3' rx='1.5' opacity='0.26'/><rect x='336' y='296' width='168' height='3' rx='1.5' opacity='0.18'/><rect x='260' y='318' width='230' height='3' rx='1.5' opacity='0.12'/></g></svg>`
-  );
-  var PROMO_SCENE = svgBackgroundUri(
-    `<svg xmlns='http://www.w3.org/2000/svg' width='420' height='320' viewBox='0 0 420 320'><defs><linearGradient id='dusk' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='#181231'/><stop offset='0.44' stop-color='#2c2044'/><stop offset='0.7' stop-color='#4b2d3d'/><stop offset='1' stop-color='#0d0a12'/></linearGradient><radialGradient id='duskglow' cx='0.72' cy='0.58' r='0.5'><stop offset='0' stop-color='#e8a45c' stop-opacity='0.34'/><stop offset='1' stop-color='#e8a45c' stop-opacity='0'/></radialGradient></defs><rect width='420' height='320' fill='url(#dusk)'/><rect width='420' height='320' fill='url(#duskglow)'/><g fill='#ffffff' opacity='0.55'><circle cx='60' cy='52' r='1.1'/><circle cx='150' cy='34' r='0.9'/><circle cx='236' cy='60' r='1.2'/><circle cx='318' cy='40' r='1'/><circle cx='374' cy='84' r='0.9'/><circle cx='104' cy='96' r='0.8'/><circle cx='286' cy='104' r='0.8'/></g><g stroke='#070509' stroke-linecap='round' fill='none'><path d='M64 320C70 264 66 228 76 184' stroke-width='9'/><path d='M76 184C46 168 20 170 2 184M76 184C90 156 118 146 148 150M76 184C66 154 44 138 16 136M76 184C104 170 132 174 156 190M76 184C80 156 94 134 120 126' stroke-width='7'/></g><g fill='#e8a45c'><rect x='150' y='212' width='150' height='2.6' rx='1.3' opacity='0.3'/><rect x='196' y='236' width='170' height='2.6' rx='1.3' opacity='0.2'/><rect x='120' y='262' width='210' height='2.6' rx='1.3' opacity='0.13'/></g></svg>`
-  );
-  var GOLD_GRADIENT_BG = "bg-[linear-gradient(145deg,color-mix(in_oklab,var(--esim-gold)_82%,white),color-mix(in_oklab,var(--esim-gold)_65%,black))]";
-  function formatDate(iso, locale) {
-    const date = new Date(iso);
-    if (Number.isNaN(date.getTime())) return "\u2014";
-    return date.toLocaleDateString(locale === "zh-Hant" ? "zh-TW" : "en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric"
-    });
-  }
-  function timezoneLabel() {
-    try {
-      const zone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
-      const offsetMinutes = -(/* @__PURE__ */ new Date()).getTimezoneOffset();
-      const sign = offsetMinutes < 0 ? "-" : "+";
-      const abs = Math.abs(offsetMinutes);
-      const hours = Math.floor(abs / 60);
-      const minutes = abs % 60;
-      return `(UTC${sign}${hours}${minutes ? `:${String(minutes).padStart(2, "0")}` : ""}) ${zone}`;
-    } catch {
-      return "UTC";
-    }
-  }
-  var ProfilePage = react_default.memo(function ProfilePage2({
-    user,
-    isLoading,
-    isAuthenticated,
-    config,
-    locale,
-    onNavigate,
-    onNavigateToSettings,
-    onNavigateToOrders,
-    onNavigateToLogin,
-    addresses,
-    isLoadingAddresses,
-    onAddAddress,
-    onDeleteAddress,
-    onSetDefaultAddress
-  }) {
-    const isZhHant = locale === "zh-Hant";
-    const [showAddressForm, setShowAddressForm] = react_default.useState(false);
-    const site = resolveEsimSiteConfig(config);
-    const go = react_default.useCallback(
-      (path) => {
-        if (onNavigate) {
-          onNavigate(path);
-          return;
-        }
-        const prefix = locale === "zh-Hant" ? "/zh-Hant" : locale === "zh-Hans" ? "/zh-Hans" : "/en";
-        window.location.assign(`${prefix}${path}`);
-      },
-      [onNavigate, isZhHant]
-    );
-    const [copied, setCopied] = react_default.useState(false);
-    const copyEmail = react_default.useCallback(async () => {
-      if (!user?.email) return;
-      try {
-        await navigator.clipboard.writeText(user.email);
-        setCopied(true);
-        window.setTimeout(() => setCopied(false), 2e3);
-      } catch {
-      }
-    }, [user?.email]);
-    if (!isAuthenticated || !user) {
-      return /* @__PURE__ */ jsx("div", { className: "flex min-h-screen items-center justify-center bg-[var(--esim-bg)] px-4", children: /* @__PURE__ */ jsx("div", { className: "w-full max-w-md", children: /* @__PURE__ */ jsxs("div", { className: "rounded-[var(--esim-radius-xl)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-10 text-center shadow-[var(--esim-shadow)]", children: [
-        /* @__PURE__ */ jsx("div", { className: "mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[color:color-mix(in_oklab,var(--esim-gold)_14%,transparent)] text-[var(--esim-gold)]", children: /* @__PURE__ */ jsx(UserRound, { className: "h-8 w-8" }) }),
-        /* @__PURE__ */ jsx("h2", { className: "mt-6 text-3xl leading-[1] tracking-[-0.04em] text-[var(--esim-ink)]", children: pickCopy(locale, { en: "Sign in to view your profile", hans: "\u767B\u5165\u4EE5\u67E5\u770B\u60A8\u7684\u4E2A\u4EBA\u6863\u6848", hant: "\u767B\u5165\u4EE5\u67E5\u770B\u60A8\u7684\u500B\u4EBA\u6A94\u6848" }) }),
-        /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: "Please log in to check your BOKMOO account", hans: "\u8BF7\u767B\u5165\u4EE5\u67E5\u770B\u60A8\u7684 BOKMOO \u5E10\u6237", hant: "\u8ACB\u767B\u5165\u4EE5\u67E5\u770B\u60A8\u7684 BOKMOO \u5E33\u6236" }) }),
-        /* @__PURE__ */ jsx(
-          "button",
-          {
-            onClick: onNavigateToLogin,
-            className: `mt-8 h-12 w-full rounded-full px-6 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--esim-bg)] ${GOLD_GRADIENT_BG}`,
-            type: "button",
-            children: pickCopy(locale, { en: "Log In", hans: "\u767B\u5165", hant: "\u767B\u5165" })
-          }
-        )
-      ] }) }) });
-    }
-    if (isLoading) {
-      return /* @__PURE__ */ jsx("div", { className: "flex min-h-screen items-center justify-center bg-[var(--esim-bg)]", children: /* @__PURE__ */ jsxs("div", { className: "text-center", children: [
-        /* @__PURE__ */ jsx("div", { className: "mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-[var(--esim-line)] border-t-[var(--esim-gold)]" }),
-        /* @__PURE__ */ jsx("p", { className: "text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: "Loading profile...", hans: "\u6B63\u5728\u8F7D\u5165\u4E2A\u4EBA\u8D44\u6599\u2026", hant: "\u6B63\u5728\u8F09\u5165\u500B\u4EBA\u8CC7\u6599\u2026" }) })
-      ] }) });
-    }
-    const displayName = (user.name || "").trim();
-    const firstName = displayName ? displayName.split(/\s+/)[0] : "";
-    const greeting = firstName ? locale === "zh-Hant" ? `\u4F60\u597D\uFF0C${firstName}\uFF01` : locale === "zh-Hans" ? `\u4F60\u597D\uFF0C${firstName}\uFF01` : `Hi ${firstName}!` : locale === "zh-Hant" ? "\u4F60\u597D\uFF01" : locale === "zh-Hans" ? "\u4F60\u597D\uFF01" : "Hi there!";
-    const accountInitial = (displayName || user.email).trim().charAt(0).toUpperCase();
-    const memberSince = user.createdAt ? formatDate(user.createdAt, locale) : "\u2014";
-    const navItems = [
-      {
-        label: pickCopy(locale, { en: "My Account", hans: "\u6211\u7684\u5E10\u6237", hant: "\u6211\u7684\u5E33\u6236" }),
-        icon: UserRound,
-        active: true,
-        onClick: () => window.scrollTo({ top: 0, behavior: "smooth" })
-      },
-      { label: pickCopy(locale, { en: "Order History", hans: "\u8BA2\u5355\u7EAA\u5F55", hant: "\u8A02\u55AE\u7D00\u9304" }), icon: ShoppingBag, onClick: onNavigateToOrders },
-      { label: pickCopy(locale, { en: "My Trips", hans: "\u6211\u7684\u884C\u7A0B", hant: "\u6211\u7684\u884C\u7A0B" }), icon: Plane, onClick: onNavigateToOrders },
-      { label: pickCopy(locale, { en: "Travel Credits", hans: "\u65C5\u6E38\u70B9\u6570", hant: "\u65C5\u904A\u9EDE\u6578" }), icon: Mail, onClick: () => go("/affiliate") },
-      { label: pickCopy(locale, { en: "Affiliate Program", hans: "\u63A8\u5E7F\u8BA1\u5212", hant: "\u63A8\u5EE3\u8A08\u5283" }), icon: Users, onClick: () => go("/affiliate") },
-      { label: pickCopy(locale, { en: "Settings", hans: "\u8BBE\u5B9A", hant: "\u8A2D\u5B9A" }), icon: Settings, onClick: onNavigateToSettings }
-    ];
-    const renderNavButton = (item, layout2) => {
-      const Icon2 = item.icon;
-      const base = layout2 === "sidebar" ? "flex w-full shrink-0 items-center gap-3 rounded-[0.9rem] px-4 py-3 text-[0.92rem] font-medium transition-colors" : "inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-2.5 text-[0.85rem] font-medium transition-colors";
-      const tone = item.active ? layout2 === "sidebar" ? "bg-[color:color-mix(in_oklab,var(--esim-gold)_13%,transparent)] text-[var(--esim-ink)] shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--esim-gold)_22%,transparent)]" : "border-[color:color-mix(in_oklab,var(--esim-gold)_36%,transparent)] bg-[color:color-mix(in_oklab,var(--esim-gold)_13%,transparent)] text-[var(--esim-ink)]" : "border-transparent text-[var(--esim-copy-soft)] hover:bg-[color:color-mix(in_oklab,var(--esim-gold)_8%,transparent)] hover:text-[var(--esim-ink)]";
-      return /* @__PURE__ */ jsxs("button", { onClick: item.onClick, className: `${base} ${tone}`, type: "button", children: [
-        /* @__PURE__ */ jsx(
-          Icon2,
-          {
-            className: `h-[1.05rem] w-[1.05rem] ${item.active ? "text-[var(--esim-gold)]" : "text-[color:color-mix(in_oklab,var(--esim-copy-soft)_80%,var(--esim-gold))]"}`
-          }
-        ),
-        item.label
-      ] }, item.label);
-    };
-    const infoRowIcon = "h-4 w-4 shrink-0 text-[var(--esim-copy-soft)]";
-    const editButtonClass = "inline-flex h-9 items-center gap-1.5 rounded-full border border-[var(--esim-line-strong)] bg-[color:color-mix(in_oklab,var(--esim-bg-soft)_60%,transparent)] px-4 text-[0.8rem] font-semibold text-[var(--esim-ink)] transition-colors hover:border-[var(--esim-gold)] hover:text-[var(--esim-gold)]";
-    return /* @__PURE__ */ jsxs("div", { className: "min-h-screen bg-[var(--esim-bg)] lg:flex", children: [
-      /* @__PURE__ */ jsxs("aside", { className: "hidden w-64 shrink-0 flex-col border-r border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_94%,black)] px-4 pb-10 pt-6 lg:flex", children: [
-        /* @__PURE__ */ jsx("nav", { className: "flex flex-col gap-1.5", children: navItems.map((item) => renderNavButton(item, "sidebar")) }),
-        /* @__PURE__ */ jsx("div", { className: "mt-auto pt-10", children: /* @__PURE__ */ jsxs(
-          "div",
-          {
-            onClick: () => go("/products"),
-            className: "group relative min-h-[13.5rem] cursor-pointer overflow-hidden rounded-[var(--esim-radius-md)] border border-[var(--esim-line)] shadow-[var(--esim-shadow)]",
-            style: { backgroundImage: PROMO_SCENE, backgroundSize: "cover", backgroundPosition: "center" },
-            children: [
-              /* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-[linear-gradient(180deg,rgba(9,7,14,0.1),rgba(9,7,14,0.78))]" }),
-              /* @__PURE__ */ jsxs("div", { className: "relative flex min-h-[13.5rem] flex-col p-5", children: [
-                /* @__PURE__ */ jsx("h3", { className: "max-w-[9.5rem] text-xl font-bold leading-snug text-white", children: pickCopy(locale, { en: "Explore a Better Night", hans: "\u63A2\u7D22\u66F4\u7F8E\u597D\u7684\u591C\u665A", hant: "\u63A2\u7D22\u66F4\u7F8E\u597D\u7684\u591C\u665A" }) }),
-                /* @__PURE__ */ jsx("p", { className: "mt-2 text-xs leading-relaxed text-white/70", children: pickCopy(locale, { en: "Premium club experiences around the world.", hans: "\u5168\u7403\u9AD8\u7EA7\u4F1A\u6240\u4F53\u9A8C\uFF0C\u5C3D\u5728\u638C\u63E1\u3002", hant: "\u5168\u7403\u9AD8\u7D1A\u6703\u6240\u9AD4\u9A57\uFF0C\u76E1\u5728\u638C\u63E1\u3002" }) }),
-                /* @__PURE__ */ jsxs("span", { className: "mt-auto inline-flex items-center gap-1.5 self-start rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--esim-gold)_86%,white),color-mix(in_oklab,var(--esim-gold)_70%,black))] px-4 py-2 text-xs font-bold text-[var(--esim-bg)] transition-transform duration-300 group-hover:-translate-y-0.5", children: [
-                  pickCopy(locale, { en: "Browse Destinations", hans: "\u6D4F\u89C8\u76EE\u7684\u5730", hant: "\u700F\u89BD\u76EE\u7684\u5730" }),
-                  /* @__PURE__ */ jsx(ArrowRight, { className: "h-3.5 w-3.5" })
-                ] })
-              ] })
-            ]
-          }
-        ) })
-      ] }),
-      /* @__PURE__ */ jsxs("div", { className: "min-w-0 flex-1 px-4 pb-16 pt-5 sm:px-6 lg:px-8", children: [
-        /* @__PURE__ */ jsx("div", { className: "-mx-4 mb-5 overflow-x-auto px-4 pb-1 lg:hidden", children: /* @__PURE__ */ jsx("div", { className: "flex w-max gap-2", children: navItems.map((item) => renderNavButton(item, "chip")) }) }),
-        /* @__PURE__ */ jsxs("div", { className: "mx-auto max-w-[1200px] space-y-6", children: [
-          /* @__PURE__ */ jsxs("section", { className: "relative overflow-hidden rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] bg-[linear-gradient(115deg,color-mix(in_oklab,var(--esim-bg-elevated)_96%,black),color-mix(in_oklab,var(--esim-bg-soft)_70%,var(--esim-bg-elevated)))] p-6 shadow-[var(--esim-shadow)] sm:p-8", children: [
-            /* @__PURE__ */ jsx(
-              "div",
-              {
-                "aria-hidden": "true",
-                className: "pointer-events-none absolute inset-y-0 right-0 hidden w-[56%] sm:block",
-                style: {
-                  backgroundImage: "radial-gradient(color-mix(in oklab, var(--esim-gold) 26%, transparent) 1.2px, transparent 1.4px)",
-                  backgroundSize: "13px 13px",
-                  maskImage: "radial-gradient(ellipse 85% 90% at 76% 48%, black 0%, transparent 74%)",
-                  WebkitMaskImage: "radial-gradient(ellipse 85% 90% at 76% 48%, black 0%, transparent 74%)"
-                }
-              }
-            ),
-            /* @__PURE__ */ jsxs(
-              "svg",
-              {
-                "aria-hidden": "true",
-                className: "pointer-events-none absolute -right-8 -top-10 hidden h-[150%] w-[44%] opacity-35 sm:block",
-                viewBox: "0 0 400 280",
-                fill: "none",
-                children: [
-                  /* @__PURE__ */ jsx("defs", { children: /* @__PURE__ */ jsxs("linearGradient", { id: "esim-hero-arc", x1: "0", y1: "280", x2: "400", y2: "40", gradientUnits: "userSpaceOnUse", children: [
-                    /* @__PURE__ */ jsx("stop", { stopColor: "var(--esim-gold)", stopOpacity: "0" }),
-                    /* @__PURE__ */ jsx("stop", { offset: "0.55", stopColor: "var(--esim-gold)", stopOpacity: "0.8" }),
-                    /* @__PURE__ */ jsx("stop", { offset: "1", stopColor: "#f6d78a", stopOpacity: "0.2" })
-                  ] }) }),
-                  /* @__PURE__ */ jsx("path", { d: "M12 262C86 138 252 66 400 84", stroke: "url(#esim-hero-arc)", strokeWidth: "1.5" }),
-                  /* @__PURE__ */ jsx("path", { d: "M52 280C124 168 276 100 400 116", stroke: "url(#esim-hero-arc)", strokeWidth: "1", opacity: "0.65" })
-                ]
-              }
-            ),
-            /* @__PURE__ */ jsxs("div", { className: "relative flex flex-col gap-6 sm:flex-row sm:items-center", children: [
-              /* @__PURE__ */ jsxs("div", { className: "relative shrink-0 self-center sm:self-start", children: [
-                /* @__PURE__ */ jsx(
-                  "div",
-                  {
-                    className: `flex h-24 w-24 items-center justify-center overflow-hidden rounded-full text-4xl font-bold text-[var(--esim-bg)] shadow-[0_18px_44px_color-mix(in_oklab,var(--esim-gold)_24%,transparent)] ${GOLD_GRADIENT_BG}`,
-                    children: user.avatar ? /* @__PURE__ */ jsx("img", { src: user.avatar, alt: user.name, className: "h-full w-full object-cover" }) : accountInitial
-                  }
-                ),
-                /* @__PURE__ */ jsx("span", { className: "absolute -bottom-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-[0.45rem] border border-[color:color-mix(in_oklab,var(--esim-gold)_34%,transparent)] bg-[color:oklch(0.09_0.01_75_/_0.96)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--esim-gold)]", children: pickCopy(locale, { en: "Member", hans: "\u4F1A\u5458", hant: "\u6703\u54E1" }) })
-              ] }),
-              /* @__PURE__ */ jsxs("div", { className: "min-w-0 text-center sm:text-left", children: [
-                /* @__PURE__ */ jsx("h1", { className: "text-[1.9rem] font-bold leading-tight tracking-[-0.02em] text-[var(--esim-ink)]", children: greeting }),
-                /* @__PURE__ */ jsxs("div", { className: "mt-2.5 flex items-center justify-center gap-2 sm:justify-start", children: [
-                  /* @__PURE__ */ jsx("p", { className: "truncate text-[0.95rem] text-[var(--esim-copy)]", children: user.email }),
-                  /* @__PURE__ */ jsx(
-                    "button",
-                    {
-                      onClick: copyEmail,
-                      className: "flex h-7 w-7 shrink-0 items-center justify-center rounded-[0.5rem] text-[var(--esim-copy-soft)] transition-colors hover:bg-[color:color-mix(in_oklab,var(--esim-gold)_10%,transparent)] hover:text-[var(--esim-gold)]",
-                      type: "button",
-                      "aria-label": pickCopy(locale, { en: "Copy email", hans: "\u590D\u5236\u7535\u5B50\u90AE\u4EF6", hant: "\u8907\u88FD\u96FB\u5B50\u90F5\u4EF6" }),
-                      children: copied ? /* @__PURE__ */ jsx(Check, { className: "h-4 w-4 text-[var(--esim-success)]" }) : /* @__PURE__ */ jsx(Copy, { className: "h-4 w-4" })
-                    }
-                  )
-                ] }),
-                /* @__PURE__ */ jsxs("p", { className: "mt-1.5 text-[0.82rem] text-[var(--esim-copy-soft)]", children: [
-                  pickCopy(locale, { en: "Member since", hans: "\u6CE8\u518C\u4E8E", hant: "\u8A3B\u518A\u65BC" }),
-                  " ",
-                  memberSince
-                ] })
-              ] }),
-              /* @__PURE__ */ jsxs("div", { "aria-hidden": "true", className: "relative ml-auto hidden select-none flex-col items-end pr-2 lg:flex", children: [
-                /* @__PURE__ */ jsxs(
-                  "span",
-                  {
-                    className: "bg-[linear-gradient(120deg,#f6d78a,var(--esim-gold-strong)_55%,#c99b3e)] bg-clip-text text-right text-[1.65rem] italic leading-[1.2] text-transparent",
-                    style: { fontFamily: SCRIPT_FONT },
-                    children: [
-                      "Better Nights",
-                      /* @__PURE__ */ jsx("br", {}),
-                      "Brighter Journeys"
-                    ]
-                  }
-                ),
-                /* @__PURE__ */ jsx(Plane, { className: "mt-1 h-5 w-5 -rotate-6 text-[color:color-mix(in_oklab,var(--esim-gold)_78%,white)]" })
-              ] })
-            ] })
-          ] }),
-          /* @__PURE__ */ jsxs("section", { className: "grid gap-6 lg:grid-cols-2", children: [
-            /* @__PURE__ */ jsxs("div", { className: "rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-6 shadow-[var(--esim-shadow)]", children: [
-              /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between gap-3", children: [
-                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2.5", children: [
-                  /* @__PURE__ */ jsx(UserRound, { className: "h-[1.1rem] w-[1.1rem] text-[var(--esim-gold)]" }),
-                  /* @__PURE__ */ jsx("h3", { className: "text-[1.05rem] font-bold tracking-tight text-[var(--esim-ink)]", children: pickCopy(locale, { en: "Account Information", hans: "\u5E10\u6237\u8D44\u6599", hant: "\u5E33\u6236\u8CC7\u6599" }) })
-                ] }),
-                /* @__PURE__ */ jsxs("button", { onClick: onNavigateToSettings, className: editButtonClass, type: "button", children: [
-                  /* @__PURE__ */ jsx(PencilLine, { className: "h-3.5 w-3.5" }),
-                  pickCopy(locale, { en: "Edit", hans: "\u7F16\u8F91", hant: "\u7DE8\u8F2F" })
-                ] })
-              ] }),
-              /* @__PURE__ */ jsxs("div", { className: "mt-3 divide-y divide-[color:color-mix(in_oklab,var(--esim-line)_55%,transparent)]", children: [
-                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 py-3.5", children: [
-                  /* @__PURE__ */ jsx(Mail, { className: infoRowIcon }),
-                  /* @__PURE__ */ jsx("span", { className: "w-28 shrink-0 text-sm text-[var(--esim-copy-soft)] sm:w-32", children: pickCopy(locale, { en: "Email Address", hans: "\u7535\u5B50\u90AE\u4EF6", hant: "\u96FB\u5B50\u90F5\u4EF6" }) }),
-                  /* @__PURE__ */ jsx(
-                    "span",
-                    {
-                      className: "min-w-0 flex-1 truncate text-right text-sm font-semibold text-[var(--esim-ink)] sm:text-left",
-                      title: user.email,
-                      children: user.email
-                    }
-                  )
-                ] }),
-                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 py-3.5", children: [
-                  /* @__PURE__ */ jsx(CalendarDays, { className: infoRowIcon }),
-                  /* @__PURE__ */ jsx("span", { className: "w-28 shrink-0 text-sm text-[var(--esim-copy-soft)] sm:w-32", children: pickCopy(locale, { en: "Member Since", hans: "\u6CE8\u518C\u65E5\u671F", hant: "\u8A3B\u518A\u65E5\u671F" }) }),
-                  /* @__PURE__ */ jsx("span", { className: "flex-1 text-sm font-semibold text-[var(--esim-ink)]", children: memberSince })
-                ] }),
-                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 py-3.5", children: [
-                  /* @__PURE__ */ jsx(UserRound, { className: infoRowIcon }),
-                  /* @__PURE__ */ jsx("span", { className: "w-28 shrink-0 text-sm text-[var(--esim-copy-soft)] sm:w-32", children: pickCopy(locale, { en: "Account Status", hans: "\u5E10\u6237\u72B6\u6001", hant: "\u5E33\u6236\u72C0\u614B" }) }),
-                  /* @__PURE__ */ jsx("span", { className: "inline-flex items-center rounded-[0.45rem] border border-[color:color-mix(in_oklab,var(--esim-success)_28%,transparent)] bg-[color:color-mix(in_oklab,var(--esim-success)_14%,transparent)] px-3 py-1 text-xs font-semibold text-[var(--esim-success)]", children: pickCopy(locale, { en: "Active Member", hans: "\u6709\u6548\u4F1A\u5458", hant: "\u6709\u6548\u6703\u54E1" }) })
-                ] })
-              ] })
-            ] }),
-            /* @__PURE__ */ jsxs("div", { className: "rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-6 shadow-[var(--esim-shadow)]", children: [
-              /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between gap-3", children: [
-                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2.5", children: [
-                  /* @__PURE__ */ jsx(Settings, { className: "h-[1.1rem] w-[1.1rem] text-[var(--esim-gold)]" }),
-                  /* @__PURE__ */ jsx("h3", { className: "text-[1.05rem] font-bold tracking-tight text-[var(--esim-ink)]", children: pickCopy(locale, { en: "Account Preferences", hans: "\u504F\u597D\u8BBE\u5B9A", hant: "\u504F\u597D\u8A2D\u5B9A" }) })
-                ] }),
-                /* @__PURE__ */ jsxs("button", { onClick: onNavigateToSettings, className: editButtonClass, type: "button", children: [
-                  /* @__PURE__ */ jsx(PencilLine, { className: "h-3.5 w-3.5" }),
-                  pickCopy(locale, { en: "Edit", hans: "\u7F16\u8F91", hant: "\u7DE8\u8F2F" })
-                ] })
-              ] }),
-              /* @__PURE__ */ jsxs("div", { className: "mt-3 divide-y divide-[color:color-mix(in_oklab,var(--esim-line)_55%,transparent)]", children: [
-                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 py-3.5", children: [
-                  /* @__PURE__ */ jsx(Earth, { className: infoRowIcon }),
-                  /* @__PURE__ */ jsx("span", { className: "w-28 shrink-0 text-sm text-[var(--esim-copy-soft)] sm:w-32", children: pickCopy(locale, { en: "Language", hans: "\u8BED\u8A00", hant: "\u8A9E\u8A00" }) }),
-                  /* @__PURE__ */ jsx("span", { className: "flex-1 text-sm font-semibold text-[var(--esim-ink)]", children: pickCopy(locale, { en: "English", hans: "\u7E41\u4F53\u4E2D\u6587", hant: "\u7E41\u9AD4\u4E2D\u6587" }) })
-                ] }),
-                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 py-3.5", children: [
-                  /* @__PURE__ */ jsx(Clock3, { className: infoRowIcon }),
-                  /* @__PURE__ */ jsx("span", { className: "w-28 shrink-0 text-sm text-[var(--esim-copy-soft)] sm:w-32", children: pickCopy(locale, { en: "Timezone", hans: "\u65F6\u533A", hant: "\u6642\u5340" }) }),
-                  /* @__PURE__ */ jsx("span", { className: "flex-1 text-sm font-semibold text-[var(--esim-ink)]", children: timezoneLabel() })
-                ] }),
-                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 py-3.5", children: [
-                  /* @__PURE__ */ jsx(CalendarDays, { className: infoRowIcon }),
-                  /* @__PURE__ */ jsx("span", { className: "w-28 shrink-0 text-sm text-[var(--esim-copy-soft)] sm:w-32", children: pickCopy(locale, { en: "Date of Birth", hans: "\u51FA\u751F\u65E5\u671F", hant: "\u51FA\u751F\u65E5\u671F" }) }),
-                  /* @__PURE__ */ jsx("span", { className: "flex-1 text-sm text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: "Not set", hans: "\u672A\u8BBE\u5B9A", hant: "\u672A\u8A2D\u5B9A" }) })
-                ] }),
-                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 py-3.5", children: [
-                  /* @__PURE__ */ jsx(Phone, { className: infoRowIcon }),
-                  /* @__PURE__ */ jsx("span", { className: "w-28 shrink-0 text-sm text-[var(--esim-copy-soft)] sm:w-32", children: pickCopy(locale, { en: "Phone Number", hans: "\u7535\u8BDD\u53F7\u7801", hant: "\u96FB\u8A71\u865F\u78BC" }) }),
-                  /* @__PURE__ */ jsx("span", { className: "flex-1 text-sm text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: "Not set", hans: "\u672A\u8BBE\u5B9A", hant: "\u672A\u8A2D\u5B9A" }) })
-                ] })
-              ] })
-            ] })
-          ] }),
-          onAddAddress ? /* @__PURE__ */ jsxs("section", { className: "rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-5 shadow-[var(--esim-shadow)] sm:p-6", children: [
-            /* @__PURE__ */ jsx("div", { className: "flex items-center justify-between gap-4", children: /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-4", children: [
-              /* @__PURE__ */ jsx("div", { className: "flex h-14 w-14 shrink-0 items-center justify-center rounded-[1rem] bg-[color:color-mix(in_oklab,var(--esim-gold)_15%,transparent)] text-[var(--esim-gold)]", children: /* @__PURE__ */ jsx(MapPin, { className: "h-6 w-6" }) }),
-              /* @__PURE__ */ jsxs("div", { children: [
-                /* @__PURE__ */ jsx("h3", { className: "text-lg font-bold tracking-tight text-[var(--esim-ink)]", children: pickCopy(locale, { en: "My Addresses", hans: "\u6211\u7684\u5730\u5740", hant: "\u6211\u7684\u5730\u5740" }) }),
-                /* @__PURE__ */ jsx("p", { className: "mt-1 text-sm text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: "Saved shipping addresses for checkout", hans: "\u7ED3\u7B97\u65F6\u4F7F\u7528\u7684\u6536\u8D27\u5730\u5740", hant: "\u7D50\u5E33\u6642\u4F7F\u7528\u7684\u6536\u8CA8\u5730\u5740" }) })
-              ] })
-            ] }) }),
-            isLoadingAddresses ? /* @__PURE__ */ jsx("p", { className: "mt-5 text-sm text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: "Loading\u2026", hans: "\u52A0\u8F7D\u4E2D\u2026", hant: "\u8F09\u5165\u4E2D\u2026" }) }) : /* @__PURE__ */ jsxs("div", { className: "mt-5 space-y-3", children: [
-              (addresses ?? []).length === 0 ? /* @__PURE__ */ jsx("p", { className: "text-sm text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: "No saved addresses yet.", hans: "\u8FD8\u6CA1\u6709\u4FDD\u5B58\u7684\u5730\u5740\u3002", hant: "\u9084\u6C92\u6709\u4FDD\u5B58\u7684\u5730\u5740\u3002" }) }) : (addresses ?? []).map((address) => /* @__PURE__ */ jsxs(
-                "div",
-                {
-                  className: "flex flex-col gap-3 rounded-[1rem] border border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_88%,black)] p-4 sm:flex-row sm:items-center sm:justify-between",
-                  children: [
-                    /* @__PURE__ */ jsxs("div", { className: "text-sm", children: [
-                      /* @__PURE__ */ jsxs("p", { className: "flex flex-wrap items-center gap-2 font-medium text-[var(--esim-ink)]", children: [
-                        address.name,
-                        address.isDefault ? /* @__PURE__ */ jsx("span", { className: "rounded-full bg-[color:color-mix(in_oklab,var(--esim-gold)_20%,transparent)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--esim-gold)]", children: pickCopy(locale, { en: "Default", hans: "\u9ED8\u8BA4", hant: "\u9810\u8A2D" }) }) : null
-                      ] }),
-                      /* @__PURE__ */ jsxs("p", { className: "mt-1 text-[var(--esim-copy)]", children: [
-                        address.phone,
-                        " \xB7 ",
-                        address.line1,
-                        address.city ? `, ${address.city}` : "",
-                        address.state ? `, ${address.state}` : "",
-                        address.country ? ` \xB7 ${address.country}` : ""
-                      ] })
-                    ] }),
-                    /* @__PURE__ */ jsxs("div", { className: "flex shrink-0 items-center gap-2", children: [
-                      !address.isDefault && onSetDefaultAddress ? /* @__PURE__ */ jsx(
-                        "button",
-                        {
-                          onClick: () => void onSetDefaultAddress(address.id),
-                          className: "rounded-full border border-[var(--esim-line)] px-3 py-1.5 text-xs text-[var(--esim-copy)] transition-colors hover:border-[var(--esim-gold)] hover:text-[var(--esim-gold)]",
-                          type: "button",
-                          children: pickCopy(locale, { en: "Set default", hans: "\u8BBE\u4E3A\u9ED8\u8BA4", hant: "\u8A2D\u70BA\u9810\u8A2D" })
-                        }
-                      ) : null,
-                      onDeleteAddress ? /* @__PURE__ */ jsx(
-                        "button",
-                        {
-                          onClick: () => void onDeleteAddress(address.id),
-                          className: "rounded-full border border-[var(--esim-line)] px-3 py-1.5 text-xs text-[var(--esim-copy)] transition-colors hover:border-[var(--esim-danger)] hover:text-[var(--esim-danger)]",
-                          type: "button",
-                          children: pickCopy(locale, { en: "Delete", hans: "\u5220\u9664", hant: "\u522A\u9664" })
-                        }
-                      ) : null
-                    ] })
-                  ]
-                },
-                address.id
-              )),
-              showAddressForm ? /* @__PURE__ */ jsxs(
-                "form",
-                {
-                  className: "grid gap-3 rounded-[1rem] border border-[color:color-mix(in_oklab,var(--esim-gold)_18%,var(--esim-line))] bg-[color:color-mix(in_oklab,var(--esim-bg)_88%,black)] p-4 sm:grid-cols-2",
-                  onSubmit: (event) => {
-                    event.preventDefault();
-                    const data = new FormData(event.currentTarget);
-                    const input = {
-                      name: String(data.get("name") || "").trim(),
-                      phone: String(data.get("phone") || "").trim(),
-                      line1: String(data.get("line1") || "").trim(),
-                      city: String(data.get("city") || "").trim(),
-                      state: String(data.get("state") || "").trim(),
-                      postalCode: String(data.get("postalCode") || "").trim(),
-                      country: String(data.get("country") || "").trim()
-                    };
-                    if (!input.name || !input.phone || !input.line1 || !input.city || !input.country) return;
-                    void onAddAddress(input).then(() => setShowAddressForm(false));
-                  },
-                  children: [
-                    /* @__PURE__ */ jsx("input", { name: "name", required: true, placeholder: pickCopy(locale, { en: "Full name", hans: "\u59D3\u540D", hant: "\u59D3\u540D" }), className: "rounded-[0.7rem] border border-[var(--esim-line)] bg-transparent px-3 py-2.5 text-sm text-[var(--esim-ink)] outline-none focus:border-[var(--esim-gold)]" }),
-                    /* @__PURE__ */ jsx("input", { name: "phone", required: true, placeholder: pickCopy(locale, { en: "Phone", hans: "\u624B\u673A\u53F7", hant: "\u624B\u6A5F\u865F" }), className: "rounded-[0.7rem] border border-[var(--esim-line)] bg-transparent px-3 py-2.5 text-sm text-[var(--esim-ink)] outline-none focus:border-[var(--esim-gold)]" }),
-                    /* @__PURE__ */ jsx("input", { name: "line1", required: true, placeholder: pickCopy(locale, { en: "Address", hans: "\u8BE6\u7EC6\u5730\u5740", hant: "\u8A73\u7D30\u5730\u5740" }), className: "sm:col-span-2 rounded-[0.7rem] border border-[var(--esim-line)] bg-transparent px-3 py-2.5 text-sm text-[var(--esim-ink)] outline-none focus:border-[var(--esim-gold)]" }),
-                    /* @__PURE__ */ jsx("input", { name: "city", required: true, placeholder: pickCopy(locale, { en: "City", hans: "\u57CE\u5E02", hant: "\u57CE\u5E02" }), className: "rounded-[0.7rem] border border-[var(--esim-line)] bg-transparent px-3 py-2.5 text-sm text-[var(--esim-ink)] outline-none focus:border-[var(--esim-gold)]" }),
-                    /* @__PURE__ */ jsx("input", { name: "state", placeholder: pickCopy(locale, { en: "State / Province", hans: "\u7701/\u5DDE", hant: "\u7701/\u5DDE" }), className: "rounded-[0.7rem] border border-[var(--esim-line)] bg-transparent px-3 py-2.5 text-sm text-[var(--esim-ink)] outline-none focus:border-[var(--esim-gold)]" }),
-                    /* @__PURE__ */ jsx("input", { name: "postalCode", placeholder: pickCopy(locale, { en: "Postal code", hans: "\u90AE\u7F16", hant: "\u90F5\u905E\u5340\u865F" }), className: "rounded-[0.7rem] border border-[var(--esim-line)] bg-transparent px-3 py-2.5 text-sm text-[var(--esim-ink)] outline-none focus:border-[var(--esim-gold)]" }),
-                    /* @__PURE__ */ jsx("input", { name: "country", required: true, placeholder: pickCopy(locale, { en: "Country (e.g. CN)", hans: "\u56FD\u5BB6\uFF08\u5982 CN\uFF09", hant: "\u570B\u5BB6\uFF08\u5982 CN\uFF09" }), className: "rounded-[0.7rem] border border-[var(--esim-line)] bg-transparent px-3 py-2.5 text-sm text-[var(--esim-ink)] outline-none focus:border-[var(--esim-gold)]" }),
-                    /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-end gap-2 sm:col-span-2", children: [
-                      /* @__PURE__ */ jsx("button", { onClick: () => setShowAddressForm(false), className: "rounded-full px-4 py-2 text-xs text-[var(--esim-copy)]", type: "button", children: pickCopy(locale, { en: "Cancel", hans: "\u53D6\u6D88", hant: "\u53D6\u6D88" }) }),
-                      /* @__PURE__ */ jsx("button", { className: "rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--esim-gold)_82%,white),color-mix(in_oklab,var(--esim-gold)_68%,black))] px-5 py-2 text-xs font-semibold text-[var(--esim-bg)]", type: "submit", children: pickCopy(locale, { en: "Save address", hans: "\u4FDD\u5B58\u5730\u5740", hant: "\u4FDD\u5B58\u5730\u5740" }) })
-                    ] })
-                  ]
-                }
-              ) : /* @__PURE__ */ jsxs(
-                "button",
-                {
-                  onClick: () => setShowAddressForm(true),
-                  className: "inline-flex min-h-10 items-center gap-2 rounded-full border border-dashed border-[color:color-mix(in_oklab,var(--esim-gold)_38%,transparent)] px-4 text-xs font-medium text-[var(--esim-gold)] transition-colors hover:bg-[color:color-mix(in_oklab,var(--esim-gold)_10%,transparent)]",
-                  type: "button",
-                  children: [
-                    "+ ",
-                    pickCopy(locale, { en: "Add a new address", hans: "\u6DFB\u52A0\u65B0\u5730\u5740", hant: "\u6DFB\u52A0\u65B0\u5730\u5740" })
-                  ]
-                }
-              )
-            ] })
-          ] }) : null,
-          /* @__PURE__ */ jsxs("section", { className: "grid gap-6 lg:grid-cols-2", children: [
-            /* @__PURE__ */ jsxs(
-              "div",
-              {
-                onClick: onNavigateToOrders,
-                className: "group flex cursor-pointer items-center justify-between gap-4 rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-5 shadow-[var(--esim-shadow)] transition-colors hover:border-[color:color-mix(in_oklab,var(--esim-gold)_38%,transparent)] sm:p-6",
-                children: [
-                  /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-4", children: [
-                    /* @__PURE__ */ jsx("div", { className: "flex h-14 w-14 shrink-0 items-center justify-center rounded-[1rem] bg-[color:color-mix(in_oklab,var(--esim-gold)_15%,transparent)] text-[var(--esim-gold)]", children: /* @__PURE__ */ jsx(ShoppingBag, { className: "h-6 w-6" }) }),
-                    /* @__PURE__ */ jsxs("div", { children: [
-                      /* @__PURE__ */ jsx("h3", { className: "text-lg font-bold tracking-tight text-[var(--esim-ink)]", children: pickCopy(locale, { en: "Order History", hans: "\u8BA2\u5355\u7EAA\u5F55", hant: "\u8A02\u55AE\u7D00\u9304" }) }),
-                      /* @__PURE__ */ jsx("p", { className: "mt-1 text-sm text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: "View and manage your orders", hans: "\u67E5\u770B\u53CA\u7BA1\u7406\u60A8\u7684\u8BA2\u5355", hant: "\u67E5\u770B\u53CA\u7BA1\u7406\u60A8\u7684\u8A02\u55AE" }) })
-                    ] })
-                  ] }),
-                  /* @__PURE__ */ jsx("span", { className: "flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--esim-line-strong)] text-[var(--esim-copy)] transition-colors group-hover:border-[var(--esim-gold)] group-hover:text-[var(--esim-gold)]", children: /* @__PURE__ */ jsx(ChevronRight, { className: "h-[1.1rem] w-[1.1rem]" }) })
-                ]
-              }
-            ),
-            /* @__PURE__ */ jsxs(
-              "div",
-              {
-                onClick: onNavigateToOrders,
-                className: "group flex cursor-pointer items-center justify-between gap-4 rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-5 shadow-[var(--esim-shadow)] transition-colors hover:border-[color:color-mix(in_oklab,var(--esim-gold)_38%,transparent)] sm:p-6",
-                children: [
-                  /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-4", children: [
-                    /* @__PURE__ */ jsx("div", { className: "flex h-14 w-14 shrink-0 items-center justify-center rounded-[1rem] bg-[color:color-mix(in_oklab,var(--esim-gold)_15%,transparent)] text-[var(--esim-gold)]", children: /* @__PURE__ */ jsx(Plane, { className: "h-6 w-6" }) }),
-                    /* @__PURE__ */ jsxs("div", { children: [
-                      /* @__PURE__ */ jsx("h3", { className: "text-lg font-bold tracking-tight text-[var(--esim-ink)]", children: pickCopy(locale, { en: "Upcoming Trips", hans: "\u5373\u5C06\u5230\u6765\u7684\u884C\u7A0B", hant: "\u5373\u5C07\u5230\u4F86\u7684\u884C\u7A0B" }) }),
-                      /* @__PURE__ */ jsx("p", { className: "mt-1 text-sm text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: "Your booked experiences", hans: "\u60A8\u5DF2\u9884\u8BA2\u7684\u4F53\u9A8C", hant: "\u60A8\u5DF2\u9810\u8A02\u7684\u9AD4\u9A57" }) })
-                    ] })
-                  ] }),
-                  /* @__PURE__ */ jsx("span", { className: "flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--esim-line-strong)] text-[var(--esim-copy)] transition-colors group-hover:border-[var(--esim-gold)] group-hover:text-[var(--esim-gold)]", children: /* @__PURE__ */ jsx(ChevronRight, { className: "h-[1.1rem] w-[1.1rem]" }) })
-                ]
-              }
-            )
-          ] }),
-          /* @__PURE__ */ jsxs("section", { className: "grid gap-6 lg:grid-cols-3", children: [
-            /* @__PURE__ */ jsxs(
-              "div",
-              {
-                onClick: () => go(site.primaryCtaHref || "/products"),
-                className: "group relative min-h-[15rem] cursor-pointer overflow-hidden rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] shadow-[var(--esim-shadow)]",
-                style: { backgroundImage: CLUBS_SCENE, backgroundSize: "cover", backgroundPosition: "center" },
-                children: [
-                  /* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-[linear-gradient(92deg,rgba(8,6,4,0.86)_8%,rgba(8,6,4,0.42)_58%,rgba(8,6,4,0.12))]" }),
-                  /* @__PURE__ */ jsxs("div", { className: "relative flex h-full flex-col p-6", children: [
-                    /* @__PURE__ */ jsx("h3", { className: "text-[1.55rem] font-bold leading-tight text-white", children: locale === "zh-Hant" ? "\u63A2\u7D22\u5C0A\u8CB4\u6703\u6240" : locale === "zh-Hans" ? "\u63A2\u7D22\u5C0A\u8D35\u4F1A\u6240" : /* @__PURE__ */ jsxs(Fragment2, { children: [
-                      "Discover",
-                      /* @__PURE__ */ jsx("br", {}),
-                      "Exclusive Clubs"
-                    ] }) }),
-                    /* @__PURE__ */ jsx("p", { className: "mt-2.5 max-w-[15rem] text-sm leading-relaxed text-white/75", children: pickCopy(locale, { en: "Access the world's best venues with BOKMOO.", hans: "\u4E0E BOKMOO \u901A\u884C\u5168\u7403\u9876\u7EA7\u573A\u6240\u3002", hant: "\u8207 BOKMOO \u901A\u884C\u5168\u7403\u9802\u7D1A\u5834\u6240\u3002" }) }),
-                    /* @__PURE__ */ jsxs("span", { className: "mt-auto inline-flex items-center gap-1.5 self-start rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--esim-gold)_86%,white),color-mix(in_oklab,var(--esim-gold)_70%,black))] px-5 py-2.5 text-[0.8rem] font-bold text-[var(--esim-bg)] transition-transform duration-300 group-hover:-translate-y-0.5", children: [
-                      pickCopy(locale, { en: "Explore Now", hans: "\u7ACB\u5373\u63A2\u7D22", hant: "\u7ACB\u5373\u63A2\u7D22" }),
-                      /* @__PURE__ */ jsx(ArrowRight, { className: "h-4 w-4" })
-                    ] })
-                  ] })
-                ]
-              }
-            ),
-            /* @__PURE__ */ jsxs("div", { className: "rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-6 shadow-[var(--esim-shadow)]", children: [
-              /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2.5", children: [
-                /* @__PURE__ */ jsx(Crown, { className: "h-5 w-5 text-[var(--esim-gold)]" }),
-                /* @__PURE__ */ jsx("h3", { className: "text-[1.05rem] font-bold tracking-tight text-[var(--esim-ink)]", children: pickCopy(locale, { en: "BOKMOO Member Benefits", hans: "BOKMOO \u4F1A\u5458\u6743\u76CA", hant: "BOKMOO \u6703\u54E1\u6B0A\u76CA" }) })
-              ] }),
-              /* @__PURE__ */ jsx("ul", { className: "mt-5 space-y-3.5", children: (locale === "zh-Hant" ? ["\u5168\u7403\u9802\u7D1A\u6703\u6240\u901A\u884C", "\u6703\u54E1\u5C08\u5C6C\u512A\u60E0", "\u8F15\u9B06\u9810\u8A02\uFF0C\u5373\u6642\u78BA\u8A8D", "\u5C08\u5C6C\u652F\u63F4"] : locale === "zh-Hans" ? ["\u5168\u7403\u9876\u7EA7\u4F1A\u6240\u901A\u884C", "\u4F1A\u5458\u4E13\u5C5E\u4F18\u60E0", "\u8F7B\u677E\u9884\u8BA2\uFF0C\u5373\u65F6\u786E\u8BA4", "\u4E13\u5C5E\u652F\u63F4"] : [
-                "Access to premier clubs worldwide",
-                "Exclusive member-only offers",
-                "Easy booking and instant confirmation",
-                "Dedicated support"
-              ]).map((benefit) => /* @__PURE__ */ jsxs("li", { className: "flex items-start gap-3", children: [
-                /* @__PURE__ */ jsx(Check, { className: "mt-0.5 h-4 w-4 shrink-0 text-[var(--esim-gold)]" }),
-                /* @__PURE__ */ jsx("span", { className: "text-sm leading-relaxed text-[var(--esim-copy)]", children: benefit })
-              ] }, benefit)) })
-            ] }),
-            /* @__PURE__ */ jsxs("div", { className: "flex flex-col rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-6 shadow-[var(--esim-shadow)]", children: [
-              /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2.5", children: [
-                /* @__PURE__ */ jsx(Headphones, { className: "h-5 w-5 text-[var(--esim-gold)]" }),
-                /* @__PURE__ */ jsx("h3", { className: "text-[1.05rem] font-bold tracking-tight text-[var(--esim-ink)]", children: pickCopy(locale, { en: "Need Help?", hans: "\u9700\u8981\u534F\u52A9\uFF1F", hant: "\u9700\u8981\u5354\u52A9\uFF1F" }) })
-              ] }),
-              /* @__PURE__ */ jsx("p", { className: "mt-2.5 text-sm leading-relaxed text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: "Our support team is here for you.", hans: "\u6211\u4EEC\u7684\u652F\u63F4\u56E2\u961F\u968F\u65F6\u4E3A\u60A8\u670D\u52A1\u3002", hant: "\u6211\u5011\u7684\u652F\u63F4\u5718\u968A\u96A8\u6642\u70BA\u60A8\u670D\u52D9\u3002" }) }),
-              /* @__PURE__ */ jsxs(
-                "button",
-                {
-                  onClick: () => go("/contact"),
-                  className: "mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full border border-[color:color-mix(in_oklab,var(--esim-gold)_46%,transparent)] bg-[color:color-mix(in_oklab,var(--esim-gold)_10%,transparent)] text-sm font-semibold text-[var(--esim-gold)] transition-colors hover:bg-[color:color-mix(in_oklab,var(--esim-gold)_18%,transparent)]",
-                  type: "button",
-                  children: [
-                    pickCopy(locale, { en: "Contact Support", hans: "\u8054\u7EDC\u5BA2\u670D", hant: "\u806F\u7D61\u5BA2\u670D" }),
-                    /* @__PURE__ */ jsx(ArrowRight, { className: "h-4 w-4" })
-                  ]
-                }
-              ),
-              /* @__PURE__ */ jsxs(
-                "button",
-                {
-                  onClick: () => go("/help"),
-                  className: "mt-5 inline-flex items-center justify-center gap-2 text-sm text-[var(--esim-copy-soft)] transition-colors hover:text-[var(--esim-ink)]",
-                  type: "button",
-                  children: [
-                    /* @__PURE__ */ jsx(BookOpen, { className: "h-4 w-4" }),
-                    pickCopy(locale, { en: "Visit Help Center", hans: "\u524D\u5F80\u5E2E\u52A9\u4E2D\u5FC3", hant: "\u524D\u5F80\u5E6B\u52A9\u4E2D\u5FC3" })
-                  ]
-                }
-              )
-            ] })
-          ] })
-        ] })
-      ] })
-    ] });
-  });
-
-  // src/components/AuthCallbackPage.tsx
-  var FOCUS_VISIBLE_RING = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--esim-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--esim-bg)]";
-  function AuthCallbackPage({
-    isLoading,
-    error,
-    config,
-    onRetry,
-    onNavigateToHome
-  }) {
-    const site = resolveEsimSiteConfig(config);
-    return /* @__PURE__ */ jsxs("div", { className: "relative flex min-h-screen items-center justify-center overflow-hidden bg-[var(--esim-bg)] px-4 py-12 text-[var(--esim-ink)]", children: [
-      /* @__PURE__ */ jsxs("div", { className: "pointer-events-none absolute inset-0", children: [
-        /* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,color-mix(in_oklab,var(--esim-gold)_18%,transparent),transparent_26%),linear-gradient(180deg,var(--esim-bg),color-mix(in_oklab,var(--esim-bg)_84%,black))]" }),
-        /* @__PURE__ */ jsx("div", { className: "absolute inset-0 opacity-40 [background-image:var(--esim-grid)] [background-size:72px_72px]" })
-      ] }),
-      /* @__PURE__ */ jsx("section", { className: "relative w-full max-w-[30rem] rounded-[1.45rem] border border-[color:color-mix(in_oklab,var(--esim-gold)_22%,transparent)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--esim-bg-elevated)_94%,white),var(--esim-bg-elevated))] p-5 shadow-[var(--esim-shadow)] sm:p-7", children: /* @__PURE__ */ jsxs("div", { className: "rounded-[1.1rem] border border-[var(--esim-line)] bg-[color:oklch(0.055_0.006_75_/_0.78)] p-6 text-center", children: [
-        /* @__PURE__ */ jsx("div", { className: "mx-auto flex h-16 w-16 items-center justify-center rounded-[1rem] border border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-gold)_12%,transparent)] text-[var(--esim-gold)]", children: error ? /* @__PURE__ */ jsx(TriangleAlert, { className: "h-7 w-7" }) : isLoading ? /* @__PURE__ */ jsx(LoaderCircle, { className: "h-7 w-7 animate-spin" }) : /* @__PURE__ */ jsx(ShieldCheck, { className: "h-7 w-7" }) }),
-        /* @__PURE__ */ jsxs("p", { className: "mt-6 text-[11px] font-bold uppercase tracking-[0.24em] text-[var(--esim-gold)]", children: [
-          site.brandName.toUpperCase(),
-          " account"
-        ] }),
-        /* @__PURE__ */ jsx("h1", { className: "mt-3 text-3xl font-semibold leading-none tracking-[-0.05em] text-[var(--esim-ink)]", children: error ? "Authentication failed" : "Completing sign in" }),
-        /* @__PURE__ */ jsx("p", { className: "mt-4 text-sm leading-6 text-[var(--esim-copy)]", children: error || "Securing your session and returning you to the BOKMOO storefront." }),
-        /* @__PURE__ */ jsxs("div", { className: "mt-7 grid gap-3 sm:grid-cols-2", children: [
-          /* @__PURE__ */ jsx(
-            "button",
-            {
-              type: "button",
-              onClick: onRetry,
-              className: `inline-flex min-h-12 items-center justify-center rounded-[0.95rem] border border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_86%,black)] px-4 text-sm font-semibold text-[var(--esim-ink)] transition-colors hover:border-[var(--esim-gold)] hover:text-[var(--esim-gold)] ${FOCUS_VISIBLE_RING}`,
-              children: "Back to sign in"
-            }
-          ),
-          /* @__PURE__ */ jsx(
-            "button",
-            {
-              type: "button",
-              onClick: onNavigateToHome,
-              className: `inline-flex min-h-12 items-center justify-center rounded-[0.95rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--esim-gold)_88%,white),color-mix(in_oklab,var(--esim-gold)_64%,black))] px-4 text-sm font-black uppercase tracking-[0.16em] text-[var(--esim-bg)] ${FOCUS_VISIBLE_RING}`,
-              children: "Home"
-            }
-          )
-        ] })
-      ] }) })
-    ] });
-  }
-
   // src/lib/api.ts
   var EsimApiError = class extends Error {
     constructor(status, code, message, requestId) {
@@ -12506,6 +11939,16 @@
   async function getEsimOrder(config, orderId2) {
     return request(config, `/api/orders/${orderId2}`);
   }
+  async function getEsimAssets(config) {
+    try {
+      const envelope = await requestEnvelope(config, "/api/esims");
+      const data = envelope.data;
+      if (Array.isArray(data)) return data;
+      return data?.items || [];
+    } catch {
+      return [];
+    }
+  }
   async function getEsimOrders(config, params = {}) {
     const search = new URLSearchParams();
     search.set("page", String(params.page || 1));
@@ -12553,6 +11996,611 @@
   async function getEsimOrganizationCommissions(config) {
     const result = await request(config, `${affiliateBase}/organizations/commissions`);
     return result.items || [];
+  }
+
+  // src/components/ProfilePage.tsx
+  var SCRIPT_FONT = '"Snell Roundhand", "Savoye LET", "Segoe Script", "Brush Script MT", cursive';
+  function svgBackgroundUri(svg) {
+    return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+  }
+  var CLUBS_SCENE = svgBackgroundUri(
+    `<svg xmlns='http://www.w3.org/2000/svg' width='640' height='380' viewBox='0 0 640 380'><defs><linearGradient id='sky' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='#0f1824'/><stop offset='0.42' stop-color='#1e2d3d'/><stop offset='0.68' stop-color='#5a4530'/><stop offset='1' stop-color='#0a0805'/></linearGradient><radialGradient id='glow' cx='0.64' cy='0.62' r='0.55'><stop offset='0' stop-color='#f2b552' stop-opacity='0.5'/><stop offset='1' stop-color='#f2b552' stop-opacity='0'/></radialGradient></defs><rect width='640' height='380' fill='url(#sky)'/><rect width='640' height='380' fill='url(#glow)'/><g fill='#f4c169'><circle cx='446' cy='232' r='2.4'/><circle cx='468' cy='240' r='1.6'/><circle cx='428' cy='243' r='1.4'/><circle cx='488' cy='230' r='1.2'/></g><g stroke='#060503' stroke-linecap='round' fill='none'><path d='M84 380C90 312 86 268 96 218' stroke-width='9'/><path d='M96 218C64 200 34 202 12 218M96 218C112 188 142 176 176 180M96 218C84 184 60 166 28 162M96 218C126 204 158 208 184 226M96 218C100 186 116 162 144 152' stroke-width='7'/><path d='M560 380C556 336 560 306 552 270' stroke-width='8'/><path d='M552 270C526 256 500 258 482 270M552 270C566 244 590 234 618 238M552 270C542 242 522 226 494 224M552 270C578 258 606 262 626 278M552 270C556 242 570 222 594 214' stroke-width='6'/></g><g fill='#f0b45c'><rect x='376' y='252' width='128' height='3' rx='1.5' opacity='0.4'/><rect x='296' y='274' width='208' height='3' rx='1.5' opacity='0.26'/><rect x='336' y='296' width='168' height='3' rx='1.5' opacity='0.18'/><rect x='260' y='318' width='230' height='3' rx='1.5' opacity='0.12'/></g></svg>`
+  );
+  var PROMO_SCENE = svgBackgroundUri(
+    `<svg xmlns='http://www.w3.org/2000/svg' width='420' height='320' viewBox='0 0 420 320'><defs><linearGradient id='dusk' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='#181231'/><stop offset='0.44' stop-color='#2c2044'/><stop offset='0.7' stop-color='#4b2d3d'/><stop offset='1' stop-color='#0d0a12'/></linearGradient><radialGradient id='duskglow' cx='0.72' cy='0.58' r='0.5'><stop offset='0' stop-color='#e8a45c' stop-opacity='0.34'/><stop offset='1' stop-color='#e8a45c' stop-opacity='0'/></radialGradient></defs><rect width='420' height='320' fill='url(#dusk)'/><rect width='420' height='320' fill='url(#duskglow)'/><g fill='#ffffff' opacity='0.55'><circle cx='60' cy='52' r='1.1'/><circle cx='150' cy='34' r='0.9'/><circle cx='236' cy='60' r='1.2'/><circle cx='318' cy='40' r='1'/><circle cx='374' cy='84' r='0.9'/><circle cx='104' cy='96' r='0.8'/><circle cx='286' cy='104' r='0.8'/></g><g stroke='#070509' stroke-linecap='round' fill='none'><path d='M64 320C70 264 66 228 76 184' stroke-width='9'/><path d='M76 184C46 168 20 170 2 184M76 184C90 156 118 146 148 150M76 184C66 154 44 138 16 136M76 184C104 170 132 174 156 190M76 184C80 156 94 134 120 126' stroke-width='7'/></g><g fill='#e8a45c'><rect x='150' y='212' width='150' height='2.6' rx='1.3' opacity='0.3'/><rect x='196' y='236' width='170' height='2.6' rx='1.3' opacity='0.2'/><rect x='120' y='262' width='210' height='2.6' rx='1.3' opacity='0.13'/></g></svg>`
+  );
+  var GOLD_GRADIENT_BG = "bg-[linear-gradient(145deg,color-mix(in_oklab,var(--esim-gold)_82%,white),color-mix(in_oklab,var(--esim-gold)_65%,black))]";
+  function formatDate(iso, locale) {
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return "\u2014";
+    return date.toLocaleDateString(locale === "zh-Hant" ? "zh-TW" : "en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric"
+    });
+  }
+  function timezoneLabel() {
+    try {
+      const zone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+      const offsetMinutes = -(/* @__PURE__ */ new Date()).getTimezoneOffset();
+      const sign = offsetMinutes < 0 ? "-" : "+";
+      const abs = Math.abs(offsetMinutes);
+      const hours = Math.floor(abs / 60);
+      const minutes = abs % 60;
+      return `(UTC${sign}${hours}${minutes ? `:${String(minutes).padStart(2, "0")}` : ""}) ${zone}`;
+    } catch {
+      return "UTC";
+    }
+  }
+  function MyEsimAssets({ apiBaseUrl, email, locale }) {
+    const [assets, setAssets] = react_default.useState(null);
+    react_default.useEffect(() => {
+      if (!email) return;
+      let mounted = true;
+      (async () => {
+        const list = await getEsimAssets({ baseUrl: apiBaseUrl });
+        if (mounted) setAssets(list);
+      })();
+      return () => {
+        mounted = false;
+      };
+    }, [apiBaseUrl, email]);
+    if (!email || !assets || assets.length === 0) return null;
+    return /* @__PURE__ */ jsxs("section", { className: "rounded-[var(--esim-radius-lg)] border border-[color:color-mix(in_oklab,var(--esim-gold)_18%,var(--esim-line))] bg-[color:color-mix(in_oklab,var(--esim-bg-elevated)_92%,black)] p-5 shadow-[var(--esim-shadow)] sm:p-6", children: [
+      /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between", children: [
+        /* @__PURE__ */ jsx("h2", { className: "text-lg font-medium tracking-[-0.02em] text-[var(--esim-ink)]", children: pickCopy(locale, { en: "My eSIMs", hans: "\u6211\u7684 eSIM", hant: "\u6211\u7684 eSIM" }) }),
+        /* @__PURE__ */ jsx("span", { className: "text-xs text-[var(--esim-copy-soft)]", children: assets.length })
+      ] }),
+      /* @__PURE__ */ jsx("p", { className: "mt-2 text-xs leading-5 text-[var(--esim-copy-soft)]", children: pickCopy(locale, {
+        en: "Plans you buy are added to these profiles \u2014 no new QR code, no reinstall.",
+        hans: "\u65B0\u8D2D\u5957\u9910\u4F1A\u76F4\u63A5\u52A0\u8FDB\u8FD9\u4E9B profile\u2014\u2014\u4E0D\u53D1\u65B0\u4E8C\u7EF4\u7801\u3001\u65E0\u9700\u91CD\u88C5\u3002",
+        hant: "\u65B0\u8CFC\u5957\u9910\u6703\u76F4\u63A5\u52A0\u9032\u9019\u4E9B profile\u2014\u2014\u4E0D\u767C\u65B0\u4E8C\u7DAD\u78BC\u3001\u7121\u9700\u91CD\u88DD\u3002"
+      }) }),
+      /* @__PURE__ */ jsx("div", { className: "mt-4 grid gap-3", children: assets.map((asset) => /* @__PURE__ */ jsxs("div", { className: "rounded-[0.95rem] border border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_86%,black)] px-4 py-3", children: [
+        /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between gap-3", children: [
+          /* @__PURE__ */ jsx("p", { className: "text-sm font-medium text-[var(--esim-ink)]", children: asset.label || pickCopy(locale, { en: "Bokmoo eSIM", hans: "Bokmoo eSIM", hant: "Bokmoo eSIM" }) }),
+          /* @__PURE__ */ jsx("span", { className: "rounded-full border border-[color:color-mix(in_oklab,var(--esim-gold)_34%,transparent)] px-2 py-0.5 text-[10px] tracking-[0.14em] text-[var(--esim-gold)]", children: (asset.status || "ACTIVE").toUpperCase() })
+        ] }),
+        /* @__PURE__ */ jsxs("p", { className: "mt-1.5 font-mono text-xs text-[var(--esim-copy-soft)]", children: [
+          "ICCID \xB7\xB7\xB7\xB7",
+          asset.iccid.slice(-6)
+        ] }),
+        asset.packages && asset.packages.length > 0 ? /* @__PURE__ */ jsx("p", { className: "mt-1 text-xs text-[var(--esim-copy)]", children: asset.packages.map((pkg) => pkg.name).filter(Boolean).join(" \xB7 ") }) : null
+      ] }, asset.iccid)) })
+    ] });
+  }
+  var ProfilePage = react_default.memo(function ProfilePage2({
+    user,
+    isLoading,
+    isAuthenticated,
+    config,
+    locale,
+    onNavigate,
+    onNavigateToSettings,
+    onNavigateToOrders,
+    onNavigateToLogin,
+    addresses,
+    isLoadingAddresses,
+    onAddAddress,
+    onDeleteAddress,
+    onSetDefaultAddress
+  }) {
+    const isZhHant = locale === "zh-Hant";
+    const [showAddressForm, setShowAddressForm] = react_default.useState(false);
+    const site = resolveEsimSiteConfig(config);
+    const go = react_default.useCallback(
+      (path) => {
+        if (onNavigate) {
+          onNavigate(path);
+          return;
+        }
+        const prefix = locale === "zh-Hant" ? "/zh-Hant" : locale === "zh-Hans" ? "/zh-Hans" : "/en";
+        window.location.assign(`${prefix}${path}`);
+      },
+      [onNavigate, isZhHant]
+    );
+    const [copied, setCopied] = react_default.useState(false);
+    const copyEmail = react_default.useCallback(async () => {
+      if (!user?.email) return;
+      try {
+        await navigator.clipboard.writeText(user.email);
+        setCopied(true);
+        window.setTimeout(() => setCopied(false), 2e3);
+      } catch {
+      }
+    }, [user?.email]);
+    if (!isAuthenticated || !user) {
+      return /* @__PURE__ */ jsx("div", { className: "flex min-h-screen items-center justify-center bg-[var(--esim-bg)] px-4", children: /* @__PURE__ */ jsx("div", { className: "w-full max-w-md", children: /* @__PURE__ */ jsxs("div", { className: "rounded-[var(--esim-radius-xl)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-10 text-center shadow-[var(--esim-shadow)]", children: [
+        /* @__PURE__ */ jsx("div", { className: "mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[color:color-mix(in_oklab,var(--esim-gold)_14%,transparent)] text-[var(--esim-gold)]", children: /* @__PURE__ */ jsx(UserRound, { className: "h-8 w-8" }) }),
+        /* @__PURE__ */ jsx("h2", { className: "mt-6 text-3xl leading-[1] tracking-[-0.04em] text-[var(--esim-ink)]", children: pickCopy(locale, { en: "Sign in to view your profile", hans: "\u767B\u5165\u4EE5\u67E5\u770B\u60A8\u7684\u4E2A\u4EBA\u6863\u6848", hant: "\u767B\u5165\u4EE5\u67E5\u770B\u60A8\u7684\u500B\u4EBA\u6A94\u6848" }) }),
+        /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: "Please log in to check your BOKMOO account", hans: "\u8BF7\u767B\u5165\u4EE5\u67E5\u770B\u60A8\u7684 BOKMOO \u5E10\u6237", hant: "\u8ACB\u767B\u5165\u4EE5\u67E5\u770B\u60A8\u7684 BOKMOO \u5E33\u6236" }) }),
+        /* @__PURE__ */ jsx(
+          "button",
+          {
+            onClick: onNavigateToLogin,
+            className: `mt-8 h-12 w-full rounded-full px-6 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--esim-bg)] ${GOLD_GRADIENT_BG}`,
+            type: "button",
+            children: pickCopy(locale, { en: "Log In", hans: "\u767B\u5165", hant: "\u767B\u5165" })
+          }
+        )
+      ] }) }) });
+    }
+    if (isLoading) {
+      return /* @__PURE__ */ jsx("div", { className: "flex min-h-screen items-center justify-center bg-[var(--esim-bg)]", children: /* @__PURE__ */ jsxs("div", { className: "text-center", children: [
+        /* @__PURE__ */ jsx("div", { className: "mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-[var(--esim-line)] border-t-[var(--esim-gold)]" }),
+        /* @__PURE__ */ jsx("p", { className: "text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: "Loading profile...", hans: "\u6B63\u5728\u8F7D\u5165\u4E2A\u4EBA\u8D44\u6599\u2026", hant: "\u6B63\u5728\u8F09\u5165\u500B\u4EBA\u8CC7\u6599\u2026" }) })
+      ] }) });
+    }
+    const displayName = (user.name || "").trim();
+    const firstName = displayName ? displayName.split(/\s+/)[0] : "";
+    const greeting = firstName ? locale === "zh-Hant" ? `\u4F60\u597D\uFF0C${firstName}\uFF01` : locale === "zh-Hans" ? `\u4F60\u597D\uFF0C${firstName}\uFF01` : `Hi ${firstName}!` : locale === "zh-Hant" ? "\u4F60\u597D\uFF01" : locale === "zh-Hans" ? "\u4F60\u597D\uFF01" : "Hi there!";
+    const accountInitial = (displayName || user.email).trim().charAt(0).toUpperCase();
+    const memberSince = user.createdAt ? formatDate(user.createdAt, locale) : "\u2014";
+    const navItems = [
+      {
+        label: pickCopy(locale, { en: "My Account", hans: "\u6211\u7684\u5E10\u6237", hant: "\u6211\u7684\u5E33\u6236" }),
+        icon: UserRound,
+        active: true,
+        onClick: () => window.scrollTo({ top: 0, behavior: "smooth" })
+      },
+      { label: pickCopy(locale, { en: "Order History", hans: "\u8BA2\u5355\u7EAA\u5F55", hant: "\u8A02\u55AE\u7D00\u9304" }), icon: ShoppingBag, onClick: onNavigateToOrders },
+      { label: pickCopy(locale, { en: "My Trips", hans: "\u6211\u7684\u884C\u7A0B", hant: "\u6211\u7684\u884C\u7A0B" }), icon: Plane, onClick: onNavigateToOrders },
+      { label: pickCopy(locale, { en: "Travel Credits", hans: "\u65C5\u6E38\u70B9\u6570", hant: "\u65C5\u904A\u9EDE\u6578" }), icon: Mail, onClick: () => go("/affiliate") },
+      { label: pickCopy(locale, { en: "Affiliate Program", hans: "\u63A8\u5E7F\u8BA1\u5212", hant: "\u63A8\u5EE3\u8A08\u5283" }), icon: Users, onClick: () => go("/affiliate") },
+      { label: pickCopy(locale, { en: "Settings", hans: "\u8BBE\u5B9A", hant: "\u8A2D\u5B9A" }), icon: Settings, onClick: onNavigateToSettings }
+    ];
+    const renderNavButton = (item, layout2) => {
+      const Icon2 = item.icon;
+      const base = layout2 === "sidebar" ? "flex w-full shrink-0 items-center gap-3 rounded-[0.9rem] px-4 py-3 text-[0.92rem] font-medium transition-colors" : "inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-2.5 text-[0.85rem] font-medium transition-colors";
+      const tone = item.active ? layout2 === "sidebar" ? "bg-[color:color-mix(in_oklab,var(--esim-gold)_13%,transparent)] text-[var(--esim-ink)] shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--esim-gold)_22%,transparent)]" : "border-[color:color-mix(in_oklab,var(--esim-gold)_36%,transparent)] bg-[color:color-mix(in_oklab,var(--esim-gold)_13%,transparent)] text-[var(--esim-ink)]" : "border-transparent text-[var(--esim-copy-soft)] hover:bg-[color:color-mix(in_oklab,var(--esim-gold)_8%,transparent)] hover:text-[var(--esim-ink)]";
+      return /* @__PURE__ */ jsxs("button", { onClick: item.onClick, className: `${base} ${tone}`, type: "button", children: [
+        /* @__PURE__ */ jsx(
+          Icon2,
+          {
+            className: `h-[1.05rem] w-[1.05rem] ${item.active ? "text-[var(--esim-gold)]" : "text-[color:color-mix(in_oklab,var(--esim-copy-soft)_80%,var(--esim-gold))]"}`
+          }
+        ),
+        item.label
+      ] }, item.label);
+    };
+    const infoRowIcon = "h-4 w-4 shrink-0 text-[var(--esim-copy-soft)]";
+    const editButtonClass = "inline-flex h-9 items-center gap-1.5 rounded-full border border-[var(--esim-line-strong)] bg-[color:color-mix(in_oklab,var(--esim-bg-soft)_60%,transparent)] px-4 text-[0.8rem] font-semibold text-[var(--esim-ink)] transition-colors hover:border-[var(--esim-gold)] hover:text-[var(--esim-gold)]";
+    return /* @__PURE__ */ jsxs("div", { className: "min-h-screen bg-[var(--esim-bg)] lg:flex", children: [
+      /* @__PURE__ */ jsxs("aside", { className: "hidden w-64 shrink-0 flex-col border-r border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_94%,black)] px-4 pb-10 pt-6 lg:flex", children: [
+        /* @__PURE__ */ jsx("nav", { className: "flex flex-col gap-1.5", children: navItems.map((item) => renderNavButton(item, "sidebar")) }),
+        /* @__PURE__ */ jsx("div", { className: "mt-auto pt-10", children: /* @__PURE__ */ jsxs(
+          "div",
+          {
+            onClick: () => go("/products"),
+            className: "group relative min-h-[13.5rem] cursor-pointer overflow-hidden rounded-[var(--esim-radius-md)] border border-[var(--esim-line)] shadow-[var(--esim-shadow)]",
+            style: { backgroundImage: PROMO_SCENE, backgroundSize: "cover", backgroundPosition: "center" },
+            children: [
+              /* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-[linear-gradient(180deg,rgba(9,7,14,0.1),rgba(9,7,14,0.78))]" }),
+              /* @__PURE__ */ jsxs("div", { className: "relative flex min-h-[13.5rem] flex-col p-5", children: [
+                /* @__PURE__ */ jsx("h3", { className: "max-w-[9.5rem] text-xl font-bold leading-snug text-white", children: pickCopy(locale, { en: "Explore a Better Night", hans: "\u63A2\u7D22\u66F4\u7F8E\u597D\u7684\u591C\u665A", hant: "\u63A2\u7D22\u66F4\u7F8E\u597D\u7684\u591C\u665A" }) }),
+                /* @__PURE__ */ jsx("p", { className: "mt-2 text-xs leading-relaxed text-white/70", children: pickCopy(locale, { en: "Premium club experiences around the world.", hans: "\u5168\u7403\u9AD8\u7EA7\u4F1A\u6240\u4F53\u9A8C\uFF0C\u5C3D\u5728\u638C\u63E1\u3002", hant: "\u5168\u7403\u9AD8\u7D1A\u6703\u6240\u9AD4\u9A57\uFF0C\u76E1\u5728\u638C\u63E1\u3002" }) }),
+                /* @__PURE__ */ jsxs("span", { className: "mt-auto inline-flex items-center gap-1.5 self-start rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--esim-gold)_86%,white),color-mix(in_oklab,var(--esim-gold)_70%,black))] px-4 py-2 text-xs font-bold text-[var(--esim-bg)] transition-transform duration-300 group-hover:-translate-y-0.5", children: [
+                  pickCopy(locale, { en: "Browse Destinations", hans: "\u6D4F\u89C8\u76EE\u7684\u5730", hant: "\u700F\u89BD\u76EE\u7684\u5730" }),
+                  /* @__PURE__ */ jsx(ArrowRight, { className: "h-3.5 w-3.5" })
+                ] })
+              ] })
+            ]
+          }
+        ) })
+      ] }),
+      /* @__PURE__ */ jsxs("div", { className: "min-w-0 flex-1 px-4 pb-16 pt-5 sm:px-6 lg:px-8", children: [
+        /* @__PURE__ */ jsx("div", { className: "-mx-4 mb-5 overflow-x-auto px-4 pb-1 lg:hidden", children: /* @__PURE__ */ jsx("div", { className: "flex w-max gap-2", children: navItems.map((item) => renderNavButton(item, "chip")) }) }),
+        /* @__PURE__ */ jsxs("div", { className: "mx-auto max-w-[1200px] space-y-6", children: [
+          /* @__PURE__ */ jsxs("section", { className: "relative overflow-hidden rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] bg-[linear-gradient(115deg,color-mix(in_oklab,var(--esim-bg-elevated)_96%,black),color-mix(in_oklab,var(--esim-bg-soft)_70%,var(--esim-bg-elevated)))] p-6 shadow-[var(--esim-shadow)] sm:p-8", children: [
+            /* @__PURE__ */ jsx(
+              "div",
+              {
+                "aria-hidden": "true",
+                className: "pointer-events-none absolute inset-y-0 right-0 hidden w-[56%] sm:block",
+                style: {
+                  backgroundImage: "radial-gradient(color-mix(in oklab, var(--esim-gold) 26%, transparent) 1.2px, transparent 1.4px)",
+                  backgroundSize: "13px 13px",
+                  maskImage: "radial-gradient(ellipse 85% 90% at 76% 48%, black 0%, transparent 74%)",
+                  WebkitMaskImage: "radial-gradient(ellipse 85% 90% at 76% 48%, black 0%, transparent 74%)"
+                }
+              }
+            ),
+            /* @__PURE__ */ jsxs(
+              "svg",
+              {
+                "aria-hidden": "true",
+                className: "pointer-events-none absolute -right-8 -top-10 hidden h-[150%] w-[44%] opacity-35 sm:block",
+                viewBox: "0 0 400 280",
+                fill: "none",
+                children: [
+                  /* @__PURE__ */ jsx("defs", { children: /* @__PURE__ */ jsxs("linearGradient", { id: "esim-hero-arc", x1: "0", y1: "280", x2: "400", y2: "40", gradientUnits: "userSpaceOnUse", children: [
+                    /* @__PURE__ */ jsx("stop", { stopColor: "var(--esim-gold)", stopOpacity: "0" }),
+                    /* @__PURE__ */ jsx("stop", { offset: "0.55", stopColor: "var(--esim-gold)", stopOpacity: "0.8" }),
+                    /* @__PURE__ */ jsx("stop", { offset: "1", stopColor: "#f6d78a", stopOpacity: "0.2" })
+                  ] }) }),
+                  /* @__PURE__ */ jsx("path", { d: "M12 262C86 138 252 66 400 84", stroke: "url(#esim-hero-arc)", strokeWidth: "1.5" }),
+                  /* @__PURE__ */ jsx("path", { d: "M52 280C124 168 276 100 400 116", stroke: "url(#esim-hero-arc)", strokeWidth: "1", opacity: "0.65" })
+                ]
+              }
+            ),
+            /* @__PURE__ */ jsxs("div", { className: "relative flex flex-col gap-6 sm:flex-row sm:items-center", children: [
+              /* @__PURE__ */ jsxs("div", { className: "relative shrink-0 self-center sm:self-start", children: [
+                /* @__PURE__ */ jsx(
+                  "div",
+                  {
+                    className: `flex h-24 w-24 items-center justify-center overflow-hidden rounded-full text-4xl font-bold text-[var(--esim-bg)] shadow-[0_18px_44px_color-mix(in_oklab,var(--esim-gold)_24%,transparent)] ${GOLD_GRADIENT_BG}`,
+                    children: user.avatar ? /* @__PURE__ */ jsx("img", { src: user.avatar, alt: user.name, className: "h-full w-full object-cover" }) : accountInitial
+                  }
+                ),
+                /* @__PURE__ */ jsx("span", { className: "absolute -bottom-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-[0.45rem] border border-[color:color-mix(in_oklab,var(--esim-gold)_34%,transparent)] bg-[color:oklch(0.09_0.01_75_/_0.96)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--esim-gold)]", children: pickCopy(locale, { en: "Member", hans: "\u4F1A\u5458", hant: "\u6703\u54E1" }) })
+              ] }),
+              /* @__PURE__ */ jsxs("div", { className: "min-w-0 text-center sm:text-left", children: [
+                /* @__PURE__ */ jsx("h1", { className: "text-[1.9rem] font-bold leading-tight tracking-[-0.02em] text-[var(--esim-ink)]", children: greeting }),
+                /* @__PURE__ */ jsxs("div", { className: "mt-2.5 flex items-center justify-center gap-2 sm:justify-start", children: [
+                  /* @__PURE__ */ jsx("p", { className: "truncate text-[0.95rem] text-[var(--esim-copy)]", children: user.email }),
+                  /* @__PURE__ */ jsx(
+                    "button",
+                    {
+                      onClick: copyEmail,
+                      className: "flex h-7 w-7 shrink-0 items-center justify-center rounded-[0.5rem] text-[var(--esim-copy-soft)] transition-colors hover:bg-[color:color-mix(in_oklab,var(--esim-gold)_10%,transparent)] hover:text-[var(--esim-gold)]",
+                      type: "button",
+                      "aria-label": pickCopy(locale, { en: "Copy email", hans: "\u590D\u5236\u7535\u5B50\u90AE\u4EF6", hant: "\u8907\u88FD\u96FB\u5B50\u90F5\u4EF6" }),
+                      children: copied ? /* @__PURE__ */ jsx(Check, { className: "h-4 w-4 text-[var(--esim-success)]" }) : /* @__PURE__ */ jsx(Copy, { className: "h-4 w-4" })
+                    }
+                  )
+                ] }),
+                /* @__PURE__ */ jsxs("p", { className: "mt-1.5 text-[0.82rem] text-[var(--esim-copy-soft)]", children: [
+                  pickCopy(locale, { en: "Member since", hans: "\u6CE8\u518C\u4E8E", hant: "\u8A3B\u518A\u65BC" }),
+                  " ",
+                  memberSince
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxs("div", { "aria-hidden": "true", className: "relative ml-auto hidden select-none flex-col items-end pr-2 lg:flex", children: [
+                /* @__PURE__ */ jsxs(
+                  "span",
+                  {
+                    className: "bg-[linear-gradient(120deg,#f6d78a,var(--esim-gold-strong)_55%,#c99b3e)] bg-clip-text text-right text-[1.65rem] italic leading-[1.2] text-transparent",
+                    style: { fontFamily: SCRIPT_FONT },
+                    children: [
+                      "Better Nights",
+                      /* @__PURE__ */ jsx("br", {}),
+                      "Brighter Journeys"
+                    ]
+                  }
+                ),
+                /* @__PURE__ */ jsx(Plane, { className: "mt-1 h-5 w-5 -rotate-6 text-[color:color-mix(in_oklab,var(--esim-gold)_78%,white)]" })
+              ] })
+            ] })
+          ] }),
+          /* @__PURE__ */ jsx(MyEsimAssets, { apiBaseUrl: site.apiBaseUrl, email: user?.email, locale }),
+          /* @__PURE__ */ jsxs("section", { className: "grid gap-6 lg:grid-cols-2", children: [
+            /* @__PURE__ */ jsxs("div", { className: "rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-6 shadow-[var(--esim-shadow)]", children: [
+              /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between gap-3", children: [
+                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2.5", children: [
+                  /* @__PURE__ */ jsx(UserRound, { className: "h-[1.1rem] w-[1.1rem] text-[var(--esim-gold)]" }),
+                  /* @__PURE__ */ jsx("h3", { className: "text-[1.05rem] font-bold tracking-tight text-[var(--esim-ink)]", children: pickCopy(locale, { en: "Account Information", hans: "\u5E10\u6237\u8D44\u6599", hant: "\u5E33\u6236\u8CC7\u6599" }) })
+                ] }),
+                /* @__PURE__ */ jsxs("button", { onClick: onNavigateToSettings, className: editButtonClass, type: "button", children: [
+                  /* @__PURE__ */ jsx(PencilLine, { className: "h-3.5 w-3.5" }),
+                  pickCopy(locale, { en: "Edit", hans: "\u7F16\u8F91", hant: "\u7DE8\u8F2F" })
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxs("div", { className: "mt-3 divide-y divide-[color:color-mix(in_oklab,var(--esim-line)_55%,transparent)]", children: [
+                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 py-3.5", children: [
+                  /* @__PURE__ */ jsx(Mail, { className: infoRowIcon }),
+                  /* @__PURE__ */ jsx("span", { className: "w-28 shrink-0 text-sm text-[var(--esim-copy-soft)] sm:w-32", children: pickCopy(locale, { en: "Email Address", hans: "\u7535\u5B50\u90AE\u4EF6", hant: "\u96FB\u5B50\u90F5\u4EF6" }) }),
+                  /* @__PURE__ */ jsx(
+                    "span",
+                    {
+                      className: "min-w-0 flex-1 truncate text-right text-sm font-semibold text-[var(--esim-ink)] sm:text-left",
+                      title: user.email,
+                      children: user.email
+                    }
+                  )
+                ] }),
+                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 py-3.5", children: [
+                  /* @__PURE__ */ jsx(CalendarDays, { className: infoRowIcon }),
+                  /* @__PURE__ */ jsx("span", { className: "w-28 shrink-0 text-sm text-[var(--esim-copy-soft)] sm:w-32", children: pickCopy(locale, { en: "Member Since", hans: "\u6CE8\u518C\u65E5\u671F", hant: "\u8A3B\u518A\u65E5\u671F" }) }),
+                  /* @__PURE__ */ jsx("span", { className: "flex-1 text-sm font-semibold text-[var(--esim-ink)]", children: memberSince })
+                ] }),
+                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 py-3.5", children: [
+                  /* @__PURE__ */ jsx(UserRound, { className: infoRowIcon }),
+                  /* @__PURE__ */ jsx("span", { className: "w-28 shrink-0 text-sm text-[var(--esim-copy-soft)] sm:w-32", children: pickCopy(locale, { en: "Account Status", hans: "\u5E10\u6237\u72B6\u6001", hant: "\u5E33\u6236\u72C0\u614B" }) }),
+                  /* @__PURE__ */ jsx("span", { className: "inline-flex items-center rounded-[0.45rem] border border-[color:color-mix(in_oklab,var(--esim-success)_28%,transparent)] bg-[color:color-mix(in_oklab,var(--esim-success)_14%,transparent)] px-3 py-1 text-xs font-semibold text-[var(--esim-success)]", children: pickCopy(locale, { en: "Active Member", hans: "\u6709\u6548\u4F1A\u5458", hant: "\u6709\u6548\u6703\u54E1" }) })
+                ] })
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxs("div", { className: "rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-6 shadow-[var(--esim-shadow)]", children: [
+              /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between gap-3", children: [
+                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2.5", children: [
+                  /* @__PURE__ */ jsx(Settings, { className: "h-[1.1rem] w-[1.1rem] text-[var(--esim-gold)]" }),
+                  /* @__PURE__ */ jsx("h3", { className: "text-[1.05rem] font-bold tracking-tight text-[var(--esim-ink)]", children: pickCopy(locale, { en: "Account Preferences", hans: "\u504F\u597D\u8BBE\u5B9A", hant: "\u504F\u597D\u8A2D\u5B9A" }) })
+                ] }),
+                /* @__PURE__ */ jsxs("button", { onClick: onNavigateToSettings, className: editButtonClass, type: "button", children: [
+                  /* @__PURE__ */ jsx(PencilLine, { className: "h-3.5 w-3.5" }),
+                  pickCopy(locale, { en: "Edit", hans: "\u7F16\u8F91", hant: "\u7DE8\u8F2F" })
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxs("div", { className: "mt-3 divide-y divide-[color:color-mix(in_oklab,var(--esim-line)_55%,transparent)]", children: [
+                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 py-3.5", children: [
+                  /* @__PURE__ */ jsx(Earth, { className: infoRowIcon }),
+                  /* @__PURE__ */ jsx("span", { className: "w-28 shrink-0 text-sm text-[var(--esim-copy-soft)] sm:w-32", children: pickCopy(locale, { en: "Language", hans: "\u8BED\u8A00", hant: "\u8A9E\u8A00" }) }),
+                  /* @__PURE__ */ jsx("span", { className: "flex-1 text-sm font-semibold text-[var(--esim-ink)]", children: pickCopy(locale, { en: "English", hans: "\u7E41\u4F53\u4E2D\u6587", hant: "\u7E41\u9AD4\u4E2D\u6587" }) })
+                ] }),
+                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 py-3.5", children: [
+                  /* @__PURE__ */ jsx(Clock3, { className: infoRowIcon }),
+                  /* @__PURE__ */ jsx("span", { className: "w-28 shrink-0 text-sm text-[var(--esim-copy-soft)] sm:w-32", children: pickCopy(locale, { en: "Timezone", hans: "\u65F6\u533A", hant: "\u6642\u5340" }) }),
+                  /* @__PURE__ */ jsx("span", { className: "flex-1 text-sm font-semibold text-[var(--esim-ink)]", children: timezoneLabel() })
+                ] }),
+                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 py-3.5", children: [
+                  /* @__PURE__ */ jsx(CalendarDays, { className: infoRowIcon }),
+                  /* @__PURE__ */ jsx("span", { className: "w-28 shrink-0 text-sm text-[var(--esim-copy-soft)] sm:w-32", children: pickCopy(locale, { en: "Date of Birth", hans: "\u51FA\u751F\u65E5\u671F", hant: "\u51FA\u751F\u65E5\u671F" }) }),
+                  /* @__PURE__ */ jsx("span", { className: "flex-1 text-sm text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: "Not set", hans: "\u672A\u8BBE\u5B9A", hant: "\u672A\u8A2D\u5B9A" }) })
+                ] }),
+                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 py-3.5", children: [
+                  /* @__PURE__ */ jsx(Phone, { className: infoRowIcon }),
+                  /* @__PURE__ */ jsx("span", { className: "w-28 shrink-0 text-sm text-[var(--esim-copy-soft)] sm:w-32", children: pickCopy(locale, { en: "Phone Number", hans: "\u7535\u8BDD\u53F7\u7801", hant: "\u96FB\u8A71\u865F\u78BC" }) }),
+                  /* @__PURE__ */ jsx("span", { className: "flex-1 text-sm text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: "Not set", hans: "\u672A\u8BBE\u5B9A", hant: "\u672A\u8A2D\u5B9A" }) })
+                ] })
+              ] })
+            ] })
+          ] }),
+          onAddAddress ? /* @__PURE__ */ jsxs("section", { className: "rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-5 shadow-[var(--esim-shadow)] sm:p-6", children: [
+            /* @__PURE__ */ jsx("div", { className: "flex items-center justify-between gap-4", children: /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-4", children: [
+              /* @__PURE__ */ jsx("div", { className: "flex h-14 w-14 shrink-0 items-center justify-center rounded-[1rem] bg-[color:color-mix(in_oklab,var(--esim-gold)_15%,transparent)] text-[var(--esim-gold)]", children: /* @__PURE__ */ jsx(MapPin, { className: "h-6 w-6" }) }),
+              /* @__PURE__ */ jsxs("div", { children: [
+                /* @__PURE__ */ jsx("h3", { className: "text-lg font-bold tracking-tight text-[var(--esim-ink)]", children: pickCopy(locale, { en: "My Addresses", hans: "\u6211\u7684\u5730\u5740", hant: "\u6211\u7684\u5730\u5740" }) }),
+                /* @__PURE__ */ jsx("p", { className: "mt-1 text-sm text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: "Saved shipping addresses for checkout", hans: "\u7ED3\u7B97\u65F6\u4F7F\u7528\u7684\u6536\u8D27\u5730\u5740", hant: "\u7D50\u5E33\u6642\u4F7F\u7528\u7684\u6536\u8CA8\u5730\u5740" }) })
+              ] })
+            ] }) }),
+            isLoadingAddresses ? /* @__PURE__ */ jsx("p", { className: "mt-5 text-sm text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: "Loading\u2026", hans: "\u52A0\u8F7D\u4E2D\u2026", hant: "\u8F09\u5165\u4E2D\u2026" }) }) : /* @__PURE__ */ jsxs("div", { className: "mt-5 space-y-3", children: [
+              (addresses ?? []).length === 0 ? /* @__PURE__ */ jsx("p", { className: "text-sm text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: "No saved addresses yet.", hans: "\u8FD8\u6CA1\u6709\u4FDD\u5B58\u7684\u5730\u5740\u3002", hant: "\u9084\u6C92\u6709\u4FDD\u5B58\u7684\u5730\u5740\u3002" }) }) : (addresses ?? []).map((address) => /* @__PURE__ */ jsxs(
+                "div",
+                {
+                  className: "flex flex-col gap-3 rounded-[1rem] border border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_88%,black)] p-4 sm:flex-row sm:items-center sm:justify-between",
+                  children: [
+                    /* @__PURE__ */ jsxs("div", { className: "text-sm", children: [
+                      /* @__PURE__ */ jsxs("p", { className: "flex flex-wrap items-center gap-2 font-medium text-[var(--esim-ink)]", children: [
+                        address.name,
+                        address.isDefault ? /* @__PURE__ */ jsx("span", { className: "rounded-full bg-[color:color-mix(in_oklab,var(--esim-gold)_20%,transparent)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--esim-gold)]", children: pickCopy(locale, { en: "Default", hans: "\u9ED8\u8BA4", hant: "\u9810\u8A2D" }) }) : null
+                      ] }),
+                      /* @__PURE__ */ jsxs("p", { className: "mt-1 text-[var(--esim-copy)]", children: [
+                        address.phone,
+                        " \xB7 ",
+                        address.line1,
+                        address.city ? `, ${address.city}` : "",
+                        address.state ? `, ${address.state}` : "",
+                        address.country ? ` \xB7 ${address.country}` : ""
+                      ] })
+                    ] }),
+                    /* @__PURE__ */ jsxs("div", { className: "flex shrink-0 items-center gap-2", children: [
+                      !address.isDefault && onSetDefaultAddress ? /* @__PURE__ */ jsx(
+                        "button",
+                        {
+                          onClick: () => void onSetDefaultAddress(address.id),
+                          className: "rounded-full border border-[var(--esim-line)] px-3 py-1.5 text-xs text-[var(--esim-copy)] transition-colors hover:border-[var(--esim-gold)] hover:text-[var(--esim-gold)]",
+                          type: "button",
+                          children: pickCopy(locale, { en: "Set default", hans: "\u8BBE\u4E3A\u9ED8\u8BA4", hant: "\u8A2D\u70BA\u9810\u8A2D" })
+                        }
+                      ) : null,
+                      onDeleteAddress ? /* @__PURE__ */ jsx(
+                        "button",
+                        {
+                          onClick: () => void onDeleteAddress(address.id),
+                          className: "rounded-full border border-[var(--esim-line)] px-3 py-1.5 text-xs text-[var(--esim-copy)] transition-colors hover:border-[var(--esim-danger)] hover:text-[var(--esim-danger)]",
+                          type: "button",
+                          children: pickCopy(locale, { en: "Delete", hans: "\u5220\u9664", hant: "\u522A\u9664" })
+                        }
+                      ) : null
+                    ] })
+                  ]
+                },
+                address.id
+              )),
+              showAddressForm ? /* @__PURE__ */ jsxs(
+                "form",
+                {
+                  className: "grid gap-3 rounded-[1rem] border border-[color:color-mix(in_oklab,var(--esim-gold)_18%,var(--esim-line))] bg-[color:color-mix(in_oklab,var(--esim-bg)_88%,black)] p-4 sm:grid-cols-2",
+                  onSubmit: (event) => {
+                    event.preventDefault();
+                    const data = new FormData(event.currentTarget);
+                    const input = {
+                      name: String(data.get("name") || "").trim(),
+                      phone: String(data.get("phone") || "").trim(),
+                      line1: String(data.get("line1") || "").trim(),
+                      city: String(data.get("city") || "").trim(),
+                      state: String(data.get("state") || "").trim(),
+                      postalCode: String(data.get("postalCode") || "").trim(),
+                      country: String(data.get("country") || "").trim()
+                    };
+                    if (!input.name || !input.phone || !input.line1 || !input.city || !input.country) return;
+                    void onAddAddress(input).then(() => setShowAddressForm(false));
+                  },
+                  children: [
+                    /* @__PURE__ */ jsx("input", { name: "name", required: true, placeholder: pickCopy(locale, { en: "Full name", hans: "\u59D3\u540D", hant: "\u59D3\u540D" }), className: "rounded-[0.7rem] border border-[var(--esim-line)] bg-transparent px-3 py-2.5 text-sm text-[var(--esim-ink)] outline-none focus:border-[var(--esim-gold)]" }),
+                    /* @__PURE__ */ jsx("input", { name: "phone", required: true, placeholder: pickCopy(locale, { en: "Phone", hans: "\u624B\u673A\u53F7", hant: "\u624B\u6A5F\u865F" }), className: "rounded-[0.7rem] border border-[var(--esim-line)] bg-transparent px-3 py-2.5 text-sm text-[var(--esim-ink)] outline-none focus:border-[var(--esim-gold)]" }),
+                    /* @__PURE__ */ jsx("input", { name: "line1", required: true, placeholder: pickCopy(locale, { en: "Address", hans: "\u8BE6\u7EC6\u5730\u5740", hant: "\u8A73\u7D30\u5730\u5740" }), className: "sm:col-span-2 rounded-[0.7rem] border border-[var(--esim-line)] bg-transparent px-3 py-2.5 text-sm text-[var(--esim-ink)] outline-none focus:border-[var(--esim-gold)]" }),
+                    /* @__PURE__ */ jsx("input", { name: "city", required: true, placeholder: pickCopy(locale, { en: "City", hans: "\u57CE\u5E02", hant: "\u57CE\u5E02" }), className: "rounded-[0.7rem] border border-[var(--esim-line)] bg-transparent px-3 py-2.5 text-sm text-[var(--esim-ink)] outline-none focus:border-[var(--esim-gold)]" }),
+                    /* @__PURE__ */ jsx("input", { name: "state", placeholder: pickCopy(locale, { en: "State / Province", hans: "\u7701/\u5DDE", hant: "\u7701/\u5DDE" }), className: "rounded-[0.7rem] border border-[var(--esim-line)] bg-transparent px-3 py-2.5 text-sm text-[var(--esim-ink)] outline-none focus:border-[var(--esim-gold)]" }),
+                    /* @__PURE__ */ jsx("input", { name: "postalCode", placeholder: pickCopy(locale, { en: "Postal code", hans: "\u90AE\u7F16", hant: "\u90F5\u905E\u5340\u865F" }), className: "rounded-[0.7rem] border border-[var(--esim-line)] bg-transparent px-3 py-2.5 text-sm text-[var(--esim-ink)] outline-none focus:border-[var(--esim-gold)]" }),
+                    /* @__PURE__ */ jsx("input", { name: "country", required: true, placeholder: pickCopy(locale, { en: "Country (e.g. CN)", hans: "\u56FD\u5BB6\uFF08\u5982 CN\uFF09", hant: "\u570B\u5BB6\uFF08\u5982 CN\uFF09" }), className: "rounded-[0.7rem] border border-[var(--esim-line)] bg-transparent px-3 py-2.5 text-sm text-[var(--esim-ink)] outline-none focus:border-[var(--esim-gold)]" }),
+                    /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-end gap-2 sm:col-span-2", children: [
+                      /* @__PURE__ */ jsx("button", { onClick: () => setShowAddressForm(false), className: "rounded-full px-4 py-2 text-xs text-[var(--esim-copy)]", type: "button", children: pickCopy(locale, { en: "Cancel", hans: "\u53D6\u6D88", hant: "\u53D6\u6D88" }) }),
+                      /* @__PURE__ */ jsx("button", { className: "rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--esim-gold)_82%,white),color-mix(in_oklab,var(--esim-gold)_68%,black))] px-5 py-2 text-xs font-semibold text-[var(--esim-bg)]", type: "submit", children: pickCopy(locale, { en: "Save address", hans: "\u4FDD\u5B58\u5730\u5740", hant: "\u4FDD\u5B58\u5730\u5740" }) })
+                    ] })
+                  ]
+                }
+              ) : /* @__PURE__ */ jsxs(
+                "button",
+                {
+                  onClick: () => setShowAddressForm(true),
+                  className: "inline-flex min-h-10 items-center gap-2 rounded-full border border-dashed border-[color:color-mix(in_oklab,var(--esim-gold)_38%,transparent)] px-4 text-xs font-medium text-[var(--esim-gold)] transition-colors hover:bg-[color:color-mix(in_oklab,var(--esim-gold)_10%,transparent)]",
+                  type: "button",
+                  children: [
+                    "+ ",
+                    pickCopy(locale, { en: "Add a new address", hans: "\u6DFB\u52A0\u65B0\u5730\u5740", hant: "\u6DFB\u52A0\u65B0\u5730\u5740" })
+                  ]
+                }
+              )
+            ] })
+          ] }) : null,
+          /* @__PURE__ */ jsxs("section", { className: "grid gap-6 lg:grid-cols-2", children: [
+            /* @__PURE__ */ jsxs(
+              "div",
+              {
+                onClick: onNavigateToOrders,
+                className: "group flex cursor-pointer items-center justify-between gap-4 rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-5 shadow-[var(--esim-shadow)] transition-colors hover:border-[color:color-mix(in_oklab,var(--esim-gold)_38%,transparent)] sm:p-6",
+                children: [
+                  /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-4", children: [
+                    /* @__PURE__ */ jsx("div", { className: "flex h-14 w-14 shrink-0 items-center justify-center rounded-[1rem] bg-[color:color-mix(in_oklab,var(--esim-gold)_15%,transparent)] text-[var(--esim-gold)]", children: /* @__PURE__ */ jsx(ShoppingBag, { className: "h-6 w-6" }) }),
+                    /* @__PURE__ */ jsxs("div", { children: [
+                      /* @__PURE__ */ jsx("h3", { className: "text-lg font-bold tracking-tight text-[var(--esim-ink)]", children: pickCopy(locale, { en: "Order History", hans: "\u8BA2\u5355\u7EAA\u5F55", hant: "\u8A02\u55AE\u7D00\u9304" }) }),
+                      /* @__PURE__ */ jsx("p", { className: "mt-1 text-sm text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: "View and manage your orders", hans: "\u67E5\u770B\u53CA\u7BA1\u7406\u60A8\u7684\u8BA2\u5355", hant: "\u67E5\u770B\u53CA\u7BA1\u7406\u60A8\u7684\u8A02\u55AE" }) })
+                    ] })
+                  ] }),
+                  /* @__PURE__ */ jsx("span", { className: "flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--esim-line-strong)] text-[var(--esim-copy)] transition-colors group-hover:border-[var(--esim-gold)] group-hover:text-[var(--esim-gold)]", children: /* @__PURE__ */ jsx(ChevronRight, { className: "h-[1.1rem] w-[1.1rem]" }) })
+                ]
+              }
+            ),
+            /* @__PURE__ */ jsxs(
+              "div",
+              {
+                onClick: onNavigateToOrders,
+                className: "group flex cursor-pointer items-center justify-between gap-4 rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-5 shadow-[var(--esim-shadow)] transition-colors hover:border-[color:color-mix(in_oklab,var(--esim-gold)_38%,transparent)] sm:p-6",
+                children: [
+                  /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-4", children: [
+                    /* @__PURE__ */ jsx("div", { className: "flex h-14 w-14 shrink-0 items-center justify-center rounded-[1rem] bg-[color:color-mix(in_oklab,var(--esim-gold)_15%,transparent)] text-[var(--esim-gold)]", children: /* @__PURE__ */ jsx(Plane, { className: "h-6 w-6" }) }),
+                    /* @__PURE__ */ jsxs("div", { children: [
+                      /* @__PURE__ */ jsx("h3", { className: "text-lg font-bold tracking-tight text-[var(--esim-ink)]", children: pickCopy(locale, { en: "Upcoming Trips", hans: "\u5373\u5C06\u5230\u6765\u7684\u884C\u7A0B", hant: "\u5373\u5C07\u5230\u4F86\u7684\u884C\u7A0B" }) }),
+                      /* @__PURE__ */ jsx("p", { className: "mt-1 text-sm text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: "Your booked experiences", hans: "\u60A8\u5DF2\u9884\u8BA2\u7684\u4F53\u9A8C", hant: "\u60A8\u5DF2\u9810\u8A02\u7684\u9AD4\u9A57" }) })
+                    ] })
+                  ] }),
+                  /* @__PURE__ */ jsx("span", { className: "flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--esim-line-strong)] text-[var(--esim-copy)] transition-colors group-hover:border-[var(--esim-gold)] group-hover:text-[var(--esim-gold)]", children: /* @__PURE__ */ jsx(ChevronRight, { className: "h-[1.1rem] w-[1.1rem]" }) })
+                ]
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxs("section", { className: "grid gap-6 lg:grid-cols-3", children: [
+            /* @__PURE__ */ jsxs(
+              "div",
+              {
+                onClick: () => go(site.primaryCtaHref || "/products"),
+                className: "group relative min-h-[15rem] cursor-pointer overflow-hidden rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] shadow-[var(--esim-shadow)]",
+                style: { backgroundImage: CLUBS_SCENE, backgroundSize: "cover", backgroundPosition: "center" },
+                children: [
+                  /* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-[linear-gradient(92deg,rgba(8,6,4,0.86)_8%,rgba(8,6,4,0.42)_58%,rgba(8,6,4,0.12))]" }),
+                  /* @__PURE__ */ jsxs("div", { className: "relative flex h-full flex-col p-6", children: [
+                    /* @__PURE__ */ jsx("h3", { className: "text-[1.55rem] font-bold leading-tight text-white", children: locale === "zh-Hant" ? "\u63A2\u7D22\u5C0A\u8CB4\u6703\u6240" : locale === "zh-Hans" ? "\u63A2\u7D22\u5C0A\u8D35\u4F1A\u6240" : /* @__PURE__ */ jsxs(Fragment2, { children: [
+                      "Discover",
+                      /* @__PURE__ */ jsx("br", {}),
+                      "Exclusive Clubs"
+                    ] }) }),
+                    /* @__PURE__ */ jsx("p", { className: "mt-2.5 max-w-[15rem] text-sm leading-relaxed text-white/75", children: pickCopy(locale, { en: "Access the world's best venues with BOKMOO.", hans: "\u4E0E BOKMOO \u901A\u884C\u5168\u7403\u9876\u7EA7\u573A\u6240\u3002", hant: "\u8207 BOKMOO \u901A\u884C\u5168\u7403\u9802\u7D1A\u5834\u6240\u3002" }) }),
+                    /* @__PURE__ */ jsxs("span", { className: "mt-auto inline-flex items-center gap-1.5 self-start rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--esim-gold)_86%,white),color-mix(in_oklab,var(--esim-gold)_70%,black))] px-5 py-2.5 text-[0.8rem] font-bold text-[var(--esim-bg)] transition-transform duration-300 group-hover:-translate-y-0.5", children: [
+                      pickCopy(locale, { en: "Explore Now", hans: "\u7ACB\u5373\u63A2\u7D22", hant: "\u7ACB\u5373\u63A2\u7D22" }),
+                      /* @__PURE__ */ jsx(ArrowRight, { className: "h-4 w-4" })
+                    ] })
+                  ] })
+                ]
+              }
+            ),
+            /* @__PURE__ */ jsxs("div", { className: "rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-6 shadow-[var(--esim-shadow)]", children: [
+              /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2.5", children: [
+                /* @__PURE__ */ jsx(Crown, { className: "h-5 w-5 text-[var(--esim-gold)]" }),
+                /* @__PURE__ */ jsx("h3", { className: "text-[1.05rem] font-bold tracking-tight text-[var(--esim-ink)]", children: pickCopy(locale, { en: "BOKMOO Member Benefits", hans: "BOKMOO \u4F1A\u5458\u6743\u76CA", hant: "BOKMOO \u6703\u54E1\u6B0A\u76CA" }) })
+              ] }),
+              /* @__PURE__ */ jsx("ul", { className: "mt-5 space-y-3.5", children: (locale === "zh-Hant" ? ["\u5168\u7403\u9802\u7D1A\u6703\u6240\u901A\u884C", "\u6703\u54E1\u5C08\u5C6C\u512A\u60E0", "\u8F15\u9B06\u9810\u8A02\uFF0C\u5373\u6642\u78BA\u8A8D", "\u5C08\u5C6C\u652F\u63F4"] : locale === "zh-Hans" ? ["\u5168\u7403\u9876\u7EA7\u4F1A\u6240\u901A\u884C", "\u4F1A\u5458\u4E13\u5C5E\u4F18\u60E0", "\u8F7B\u677E\u9884\u8BA2\uFF0C\u5373\u65F6\u786E\u8BA4", "\u4E13\u5C5E\u652F\u63F4"] : [
+                "Access to premier clubs worldwide",
+                "Exclusive member-only offers",
+                "Easy booking and instant confirmation",
+                "Dedicated support"
+              ]).map((benefit) => /* @__PURE__ */ jsxs("li", { className: "flex items-start gap-3", children: [
+                /* @__PURE__ */ jsx(Check, { className: "mt-0.5 h-4 w-4 shrink-0 text-[var(--esim-gold)]" }),
+                /* @__PURE__ */ jsx("span", { className: "text-sm leading-relaxed text-[var(--esim-copy)]", children: benefit })
+              ] }, benefit)) })
+            ] }),
+            /* @__PURE__ */ jsxs("div", { className: "flex flex-col rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-6 shadow-[var(--esim-shadow)]", children: [
+              /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2.5", children: [
+                /* @__PURE__ */ jsx(Headphones, { className: "h-5 w-5 text-[var(--esim-gold)]" }),
+                /* @__PURE__ */ jsx("h3", { className: "text-[1.05rem] font-bold tracking-tight text-[var(--esim-ink)]", children: pickCopy(locale, { en: "Need Help?", hans: "\u9700\u8981\u534F\u52A9\uFF1F", hant: "\u9700\u8981\u5354\u52A9\uFF1F" }) })
+              ] }),
+              /* @__PURE__ */ jsx("p", { className: "mt-2.5 text-sm leading-relaxed text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: "Our support team is here for you.", hans: "\u6211\u4EEC\u7684\u652F\u63F4\u56E2\u961F\u968F\u65F6\u4E3A\u60A8\u670D\u52A1\u3002", hant: "\u6211\u5011\u7684\u652F\u63F4\u5718\u968A\u96A8\u6642\u70BA\u60A8\u670D\u52D9\u3002" }) }),
+              /* @__PURE__ */ jsxs(
+                "button",
+                {
+                  onClick: () => go("/contact"),
+                  className: "mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full border border-[color:color-mix(in_oklab,var(--esim-gold)_46%,transparent)] bg-[color:color-mix(in_oklab,var(--esim-gold)_10%,transparent)] text-sm font-semibold text-[var(--esim-gold)] transition-colors hover:bg-[color:color-mix(in_oklab,var(--esim-gold)_18%,transparent)]",
+                  type: "button",
+                  children: [
+                    pickCopy(locale, { en: "Contact Support", hans: "\u8054\u7EDC\u5BA2\u670D", hant: "\u806F\u7D61\u5BA2\u670D" }),
+                    /* @__PURE__ */ jsx(ArrowRight, { className: "h-4 w-4" })
+                  ]
+                }
+              ),
+              /* @__PURE__ */ jsxs(
+                "button",
+                {
+                  onClick: () => go("/help"),
+                  className: "mt-5 inline-flex items-center justify-center gap-2 text-sm text-[var(--esim-copy-soft)] transition-colors hover:text-[var(--esim-ink)]",
+                  type: "button",
+                  children: [
+                    /* @__PURE__ */ jsx(BookOpen, { className: "h-4 w-4" }),
+                    pickCopy(locale, { en: "Visit Help Center", hans: "\u524D\u5F80\u5E2E\u52A9\u4E2D\u5FC3", hant: "\u524D\u5F80\u5E6B\u52A9\u4E2D\u5FC3" })
+                  ]
+                }
+              )
+            ] })
+          ] })
+        ] })
+      ] })
+    ] });
+  });
+
+  // src/components/AuthCallbackPage.tsx
+  var FOCUS_VISIBLE_RING = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--esim-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--esim-bg)]";
+  function AuthCallbackPage({
+    isLoading,
+    error,
+    config,
+    onRetry,
+    onNavigateToHome
+  }) {
+    const site = resolveEsimSiteConfig(config);
+    return /* @__PURE__ */ jsxs("div", { className: "relative flex min-h-screen items-center justify-center overflow-hidden bg-[var(--esim-bg)] px-4 py-12 text-[var(--esim-ink)]", children: [
+      /* @__PURE__ */ jsxs("div", { className: "pointer-events-none absolute inset-0", children: [
+        /* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,color-mix(in_oklab,var(--esim-gold)_18%,transparent),transparent_26%),linear-gradient(180deg,var(--esim-bg),color-mix(in_oklab,var(--esim-bg)_84%,black))]" }),
+        /* @__PURE__ */ jsx("div", { className: "absolute inset-0 opacity-40 [background-image:var(--esim-grid)] [background-size:72px_72px]" })
+      ] }),
+      /* @__PURE__ */ jsx("section", { className: "relative w-full max-w-[30rem] rounded-[1.45rem] border border-[color:color-mix(in_oklab,var(--esim-gold)_22%,transparent)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--esim-bg-elevated)_94%,white),var(--esim-bg-elevated))] p-5 shadow-[var(--esim-shadow)] sm:p-7", children: /* @__PURE__ */ jsxs("div", { className: "rounded-[1.1rem] border border-[var(--esim-line)] bg-[color:oklch(0.055_0.006_75_/_0.78)] p-6 text-center", children: [
+        /* @__PURE__ */ jsx("div", { className: "mx-auto flex h-16 w-16 items-center justify-center rounded-[1rem] border border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-gold)_12%,transparent)] text-[var(--esim-gold)]", children: error ? /* @__PURE__ */ jsx(TriangleAlert, { className: "h-7 w-7" }) : isLoading ? /* @__PURE__ */ jsx(LoaderCircle, { className: "h-7 w-7 animate-spin" }) : /* @__PURE__ */ jsx(ShieldCheck, { className: "h-7 w-7" }) }),
+        /* @__PURE__ */ jsxs("p", { className: "mt-6 text-[11px] font-bold uppercase tracking-[0.24em] text-[var(--esim-gold)]", children: [
+          site.brandName.toUpperCase(),
+          " account"
+        ] }),
+        /* @__PURE__ */ jsx("h1", { className: "mt-3 text-3xl font-semibold leading-none tracking-[-0.05em] text-[var(--esim-ink)]", children: error ? "Authentication failed" : "Completing sign in" }),
+        /* @__PURE__ */ jsx("p", { className: "mt-4 text-sm leading-6 text-[var(--esim-copy)]", children: error || "Securing your session and returning you to the BOKMOO storefront." }),
+        /* @__PURE__ */ jsxs("div", { className: "mt-7 grid gap-3 sm:grid-cols-2", children: [
+          /* @__PURE__ */ jsx(
+            "button",
+            {
+              type: "button",
+              onClick: onRetry,
+              className: `inline-flex min-h-12 items-center justify-center rounded-[0.95rem] border border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_86%,black)] px-4 text-sm font-semibold text-[var(--esim-ink)] transition-colors hover:border-[var(--esim-gold)] hover:text-[var(--esim-gold)] ${FOCUS_VISIBLE_RING}`,
+              children: "Back to sign in"
+            }
+          ),
+          /* @__PURE__ */ jsx(
+            "button",
+            {
+              type: "button",
+              onClick: onNavigateToHome,
+              className: `inline-flex min-h-12 items-center justify-center rounded-[0.95rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--esim-gold)_88%,white),color-mix(in_oklab,var(--esim-gold)_64%,black))] px-4 text-sm font-black uppercase tracking-[0.16em] text-[var(--esim-bg)] ${FOCUS_VISIBLE_RING}`,
+              children: "Home"
+            }
+          )
+        ] })
+      ] }) })
+    ] });
   }
 
   // src/components/AffiliatePage.tsx
@@ -13509,6 +13557,7 @@
     cart,
     isLoading,
     isProcessing,
+    config,
     requireShippingAddress,
     countriesRequireStatePostal,
     currentUserEmail,
@@ -13525,6 +13574,7 @@
       return new Set(source.map((item) => item.trim().toUpperCase()));
     }, [countriesRequireStatePostal]);
     const paymentMethods = react_default.useMemo(() => availablePaymentMethods || [], [availablePaymentMethods]);
+    const site = resolveEsimSiteConfig(config);
     const [formData, setFormData] = react_default.useState({
       email: savedAddress?.email || currentUserEmail || "",
       firstName: savedAddress?.firstName || "",
@@ -13538,6 +13588,22 @@
       paymentMethod: paymentMethods[0]?.name || "",
       promoCode: ""
     });
+    const [esimAssets, setEsimAssets] = react_default.useState([]);
+    const [esimChoice, setEsimChoice] = react_default.useState("new");
+    react_default.useEffect(() => {
+      if (!currentUserEmail) return;
+      let mounted = true;
+      (async () => {
+        const assets = await getEsimAssets({ baseUrl: site.apiBaseUrl });
+        if (mounted && assets.length > 0) {
+          setEsimAssets(assets);
+          setEsimChoice(assets[0].iccid);
+        }
+      })();
+      return () => {
+        mounted = false;
+      };
+    }, [currentUserEmail, site.apiBaseUrl]);
     const [errors, setErrors] = react_default.useState({});
     const [selectedSavedAddressId, setSelectedSavedAddressId] = react_default.useState(
       savedAddresses?.find((address) => address.isDefault)?.id ?? savedAddresses?.[0]?.id ?? null
@@ -13617,7 +13683,7 @@
     const handleSubmit = async (event) => {
       event.preventDefault();
       if (!validate()) return;
-      await onSubmit(formData);
+      await onSubmit({ ...formData, esimIccid: esimChoice !== "new" ? esimChoice : "" });
     };
     const paymentIcon = (name) => {
       const normalized = name.toLowerCase();
@@ -13738,6 +13804,61 @@
               ] })
             ] })
           ] }),
+          esimAssets.length > 0 ? /* @__PURE__ */ jsxs("div", { className: "mb-4 rounded-[1.2rem] border border-[color:color-mix(in_oklab,var(--esim-gold)_16%,var(--esim-line))] bg-[color:color-mix(in_oklab,var(--esim-bg)_88%,black)] p-4", children: [
+            /* @__PURE__ */ jsx("p", { className: "text-lg font-medium text-[var(--esim-ink)]", children: pickCopy(locale, { en: "eSIM", hans: "eSIM \u5B89\u88C5\u65B9\u5F0F", hant: "eSIM \u5B89\u88DD\u65B9\u5F0F" }) }),
+            /* @__PURE__ */ jsxs("div", { className: "mt-4 grid gap-3", children: [
+              /* @__PURE__ */ jsx("label", { className: cn2(
+                "flex cursor-pointer items-center justify-between rounded-[0.95rem] border px-4 py-4 transition-colors",
+                esimChoice === "new" ? "border-[var(--esim-line-strong)] bg-[color:color-mix(in_oklab,var(--esim-gold)_14%,transparent)]" : "border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_86%,black)]"
+              ), children: /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3", children: [
+                /* @__PURE__ */ jsx(
+                  "input",
+                  {
+                    type: "radio",
+                    name: "esimChoice",
+                    checked: esimChoice === "new",
+                    onChange: () => setEsimChoice("new"),
+                    className: "h-4 w-4 accent-[var(--esim-gold)]"
+                  }
+                ),
+                /* @__PURE__ */ jsxs("div", { children: [
+                  /* @__PURE__ */ jsx("p", { className: "text-sm text-[var(--esim-ink)]", children: pickCopy(locale, { en: "New eSIM (new QR code)", hans: "\u65B0\u88C5 eSIM\uFF08\u65B0\u4E8C\u7EF4\u7801\uFF09", hant: "\u65B0\u88DD eSIM\uFF08\u65B0\u4E8C\u7DAD\u78BC\uFF09" }) }),
+                  /* @__PURE__ */ jsx("p", { className: "mt-1 text-xs text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: "For a new device \u2014 a fresh QR code is issued after payment.", hans: "\u7528\u4E8E\u65B0\u8BBE\u5907\u2014\u2014\u4ED8\u6B3E\u540E\u53D1\u653E\u5168\u65B0\u4E8C\u7EF4\u7801\u3002", hant: "\u7528\u65BC\u65B0\u8A2D\u5099\u2014\u2014\u4ED8\u6B3E\u5F8C\u767C\u653E\u5168\u65B0\u4E8C\u7DAD\u78BC\u3002" }) })
+                ] })
+              ] }) }),
+              esimAssets.map((asset) => /* @__PURE__ */ jsx("label", { className: cn2(
+                "flex cursor-pointer items-center justify-between rounded-[0.95rem] border px-4 py-4 transition-colors",
+                esimChoice === asset.iccid ? "border-[var(--esim-line-strong)] bg-[color:color-mix(in_oklab,var(--esim-gold)_14%,transparent)]" : "border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_86%,black)]"
+              ), children: /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3", children: [
+                /* @__PURE__ */ jsx(
+                  "input",
+                  {
+                    type: "radio",
+                    name: "esimChoice",
+                    checked: esimChoice === asset.iccid,
+                    onChange: () => setEsimChoice(asset.iccid),
+                    className: "h-4 w-4 accent-[var(--esim-gold)]"
+                  }
+                ),
+                /* @__PURE__ */ jsxs("div", { children: [
+                  /* @__PURE__ */ jsxs("p", { className: "text-sm text-[var(--esim-ink)]", children: [
+                    pickCopy(locale, { en: "Use my existing eSIM", hans: "\u4F7F\u7528\u5DF2\u6709 eSIM", hant: "\u4F7F\u7528\u5DF2\u6709 eSIM" }),
+                    asset.label ? ` \xB7 ${asset.label}` : ""
+                  ] }),
+                  /* @__PURE__ */ jsxs("p", { className: "mt-1 text-xs text-[var(--esim-copy-soft)]", children: [
+                    "ICCID \xB7\xB7\xB7\xB7",
+                    asset.iccid.slice(-6),
+                    asset.packages?.length ? ` \xB7 ${pickCopy(locale, { en: `${asset.packages.length} plan(s) on this eSIM`, hans: `\u5DF2\u88C5 ${asset.packages.length} \u4E2A\u5957\u9910`, hant: `\u5DF2\u88DD ${asset.packages.length} \u500B\u5957\u9910` })}` : ""
+                  ] })
+                ] })
+              ] }) }, asset.iccid)),
+              /* @__PURE__ */ jsx("p", { className: "text-xs leading-5 text-[var(--esim-copy-soft)]", children: pickCopy(locale, {
+                en: "Reusing your eSIM avoids a new QR code \u2014 the plan is added to the profile you already installed.",
+                hans: "\u590D\u7528\u5DF2\u6709 eSIM \u4E0D\u4EA7\u751F\u65B0\u4E8C\u7EF4\u7801\u8D39\u7528\u2014\u2014\u65B0\u5957\u9910\u76F4\u63A5\u52A0\u8FDB\u4F60\u5DF2\u5B89\u88C5\u7684 profile\u3002",
+                hant: "\u5FA9\u7528\u5DF2\u6709 eSIM \u4E0D\u7522\u751F\u65B0\u4E8C\u7DAD\u78BC\u8CBB\u7528\u2014\u2014\u65B0\u5957\u9910\u76F4\u63A5\u52A0\u9032\u4F60\u5DF2\u5B89\u88DD\u7684 profile\u3002"
+              }) })
+            ] })
+          ] }) : null,
           /* @__PURE__ */ jsxs("div", { className: "rounded-[1.2rem] border border-[color:color-mix(in_oklab,var(--esim-gold)_16%,var(--esim-line))] bg-[color:color-mix(in_oklab,var(--esim-bg)_88%,black)] p-4", children: [
             /* @__PURE__ */ jsx("p", { className: "text-lg font-medium text-[var(--esim-ink)]", children: pickCopy(locale, { en: "Payment Method", hans: "\u652F\u4ED8\u65B9\u5F0F", hant: "\u4ED8\u6B3E\u65B9\u5F0F" }) }),
             /* @__PURE__ */ jsx("div", { className: "mt-4 grid gap-3", children: paymentMethods.map((method) => {
@@ -18859,7 +18980,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "esim",
-      version: "0.0.11",
+      version: "0.0.12",
       target: "shop"
     }
   };

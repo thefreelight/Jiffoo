@@ -1,13 +1,15 @@
 import React from 'react';
 import { ArrowLeft, CreditCard, Mail, ShieldCheck, Wallet } from 'lucide-react';
 import { cn } from '@jiffoo/ui';
-import { pickCopy } from '../site';
+import { pickCopy, resolveEsimSiteConfig } from '../site';
+import { getEsimAssets, type EsimAsset } from '../lib/api';
 import type { CheckoutPageProps, SavedAddress } from 'shared/src/types/theme';
 
 export const CheckoutPage = React.memo(function CheckoutPage({
   cart,
   isLoading,
   isProcessing,
+  config,
   requireShippingAddress,
   countriesRequireStatePostal,
   currentUserEmail,
@@ -27,6 +29,7 @@ export const CheckoutPage = React.memo(function CheckoutPage({
   }, [countriesRequireStatePostal]);
 
   const paymentMethods = React.useMemo(() => availablePaymentMethods || [], [availablePaymentMethods]);
+  const site = resolveEsimSiteConfig(config);
   const [formData, setFormData] = React.useState({
     email: savedAddress?.email || currentUserEmail || '',
     firstName: savedAddress?.firstName || '',
@@ -40,6 +43,24 @@ export const CheckoutPage = React.memo(function CheckoutPage({
     paymentMethod: paymentMethods[0]?.name || '',
     promoCode: '',
   });
+
+  // eSIM reuse (Saily/Eskimo model): a logged-in buyer with provisioned
+  // eSIMs can attach the new plan to an existing profile — BOSS tops up
+  // that ICCID instead of paying a fresh provisioning fee.
+  const [esimAssets, setEsimAssets] = React.useState<EsimAsset[]>([]);
+  const [esimChoice, setEsimChoice] = React.useState<string>('new');
+  React.useEffect(() => {
+    if (!currentUserEmail) return;
+    let mounted = true;
+    (async () => {
+      const assets = await getEsimAssets({ baseUrl: site.apiBaseUrl });
+      if (mounted && assets.length > 0) {
+        setEsimAssets(assets);
+        setEsimChoice(assets[0].iccid);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [currentUserEmail, site.apiBaseUrl]);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
 
   const [selectedSavedAddressId, setSelectedSavedAddressId] = React.useState<string | null>(
@@ -140,7 +161,7 @@ export const CheckoutPage = React.memo(function CheckoutPage({
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!validate()) return;
-    await onSubmit(formData);
+    await onSubmit({ ...formData, esimIccid: esimChoice !== 'new' ? esimChoice : '' });
   };
 
   const paymentIcon = (name: string) => {
@@ -257,6 +278,66 @@ export const CheckoutPage = React.memo(function CheckoutPage({
                   </div>
                 </div>
               </div>
+
+              {esimAssets.length > 0 ? (
+                <div className="mb-4 rounded-[1.2rem] border border-[color:color-mix(in_oklab,var(--esim-gold)_16%,var(--esim-line))] bg-[color:color-mix(in_oklab,var(--esim-bg)_88%,black)] p-4">
+                  <p className="text-lg font-medium text-[var(--esim-ink)]">{pickCopy(locale, { en: 'eSIM', hans: 'eSIM 安装方式', hant: 'eSIM 安裝方式' })}</p>
+                  <div className="mt-4 grid gap-3">
+                    <label className={cn(
+                      'flex cursor-pointer items-center justify-between rounded-[0.95rem] border px-4 py-4 transition-colors',
+                      esimChoice === 'new'
+                        ? 'border-[var(--esim-line-strong)] bg-[color:color-mix(in_oklab,var(--esim-gold)_14%,transparent)]'
+                        : 'border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_86%,black)]'
+                    )}>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="radio"
+                          name="esimChoice"
+                          checked={esimChoice === 'new'}
+                          onChange={() => setEsimChoice('new')}
+                          className="h-4 w-4 accent-[var(--esim-gold)]"
+                        />
+                        <div>
+                          <p className="text-sm text-[var(--esim-ink)]">{pickCopy(locale, { en: 'New eSIM (new QR code)', hans: '新装 eSIM（新二维码）', hant: '新裝 eSIM（新二維碼）' })}</p>
+                          <p className="mt-1 text-xs text-[var(--esim-copy-soft)]">{pickCopy(locale, { en: 'For a new device — a fresh QR code is issued after payment.', hans: '用于新设备——付款后发放全新二维码。', hant: '用於新設備——付款後發放全新二維碼。' })}</p>
+                        </div>
+                      </div>
+                    </label>
+                    {esimAssets.map((asset) => (
+                      <label key={asset.iccid} className={cn(
+                        'flex cursor-pointer items-center justify-between rounded-[0.95rem] border px-4 py-4 transition-colors',
+                        esimChoice === asset.iccid
+                          ? 'border-[var(--esim-line-strong)] bg-[color:color-mix(in_oklab,var(--esim-gold)_14%,transparent)]'
+                          : 'border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_86%,black)]'
+                      )}>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="radio"
+                            name="esimChoice"
+                            checked={esimChoice === asset.iccid}
+                            onChange={() => setEsimChoice(asset.iccid)}
+                            className="h-4 w-4 accent-[var(--esim-gold)]"
+                          />
+                          <div>
+                            <p className="text-sm text-[var(--esim-ink)]">{pickCopy(locale, { en: 'Use my existing eSIM', hans: '使用已有 eSIM', hant: '使用已有 eSIM' })}{asset.label ? ` · ${asset.label}` : ''}</p>
+                            <p className="mt-1 text-xs text-[var(--esim-copy-soft)]">
+                              ICCID ····{asset.iccid.slice(-6)}
+                              {asset.packages?.length ? ` · ${pickCopy(locale, { en: `${asset.packages.length} plan(s) on this eSIM`, hans: `已装 ${asset.packages.length} 个套餐`, hant: `已裝 ${asset.packages.length} 個套餐` })}` : ''}
+                            </p>
+                          </div>
+                        </div>
+                      </label>
+                    ))}
+                    <p className="text-xs leading-5 text-[var(--esim-copy-soft)]">
+                      {pickCopy(locale, {
+                        en: 'Reusing your eSIM avoids a new QR code — the plan is added to the profile you already installed.',
+                        hans: '复用已有 eSIM 不产生新二维码费用——新套餐直接加进你已安装的 profile。',
+                        hant: '復用已有 eSIM 不產生新二維碼費用——新套餐直接加進你已安裝的 profile。',
+                      })}
+                    </p>
+                  </div>
+                </div>
+              ) : null}
 
               <div className="rounded-[1.2rem] border border-[color:color-mix(in_oklab,var(--esim-gold)_16%,var(--esim-line))] bg-[color:color-mix(in_oklab,var(--esim-bg)_88%,black)] p-4">
                 <p className="text-lg font-medium text-[var(--esim-ink)]">{pickCopy(locale, { en: 'Payment Method', hans: '支付方式', hant: '付款方式' })}</p>

@@ -696,6 +696,35 @@ export async function getEsimOrder(
   return request<EsimApiOrder>(config, `/api/orders/${orderId}`);
 }
 
+export interface EsimAsset {
+  iccid: string;
+  label?: string;
+  region?: string;
+  status?: string;
+  packages?: Array<{ name?: string; status?: string; expiresAt?: string }>;
+  createdAt?: string;
+  lastOrderNo?: string;
+}
+
+/**
+ * The buyer's provisioned eSIM assets (BOSS platform registry, keyed by the
+ * account email). Powers checkout "use my existing eSIM" (no new
+ * provisioning fee) and the My eSIMs library.
+ */
+export async function getEsimAssets(
+  config: EsimApiConfig,
+): Promise<EsimAsset[]> {
+  try {
+    const envelope = await requestEnvelope<{ items?: EsimAsset[] } | EsimAsset[]>(config, '/api/esims');
+    const data = envelope.data;
+    if (Array.isArray(data)) return data;
+    return data?.items || [];
+  } catch {
+    // BOSS endpoint not ready / not logged in: an empty library is correct.
+    return [];
+  }
+}
+
 export async function getEsimOrders(
   config: EsimApiConfig,
   params: { page?: number; limit?: number; status?: string } = {}

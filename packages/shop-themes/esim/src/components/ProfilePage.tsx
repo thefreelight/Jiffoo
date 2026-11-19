@@ -25,6 +25,7 @@ import {
   Users, MapPin } from 'lucide-react';
 import type { ProfilePageProps } from 'shared/src/types/theme';
 import { pickCopy, resolveEsimSiteConfig } from '../site';
+import { getEsimAssets, type EsimAsset } from '../lib/api';
 
 const SCRIPT_FONT =
   '"Snell Roundhand", "Savoye LET", "Segoe Script", "Brush Script MT", cursive';
@@ -110,6 +111,66 @@ function timezoneLabel(): string {
   } catch {
     return 'UTC';
   }
+}
+
+
+/**
+ * 我的 eSIM — the buyer's provisioned eSIM assets (BOSS registry keyed by
+ * the account email). Renders nothing while unauthenticated or when the
+ * library is empty, so it never bothers guest visitors.
+ */
+function MyEsimAssets({ apiBaseUrl, email, locale }: { apiBaseUrl: string; email?: string; locale?: string }) {
+  const [assets, setAssets] = React.useState<EsimAsset[] | null>(null);
+
+  React.useEffect(() => {
+    if (!email) return;
+    let mounted = true;
+    (async () => {
+      const list = await getEsimAssets({ baseUrl: apiBaseUrl });
+      if (mounted) setAssets(list);
+    })();
+    return () => { mounted = false; };
+  }, [apiBaseUrl, email]);
+
+  if (!email || !assets || assets.length === 0) return null;
+
+  return (
+    <section className="rounded-[var(--esim-radius-lg)] border border-[color:color-mix(in_oklab,var(--esim-gold)_18%,var(--esim-line))] bg-[color:color-mix(in_oklab,var(--esim-bg-elevated)_92%,black)] p-5 shadow-[var(--esim-shadow)] sm:p-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-medium tracking-[-0.02em] text-[var(--esim-ink)]">
+          {pickCopy(locale, { en: 'My eSIMs', hans: '我的 eSIM', hant: '我的 eSIM' })}
+        </h2>
+        <span className="text-xs text-[var(--esim-copy-soft)]">{assets.length}</span>
+      </div>
+      <p className="mt-2 text-xs leading-5 text-[var(--esim-copy-soft)]">
+        {pickCopy(locale, {
+          en: 'Plans you buy are added to these profiles — no new QR code, no reinstall.',
+          hans: '新购套餐会直接加进这些 profile——不发新二维码、无需重装。',
+          hant: '新購套餐會直接加進這些 profile——不發新二維碼、無需重裝。',
+        })}
+      </p>
+      <div className="mt-4 grid gap-3">
+        {assets.map((asset) => (
+          <div key={asset.iccid} className="rounded-[0.95rem] border border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_86%,black)] px-4 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm font-medium text-[var(--esim-ink)]">
+                {asset.label || pickCopy(locale, { en: 'Bokmoo eSIM', hans: 'Bokmoo eSIM', hant: 'Bokmoo eSIM' })}
+              </p>
+              <span className="rounded-full border border-[color:color-mix(in_oklab,var(--esim-gold)_34%,transparent)] px-2 py-0.5 text-[10px] tracking-[0.14em] text-[var(--esim-gold)]">
+                {(asset.status || 'ACTIVE').toUpperCase()}
+              </span>
+            </div>
+            <p className="mt-1.5 font-mono text-xs text-[var(--esim-copy-soft)]">ICCID ····{asset.iccid.slice(-6)}</p>
+            {asset.packages && asset.packages.length > 0 ? (
+              <p className="mt-1 text-xs text-[var(--esim-copy)]">
+                {asset.packages.map((pkg) => pkg.name).filter(Boolean).join(' · ')}
+              </p>
+            ) : null}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
 }
 
 export const ProfilePage = React.memo(function ProfilePage({
@@ -380,6 +441,8 @@ export const ProfilePage = React.memo(function ProfilePage({
               </div>
             </div>
           </section>
+
+          <MyEsimAssets apiBaseUrl={site.apiBaseUrl} email={user?.email} locale={locale} />
 
           {/* Account information + preferences */}
           <section className="grid gap-6 lg:grid-cols-2">
