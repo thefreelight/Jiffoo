@@ -15,9 +15,19 @@ import type { NativeAuthEnv } from './auth';
  * validity/data are derived from the BOSS SKU code (APAC-3GB-15D …).
  */
 
-type BossEnv = NativeAuthEnv & { DB: D1Database; BOSS_API_KEY?: string };
+type BossEnv = NativeAuthEnv & { DB: D1Database; BOSS_API_KEY?: string; BOSS_BASE_URL?: string };
 
-const BOSS_BASE_URL = 'https://boss.qwesim.com';
+/**
+ * Platform base URL. The BOSS platform migrated boss.qwesim.com ->
+ * iot.qwesim.com (2026-11-19); override via BOSS_BASE_URL if it moves
+ * again.
+ */
+const BOSS_DEFAULT_BASE_URL = 'https://iot.qwesim.com';
+
+function bossBaseUrl(env: BossEnv): string {
+  const configured = env.BOSS_BASE_URL?.trim();
+  return configured || BOSS_DEFAULT_BASE_URL;
+}
 const STATE_KEY = 'boss';
 const AUTO_SYNC_INTERVAL_MS = 5 * 60 * 1000;
 const LIST_PATH = '/api/v1/products';
@@ -174,7 +184,7 @@ export function bossPackageToShopProduct(pkg: BossPackage): BossShopProduct | nu
 async function bossRequest(env: BossEnv, path: string, init?: RequestInit): Promise<unknown> {
   const apiKey = env.BOSS_API_KEY;
   if (!apiKey) throw new Error('BOSS_API_KEY is not configured');
-  const response = await fetch(`${BOSS_BASE_URL}${path}`, {
+  const response = await fetch(`${bossBaseUrl(env)}${path}`, {
     ...init,
     headers: {
       'X-API-KEY': apiKey,

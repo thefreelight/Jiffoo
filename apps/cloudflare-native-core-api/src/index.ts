@@ -74,6 +74,7 @@ type WorkerEnv = Cloudflare.Env & NativeAuthEnv & NativeJobsProxyEnv & {
   DEMO_MODE?: string;
   EXPECTED_D1_SCHEMA_VERSION?: string;
   BOSS_API_KEY?: string;
+  BOSS_BASE_URL?: string;
 };
 
 interface Snapshot {
