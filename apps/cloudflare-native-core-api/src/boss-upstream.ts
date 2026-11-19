@@ -50,6 +50,10 @@ const REGION_DESTINATIONS: Record<string, string[]> = {
   TH: ['TH'],
   SG: ['SG'],
   UK: ['GB'],
+  // Mainland China (roaming egress) and Greater China (大陆+港澳台),
+  // onboarded 2026-11-20 — Dashi areaId 157 / packageId 907.
+  CN: ['CN'],
+  GC: ['CN', 'HK', 'MO', 'TW'],
 };
 
 /** SKU prefixes that are physical goods, accessories, or test SKUs. */
