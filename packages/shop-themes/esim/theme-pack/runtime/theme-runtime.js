@@ -11580,6 +11580,14 @@
       apiBaseUrl: siteConfig.apiBaseUrl?.trim() || "https://api.bokmoo.com"
     };
   }
+  function isEsimPlanProduct(product) {
+    const source = product;
+    if (source?.typeData?.esim) return true;
+    return typeof source?.id === "string" && source.id.startsWith("boss-");
+  }
+  function filterEsimPlans(products) {
+    return (products || []).filter((product) => isEsimPlanProduct(product));
+  }
 
   // src/components/ProfilePage.tsx
   var SCRIPT_FONT = '"Snell Roundhand", "Savoye LET", "Segoe Script", "Brush Script MT", cursive';
@@ -14274,14 +14282,19 @@
     const site = resolveEsimSiteConfig(config);
     const t = (copy) => pickCopy(locale, copy);
     const normalizedProducts = react_default.useMemo(
-      () => (remoteProducts.length > 0 ? remoteProducts : products).map((raw) => {
-        const esimAttrs = raw.typeData?.esim || void 0;
-        return {
-          product: normalizeProductForTheme(raw),
-          esim: esimAttrs,
-          currency: readProductCurrency(raw)
-        };
-      }),
+      () => (
+        // Host-provided fallback lists come from the shared instance catalog
+        // and may contain Bokmoo physical cards — the pure eSIM mall never
+        // shows them.
+        (remoteProducts.length > 0 ? remoteProducts : filterEsimPlans(products)).map((raw) => {
+          const esimAttrs = raw.typeData?.esim || void 0;
+          return {
+            product: normalizeProductForTheme(raw),
+            esim: esimAttrs,
+            currency: readProductCurrency(raw)
+          };
+        })
+      ),
       [products, remoteProducts]
     );
     const submitSearch = (event) => {
@@ -14582,6 +14595,7 @@
     ProductsPage,
     {
       ...props,
+      products: filterEsimPlans(props.products),
       totalProducts: props.totalProducts ?? props.products?.length ?? 0,
       currentPage: props.currentPage ?? 1,
       totalPages: props.totalPages ?? 1,
@@ -14594,6 +14608,7 @@
     ProductsPage,
     {
       ...props,
+      products: filterEsimPlans(props.products),
       totalProducts: props.totalProducts ?? props.products?.length ?? 0,
       currentPage: props.currentPage ?? 1,
       totalPages: props.totalPages ?? 1,
@@ -14605,7 +14620,7 @@
   var DealsPage = (props) => /* @__PURE__ */ jsx(
     ProductsPage,
     {
-      products: props.products,
+      products: filterEsimPlans(props.products),
       isLoading: props.isLoading,
       totalProducts: props.products?.length ?? 0,
       currentPage: 1,
@@ -14626,7 +14641,7 @@
   var SearchPage = (props) => /* @__PURE__ */ jsx(
     ProductsPage,
     {
-      products: props.products,
+      products: filterEsimPlans(props.products),
       isLoading: props.isLoading,
       totalProducts: props.products?.length ?? 0,
       currentPage: 1,
@@ -18843,7 +18858,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "esim",
-      version: "0.0.9",
+      version: "0.0.10",
       target: "shop"
     }
   };

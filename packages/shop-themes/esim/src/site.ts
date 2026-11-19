@@ -75,6 +75,21 @@ export function resolveEsimSiteConfig(config?: ThemeConfig, locale?: string): Es
   };
 }
 
+/**
+ * Pure eSIM mall filter (PRD: 独立纯 eSIM 商城). The shared instance catalog
+ * also carries Bokmoo physical cards for bokmoo.com — those never belong in
+ * this storefront's plan lists, search results, or collection pages.
+ */
+export function isEsimPlanProduct(product: unknown): boolean {
+  const source = product as { id?: string; typeData?: { esim?: unknown } };
+  if (source?.typeData?.esim) return true;
+  return typeof source?.id === 'string' && source.id.startsWith('boss-');
+}
+
+export function filterEsimPlans<T>(products: T[] | undefined | null): T[] {
+  return (products || []).filter((product) => isEsimPlanProduct(product));
+}
+
 export function isExternalHref(href?: string): boolean {
   if (!href) return false;
   return /^(https?:)?\/\//.test(href);

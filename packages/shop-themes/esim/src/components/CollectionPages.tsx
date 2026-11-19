@@ -6,10 +6,12 @@ import type {
   SearchPageProps,
 } from 'shared/src/types/theme';
 import { ProductsPage } from './ProductsPage';
+import { filterEsimPlans } from '../site';
 
 export const BestsellersPage = (props: BestsellersPageProps) => (
   <ProductsPage
     {...props}
+    products={filterEsimPlans(props.products)}
     totalProducts={props.totalProducts ?? props.products?.length ?? 0}
     currentPage={props.currentPage ?? 1}
     totalPages={props.totalPages ?? 1}
@@ -22,6 +24,7 @@ export const BestsellersPage = (props: BestsellersPageProps) => (
 export const NewArrivalsPage = (props: NewArrivalsPageProps) => (
   <ProductsPage
     {...props}
+    products={filterEsimPlans(props.products)}
     totalProducts={props.totalProducts ?? props.products?.length ?? 0}
     currentPage={props.currentPage ?? 1}
     totalPages={props.totalPages ?? 1}
@@ -33,7 +36,7 @@ export const NewArrivalsPage = (props: NewArrivalsPageProps) => (
 
 export const DealsPage = (props: DealsPageProps) => (
   <ProductsPage
-    products={props.products}
+    products={filterEsimPlans(props.products)}
     isLoading={props.isLoading}
     totalProducts={props.products?.length ?? 0}
     currentPage={1}
@@ -54,7 +57,7 @@ export const DealsPage = (props: DealsPageProps) => (
 
 export const SearchPage = (props: SearchPageProps) => (
   <ProductsPage
-    products={props.products}
+    products={filterEsimPlans(props.products)}
     isLoading={props.isLoading}
     totalProducts={props.products?.length ?? 0}
     currentPage={1}
