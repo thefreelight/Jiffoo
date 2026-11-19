@@ -3,6 +3,7 @@ import { submitNativeOdooOrders } from './external-orders';
 import { createNativeAffiliateCommission } from './affiliate';
 import { enqueueAffiliateCommissionEmail, enqueueOrganizationCommissionEmail, enqueueOrderPaidEmail, enqueueRefundEmail } from './mail-outbox';
 import { processRemoteRadarPaidOrder } from './remoteradar-entitlements';
+import { processBossPaidOrder } from './boss-orders';
 
 interface OutboxRow {
   id: string;
@@ -41,6 +42,49 @@ const REMOTERADAR_GRANT_SKIPPED_ERRORS = new Set([
   'REMOTERADAR_ORDER_NOT_ELIGIBLE',
   'REMOTERADAR_ORDER_PRICE_MISMATCH',
 ]);
+
+// Same contract for the BOSS eSIM fulfiller: instances without the BOSS
+// secret and orders without BOSS-managed lines are legitimate non-targets.
+// A line whose upstream create outcome is unknown is parked for operator
+// review instead of risking a duplicate paid eSIM order.
+const BOSS_FULFILL_SKIPPED_ERRORS = new Set([
+  'BOSS_NOT_CONFIGURED',
+  'BOSS_ORDER_NOT_ELIGIBLE',
+  'BOSS_ORDER_UNVERIFIED',
+]);
+
+async function grantBossPaidOrder(env: OutboxEnv, event: OutboxRow): Promise<void> {
+  let payload: { orderId?: unknown; providerEventId?: unknown } = {};
+  try {
+    payload = JSON.parse(event.payload) as { orderId?: unknown; providerEventId?: unknown };
+  } catch {
+    payload = {};
+  }
+  const orderId = typeof payload.orderId === 'string' && payload.orderId ? payload.orderId : event.aggregate_id;
+  const providerEventId = typeof payload.providerEventId === 'string' && payload.providerEventId
+    ? payload.providerEventId
+    : event.id;
+  try {
+    const result = await processBossPaidOrder(env, orderId, providerEventId);
+    if (result.placed > 0) {
+      console.log(JSON.stringify({
+        message: 'BOSS paid order placed',
+        orderId,
+        providerEventId,
+        placed: result.placed,
+      }));
+    }
+  } catch (error) {
+    const message = errorMessage(error);
+    if (!BOSS_FULFILL_SKIPPED_ERRORS.has(message)) throw error;
+    console.log(JSON.stringify({
+      message: 'BOSS paid-order fulfillment skipped',
+      orderId,
+      providerEventId,
+      reason: message,
+    }));
+  }
+}
 
 async function grantRemoteRadarPaidOrderEntitlement(env: OutboxEnv, event: OutboxRow): Promise<void> {
   let payload: { orderId?: unknown; providerEventId?: unknown } = {};
@@ -121,6 +165,7 @@ async function processEvent(env: OutboxEnv, event: OutboxRow): Promise<void> {
   if (event.event_type === 'payment.succeeded') {
     await fulfillPaidOrder(env, event, now);
     await grantRemoteRadarPaidOrderEntitlement(env, event);
+    await grantBossPaidOrder(env, event);
     await submitNativeOdooOrders(env, event.aggregate_id);
     const paidSnapshot = await env.DB.prepare('SELECT payload FROM native_order_snapshots WHERE id = ?1').bind(event.aggregate_id).first<OrderSnapshotRow>();
     if (paidSnapshot) {

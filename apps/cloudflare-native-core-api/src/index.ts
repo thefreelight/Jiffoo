@@ -42,6 +42,7 @@ import { tryNativeMailReceipts } from './mail-receipts';
 import { processScheduledOdooCatalogSync, tryNativeOdooCatalogSync } from './odoo-catalog';
 import { snapshotFallbackKey, snapshotKey } from './snapshot-key';
 import { processScheduledBossCatalogSync } from './boss-upstream';
+import { syncBossOrderStatuses } from './boss-orders';
 import { applyProductCopyOverrides, loadProductCopyOverrides, productCopyPathKind } from './product-copy';
 import { authenticateNativeAdmin } from './auth';
 import { authenticateJobsUser, processNativeJobsSync, tryNativeJobsAdminProxy, tryNativeJobsProxy, type NativeJobsProxyEnv } from './jobs-proxy';
@@ -483,7 +484,7 @@ export default {
     }
   },
   async scheduled(_controller: ScheduledController, env: WorkerEnv): Promise<void> {
-    const [checkout, email, odooCatalog, odooShipments, jobs, walletReservations, currencyReservations, creditGrants, resumeExtraction, videoTasks, toolDiscovery, staleReservations, bossCatalog] = await Promise.allSettled([
+    const [checkout, email, odooCatalog, odooShipments, jobs, walletReservations, currencyReservations, creditGrants, resumeExtraction, videoTasks, toolDiscovery, staleReservations, bossCatalog, bossOrders] = await Promise.allSettled([
       processCheckoutOutbox(env),
       processNativeEmailOutbox(env),
       processScheduledOdooCatalogSync(env),
@@ -497,6 +498,7 @@ export default {
       processNativeVideoTasks(env),
       processScheduledToolDiscovery(env),
       releaseStaleInventoryReservations(env),
+      syncBossOrderStatuses(env),
     ]);
     console.log(JSON.stringify({
       message: 'native scheduled work processed',
@@ -527,6 +529,7 @@ export default {
         ? staleReservations.value
         : { error: String(staleReservations.reason) },
       bossCatalog: bossCatalog.status === 'fulfilled' ? bossCatalog.value : { error: String(bossCatalog.reason) },
+      bossOrders: bossOrders.status === 'fulfilled' ? bossOrders.value : { error: String(bossOrders.reason) },
     }));
   },
 } satisfies ExportedHandler<WorkerEnv>;
