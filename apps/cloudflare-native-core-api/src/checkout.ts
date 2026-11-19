@@ -318,8 +318,8 @@ async function createOrder(
     env.DB.prepare(
       `INSERT INTO native_order_metadata
        (order_id, user_id, idempotency_key, payment_status, currency, total_amount, affiliate_partner_id, promotion_id)
-       VALUES (?1, ?2, ?3, 'PENDING', 'USD', ?4, ?5, ?6)`,
-    ).bind(orderId, user.id, idempotencyKey, catalogSubtotal + shippingAmount - discountAmount, affiliatePartner?.id ?? null, appliedPromotion?.row.id ?? null),
+       VALUES (?1, ?2, ?3, 'PENDING', ?4, ?5, ?6, ?7)`,
+    ).bind(orderId, user.id, idempotencyKey, orderCurrency, catalogSubtotal + shippingAmount - discountAmount, affiliatePartner?.id ?? null, appliedPromotion?.row.id ?? null),
   ];
   for (let index = 0; index < resolved.length; index += 1) {
     const { input, product, variant } = resolved[index]!;
