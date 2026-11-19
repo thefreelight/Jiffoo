@@ -98,6 +98,16 @@ function regionOf(code: string): string | null {
   return REGION_DESTINATIONS[prefix] ? prefix : null;
 }
 
+// Odoo product names historically embed the SKU as a "[CODE] " prefix;
+// that is an internal reference, not customer-facing copy. Strip it at
+// materialization so storefront names stay clean even if a future Odoo
+// product reintroduces the prefix.
+function bossDisplayName(defaultCode: string, name: string): string {
+  const prefix = `[${defaultCode}]`;
+  const trimmed = name.startsWith(prefix) ? name.slice(prefix.length).trim() : name;
+  return trimmed || name;
+}
+
 export interface BossShopProduct {
   id: string;
   name: string;
@@ -153,12 +163,13 @@ export function bossPackageToShopProduct(pkg: BossPackage): BossShopProduct | nu
     ...(pkg.upstreamPackageId != null ? { upstreamPackageId: pkg.upstreamPackageId } : {}),
   };
   const updatedAt = pkg.odooWriteDate || new Date().toISOString().replace('T', ' ').slice(0, 19);
+  const displayName = bossDisplayName(pkg.defaultCode, pkg.name);
   return {
     id: `boss-${pkg.defaultCode}`,
-    name: pkg.name,
+    name: displayName,
     slug: pkg.defaultCode.toLowerCase(),
     description:
-      `${pkg.name}。BOSS 上游直供，Odoo 实时价格与库存；下单后即时发放，首次联网生效。` +
+      `${displayName}。BOSS 上游直供，Odoo 实时价格与库存；下单后即时发放，首次联网生效。` +
       ` BOSS-supplied eSIM data plan with live Odoo pricing.`,
     productKind: 'digital',
     requiresShipping: false,
@@ -172,7 +183,7 @@ export function bossPackageToShopProduct(pkg: BossPackage): BossShopProduct | nu
     variants: [
       {
         id: `boss-${pkg.defaultCode}-v1`,
-        name: pkg.name,
+        name: displayName,
         skuCode: pkg.defaultCode,
         salePrice: pkg.listPrice,
         baseStock: Math.floor(pkg.qtyAvailable),
