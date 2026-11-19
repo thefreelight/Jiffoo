@@ -800,3 +800,41 @@ export async function getEsimOrganizationCommissions(config: EsimApiConfig): Pro
   const result = await request<{ items: EsimAffiliateCommission[] }>(config, `${affiliateBase}/organizations/commissions`);
   return result.items || [];
 }
+
+// ============================================
+// Coupon / Redemption API
+// ============================================
+
+const couponRedeemEndpoint = '/api/v1/plugins/coupon/api/redeem';
+
+export interface EsimRedeemResult {
+  code: string;
+  grantKind?: string;
+  orderId?: string;
+  productId?: string;
+  productName?: string;
+  quantity?: number;
+  status?: string;
+  duplicate?: boolean;
+  planSlug?: string;
+  planName?: string;
+  currentPeriodEnd?: string;
+}
+
+/**
+ * Redeem a coupon code (product grant → comped PAID order → fulfillment,
+ * or subscription period). Requires a signed-in shopper; error codes ride
+ * EsimApiError.code (REDEMPTION_CODE_INVALID / _ALREADY_CLAIMED /
+ * _EXHAUSTED / _ASSIGNED / REDEMPTION_PRODUCT_NOT_FOUND /
+ * REDEMPTION_CORE_UNSUPPORTED).
+ */
+export async function redeemEsimCode(
+  config: EsimApiConfig,
+  code: string,
+  idempotencyKey?: string
+): Promise<EsimRedeemResult> {
+  return request<EsimRedeemResult>(config, couponRedeemEndpoint, 'POST', {
+    code,
+    ...(idempotencyKey ? { idempotencyKey } : {}),
+  });
+}
