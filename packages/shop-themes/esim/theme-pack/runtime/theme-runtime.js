@@ -14591,12 +14591,13 @@
   });
 
   // src/components/CollectionPages.tsx
+  var esimPlansOf = (props) => filterEsimPlans(props.products);
   var BestsellersPage = (props) => /* @__PURE__ */ jsx(
     ProductsPage,
     {
       ...props,
       products: filterEsimPlans(props.products),
-      totalProducts: props.totalProducts ?? props.products?.length ?? 0,
+      totalProducts: props.totalProducts ?? esimPlansOf(props).length ?? 0,
       currentPage: props.currentPage ?? 1,
       totalPages: props.totalPages ?? 1,
       viewMode: "grid",
@@ -14609,7 +14610,7 @@
     {
       ...props,
       products: filterEsimPlans(props.products),
-      totalProducts: props.totalProducts ?? props.products?.length ?? 0,
+      totalProducts: props.totalProducts ?? esimPlansOf(props).length ?? 0,
       currentPage: props.currentPage ?? 1,
       totalPages: props.totalPages ?? 1,
       viewMode: "grid",
@@ -14622,7 +14623,7 @@
     {
       products: filterEsimPlans(props.products),
       isLoading: props.isLoading,
-      totalProducts: props.products?.length ?? 0,
+      totalProducts: esimPlansOf(props).length,
       currentPage: 1,
       totalPages: 1,
       sortBy: "createdAt",
@@ -14643,7 +14644,7 @@
     {
       products: filterEsimPlans(props.products),
       isLoading: props.isLoading,
-      totalProducts: props.products?.length ?? 0,
+      totalProducts: esimPlansOf(props).length,
       currentPage: 1,
       totalPages: 1,
       sortBy: props.sortBy,
@@ -18858,7 +18859,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "esim",
-      version: "0.0.10",
+      version: "0.0.11",
       target: "shop"
     }
   };
