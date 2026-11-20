@@ -39,6 +39,7 @@ export const OrderDetailPage = React.memo(function OrderDetailPage({
   onBack,
   onBackToOrders,
   onCancelOrder,
+  locale,
 }: OrderDetailPageProps) {
   const handleBack = onBack || onBackToOrders;
   const site = resolveEsimSiteConfig(config);
@@ -169,8 +170,9 @@ export const OrderDetailPage = React.memo(function OrderDetailPage({
 
             {installSession ? (
               <InstallSessionPanel
-                title="Install Session"
+                title={locale === 'zh-Hans' ? '安装你的 eSIM' : locale === 'zh-Hant' ? '安裝你的 eSIM' : 'Install your eSIM'}
                 session={installSession}
+                locale={locale}
                 className="border-[var(--esim-line)] bg-[var(--esim-bg)]"
               />
             ) : null}
