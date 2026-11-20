@@ -180,7 +180,10 @@ export async function tryNativeEsimInstallSession(request: Request, env: EsimAss
   if (upstreamFailed) status = 'failed';
   else if (paymentStatus !== 'PAID') status = 'pending_payment';
   else if (!line && !upstream) status = 'processing';
-  else if (upstreamDone) status = targetIccid || facts.iccid ? 'installed' : 'ready';
+  // 'installed' means the buyer pinned an existing profile (reuse) — an
+  // ICCID merely issued by BOSS for a fresh install still needs the
+  // customer to install it, so that stays 'ready'.
+  else if (upstreamDone) status = targetIccid ? 'installed' : 'ready';
   else status = 'processing';
 
   const packageTitle = typeof bossItem.productName === 'string' && bossItem.productName
