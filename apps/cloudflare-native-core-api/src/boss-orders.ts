@@ -245,8 +245,13 @@ export async function processBossPaidOrder(
   return { placed, skipped: false };
 }
 
-/** BOSS order states that mean the fulfillment is finished upstream. */
-const BOSS_TERMINAL_STATUS = /delivered|completed|finished|activated/i;
+/**
+ * BOSS order states that mean the fulfillment is finished upstream. The
+ * platform reports upstreamStatus DONE (activated) / SKIP (no iccid —
+ * nothing to provision) / FAILED; without `done`/`skip` here the sweep
+ * re-polled finished lines forever and lines never reached `completed`.
+ */
+const BOSS_TERMINAL_STATUS = /delivered|completed|finished|activated|\bdone\b|\bskip\b/i;
 
 /**
  * Periodic sweep: poll BOSS for placed eSIM orders and record upstream

@@ -196,6 +196,12 @@ export interface EsimInstallSession {
   matchingId?: string;
   activationCode?: string;
   confirmationCode?: string | null;
+  /** Bound target ICCID (reuse orders) or the ICCID issued for this order. */
+  iccid?: string | null;
+  /** Raw BOSS upstream status (DONE/SKIP/FAILED/…) surfaced for support. */
+  upstreamStatus?: string | null;
+  upstreamMsg?: string;
+  error?: string;
   expiresAt?: string;
   instructions?: EsimInstructionSet;
   support?: EsimInstallSupport;
