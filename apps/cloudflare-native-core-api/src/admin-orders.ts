@@ -2,6 +2,7 @@ import { type NativeAuthEnv } from './auth';
 import { ADMIN_PERMISSIONS } from './native-rbac';
 import { requireAdminPermission } from './admin-access';
 import { attachShipments, upsertSupplierShipment } from './shipments';
+import { processBossPaidOrder } from './boss-orders';
 
 interface AdminOrderEnv extends NativeAuthEnv { DB: D1Database }
 interface AdminOrderRow { id: string; status: string; payload: string; source_updated_at: string }
@@ -27,6 +28,89 @@ function applyItemsSummary(order: AdminOrder): void {
     name: typeof item.productName === 'string' ? item.productName : null,
     quantity: Number(item.quantity ?? 1) || 1,
   }));
+}
+
+/**
+ * How this order fulfills itself: BOSS eSIM orders self-provision on
+ * payment (hook-driven), physical goods need the manual ship flow, and
+ * other digital items need neither. The admin console gates the ship
+ * button and the eSIM redeliver action on this.
+ */
+function applyFulfillmentKind(order: AdminOrder): void {
+  const items = Array.isArray(order.items) ? order.items as Array<Record<string, unknown>> : [];
+  if (items.some((item) => typeof item.productId === 'string' && item.productId.startsWith('boss-'))) {
+    order.fulfillmentKind = 'esim';
+    return;
+  }
+  const physical = items.some((item) => item.productKind === 'goods' || item.productKind === 'consumable');
+  order.fulfillmentKind = physical ? 'shipping' : 'digital';
+}
+
+interface BossFulfillmentRow {
+  status: string;
+  boss_order_no: string | null;
+  error: string | null;
+  payload_json: string | null;
+  updated_at: string;
+}
+
+function esimFulfillmentFromLine(line: BossFulfillmentRow | undefined): Record<string, unknown> {
+  if (!line) return { status: 'pending', bossOrderNo: null, upstreamStatus: null, upstreamMsg: null, error: null, updatedAt: null };
+  let record: Record<string, unknown> = {};
+  try {
+    const parsed = JSON.parse(line.payload_json ?? '') as Record<string, unknown>;
+    if (parsed && typeof parsed === 'object') record = parsed;
+  } catch {
+    record = {};
+  }
+  const read = (source: unknown, keys: string[]): string => {
+    if (!source || typeof source !== 'object') return '';
+    for (const key of keys) {
+      const value = (source as Record<string, unknown>)[key];
+      if (typeof value === 'string' && value.trim()) return value.trim();
+    }
+    return '';
+  };
+  const sources = [record.lastStatusRecord, record.bossOrder];
+  const upstreamStatus = sources.map((s) => read(s, ['upstreamStatus', 'upstream_status'])).find(Boolean) || '';
+  const upstreamMsg = sources.map((s) => read(s, ['upstreamMsg', 'upstream_msg'])).find(Boolean) || '';
+  return {
+    status: line.status,
+    bossOrderNo: line.boss_order_no,
+    upstreamStatus: upstreamStatus || null,
+    upstreamMsg: upstreamMsg || null,
+    error: line.error,
+    updatedAt: line.updated_at,
+  };
+}
+
+// Detail projection: surface the automated BOSS fulfillment facts so the
+// admin sees provisioning state instead of a shipping block.
+async function attachEsimFulfillment(db: D1Database, order: AdminOrder): Promise<void> {
+  if (order.fulfillmentKind !== 'esim') return;
+  const line = await db.prepare(
+    'SELECT status, boss_order_no, error, payload_json, updated_at FROM native_boss_order_lines WHERE order_id = ?1 ORDER BY id',
+  ).bind(String(order.id)).first<BossFulfillmentRow>();
+  order.esimFulfillment = esimFulfillmentFromLine(line ?? undefined);
+}
+
+// List projection: one batched lookup for the page's eSIM orders.
+async function attachEsimFulfillmentBatch(db: D1Database, orders: AdminOrder[]): Promise<void> {
+  const esimOrders = orders.filter((order) => order.fulfillmentKind === 'esim');
+  if (esimOrders.length === 0) return;
+  const ids = esimOrders.map((order) => String(order.id));
+  const placeholders = ids.map((_, index) => `?${index + 1}`).join(',');
+  const rows = await db.prepare(
+    `SELECT order_id, status, boss_order_no, error, payload_json, updated_at FROM native_boss_order_lines WHERE order_id IN (${placeholders}) ORDER BY id`,
+  ).bind(...ids).all<BossFulfillmentRow & { order_id: string }>();
+  const byOrder = new Map<string, BossFulfillmentRow>();
+  for (const row of rows.results) {
+    const existing = byOrder.get(row.order_id);
+    if (!existing) byOrder.set(row.order_id, row);
+  }
+  for (const order of esimOrders) {
+    order.esimFulfillment = esimFulfillmentFromLine(byOrder.get(String(order.id)));
+  }
 }
 
 // The admin order page renders shippingAddress.recipientName/street/zipCode,
@@ -92,8 +176,9 @@ async function attachCustomers(db: D1Database, orders: AdminOrder[]): Promise<vo
 export async function tryNativeAdminOrders(request: Request, env: AdminOrderEnv, _proxy: ProxyRequest): Promise<Response | null> {
   const url = new URL(request.url);
   const isShipPost = /^\/api\/v1\/admin\/orders\/[^/]+\/ship$/.test(url.pathname) && request.method === 'POST';
-  if (request.method !== 'GET' && !isShipPost) return null;
-  if (!/^\/api\/v1\/admin\/orders(?:\/[^/]+(?:\/ship)?)?$/.test(url.pathname)) return null;
+  const isRedeliverPost = /^\/api\/v1\/admin\/orders\/[^/]+\/esim\/redeliver$/.test(url.pathname) && request.method === 'POST';
+  if (request.method !== 'GET' && !isShipPost && !isRedeliverPost) return null;
+  if (!/^\/api\/v1\/admin\/orders(?:\/[^/]+(?:\/(?:ship|esim\/redeliver))?)?$/.test(url.pathname)) return null;
   const gate = await requireAdminPermission(request, env, ADMIN_PERMISSIONS.ORDERS_READ);
   if (!gate.ok) return gate.response;
   const admin = gate.admin;
@@ -107,7 +192,53 @@ export async function tryNativeAdminOrders(request: Request, env: AdminOrderEnv,
     const order = await attachCustomer(env.DB, await attachShipments(env.DB, JSON.parse(row.payload) as AdminOrder));
     applyShippingAddressDisplay(order);
     applyItemsSummary(order);
+    applyFulfillmentKind(order);
+    await attachEsimFulfillment(env.DB, order);
     return response(order);
+  }
+
+  // eSIM orders fulfill themselves through the BOSS hook on payment. When
+  // that automation fails (or stalls unverified), the operator re-drives it
+  // here instead of faking a shipment. processBossPaidOrder is intent-first
+  // idempotent: completed/created lines are skipped, failed/pending re-drive,
+  // unverified surfaces for review.
+  const redeliverMatch = url.pathname.match(/^\/api\/v1\/admin\/orders\/([^/]+)\/esim\/redeliver$/);
+  if (redeliverMatch && request.method === 'POST') {
+    const orderId = decodeURIComponent(redeliverMatch[1]);
+    const row = await env.DB.prepare('SELECT payload FROM native_order_snapshots WHERE id = ?1').bind(orderId).first<{ payload: string }>();
+    if (!row) {
+      return Response.json({ success: false, error: { code: 'NOT_FOUND', message: 'Order not found' } }, { status: 404, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-admin-orders' } });
+    }
+    let order: Record<string, unknown>;
+    try {
+      order = JSON.parse(row.payload) as Record<string, unknown>;
+    } catch {
+      return Response.json({ success: false, error: { code: 'NOT_FOUND', message: 'Order not found' } }, { status: 404, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-admin-orders' } });
+    }
+    const items = Array.isArray(order.items) ? order.items as Array<Record<string, unknown>> : [];
+    if (!items.some((item) => typeof item.productId === 'string' && item.productId.startsWith('boss-'))) {
+      return Response.json({ success: false, error: { code: 'NOT_ESIM_ORDER', message: 'Redeliver only applies to BOSS eSIM orders' } }, { status: 400, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-admin-orders' } });
+    }
+    if (String(order.paymentStatus) !== 'PAID') {
+      return Response.json({ success: false, error: { code: 'ORDER_NOT_PAID', message: 'Only paid eSIM orders can be redelivered' } }, { status: 409, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-admin-orders' } });
+    }
+    try {
+      const result = await processBossPaidOrder(env, orderId, `admin-redeliver-${crypto.randomUUID()}`);
+      const refreshed = await env.DB.prepare(
+        'SELECT status, boss_order_no, error, payload_json, updated_at FROM native_boss_order_lines WHERE order_id = ?1 ORDER BY id',
+      ).bind(orderId).first<BossFulfillmentRow>();
+      return response({
+        triggered: true,
+        placed: result.placed,
+        skipped: result.skipped,
+        esimFulfillment: esimFulfillmentFromLine(refreshed ?? undefined),
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const code = message.includes('UNVERIFIED') ? 'ESIM_UNVERIFIED' : 'REDELIVER_FAILED';
+      const status = message.includes('UNVERIFIED') ? 409 : 502;
+      return Response.json({ success: false, error: { code, message } }, { status, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-admin-orders' } });
+    }
   }
 
   // Admin manual fulfilment: record a carrier + tracking shipment, advance
@@ -129,6 +260,12 @@ export async function tryNativeAdminOrders(request: Request, env: AdminOrderEnv,
     const order = JSON.parse(row.payload) as Record<string, unknown>;
     if (String(order.status) === 'CANCELLED') {
       return Response.json({ success: false, error: { code: 'ORDER_CANCELLED', message: 'Cancelled orders cannot be shipped' } }, { status: 409, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-admin-orders' } });
+    }
+    // eSIM orders self-provision through the BOSS hook; a manual carrier
+    // shipment would be fiction. Redeliver re-drives the automation instead.
+    const shipItems = Array.isArray(order.items) ? order.items as Array<Record<string, unknown>> : [];
+    if (shipItems.some((item) => typeof item.productId === 'string' && item.productId.startsWith('boss-'))) {
+      return Response.json({ success: false, error: { code: 'ESIM_AUTO_FULFILLED', message: 'eSIM orders are fulfilled automatically — use esim/redeliver if provisioning failed' } }, { status: 409, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-admin-orders' } });
     }
     // Default the scope from the delivery country when the caller omits it.
     const shipTo = order.shippingAddress as Record<string, unknown> | null | undefined;
@@ -191,6 +328,8 @@ export async function tryNativeAdminOrders(request: Request, env: AdminOrderEnv,
   for (const order of items) {
     applyShippingAddressDisplay(order);
     applyItemsSummary(order);
+    applyFulfillmentKind(order);
   }
+  await attachEsimFulfillmentBatch(env.DB, items);
   return response({ items, page, limit, total, totalPages: total === 0 ? 0 : Math.ceil(total / limit) });
 }

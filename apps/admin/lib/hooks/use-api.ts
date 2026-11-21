@@ -443,6 +443,31 @@ export function useRefundOrder() {
   });
 }
 
+// Re-drive automated BOSS provisioning on a paid eSIM order. Errors carry
+// the upstream reason (409 unverified / 502 failed) and surface via toast.
+export function useRedeliverEsim() {
+  const queryClient = useQueryClient();
+  const { getErrorMessage } = useLocalizedApiFeedback();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await ordersApi.redeliverEsim(id);
+      return unwrapApiResponse(response);
+    },
+    onSuccess: (data, id) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders });
+      queryClient.invalidateQueries({ queryKey: queryKeys.order(id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.orderStats });
+      queryClient.invalidateQueries({ queryKey: queryKeys.adminDashboard });
+      if (data?.esimFulfillment?.status === 'completed') toast.success('eSIM 自动发货已重新触发并完成');
+      else if (data?.triggered) toast.success('eSIM 自动发货已重新触发');
+    },
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error));
+    },
+  });
+}
+
 export function useShipOrder() {
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();

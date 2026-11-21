@@ -46,6 +46,7 @@ import type {
   HealthSummaryResponse,
   ShipFormOptions,
   CarrierDetectResult,
+  EsimFulfillment,
 } from './types';
 
 /**
@@ -497,6 +498,10 @@ export const ordersApi = {
     items?: Array<{ orderItemId: string; quantity: number }>
   }): Promise<ApiResponse<OrderDetail>> =>
     apiClient.post(`/admin/orders/${id}/ship`, data),
+
+  // Re-drive automated BOSS provisioning on a paid eSIM order (idempotent).
+  redeliverEsim: (id: string): Promise<ApiResponse<{ triggered: boolean; placed: number; skipped: boolean; esimFulfillment: EsimFulfillment }>> =>
+    apiClient.post(`/admin/orders/${id}/esim/redeliver`),
 
   cancelOrder: (id: string, cancelReason: string): Promise<ApiResponse<OrderDetail>> =>
     apiClient.post(`/admin/orders/${id}/cancel`, { cancelReason }),

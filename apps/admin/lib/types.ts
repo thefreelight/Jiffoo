@@ -86,6 +86,19 @@ export interface ProductImage {
   order: number
 }
 
+// How an order fulfills itself: BOSS eSIM orders self-provision on payment,
+// physical goods use the manual ship flow, other digital items need neither.
+export type FulfillmentKind = 'esim' | 'shipping' | 'digital'
+
+export interface EsimFulfillment {
+  status: string
+  bossOrderNo?: string | null
+  upstreamStatus?: string | null
+  upstreamMsg?: string | null
+  error?: string | null
+  updatedAt?: string | null
+}
+
 // Order types - Flattened list format
 export interface Order {
   id: string
@@ -97,6 +110,8 @@ export interface Order {
   itemsCount?: number
   // Server-projected item chips (name + quantity, first three items).
   itemsSummary?: Array<{ name: string | null; quantity: number }>
+  fulfillmentKind?: FulfillmentKind
+  esimFulfillment?: EsimFulfillment
 
   // Flattened customer info (for list). Native order payloads carry only a
   // top-level customerEmail, so customer and its fields are all optional.
@@ -129,6 +144,8 @@ export interface OrderDetail {
   shippingAddress?: Address | null
   items: OrderDetailItem[]
   shipments?: OrderShipment[]
+  fulfillmentKind?: FulfillmentKind
+  esimFulfillment?: EsimFulfillment
   paymentMethod?: string | null
   paymentAttempts?: number
   lastPaymentAttemptAt?: string | null

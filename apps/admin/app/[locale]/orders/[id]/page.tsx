@@ -6,10 +6,10 @@
  * pills, and the same card treatment as the dashboard overview.
  */
 
-import { AlertTriangle, ArrowLeft, CreditCard, ShoppingBag, Truck, Box, ShieldCheck, Printer, RotateCcw, MapPin, Hash, User, Activity, AlertCircle } from 'lucide-react'
+import {  AlertTriangle, ArrowLeft, CreditCard, ShoppingBag, Truck, Box, ShieldCheck, Printer, RotateCcw, MapPin, Hash, User, Activity, AlertCircle, Zap, RefreshCw } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { useOrder } from '@/lib/hooks/use-api'
+import {  useOrder, useRedeliverEsim } from '@/lib/hooks/use-api'
 import { OrderDetailItem, OrderShipment } from '@/lib/types'
 import { useT } from 'shared/src/i18n/react'
 import { useState } from 'react'
@@ -64,6 +64,18 @@ export default function OrderDetailPage() {
   }
 
   const { data: order, isLoading, error, refetch } = useOrder(orderId)
+  const redeliverEsim = useRedeliverEsim()
+  const isEsimOrder = order?.fulfillmentKind === 'esim'
+  const esimF = order?.esimFulfillment
+  const esimLabel = (() => {
+    const line = String(esimF?.status || '').toLowerCase()
+    const upstream = String(esimF?.upstreamStatus || '').toUpperCase()
+    if (esimF?.error || line === 'failed' || upstream === 'FAILED') return { text: '自动发货失败', cls: 'bg-red-50 text-red-600' }
+    if (line === 'unverified') return { text: '待人工核验', cls: 'bg-amber-50 text-amber-700' }
+    if (line === 'completed' || upstream === 'DONE') return { text: '自动发货成功', cls: 'bg-emerald-50 text-emerald-600' }
+    if (line === 'created') return { text: '自动发货中', cls: 'bg-blue-50 text-blue-600' }
+    return { text: '待自动发货', cls: 'bg-orange-50 text-orange-600' }
+  })()
 
   if (isLoading) {
     return (
@@ -99,7 +111,8 @@ export default function OrderDetailPage() {
 
   const statusKey = String(order.status || '').toUpperCase()
   const statusPill = STATUS_PILL[statusKey] ?? 'bg-orange-50 text-orange-600'
-  const canShip = statusKey === 'PAID' || statusKey === 'PROCESSING'
+  const canShip = (statusKey === 'PAID' || statusKey === 'PROCESSING') && !isEsimOrder
+  const esimRedeliverable = isEsimOrder && esimLabel.text !== '自动发货成功'
 
   return (
     <PageShell
@@ -323,6 +336,28 @@ export default function OrderDetailPage() {
                   <Truck className="mr-2 h-4 w-4" />
                   {getText('merchant.orders.ship.title', 'Ship order')}
                 </Button>
+              )}
+              {isEsimOrder && (
+                <div className="rounded-xl border border-[#eef1f6] p-3">
+                  <div className="flex items-center gap-2">
+                    <Zap className="h-4 w-4 text-amber-500" />
+                    <span className={cn('rounded-md px-2 py-0.5 text-xs font-medium', esimLabel.cls)}>{esimLabel.text}</span>
+                  </div>
+                  {esimF?.bossOrderNo ? <p className="mt-2 text-xs text-slate-500">BOSS 单号：{esimF.bossOrderNo}</p> : null}
+                  {esimF?.upstreamMsg ? <p className="mt-1 text-xs text-slate-500">{esimF.upstreamMsg}</p> : null}
+                  {esimF?.error ? <p className="mt-1 text-xs text-red-500">{esimF.error}</p> : null}
+                  {esimRedeliverable ? (
+                    <Button
+                      variant="outline"
+                      className="mt-3 h-10 w-full rounded-xl border-amber-200 text-sm font-semibold text-amber-700 hover:bg-amber-50"
+                      disabled={redeliverEsim.isPending}
+                      onClick={() => redeliverEsim.mutate(String(order.id))}
+                    >
+                      <RefreshCw className={cn('mr-2 h-4 w-4', redeliverEsim.isPending && 'animate-spin')} />
+                      重新下发
+                    </Button>
+                  ) : null}
+                </div>
               )}
               {(order.paymentStatus === 'PAID' || order.status !== 'CANCELLED') && (
                 <Button

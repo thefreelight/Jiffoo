@@ -93,12 +93,26 @@ export interface AdminOrderItemDTO {
   };
 }
 
+// How an order fulfills itself (see admin orders projection).
+export type AdminFulfillmentKind = 'esim' | 'shipping' | 'digital';
+
+export interface AdminEsimFulfillment {
+  status: string;
+  bossOrderNo?: string | null;
+  upstreamStatus?: string | null;
+  upstreamMsg?: string | null;
+  error?: string | null;
+  updatedAt?: string | null;
+}
+
 // Admin order detail DTO
 export interface AdminOrderDetailDTO {
   id: string;
   userId: string;
   status: string;
   paymentStatus: string;
+  fulfillmentKind?: AdminFulfillmentKind;
+  esimFulfillment?: AdminEsimFulfillment;
   totalAmount: number;
   currency: string;
   customerEmail?: string;
