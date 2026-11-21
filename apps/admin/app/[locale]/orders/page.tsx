@@ -8,7 +8,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { CalendarDays, ChevronDown, Download, Eye, MoreHorizontal, Search, ClipboardList, Wallet, PackageCheck, CheckCircle2, XCircle, Truck } from 'lucide-react'
+import { CalendarDays, ChevronDown, Download, Eye, MoreHorizontal, Search, ClipboardList, Wallet, PackageCheck, CheckCircle2, XCircle, Truck, RefreshCw, Zap } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,7 +26,7 @@ import { useT, useLocale } from 'shared/src/i18n/react'
 import { PageShell } from '@/components/layout/page-shell'
 import { ShipOrderDialog } from '@/components/orders/ShipOrderDialog'
 import { PageHero, MiniStatCard, TablePagination, SortableTh } from '@/components/list/list-kit'
-import { useOrders, useAdminDashboard, type Order } from '@/lib/hooks/use-api'
+import { useOrders, useAdminDashboard, useRedeliverEsim, type Order } from '@/lib/hooks/use-api'
 import { formatCurrency, cn } from '@/lib/utils'
 
 interface DemoRow {
@@ -64,6 +64,27 @@ function orderIndexSeed(order: { id?: unknown }): number {
 function shipEligible(status: string): boolean {
   const normalized = String(status).toUpperCase()
   return normalized === 'PAID' || normalized === 'PROCESSING'
+}
+
+// eSIM orders self-provision through the BOSS hook on payment — no manual
+// ship action. The chip mirrors native_boss_order_lines state so operators
+// can see automation health at a glance and re-drive failures.
+function esimMeta(order: Order): { label: string; className: string } {
+  const f = order.esimFulfillment
+  const upstream = String(f?.upstreamStatus || '').toUpperCase()
+  const line = String(f?.status || '').toLowerCase()
+  if (f?.error || line === 'failed' || upstream === 'FAILED') {
+    return { label: '自动发货失败', className: 'bg-red-50 text-red-600' }
+  }
+  if (line === 'unverified') return { label: '待人工核验', className: 'bg-amber-50 text-amber-700' }
+  if (line === 'completed' || upstream === 'DONE') return { label: '自动发货成功', className: 'bg-emerald-50 text-emerald-600' }
+  if (line === 'created') return { label: '自动发货中', className: 'bg-blue-50 text-blue-600' }
+  return { label: '待自动发货', className: 'bg-orange-50 text-orange-600' }
+}
+
+function esimRedeliverable(order: Order): boolean {
+  const meta = esimMeta(order)
+  return meta.label !== '自动发货成功'
 }
 
 function itemInitial(name: unknown): string {
@@ -135,6 +156,7 @@ export default function OrdersPage() {
     status: selectedStatus !== 'all' ? selectedStatus : undefined,
   })
   const { data: dashboardData } = useAdminDashboard()
+  const redeliverEsim = useRedeliverEsim()
 
   const orders: Order[] = ordersData?.data || []
   const pagination = ordersData?.pagination
@@ -325,7 +347,30 @@ export default function OrdersPage() {
                       <td className="px-3 py-3 text-xs text-slate-400">{created}</td>
                       <td className="px-3 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">
-                          {shipEligible(String(order.status || demo.status)) && (
+                          {order.fulfillmentKind === 'esim' ? (
+                            <>
+                              <span className={cn('inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium', esimMeta(order).className)}>
+                                <Zap className="h-3 w-3" />
+                                {esimMeta(order).label}
+                              </span>
+                              {shipEligible(String(order.status || demo.status)) && esimRedeliverable(order) && (
+                                <button
+                                  type="button"
+                                  title="重新触发自动化发货"
+                                  disabled={redeliverEsim.isPending}
+                                  className="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-100 disabled:opacity-50"
+                                  onClick={() => {
+                                    if (!order.id) return
+                                    if (!window.confirm(`对订单 ${order.id} 重新触发 eSIM 自动发货？`)) return
+                                    redeliverEsim.mutate(order.id)
+                                  }}
+                                >
+                                  <RefreshCw className={cn('h-3.5 w-3.5', redeliverEsim.isPending && 'animate-spin')} />
+                                  重新下发
+                                </button>
+                              )}
+                            </>
+                          ) : shipEligible(String(order.status || demo.status)) && (
                             <button
                               type="button"
                               className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-600 transition-colors hover:bg-blue-100"
