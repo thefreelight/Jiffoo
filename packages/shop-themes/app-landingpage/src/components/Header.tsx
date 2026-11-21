@@ -41,6 +41,7 @@ export const Header = React.memo(function Header({
 }: EsimMallHeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [logoFailed, setLogoFailed] = useState(false);
   const brandName = config?.brand?.name?.trim() || 'Yevbi';
   const isAppDownload = config?.site?.archetype === 'app-download' || brandName.toLowerCase() === 'easyeuicc';
   const navItems = isAppDownload ? appDownloadNavItems : storefrontNavItems;
@@ -85,8 +86,13 @@ export const Header = React.memo(function Header({
         )}
       >
         <button type="button" onClick={() => closeAndRun(onNavigateToHome)} className="flex items-center gap-3" aria-label={themeText(t, locale, 'nav.home', `${brandName} home`)}>
-          {config?.brand?.logoUrl ? (
-            <img src={config.brand.logoUrl} alt={brandName} className="h-10 w-10 rounded-2xl object-cover" />
+          {config?.brand?.logoUrl && !logoFailed ? (
+            <img
+              src={config.brand.logoUrl}
+              alt={brandName}
+              className="h-10 w-10 rounded-2xl object-cover"
+              onError={() => setLogoFailed(true)}
+            />
           ) : (
             <span className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl bg-[var(--esim-primary)] text-sm font-black text-white shadow-[0_12px_24px_rgb(21_107_255_/_0.24)]">
               <span className="absolute -right-2 -top-2 h-6 w-6 rounded-full bg-white/22" />
