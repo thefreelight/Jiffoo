@@ -273,6 +273,23 @@
       },
       "rolloutPriority": "second-wave",
       "notes": "PLAYGROUND free browser game portal (game.jiffoo.com). Packaged runtime with game hub, catalog and iframe play pages; no storefront API coupling."
+    },
+    {
+      "slug": "esim",
+      "packagePath": "packages/shop-themes/esim",
+      "packaging": "theme-pack",
+      "apiCoupling": "none-observed",
+      "web": {
+        "status": "implemented"
+      },
+      "mobile": {
+        "status": "planned"
+      },
+      "desktop": {
+        "status": "planned"
+      },
+      "rolloutPriority": "second-wave",
+      "notes": "eSIM Route Mall storefront (esim.bokmoo.com). Packaged runtime on the black-and-gold Bokmoo design language; core-line theme pinned per worker."
     }
   ]
 }

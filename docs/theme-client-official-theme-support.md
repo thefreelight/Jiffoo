@@ -67,6 +67,7 @@ That turns the label into a release-quality rule, not just a planning note.
 | `quiet-curator` | Implemented | Planned | Planned | Official downloadable theme-pack with a clear presentation contract and lower coupling risk. |
 | `stellar-midnight` | Implemented | Planned | Planned | Official downloadable theme-pack with a clean pack-first story. |
 | `bokmoo` | Implemented | Planned | Planned | Official embedded storefront theme with no obvious theme-private API fork. |
+| `esim` | Implemented | Planned | Planned | eSIM Route Mall storefront (esim.bokmoo.com); packaged runtime, core-line theme pinned per worker. |
 | `game-portal` | Implemented | Planned | Planned | PLAYGROUND game portal (game.jiffoo.com): packaged runtime, game hub + catalog + iframe play pages, no storefront API coupling. |
 | `digital-vault` | Implemented | Planned | Planned | Embedded digital-goods storefront with business logic expected to move to plugins or backend modules. |
 | `navtoai` | Implemented | Planned | Planned | Embedded directory storefront with lower current API coupling. |
@@ -91,6 +92,7 @@ These are the best candidates for proving the cross-client adapter model.
 ### Second wave
 
 - `bokmoo`
+- `esim`
 - `digital-vault`
 - `navtoai`
 - `game-portal`
