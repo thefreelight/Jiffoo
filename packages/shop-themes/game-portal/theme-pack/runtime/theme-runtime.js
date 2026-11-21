@@ -14773,7 +14773,7 @@
         enableQuickView: false
       },
       site: {
-        archetype: "game-portal",
+        archetype: "storefront",
         eyebrow: "PLAYGROUND",
         headline: "\u514D\u8D39\u7F51\u9875\u6E38\u620F\u5927\u5385",
         subheadline: "\u89E3\u8C1C\u3001\u8857\u673A\u3001\u4F11\u95F2\u6E38\u620F\u5373\u70B9\u5373\u73A9\uFF0C\u65E0\u9700\u4E0B\u8F7D\u6CE8\u518C\u3002",

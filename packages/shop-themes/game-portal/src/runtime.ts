@@ -72,7 +72,7 @@ export const theme: ThemePackage = {
       enableQuickView: false,
     },
     site: {
-      archetype: 'game-portal',
+      archetype: 'storefront',
       eyebrow: 'PLAYGROUND',
       headline: '免费网页游戏大厅',
       subheadline: '解谜、街机、休闲游戏即点即玩，无需下载注册。',
