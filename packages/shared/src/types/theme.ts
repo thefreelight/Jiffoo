@@ -126,6 +126,9 @@ export interface ThemePackage {
     PrivacyPage: React.ComponentType<PrivacyPageProps>;
     TermsPage: React.ComponentType<TermsPageProps>;
     DownloadAppPage?: React.ComponentType<DownloadAppPageProps>;
+    // Game portal pages (game.jiffoo.com theme)
+    GamesPage?: React.ComponentType<GamesPageProps>;
+    GameDetailPage?: React.ComponentType<GameDetailPageProps>;
     // Special pages
     DealsPage?: React.ComponentType<DealsPageProps>;
     // Auth pages
@@ -583,6 +586,16 @@ export interface HelpPageProps extends ThemeI18nProps {
 export interface HowItWorksPageProps extends ThemeI18nProps {
   config?: ThemeConfig;
 }
+export interface GamesPageProps extends ThemeI18nProps {
+  config?: ThemeConfig;
+}
+
+export interface GameDetailPageProps extends ThemeI18nProps {
+  config?: ThemeConfig;
+  /** Game catalog id from the /games/[id] host route */
+  gameId?: string;
+}
+
 
 /**
  * Download App Page Component Props

@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "slug": "game-portal",
+  "name": "PLAYGROUND 游戏大厅",
+  "version": "0.0.1",
+  "target": "shop",
+  "description": "PLAYGROUND free browser game portal (instant-play arcade hub) for game.jiffoo.com.",
+  "author": "Jiffoo",
+  "entry": {
+    "tokensCSS": "tokens.css",
+    "runtimeJS": "runtime/theme-runtime.js"
+  },
+  "compatibility": {
+    "minCoreVersion": "0.2.0"
+  },
+  "defaultConfig": {
+    "colors": {
+      "primary": "#7c5cff",
+      "secondary": "#0b0b13",
+      "background": "#0b0b13",
+      "foreground": "#f2f2f8",
+      "muted": "#15151f",
+      "border": "rgba(255,255,255,0.07)",
+      "accent": "#9d7bff"
+    },
+    "typography": {
+      "fontFamily": "\"PingFang SC\", \"Hiragino Sans GB\", \"Microsoft YaHei\", -apple-system, sans-serif",
+      "fontSize": "14px",
+      "lineHeight": "1.55"
+    },
+    "layout": {
+      "radius": "14px",
+      "containerWidth": "1280px",
+      "spacing": "1rem",
+      "headerHeight": "64px"
+    }
+  },
+  "x-jiffoo-renderer-mode": "embedded",
+  "x-jiffoo-renderer-slug": "game-portal",
+  "category": "game",
+  "tags": [
+    "games",
+    "arcade",
+    "portal",
+    "instant-play",
+    "casual"
+  ],
+  "engines": {
+    "jiffoo-theme-sdk": "^0.2.0",
+    "jiffoo": ">=0.2.0"
+  }
+}

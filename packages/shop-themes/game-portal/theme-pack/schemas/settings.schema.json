@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "brand": {
+      "type": "object",
+      "title": "Brand",
+      "properties": {
+        "name": { "type": "string", "title": "Brand Name", "default": "PLAYGROUND" },
+        "primaryColor": { "type": "string", "title": "Primary Color", "format": "color", "default": "#7c5cff" },
+        "secondaryColor": { "type": "string", "title": "Background Color", "format": "color", "default": "#0b0b13" },
+        "fontFamily": { "type": "string", "title": "Body Font", "default": "\"PingFang SC\", \"Microsoft YaHei\", sans-serif" }
+      }
+    },
+    "site": {
+      "type": "object",
+      "title": "Site",
+      "properties": {
+        "headline": { "type": "string", "title": "Hero Headline", "default": "免费网页游戏大厅" },
+        "subheadline": { "type": "string", "title": "Hero Description", "default": "解谜、街机、休闲游戏即点即玩，无需下载注册。" },
+        "supportEmail": { "type": "string", "title": "Support Email", "default": "support@jiffoo.com" },
+        "adsenseClientId": { "type": "string", "title": "AdSense Client ID", "default": "ca-pub-3690602190399666" }
+      }
+    }
+  }
+}

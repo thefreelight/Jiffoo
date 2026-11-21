@@ -10,6 +10,7 @@
 import type { ThemePackage, ThemeMeta, ThemeRegistryEntry, ThemeRegistry } from 'shared/src/types/theme';
 import bokmooTheme from '@shop-themes/bokmoo/src/runtime';
 import esimRouteTheme from '@shop-themes/esim/src/runtime';
+import gamePortalTheme from '@shop-themes/game-portal/src/runtime';
 import esimMallTheme from '@shop-themes/esim-mall/src/runtime';
 import yevbiTheme from '@shop-themes/yevbi/src/runtime';
 import imagicStudioTheme from '@shop-themes/imagic-studio/src/runtime';
@@ -113,6 +114,22 @@ export const BUILTIN_THEMES: ThemeRegistry = {
       tags: ['esim', 'travel', 'route-planner', 'premium'],
     },
     load: async () => esimRouteTheme,
+  },
+  // PLAYGROUND 游戏大厅（game.jiffoo.com）— packaged-runtime theme for the
+  // free browser game portal. Deployment pins this worker to slug game-portal
+  // via THEME_SLUG_PIN; this builtin entry is the fallback bridge only.
+  'game-portal': {
+    meta: {
+      slug: 'game-portal',
+      name: 'PLAYGROUND 游戏大厅',
+      version: '0.0.1',
+      description: 'PLAYGROUND free browser game portal (instant-play arcade hub) on the dark-purple arcade design language.',
+      category: 'game',
+      author: 'Jiffoo',
+      target: 'shop',
+      tags: ['games', 'arcade', 'portal', 'instant-play', 'casual'],
+    },
+    load: async () => gamePortalTheme,
   },
   // Migration-only compatibility bridges. Official themes that publish a
   // packaged runtime must resolve from the installed artifact instead.

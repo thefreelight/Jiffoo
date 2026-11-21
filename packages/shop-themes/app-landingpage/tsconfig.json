@@ -2,7 +2,7 @@
   "extends": "../../../tsconfig.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": "../../..",
     "jsx": "react-jsx",
     "module": "esnext",
     "moduleResolution": "bundler",
@@ -16,6 +16,9 @@
       ],
       "shared/types/dto": [
         "../../shared/dist/shared/src/types/dto/index.d.ts"
+      ],
+      "shared/*": [
+        "../../shared/*"
       ]
     },
     "lib": [

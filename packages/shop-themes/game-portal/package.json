@@ -1,0 +1,32 @@
+{
+  "name": "@shop-themes/game-portal",
+  "version": "0.0.1",
+  "description": "PLAYGROUND game portal theme (free browser games hub) for game.jiffoo.com",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "sideEffects": [
+    "./src/tokens.css"
+  ],
+  "peerDependencies": {
+    "next": ">=14",
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "dependencies": {
+    "@jiffoo/ui": "workspace:*",
+    "clsx": "^2.1.1",
+    "next": "^16.0.7",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "shared": "workspace:*"
+  },
+  "scripts": {
+    "build:theme-runtime": "node build-theme-runtime.mjs"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.8.3"
+  }
+}

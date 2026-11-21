@@ -13,6 +13,7 @@ const nextConfig = createNextConfig({
     'shared',
     '@shop-themes/default',
     '@shop-themes/bokmoo',
+    '@shop-themes/game-portal',
     '@shop-themes/esim-mall',
     '@shop-themes/app-landingpage',
     '@shop-themes/imagic-studio',
