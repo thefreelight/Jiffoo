@@ -991,8 +991,5 @@ namespace qrcodegen.QrSegment {
 
 // Explicit ESM re-exports (source uses TS namespace style that esbuild
 // cannot statically resolve for `import { QrCode }` consumers).
-type QrcodegenModule = typeof import('./qrcodegen');
-export const { QrCode, QrSegment } = qrcodegen as QrcodegenModule & {
-  QrCode: QrcodegenModule['QrCode'];
-  QrSegment: QrcodegenModule['QrSegment'];
-};
+export const QrCode = qrcodegen.QrCode;
+export const QrSegment = qrcodegen.QrSegment;

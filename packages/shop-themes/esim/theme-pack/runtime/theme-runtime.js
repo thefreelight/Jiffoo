@@ -17839,7 +17839,8 @@
       QrSegment3.Mode = _Mode;
     })(QrSegment2 = qrcodegen2.QrSegment || (qrcodegen2.QrSegment = {}));
   })(qrcodegen || (qrcodegen = {}));
-  var { QrCode: QrCode2, QrSegment } = qrcodegen;
+  var QrCode2 = qrcodegen.QrCode;
+  var QrSegment = qrcodegen.QrSegment;
 
   // src/components/InstallSessionPanel.tsx
   function copyToClipboard(value) {
