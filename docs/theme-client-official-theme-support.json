@@ -256,6 +256,23 @@
       },
       "rolloutPriority": "later",
       "notes": "Uses the theme SDK plus plugin-backed storefront fetches, which increases adapter complexity."
+    },
+    {
+      "slug": "game-portal",
+      "packagePath": "packages/shop-themes/game-portal",
+      "packaging": "theme-pack",
+      "apiCoupling": "none-observed",
+      "web": {
+        "status": "implemented"
+      },
+      "mobile": {
+        "status": "planned"
+      },
+      "desktop": {
+        "status": "planned"
+      },
+      "rolloutPriority": "second-wave",
+      "notes": "PLAYGROUND free browser game portal (game.jiffoo.com). Packaged runtime with game hub, catalog and iframe play pages; no storefront API coupling."
     }
   ]
 }

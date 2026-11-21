@@ -1,0 +1,45 @@
+name = "game-portal-shop"
+main = "cloudflare-entry.ts"
+compatibility_date = "2026-07-12"
+compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
+workers_dev = true
+preview_urls = true
+
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
+
+[vars]
+NEXT_PUBLIC_API_URL = "/api"
+# jiffoo.com storefront core (store context + themes snapshots). Users are
+# instance-global; this worker only differs by theme pin.
+API_SERVICE_URL = "https://api.jiffoo.com"
+SERVER_STORE_CONTEXT_TIMEOUT_MS = "2000"
+THEME_APP_PROXY_DISABLED = "1"
+THEME_APP_PROXY_TIMEOUT_MS = "1000"
+# Deployment theme pin: always serve the game-portal theme regardless of the
+# instance-global themes/active row.
+THEME_SLUG_PIN = "game-portal"
+THEME_VERSION_PIN = "0.0.1"
+# Outage fallback keeps the same theme so a core API blip cannot flip the
+# storefront to the platform default look.
+NEXT_PUBLIC_FALLBACK_STORE_NAME = "PLAYGROUND"
+NEXT_PUBLIC_FALLBACK_THEME_SLUG = "game-portal"
+NEXT_PUBLIC_FALLBACK_THEME_VERSION = "0.0.1"
+NEXT_PUBLIC_FALLBACK_DEFAULT_LOCALE = "zh-Hans"
+NEXT_PUBLIC_FALLBACK_SUPPORTED_LOCALES = "en,zh-Hans"
+NEXT_PUBLIC_FALLBACK_POWERED_BY_JIFFOO = "0"
+
+[[services]]
+binding = "WORKER_SELF_REFERENCE"
+service = "game-portal-shop"
+
+[[r2_buckets]]
+binding = "THEME_ASSETS"
+bucket_name = "jiffoo-game-assets"
+
+# Custom domain on the jiffoo.com zone (DNS record + cert are provisioned
+# by Workers custom domains on first deploy).
+[[routes]]
+pattern = "game.jiffoo.com"
+custom_domain = true

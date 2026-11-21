@@ -16,6 +16,18 @@ type ShopEnv = {
 
 export default {
   async fetch(request: Request, env: ShopEnv, ctx: ExecutionContext): Promise<Response> {
+    // ads.txt lives at the hostname root (IAB/AdSense authorization) — the
+    // authorized record is stored as the R2 key "ads.txt" in THEME_ASSETS so
+    // pinned storefront workers (e.g. game.jiffoo.com) each carry their own.
+    if (new URL(request.url).pathname === '/ads.txt') {
+      const adsTxt = await env.THEME_ASSETS.get('ads.txt');
+      if (adsTxt) {
+        return new Response(adsTxt.body, {
+          headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'public, max-age=300' },
+        });
+      }
+    }
+
     const themeAsset = await serveThemeAsset(request, env.THEME_ASSETS);
     if (themeAsset) return themeAsset;
 

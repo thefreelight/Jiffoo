@@ -1,0 +1,14 @@
+:root {
+  /* PLAYGROUND dark arcade palette */
+  --gp-bg: #0b0b13;
+  --gp-bg-soft: #101019;
+  --gp-panel: #15151f;
+  --gp-line: rgba(255, 255, 255, 0.07);
+  --gp-text: #f2f2f8;
+  --gp-text-dim: #9a9aad;
+  --gp-accent: #7c5cff;
+  --gp-accent-2: #9d7bff;
+  --gp-accent-soft: rgba(124, 92, 255, 0.16);
+  --gp-green: #3ddc97;
+  --gp-radius: 14px;
+}
