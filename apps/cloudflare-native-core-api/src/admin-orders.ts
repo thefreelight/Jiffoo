@@ -261,11 +261,19 @@ export async function tryNativeAdminOrders(request: Request, env: AdminOrderEnv,
     if (String(order.status) === 'CANCELLED') {
       return Response.json({ success: false, error: { code: 'ORDER_CANCELLED', message: 'Cancelled orders cannot be shipped' } }, { status: 409, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-admin-orders' } });
     }
-    // eSIM orders self-provision through the BOSS hook; a manual carrier
-    // shipment would be fiction. Redeliver re-drives the automation instead.
+    // Only physical goods take a carrier shipment. eSIM orders self-provision
+    // through the BOSS hook (redeliver re-drives the automation); other
+    // digital items deliver by content, not freight.
     const shipItems = Array.isArray(order.items) ? order.items as Array<Record<string, unknown>> : [];
-    if (shipItems.some((item) => typeof item.productId === 'string' && item.productId.startsWith('boss-'))) {
-      return Response.json({ success: false, error: { code: 'ESIM_AUTO_FULFILLED', message: 'eSIM orders are fulfilled automatically — use esim/redeliver if provisioning failed' } }, { status: 409, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-admin-orders' } });
+    const hasPhysical = shipItems.some((item) => item.productKind === 'goods' || item.productKind === 'consumable');
+    if (!hasPhysical) {
+      const isEsim = shipItems.some((item) => typeof item.productId === 'string' && item.productId.startsWith('boss-'));
+      return Response.json({
+        success: false,
+        error: isEsim
+          ? { code: 'ESIM_AUTO_FULFILLED', message: 'eSIM orders are fulfilled automatically — use esim/redeliver if provisioning failed' }
+          : { code: 'DIGITAL_NO_SHIPMENT', message: 'Digital orders deliver without a carrier shipment' },
+      }, { status: 409, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-admin-orders' } });
     }
     // Default the scope from the delivery country when the caller omits it.
     const shipTo = order.shippingAddress as Record<string, unknown> | null | undefined;
