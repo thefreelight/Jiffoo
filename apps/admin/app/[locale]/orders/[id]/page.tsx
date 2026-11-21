@@ -111,8 +111,10 @@ export default function OrderDetailPage() {
 
   const statusKey = String(order.status || '').toUpperCase()
   const statusPill = STATUS_PILL[statusKey] ?? 'bg-orange-50 text-orange-600'
-  const canShip = (statusKey === 'PAID' || statusKey === 'PROCESSING') && !isEsimOrder
+  const fulfillmentKind = order?.fulfillmentKind ?? 'shipping'
+  const canShip = (statusKey === 'PAID' || statusKey === 'PROCESSING') && fulfillmentKind === 'shipping'
   const esimRedeliverable = isEsimOrder && esimLabel.text !== '自动发货成功'
+  const isDigitalOrder = fulfillmentKind === 'digital'
 
   return (
     <PageShell
@@ -336,6 +338,14 @@ export default function OrderDetailPage() {
                   <Truck className="mr-2 h-4 w-4" />
                   {getText('merchant.orders.ship.title', 'Ship order')}
                 </Button>
+              )}
+              {isDigitalOrder && (
+                <div className="rounded-xl border border-[#eef1f6] p-3">
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">数字交付</span>
+                  </div>
+                  <p className="mt-2 text-xs text-slate-500">数字商品无需物流，交付内容随订单自动发放。</p>
+                </div>
               )}
               {isEsimOrder && (
                 <div className="rounded-xl border border-[#eef1f6] p-3">
