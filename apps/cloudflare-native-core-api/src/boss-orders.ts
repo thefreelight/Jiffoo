@@ -137,9 +137,22 @@ export async function processBossPaidOrder(
       // Reuse path: the checkout stamped the buyer's chosen eSIM ICCID into
       // the item fulfillmentData — pass it so BOSS tops up that profile
       // (Dashi addPackage) instead of paying a fresh provisioning fee.
-      const payloadRecord = (item.payload && typeof item.payload === 'object' ? item.payload : {}) as {
-        fulfillmentData?: { esimIccid?: unknown };
-      };
+      // native_order_items.payload stores the checkout item as a JSON
+      // string (D1 TEXT) — parse it before reading fulfillmentData. The
+      // previous object check never matched, so esimIccid was silently
+      // dropped and every reuse order placed a fresh allocation instead
+      // of topping up the pinned ICCID.
+      let payloadRecord: { fulfillmentData?: { esimIccid?: unknown } } = {};
+      if (typeof item.payload === 'string' && item.payload.trim()) {
+        try {
+          const parsed = JSON.parse(item.payload) as unknown;
+          if (parsed && typeof parsed === 'object') payloadRecord = parsed as { fulfillmentData?: { esimIccid?: unknown } };
+        } catch {
+          payloadRecord = {};
+        }
+      } else if (item.payload && typeof item.payload === 'object') {
+        payloadRecord = item.payload as { fulfillmentData?: { esimIccid?: unknown } };
+      }
       const iccidRaw = payloadRecord.fulfillmentData?.esimIccid;
       // BOSS v4: asset ICCIDs may be short numeric ids (doc example 76010150).
       const iccid = typeof iccidRaw === 'string' && /^\d{6,22}$/.test(iccidRaw.trim()) ? iccidRaw.trim() : '';
