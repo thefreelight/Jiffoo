@@ -989,9 +989,10 @@ namespace qrcodegen.QrSegment {
 	}
 }
 
-// Explicit ESM re-exports (source uses TS namespace style that esbuild
-// cannot statically resolve for `import { QrCode }` consumers).
-export const { QrCode, QrSegment } = qrcodegen as typeof import('./qrcodegen') & {
-  QrCode: typeof qrcodegen.QrCode;
-  QrSegment: typeof qrcodegen.QrSegment;
-};
+// Explicit ESM default export (source uses TS namespace style). A named
+// destructuring export with a self-referential `typeof import('./qrcodegen')`
+// annotation fails the apps/shop Next build ("implicitly has type 'any'
+// because it is referenced in its own initializer"). Consumers:
+//   import qrcodegen from '../lib/qrcodegen';
+//   const { QrCode } = qrcodegen;
+export default qrcodegen;
