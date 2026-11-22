@@ -1,7 +1,7 @@
 import React from 'react';
 import { Copy, QrCode, Smartphone } from 'lucide-react';
 import type { EsimInstallSession } from '../lib/api';
-import { QrCode as QrEncoder } from '../lib/qrcodegen';
+import qrcodegen from '../lib/qrcodegen';
 import { pickCopy } from '../site';
 
 function copyToClipboard(value: string) {
@@ -27,6 +27,7 @@ function getQrImageSrc(value?: string): string | null {
 function QrSvg({ payload }: { payload: string }) {
   const rendered = React.useMemo(() => {
     try {
+      const { QrCode: QrEncoder } = qrcodegen;
       const qr = QrEncoder.encodeText(payload, QrEncoder.Ecc.MEDIUM);
       const modules: string[] = [];
       for (let y = 0; y < qr.size; y += 1) {
