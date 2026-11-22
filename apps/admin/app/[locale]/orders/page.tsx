@@ -157,6 +157,7 @@ export default function OrdersPage() {
   })
   const { data: dashboardData } = useAdminDashboard()
   const redeliverEsim = useRedeliverEsim()
+  const [redeliveringId, setRedeliveringId] = useState<string | null>(null)
 
   const orders: Order[] = ordersData?.data || []
   const pagination = ordersData?.pagination
@@ -357,15 +358,16 @@ export default function OrdersPage() {
                                 <button
                                   type="button"
                                   title="重新触发自动化发货"
-                                  disabled={redeliverEsim.isPending}
+                                  disabled={redeliveringId === order.id}
                                   className="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-100 disabled:opacity-50"
                                   onClick={() => {
                                     if (!order.id) return
                                     if (!window.confirm(`对订单 ${order.id} 重新触发 eSIM 自动发货？`)) return
-                                    redeliverEsim.mutate(order.id)
+                                    setRedeliveringId(order.id)
+                                    redeliverEsim.mutate(order.id, { onSettled: () => setRedeliveringId(null) })
                                   }}
                                 >
-                                  <RefreshCw className={cn('h-3.5 w-3.5', redeliverEsim.isPending && 'animate-spin')} />
+                                  <RefreshCw className={cn('h-3.5 w-3.5', redeliveringId === order.id && 'animate-spin')} />
                                   重新下发
                                 </button>
                               )}
