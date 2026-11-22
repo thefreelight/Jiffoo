@@ -220,20 +220,30 @@ export async function processBossPaidOrder(
         ...(line.iccid ? { iccid: line.iccid } : {}),
         remark: `${orderId}/${line.lineItemId}`,
       });
+      // BOSS accepts the order (HTTP 10000, Odoo INVOICED) but upstream
+      // provisioning can still fail inline — e.g. empty SIM inventory
+      // returns upstreamStatus FAILED with an upstreamMsg. Store that as a
+      // failed line so the admin redeliver path re-drives it; marking it
+      // 'created' here would make the idempotency guard skip this order
+      // forever.
+      const upstreamFailed = String(bossOrder.upstreamStatus ?? '').toUpperCase() === 'FAILED';
+      const upstreamMsg = optionalString(bossOrder.upstreamMsg);
       await env.DB.prepare(
         `UPDATE native_boss_order_lines SET
-           status = 'created', boss_order_no = ?1, boss_odoo_order_name = ?2,
-           error = NULL, payload_json = ?3, updated_at = ?4
-         WHERE order_id = ?5 AND line_item_id = ?6`,
+           status = ?1, boss_order_no = ?2, boss_odoo_order_name = ?3,
+           error = ?4, payload_json = ?5, updated_at = ?6
+         WHERE order_id = ?7 AND line_item_id = ?8`,
       ).bind(
+        upstreamFailed ? 'failed' : 'created',
         bossOrder.orderNo,
         optionalString(bossOrder.odooOrderName),
+        upstreamFailed ? `BOSS upstream FAILED: ${upstreamMsg ?? 'unknown reason'}`.slice(0, 500) : null,
         JSON.stringify({ providerEventId, bossOrder }),
         new Date().toISOString(),
         orderId,
         line.lineItemId,
       ).run();
-      placed += 1;
+      if (!upstreamFailed) placed += 1;
     } catch (error) {
       await env.DB.prepare(
         `UPDATE native_boss_order_lines SET status = 'failed', error = ?1, updated_at = ?2
@@ -300,6 +310,14 @@ export async function syncBossOrderStatuses(
         `UPDATE native_boss_order_lines SET status = 'completed', payload_json = ?1, updated_at = ?2 WHERE id = ?3`,
       ).bind(JSON.stringify(payload), now, line.id).run();
       completed += 1;
+    } else if (upstreamStatus.toUpperCase() === 'FAILED') {
+      // Upstream provisioning failed (e.g. empty SIM inventory): flip the
+      // line to failed so the admin redeliver path can re-drive it — a line
+      // left on 'created' would be skipped by the idempotency guard forever.
+      const upstreamMsg = optionalString((record as Record<string, unknown>).upstreamMsg);
+      await env.DB.prepare(
+        `UPDATE native_boss_order_lines SET status = 'failed', error = ?1, payload_json = ?2, updated_at = ?3 WHERE id = ?4`,
+      ).bind(`BOSS upstream FAILED: ${upstreamMsg || 'unknown reason'}`.slice(0, 500), JSON.stringify(payload), now, line.id).run();
     } else {
       await env.DB.prepare(
         `UPDATE native_boss_order_lines SET payload_json = ?1, updated_at = ?2 WHERE id = ?3`,
