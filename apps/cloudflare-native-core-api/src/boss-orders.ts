@@ -308,7 +308,13 @@ export async function syncBossOrderStatuses(
     }
     checked += 1;
     if (!record || record.found === false) continue;
-    const upstreamStatus = optionalString(record.status) ?? optionalString(record.upstreamStatus) ?? '';
+    // upstreamStatus (DONE/FAILED/SKIP/PENDING) carries the provisioning
+    // truth; record.status is the Odoo financial state (INVOICED) and must
+    // not shadow it — checking status first made every line look
+    // non-terminal and polling never completed.
+    const upstreamStatus = optionalString(record.upstreamStatus)
+      ?? optionalString(record.status)
+      ?? '';
     let payload: Record<string, unknown> = {};
     try {
       const parsed = JSON.parse(line.payload_json) as Record<string, unknown>;
@@ -323,6 +329,36 @@ export async function syncBossOrderStatuses(
         `UPDATE native_boss_order_lines SET status = 'completed', payload_json = ?1, updated_at = ?2 WHERE id = ?3`,
       ).bind(JSON.stringify(payload), now, line.id).run();
       completed += 1;
+      // Provisioning done for this line: when every BOSS line of the order
+      // is complete, advance the order itself out of PROCESSING so the
+      // storefront shows a finished state instead of an eternal "processing".
+      const remaining = await env.DB.prepare(
+        `SELECT COUNT(*) AS n FROM native_boss_order_lines WHERE order_id = ?1 AND status != 'completed'`,
+      ).bind(line.order_id).first<{ n: number }>();
+      if ((remaining?.n ?? 1) === 0) {
+        const orderRow = await env.DB.prepare(
+          'SELECT payload FROM native_order_snapshots WHERE id = ?1',
+        ).bind(line.order_id).first<{ payload: string }>();
+        if (orderRow) {
+          try {
+            const order = JSON.parse(orderRow.payload) as Record<string, unknown>;
+            const orderStatus = String(order.status ?? '').toUpperCase();
+            if (orderStatus === 'PAID' || orderStatus === 'PROCESSING') {
+              order.status = 'DELIVERED';
+              for (const item of (Array.isArray(order.items) ? order.items : []) as Array<Record<string, unknown>>) {
+                if (typeof item.productId === 'string' && item.productId.startsWith('boss-')) {
+                  item.fulfillmentStatus = 'delivered';
+                }
+              }
+              await env.DB.prepare(
+                'UPDATE native_order_snapshots SET status = ?1, payload = ?2, source_updated_at = ?3 WHERE id = ?4',
+              ).bind('DELIVERED', JSON.stringify(order), now, line.order_id).run();
+            }
+          } catch (error) {
+            console.error(JSON.stringify({ message: 'BOSS order completion status advance failed', orderId: line.order_id, error: errorMessage(error) }));
+          }
+        }
+      }
     } else if (upstreamStatus.toUpperCase() === 'FAILED') {
       // Upstream provisioning failed (e.g. empty SIM inventory): flip the
       // line to failed so the admin redeliver path can re-drive it — a line
