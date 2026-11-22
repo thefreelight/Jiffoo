@@ -13,7 +13,10 @@ function copyToClipboard(value: string) {
 function getPollDelay(attempt: number): number {
   if (attempt < 10) return 3000;
   if (attempt < 22) return 10000;
-  return 0;
+  // Keep polling at a slow cadence — fulfilment can finish minutes later
+  // (stock imports, admin redeliver) and the customer is already staring
+  // at this page.
+  return 30000;
 }
 
 export const OrderSuccessPage = React.memo(function OrderSuccessPage({
@@ -47,7 +50,12 @@ export const OrderSuccessPage = React.memo(function OrderSuccessPage({
         const detail = await getEsimOrder({ baseUrl: site.apiBaseUrl }, orderId);
         if (cancelled) return;
         const items = detail.items || [];
-        const hasEsim = items.some((item) => item.productKind === 'esim');
+        // BOSS eSIM products carry productKind 'digital' with a boss-* productId;
+        // productKind 'esim' does not exist in the catalog.
+        const hasEsim = items.some((item) =>
+          String((item as { productId?: string }).productId || '').startsWith('boss-')
+          || item.productKind === 'esim'
+        );
         setOrderKind(hasEsim || items.length === 0 ? 'esim' : 'physical');
       } catch {
         if (!cancelled) setOrderKind('esim');
@@ -88,10 +96,6 @@ export const OrderSuccessPage = React.memo(function OrderSuccessPage({
     if (status !== 'processing' && status !== 'idle') return;
 
     const delay = getPollDelay(attempt);
-    if (delay <= 0) {
-      setErrorMessage('Fulfillment is taking longer than expected. Please refresh or contact support.');
-      return;
-    }
 
     const timer = window.setTimeout(() => {
       setAttempt((current) => current + 1);

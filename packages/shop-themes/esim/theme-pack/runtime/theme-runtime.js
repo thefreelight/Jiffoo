@@ -18603,7 +18603,7 @@
   function getPollDelay(attempt) {
     if (attempt < 10) return 3e3;
     if (attempt < 22) return 1e4;
-    return 0;
+    return 3e4;
   }
   var OrderSuccessPage = react_default.memo(function OrderSuccessPage2({
     orderNumber,
@@ -18632,7 +18632,9 @@
           const detail = await getEsimOrder({ baseUrl: site.apiBaseUrl }, orderId2);
           if (cancelled) return;
           const items = detail.items || [];
-          const hasEsim = items.some((item) => item.productKind === "esim");
+          const hasEsim = items.some(
+            (item) => String(item.productId || "").startsWith("boss-") || item.productKind === "esim"
+          );
           setOrderKind(hasEsim || items.length === 0 ? "esim" : "physical");
         } catch {
           if (!cancelled) setOrderKind("esim");
@@ -18668,10 +18670,6 @@
       if (!orderId2 || orderKind !== "esim") return;
       if (status !== "processing" && status !== "idle") return;
       const delay2 = getPollDelay(attempt);
-      if (delay2 <= 0) {
-        setErrorMessage("Fulfillment is taking longer than expected. Please refresh or contact support.");
-        return;
-      }
       const timer = window.setTimeout(() => {
         setAttempt((current) => current + 1);
         void loadInstallSession();
@@ -19955,7 +19953,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "esim",
-      version: "0.0.16",
+      version: "0.0.17",
       target: "shop"
     }
   };
