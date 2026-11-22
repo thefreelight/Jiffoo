@@ -308,7 +308,13 @@ export async function syncBossOrderStatuses(
     }
     checked += 1;
     if (!record || record.found === false) continue;
-    const upstreamStatus = optionalString(record.status) ?? optionalString(record.upstreamStatus) ?? '';
+    // upstreamStatus (DONE/FAILED/SKIP/PENDING) carries the provisioning
+    // truth; record.status is the Odoo financial state (INVOICED) and must
+    // not shadow it — checking status first made every line look
+    // non-terminal and polling never completed.
+    const upstreamStatus = optionalString(record.upstreamStatus)
+      ?? optionalString(record.status)
+      ?? '';
     let payload: Record<string, unknown> = {};
     try {
       const parsed = JSON.parse(line.payload_json) as Record<string, unknown>;
