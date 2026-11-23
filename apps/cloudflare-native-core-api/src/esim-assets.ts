@@ -270,9 +270,14 @@ export async function tryNativeEsimInstallSession(request: Request, env: EsimAss
   // own record first, then the copy cached on this line; only then look
   // further afield (same buyer only).
   const provisioned = status === 'ready' || status === 'installed';
+  // An order can be re-pinned to another ICCID (support does this by hand);
+  // never serve a cached code that belongs to a different card.
+  const cached = parseRecord(payload.installCredentials);
+  const cachedIccid = pickString(cached, ['iccid']);
+  const lineCredentials = cachedIccid && iccid && cachedIccid !== iccid ? {} : cached;
   let resolution = provisioned
     ? matchInstallCredentials(orderFacts, 'order')
-      ?? matchInstallCredentials(parseRecord(payload.installCredentials), 'line')
+      ?? matchInstallCredentials(lineCredentials, 'line')
     : null;
   if (!resolution && provisioned && iccid) {
     try {

@@ -208,6 +208,23 @@ describe('tryNativeEsimInstallSession first-install code', () => {
     expect(updates).toHaveLength(0);
   });
 
+  it('never serves a cached code that belongs to a different card', async () => {
+    // The order was re-pinned from 8986… to 76010150; the cached code is the old card's.
+    const stale = { line_item_id: 'item-1', status: 'completed', error: null, payload_json: JSON.stringify({
+      bossOrder: { orderNo: 'QW-B', upstreamStatus: 'DONE', iccid: ICCID },
+      installCredentials: { iccid: '8986000000000000000', lpaString: 'LPA:1$smdp.io$OTHER-CARD' },
+    }) };
+    const { env, updates } = makeEnv({ line: stale, earlier: [] });
+    const data = await session(env);
+    expect(data.lpaString).toBeNull();
+    expect(updates).toHaveLength(0);
+
+    vi.clearAllMocks();
+    authenticateNativeUser.mockResolvedValue({ id: 'user-1', email: 'buyer@example.com' });
+    const reissued = makeEnv({ line: stale, earlier: [issuedRow('ord_first')] });
+    expect(await session(reissued.env)).toMatchObject({ lpaString: LPA, installCodeSource: 'earlier_order' });
+  });
+
   it('leaves the code empty when no order of this buyer issued the profile', async () => {
     const { env, updates } = makeEnv({ earlier: [] });
     const data = await session(env);
