@@ -318,18 +318,18 @@ export const ProductsPage = React.memo(function ProductsPage({
               {normalizedProducts.map(({ product, esim, currency: rawCurrency }) => {
                 const profile = getEsimTravelProfile(product, locale);
                 const destinations = esim?.destinations || [];
-                const regionInfo = regionLabelOf(esim?.defaultCode || '', locale);
+                const regionName = regionLabelOf(esim?.defaultCode || '', locale);
                 const isMultiCountry = destinations.length > 1;
                 const coverageLine = destinations.length > 0
                   ? (isMultiCountry
                     // The region name follows the storefront locale (it used to
                     // be pinned to the Chinese spelling on every locale).
-                    ? `${regionInfo ? pickCopy(locale, regionInfo) : ''}${regionInfo ? ' · ' : ''}${t({ en: `covers ${destinations.length} destinations`, hans: `覆盖 ${destinations.length} 个目的地`, hant: `覆蓋 ${destinations.length} 個目的地` })}`
+                    ? `${regionName ? `${regionName} · ` : ''}${t({ en: `covers ${destinations.length} destinations`, hans: `覆盖 ${destinations.length} 个目的地`, hant: `覆蓋 ${destinations.length} 個目的地` })}`
                     : `${t({ en: 'Covers', hans: '覆盖', hant: '覆蓋' })} ${destinations.map((code) => destinationLabel(code, locale)).join('/')}`)
                   : profile.coverageLabel;
                 const eyebrowLabel = destinations.length > 1
-                  ? (regionInfo ? pickCopy(locale, regionInfo) : t({ en: 'Multi-country', hans: '多国联程', hant: '多國聯程' }))
-                  : (regionInfo ? pickCopy(locale, regionInfo) : profile.cardEyebrow);
+                  ? (regionName || t({ en: 'Multi-country', hans: '多国联程', hant: '多國聯程' }))
+                  : (regionName || profile.cardEyebrow);
                 // The core's product-level price is the odoo list price; the
                 // amount checkout bills is the variant sale price. Show the
                 // cheapest sellable figure so the card matches the cart.

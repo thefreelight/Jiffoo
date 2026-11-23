@@ -18,7 +18,7 @@ import { getEsimProduct, getProductIdFromLocation, mapEsimApiProductToThemeProdu
 import { pickCopy } from '../site';
 import { getEsimTravelProfile } from '../lib/digital-fulfillment';
 import { resolveEsimSiteConfig } from '../site';
-import { destinationLabel, type EsimPlanAttributes } from '../lib/esim/catalog';
+import { destinationLabel, regionLabelOf, type EsimPlanAttributes } from '../lib/esim/catalog';
 import { readProductCurrency } from '../lib/api';
 
 function getProductImage(product: Product | null): string | null {
@@ -231,7 +231,13 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
               ) : (
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="rounded-full border border-[color:color-mix(in_oklab,var(--esim-gold)_34%,transparent)] bg-[color:color-mix(in_oklab,var(--esim-gold)_10%,transparent)] px-3 py-1 text-[10px] font-bold tracking-[0.18em] text-[var(--esim-gold)]">
-                    {profile.cardEyebrow}
+                    {/* The real region when the SKU carries one; the profile's eyebrow is a guess from text and read "Global plan" for every package. */}
+                    {regionLabelOf(
+                      (normalizedProduct as { typeData?: { esim?: { defaultCode?: string } } })?.typeData?.esim?.defaultCode
+                        || remoteEsim?.defaultCode
+                        || '',
+                      locale,
+                    ) || profile.cardEyebrow}
                   </span>
                   <span className="rounded-full border border-[var(--esim-line)] px-3 py-1 text-[10px] tracking-[0.16em] text-[var(--esim-copy)]">
                     {profile.deliveryLabel}
