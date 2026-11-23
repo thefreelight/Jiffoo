@@ -95,11 +95,20 @@ export const InstallSessionPanel = React.memo(function InstallSessionPanel({
           hant: '開通處理中——套餐就緒後本頁即可安裝。',
         });
       case 'installed':
-        return tr({
-          en: `Package added to your eSIM${iccidTail ? ` ${iccidTail}` : ''} — no new install needed.`,
-          hans: `套餐已加到你的 eSIM${iccidTail ? ` ${iccidTail}` : ''}——无需重新安装。`,
-          hant: `套餐已加到你的 eSIM${iccidTail ? ` ${iccidTail}` : ''}——無需重新安裝。`,
-        });
+        // A top-up lands on an existing profile, so there is nothing new to
+        // install — unless the buyer never installed that profile in the
+        // first place. With the first-install code on hand, say both.
+        return qrPayload
+          ? tr({
+              en: `Package added to your eSIM${iccidTail ? ` ${iccidTail}` : ''}. Not installed this eSIM yet? Scan below to set it up — skip this if it is already on your phone.`,
+              hans: `套餐已加到你的 eSIM${iccidTail ? ` ${iccidTail}` : ''}。这张 eSIM 还没装到手机？扫下方二维码安装；已经装过可以忽略。`,
+              hant: `套餐已加到你的 eSIM${iccidTail ? ` ${iccidTail}` : ''}。這張 eSIM 還沒裝到手機？掃下方二維碼安裝；已經裝過可以忽略。`,
+            })
+          : tr({
+              en: `Package added to your eSIM${iccidTail ? ` ${iccidTail}` : ''} — no new install needed. Not installed it yet? The install code is on the order that first issued this eSIM.`,
+              hans: `套餐已加到你的 eSIM${iccidTail ? ` ${iccidTail}` : ''}——无需重新安装。如果还没装过，安装码在首次开通这张 eSIM 的那笔订单里。`,
+              hant: `套餐已加到你的 eSIM${iccidTail ? ` ${iccidTail}` : ''}——無需重新安裝。如果還沒裝過，安裝碼在首次開通這張 eSIM 的那筆訂單裡。`,
+            });
       case 'failed':
         return tr({
           en: 'Provisioning failed — our support team has been notified and will follow up.',
@@ -164,14 +173,22 @@ export const InstallSessionPanel = React.memo(function InstallSessionPanel({
             </div>
             <div>
               <p className="text-sm font-medium text-[var(--esim-ink)]">
-                {tr({ en: 'Scan or install manually', hans: '扫码安装或手动输入', hant: '掃碼安裝或手動輸入' })}
+                {session.status === 'installed'
+                  ? tr({ en: 'Install this eSIM', hans: '安装这张 eSIM', hant: '安裝這張 eSIM' })
+                  : tr({ en: 'Scan or install manually', hans: '扫码安装或手动输入', hant: '掃碼安裝或手動輸入' })}
               </p>
               <p className="mt-2 text-xs leading-5 text-[var(--esim-copy)]">
-                {tr({
-                  en: 'iPhone: point the camera at the QR code. Other phones: Settings → Network → Add eSIM.',
-                  hans: 'iPhone：相机对准二维码即可。其他手机：设置 → 网络 → 添加 eSIM。',
-                  hant: 'iPhone：相機對準二維碼即可。其他手機：設定 → 網路 → 加入 eSIM。',
-                })}
+                {session.status === 'installed'
+                  ? tr({
+                      en: 'Needed once per phone — the package is already on the eSIM and activates right after install.',
+                      hans: '每台手机只需装一次——套餐已经在你的 eSIM 上，装好即生效。',
+                      hant: '每台手機只需裝一次——套餐已經在你的 eSIM 上，裝好即生效。',
+                    })
+                  : tr({
+                      en: 'iPhone: point the camera at the QR code. Other phones: Settings → Network → Add eSIM.',
+                      hans: 'iPhone：相机对准二维码即可。其他手机：设置 → 网络 → 添加 eSIM。',
+                      hant: 'iPhone：相機對準二維碼即可。其他手機：設定 → 網路 → 加入 eSIM。',
+                    })}
               </p>
               {android && session.lpaString && session.status !== 'pending_payment' ? (
                 <button

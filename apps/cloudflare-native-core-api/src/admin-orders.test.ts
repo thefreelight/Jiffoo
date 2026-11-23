@@ -67,7 +67,7 @@ function fakeEnv(orders: OrderRow[], users: UserRow[]) {
   return { DB: DB as unknown as Parameters<typeof tryNativeAdminOrders>[1], batched };
 }
 
-function nativeCheckoutPayload(orderId: string, userId: string, email: string) {
+function nativeCheckoutPayload(orderId: string, userId: string, email: string, items: Array<Record<string, unknown>> = []) {
   return JSON.stringify({
     id: orderId,
     userId,
@@ -75,10 +75,12 @@ function nativeCheckoutPayload(orderId: string, userId: string, email: string) {
     customerEmail: email,
     totalAmount: 20,
     currency: 'USD',
-    items: [],
+    items,
     createdAt: '2026-10-01T00:00:00.000Z',
   });
 }
+
+const physicalItem = { id: 'li-1', productId: 'bokmoo-card', productKind: 'goods', quantity: 1 };
 
 function request(path: string): Request {
   return new Request(`https://api.bokmoo.test${path}`, { headers: { authorization: 'Bearer test-token' } });
@@ -153,7 +155,7 @@ describe('tryNativeAdminOrders', () => {
 
   it('records a manual shipment, marks the order SHIPPED, and notifies the customer', async () => {
     const env = fakeEnv(
-      [{ id: 'ord-ship-1', user_id: 'u-1', payload: nativeCheckoutPayload('ord-ship-1', 'u-1', 'shopper@jiffoo.test'), source_updated_at: '2026-10-01T00:00:00Z' }],
+      [{ id: 'ord-ship-1', user_id: 'u-1', payload: nativeCheckoutPayload('ord-ship-1', 'u-1', 'shopper@jiffoo.test', [physicalItem]), source_updated_at: '2026-10-01T00:00:00Z' }],
       [{ id: 'u-1', email: 'shopper@jiffoo.test', username: 'shopper', avatar: null }],
     );
     const response = await tryNativeAdminOrders(
@@ -166,6 +168,28 @@ describe('tryNativeAdminOrders', () => {
     expect(body.data.status).toBe('SHIPPED');
     expect(env.batched.some((sql) => sql.includes('UPDATE native_order_snapshots SET status'))).toBe(true);
     expect(env.batched.some((sql) => sql.includes('INSERT INTO native_bokmoo_notifications'))).toBe(true);
+  });
+
+  it('refuses to ship orders that carry no physical goods', async () => {
+    const cases: Array<Array<{ id: string; productKind: string }>, string> = [
+      [[{ id: 'li-1', productKind: 'digital' }], 'DIGITAL_NO_SHIPMENT'],
+      [[{ id: 'li-1', productId: 'boss-CN-1GB-7D', productKind: 'digital' }], 'ESIM_AUTO_FULFILLED'],
+    ];
+    for (const [items, code] of cases) {
+      const env = fakeEnv(
+        [{ id: `ord-${code}`, user_id: 'u-1', payload: nativeCheckoutPayload(`ord-${code}`, 'u-1', 'shopper@jiffoo.test', items), source_updated_at: '2026-10-01T00:00:00Z' }],
+        [],
+      );
+      const response = await tryNativeAdminOrders(
+        shipRequest(`/api/v1/admin/orders/ord-${code}/ship`, { carrier: '顺丰速运', trackingNumber: 'SF1234567890' }),
+        env,
+        async () => new Response('{}'),
+      );
+      expect(response?.status, code).toBe(409);
+      expect(((await response!.json()) as { error: { code: string } }).error.code).toBe(code);
+      // Nothing is recorded: no shipment, no status change, no customer notification.
+      expect(env.batched, code).toHaveLength(0);
+    }
   });
 
   it('rejects a shipment without carrier or tracking number', async () => {

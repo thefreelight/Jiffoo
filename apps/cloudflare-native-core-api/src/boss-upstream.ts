@@ -248,6 +248,44 @@ export async function fetchBossEsimAssets(env: BossEnv, userId: string): Promise
   }
 }
 
+/** First-install credentials of a SIM, as held by the BOSS SIM inventory. */
+export interface BossSimInstallCode {
+  iccid: string;
+  activationCode?: string;
+  smdpAddress?: string;
+  matchingId?: string;
+  qrCodeUrl?: string;
+  [key: string]: unknown;
+}
+
+/**
+ * Fetch the first-install code of a SIM the mall holds no record of.
+ *
+ * BOSS only returns activationCode/smdpAddress/matchingId when it issues a
+ * fresh profile; top-ups (addPackage on a pinned ICCID) answer DONE with the
+ * ICCID alone. This reads the code back out of the SIM inventory through the
+ * proposed downstream contract:
+ *
+ *   GET /bs/openapi/sim/install-code?iccid=<iccid>&userId=<mall user id>
+ *   → { resultCode: "10000", data: { iccid, activationCode, smdpAddress, matchingId } }
+ *
+ * `userId` lets BOSS refuse the lookup when the SIM is not assigned to that
+ * buyer. Any failure — endpoint not shipped, key not authorized for it, SIM
+ * not the buyer's — resolves to null so callers treat it as "no code".
+ */
+export async function fetchBossSimInstallCode(env: BossEnv, iccid: string, userId: string): Promise<BossSimInstallCode | null> {
+  try {
+    const data = await bossRequest(
+      env,
+      `/bs/openapi/sim/install-code?iccid=${encodeURIComponent(iccid)}&userId=${encodeURIComponent(userId)}`,
+    ) as BossSimInstallCode;
+    return typeof data?.iccid === 'string' && data.iccid.trim() ? data : null;
+  } catch (error) {
+    console.warn('[BOSS] sim install-code unavailable:', error instanceof Error ? error.message : String(error));
+    return null;
+  }
+}
+
 export async function fetchBossPackages(env: BossEnv): Promise<BossPackage[]> {
   const data = (await bossRequest(env, '/bs/openapi/packages')) as BossPackage[];
   return Array.isArray(data) ? data : [];

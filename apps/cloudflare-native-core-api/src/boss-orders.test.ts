@@ -57,11 +57,14 @@ function makeDb(options: {
   metadata?: { user_id: string; payment_status: string } | null;
   items?: Array<{ id: string; product_id: string; quantity: number; payload: string }>;
   productSnapshot?: Record<string, unknown> | null;
+  orderSnapshot?: Record<string, unknown>;
   lines?: LineRow[];
 } = {}) {
   const metadataRow = options.metadata === undefined ? metadata : options.metadata;
   const productSnapshotRow = options.productSnapshot === undefined ? bossProductSnapshot : options.productSnapshot;
+  const orderSnapshotRow = options.orderSnapshot === undefined ? orderSnapshot : options.orderSnapshot;
   const lines: LineRow[] = options.lines ?? [];
+  const snapshotUpdates: Array<{ sql: string; values: unknown[] }> = [];
   const db = {
     prepare: vi.fn((sql: string) => ({
       bind: vi.fn((...values: unknown[]) => ({
@@ -69,8 +72,11 @@ function makeDb(options: {
         values,
         first: vi.fn(async () => {
           if (sql.includes('FROM native_order_metadata')) return metadataRow;
-          if (sql.includes('FROM native_order_snapshots')) return orderSnapshot;
+          if (sql.includes('FROM native_order_snapshots')) return orderSnapshotRow;
           if (sql.includes('FROM core_api_snapshots')) return productSnapshotRow;
+          if (sql.includes('COUNT(*)') && sql.includes('FROM native_boss_order_lines')) {
+            return { n: lines.filter((line) => line.order_id === values[0] && line.status !== 'completed').length };
+          }
           if (sql.includes('FROM native_boss_order_lines')) {
             return lines.find((line) => line.order_id === values[0] && line.line_item_id === values[1]) ?? null;
           }
@@ -108,12 +114,14 @@ function makeDb(options: {
               if (sql.includes("status = 'unverified'")) {
                 line.status = 'unverified';
                 line.error = String(values[0]);
-              } else if (sql.includes("status = 'created'")) {
-                line.status = 'created';
-                line.boss_order_no = String(values[0]);
-                line.boss_odoo_order_name = values[1] === null ? null : String(values[1]);
-                line.payload_json = String(values[2]);
-                line.error = null;
+              } else if (/status = \?\d+,\s*boss_order_no/.test(sql)) {
+                // Placement stores 'created' or 'failed' depending on the
+                // upstream outcome BOSS reports inline.
+                line.status = String(values[0]) as LineStatus;
+                line.boss_order_no = String(values[1]);
+                line.boss_odoo_order_name = values[2] === null ? null : String(values[2]);
+                line.error = values[3] === null ? null : String(values[3]);
+                line.payload_json = String(values[4]);
               } else if (sql.includes("status = 'failed'")) {
                 line.status = 'failed';
                 line.error = String(values[0]);
@@ -129,12 +137,16 @@ function makeDb(options: {
             }
             return { success: true, meta: { changes: 1 } };
           }
+          if (sql.includes('UPDATE native_order_snapshots')) {
+            snapshotUpdates.push({ sql, values });
+            return { success: true, meta: { changes: 1 } };
+          }
           return { success: true, meta: { changes: 0 } };
         }),
       })),
     })),
   };
-  return { db, lines };
+  return { db, lines, snapshotUpdates };
 }
 
 const env = (db: unknown, apiKey = 'boss-key') => ({ DB: db, JWT_SECRET: 'jwt', BOSS_API_KEY: apiKey }) as never;
@@ -174,6 +186,33 @@ describe('BOSS paid-order fulfillment', () => {
     });
     expect(lines).toHaveLength(1);
     expect(lines[0]).toMatchObject({ status: 'created', boss_order_no: 'BOSS-1', boss_odoo_order_name: 'S00123' });
+    // Nothing pinned at checkout → BOSS allocates a fresh profile.
+    expect(body).not.toHaveProperty('iccid');
+  });
+
+  it('tops up the eSIM the buyer pinned at checkout instead of allocating a new one', async () => {
+    const fetchMock = vi.fn(async () => bossOk({ orderNo: 'BOSS-1', odooOrderName: 'S00123', status: 'INVOICED', upstreamStatus: 'DONE', iccid: '76010150' }));
+    vi.stubGlobal('fetch', fetchMock);
+    // native_order_items.payload is the checkout item stored as a JSON string.
+    const { db } = makeDb({
+      items: [{ id: 'line-1', product_id: 'boss-HKMO-1GB-7D', quantity: 1, payload: JSON.stringify({ fulfillmentData: { esimIccid: '76010150' } }) }],
+    });
+    await processBossPaidOrder(env(db), 'ord_1', 'evt_1');
+    const [, init] = fetchMock.mock.calls[0]!;
+    expect(JSON.parse(String(init!.body))).toMatchObject({ iccid: '76010150', userId: 'user-1' });
+  });
+
+  it('marks the line failed when BOSS accepts the order but provisioning fails inline', async () => {
+    const fetchMock = vi.fn(async () => bossOk({
+      orderNo: 'BOSS-3', odooOrderName: 'S00125', status: 'INVOICED',
+      upstreamStatus: 'FAILED', upstreamMsg: 'SIM 库存为空：无 iccid 且无可分配新卡',
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+    const { db, lines } = makeDb({ items });
+    await expect(processBossPaidOrder(env(db), 'ord_1', 'evt_1')).resolves.toEqual({ placed: 0, skipped: false });
+    // A failed line (not 'created') is what lets admin redeliver re-drive it.
+    expect(lines[0]).toMatchObject({ status: 'failed', boss_order_no: 'BOSS-3' });
+    expect(lines[0]!.error).toContain('SIM 库存为空');
   });
 
   it('is idempotent when the line was already fulfilled on a prior attempt', async () => {
@@ -250,6 +289,66 @@ describe('BOSS order status sweep', () => {
     const result = await syncBossOrderStatuses(env(db));
     expect(result).toEqual({ checked: 1, completed: 0 });
     expect(lines[0]!.status).toBe('created');
+  });
+
+  it('completes created lines on upstreamStatus DONE even when the Odoo status is non-terminal', async () => {
+    const fetchMock = vi.fn(async () => bossOk({
+      found: true, status: 'INVOICED', upstreamStatus: 'DONE', upstreamMsg: 'Dashi addPackage: iccid=76010150', iccid: '76010150',
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+    const { db, lines } = makeDb({
+      lines: [{ id: 'boss_line_1', order_id: 'ord_1', line_item_id: 'line-1', status: 'created', boss_order_no: 'BOSS-1', boss_odoo_order_name: null, error: null, payload_json: '{}' }],
+    });
+    const result = await syncBossOrderStatuses(env(db));
+    expect(result).toEqual({ checked: 1, completed: 1 });
+    expect(lines[0]!.status).toBe('completed');
+  });
+
+  it('advances the order to DELIVERED once its last BOSS line completes', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => bossOk({ found: true, status: 'INVOICED', upstreamStatus: 'DONE' })));
+    const { db, snapshotUpdates } = makeDb({
+      orderSnapshot: {
+        payload: JSON.stringify({
+          id: 'ord_1', status: 'PROCESSING', paymentStatus: 'PAID',
+          items: [{ id: 'line-1', productId: 'boss-HKMO-1GB-7D', fulfillmentStatus: 'pending' }],
+        }),
+      },
+      lines: [{ id: 'boss_line_1', order_id: 'ord_1', line_item_id: 'line-1', status: 'created', boss_order_no: 'BOSS-1', boss_odoo_order_name: null, error: null, payload_json: '{}' }],
+    });
+    await syncBossOrderStatuses(env(db));
+    expect(snapshotUpdates).toHaveLength(1);
+    expect(snapshotUpdates[0]!.values[0]).toBe('DELIVERED');
+    expect(JSON.parse(String(snapshotUpdates[0]!.values[1]))).toMatchObject({
+      status: 'DELIVERED',
+      items: [{ productId: 'boss-HKMO-1GB-7D', fulfillmentStatus: 'delivered' }],
+    });
+  });
+
+  it('leaves the order alone while another BOSS line is still open', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => bossOk({ found: true, status: 'INVOICED', upstreamStatus: 'DONE' })));
+    const { db, snapshotUpdates } = makeDb({
+      orderSnapshot: { payload: JSON.stringify({ id: 'ord_1', status: 'PROCESSING', paymentStatus: 'PAID', items: [] }) },
+      lines: [
+        { id: 'boss_line_1', order_id: 'ord_1', line_item_id: 'line-1', status: 'created', boss_order_no: 'BOSS-1', boss_odoo_order_name: null, error: null, payload_json: '{}' },
+        { id: 'boss_line_2', order_id: 'ord_1', line_item_id: 'line-2', status: 'created', boss_order_no: 'BOSS-2', boss_odoo_order_name: null, error: null, payload_json: '{}' },
+      ],
+    });
+    const result = await syncBossOrderStatuses(env(db));
+    expect(result).toEqual({ checked: 2, completed: 2 });
+    // Both lines finish in the same pass; the order advances exactly once, at the end.
+    expect(snapshotUpdates.map((update) => update.values[0])).toEqual(['DELIVERED']);
+  });
+
+  it('flips a created line to failed when BOSS reports upstream FAILED', async () => {
+    const fetchMock = vi.fn(async () => bossOk({ found: true, status: 'INVOICED', upstreamStatus: 'FAILED', upstreamMsg: 'SIM 库存为空' }));
+    vi.stubGlobal('fetch', fetchMock);
+    const { db, lines } = makeDb({
+      lines: [{ id: 'boss_line_1', order_id: 'ord_1', line_item_id: 'line-1', status: 'created', boss_order_no: 'BOSS-1', boss_odoo_order_name: null, error: null, payload_json: '{}' }],
+    });
+    const result = await syncBossOrderStatuses(env(db));
+    expect(result).toEqual({ checked: 1, completed: 0 });
+    expect(lines[0]!.status).toBe('failed');
+    expect(lines[0]!.error).toContain('SIM 库存为空');
   });
 
   it('does nothing when the BOSS API key is not configured', async () => {

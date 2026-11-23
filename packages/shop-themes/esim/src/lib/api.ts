@@ -202,6 +202,10 @@ export interface EsimInstallSession {
   upstreamStatus?: string | null;
   upstreamMsg?: string;
   error?: string;
+  /** Where the server resolved the first-install code from (absent = none). */
+  installCodeSource?: 'order' | 'line' | 'earlier_order' | 'inventory' | null;
+  /** Order that first issued the profile (installCodeSource 'earlier_order'). */
+  installCodeOrderId?: string | null;
   expiresAt?: string;
   instructions?: EsimInstructionSet;
   support?: EsimInstallSupport;
@@ -620,19 +624,34 @@ export function normalizeProductForTheme(product: ThemeProduct | EsimApiProduct)
   return mapEsimApiProductToThemeProduct(product as EsimApiProduct);
 }
 
+/** True for a full `LPA:1$<smdp>$<matchingId>` string. */
+function isLpaString(value: string | undefined): boolean {
+  return typeof value === 'string' && /^LPA:\s*1\s*\$/i.test(value.trim());
+}
+
 export function normalizeInstallSession(session: EsimInstallSession | Record<string, unknown>): EsimInstallSession {
   const source = asRecord(session);
-  const matchingId = readString(source, ['matchingId', 'matching_id', 'activationCode', 'activation_code']);
-  const activationCode = readString(source, ['activationCode', 'activation_code', 'matchingId', 'matching_id']);
-  const smdpAddress = readString(source, ['smdpAddress', 'smdp_address', 'smdpServer', 'smdp_server', 'smdp']);
+  // readString yields undefined for absent fields; keep everything a string.
+  const smdpField = readString(source, ['smdpAddress', 'smdp_address', 'smdpServer', 'smdp_server', 'smdp']) || '';
+  const matchingField = readString(source, ['matchingId', 'matching_id']) || '';
+  // BOSS reports `activationCode` as the full LPA string; the code a customer
+  // types by hand is the split matching ID.
+  const rawActivationCode = readString(source, ['activationCode', 'activation_code']) || '';
+  const bareCode = isLpaString(rawActivationCode) ? '' : rawActivationCode;
+  const qrCodeField = readString(source, ['qrCode', 'qr_code', 'qrCodeUrl', 'qr_code_url', 'qrCodeContent', 'qr_code_content']) || '';
+  // The server resolves the install code and ships a canonical LPA string; a
+  // full LPA found in any field comes next. Parts are only stitched together
+  // when no full LPA exists — never on top of one.
   const lpaString =
-    readString(source, ['lpaString', 'lpa_string', 'lpa', 'qrCodeContent', 'qr_code_content']) ||
-    (smdpAddress && (matchingId || activationCode)
-      ? `LPA:1$${smdpAddress}$${matchingId || activationCode}`
-      : '');
-  const qrCode =
-    readString(source, ['qrCode', 'qr_code', 'qrCodeUrl', 'qr_code_url', 'qrCodeContent', 'qr_code_content']) ||
-    lpaString;
+    readString(source, ['lpaString', 'lpa_string', 'lpa']) ||
+    [rawActivationCode, qrCodeField].find(isLpaString) ||
+    (smdpField && (matchingField || bareCode) ? `LPA:1$${smdpField}$${matchingField || bareCode}` : '');
+  // Split the LPA back out so the manual-entry fields are filled either way.
+  const lpaParts = isLpaString(lpaString) ? lpaString.trim().split('$') : [];
+  const smdpAddress = smdpField || lpaParts[1] || '';
+  const matchingId = matchingField || lpaParts[2] || bareCode;
+  const activationCode = bareCode || matchingId;
+  const qrCode = qrCodeField || lpaString;
   const instructions = normalizeInstructions(source.instructions);
 
   return {
@@ -645,8 +664,8 @@ export function normalizeInstallSession(session: EsimInstallSession | Record<str
       (session as EsimInstallSession).packageTitle ||
       'BOKMOO eSIM',
     qrCode,
-    activationCode: activationCode || '',
-    matchingId: matchingId || '',
+    activationCode,
+    matchingId,
     lpaString,
     smdpAddress,
     confirmationCode:

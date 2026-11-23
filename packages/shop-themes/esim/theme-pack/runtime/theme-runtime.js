@@ -11897,13 +11897,22 @@
     }
     return mapEsimApiProductToThemeProduct(product);
   }
+  function isLpaString(value) {
+    return typeof value === "string" && /^LPA:\s*1\s*\$/i.test(value.trim());
+  }
   function normalizeInstallSession(session) {
     const source = asRecord(session);
-    const matchingId = readString(source, ["matchingId", "matching_id", "activationCode", "activation_code"]);
-    const activationCode = readString(source, ["activationCode", "activation_code", "matchingId", "matching_id"]);
-    const smdpAddress = readString(source, ["smdpAddress", "smdp_address", "smdpServer", "smdp_server", "smdp"]);
-    const lpaString = readString(source, ["lpaString", "lpa_string", "lpa", "qrCodeContent", "qr_code_content"]) || (smdpAddress && (matchingId || activationCode) ? `LPA:1$${smdpAddress}$${matchingId || activationCode}` : "");
-    const qrCode = readString(source, ["qrCode", "qr_code", "qrCodeUrl", "qr_code_url", "qrCodeContent", "qr_code_content"]) || lpaString;
+    const smdpField = readString(source, ["smdpAddress", "smdp_address", "smdpServer", "smdp_server", "smdp"]) || "";
+    const matchingField = readString(source, ["matchingId", "matching_id"]) || "";
+    const rawActivationCode = readString(source, ["activationCode", "activation_code"]) || "";
+    const bareCode = isLpaString(rawActivationCode) ? "" : rawActivationCode;
+    const qrCodeField = readString(source, ["qrCode", "qr_code", "qrCodeUrl", "qr_code_url", "qrCodeContent", "qr_code_content"]) || "";
+    const lpaString = readString(source, ["lpaString", "lpa_string", "lpa"]) || [rawActivationCode, qrCodeField].find(isLpaString) || (smdpField && (matchingField || bareCode) ? `LPA:1$${smdpField}$${matchingField || bareCode}` : "");
+    const lpaParts = isLpaString(lpaString) ? lpaString.trim().split("$") : [];
+    const smdpAddress = smdpField || lpaParts[1] || "";
+    const matchingId = matchingField || lpaParts[2] || bareCode;
+    const activationCode = bareCode || matchingId;
+    const qrCode = qrCodeField || lpaString;
     const instructions = normalizeInstructions(source.instructions);
     return {
       ...session,
@@ -11912,8 +11921,8 @@
       status: readString(source, ["status"]) || session.status || "processing",
       packageTitle: readString(source, ["packageTitle", "package_title"]) || session.packageTitle || "BOKMOO eSIM",
       qrCode,
-      activationCode: activationCode || "",
-      matchingId: matchingId || "",
+      activationCode,
+      matchingId,
       lpaString,
       smdpAddress,
       confirmationCode: readNullableString(source, ["confirmationCode", "confirmation_code", "confirmCode", "confirm_code"]) ?? null,
@@ -17208,7 +17217,7 @@
         let dataUsedBits;
         for (version = minVersion; ; version++) {
           const dataCapacityBits2 = _QrCode.getNumDataCodewords(version, ecl) * 8;
-          const usedBits = QrSegment2.getTotalBits(segs, version);
+          const usedBits = QrSegment.getTotalBits(segs, version);
           if (usedBits <= dataCapacityBits2) {
             dataUsedBits = usedBits;
             break;
@@ -17639,7 +17648,7 @@
       [-1, 1, 1, 2, 4, 4, 4, 5, 6, 8, 8, 11, 11, 16, 16, 18, 16, 19, 21, 25, 25, 25, 34, 30, 32, 35, 37, 40, 42, 45, 48, 51, 54, 57, 60, 63, 66, 70, 74, 77, 81]
       // High
     ];
-    let QrCode3 = _QrCode;
+    let QrCode2 = _QrCode;
     qrcodegen2.QrCode = _QrCode;
     function appendBits(val, len, bb) {
       if (len < 0 || len > 31 || val >>> len != 0)
@@ -17787,12 +17796,12 @@
     // The set of all legal characters in alphanumeric mode,
     // where each character value maps to the index in the string.
     _QrSegment.ALPHANUMERIC_CHARSET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:";
-    let QrSegment2 = _QrSegment;
+    let QrSegment = _QrSegment;
     qrcodegen2.QrSegment = _QrSegment;
   })(qrcodegen || (qrcodegen = {}));
   ((qrcodegen2) => {
-    let QrCode3;
-    ((QrCode4) => {
+    let QrCode2;
+    ((QrCode3) => {
       const _Ecc = class _Ecc {
         // The QR Code can tolerate about 30% erroneous codewords
         /*-- Constructor and fields --*/
@@ -17810,12 +17819,12 @@
       // The QR Code can tolerate about 25% erroneous codewords
       _Ecc.HIGH = new _Ecc(3, 2);
       let Ecc = _Ecc;
-      QrCode4.Ecc = _Ecc;
-    })(QrCode3 = qrcodegen2.QrCode || (qrcodegen2.QrCode = {}));
+      QrCode3.Ecc = _Ecc;
+    })(QrCode2 = qrcodegen2.QrCode || (qrcodegen2.QrCode = {}));
   })(qrcodegen || (qrcodegen = {}));
   ((qrcodegen2) => {
-    let QrSegment2;
-    ((QrSegment3) => {
+    let QrSegment;
+    ((QrSegment2) => {
       const _Mode = class _Mode {
         /*-- Constructor and fields --*/
         constructor(modeBits, numBitsCharCount) {
@@ -17836,10 +17845,10 @@
       _Mode.KANJI = new _Mode(8, [8, 10, 12]);
       _Mode.ECI = new _Mode(7, [0, 0, 0]);
       let Mode = _Mode;
-      QrSegment3.Mode = _Mode;
-    })(QrSegment2 = qrcodegen2.QrSegment || (qrcodegen2.QrSegment = {}));
+      QrSegment2.Mode = _Mode;
+    })(QrSegment = qrcodegen2.QrSegment || (qrcodegen2.QrSegment = {}));
   })(qrcodegen || (qrcodegen = {}));
-  var { QrCode: QrCode2, QrSegment } = qrcodegen;
+  var qrcodegen_default = qrcodegen;
 
   // packages/shop-themes/esim/src/components/InstallSessionPanel.tsx
   function copyToClipboard(value) {
@@ -17855,7 +17864,8 @@
   function QrSvg({ payload }) {
     const rendered = react_default.useMemo(() => {
       try {
-        const qr = QrCode2.encodeText(payload, QrCode2.Ecc.MEDIUM);
+        const { QrCode: QrEncoder } = qrcodegen_default;
+        const qr = QrEncoder.encodeText(payload, QrEncoder.Ecc.MEDIUM);
         const modules = [];
         for (let y = 0; y < qr.size; y += 1) {
           for (let x = 0; x < qr.size; x += 1) {
@@ -17921,10 +17931,14 @@
             hant: "\u958B\u901A\u8655\u7406\u4E2D\u2014\u2014\u5957\u9910\u5C31\u7DD2\u5F8C\u672C\u9801\u5373\u53EF\u5B89\u88DD\u3002"
           });
         case "installed":
-          return tr({
-            en: `Package added to your eSIM${iccidTail ? ` ${iccidTail}` : ""} \u2014 no new install needed.`,
-            hans: `\u5957\u9910\u5DF2\u52A0\u5230\u4F60\u7684 eSIM${iccidTail ? ` ${iccidTail}` : ""}\u2014\u2014\u65E0\u9700\u91CD\u65B0\u5B89\u88C5\u3002`,
-            hant: `\u5957\u9910\u5DF2\u52A0\u5230\u4F60\u7684 eSIM${iccidTail ? ` ${iccidTail}` : ""}\u2014\u2014\u7121\u9700\u91CD\u65B0\u5B89\u88DD\u3002`
+          return qrPayload ? tr({
+            en: `Package added to your eSIM${iccidTail ? ` ${iccidTail}` : ""}. Not installed this eSIM yet? Scan below to set it up \u2014 skip this if it is already on your phone.`,
+            hans: `\u5957\u9910\u5DF2\u52A0\u5230\u4F60\u7684 eSIM${iccidTail ? ` ${iccidTail}` : ""}\u3002\u8FD9\u5F20 eSIM \u8FD8\u6CA1\u88C5\u5230\u624B\u673A\uFF1F\u626B\u4E0B\u65B9\u4E8C\u7EF4\u7801\u5B89\u88C5\uFF1B\u5DF2\u7ECF\u88C5\u8FC7\u53EF\u4EE5\u5FFD\u7565\u3002`,
+            hant: `\u5957\u9910\u5DF2\u52A0\u5230\u4F60\u7684 eSIM${iccidTail ? ` ${iccidTail}` : ""}\u3002\u9019\u5F35 eSIM \u9084\u6C92\u88DD\u5230\u624B\u6A5F\uFF1F\u6383\u4E0B\u65B9\u4E8C\u7DAD\u78BC\u5B89\u88DD\uFF1B\u5DF2\u7D93\u88DD\u904E\u53EF\u4EE5\u5FFD\u7565\u3002`
+          }) : tr({
+            en: `Package added to your eSIM${iccidTail ? ` ${iccidTail}` : ""} \u2014 no new install needed. Not installed it yet? The install code is on the order that first issued this eSIM.`,
+            hans: `\u5957\u9910\u5DF2\u52A0\u5230\u4F60\u7684 eSIM${iccidTail ? ` ${iccidTail}` : ""}\u2014\u2014\u65E0\u9700\u91CD\u65B0\u5B89\u88C5\u3002\u5982\u679C\u8FD8\u6CA1\u88C5\u8FC7\uFF0C\u5B89\u88C5\u7801\u5728\u9996\u6B21\u5F00\u901A\u8FD9\u5F20 eSIM \u7684\u90A3\u7B14\u8BA2\u5355\u91CC\u3002`,
+            hant: `\u5957\u9910\u5DF2\u52A0\u5230\u4F60\u7684 eSIM${iccidTail ? ` ${iccidTail}` : ""}\u2014\u2014\u7121\u9700\u91CD\u65B0\u5B89\u88DD\u3002\u5982\u679C\u9084\u6C92\u88DD\u904E\uFF0C\u5B89\u88DD\u78BC\u5728\u9996\u6B21\u958B\u901A\u9019\u5F35 eSIM \u7684\u90A3\u7B46\u8A02\u55AE\u88E1\u3002`
           });
         case "failed":
           return tr({
@@ -17966,8 +17980,12 @@
               /* @__PURE__ */ jsx("span", { className: "text-xs leading-5", children: tr({ en: "QR payload ready", hans: "\u5B89\u88C5\u7801\u5DF2\u5C31\u7EEA", hant: "\u5B89\u88DD\u78BC\u5DF2\u5C31\u7DD2" }) })
             ] }) }),
             /* @__PURE__ */ jsxs("div", { children: [
-              /* @__PURE__ */ jsx("p", { className: "text-sm font-medium text-[var(--esim-ink)]", children: tr({ en: "Scan or install manually", hans: "\u626B\u7801\u5B89\u88C5\u6216\u624B\u52A8\u8F93\u5165", hant: "\u6383\u78BC\u5B89\u88DD\u6216\u624B\u52D5\u8F38\u5165" }) }),
-              /* @__PURE__ */ jsx("p", { className: "mt-2 text-xs leading-5 text-[var(--esim-copy)]", children: tr({
+              /* @__PURE__ */ jsx("p", { className: "text-sm font-medium text-[var(--esim-ink)]", children: session.status === "installed" ? tr({ en: "Install this eSIM", hans: "\u5B89\u88C5\u8FD9\u5F20 eSIM", hant: "\u5B89\u88DD\u9019\u5F35 eSIM" }) : tr({ en: "Scan or install manually", hans: "\u626B\u7801\u5B89\u88C5\u6216\u624B\u52A8\u8F93\u5165", hant: "\u6383\u78BC\u5B89\u88DD\u6216\u624B\u52D5\u8F38\u5165" }) }),
+              /* @__PURE__ */ jsx("p", { className: "mt-2 text-xs leading-5 text-[var(--esim-copy)]", children: session.status === "installed" ? tr({
+                en: "Needed once per phone \u2014 the package is already on the eSIM and activates right after install.",
+                hans: "\u6BCF\u53F0\u624B\u673A\u53EA\u9700\u88C5\u4E00\u6B21\u2014\u2014\u5957\u9910\u5DF2\u7ECF\u5728\u4F60\u7684 eSIM \u4E0A\uFF0C\u88C5\u597D\u5373\u751F\u6548\u3002",
+                hant: "\u6BCF\u53F0\u624B\u6A5F\u53EA\u9700\u88DD\u4E00\u6B21\u2014\u2014\u5957\u9910\u5DF2\u7D93\u5728\u4F60\u7684 eSIM \u4E0A\uFF0C\u88DD\u597D\u5373\u751F\u6548\u3002"
+              }) : tr({
                 en: "iPhone: point the camera at the QR code. Other phones: Settings \u2192 Network \u2192 Add eSIM.",
                 hans: "iPhone\uFF1A\u76F8\u673A\u5BF9\u51C6\u4E8C\u7EF4\u7801\u5373\u53EF\u3002\u5176\u4ED6\u624B\u673A\uFF1A\u8BBE\u7F6E \u2192 \u7F51\u7EDC \u2192 \u6DFB\u52A0 eSIM\u3002",
                 hant: "iPhone\uFF1A\u76F8\u6A5F\u5C0D\u6E96\u4E8C\u7DAD\u78BC\u5373\u53EF\u3002\u5176\u4ED6\u624B\u6A5F\uFF1A\u8A2D\u5B9A \u2192 \u7DB2\u8DEF \u2192 \u52A0\u5165 eSIM\u3002"
@@ -19953,7 +19971,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "esim",
-      version: "0.0.17",
+      version: "0.0.18",
       target: "shop"
     }
   };
