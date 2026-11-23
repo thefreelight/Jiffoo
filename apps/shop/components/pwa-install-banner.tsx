@@ -6,6 +6,24 @@ import { Download, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { usePwaInstall } from '@/hooks/use-pwa-install';
+import { resolveRequestLocale } from '@/lib/request-locale';
+import type { Locale } from 'shared/src/i18n';
+
+type BannerCopy = { message: string; install: string; installing: string; installAriaLabel: string };
+
+/**
+ * The banner lives in the root layout, above the locale segment, so it has
+ * no translator: it resolves its copy from the URL and the browser languages.
+ */
+export const PWA_BANNER_COPY: Record<Locale, BannerCopy> = {
+  en: { message: 'Install our app for a better shopping experience', install: 'Install', installing: 'Installing...', installAriaLabel: 'Install app' },
+  'zh-Hans': { message: '安装我们的 App，获得更好的购物体验', install: '安装', installing: '安装中…', installAriaLabel: '安装应用' },
+  'zh-Hant': { message: '安裝我們的 App，獲得更好的購物體驗', install: '安裝', installing: '安裝中…', installAriaLabel: '安裝應用程式' },
+  ja: { message: 'アプリをインストールすると、より快適にショッピングできます', install: 'インストール', installing: 'インストール中…', installAriaLabel: 'アプリをインストール' },
+  ko: { message: '앱을 설치하면 더 편리하게 쇼핑할 수 있어요', install: '설치', installing: '설치 중…', installAriaLabel: '앱 설치' },
+  fr: { message: 'Installez notre application pour une meilleure expérience d’achat', install: 'Installer', installing: 'Installation…', installAriaLabel: 'Installer l’application' },
+  de: { message: 'Installieren Sie unsere App für ein besseres Einkaufserlebnis', install: 'Installieren', installing: 'Wird installiert…', installAriaLabel: 'App installieren' },
+};
 
 /** How long the banner stays visible before auto-dismissing. */
 const AUTO_DISMISS_MS = 5000;
@@ -33,11 +51,16 @@ export function isPwaInstallBannerSuppressedPath(pathname: string): boolean {
  * Automatically initializes PWA install detection and handles user install flow.
  */
 export function PwaInstallBanner({
-  installMessage = 'Install our app for a better shopping experience',
+  installMessage,
   position = 'bottom',
   className,
 }: PwaInstallBannerProps) {
   const pathname = usePathname();
+  const [browserLanguages, setBrowserLanguages] = React.useState<readonly string[]>([]);
+  React.useEffect(() => {
+    setBrowserLanguages(typeof navigator === 'undefined' ? [] : navigator.languages);
+  }, []);
+  const copy = PWA_BANNER_COPY[resolveRequestLocale(pathname, browserLanguages)];
   const {
     isInstallable,
     isInstalled,
@@ -204,7 +227,7 @@ export function PwaInstallBanner({
               <Download className="h-5 w-5 flex-shrink-0" />
             </motion.div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{installMessage}</p>
+              <p className="text-sm font-medium truncate">{installMessage ?? copy.message}</p>
               <AnimatePresence mode="wait">
                 {error && (
                   <motion.p
@@ -241,9 +264,9 @@ export function PwaInstallBanner({
                 'transition-colors duration-200',
                 'disabled:opacity-50 disabled:cursor-not-allowed'
               )}
-              aria-label="Install app"
+              aria-label={copy.installAriaLabel}
             >
-              {isPrompting ? 'Installing...' : 'Install'}
+              {isPrompting ? copy.installing : copy.install}
             </motion.button>
 
             <motion.button
