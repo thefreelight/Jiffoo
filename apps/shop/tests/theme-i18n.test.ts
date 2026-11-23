@@ -1,9 +1,12 @@
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const apiOrigin = vi.fn();
 vi.mock('@/lib/server-api-url', () => ({ resolveServerApiOrigin: () => apiOrigin() }));
 
-const { getThemeMessages, pickThemeNamespaces, registerThemeMessages } = await import('@/lib/theme-i18n');
+const { getThemeMessages } = await import('@/lib/theme-i18n-server');
+const { pickThemeNamespaces, registerThemeMessages } = await import('@/lib/theme-i18n');
 
 const REGISTRY_KEY = '__JIFFOO_THEME_I18N__';
 const root = globalThis as unknown as Record<string, unknown>;
@@ -20,6 +23,13 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.useRealTimers();
+});
+
+describe('client boundary', () => {
+  it('keeps the client-safe registry module free of server-only imports', async () => {
+    const source = await readFile(path.join(process.cwd(), 'lib', 'theme-i18n.ts'), 'utf8');
+    expect(source).not.toMatch(/next\/headers|server-api-url|resolveServerApiOrigin/);
+  });
 });
 
 describe('registerThemeMessages', () => {
