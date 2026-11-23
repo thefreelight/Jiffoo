@@ -1,4 +1,5 @@
 import type { EsimApiProduct } from '../api';
+import { pickCopy } from '../../site';
 
 /**
  * Destination registry — the i18n + alias layer for the route planner.
@@ -171,27 +172,33 @@ export function buildDestinationCatalog(products: EsimApiProduct[]): Destination
 }
 
 /** BOSS region prefix -> storefront display name (zh primary). */
-export const REGION_LABELS: Record<string, { zh: string; en: string }> = {
-  HKMO: { zh: '港澳', en: 'Hong Kong & Macao' },
-  SEA: { zh: '东南亚', en: 'Southeast Asia' },
-  JK: { zh: '日韩', en: 'Japan & Korea' },
-  APAC: { zh: '亚太', en: 'Asia-Pacific' },
-  EU: { zh: '欧洲', en: 'Europe' },
-  US: { zh: '美国', en: 'United States' },
-  AU: { zh: '澳新', en: 'Australia & NZ' },
-  GLOBAL: { zh: '全球', en: 'Global' },
-  JP: { zh: '日本', en: 'Japan' },
-  KR: { zh: '韩国', en: 'South Korea' },
-  TH: { zh: '泰国', en: 'Thailand' },
-  SG: { zh: '新加坡', en: 'Singapore' },
-  UK: { zh: '英国', en: 'United Kingdom' },
-  CN: { zh: '中国大陆', en: 'Mainland China' },
-  GC: { zh: '大中华', en: 'Greater China' },
+export const REGION_LABELS: Record<string, { zh: string; hant: string; en: string }> = {
+  HKMO: { zh: '港澳', hant: '港澳', en: 'Hong Kong & Macao' },
+  SEA: { zh: '东南亚', hant: '東南亞', en: 'Southeast Asia' },
+  JK: { zh: '日韩', hant: '日韓', en: 'Japan & Korea' },
+  APAC: { zh: '亚太', hant: '亞太', en: 'Asia-Pacific' },
+  EU: { zh: '欧洲', hant: '歐洲', en: 'Europe' },
+  US: { zh: '美国', hant: '美國', en: 'United States' },
+  AU: { zh: '澳新', hant: '澳新', en: 'Australia & NZ' },
+  GLOBAL: { zh: '全球', hant: '全球', en: 'Global' },
+  JP: { zh: '日本', hant: '日本', en: 'Japan' },
+  KR: { zh: '韩国', hant: '韓國', en: 'South Korea' },
+  TH: { zh: '泰国', hant: '泰國', en: 'Thailand' },
+  SG: { zh: '新加坡', hant: '新加坡', en: 'Singapore' },
+  UK: { zh: '英国', hant: '英國', en: 'United Kingdom' },
+  CN: { zh: '中国大陆', hant: '中國大陸', en: 'Mainland China' },
+  GC: { zh: '大中华', hant: '大中華', en: 'Greater China' },
 };
 
-export function regionLabelOf(defaultCode: string, locale?: string): { zh: string; en: string } | null {
-  const prefix = (defaultCode || '').split('-')[0];
-  return REGION_LABELS[prefix] || null;
+/**
+ * Region name in the storefront locale. Returns the resolved string so a
+ * caller cannot re-pick it with mismatched keys — REGION_LABELS is keyed
+ * zh/hant/en while pickCopy wants hans/hant/en, and mixing them silently
+ * falls back to English on the Chinese storefront.
+ */
+export function regionLabelOf(defaultCode: string, locale?: string): string | null {
+  const label = REGION_LABELS[(defaultCode || '').split('-')[0]];
+  return label ? pickCopy(locale, { en: label.en, hans: label.zh, hant: label.hant }) : null;
 }
 
 export function destinationLabel(code: string, locale?: string): string {

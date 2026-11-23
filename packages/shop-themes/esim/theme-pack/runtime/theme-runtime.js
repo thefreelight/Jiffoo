@@ -14486,25 +14486,25 @@
     return entries;
   }
   var REGION_LABELS = {
-    HKMO: { zh: "\u6E2F\u6FB3", en: "Hong Kong & Macao" },
-    SEA: { zh: "\u4E1C\u5357\u4E9A", en: "Southeast Asia" },
-    JK: { zh: "\u65E5\u97E9", en: "Japan & Korea" },
-    APAC: { zh: "\u4E9A\u592A", en: "Asia-Pacific" },
-    EU: { zh: "\u6B27\u6D32", en: "Europe" },
-    US: { zh: "\u7F8E\u56FD", en: "United States" },
-    AU: { zh: "\u6FB3\u65B0", en: "Australia & NZ" },
-    GLOBAL: { zh: "\u5168\u7403", en: "Global" },
-    JP: { zh: "\u65E5\u672C", en: "Japan" },
-    KR: { zh: "\u97E9\u56FD", en: "South Korea" },
-    TH: { zh: "\u6CF0\u56FD", en: "Thailand" },
-    SG: { zh: "\u65B0\u52A0\u5761", en: "Singapore" },
-    UK: { zh: "\u82F1\u56FD", en: "United Kingdom" },
-    CN: { zh: "\u4E2D\u56FD\u5927\u9646", en: "Mainland China" },
-    GC: { zh: "\u5927\u4E2D\u534E", en: "Greater China" }
+    HKMO: { zh: "\u6E2F\u6FB3", hant: "\u6E2F\u6FB3", en: "Hong Kong & Macao" },
+    SEA: { zh: "\u4E1C\u5357\u4E9A", hant: "\u6771\u5357\u4E9E", en: "Southeast Asia" },
+    JK: { zh: "\u65E5\u97E9", hant: "\u65E5\u97D3", en: "Japan & Korea" },
+    APAC: { zh: "\u4E9A\u592A", hant: "\u4E9E\u592A", en: "Asia-Pacific" },
+    EU: { zh: "\u6B27\u6D32", hant: "\u6B50\u6D32", en: "Europe" },
+    US: { zh: "\u7F8E\u56FD", hant: "\u7F8E\u570B", en: "United States" },
+    AU: { zh: "\u6FB3\u65B0", hant: "\u6FB3\u65B0", en: "Australia & NZ" },
+    GLOBAL: { zh: "\u5168\u7403", hant: "\u5168\u7403", en: "Global" },
+    JP: { zh: "\u65E5\u672C", hant: "\u65E5\u672C", en: "Japan" },
+    KR: { zh: "\u97E9\u56FD", hant: "\u97D3\u570B", en: "South Korea" },
+    TH: { zh: "\u6CF0\u56FD", hant: "\u6CF0\u570B", en: "Thailand" },
+    SG: { zh: "\u65B0\u52A0\u5761", hant: "\u65B0\u52A0\u5761", en: "Singapore" },
+    UK: { zh: "\u82F1\u56FD", hant: "\u82F1\u570B", en: "United Kingdom" },
+    CN: { zh: "\u4E2D\u56FD\u5927\u9646", hant: "\u4E2D\u570B\u5927\u9678", en: "Mainland China" },
+    GC: { zh: "\u5927\u4E2D\u534E", hant: "\u5927\u4E2D\u83EF", en: "Greater China" }
   };
   function regionLabelOf(defaultCode, locale) {
-    const prefix = (defaultCode || "").split("-")[0];
-    return REGION_LABELS[prefix] || null;
+    const label = REGION_LABELS[(defaultCode || "").split("-")[0]];
+    return label ? pickCopy(locale, { en: label.en, hans: label.zh, hant: label.hant }) : null;
   }
   function destinationLabel(code, locale) {
     const info = lookupDestination(code);
@@ -14750,10 +14750,10 @@
           children: normalizedProducts.map(({ product, esim, currency: rawCurrency }) => {
             const profile = getEsimTravelProfile(product, locale);
             const destinations = esim?.destinations || [];
-            const regionInfo = regionLabelOf(esim?.defaultCode || "", locale);
+            const regionName = regionLabelOf(esim?.defaultCode || "", locale);
             const isMultiCountry = destinations.length > 1;
-            const coverageLine = destinations.length > 0 ? isMultiCountry ? `${regionInfo ? pickCopy(locale, regionInfo) : ""}${regionInfo ? " \xB7 " : ""}${t({ en: `covers ${destinations.length} destinations`, hans: `\u8986\u76D6 ${destinations.length} \u4E2A\u76EE\u7684\u5730`, hant: `\u8986\u84CB ${destinations.length} \u500B\u76EE\u7684\u5730` })}` : `${t({ en: "Covers", hans: "\u8986\u76D6", hant: "\u8986\u84CB" })} ${destinations.map((code) => destinationLabel(code, locale)).join("/")}` : profile.coverageLabel;
-            const eyebrowLabel = destinations.length > 1 ? regionInfo ? pickCopy(locale, regionInfo) : t({ en: "Multi-country", hans: "\u591A\u56FD\u8054\u7A0B", hant: "\u591A\u570B\u806F\u7A0B" }) : regionInfo ? pickCopy(locale, regionInfo) : profile.cardEyebrow;
+            const coverageLine = destinations.length > 0 ? isMultiCountry ? `${regionName ? `${regionName} \xB7 ` : ""}${t({ en: `covers ${destinations.length} destinations`, hans: `\u8986\u76D6 ${destinations.length} \u4E2A\u76EE\u7684\u5730`, hant: `\u8986\u84CB ${destinations.length} \u500B\u76EE\u7684\u5730` })}` : `${t({ en: "Covers", hans: "\u8986\u76D6", hant: "\u8986\u84CB" })} ${destinations.map((code) => destinationLabel(code, locale)).join("/")}` : profile.coverageLabel;
+            const eyebrowLabel = destinations.length > 1 ? regionName || t({ en: "Multi-country", hans: "\u591A\u56FD\u8054\u7A0B", hant: "\u591A\u570B\u806F\u7A0B" }) : regionName || profile.cardEyebrow;
             const variantSalePrices = (Array.isArray(product.variants) ? product.variants : []).map((variant) => Number(variant.salePrice ?? variant.price ?? 0)).filter((price) => price > 0);
             const listPrice = Number(product.price || 0);
             const displayPrice = variantSalePrices.length > 0 ? Math.min(listPrice > 0 ? listPrice : Number.POSITIVE_INFINITY, ...variantSalePrices) : listPrice;
@@ -19420,7 +19420,10 @@
               className: "esim-pdp-media-goods object-cover"
             }
           ) : /* @__PURE__ */ jsx("div", { className: "aspect-[1.28/1] bg-[linear-gradient(160deg,#924a57_0%,#261922_44%,#0f1115_100%)] sm:aspect-[1.6/1]" }) }) : /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap items-center gap-2", children: [
-            /* @__PURE__ */ jsx("span", { className: "rounded-full border border-[color:color-mix(in_oklab,var(--esim-gold)_34%,transparent)] bg-[color:color-mix(in_oklab,var(--esim-gold)_10%,transparent)] px-3 py-1 text-[10px] font-bold tracking-[0.18em] text-[var(--esim-gold)]", children: profile.cardEyebrow }),
+            /* @__PURE__ */ jsx("span", { className: "rounded-full border border-[color:color-mix(in_oklab,var(--esim-gold)_34%,transparent)] bg-[color:color-mix(in_oklab,var(--esim-gold)_10%,transparent)] px-3 py-1 text-[10px] font-bold tracking-[0.18em] text-[var(--esim-gold)]", children: regionLabelOf(
+              normalizedProduct?.typeData?.esim?.defaultCode || remoteEsim?.defaultCode || "",
+              locale
+            ) || profile.cardEyebrow }),
             /* @__PURE__ */ jsx("span", { className: "rounded-full border border-[var(--esim-line)] px-3 py-1 text-[10px] tracking-[0.16em] text-[var(--esim-copy)]", children: profile.deliveryLabel })
           ] }),
           /* @__PURE__ */ jsxs("div", { className: "mt-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4", children: [
@@ -20035,7 +20038,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "esim",
-      version: "0.0.20",
+      version: "0.0.21",
       target: "shop"
     }
   };
