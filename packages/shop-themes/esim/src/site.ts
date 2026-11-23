@@ -1,5 +1,6 @@
 import type { ThemeConfig } from 'shared/src/types/theme';
 import { themeMessage } from './i18n';
+import { pluginMessage } from './i18n/overlay';
 
 export interface EsimSiteConfig {
   brandName: string;
@@ -29,16 +30,19 @@ function zhModeOf(locale: string | undefined | null): ZhMode {
 /**
  * Resolve a piece of theme copy for the storefront locale.
  *
- * zh-Hans / zh-Hant read their inline `hans` / `hant` entries. ja / ko / fr /
- * de take an explicit entry when the call site has one, otherwise the theme
- * message catalog (`src/i18n`) translates the English source — so a string
- * is translated once in the catalog instead of four times at every call
- * site. Anything unresolved falls back to English.
+ * A translation kept in the Store Localization (i18n) plugin wins over
+ * everything. Otherwise zh-Hans / zh-Hant read their inline `hans` / `hant`
+ * entries, and ja / ko / fr / de take an explicit entry when the call site
+ * has one, else the theme message catalog (`src/i18n`) translates the
+ * English source — so a string is translated once in the catalog instead of
+ * four times at every call site. Anything unresolved falls back to English.
  */
 /** Theme copy in every storefront locale; only `en` is mandatory. */
 export type ThemeCopy = { en: string; hans?: string; hant?: string; ja?: string; ko?: string; fr?: string; de?: string };
 
 export function pickCopy(locale: string | undefined, copy: ThemeCopy): string {
+  const override = copy.en ? pluginMessage(locale, copy.en) : null;
+  if (override !== null) return override;
   const catalog = copy.en ? themeMessage(locale, copy.en) : null;
   if (locale === 'ja') return copy.ja ?? catalog ?? copy.en;
   if (locale === 'ko') return copy.ko ?? catalog ?? copy.en;
@@ -53,6 +57,8 @@ export function pickCopy(locale: string | undefined, copy: ThemeCopy): string {
 function pickLocalized(configured: string | undefined, englishDefault: string, zhHans: string, zhHant: string, locale?: string): string {
   const value = configured?.trim();
   if (value && value !== englishDefault) return value;
+  const override = pluginMessage(locale, englishDefault);
+  if (override !== null) return override;
   const mode = zhModeOf(locale);
   if (mode === 'zh-Hant') return zhHant;
   if (mode === 'zh-Hans') return zhHans;

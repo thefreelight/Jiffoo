@@ -33,6 +33,7 @@ import { InstalledPluginsRail } from '@/components/extensions/InstalledPluginsRa
 import { OfficialBadge } from '@/components/extensions/ExtensionVisuals';
 import { PluginInstanceManager } from '@/components/plugins/PluginInstanceManager';
 import { RemoteRadarJobsNativeWorkspace } from '@/components/plugins/RemoteRadarJobsNativeWorkspace';
+import { I18nTranslationsPanel } from '@/components/plugins/I18nTranslationsPanel';
 import { SupportHubInboxWorkspace } from '@/components/plugins/SupportHubInboxWorkspace';
 import { SupportHubAiPanel } from '@/components/plugins/SupportHubAiPanel';
 import { useJobsAdminCapability } from '@/hooks/use-jobs-admin-capability';
@@ -1694,10 +1695,16 @@ export function PluginWorkspace({ slug }: { slug: string }) {
           <div className="space-y-5">
             <div className="space-y-5">
               {slug === 'i18n' ? (
-                <I18nNativeWorkspace
-                  installationId={selectedInstance?.installationId || 'default'}
-                  disabled={!selectedInstance}
-                />
+                <div className="space-y-5">
+                  <I18nNativeWorkspace
+                    installationId={selectedInstance?.installationId || 'default'}
+                    disabled={!selectedInstance}
+                  />
+                  <I18nTranslationsPanel
+                    installationId={selectedInstance?.installationId || 'default'}
+                    disabled={!selectedInstance}
+                  />
+                </div>
               ) : null}
 
               {slug === 'odoo' && data.runtimeType !== 'cloudflare-native' ? (

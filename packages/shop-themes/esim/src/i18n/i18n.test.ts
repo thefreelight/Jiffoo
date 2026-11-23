@@ -4,7 +4,7 @@ import { join, relative } from 'node:path';
 import test from 'node:test';
 import ts from 'typescript';
 import { CATALOG_LOCALES, themeMessage } from './index';
-import { pickCopy } from '../site';
+import { pickCopy, resolveEsimSiteConfig } from '../site';
 import { itemStatusLabel, localeTag, orderStatusLabel } from '../lib/esim/order-copy';
 import {
   buildDestinationCatalog,
@@ -132,6 +132,31 @@ test('pickCopy resolves each storefront locale without falling back to English b
   // Unknown sources and unknown locales fall back to English rather than crashing.
   assert.equal(pickCopy('ja', { en: 'zz-untranslated-source' }), 'zz-untranslated-source');
   assert.equal(pickCopy(undefined, copy), 'Hello');
+});
+
+test('translations kept in the Store Localization plugin win over the built-in copy', () => {
+  const root = globalThis as unknown as Record<string, unknown>;
+  root.__JIFFOO_THEME_I18N__ = {
+    messages: {
+      de: { 'theme.esim': { Password: 'Kennwort (Plugin)', 'Shop eSIM Plans': 'Tarife im Plugin' }, common: { Password: 'ignored' } },
+      'zh-Hans': { 'theme.esim': { Password: '插件译文' } },
+      ja: { 'theme.esim': { Password: '   ' } },
+    },
+  };
+  try {
+    // Only this theme's namespace is consulted, for the page's own locale only.
+    assert.equal(pickCopy('de', { en: 'Password', hans: '密码', hant: '密碼' }), 'Kennwort (Plugin)');
+    assert.equal(pickCopy('zh-Hans', { en: 'Password', hans: '密码', hant: '密碼' }), '插件译文');
+    // The theme's defaultConfig copy goes through the same override.
+    assert.equal(resolveEsimSiteConfig(undefined, 'de').primaryCtaLabel, 'Tarife im Plugin');
+    // A blank plugin value means "no override": built-ins stay in charge.
+    assert.equal(pickCopy('ja', { en: 'Password', hans: '密码', hant: '密碼' }), 'パスワード');
+    assert.equal(pickCopy('en', { en: 'Password', hans: '密码', hant: '密碼' }), 'Password');
+  } finally {
+    delete root.__JIFFOO_THEME_I18N__;
+  }
+  // Without the registry nothing changes.
+  assert.equal(pickCopy('de', { en: 'Password', hans: '密码', hant: '密碼' }), 'Passwort');
 });
 
 test('order status and date tags follow the storefront locale', () => {
