@@ -66,14 +66,17 @@ export function itemStatusLabel(status: string, locale?: string): string {
  */
 export function statusTone(status: string): string {
   const normalized = String(status).toUpperCase();
+  // whitespace-nowrap: a short Chinese label otherwise breaks across two
+  // lines inside a narrow pill ("已交/付").
+  const base = 'whitespace-nowrap ';
   if (normalized === 'DELIVERED' || normalized === 'COMPLETED' || normalized === 'FULFILLED') {
-    return 'bg-[color:color-mix(in_oklab,var(--esim-success)_16%,transparent)] text-[var(--esim-success)]';
+    return base + 'bg-[color:color-mix(in_oklab,var(--esim-success)_16%,transparent)] text-[var(--esim-success)]';
   }
   if (normalized === 'PENDING' || normalized === 'PAID' || normalized === 'PROCESSING' || normalized === 'SHIPPED') {
-    return 'bg-[color:color-mix(in_oklab,var(--esim-warning)_16%,transparent)] text-[var(--esim-warning)]';
+    return base + 'bg-[color:color-mix(in_oklab,var(--esim-warning)_16%,transparent)] text-[var(--esim-warning)]';
   }
   if (normalized === 'CANCELLED' || normalized === 'CANCELED' || normalized === 'REFUNDED' || normalized === 'FAILED') {
-    return 'bg-[color:color-mix(in_oklab,var(--esim-danger)_18%,transparent)] text-[var(--esim-danger)]';
+    return base + 'bg-[color:color-mix(in_oklab,var(--esim-danger)_18%,transparent)] text-[var(--esim-danger)]';
   }
-  return 'bg-[var(--esim-primary-soft)] text-[var(--esim-primary-strong)]';
+  return base + 'bg-[var(--esim-primary-soft)] text-[var(--esim-primary-strong)]';
 }
