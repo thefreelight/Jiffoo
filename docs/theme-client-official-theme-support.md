@@ -70,6 +70,7 @@ That turns the label into a release-quality rule, not just a planning note.
 | `digital-vault` | Implemented | Planned | Planned | Embedded digital-goods storefront with business logic expected to move to plugins or backend modules. |
 | `navtoai` | Implemented | Planned | Planned | Embedded directory storefront with lower current API coupling. |
 | `app-landingpage` | Implemented | Limited | Limited | App-download landing page with local auth/cart/API code and brand-specific download assets. |
+| `esim` | Implemented | Limited | Limited | Route-first eSIM storefront on a versioned runtime bundle; it owns a local API client for orders, install sessions and affiliate, so non-web clients should not claim clean support yet. |
 | `esim-mall` | Implemented | Limited | Limited | Theme owns a local API client today, so non-web clients should not claim clean support yet. |
 | `yevbi` | Implemented | Limited | Limited | Theme uses the theme SDK and plugin-backed storefront fetches, which raises adapter complexity. |
 | `imagic-studio` | Implemented | Experimental | Experimental | Plugin-heavy creative workflow theme with direct plugin API calls and async generation flows. |
@@ -97,6 +98,7 @@ These are strong candidates once the baseline adapter path is proven.
 
 ### Later or capability-heavy wave
 
+- `esim`
 - `esim-mall`
 - `app-landingpage`
 - `yevbi`
