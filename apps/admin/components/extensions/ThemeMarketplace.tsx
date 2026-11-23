@@ -225,7 +225,6 @@ function ThemePreview({ item, className }: { item: OfficialCatalogItem; classNam
 
   if (showImage) {
     return (
-      // eslint-disable-next-line @next/next/no-img-element
       <img
         src={candidateSources[0]}
         alt={item.name}
@@ -320,7 +319,6 @@ export function ThemeMarketplace() {
     const counts: Record<TagKey, number> = { minimal: 0, business: 0, dark: 0, fresh: 0, creative: 0 };
     for (const item of items) counts[tagOf(item)] += 1;
     return counts;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, usingDemoStyles]);
 
   const activeSlug = activeTheme?.slug;
@@ -345,7 +343,6 @@ export function ThemeMarketplace() {
     }
     if (sortMode === 'name') list.sort((a, b) => a.name.localeCompare(b.name));
     return list;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, mineOnly, activeTag, searchTerm, sortMode, usingDemoStyles]);
 
   const themeList: ThemeMeta[] = installedThemes?.items || [];

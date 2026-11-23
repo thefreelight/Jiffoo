@@ -231,6 +231,13 @@ async function exchange(binding: string, code: string, session?: { id: string } 
   return response as Response;
 }
 
+
+/** Unwraps a value an assertion depends on: fails with a clear message instead of a TypeError. */
+function must<T>(value: T | null | undefined, what: string): T {
+  if (value === null || value === undefined) throw new Error(`expected ${what} to exist`);
+  return value;
+}
+
 describe('providers endpoint', () => {
   beforeEach(() => {
     db = state();
@@ -365,7 +372,7 @@ describe('callback and handoff', () => {
     const env = makeEnv();
     const start = await tryNativeIdentityLogin(post('/api/v1/auth/identity/start', { providerSlug: 'google-auth', returnTo: '/en/account', locale: 'en' }, { origin: 'https://shop.instance.test' }), env);
     const setCookie = (start as Response).headers.get('set-cookie') ?? '';
-    const binding = setCookie.match(/identity_binding=([^;]+)/)?.[1]!;
+    const binding = must(setCookie.match(/identity_binding=([^;]+)/)?.[1], 'identity_binding cookie');
     const startBody = await (start as Response).json() as { data: { authorizationUrl: string } };
     const state = new URL(startBody.data.authorizationUrl).searchParams.get('state')!;
     const tx = db.transactions[0];
@@ -406,7 +413,7 @@ describe('exchange (handoff consume)', () => {
 
   it('creates an identity-only customer and issues a shop session', async () => {
     const { binding, location } = await startAndCallback();
-    const code = location!.match(/#code=([^&]+|[^#]*)/)?.[0]?.replace('#code=', '')!;
+    const code = must(location!.match(/#code=([^&]+|[^#]*)/)?.[0]?.replace('#code=', ''), 'code');
     const response = await exchange(binding!, decodeURIComponent(code));
     expect(response.status).toBe(200);
     const body = await response.json() as { data: { user: { emailVerified: boolean }; access_token: string } };
@@ -424,7 +431,7 @@ describe('exchange (handoff consume)', () => {
     await startAndCallback({ email: 'buyer@example.com', subject: 'sub-1' });
     const location = await (async () => {
       const { location: l, binding } = await startAndCallback({ email: 'buyer@example.com', subject: 'sub-2' });
-      const code = l!.match(/#code=([^&]+|[^#]*)/)?.[0]?.replace('#code=', '')!;
+      const code = must(l!.match(/#code=([^&]+|[^#]*)/)?.[0]?.replace('#code=', ''), 'code');
       // A password account already owns the claimed email address.
       findNativeUserByEmail.mockResolvedValue({ id: 'pw-user-1', email: 'buyer@example.com', username: 'pw', role: 'USER', is_active: 1 });
       const response = await exchange(binding!, decodeURIComponent(code));
@@ -441,7 +448,7 @@ describe('exchange (handoff consume)', () => {
 
   it('rejects a wrong binding cookie', async () => {
     const { location } = await startAndCallback();
-    const code = location!.match(/#code=([^&]+|[^#]*)/)?.[0]?.replace('#code=', '')!;
+    const code = must(location!.match(/#code=([^&]+|[^#]*)/)?.[0]?.replace('#code=', ''), 'code');
     const response = await exchange('other-binding-value-aaaaaaaaaaaaaa', decodeURIComponent(code));
     expect(response.status).toBe(400);
     const body = await response.json() as { error: { code: string } };
@@ -451,7 +458,7 @@ describe('exchange (handoff consume)', () => {
 
   it('consumes the handoff exactly once', async () => {
     const { binding, location } = await startAndCallback();
-    const code = location!.match(/#code=([^&]+|[^#]*)/)?.[0]?.replace('#code=', '')!;
+    const code = must(location!.match(/#code=([^&]+|[^#]*)/)?.[0]?.replace('#code=', ''), 'code');
     const first = await exchange(binding!, decodeURIComponent(code));
     expect(first.status).toBe(200);
     const replay = await exchange(binding!, decodeURIComponent(code));
@@ -460,7 +467,7 @@ describe('exchange (handoff consume)', () => {
 
   it('excludes staff accounts from customer identity sessions', async () => {
     const { binding, location } = await startAndCallback();
-    const code = location!.match(/#code=([^&]+|[^#]*)/)?.[0]?.replace('#code=', '')!;
+    const code = must(location!.match(/#code=([^&]+|[^#]*)/)?.[0]?.replace('#code=', ''), 'code');
     // First exchange creates the customer; make them staff afterwards via a
     // membership, then a second identity login for a different subject hits
     // the guard through the existing-identity path.
@@ -468,7 +475,7 @@ describe('exchange (handoff consume)', () => {
     expect(first.status).toBe(200);
     db.memberships.push({ user_id: db.users[0].id, role: 'SUPPORT_AGENT', status: 'ACTIVE' });
     const { binding: b2, location: l2 } = await startAndCallback({ subject: 'sub-1', email: 'buyer@example.com' });
-    const code2 = l2!.match(/#code=([^&]+|[^#]*)/)?.[0]?.replace('#code=', '')!;
+    const code2 = must(l2!.match(/#code=([^&]+|[^#]*)/)?.[0]?.replace('#code=', ''), 'code');
     const second = await exchange(b2!, decodeURIComponent(code2));
     expect(second.status).toBe(400);
     const body = await second.json() as { error: { code: string } };
@@ -477,10 +484,10 @@ describe('exchange (handoff consume)', () => {
 
   it('logs in the bound user when the identity already exists', async () => {
     const { binding, location } = await startAndCallback({ subject: 'sub-1' });
-    const code = location!.match(/#code=([^&]+|[^#]*)/)?.[0]?.replace('#code=', '')!;
+    const code = must(location!.match(/#code=([^&]+|[^#]*)/)?.[0]?.replace('#code=', ''), 'code');
     await exchange(binding!, decodeURIComponent(code));
     const { binding: b2, location: l2 } = await startAndCallback({ subject: 'sub-1' });
-    const code2 = l2!.match(/#code=([^&]+|[^#]*)/)?.[0]?.replace('#code=', '')!;
+    const code2 = must(l2!.match(/#code=([^&]+|[^#]*)/)?.[0]?.replace('#code=', ''), 'code');
     const second = await exchange(b2!, decodeURIComponent(code2));
     expect(second.status).toBe(200);
     expect(db.users).toHaveLength(1);
@@ -501,7 +508,7 @@ describe('account linking', () => {
     authenticateNativeUser.mockResolvedValue({ id: 'user-1', email: 'me@example.com', username: 'me', role: 'USER' });
     const env = makeEnv();
     const start = await tryNativeIdentityLogin(post('/api/v1/auth/identity/start', { providerSlug: 'google-auth', intent: 'link', returnTo: '/en/settings', locale: 'en' }, { origin: 'https://shop.instance.test' }), env);
-    const binding = ((start as Response).headers.get('set-cookie') ?? '').match(/identity_binding=([^;]+)/)?.[1]!;
+    const binding = must(((start as Response).headers.get('set-cookie') ?? '').match(/identity_binding=([^;]+)/)?.[1], 'identity_binding cookie');
     const startBody = await (start as Response).json() as { data: { authorizationUrl: string } };
     const state = new URL(startBody.data.authorizationUrl).searchParams.get('state')!;
     const tx = db.transactions[0];
@@ -509,7 +516,7 @@ describe('account linking', () => {
     const claims = { iss: 'https://accounts.google.com', aud: 'test-client-id', sub: 'sub-link', email: 'other-email@example.com', email_verified: true, exp: Math.floor(Date.now() / 1000) + 600, nonce: material.nonce };
     vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ id_token: idToken(claims) }), { status: 200 })));
     const callback = await tryNativeIdentityLogin(new Request(`https://api.instance.test/api/v1/auth/identity/google-auth/callback?state=${encodeURIComponent(state)}`, { method: 'GET' }), env);
-    const code = callback!.headers.get('location')!.match(/#code=([^&]+|[^#]*)/)?.[0]!.replace('#code=', '')!;
+    const code = must(callback!.headers.get('location')!.match(/#code=([^&]+|[^#]*)/)?.[0]?.replace('#code=', ''), 'code');
     vi.unstubAllGlobals();
     const linked = await exchange(binding, decodeURIComponent(code), { id: 'user-1' });
     expect(linked.status).toBe(200);
@@ -524,7 +531,7 @@ describe('account linking', () => {
     db.identities.push({ id: 'i-existing', user_id: 'user-9', provider_slug: 'google-auth', issuer: 'https://accounts.google.com', subject: 'sub-link', created_at: new Date().toISOString() });
     authenticateNativeUser.mockResolvedValue({ id: 'user-1', email: 'me@example.com', username: 'me', role: 'USER' });
     const { binding, location } = await startAndCallback({ intent: 'link', subject: 'sub-link' });
-    const code = location!.match(/#code=([^&]+|[^#]*)/)?.[0]?.replace('#code=', '')!;
+    const code = must(location!.match(/#code=([^&]+|[^#]*)/)?.[0]?.replace('#code=', ''), 'code');
     const linked = await exchange(binding!, decodeURIComponent(code), { id: 'user-1' });
     expect(linked.status).toBe(409);
     const body = await linked.json() as { error: { code: string } };
@@ -776,7 +783,7 @@ describe('multi-provider web flows', () => {
     vi.unstubAllGlobals();
     expect(callback?.status).toBe(302);
     expect(tokenCode).toBe('real-auth-code');
-    const code = (callback!.headers.get('location') ?? '').match(/#code=([^&]+|[^#]*)/)?.[0]?.replace('#code=', '')!;
+    const code = must((callback!.headers.get('location') ?? '').match(/#code=([^&]+|[^#]*)/)?.[0]?.replace('#code=', ''), 'code');
     const response = await exchange(binding!, decodeURIComponent(code));
     expect(response.status).toBe(200);
     expect(db.identities[0].provider_slug).toBe('google-auth');

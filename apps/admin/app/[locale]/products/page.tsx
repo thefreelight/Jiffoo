@@ -262,7 +262,6 @@ export default function ProductsPage() {
                       <td className="px-3 py-3">
                         <div className="flex items-center gap-3">
                           {imageUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element
                             <img src={imageUrl} alt={name} className="h-10 w-10 shrink-0 rounded-lg object-cover" />
                           ) : (
                             <ProductArt

@@ -47,6 +47,13 @@ const mountAdminRequest = (path: string, init?: RequestInit) =>
 const gatewayRequest = (path: string, init?: RequestInit) =>
   new Request(`https://api.example/api/v1/extensions/plugin/support-hub/api${path}`, init);
 
+
+/** Unwraps a value an assertion depends on: fails with a clear message instead of a TypeError. */
+function must<T>(value: T | null | undefined, what: string): T {
+  if (value === null || value === undefined) throw new Error(`expected ${what} to exist`);
+  return value;
+}
+
 describe('native support hub adapter', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -489,7 +496,7 @@ describe('native support hub 0.0.4 chat', () => {
     }), { DB: db } as never);
     stubFetch();
     const sent = await chatPost(db, { visitorToken: 'visitor_12345678', message: 'inbox question' });
-    const conversationId = (await sent?.json()).data.conversationId;
+    const conversationId = (await must(sent, 'response').json()).data.conversationId;
 
     const list = await tryNativeSupportHub(gatewayRequest('/admin/conversations'), { DB: db } as never);
     const listBody = await list?.json();
@@ -557,7 +564,7 @@ describe('native support hub 0.0.5 agent takeover', () => {
     stubFetch();
 
     const first = await chatPost(db, { visitorToken: 'visitor_agent_e2e', message: 'first question' });
-    const conversationId = (await first?.json()).data.conversationId;
+    const conversationId = (await must(first, 'response').json()).data.conversationId;
 
     const reply = await tryNativeSupportHub(gatewayRequest(`/admin/conversations/${conversationId}/reply`, {
       method: 'POST', body: JSON.stringify({ message: '人工客服回复 Agent here' }),
@@ -592,10 +599,10 @@ describe('native support hub 0.0.5 agent takeover', () => {
     await chatPost(db, { visitorToken: 'visitor_unread_e2e', message: 'hello?' });
 
     const before = await tryNativeSupportHub(gatewayRequest('/admin/conversations/unread-count'), { DB: db } as never);
-    expect((await before?.json()).data.unread).toBe(1);
+    expect((await must(before, 'response').json()).data.unread).toBe(1);
 
     const conversationList = await tryNativeSupportHub(gatewayRequest('/admin/conversations'), { DB: db } as never);
-    const conversationId = (await conversationList?.json()).data.conversations[0].id;
+    const conversationId = (await must(conversationList, 'response').json()).data.conversations[0].id;
 
     const marked = await tryNativeSupportHub(gatewayRequest('/admin/conversations/mark-read', {
       method: 'POST', body: JSON.stringify({ conversationId }),
@@ -603,13 +610,13 @@ describe('native support hub 0.0.5 agent takeover', () => {
     expect(marked?.status).toBe(200);
 
     const after = await tryNativeSupportHub(gatewayRequest('/admin/conversations/unread-count'), { DB: db } as never);
-    expect((await after?.json()).data.unread).toBe(0);
+    expect((await must(after, 'response').json()).data.unread).toBe(0);
 
     // let the clock advance past the read timestamp (same-millisecond writes compare equal)
     await new Promise((resolve) => setTimeout(resolve, 5));
     await chatPost(db, { visitorToken: 'visitor_unread_e2e', message: 'one more' });
     const reflagged = await tryNativeSupportHub(gatewayRequest('/admin/conversations/unread-count'), { DB: db } as never);
-    expect((await reflagged?.json()).data.unread).toBe(1);
+    expect((await must(reflagged, 'response').json()).data.unread).toBe(1);
   });
 
   it('rejects invalid reply payloads and unknown conversations', async () => {
@@ -660,7 +667,7 @@ describe('native support hub RBAC enforcement', () => {
     await expect(deniedSettings?.json()).resolves.toMatchObject({ error: { code: 'FORBIDDEN' } });
 
     const list = await tryNativeSupportHub(gatewayRequest('/admin/conversations'), { DB: db } as never);
-    const conversationId = (await list?.json()).data.conversations[0].id;
+    const conversationId = (await must(list, 'response').json()).data.conversations[0].id;
     const reply = await tryNativeSupportHub(gatewayRequest(`/admin/conversations/${conversationId}/reply`, {
       method: 'POST', body: JSON.stringify({ message: 'agent on it' }),
     }), { DB: db } as never);

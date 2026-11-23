@@ -109,7 +109,7 @@ export default function ProductDetailClient({ product, locale }: ProductDetailCl
         {summaryImages.length > 0 && (
           <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
             {summaryImages.map((src, index) => (
-              // eslint-disable-next-line @next/next/no-img-element -- plain SSR images for crawler-visible first paint
+              // Plain SSR images for a crawler-visible first paint.
               <img
                 key={src}
                 src={src}
