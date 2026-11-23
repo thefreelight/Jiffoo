@@ -500,9 +500,12 @@ async function createPaymentSession(request: Request, env: CheckoutEnv, user: Na
   if (existing) return success({ sessionId: existing.id, url: existing.session_url, expiresAt: existing.expires_at }, 200);
   const order = JSON.parse(row.payload) as Record<string, unknown>;
   const storefront = storefrontOrigin(request);
+  // The order id rides along on the default return URL so the payment-result
+  // page can locate the order straight from the address bar, even if its
+  // session verification call ever fails again.
   const successUrl = typeof body.successUrl === 'string'
     ? body.successUrl
-    : `${storefront}/payment/success?session_id={CHECKOUT_SESSION_ID}`;
+    : `${storefront}/payment/success?session_id={CHECKOUT_SESSION_ID}&orderId=${encodeURIComponent(body.orderId)}`;
   const cancelUrl = typeof body.cancelUrl === 'string' ? body.cancelUrl : `${storefront}/checkout`;
   const secret = (await getNativeStripeSecret(env, 'secretKey', env.STRIPE_SECRET_KEY)).value;
   const stripe = await fetch('https://api.stripe.com/v1/checkout/sessions', {
@@ -989,7 +992,12 @@ export async function tryNativeCheckout(
     || (/^\/api\/v1\/orders\/[^/]+\/cancel$/.test(url.pathname) && request.method === 'POST')
     || ((url.pathname === '/api/v1/payments/sessions' || url.pathname === '/api/v1/payments/create-session') && request.method === 'POST')
     || (url.pathname === '/api/v1/payments/intents' && request.method === 'POST')
-    || (/^\/api\/v1\/payments\/sessions\/[^/]+$/.test(url.pathname) && request.method === 'GET');
+    || (/^\/api\/v1\/payments\/sessions\/[^/]+$/.test(url.pathname) && request.method === 'GET')
+    // The spelling the storefront's payment-result page actually calls.
+    // Without it the request fell through to the legacy backend, which knows
+    // nothing about the session and answers "pending / unknown" with no
+    // orderId — leaving the success page unable to find the order.
+    || (/^\/api\/v1\/payments\/verify\/[^/]+$/.test(url.pathname) && request.method === 'GET');
   if (!relevant) return null;
   if (String(env.NATIVE_CHECKOUT_ENABLED) !== 'true') return null;
   const user = await authenticateNativeUser(request, env);
