@@ -2,9 +2,10 @@ import React from 'react';
 import { AlertTriangle, CheckCircle2, Copy, Loader2, Package, RefreshCw } from 'lucide-react';
 import type { OrderSuccessPageProps } from 'shared/src/types/theme';
 import { EsimApiError, getEsimInstallSession, getEsimOrder, getOrderIdFromLocation, type EsimInstallSession } from '../lib/api';
+import { planTitle } from '../lib/esim/catalog';
 import { formatOrderDate } from '../lib/esim/order-copy';
 import { InstallSessionPanel } from './InstallSessionPanel';
-import { pickCopy, resolveEsimSiteConfig } from '../site';
+import { type ThemeCopy, pickCopy, resolveEsimSiteConfig } from '../site';
 
 function copyToClipboard(value: string) {
   if (!value || typeof navigator === 'undefined' || !navigator.clipboard?.writeText) return;
@@ -30,7 +31,7 @@ export const OrderSuccessPage = React.memo(function OrderSuccessPage({
   locale,
 }: OrderSuccessPageProps & { order?: { id?: string } | null }) {
   const site = resolveEsimSiteConfig(config);
-  const t = (copy: { en: string; hans: string; hant: string }) => pickCopy(locale, copy);
+  const t = (copy: ThemeCopy) => pickCopy(locale, copy);
   const orderId = order?.id || getOrderIdFromLocation() || '';
 
   const [installSession, setInstallSession] = React.useState<EsimInstallSession | null>(null);
@@ -182,7 +183,7 @@ export const OrderSuccessPage = React.memo(function OrderSuccessPage({
               <div className="flex gap-3">
                 <div className="h-16 w-20 overflow-hidden rounded-[0.8rem] bg-[linear-gradient(160deg,#924a57_0%,#261922_44%,#0f1115_100%)]" />
                 <div>
-                  <p className="text-sm font-medium text-[var(--esim-ink)]">{installSession.packageTitle}</p>
+                  <p className="text-sm font-medium text-[var(--esim-ink)]">{planTitle(installSession.defaultCode, installSession.packageTitle, locale)}</p>
                   <p className="mt-1 text-xs text-[var(--esim-copy-soft)]">{installSession.smdpAddress || t({ en: 'eSIM activation', hans: 'eSIM 激活', hant: 'eSIM 啟用' })}</p>
                   <p className="mt-1 text-xs text-[var(--esim-copy-soft)]">
                     {installSession.status === 'pending_payment'

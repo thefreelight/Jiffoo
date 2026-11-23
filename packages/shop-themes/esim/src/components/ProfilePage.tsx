@@ -25,7 +25,8 @@ import {
   UserRound,
   Users, MapPin } from 'lucide-react';
 import type { ProfilePageProps } from 'shared/src/types/theme';
-import { pickCopy, resolveEsimSiteConfig } from '../site';
+import { pickCopy, resolveEsimSiteConfig, type ThemeCopy } from '../site';
+import { localeTag } from '../lib/esim/order-copy';
 import { getEsimAssets, redeemEsimCode, EsimApiError, type EsimAsset } from '../lib/api';
 
 const SCRIPT_FONT =
@@ -90,10 +91,25 @@ const PROMO_SCENE = svgBackgroundUri(
 const GOLD_GRADIENT_BG =
   'bg-[linear-gradient(145deg,color-mix(in_oklab,var(--esim-gold)_82%,white),color-mix(in_oklab,var(--esim-gold)_65%,black))]';
 
+/** eSIM status enum -> label in every storefront locale (never show the raw enum). */
+const ESIM_STATUS: Record<string, ThemeCopy> = {
+  ACTIVE: { en: 'Active', hans: '已激活', hant: '已啟用', ja: 'アクティブ', ko: '활성', fr: 'Actif', de: 'Aktiv' },
+  INACTIVE: { en: 'Inactive', hans: '未激活', hant: '未啟用', ja: '未アクティブ', ko: '비활성', fr: 'Inactif', de: 'Inaktiv' },
+  SUSPENDED: { en: 'Suspended', hans: '已暂停', hant: '已暫停', ja: '利用停止中', ko: '일시 정지', fr: 'Suspendu', de: 'Gesperrt' },
+  EXPIRED: { en: 'Expired', hans: '已过期', hant: '已過期', ja: '有効期限切れ', ko: '만료됨', fr: 'Expiré', de: 'Abgelaufen' },
+  USED: { en: 'Used', hans: '已使用', hant: '已使用', ja: '使用済み', ko: '사용됨', fr: 'Utilisé', de: 'Verwendet' },
+};
+
+function esimStatusLabel(status: string | undefined, locale?: string): string {
+  const raw = String(status || 'ACTIVE');
+  const copy = ESIM_STATUS[raw.toUpperCase()];
+  return copy ? pickCopy(locale, copy) : raw.replace(/_/g, ' ');
+}
+
 function formatDate(iso: string, locale?: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return '—';
-  return date.toLocaleDateString(locale === 'zh-Hant' ? 'zh-TW' : 'en-US', {
+  return date.toLocaleDateString(localeTag(locale), {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -158,7 +174,7 @@ function MyEsimAssets({ apiBaseUrl, email, locale }: { apiBaseUrl: string; email
                 {asset.label || pickCopy(locale, { en: 'Bokmoo eSIM', hans: 'Bokmoo eSIM', hant: 'Bokmoo eSIM' })}
               </p>
               <span className="rounded-full border border-[color:color-mix(in_oklab,var(--esim-gold)_34%,transparent)] px-2 py-0.5 text-[10px] tracking-[0.14em] text-[var(--esim-gold)]">
-                {(asset.status || 'ACTIVE').toUpperCase()}
+                {esimStatusLabel(asset.status, locale)}
               </span>
             </div>
             <p className="mt-1.5 font-mono text-xs text-[var(--esim-copy-soft)]">ICCID ····{asset.iccid.slice(-6)}</p>
@@ -198,7 +214,9 @@ export const ProfilePage = React.memo(function ProfilePage({
         onNavigate(path);
         return;
       }
-      const prefix = locale === 'zh-Hant' ? '/zh-Hant' : locale === 'zh-Hans' ? '/zh-Hans' : '/en';
+      // Keep the shopper's language on in-account navigation (it used to drop
+      // every non-Chinese, non-English locale back to /en).
+      const prefix = locale && locale !== 'en' ? `/${locale}` : '/en';
       window.location.assign(`${prefix}${path}`);
     },
     [onNavigate, isZhHant]
@@ -335,17 +353,14 @@ export const ProfilePage = React.memo(function ProfilePage({
   // The mockup greets with the full account name (an email address in
   // practice), so do not trim name-like values to a first word.
   const firstName = displayName ? displayName.split(/\s+/)[0] : '';
-  const greeting = firstName
-    ? locale === 'zh-Hant'
-      ? `你好，${firstName}！`
-      : locale === 'zh-Hans'
-        ? `你好，${firstName}！`
-        : `Hi ${firstName}!`
-    : locale === 'zh-Hant'
-      ? '你好！'
-      : locale === 'zh-Hans'
-        ? '你好！'
-        : 'Hi there!';
+  const greeting = (() => {
+    if (locale === 'ja') return firstName ? `${firstName} さん、こんにちは。` : 'こんにちは。';
+    if (locale === 'ko') return firstName ? `${firstName}님, 안녕하세요!` : '안녕하세요!';
+    if (locale === 'fr') return firstName ? `Bonjour ${firstName} !` : 'Bonjour !';
+    if (locale === 'de') return firstName ? `Hallo ${firstName}!` : 'Hallo!';
+    const zh = locale === 'zh-Hant' || locale === 'zh-Hans';
+    return firstName ? (zh ? `你好，${firstName}！` : `Hi ${firstName}!`) : (zh ? '你好！' : 'Hi there!');
+  })();
   const accountInitial = (displayName || user.email).trim().charAt(0).toUpperCase();
   const memberSince = user.createdAt ? formatDate(user.createdAt, locale) : '—';
 
@@ -507,9 +522,9 @@ export const ProfilePage = React.memo(function ProfilePage({
                   className="bg-[linear-gradient(120deg,#f6d78a,var(--esim-gold-strong)_55%,#c99b3e)] bg-clip-text text-right text-[1.65rem] italic leading-[1.2] text-transparent"
                   style={{ fontFamily: SCRIPT_FONT }}
                 >
-                  Better Nights
+                  {pickCopy(locale, { en: 'Better Nights', hans: '夜更安眠', hant: '夜更安眠' })}
                   <br />
-                  Brighter Journeys
+                  {pickCopy(locale, { en: 'Brighter Journeys', hans: '旅程更精彩', hant: '旅程更精彩' })}
                 </span>
                 <Plane className="mt-1 h-5 w-5 -rotate-6 text-[color:color-mix(in_oklab,var(--esim-gold)_78%,white)]" />
               </div>
@@ -862,16 +877,10 @@ export const ProfilePage = React.memo(function ProfilePage({
               <div className="absolute inset-0 bg-[linear-gradient(92deg,rgba(8,6,4,0.86)_8%,rgba(8,6,4,0.42)_58%,rgba(8,6,4,0.12))]" />
               <div className="relative flex h-full flex-col p-6">
                 <h3 className="text-[1.55rem] font-bold leading-tight text-white">
-                  {locale === 'zh-Hant' ? '探索尊貴會所' : locale === 'zh-Hans' ? '探索尊贵会所' : (
-                    <>
-                      Discover
-                      <br />
-                      Exclusive Clubs
-                    </>
-                  )}
+                  {pickCopy(locale, { en: 'Explore destination eSIMs', hans: '探索目的地 eSIM', hant: '探索目的地 eSIM' })}
                 </h3>
                 <p className="mt-2.5 max-w-[15rem] text-sm leading-relaxed text-white/75">
-                  {pickCopy(locale, { en: "Access the world's best venues with BOKMOO.", hans: '与 BOKMOO 通行全球顶级场所。', hant: '與 BOKMOO 通行全球頂級場所。' })}
+                  {pickCopy(locale, { en: 'One eSIM for the whole trip — pick your destinations and go.', hans: '一张 eSIM 走完行程——选好目的地，出发即可。', hant: '一張 eSIM 走完整趟旅程——選好目的地，出發即可。' })}
                 </p>
                 <span className="mt-auto inline-flex items-center gap-1.5 self-start rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--esim-gold)_86%,white),color-mix(in_oklab,var(--esim-gold)_70%,black))] px-5 py-2.5 text-[0.8rem] font-bold text-[var(--esim-bg)] transition-transform duration-300 group-hover:-translate-y-0.5">
                   {pickCopy(locale, { en: 'Explore Now', hans: '立即探索', hant: '立即探索' })}
@@ -888,18 +897,12 @@ export const ProfilePage = React.memo(function ProfilePage({
                 </h3>
               </div>
               <ul className="mt-5 space-y-3.5">
-                {(
-                  locale === 'zh-Hant'
-                    ? ['全球頂級會所通行', '會員專屬優惠', '輕鬆預訂，即時確認', '專屬支援']
-                    : locale === 'zh-Hans'
-                    ? ['全球顶级会所通行', '会员专属优惠', '轻松预订，即时确认', '专属支援']
-                    : [
-                        'Access to premier clubs worldwide',
-                        'Exclusive member-only offers',
-                        'Easy booking and instant confirmation',
-                        'Dedicated support',
-                      ]
-                ).map((benefit) => (
+                {[
+                  { en: 'Instant QR delivery after payment', hans: '付款后即时发放', hant: '付款後即時發放' },
+                  { en: 'No physical SIM swap', hans: '无需更换实体 SIM 卡', hant: '無需更換實體 SIM 卡' },
+                  { en: '24/7 travel support', hans: '24/7 旅途支持', hant: '24/7 旅途支援' },
+                  { en: 'Full refund if not activated', hans: '未激活可全额退款', hant: '未啟用可全額退款' },
+                ].map((benefit) => pickCopy(locale, benefit)).map((benefit) => (
                   <li key={benefit} className="flex items-start gap-3">
                     <Check className="mt-0.5 h-4 w-4 shrink-0 text-[var(--esim-gold)]" />
                     <span className="text-sm leading-relaxed text-[var(--esim-copy)]">{benefit}</span>

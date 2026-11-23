@@ -5,7 +5,7 @@ import type { OrdersPageProps } from 'shared/src/types/theme';
 import { EsimApiError, getEsimOrders, mapEsimApiOrderToThemeOrder } from '../lib/api';
 import { getDeliveredArtifactCount } from '../lib/digital-fulfillment';
 import { formatOrderDate, orderStatusLabel, statusTone } from '../lib/esim/order-copy';
-import { pickCopy, resolveEsimSiteConfig } from '../site';
+import { type ThemeCopy, pickCopy, resolveEsimSiteConfig } from '../site';
 
 export const OrdersPage = React.memo(function OrdersPage({
   orders,
@@ -20,7 +20,7 @@ export const OrdersPage = React.memo(function OrdersPage({
   locale,
 }: OrdersPageProps) {
   const site = resolveEsimSiteConfig(config);
-  const t = (copy: { en: string; hans: string; hant: string }) => pickCopy(locale, copy);
+  const t = (copy: ThemeCopy) => pickCopy(locale, copy);
 
   const [remoteOrders, setRemoteOrders] = React.useState<OrdersPageProps['orders']>([]);
   const [remoteTotalPages, setRemoteTotalPages] = React.useState(1);
@@ -128,7 +128,7 @@ export const OrdersPage = React.memo(function OrdersPage({
                         {/* Only meaningful when the order carries deliverable content. */}
                         {artifactCount > 0 ? (
                           <span className="rounded-full border border-[var(--esim-line)] px-3 py-1 text-[11px] font-semibold tracking-[0.16em] text-[var(--esim-copy)]">
-                            {t({ en: artifactCount === 1 ? '1 delivered item' : `${artifactCount} delivered items`, hans: `${artifactCount} 项已交付内容`, hant: `${artifactCount} 項已交付內容` })}
+                            {t({ en: artifactCount === 1 ? '1 delivered item' : `${artifactCount} delivered items`, hans: `${artifactCount} 项已交付内容`, hant: `${artifactCount} 項已交付內容`, ja: `${artifactCount} 件のコンテンツを発行済み`, ko: `${artifactCount}개 콘텐츠 발급됨`, fr: `${artifactCount} contenu${artifactCount === 1 ? '' : 's'} livré${artifactCount === 1 ? '' : 's'}`, de: `${artifactCount} Inhalt${artifactCount === 1 ? '' : 'e'} zugestellt`})}
                           </span>
                         ) : null}
                       </div>

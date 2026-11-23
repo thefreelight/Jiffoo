@@ -91,7 +91,7 @@ export const Footer = React.memo(function Footer({
             ))}
           </nav>
           <span className="text-neutral-500">
-            © {year} {site.brandName.toUpperCase()}. All rights reserved.
+            © {year} {site.brandName.toUpperCase()}{pickCopy(locale, { en: '. All rights reserved.', hans: ' 保留所有权利。', hant: ' 保留所有權利。' })}
           </span>
         </div>
       </div>
@@ -105,7 +105,7 @@ export const Footer = React.memo(function Footer({
             rel="noopener noreferrer"
             className="text-[11px] uppercase tracking-[0.16em] text-[var(--esim-copy-soft)] transition-colors hover:text-[#E5C365]"
           >
-            Powered by {poweredByLabel}
+            {pickCopy(locale, { en: 'Powered by', hans: '技术支持', hant: '技術支援' })} {poweredByLabel}
           </a>
         </div>
       ) : null}

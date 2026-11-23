@@ -1,10 +1,10 @@
 import React from 'react';
 import type { ContactPageProps } from 'shared/src/types/theme';
-import { pickCopy } from '../site';
+import { type ThemeCopy, pickCopy } from '../site';
 import { resolveEsimSiteConfig } from '../site';
 
 export const ContactPage = React.memo(function ContactPage({ config, locale }: ContactPageProps) {
-  const t = (copy: { en: string; hans: string; hant: string }) => pickCopy(locale, copy);
+  const t = (copy: ThemeCopy) => pickCopy(locale, copy);
   const site = resolveEsimSiteConfig(config);
 
   return (

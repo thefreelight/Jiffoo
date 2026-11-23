@@ -170,6 +170,8 @@ describe('tryNativeEsimInstallSession first-install code', () => {
     });
     const data = await session(env);
     expect(data).toMatchObject({ status: 'ready', lpaString: LPA, installCodeSource: 'order', iccid: ICCID });
+    // SKU without the `boss-` id prefix, so the theme can title the plan per locale.
+    expect(data.defaultCode).toBe('CN-1GB-7D');
     expect(selects.some((query) => query.sql.includes('json_extract(payload_json'))).toBe(false);
     expect(fetchBossEsimAssets).not.toHaveBeenCalled();
   });

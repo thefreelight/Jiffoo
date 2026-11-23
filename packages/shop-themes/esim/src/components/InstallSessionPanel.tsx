@@ -2,7 +2,8 @@ import React from 'react';
 import { Copy, QrCode, Smartphone } from 'lucide-react';
 import type { EsimInstallSession } from '../lib/api';
 import qrcodegen from '../lib/qrcodegen';
-import { pickCopy } from '../site';
+import { type ThemeCopy, pickCopy } from '../site';
+import { planTitle } from '../lib/esim/catalog';
 
 function copyToClipboard(value: string) {
   if (!value || typeof navigator === 'undefined' || !navigator.clipboard?.writeText) return;
@@ -66,7 +67,7 @@ export const InstallSessionPanel = React.memo(function InstallSessionPanel({
   title,
   locale,
 }: InstallSessionPanelProps) {
-  const tr = (copy: { en: string; hans?: string; hant?: string }) => pickCopy(locale, copy);
+  const tr = (copy: ThemeCopy) => pickCopy(locale, copy);
   const qrImageSrc = getQrImageSrc(session.qrCode);
   const qrPayload = session.lpaString || session.qrCode || '';
   const scannableQr = qrPayload && !getQrImageSrc(qrPayload);
@@ -103,11 +104,19 @@ export const InstallSessionPanel = React.memo(function InstallSessionPanel({
               en: `Package added to your eSIM${iccidTail ? ` ${iccidTail}` : ''}. Not installed this eSIM yet? Scan below to set it up — skip this if it is already on your phone.`,
               hans: `套餐已加到你的 eSIM${iccidTail ? ` ${iccidTail}` : ''}。这张 eSIM 还没装到手机？扫下方二维码安装；已经装过可以忽略。`,
               hant: `套餐已加到你的 eSIM${iccidTail ? ` ${iccidTail}` : ''}。這張 eSIM 還沒裝到手機？掃下方二維碼安裝；已經裝過可以忽略。`,
+              ja: `プランをあなたの eSIM${iccidTail ? ` ${iccidTail}` : ''}に追加しました。この eSIM をまだインストールしていない場合は、下の QR コードをスキャンして設定してください。すでにスマートフォンに入っている場合はそのままで構いません。`,
+              ko: `요금제가 회원님의 eSIM${iccidTail ? ` ${iccidTail}` : ''}에 추가되었습니다. 이 eSIM을 아직 설치하지 않으셨나요? 아래 QR 코드를 스캔해 설정하세요. 이미 휴대폰에 있다면 건너뛰어도 됩니다.`,
+              fr: `Forfait ajouté à votre eSIM${iccidTail ? ` ${iccidTail}` : ''}. Vous n'avez pas encore installé cet eSIM ? Scannez le code ci-dessous pour le configurer — inutile s'il est déjà sur votre téléphone.`,
+              de: `Paket zu Ihrer eSIM${iccidTail ? ` ${iccidTail}` : ''} hinzugefügt. Diese eSIM noch nicht installiert? Scannen Sie unten zum Einrichten — falls sie schon auf Ihrem Telefon ist, überspringen Sie diesen Schritt.`,
             })
           : tr({
               en: `Package added to your eSIM${iccidTail ? ` ${iccidTail}` : ''} — no new install needed. Not installed it yet? The install code is on the order that first issued this eSIM.`,
               hans: `套餐已加到你的 eSIM${iccidTail ? ` ${iccidTail}` : ''}——无需重新安装。如果还没装过，安装码在首次开通这张 eSIM 的那笔订单里。`,
               hant: `套餐已加到你的 eSIM${iccidTail ? ` ${iccidTail}` : ''}——無需重新安裝。如果還沒裝過，安裝碼在首次開通這張 eSIM 的那筆訂單裡。`,
+              ja: `プランをあなたの eSIM${iccidTail ? ` ${iccidTail}` : ''}に追加しました。再インストールは不要です。まだインストールしていない場合は、この eSIM を最初に発行した注文にインストールコードが記載されています。`,
+              ko: `요금제가 회원님의 eSIM${iccidTail ? ` ${iccidTail}` : ''}에 추가되었습니다. 다시 설치할 필요가 없습니다. 아직 설치하지 않으셨다면 이 eSIM을 처음 발급한 주문에서 설치 코드를 확인하세요.`,
+              fr: `Forfait ajouté à votre eSIM${iccidTail ? ` ${iccidTail}` : ''} — rien à réinstaller. Pas encore installé ? Le code d'installation se trouve sur la commande qui a émis cet eSIM.`,
+              de: `Paket zu Ihrer eSIM${iccidTail ? ` ${iccidTail}` : ''} hinzugefügt — keine Neuinstallation nötig. Noch nicht installiert? Den Installationscode finden Sie in der Bestellung, mit der diese eSIM ausgestellt wurde.`,
             });
       case 'failed':
         return tr({
@@ -138,7 +147,7 @@ export const InstallSessionPanel = React.memo(function InstallSessionPanel({
           <p className="text-sm font-medium text-[var(--esim-ink)]">
             {title ?? tr({ en: 'Install your eSIM', hans: '安装你的 eSIM', hant: '安裝你的 eSIM' })}
           </p>
-          <p className="mt-1 text-xs text-[var(--esim-copy-soft)]">{session.packageTitle}</p>
+          <p className="mt-1 text-xs text-[var(--esim-copy-soft)]">{planTitle(session.defaultCode, session.packageTitle, locale)}</p>
         </div>
       </div>
 

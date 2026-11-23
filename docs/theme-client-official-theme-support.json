@@ -97,6 +97,23 @@
       "notes": "Digital-goods storefront where reusable business logic is expected to live outside the theme."
     },
     {
+      "slug": "esim",
+      "packagePath": "packages/shop-themes/esim",
+      "packaging": "embedded+theme-pack",
+      "apiCoupling": "theme-local-api-client",
+      "web": {
+        "status": "implemented"
+      },
+      "mobile": {
+        "status": "limited"
+      },
+      "desktop": {
+        "status": "limited"
+      },
+      "rolloutPriority": "later",
+      "notes": "Route-first eSIM storefront served from a versioned runtime bundle; it owns a local storefront API client (orders, install sessions, affiliate), so non-web clients should not claim clean support yet."
+    },
+    {
       "slug": "esim-mall",
       "packageSlug": "esim-mall",
       "packagePath": "packages/shop-themes/esim-mall",

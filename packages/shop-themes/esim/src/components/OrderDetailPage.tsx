@@ -6,7 +6,8 @@ import { getEsimInstallSession, getEsimOrder, getOrderIdFromLocation, mapEsimApi
 import { InstallSessionPanel } from './InstallSessionPanel';
 import { extractDeliverySections, getDeliveredArtifactCount } from '../lib/digital-fulfillment';
 import { formatOrderDate, itemStatusLabel, orderStatusLabel, statusTone } from '../lib/esim/order-copy';
-import { pickCopy, resolveEsimSiteConfig } from '../site';
+import { planTitle } from '../lib/esim/catalog';
+import { type ThemeCopy, pickCopy, resolveEsimSiteConfig } from '../site';
 
 function copyToClipboard(value: string) {
   if (typeof navigator === 'undefined' || !navigator.clipboard?.writeText) return;
@@ -36,7 +37,7 @@ export const OrderDetailPage = React.memo(function OrderDetailPage({
 }: OrderDetailPageProps) {
   const handleBack = onBack || onBackToOrders;
   const site = resolveEsimSiteConfig(config);
-  const t = (copy: { en: string; hans: string; hant: string }) => pickCopy(locale, copy);
+  const t = (copy: ThemeCopy) => pickCopy(locale, copy);
   const [remoteOrder, setRemoteOrder] = React.useState<OrderDetailPageProps['order']>(null);
   const [installSession, setInstallSession] = React.useState<EsimInstallSession | null>(null);
   const effectiveOrder = order || remoteOrder;
@@ -145,7 +146,7 @@ export const OrderDetailPage = React.memo(function OrderDetailPage({
                     {/* Only meaningful when the order carries deliverable content — an eSIM order's install panel replaces it. */}
                     {artifactCount > 0 ? (
                       <span className="rounded-full border border-[var(--esim-line)] px-3 py-1 text-[11px] font-semibold tracking-[0.16em] text-[var(--esim-copy)]">
-                        {t({ en: `${artifactCount} delivered item${artifactCount === 1 ? '' : 's'}`, hans: `已交付 ${artifactCount} 项内容`, hant: `已交付 ${artifactCount} 項內容` })}
+                        {t({ en: `${artifactCount} delivered item${artifactCount === 1 ? '' : 's'}`, hans: `已交付 ${artifactCount} 项内容`, hant: `已交付 ${artifactCount} 項內容`, ja: `${artifactCount} 件のコンテンツを発行済み`, ko: `${artifactCount}개 콘텐츠 발급됨`, fr: `${artifactCount} contenu${artifactCount === 1 ? '' : 's'} livré${artifactCount === 1 ? '' : 's'}`, de: `${artifactCount} Inhalt${artifactCount === 1 ? '' : 'e'} zugestellt`})}
                       </span>
                     ) : null}
                   </div>
@@ -227,7 +228,7 @@ export const OrderDetailPage = React.memo(function OrderDetailPage({
                   orderId: effectiveOrder.id,
                   orderNumber: effectiveOrder.id,
                   status: 'ready',
-                  packageTitle: item.productName,
+                  packageTitle: planTitle(item.productId, item.productName, locale),
                 });
               })();
               const hasContent =
@@ -249,7 +250,7 @@ export const OrderDetailPage = React.memo(function OrderDetailPage({
                         {t({ en: 'Item delivery', hans: '商品交付', hant: '商品交付' })}
                       </p>
                       <h2 className="mt-3 text-2xl font-black tracking-[-0.04em] text-[var(--esim-ink)]">
-                        {item.productName}
+                        {planTitle(item.productId, item.productName, locale)}
                       </h2>
                       <p className="mt-2 text-sm text-[var(--esim-copy)]">
                         {t({ en: 'Qty', hans: '数量', hant: '數量' })} {item.quantity}{item.variantName ? ` · ${item.variantName}` : ''}

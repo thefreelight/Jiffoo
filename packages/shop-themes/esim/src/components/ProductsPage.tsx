@@ -5,8 +5,8 @@ import type { Product } from 'shared/src/types/product';
 import type { ProductsPageProps } from 'shared/src/types/theme';
 import { displayProductTitle, getEsimProducts, mapEsimApiProductToThemeProduct, normalizeProductForTheme, readProductCurrency, resolveEsimMediaUrl, type EsimApiProduct } from '../lib/api';
 import { getEsimTravelProfile } from '../lib/digital-fulfillment';
-import { destinationLabel, regionLabelOf, type EsimPlanAttributes } from '../lib/esim/catalog';
-import { filterEsimPlans, pickCopy, resolveEsimSiteConfig } from '../site';
+import { destinationLabel, planTitle, regionLabelOf, type EsimPlanAttributes } from '../lib/esim/catalog';
+import { type ThemeCopy, filterEsimPlans, pickCopy, resolveEsimSiteConfig } from '../site';
 
 const GOLD_CTA = 'bg-[linear-gradient(135deg,var(--esim-gold-strong),var(--esim-gold)_55%,color-mix(in_oklab,var(--esim-gold)_70%,#7a5c14))]';
 
@@ -110,7 +110,7 @@ export const ProductsPage = React.memo(function ProductsPage({
   const [remoteError, setRemoteError] = React.useState('');
   const [selectedFilter, setSelectedFilter] = React.useState<CatalogFilter>('All');
   const site = resolveEsimSiteConfig(config);
-  const t = (copy: { en: string; hans: string; hant: string }) => pickCopy(locale, copy);
+  const t = (copy: ThemeCopy) => pickCopy(locale, copy);
   const normalizedProducts = React.useMemo(
     () =>
       // Host-provided fallback lists come from the shared instance catalog
@@ -170,7 +170,7 @@ export const ProductsPage = React.memo(function ProductsPage({
         setRemoteTotal(isLocalScope ? scopedItems.length : Number(response.total || scopedItems.length || 0));
         setRemoteTotalPages(Math.max(1, Math.ceil((isLocalScope ? scopedItems.length : Number(response.total || scopedItems.length || 0)) / 12)));
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unable to load Bokmoo plans.';
+        const message = error instanceof Error ? error.message : pickCopy(locale, { en: 'Unable to load Bokmoo plans.', hans: '无法加载 Bokmoo 套餐。', hant: '無法載入 Bokmoo 方案。' });
         setRemoteError(message);
         setRemoteProducts([]);
         setRemoteTotal(0);
@@ -324,7 +324,7 @@ export const ProductsPage = React.memo(function ProductsPage({
                   ? (isMultiCountry
                     // The region name follows the storefront locale (it used to
                     // be pinned to the Chinese spelling on every locale).
-                    ? `${regionName ? `${regionName} · ` : ''}${t({ en: `covers ${destinations.length} destinations`, hans: `覆盖 ${destinations.length} 个目的地`, hant: `覆蓋 ${destinations.length} 個目的地` })}`
+                    ? `${regionName ? `${regionName} · ` : ''}${t({ en: `covers ${destinations.length} destinations`, hans: `覆盖 ${destinations.length} 个目的地`, hant: `覆蓋 ${destinations.length} 個目的地`, ja: `${destinations.length} の目的地をカバー`, ko: `${destinations.length}개 목적지 커버`, fr: `couvre ${destinations.length} destinations`, de: `deckt ${destinations.length} Ziele ab`})}`
                     : `${t({ en: 'Covers', hans: '覆盖', hant: '覆蓋' })} ${destinations.map((code) => destinationLabel(code, locale)).join('/')}`)
                   : profile.coverageLabel;
                 const eyebrowLabel = destinations.length > 1
@@ -376,7 +376,7 @@ export const ProductsPage = React.memo(function ProductsPage({
                       </div>
 
                       <h2 className="font-serif text-2xl font-normal leading-[1.12] tracking-tight text-[var(--esim-ink)] lg:text-3xl">
-                        {displayProductTitle(product.name)}
+                        {planTitle(esim?.defaultCode || product.id, displayProductTitle(product.name), locale)}
                       </h2>
 
                       <p className="inline-flex items-center gap-2 text-sm text-[var(--esim-gold)]">

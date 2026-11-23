@@ -18,7 +18,7 @@ import { getEsimProduct, getProductIdFromLocation, mapEsimApiProductToThemeProdu
 import { pickCopy } from '../site';
 import { getEsimTravelProfile } from '../lib/digital-fulfillment';
 import { resolveEsimSiteConfig } from '../site';
-import { destinationLabel, regionLabelOf, type EsimPlanAttributes } from '../lib/esim/catalog';
+import { destinationLabel, planTitle, regionLabelOf, type EsimPlanAttributes } from '../lib/esim/catalog';
 import { readProductCurrency } from '../lib/api';
 
 function getProductImage(product: Product | null): string | null {
@@ -27,8 +27,8 @@ function getProductImage(product: Product | null): string | null {
   return primary?.url || null;
 }
 
-function getVariantLabel(variant: Product['variants'][number]): string {
-  return variant.name || variant.value || variant.sku || 'Default option';
+function getVariantLabel(variant: Product['variants'][number], locale?: string): string {
+  return variant.name || variant.value || variant.sku || pickCopy(locale, { en: 'Default option', hans: '默认选项', hant: '預設選項' });
 }
 
 export const ProductDetailPage = React.memo(function ProductDetailPage({
@@ -53,6 +53,15 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
     [product, remoteProduct]
   );
   const profile = React.useMemo(() => getEsimTravelProfile(normalizedProduct, locale), [normalizedProduct, locale]);
+  // Plan title in the storefront locale, built from the SKU; the catalog
+  // name itself is Chinese for every locale.
+  const planName = planTitle(
+    (normalizedProduct as { typeData?: { esim?: { defaultCode?: string } } })?.typeData?.esim?.defaultCode
+      || remoteEsim?.defaultCode
+      || normalizedProduct?.id,
+    normalizedProduct?.name || '',
+    locale,
+  );
   const isGoodsProduct = normalizedProduct?.productKind === 'goods';
   // Only claim Bluetooth/app-profile management when the catalog copy itself
   // describes it; the basic card ships with generic physical-card copy.
@@ -93,9 +102,9 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
   // SSR metadata still carries the raw catalog name until the next worker
   // deploy; keep the visible tab title on the cleaned storefront name.
   React.useEffect(() => {
-    if (!normalizedProduct?.name) return;
-    document.title = `${normalizedProduct.name} | ${site.brandName}`;
-  }, [normalizedProduct?.name, site.brandName]);
+    if (!planName) return;
+    document.title = `${planName} | ${site.brandName}`;
+  }, [planName, site.brandName]);
   const effectiveSelectedVariant = selectedVariant || normalizedProduct?.variants?.[0]?.id || null;
   const currentVariant = React.useMemo(() => {
     if (!normalizedProduct?.variants?.length || !effectiveSelectedVariant) return null;
@@ -221,7 +230,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
                   {image ? (
                     <img
                       src={image}
-                      alt={normalizedProduct.name}
+                      alt={planName}
                       className="esim-pdp-media-goods object-cover"
                     />
                   ) : (
@@ -248,7 +257,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
               <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                 <div>
                   <h1 className="esim-pdp-title font-serif text-3xl font-normal tracking-tight text-[var(--esim-ink)] lg:text-4xl">
-                    {normalizedProduct.name}
+                    {planName}
                   </h1>
                   {!isGoodsProduct ? (
                     <p className="mt-3 inline-flex items-center gap-2 text-sm text-[var(--esim-copy)]">
@@ -379,7 +388,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
                           )}
                           type="button"
                         >
-                          {getVariantLabel(variant)}
+                          {getVariantLabel(variant, locale)}
                         </button>
                       );
                     })}
@@ -421,7 +430,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
                 {justAdded ? (
                   <>
                     <Check className="h-4 w-4" />
-                    {pickCopy(locale, { en: `Added to cart — $${priceValue.toFixed(2)}`, hans: `已加入购物车 — $${priceValue.toFixed(2)}`, hant: `已加入購物車 — $${priceValue.toFixed(2)}` })}
+                    {pickCopy(locale, { en: `Added to cart — $${priceValue.toFixed(2)}`, hans: `已加入购物车 — $${priceValue.toFixed(2)}`, hant: `已加入購物車 — $${priceValue.toFixed(2)}`, ja: `カートに追加済み — $${priceValue.toFixed(2)}`, ko: `장바구니에 추가됨 — $${priceValue.toFixed(2)}`, fr: `Ajouté au panier — $${priceValue.toFixed(2)}`, de: `Zum Warenkorb hinzugefügt — $${priceValue.toFixed(2)}`})}
                   </>
                 ) : adding ? (
                   <>
@@ -431,7 +440,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
                 ) : (
                   <>
                     <ShoppingBag className="h-4 w-4" />
-                    {pickCopy(locale, { en: `Add to Cart — $${priceValue.toFixed(2)}`, hans: `加入购物车 — $${priceValue.toFixed(2)}`, hant: `加入購物車 — $${priceValue.toFixed(2)}` })}
+                    {pickCopy(locale, { en: `Add to Cart — $${priceValue.toFixed(2)}`, hans: `加入购物车 — $${priceValue.toFixed(2)}`, hant: `加入購物車 — $${priceValue.toFixed(2)}`, ja: `カートに追加 — $${priceValue.toFixed(2)}`, ko: `장바구니에 추가 — $${priceValue.toFixed(2)}`, fr: `Ajouter au panier — $${priceValue.toFixed(2)}`, de: `In den Warenkorb — $${priceValue.toFixed(2)}`})}
                   </>
                 )}
               </button>

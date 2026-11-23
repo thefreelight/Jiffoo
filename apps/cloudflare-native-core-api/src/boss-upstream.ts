@@ -326,10 +326,13 @@ function snapshotStatement(env: BossEnv, path: string, body: string) {
   ).bind(`core:snapshot:${path}`, path, body);
 }
 
+/** Every storefront locale the eSIM theme serves (the header menu offers exactly these). */
+export const STOREFRONT_LOCALES = ['en', 'zh-Hans', 'zh-Hant', 'ja', 'ko', 'fr', 'de'];
+
 /** Query variants the storefront theme sends for type=esim listings. */
 const ESIM_QUERY_VARIANTS: Array<{ limit: number; locales: string[] }> = [
-  { limit: 50, locales: ['en', 'zh-Hans', 'zh-Hant'] },
-  { limit: 12, locales: ['en', 'zh-Hans', 'zh-Hant'] },
+  { limit: 50, locales: STOREFRONT_LOCALES },
+  { limit: 12, locales: STOREFRONT_LOCALES },
 ];
 
 const ESIM_SAMPLE_IDS = [
@@ -337,17 +340,56 @@ const ESIM_SAMPLE_IDS = [
   'esim-sg-10g-7d', 'esim-hk-10g-7d', 'esim-global-50g-90d',
 ];
 
+/**
+ * Delivery sentence appended to the catalog name, per storefront locale.
+ * The zh locales keep the seeded Chinese description; an unrecognized
+ * locale reads English (one language per page, never both).
+ */
+const DELIVERY_NOTE: Record<string, string> = {
+  en: '. Delivered right after purchase — activates on first connection.',
+  ja: '。ご注文後すぐに発行され、初めて接続したときに有効化されます。',
+  ko: '. 결제 후 즉시 발급되며, 첫 연결 시 활성화돼요.',
+  fr: '. Livré immédiatement après l’achat — s’active dès la première connexion.',
+  de: '. Sofort nach dem Kauf zugestellt — wird bei der ersten Verbindung aktiviert.',
+};
+
+function deliveryNote(locale: string | undefined): string | null {
+  const tag = (locale || '').trim();
+  if (tag.toLowerCase().startsWith('zh')) return null;
+  const primary = tag.toLowerCase().split(/[-_]/)[0] || 'en';
+  return DELIVERY_NOTE[tag] ?? DELIVERY_NOTE[primary] ?? DELIVERY_NOTE.en;
+}
+
 export function localizedItem(product: BossShopProduct, locale: string): BossShopProduct {
   // Catalog names come from Odoo as-is. The description is ours, so it
-  // follows the storefront language: Chinese for the zh locales, English
-  // everywhere else (one language per page, never both).
-  if (locale && locale.startsWith('zh')) return product;
+  // follows the storefront language.
+  const note = deliveryNote(locale);
+  if (note === null) return product;
   const displayName = bossDisplayName(product.typeData.esim.defaultCode, product.name);
   return {
     ...product,
-    description: `${displayName}. Delivered right after purchase — activates on first connection.`,
+    description: `${displayName}${note}`,
     variants: product.variants.map((variant) => ({ ...variant })),
   };
+}
+
+/**
+ * Read-time counterpart of `localizedItem` for served snapshots. Product
+ * detail is stored once under its queryless canonical path, so a request
+ * carrying `?locale=` would otherwise fall back to the seeded Chinese copy
+ * on every non-Chinese page. Only BOSS eSIM plans are rewritten; anything
+ * else (other products, malformed items) passes through untouched.
+ */
+export function localizeBossProduct(item: unknown, locale: string | undefined): unknown {
+  if (!item || typeof item !== 'object') return item;
+  const product = item as Partial<BossShopProduct>;
+  if (typeof product.id !== 'string' || !product.id.startsWith('boss-')) return item;
+  const defaultCode = product.typeData?.esim?.defaultCode;
+  if (typeof defaultCode !== 'string' || !defaultCode) return item;
+  const note = deliveryNote(locale);
+  if (note === null) return item;
+  const displayName = bossDisplayName(defaultCode, product.name || '');
+  return { ...product, description: `${displayName}${note}` };
 }
 
 export async function syncBossCatalog(env: BossEnv): Promise<{ packages: number; published: number }> {
