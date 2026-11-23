@@ -1,7 +1,7 @@
 import React from 'react';
 import { Apple, Chrome, Eye, EyeOff, Loader2, LockKeyhole, Mail, ShieldCheck } from 'lucide-react';
 import type { LoginPageProps } from 'shared/src/types/theme';
-import { resolveEsimSiteConfig } from '../site';
+import { type ThemeCopy, pickCopy, resolveEsimSiteConfig } from '../site';
 
 const FOCUS_VISIBLE_RING =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--esim-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--esim-bg)]';
@@ -15,8 +15,19 @@ export function LoginPage({
   onAppleOAuthClick,
   onNavigateToRegister,
   onNavigateToForgotPassword,
+  locale,
 }: LoginPageProps) {
-  const site = resolveEsimSiteConfig(config);
+  const site = resolveEsimSiteConfig(config, locale);
+  const t = (copy: ThemeCopy) => pickCopy(locale, copy);
+  const accountLabel = pickCopy(locale, {
+    en: `${site.brandName.toUpperCase()} account`,
+    hans: `${site.brandName.toUpperCase()} 账户`,
+    hant: `${site.brandName.toUpperCase()} 帳戶`,
+    ja: `${site.brandName.toUpperCase()} アカウント`,
+    ko: `${site.brandName.toUpperCase()} 계정`,
+    fr: `Compte ${site.brandName.toUpperCase()}`,
+    de: `${site.brandName.toUpperCase()}-Konto`,
+  });
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [showPassword, setShowPassword] = React.useState(false);
@@ -50,19 +61,23 @@ export function LoginPage({
         <section className="hidden lg:block">
           <div className="inline-flex items-center gap-3 rounded-full border border-[color:color-mix(in_oklab,var(--esim-gold)_24%,transparent)] bg-[color:oklch(0.065_0.007_75_/_0.72)] px-5 py-2.5 text-[0.72rem] font-bold uppercase tracking-[0.28em] text-[var(--esim-gold)]">
             <ShieldCheck className="h-4 w-4" />
-            Secure account access
+            {t({ en: 'Secure account access', hans: '安全访问账户', hant: '安全存取帳戶' })}
           </div>
           <h1 className="mt-7 max-w-3xl text-[clamp(3.5rem,7vw,6.4rem)] font-semibold leading-[0.92] tracking-[-0.065em] text-[var(--esim-ink)]">
-            Sign in before your next border.
+            {t({ en: 'Sign in before your next border.', hans: '下次出境前，先登录账户。', hant: '下次出境前，先登入帳戶。' })}
           </h1>
           <p className="mt-7 max-w-2xl text-lg leading-8 text-[var(--esim-copy)]">
-            Manage BOKMOO eSIM profiles, orders, and activation details from the same black-and-gold travel control surface.
+            {t({
+              en: 'Manage BOKMOO eSIM profiles, orders, and activation details from the same black-and-gold travel control surface.',
+              hans: '在同一个黑金旅行控制台里管理 BOKMOO eSIM 配置文件、订单和激活详情。',
+              hant: '在同一個黑金旅行控制台裡管理 BOKMOO eSIM 設定檔、訂單和啟用詳情。',
+            })}
           </p>
           <div className="mt-10 grid max-w-2xl gap-3 sm:grid-cols-3">
             {[
-              ['Orders', 'Track purchases'],
-              ['Profiles', 'Manage eSIMs'],
-              ['Support', 'Get help fast'],
+              [t({ en: 'Orders', hans: '订单', hant: '訂單' }), t({ en: 'Track purchases', hans: '跟踪购买记录', hant: '追蹤購買紀錄' })],
+              [t({ en: 'Profiles', hans: 'eSIM 配置', hant: 'eSIM 設定檔' }), t({ en: 'Manage eSIMs', hans: '管理 eSIM', hant: '管理 eSIM' })],
+              [t({ en: 'Support', hans: '支持', hant: '支援' }), t({ en: 'Get help fast', hans: '快速获得帮助', hant: '快速獲得協助' })],
             ].map(([title, body]) => (
               <div
                 key={title}
@@ -79,13 +94,13 @@ export function LoginPage({
           <div className="rounded-[1.1rem] border border-[var(--esim-line)] bg-[color:oklch(0.055_0.006_75_/_0.78)] p-5 sm:p-6">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[var(--esim-gold)]">
-                {site.brandName.toUpperCase()} account
+                {accountLabel}
               </p>
               <h2 className="mt-3 text-3xl font-semibold leading-none tracking-[-0.05em] text-[var(--esim-ink)]">
-                Welcome back
+                {t({ en: 'Welcome back', hans: '欢迎回来', hant: '歡迎回來' })}
               </h2>
               <p className="mt-3 text-sm leading-6 text-[var(--esim-copy)]">
-                Continue to your orders, profiles, and activation workspace.
+                {t({ en: 'Continue to your orders, profiles, and activation workspace.', hans: '继续前往您的订单、eSIM 配置和激活工作台。', hant: '繼續前往您的訂單、eSIM 設定檔和啟用工作台。' })}
               </p>
             </div>
 
@@ -113,7 +128,7 @@ export function LoginPage({
             <div className="mt-6 flex items-center gap-3">
               <div className="h-px flex-1 bg-[var(--esim-line)]" />
               <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--esim-copy-soft)]">
-                or email
+                {t({ en: 'or email', hans: '或使用邮箱', hant: '或使用電子郵件' })}
               </span>
               <div className="h-px flex-1 bg-[var(--esim-line)]" />
             </div>
@@ -127,7 +142,7 @@ export function LoginPage({
 
               <label className="block">
                 <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--esim-copy-soft)]">
-                  Email
+                  {t({ en: 'Email', hans: '邮箱', hant: '電子郵件' })}
                 </span>
                 <span className="relative mt-2 block">
                   <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--esim-copy-soft)]" />
@@ -147,7 +162,7 @@ export function LoginPage({
 
               <label className="block">
                 <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--esim-copy-soft)]">
-                  Password
+                  {t({ en: 'Password', hans: '密码', hant: '密碼' })}
                 </span>
                 <span className="relative mt-2 block">
                   <LockKeyhole className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--esim-copy-soft)]" />
@@ -167,7 +182,7 @@ export function LoginPage({
                     onClick={() => setShowPassword((value) => !value)}
                     className={`absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-[0.8rem] text-[var(--esim-copy-soft)] hover:text-[var(--esim-gold)] ${FOCUS_VISIBLE_RING}`}
                     disabled={isLoading}
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    aria-label={showPassword ? t({ en: 'Hide password', hans: '隐藏密码', hant: '隱藏密碼' }) : t({ en: 'Show password', hans: '显示密码', hant: '顯示密碼' })}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -181,7 +196,7 @@ export function LoginPage({
                   className={`text-sm font-medium text-[var(--esim-copy)] underline decoration-[var(--esim-line)] underline-offset-4 hover:text-[var(--esim-gold)] ${FOCUS_VISIBLE_RING}`}
                   disabled={isLoading}
                 >
-                  Forgot password
+                  {t({ en: 'Forgot password', hans: '忘记密码', hant: '忘記密碼' })}
                 </button>
               </div>
 
@@ -193,17 +208,25 @@ export function LoginPage({
                 {isLoading ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Signing in
+                    {t({ en: 'Signing in', hans: '登录中…', hant: '登入中…' })}
                   </>
                 ) : (
-                  'Sign in'
+                  t({ en: 'Sign in', hans: '登录', hant: '登入' })
                 )}
               </button>
             </form>
 
             <div className="mt-7 border-t border-[var(--esim-line)] pt-6 text-center">
               <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--esim-copy-soft)]">
-                New to {site.brandName.toUpperCase()}?
+                {pickCopy(locale, {
+                  en: `New to ${site.brandName.toUpperCase()}?`,
+                  hans: `还没有 ${site.brandName.toUpperCase()} 账户？`,
+                  hant: `還沒有 ${site.brandName.toUpperCase()} 帳戶？`,
+                  ja: `${site.brandName.toUpperCase()} を初めてご利用ですか？`,
+                  ko: `${site.brandName.toUpperCase()}이(가) 처음이신가요?`,
+                  fr: `Nouveau sur ${site.brandName.toUpperCase()} ?`,
+                  de: `Neu bei ${site.brandName.toUpperCase()}?`,
+                })}
               </p>
               <button
                 type="button"
@@ -211,14 +234,14 @@ export function LoginPage({
                 className={`mt-3 text-sm font-semibold text-[var(--esim-gold)] hover:text-[var(--esim-gold-strong)] ${FOCUS_VISIBLE_RING}`}
                 disabled={isLoading}
               >
-                Create account
+                {t({ en: 'Create account', hans: '创建账户', hant: '建立帳戶' })}
               </button>
               {typeof window !== 'undefined' && window.location.hostname.split('.').filter(Boolean).length > 2 ? (
                 <>
                   <div className="mt-6 flex items-center gap-3">
                     <div className="h-px flex-1 bg-[var(--esim-line)]" />
                     <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--esim-copy-soft)]">
-                      already with us
+                      {t({ en: 'already with us', hans: '已有账户', hant: '已有帳戶' })}
                     </span>
                     <div className="h-px flex-1 bg-[var(--esim-line)]" />
                   </div>
@@ -226,7 +249,15 @@ export function LoginPage({
                     href={`https://bokmoo.com/auth-sync?back=${encodeURIComponent(window.location.origin + window.location.pathname)}`}
                     className={`mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-[0.95rem] border border-[var(--esim-line)] px-4 text-sm font-medium text-[var(--esim-copy)] transition-colors hover:border-[var(--esim-gold)] hover:text-[var(--esim-gold)] ${FOCUS_VISIBLE_RING}`}
                   >
-                    Use your {site.brandName} session to sign in
+                    {pickCopy(locale, {
+                      en: `Use your ${site.brandName} session to sign in`,
+                      hans: `使用 ${site.brandName} 账户会话登录`,
+                      hant: `使用 ${site.brandName} 帳戶工作階段登入`,
+                      ja: `${site.brandName} のセッションでログイン`,
+                      ko: `${site.brandName} 세션으로 로그인`,
+                      fr: `Utilisez votre session ${site.brandName} pour vous connecter`,
+                      de: `Mit Ihrer ${site.brandName}-Sitzung anmelden`,
+                    })}
                   </a>
                 </>
               ) : null}

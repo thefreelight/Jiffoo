@@ -24,27 +24,39 @@ export async function loadProductCopyOverrides(db: CopyEnv['DB']): Promise<Map<s
 }
 
 // Rewrites a snapshot payload ({"success":true,"data":...}) so overridden
-// products carry the admin copy in `description`. Malformed payloads pass
-// through untouched — snapshot serving must stay fail-open.
-export function applyProductCopyOverrides(payload: string, overrides: Map<string, string>): string {
-  if (overrides.size === 0) return payload;
+// products carry the admin copy in `description`. Products without an
+// override go through `localizeItem` when one is given (locale follow).
+// Malformed payloads pass through untouched — snapshot serving must stay
+// fail-open.
+export function applyProductCopyOverrides(
+  payload: string,
+  overrides: Map<string, string>,
+  localizeItem?: (item: unknown) => unknown,
+): string {
+  if (overrides.size === 0 && !localizeItem) return payload;
   let envelope: { success?: boolean; data?: unknown };
   try {
     envelope = JSON.parse(payload) as { success?: boolean; data?: unknown };
   } catch {
     return payload;
   }
+  // An admin override always wins over locale follow: the operator wrote
+  // that copy on purpose for the product.
+  const rewrite = (item: unknown): unknown => {
+    const overridden = applyToProduct(item, overrides);
+    return overridden === item && localizeItem ? localizeItem(item) : overridden;
+  };
   const data = envelope?.data;
   if (Array.isArray(data)) {
-    envelope.data = data.map((item) => applyToProduct(item, overrides));
+    envelope.data = data.map(rewrite);
     return JSON.stringify(envelope);
   }
   const items = (data as { items?: unknown[] } | null)?.items;
   if (Array.isArray(items)) {
-    envelope.data = { ...(data as Record<string, unknown>), items: items.map((item) => applyToProduct(item, overrides)) };
+    envelope.data = { ...(data as Record<string, unknown>), items: items.map(rewrite) };
     return JSON.stringify(envelope);
   }
-  envelope.data = applyToProduct(data, overrides);
+  envelope.data = rewrite(data);
   return JSON.stringify(envelope);
 }
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { ArrowRight, Globe2, QrCode, ShieldCheck, Signal } from 'lucide-react';
 import type { HelpPageProps } from 'shared/src/types/theme';
-import { pickCopy } from '../site';
+import { type ThemeCopy, pickCopy } from '../site';
 
 const topics = [
   {
@@ -27,7 +27,7 @@ const topics = [
 ];
 
 export const HelpPage = React.memo(function HelpPage({ onNavigateToContact, locale }: HelpPageProps) {
-  const t = (copy: { en: string; hans: string; hant: string }) => pickCopy(locale, copy);
+  const t = (copy: ThemeCopy) => pickCopy(locale, copy);
   const [query, setQuery] = React.useState('');
 
   const filtered = topics.filter((topic) =>

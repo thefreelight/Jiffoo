@@ -69,7 +69,7 @@ export const DownloadAppPage = React.memo(function DownloadAppPage({ config, loc
             })}
           </p>
           <p className="mt-3 hidden text-xs text-[var(--esim-copy-soft)] lg:block">
-            Hover a store button (or scan the card QR) to download.
+            {pickCopy(locale, { en: 'Hover a store button (or scan the card QR) to download.', hans: '将鼠标移到商店按钮上（或扫描卡片二维码）即可下载。', hant: '將游標移到商店按鈕上（或掃描卡片 QR 碼）即可下載。' })}
           </p>
         </div>
 
@@ -140,17 +140,17 @@ export const DownloadAppPage = React.memo(function DownloadAppPage({ config, loc
               </a>
             </div>
             <p className="mt-3 text-center text-xs text-[var(--esim-copy-soft)]">
-              {pickCopy(locale, { en: `Version ${ANDROID_APK_VERSION} · ${ANDROID_APK_SIZE} · allow installs from your browser when prompted.`, hans: `版本 ${ANDROID_APK_VERSION} · ${ANDROID_APK_SIZE} · 出现提示时允许浏览器安装应用。`, hant: `版本 ${ANDROID_APK_VERSION} · ${ANDROID_APK_SIZE} · 出現提示時允許瀏覽器安裝應用。` })}
+              {pickCopy(locale, { en: `Version ${ANDROID_APK_VERSION} · ${ANDROID_APK_SIZE} · allow installs from your browser when prompted.`, hans: `版本 ${ANDROID_APK_VERSION} · ${ANDROID_APK_SIZE} · 出现提示时允许浏览器安装应用。`, hant: `版本 ${ANDROID_APK_VERSION} · ${ANDROID_APK_SIZE} · 出現提示時允許瀏覽器安裝應用。`, ja: `バージョン ${ANDROID_APK_VERSION} · ${ANDROID_APK_SIZE} · 表示されたらブラウザからのインストールを許可してください。`, ko: `버전 ${ANDROID_APK_VERSION} · ${ANDROID_APK_SIZE} · 안내가 표시되면 브라우저에서 설치를 허용하세요.`, fr: `Version ${ANDROID_APK_VERSION} · ${ANDROID_APK_SIZE} · autorisez l'installation depuis votre navigateur lorsque vous y êtes invité.`, de: `Version ${ANDROID_APK_VERSION} · ${ANDROID_APK_SIZE} · erlauben Sie die Installation aus dem Browser, wenn Sie dazu aufgefordert werden.`})}
             </p>
           </div>
         </div>
 
         <p className="mt-10 text-center text-sm text-[var(--esim-copy-soft)]">
-          Questions about setup? Contact{' '}
+          {pickCopy(locale, { en: 'Questions about setup? Contact', hans: '设置方面有疑问？请联系', hant: '設定方面有疑問？請聯絡' })}{' '}
           <a href={`mailto:${site.supportEmail}`} className="text-[var(--esim-gold)] hover:underline">
             {site.supportEmail}
           </a>
-          .
+          {pickCopy(locale, { en: '.', hans: '。', hant: '。' })}
         </p>
       </div>
     </div>

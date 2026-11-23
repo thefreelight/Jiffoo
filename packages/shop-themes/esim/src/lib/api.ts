@@ -196,6 +196,8 @@ export interface EsimInstallSession {
   matchingId?: string;
   activationCode?: string;
   confirmationCode?: string | null;
+  /** BOSS SKU of the installed plan (e.g. `CN-1GB-7D`) — lets the theme title the plan in the viewer's locale. */
+  defaultCode?: string | null;
   /** Bound target ICCID (reuse orders) or the ICCID issued for this order. */
   iccid?: string | null;
   /** Raw BOSS upstream status (DONE/SKIP/FAILED/…) surfaced for support. */

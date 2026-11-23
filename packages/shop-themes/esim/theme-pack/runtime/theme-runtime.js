@@ -39,13 +39,13 @@
   var useState = React.useState;
   var useTransition = React.useTransition;
 
-  // node_modules/lucide-react/dist/esm/shared/src/utils.js
+  // ../../../node_modules/lucide-react/dist/esm/shared/src/utils.js
   var toKebabCase = (string) => string.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
   var mergeClasses = (...classes) => classes.filter((className, index, array) => {
     return Boolean(className) && className.trim() !== "" && array.indexOf(className) === index;
   }).join(" ").trim();
 
-  // node_modules/lucide-react/dist/esm/defaultAttributes.js
+  // ../../../node_modules/lucide-react/dist/esm/defaultAttributes.js
   var defaultAttributes = {
     xmlns: "http://www.w3.org/2000/svg",
     width: 24,
@@ -58,7 +58,7 @@
     strokeLinejoin: "round"
   };
 
-  // node_modules/lucide-react/dist/esm/Icon.js
+  // ../../../node_modules/lucide-react/dist/esm/Icon.js
   var Icon = forwardRef(
     ({
       color: color2 = "currentColor",
@@ -90,7 +90,7 @@
     }
   );
 
-  // node_modules/lucide-react/dist/esm/createLucideIcon.js
+  // ../../../node_modules/lucide-react/dist/esm/createLucideIcon.js
   var createLucideIcon = (iconName, iconNode) => {
     const Component2 = forwardRef(
       ({ className, ...props }, ref) => createElement(Icon, {
@@ -104,7 +104,7 @@
     return Component2;
   };
 
-  // node_modules/lucide-react/dist/esm/icons/apple.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/apple.js
   var Apple = createLucideIcon("Apple", [
     [
       "path",
@@ -116,31 +116,31 @@
     ["path", { d: "M10 2c1 .5 2 2 2 5", key: "fcco2y" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/arrow-down.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/arrow-down.js
   var ArrowDown = createLucideIcon("ArrowDown", [
     ["path", { d: "M12 5v14", key: "s699le" }],
     ["path", { d: "m19 12-7 7-7-7", key: "1idqje" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/arrow-left.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/arrow-left.js
   var ArrowLeft = createLucideIcon("ArrowLeft", [
     ["path", { d: "m12 19-7-7 7-7", key: "1l729n" }],
     ["path", { d: "M19 12H5", key: "x3x0zl" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/arrow-right.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/arrow-right.js
   var ArrowRight = createLucideIcon("ArrowRight", [
     ["path", { d: "M5 12h14", key: "1ays0h" }],
     ["path", { d: "m12 5 7 7-7 7", key: "xquz4c" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/arrow-up.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/arrow-up.js
   var ArrowUp = createLucideIcon("ArrowUp", [
     ["path", { d: "m5 12 7-7 7 7", key: "hav0vg" }],
     ["path", { d: "M12 19V5", key: "x0mq9r" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/book-open.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/book-open.js
   var BookOpen = createLucideIcon("BookOpen", [
     ["path", { d: "M12 7v14", key: "1akyts" }],
     [
@@ -152,7 +152,7 @@
     ]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/calendar-days.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/calendar-days.js
   var CalendarDays = createLucideIcon("CalendarDays", [
     ["path", { d: "M8 2v4", key: "1cmpym" }],
     ["path", { d: "M16 2v4", key: "4m81vk" }],
@@ -166,28 +166,28 @@
     ["path", { d: "M16 18h.01", key: "kzsmim" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/check.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/check.js
   var Check = createLucideIcon("Check", [["path", { d: "M20 6 9 17l-5-5", key: "1gmf2c" }]]);
 
-  // node_modules/lucide-react/dist/esm/icons/chevron-down.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/chevron-down.js
   var ChevronDown = createLucideIcon("ChevronDown", [
     ["path", { d: "m6 9 6 6 6-6", key: "qrunsl" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/chevron-left.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/chevron-left.js
   var ChevronLeft = createLucideIcon("ChevronLeft", [
     ["path", { d: "m15 18-6-6 6-6", key: "1wnfg3" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/chevron-right.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/chevron-right.js
   var ChevronRight = createLucideIcon("ChevronRight", [
     ["path", { d: "m9 18 6-6-6-6", key: "mthhwq" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/chevron-up.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/chevron-up.js
   var ChevronUp = createLucideIcon("ChevronUp", [["path", { d: "m18 15-6-6-6 6", key: "153udz" }]]);
 
-  // node_modules/lucide-react/dist/esm/icons/chrome.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/chrome.js
   var Chrome = createLucideIcon("Chrome", [
     ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
     ["circle", { cx: "12", cy: "12", r: "4", key: "4exip2" }],
@@ -196,45 +196,45 @@
     ["line", { x1: "10.88", x2: "15.46", y1: "21.94", y2: "14", key: "1ymyh8" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/circle-check.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/circle-check.js
   var CircleCheck = createLucideIcon("CircleCheck", [
     ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
     ["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/circle-help.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/circle-help.js
   var CircleHelp = createLucideIcon("CircleHelp", [
     ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
     ["path", { d: "M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3", key: "1u773s" }],
     ["path", { d: "M12 17h.01", key: "p32p05" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/circle-x.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/circle-x.js
   var CircleX = createLucideIcon("CircleX", [
     ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
     ["path", { d: "m15 9-6 6", key: "1uzhvr" }],
     ["path", { d: "m9 9 6 6", key: "z0biqf" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/clock-3.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/clock-3.js
   var Clock3 = createLucideIcon("Clock3", [
     ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
     ["polyline", { points: "12 6 12 12 16.5 12", key: "1aq6pp" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/copy.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/copy.js
   var Copy = createLucideIcon("Copy", [
     ["rect", { width: "14", height: "14", x: "8", y: "8", rx: "2", ry: "2", key: "17jyea" }],
     ["path", { d: "M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2", key: "zix9uf" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/credit-card.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/credit-card.js
   var CreditCard = createLucideIcon("CreditCard", [
     ["rect", { width: "20", height: "14", x: "2", y: "5", rx: "2", key: "ynyp8z" }],
     ["line", { x1: "2", x2: "22", y1: "10", y2: "10", key: "1b3vmo" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/crown.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/crown.js
   var Crown = createLucideIcon("Crown", [
     [
       "path",
@@ -246,7 +246,7 @@
     ["path", { d: "M5 21h14", key: "11awu3" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/earth.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/earth.js
   var Earth = createLucideIcon("Earth", [
     ["path", { d: "M21.54 15H17a2 2 0 0 0-2 2v4.54", key: "1djwo0" }],
     [
@@ -260,14 +260,14 @@
     ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/external-link.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/external-link.js
   var ExternalLink = createLucideIcon("ExternalLink", [
     ["path", { d: "M15 3h6v6", key: "1q9fwt" }],
     ["path", { d: "M10 14 21 3", key: "gplh6r" }],
     ["path", { d: "M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6", key: "a6xqqp" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/eye-off.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/eye-off.js
   var EyeOff = createLucideIcon("EyeOff", [
     [
       "path",
@@ -287,7 +287,7 @@
     ["path", { d: "m2 2 20 20", key: "1ooewy" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/eye.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/eye.js
   var Eye = createLucideIcon("Eye", [
     [
       "path",
@@ -299,7 +299,7 @@
     ["circle", { cx: "12", cy: "12", r: "3", key: "1v7zrd" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/gift.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/gift.js
   var Gift = createLucideIcon("Gift", [
     ["rect", { x: "3", y: "8", width: "18", height: "4", rx: "1", key: "bkv52" }],
     ["path", { d: "M12 8v13", key: "1c76mn" }],
@@ -313,7 +313,7 @@
     ]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/grid-3x3.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/grid-3x3.js
   var Grid3x3 = createLucideIcon("Grid3x3", [
     ["rect", { width: "18", height: "18", x: "3", y: "3", rx: "2", key: "afitv7" }],
     ["path", { d: "M3 9h18", key: "1pudct" }],
@@ -322,7 +322,7 @@
     ["path", { d: "M15 3v18", key: "14nvp0" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/headphones.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/headphones.js
   var Headphones = createLucideIcon("Headphones", [
     [
       "path",
@@ -333,7 +333,7 @@
     ]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/house.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/house.js
   var House = createLucideIcon("House", [
     ["path", { d: "M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8", key: "5wwlr5" }],
     [
@@ -345,7 +345,7 @@
     ]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/layout-grid.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/layout-grid.js
   var LayoutGrid = createLucideIcon("LayoutGrid", [
     ["rect", { width: "7", height: "7", x: "3", y: "3", rx: "1", key: "1g98yp" }],
     ["rect", { width: "7", height: "7", x: "14", y: "3", rx: "1", key: "6d4xhi" }],
@@ -353,7 +353,7 @@
     ["rect", { width: "7", height: "7", x: "3", y: "14", rx: "1", key: "1bb6yr" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/life-buoy.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/life-buoy.js
   var LifeBuoy = createLucideIcon("LifeBuoy", [
     ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
     ["path", { d: "m4.93 4.93 4.24 4.24", key: "1ymg45" }],
@@ -363,14 +363,14 @@
     ["circle", { cx: "12", cy: "12", r: "4", key: "4exip2" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/link-2.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/link-2.js
   var Link2 = createLucideIcon("Link2", [
     ["path", { d: "M9 17H7A5 5 0 0 1 7 7h2", key: "8i5ue5" }],
     ["path", { d: "M15 7h2a5 5 0 1 1 0 10h-2", key: "1b9ql8" }],
     ["line", { x1: "8", x2: "16", y1: "12", y2: "12", key: "1jonct" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/list.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/list.js
   var List = createLucideIcon("List", [
     ["path", { d: "M3 12h.01", key: "nlz23k" }],
     ["path", { d: "M3 18h.01", key: "1tta3j" }],
@@ -380,25 +380,25 @@
     ["path", { d: "M8 6h13", key: "ik3vkj" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/loader-circle.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/loader-circle.js
   var LoaderCircle = createLucideIcon("LoaderCircle", [
     ["path", { d: "M21 12a9 9 0 1 1-6.219-8.56", key: "13zald" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/lock-keyhole.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/lock-keyhole.js
   var LockKeyhole = createLucideIcon("LockKeyhole", [
     ["circle", { cx: "12", cy: "16", r: "1", key: "1au0dj" }],
     ["rect", { x: "3", y: "10", width: "18", height: "12", rx: "2", key: "6s8ecr" }],
     ["path", { d: "M7 10V7a5 5 0 0 1 10 0v3", key: "1pqi11" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/mail.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/mail.js
   var Mail = createLucideIcon("Mail", [
     ["rect", { width: "20", height: "16", x: "2", y: "4", rx: "2", key: "18n3k1" }],
     ["path", { d: "m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7", key: "1ocrg3" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/map-pin.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/map-pin.js
   var MapPin = createLucideIcon("MapPin", [
     [
       "path",
@@ -410,24 +410,24 @@
     ["circle", { cx: "12", cy: "10", r: "3", key: "ilqhr7" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/menu.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/menu.js
   var Menu = createLucideIcon("Menu", [
     ["line", { x1: "4", x2: "20", y1: "12", y2: "12", key: "1e0a9i" }],
     ["line", { x1: "4", x2: "20", y1: "6", y2: "6", key: "1owob3" }],
     ["line", { x1: "4", x2: "20", y1: "18", y2: "18", key: "yk5zj1" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/minus.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/minus.js
   var Minus = createLucideIcon("Minus", [["path", { d: "M5 12h14", key: "1ays0h" }]]);
 
-  // node_modules/lucide-react/dist/esm/icons/package-2.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/package-2.js
   var Package2 = createLucideIcon("Package2", [
     ["path", { d: "M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z", key: "1ront0" }],
     ["path", { d: "m3 9 2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9", key: "19h2x1" }],
     ["path", { d: "M12 3v6", key: "1holv5" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/package-check.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/package-check.js
   var PackageCheck = createLucideIcon("PackageCheck", [
     ["path", { d: "m16 16 2 2 4-4", key: "gfu2re" }],
     [
@@ -442,7 +442,7 @@
     ["line", { x1: "12", x2: "12", y1: "22", y2: "12", key: "a4e8g8" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/package.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/package.js
   var Package = createLucideIcon("Package", [
     [
       "path",
@@ -456,7 +456,7 @@
     ["path", { d: "m7.5 4.27 9 5.15", key: "1c824w" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/pencil-line.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/pencil-line.js
   var PencilLine = createLucideIcon("PencilLine", [
     ["path", { d: "M12 20h9", key: "t2du7b" }],
     [
@@ -469,7 +469,7 @@
     ["path", { d: "m15 5 3 3", key: "1w25hb" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/phone.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/phone.js
   var Phone = createLucideIcon("Phone", [
     [
       "path",
@@ -480,7 +480,7 @@
     ]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/plane.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/plane.js
   var Plane = createLucideIcon("Plane", [
     [
       "path",
@@ -491,13 +491,13 @@
     ]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/plus.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/plus.js
   var Plus = createLucideIcon("Plus", [
     ["path", { d: "M5 12h14", key: "1ays0h" }],
     ["path", { d: "M12 5v14", key: "s699le" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/qr-code.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/qr-code.js
   var QrCode = createLucideIcon("QrCode", [
     ["rect", { width: "5", height: "5", x: "3", y: "3", rx: "1", key: "1tu5fj" }],
     ["rect", { width: "5", height: "5", x: "16", y: "3", rx: "1", key: "1v8r4q" }],
@@ -513,7 +513,7 @@
     ["path", { d: "M12 21v-1", key: "1880an" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/receipt-text.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/receipt-text.js
   var ReceiptText = createLucideIcon("ReceiptText", [
     [
       "path",
@@ -524,7 +524,7 @@
     ["path", { d: "M13 16H8", key: "wsln4y" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/refresh-cw.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/refresh-cw.js
   var RefreshCw = createLucideIcon("RefreshCw", [
     ["path", { d: "M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8", key: "v9h5vc" }],
     ["path", { d: "M21 3v5h-5", key: "1q7to0" }],
@@ -532,7 +532,7 @@
     ["path", { d: "M8 16H3v5", key: "1cv678" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/save.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/save.js
   var Save = createLucideIcon("Save", [
     [
       "path",
@@ -545,13 +545,13 @@
     ["path", { d: "M7 3v4a1 1 0 0 0 1 1h7", key: "t51u73" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/search.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/search.js
   var Search = createLucideIcon("Search", [
     ["circle", { cx: "11", cy: "11", r: "8", key: "4ej97u" }],
     ["path", { d: "m21 21-4.3-4.3", key: "1qie3q" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/settings.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/settings.js
   var Settings = createLucideIcon("Settings", [
     [
       "path",
@@ -563,7 +563,7 @@
     ["circle", { cx: "12", cy: "12", r: "3", key: "1v7zrd" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/shield-check.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/shield-check.js
   var ShieldCheck = createLucideIcon("ShieldCheck", [
     [
       "path",
@@ -575,14 +575,14 @@
     ["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/shopping-bag.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/shopping-bag.js
   var ShoppingBag = createLucideIcon("ShoppingBag", [
     ["path", { d: "M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z", key: "hou9p0" }],
     ["path", { d: "M3 6h18", key: "d0wm0j" }],
     ["path", { d: "M16 10a4 4 0 0 1-8 0", key: "1ltviw" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/shopping-cart.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/shopping-cart.js
   var ShoppingCart = createLucideIcon("ShoppingCart", [
     ["circle", { cx: "8", cy: "21", r: "1", key: "jimo8o" }],
     ["circle", { cx: "19", cy: "21", r: "1", key: "13723u" }],
@@ -595,7 +595,7 @@
     ]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/signal.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/signal.js
   var Signal = createLucideIcon("Signal", [
     ["path", { d: "M2 20h.01", key: "4haj6o" }],
     ["path", { d: "M7 20v-4", key: "j294jx" }],
@@ -604,13 +604,13 @@
     ["path", { d: "M22 4v16", key: "sih9yq" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/smartphone.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/smartphone.js
   var Smartphone = createLucideIcon("Smartphone", [
     ["rect", { width: "14", height: "20", x: "5", y: "2", rx: "2", ry: "2", key: "1yt0o3" }],
     ["path", { d: "M12 18h.01", key: "mhygvu" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/star.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/star.js
   var Star = createLucideIcon("Star", [
     [
       "path",
@@ -621,7 +621,7 @@
     ]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/trash-2.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/trash-2.js
   var Trash2 = createLucideIcon("Trash2", [
     ["path", { d: "M3 6h18", key: "d0wm0j" }],
     ["path", { d: "M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6", key: "4alrt4" }],
@@ -630,7 +630,7 @@
     ["line", { x1: "14", x2: "14", y1: "11", y2: "17", key: "xtxkd" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/triangle-alert.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/triangle-alert.js
   var TriangleAlert = createLucideIcon("TriangleAlert", [
     [
       "path",
@@ -643,7 +643,7 @@
     ["path", { d: "M12 17h.01", key: "p32p05" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/user-plus.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/user-plus.js
   var UserPlus = createLucideIcon("UserPlus", [
     ["path", { d: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2", key: "1yyitq" }],
     ["circle", { cx: "9", cy: "7", r: "4", key: "nufk8" }],
@@ -651,20 +651,20 @@
     ["line", { x1: "22", x2: "16", y1: "11", y2: "11", key: "1shjgl" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/user-round.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/user-round.js
   var UserRound = createLucideIcon("UserRound", [
     ["circle", { cx: "12", cy: "8", r: "5", key: "1hypcn" }],
     ["path", { d: "M20 21a8 8 0 0 0-16 0", key: "rfgkzh" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/users-round.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/users-round.js
   var UsersRound = createLucideIcon("UsersRound", [
     ["path", { d: "M18 21a8 8 0 0 0-16 0", key: "3ypg7q" }],
     ["circle", { cx: "10", cy: "8", r: "5", key: "o932ke" }],
     ["path", { d: "M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3", key: "10s06x" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/users.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/users.js
   var Users = createLucideIcon("Users", [
     ["path", { d: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2", key: "1yyitq" }],
     ["circle", { cx: "9", cy: "7", r: "4", key: "nufk8" }],
@@ -672,7 +672,7 @@
     ["path", { d: "M16 3.13a4 4 0 0 1 0 7.75", key: "1da9ce" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/wallet-cards.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/wallet-cards.js
   var WalletCards = createLucideIcon("WalletCards", [
     ["rect", { width: "18", height: "18", x: "3", y: "3", rx: "2", key: "afitv7" }],
     ["path", { d: "M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2", key: "4125el" }],
@@ -685,7 +685,7 @@
     ]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/wallet.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/wallet.js
   var Wallet = createLucideIcon("Wallet", [
     [
       "path",
@@ -697,7 +697,7 @@
     ["path", { d: "M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4", key: "xoc0q4" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/x.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/x.js
   var X = createLucideIcon("X", [
     ["path", { d: "M18 6 6 18", key: "1bl5f8" }],
     ["path", { d: "m6 6 12 12", key: "d8bk6v" }]
@@ -713,10 +713,10 @@
   var jsxs = runtime.jsxs;
   var jsxDEV = runtime.jsxDEV;
 
-  // node_modules/framer-motion/dist/es/context/LayoutGroupContext.mjs
+  // ../../../node_modules/framer-motion/dist/es/context/LayoutGroupContext.mjs
   var LayoutGroupContext = createContext({});
 
-  // node_modules/framer-motion/dist/es/utils/use-constant.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/use-constant.mjs
   function useConstant(init) {
     const ref = useRef(null);
     if (ref.current === null) {
@@ -725,17 +725,17 @@
     return ref.current;
   }
 
-  // node_modules/framer-motion/dist/es/context/PresenceContext.mjs
+  // ../../../node_modules/framer-motion/dist/es/context/PresenceContext.mjs
   var PresenceContext = createContext(null);
 
-  // node_modules/framer-motion/dist/es/context/MotionConfigContext.mjs
+  // ../../../node_modules/framer-motion/dist/es/context/MotionConfigContext.mjs
   var MotionConfigContext = createContext({
     transformPagePoint: (p) => p,
     isStatic: false,
     reducedMotion: "never"
   });
 
-  // node_modules/framer-motion/dist/es/components/AnimatePresence/PopChild.mjs
+  // ../../../node_modules/framer-motion/dist/es/components/AnimatePresence/PopChild.mjs
   var PopChildMeasure = class extends Component {
     getSnapshotBeforeUpdate(prevProps) {
       const element = this.props.childRef.current;
@@ -794,7 +794,7 @@
     return jsx(PopChildMeasure, { isPresent, childRef: ref, sizeRef: size, children: cloneElement(children, { ref }) });
   }
 
-  // node_modules/framer-motion/dist/es/components/AnimatePresence/PresenceChild.mjs
+  // ../../../node_modules/framer-motion/dist/es/components/AnimatePresence/PresenceChild.mjs
   var PresenceChild = ({ children, initial, isPresent, onExitComplete, custom, presenceAffectsLayout, mode }) => {
     const presenceChildren = useConstant(newChildrenMap);
     const id3 = useId();
@@ -840,7 +840,7 @@
     return /* @__PURE__ */ new Map();
   }
 
-  // node_modules/framer-motion/dist/es/components/AnimatePresence/use-presence.mjs
+  // ../../../node_modules/framer-motion/dist/es/components/AnimatePresence/use-presence.mjs
   function usePresence(subscribe = true) {
     const context = useContext(PresenceContext);
     if (context === null)
@@ -855,7 +855,7 @@
     return !isPresent && onExitComplete ? [false, safeToRemove] : [true];
   }
 
-  // node_modules/framer-motion/dist/es/components/AnimatePresence/utils.mjs
+  // ../../../node_modules/framer-motion/dist/es/components/AnimatePresence/utils.mjs
   var getChildKey = (child) => child.key || "";
   function onlyElements(children) {
     const filtered = [];
@@ -866,13 +866,13 @@
     return filtered;
   }
 
-  // node_modules/framer-motion/dist/es/utils/is-browser.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/is-browser.mjs
   var isBrowser = typeof window !== "undefined";
 
-  // node_modules/framer-motion/dist/es/utils/use-isomorphic-effect.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/use-isomorphic-effect.mjs
   var useIsomorphicLayoutEffect = isBrowser ? useLayoutEffect : useEffect;
 
-  // node_modules/framer-motion/dist/es/components/AnimatePresence/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/components/AnimatePresence/index.mjs
   var AnimatePresence = ({ children, custom, initial = true, onExitComplete, presenceAffectsLayout = true, mode = "sync", propagate = false }) => {
     const [isParentPresent, safeToRemove] = usePresence(propagate);
     const presentChildren = useMemo(() => onlyElements(children), [children]);
@@ -943,10 +943,10 @@
     }) });
   };
 
-  // node_modules/motion-utils/dist/es/noop.mjs
+  // ../../../node_modules/motion-utils/dist/es/noop.mjs
   var noop = /* @__NO_SIDE_EFFECTS__ */ (any) => any;
 
-  // node_modules/motion-utils/dist/es/errors.mjs
+  // ../../../node_modules/motion-utils/dist/es/errors.mjs
   var warning = noop;
   var invariant = noop;
   if (true) {
@@ -962,7 +962,7 @@
     };
   }
 
-  // node_modules/motion-utils/dist/es/memo.mjs
+  // ../../../node_modules/motion-utils/dist/es/memo.mjs
   // @__NO_SIDE_EFFECTS__
   function memo2(callback) {
     let result;
@@ -973,23 +973,23 @@
     };
   }
 
-  // node_modules/motion-utils/dist/es/progress.mjs
+  // ../../../node_modules/motion-utils/dist/es/progress.mjs
   var progress = /* @__NO_SIDE_EFFECTS__ */ (from, to, value) => {
     const toFromDifference = to - from;
     return toFromDifference === 0 ? 1 : (value - from) / toFromDifference;
   };
 
-  // node_modules/motion-utils/dist/es/time-conversion.mjs
+  // ../../../node_modules/motion-utils/dist/es/time-conversion.mjs
   var secondsToMilliseconds = /* @__NO_SIDE_EFFECTS__ */ (seconds) => seconds * 1e3;
   var millisecondsToSeconds = /* @__NO_SIDE_EFFECTS__ */ (milliseconds) => milliseconds / 1e3;
 
-  // node_modules/framer-motion/dist/es/utils/GlobalConfig.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/GlobalConfig.mjs
   var MotionGlobalConfig = {
     skipAnimations: false,
     useManualTiming: false
   };
 
-  // node_modules/framer-motion/dist/es/frameloop/render-step.mjs
+  // ../../../node_modules/framer-motion/dist/es/frameloop/render-step.mjs
   function createRenderStep(runNextFrame) {
     let thisFrame = /* @__PURE__ */ new Set();
     let nextFrame = /* @__PURE__ */ new Set();
@@ -1051,7 +1051,7 @@
     return step;
   }
 
-  // node_modules/framer-motion/dist/es/frameloop/batcher.mjs
+  // ../../../node_modules/framer-motion/dist/es/frameloop/batcher.mjs
   var stepsOrder = [
     "read",
     // Read
@@ -1123,13 +1123,13 @@
     return { schedule, cancel, state, steps };
   }
 
-  // node_modules/framer-motion/dist/es/frameloop/frame.mjs
+  // ../../../node_modules/framer-motion/dist/es/frameloop/frame.mjs
   var { schedule: frame, cancel: cancelFrame, state: frameData, steps: frameSteps } = createRenderBatcher(typeof requestAnimationFrame !== "undefined" ? requestAnimationFrame : noop, true);
 
-  // node_modules/framer-motion/dist/es/context/LazyContext.mjs
+  // ../../../node_modules/framer-motion/dist/es/context/LazyContext.mjs
   var LazyContext = createContext({ strict: false });
 
-  // node_modules/framer-motion/dist/es/motion/features/definitions.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/features/definitions.mjs
   var featureProps = {
     animation: [
       "animate",
@@ -1157,7 +1157,7 @@
     };
   }
 
-  // node_modules/framer-motion/dist/es/motion/features/load-features.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/features/load-features.mjs
   function loadFeatures(features) {
     for (const key in features) {
       featureDefinitions[key] = {
@@ -1167,7 +1167,7 @@
     }
   }
 
-  // node_modules/framer-motion/dist/es/motion/utils/valid-prop.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/utils/valid-prop.mjs
   var validMotionProps = /* @__PURE__ */ new Set([
     "animate",
     "exit",
@@ -1204,7 +1204,7 @@
     return key.startsWith("while") || key.startsWith("drag") && key !== "draggable" || key.startsWith("layout") || key.startsWith("onTap") || key.startsWith("onPan") || key.startsWith("onLayout") || validMotionProps.has(key);
   }
 
-  // node_modules/framer-motion/dist/es/render/dom/utils/filter-props.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/utils/filter-props.mjs
   var shouldForward = (key) => !isValidMotionProp(key);
   function loadExternalIsValidProp(isValidProp) {
     if (!isValidProp)
@@ -1228,7 +1228,7 @@
     return filteredProps;
   }
 
-  // node_modules/framer-motion/dist/es/utils/warn-once.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/warn-once.mjs
   var warned = /* @__PURE__ */ new Set();
   function warnOnce(condition, message, element) {
     if (condition || warned.has(message))
@@ -1239,7 +1239,7 @@
     warned.add(message);
   }
 
-  // node_modules/framer-motion/dist/es/render/components/create-proxy.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/components/create-proxy.mjs
   function createDOMMotionComponentProxy(componentFactory) {
     if (typeof Proxy === "undefined") {
       return componentFactory;
@@ -1268,20 +1268,20 @@
     });
   }
 
-  // node_modules/framer-motion/dist/es/context/MotionContext/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/context/MotionContext/index.mjs
   var MotionContext = createContext({});
 
-  // node_modules/framer-motion/dist/es/render/utils/is-variant-label.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/utils/is-variant-label.mjs
   function isVariantLabel(v) {
     return typeof v === "string" || Array.isArray(v);
   }
 
-  // node_modules/framer-motion/dist/es/animation/utils/is-animation-controls.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/utils/is-animation-controls.mjs
   function isAnimationControls(v) {
     return v !== null && typeof v === "object" && typeof v.start === "function";
   }
 
-  // node_modules/framer-motion/dist/es/render/utils/variant-props.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/utils/variant-props.mjs
   var variantPriorityOrder = [
     "animate",
     "whileInView",
@@ -1293,7 +1293,7 @@
   ];
   var variantProps = ["initial", ...variantPriorityOrder];
 
-  // node_modules/framer-motion/dist/es/render/utils/is-controlling-variants.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/utils/is-controlling-variants.mjs
   function isControllingVariants(props) {
     return isAnimationControls(props.animate) || variantProps.some((name) => isVariantLabel(props[name]));
   }
@@ -1301,7 +1301,7 @@
     return Boolean(isControllingVariants(props) || props.variants);
   }
 
-  // node_modules/framer-motion/dist/es/context/MotionContext/utils.mjs
+  // ../../../node_modules/framer-motion/dist/es/context/MotionContext/utils.mjs
   function getCurrentTreeVariants(props, context) {
     if (isControllingVariants(props)) {
       const { initial, animate } = props;
@@ -1313,7 +1313,7 @@
     return props.inherit !== false ? context : {};
   }
 
-  // node_modules/framer-motion/dist/es/context/MotionContext/create.mjs
+  // ../../../node_modules/framer-motion/dist/es/context/MotionContext/create.mjs
   function useCreateMotionContext(props) {
     const { initial, animate } = getCurrentTreeVariants(props, useContext(MotionContext));
     return useMemo(() => ({ initial, animate }), [variantLabelsAsDependency(initial), variantLabelsAsDependency(animate)]);
@@ -1322,15 +1322,15 @@
     return Array.isArray(prop) ? prop.join(" ") : prop;
   }
 
-  // node_modules/framer-motion/dist/es/motion/utils/symbol.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/utils/symbol.mjs
   var motionComponentSymbol = /* @__PURE__ */ Symbol.for("motionComponentSymbol");
 
-  // node_modules/framer-motion/dist/es/utils/is-ref-object.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/is-ref-object.mjs
   function isRefObject(ref) {
     return ref && typeof ref === "object" && Object.prototype.hasOwnProperty.call(ref, "current");
   }
 
-  // node_modules/framer-motion/dist/es/motion/utils/use-motion-ref.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/utils/use-motion-ref.mjs
   function useMotionRef(visualState, visualElement, externalRef) {
     return useCallback(
       (instance) => {
@@ -1361,20 +1361,20 @@
     );
   }
 
-  // node_modules/framer-motion/dist/es/render/dom/utils/camel-to-dash.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/utils/camel-to-dash.mjs
   var camelToDash = (str) => str.replace(/([a-z])([A-Z])/gu, "$1-$2").toLowerCase();
 
-  // node_modules/framer-motion/dist/es/animation/optimized-appear/data-id.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/optimized-appear/data-id.mjs
   var optimizedAppearDataId = "framerAppearId";
   var optimizedAppearDataAttribute = "data-" + camelToDash(optimizedAppearDataId);
 
-  // node_modules/framer-motion/dist/es/frameloop/microtask.mjs
+  // ../../../node_modules/framer-motion/dist/es/frameloop/microtask.mjs
   var { schedule: microtask, cancel: cancelMicrotask } = createRenderBatcher(queueMicrotask, false);
 
-  // node_modules/framer-motion/dist/es/context/SwitchLayoutGroupContext.mjs
+  // ../../../node_modules/framer-motion/dist/es/context/SwitchLayoutGroupContext.mjs
   var SwitchLayoutGroupContext = createContext({});
 
-  // node_modules/framer-motion/dist/es/motion/utils/use-visual-element.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/utils/use-visual-element.mjs
   function useVisualElement(Component2, visualState, props, createVisualElement, ProjectionNodeConstructor) {
     var _a, _b;
     const { visualElement: parent } = useContext(MotionContext);
@@ -1460,7 +1460,7 @@
     return visualElement.options.allowProjection !== false ? visualElement.projection : getClosestProjectingNode(visualElement.parent);
   }
 
-  // node_modules/framer-motion/dist/es/motion/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/index.mjs
   function createRendererMotionComponent({ preloadedFeatures, createVisualElement, useRender, useVisualState, Component: Component2 }) {
     var _a, _b;
     preloadedFeatures && loadFeatures(preloadedFeatures);
@@ -1509,7 +1509,7 @@
     };
   }
 
-  // node_modules/framer-motion/dist/es/render/svg/lowercase-elements.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/svg/lowercase-elements.mjs
   var lowercaseSVGElements = [
     "animate",
     "circle",
@@ -1538,7 +1538,7 @@
     "view"
   ];
 
-  // node_modules/framer-motion/dist/es/render/dom/utils/is-svg-component.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/utils/is-svg-component.mjs
   function isSVGComponent(Component2) {
     if (
       /**
@@ -1565,7 +1565,7 @@
     return false;
   }
 
-  // node_modules/framer-motion/dist/es/render/utils/resolve-variants.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/utils/resolve-variants.mjs
   function getValueState(visualElement) {
     const state = [{}, {}];
     visualElement === null || visualElement === void 0 ? void 0 : visualElement.values.forEach((value, key) => {
@@ -1589,12 +1589,12 @@
     return definition;
   }
 
-  // node_modules/framer-motion/dist/es/animation/utils/is-keyframes-target.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/utils/is-keyframes-target.mjs
   var isKeyframesTarget = (v) => {
     return Array.isArray(v);
   };
 
-  // node_modules/framer-motion/dist/es/utils/resolve-value.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/resolve-value.mjs
   var isCustomValue = (v) => {
     return Boolean(v && typeof v === "object" && v.mix && v.toValue);
   };
@@ -1602,16 +1602,16 @@
     return isKeyframesTarget(v) ? v[v.length - 1] || 0 : v;
   };
 
-  // node_modules/framer-motion/dist/es/value/utils/is-motion-value.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/utils/is-motion-value.mjs
   var isMotionValue = (value) => Boolean(value && value.getVelocity);
 
-  // node_modules/framer-motion/dist/es/value/utils/resolve-motion-value.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/utils/resolve-motion-value.mjs
   function resolveMotionValue(value) {
     const unwrappedValue = isMotionValue(value) ? value.get() : value;
     return isCustomValue(unwrappedValue) ? unwrappedValue.toValue() : unwrappedValue;
   }
 
-  // node_modules/framer-motion/dist/es/motion/utils/use-visual-state.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/utils/use-visual-state.mjs
   function makeState({ scrapeMotionValuesFromProps: scrapeMotionValuesFromProps3, createRenderState, onUpdate }, props, context, presenceContext) {
     const state = {
       latestValues: makeLatestValues(props, context, presenceContext, scrapeMotionValuesFromProps3),
@@ -1672,7 +1672,7 @@
     return values;
   }
 
-  // node_modules/framer-motion/dist/es/render/html/utils/keys-transform.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/html/utils/keys-transform.mjs
   var transformPropOrder = [
     "transformPerspective",
     "x",
@@ -1694,7 +1694,7 @@
   ];
   var transformProps = new Set(transformPropOrder);
 
-  // node_modules/framer-motion/dist/es/render/dom/utils/is-css-variable.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/utils/is-css-variable.mjs
   var checkStringStartsWith = (token) => (key) => typeof key === "string" && key.startsWith(token);
   var isCSSVariableName = /* @__PURE__ */ checkStringStartsWith("--");
   var startsAsVariableToken = /* @__PURE__ */ checkStringStartsWith("var(--");
@@ -1706,12 +1706,12 @@
   };
   var singleCssVariableRegex = /var\(--(?:[\w-]+\s*|[\w-]+\s*,(?:\s*[^)(\s]|\s*\((?:[^)(]|\([^)(]*\))*\))+\s*)\)$/iu;
 
-  // node_modules/framer-motion/dist/es/render/dom/value-types/get-as-type.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/value-types/get-as-type.mjs
   var getValueAsType = (value, type) => {
     return type && typeof value === "number" ? type.transform(value) : value;
   };
 
-  // node_modules/framer-motion/dist/es/utils/clamp.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/clamp.mjs
   var clamp = (min, max, v) => {
     if (v > max)
       return max;
@@ -1720,7 +1720,7 @@
     return v;
   };
 
-  // node_modules/framer-motion/dist/es/value/types/numbers/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/types/numbers/index.mjs
   var number = {
     test: (v) => typeof v === "number",
     parse: parseFloat,
@@ -1735,7 +1735,7 @@
     default: 1
   };
 
-  // node_modules/framer-motion/dist/es/value/types/numbers/units.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/types/numbers/units.mjs
   var createUnitType = (unit) => ({
     test: (v) => typeof v === "string" && v.endsWith(unit) && v.split(" ").length === 1,
     parse: parseFloat,
@@ -1752,7 +1752,7 @@
     transform: (v) => percent.transform(v * 100)
   };
 
-  // node_modules/framer-motion/dist/es/render/dom/value-types/number-browser.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/value-types/number-browser.mjs
   var browserNumberValueTypes = {
     // Border props
     borderWidth: px,
@@ -1791,7 +1791,7 @@
     backgroundPositionY: px
   };
 
-  // node_modules/framer-motion/dist/es/render/dom/value-types/transform.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/value-types/transform.mjs
   var transformValueTypes = {
     rotate: degrees,
     rotateX: degrees,
@@ -1819,13 +1819,13 @@
     originZ: px
   };
 
-  // node_modules/framer-motion/dist/es/render/dom/value-types/type-int.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/value-types/type-int.mjs
   var int = {
     ...number,
     transform: Math.round
   };
 
-  // node_modules/framer-motion/dist/es/render/dom/value-types/number.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/value-types/number.mjs
   var numberValueTypes = {
     ...browserNumberValueTypes,
     ...transformValueTypes,
@@ -1837,7 +1837,7 @@
     numOctaves: int
   };
 
-  // node_modules/framer-motion/dist/es/render/html/utils/build-transform.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/html/utils/build-transform.mjs
   var translateAlias = {
     x: "translateX",
     y: "translateY",
@@ -1880,7 +1880,7 @@
     return transformString;
   }
 
-  // node_modules/framer-motion/dist/es/render/html/utils/build-styles.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/html/utils/build-styles.mjs
   function buildHTMLStyles(state, latestValues, transformTemplate) {
     const { style, vars, transformOrigin } = state;
     let hasTransform2 = false;
@@ -1916,7 +1916,7 @@
     }
   }
 
-  // node_modules/framer-motion/dist/es/render/svg/utils/path.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/svg/utils/path.mjs
   var dashKeys = {
     offset: "stroke-dashoffset",
     array: "stroke-dasharray"
@@ -1934,7 +1934,7 @@
     attrs[keys.array] = `${pathLength} ${pathSpacing}`;
   }
 
-  // node_modules/framer-motion/dist/es/render/svg/utils/transform-origin.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/svg/utils/transform-origin.mjs
   function calcOrigin(origin, offset, size) {
     return typeof origin === "string" ? origin : px.transform(offset + size * origin);
   }
@@ -1944,7 +1944,7 @@
     return `${pxOriginX} ${pxOriginY}`;
   }
 
-  // node_modules/framer-motion/dist/es/render/svg/utils/build-attrs.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/svg/utils/build-attrs.mjs
   function buildSVGAttrs(state, {
     attrX,
     attrY,
@@ -1986,7 +1986,7 @@
     }
   }
 
-  // node_modules/framer-motion/dist/es/render/html/utils/create-render-state.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/html/utils/create-render-state.mjs
   var createHtmlRenderState = () => ({
     style: {},
     transform: {},
@@ -1994,16 +1994,16 @@
     vars: {}
   });
 
-  // node_modules/framer-motion/dist/es/render/svg/utils/create-render-state.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/svg/utils/create-render-state.mjs
   var createSvgRenderState = () => ({
     ...createHtmlRenderState(),
     attrs: {}
   });
 
-  // node_modules/framer-motion/dist/es/render/svg/utils/is-svg-tag.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/svg/utils/is-svg-tag.mjs
   var isSVGTag = (tag) => typeof tag === "string" && tag.toLowerCase() === "svg";
 
-  // node_modules/framer-motion/dist/es/render/html/utils/render.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/html/utils/render.mjs
   function renderHTML(element, { style, vars }, styleProp, projection) {
     Object.assign(element.style, style, projection && projection.getProjectionStyles(styleProp));
     for (const key in vars) {
@@ -2011,7 +2011,7 @@
     }
   }
 
-  // node_modules/framer-motion/dist/es/render/svg/utils/camel-case-attrs.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/svg/utils/camel-case-attrs.mjs
   var camelCaseAttributes = /* @__PURE__ */ new Set([
     "baseFrequency",
     "diffuseConstant",
@@ -2038,7 +2038,7 @@
     "lengthAdjust"
   ]);
 
-  // node_modules/framer-motion/dist/es/render/svg/utils/render.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/svg/utils/render.mjs
   function renderSVG(element, renderState, _styleProp, projection) {
     renderHTML(element, renderState, void 0, projection);
     for (const key in renderState.attrs) {
@@ -2046,18 +2046,18 @@
     }
   }
 
-  // node_modules/framer-motion/dist/es/projection/styles/scale-correction.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/styles/scale-correction.mjs
   var scaleCorrectors = {};
   function addScaleCorrector(correctors) {
     Object.assign(scaleCorrectors, correctors);
   }
 
-  // node_modules/framer-motion/dist/es/motion/utils/is-forced-motion-value.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/utils/is-forced-motion-value.mjs
   function isForcedMotionValue(key, { layout: layout2, layoutId }) {
     return transformProps.has(key) || key.startsWith("origin") || (layout2 || layoutId !== void 0) && (!!scaleCorrectors[key] || key === "opacity");
   }
 
-  // node_modules/framer-motion/dist/es/render/html/utils/scrape-motion-values.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/html/utils/scrape-motion-values.mjs
   function scrapeMotionValuesFromProps(props, prevProps, visualElement) {
     var _a;
     const { style } = props;
@@ -2070,7 +2070,7 @@
     return newValues;
   }
 
-  // node_modules/framer-motion/dist/es/render/svg/utils/scrape-motion-values.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/svg/utils/scrape-motion-values.mjs
   function scrapeMotionValuesFromProps2(props, prevProps, visualElement) {
     const newValues = scrapeMotionValuesFromProps(props, prevProps, visualElement);
     for (const key in props) {
@@ -2082,7 +2082,7 @@
     return newValues;
   }
 
-  // node_modules/framer-motion/dist/es/render/svg/config-motion.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/svg/config-motion.mjs
   function updateSVGDimensions(instance, renderState) {
     try {
       renderState.dimensions = typeof instance.getBBox === "function" ? instance.getBBox() : instance.getBoundingClientRect();
@@ -2136,7 +2136,7 @@
     })
   };
 
-  // node_modules/framer-motion/dist/es/render/html/config-motion.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/html/config-motion.mjs
   var htmlMotionConfig = {
     useVisualState: makeUseVisualState({
       scrapeMotionValuesFromProps,
@@ -2144,7 +2144,7 @@
     })
   };
 
-  // node_modules/framer-motion/dist/es/render/html/use-props.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/html/use-props.mjs
   function copyRawValuesOnly(target, source, props) {
     for (const key in source) {
       if (!isMotionValue(source[key]) && !isForcedMotionValue(key, props)) {
@@ -2181,7 +2181,7 @@
     return htmlProps;
   }
 
-  // node_modules/framer-motion/dist/es/render/svg/use-props.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/svg/use-props.mjs
   function useSVGProps(props, visualState, _isStatic, Component2) {
     const visualProps = useMemo(() => {
       const state = createSvgRenderState();
@@ -2199,7 +2199,7 @@
     return visualProps;
   }
 
-  // node_modules/framer-motion/dist/es/render/dom/use-render.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/use-render.mjs
   function createUseRender(forwardMotionProps = false) {
     const useRender = (Component2, props, ref, { latestValues }, isStatic) => {
       const useVisualProps = isSVGComponent(Component2) ? useSVGProps : useHTMLProps;
@@ -2216,7 +2216,7 @@
     return useRender;
   }
 
-  // node_modules/framer-motion/dist/es/render/components/create-factory.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/components/create-factory.mjs
   function createMotionComponentFactory(preloadedFeatures, createVisualElement) {
     return function createMotionComponent2(Component2, { forwardMotionProps } = { forwardMotionProps: false }) {
       const baseConfig = isSVGComponent(Component2) ? svgMotionConfig : htmlMotionConfig;
@@ -2231,7 +2231,7 @@
     };
   }
 
-  // node_modules/framer-motion/dist/es/utils/shallow-compare.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/shallow-compare.mjs
   function shallowCompare(next, prev) {
     if (!Array.isArray(prev))
       return false;
@@ -2245,16 +2245,16 @@
     return true;
   }
 
-  // node_modules/framer-motion/dist/es/render/utils/resolve-dynamic-variants.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/utils/resolve-dynamic-variants.mjs
   function resolveVariant(visualElement, definition, custom) {
     const props = visualElement.getProps();
     return resolveVariantFromProps(props, definition, custom !== void 0 ? custom : props.custom, visualElement);
   }
 
-  // node_modules/motion-dom/dist/es/utils/supports/scroll-timeline.mjs
+  // ../../../node_modules/motion-dom/dist/es/utils/supports/scroll-timeline.mjs
   var supportsScrollTimeline = memo2(() => window.ScrollTimeline !== void 0);
 
-  // node_modules/motion-dom/dist/es/animation/controls/BaseGroup.mjs
+  // ../../../node_modules/motion-dom/dist/es/animation/controls/BaseGroup.mjs
   var BaseGroupPlaybackControls = class {
     constructor(animations2) {
       this.stop = () => this.runAll("stop");
@@ -2331,19 +2331,19 @@
     }
   };
 
-  // node_modules/motion-dom/dist/es/animation/controls/Group.mjs
+  // ../../../node_modules/motion-dom/dist/es/animation/controls/Group.mjs
   var GroupPlaybackControls = class extends BaseGroupPlaybackControls {
     then(onResolve, onReject) {
       return Promise.all(this.animations).then(onResolve).catch(onReject);
     }
   };
 
-  // node_modules/motion-dom/dist/es/animation/utils/get-value-transition.mjs
+  // ../../../node_modules/motion-dom/dist/es/animation/utils/get-value-transition.mjs
   function getValueTransition(transition, key) {
     return transition ? transition[key] || transition["default"] || transition : void 0;
   }
 
-  // node_modules/motion-dom/dist/es/animation/generators/utils/calc-duration.mjs
+  // ../../../node_modules/motion-dom/dist/es/animation/generators/utils/calc-duration.mjs
   var maxGeneratorDuration = 2e4;
   function calcGeneratorDuration(generator) {
     let duration = 0;
@@ -2356,26 +2356,26 @@
     return duration >= maxGeneratorDuration ? Infinity : duration;
   }
 
-  // node_modules/motion-dom/dist/es/animation/generators/utils/is-generator.mjs
+  // ../../../node_modules/motion-dom/dist/es/animation/generators/utils/is-generator.mjs
   function isGenerator(type) {
     return typeof type === "function";
   }
 
-  // node_modules/motion-dom/dist/es/animation/waapi/utils/attach-timeline.mjs
+  // ../../../node_modules/motion-dom/dist/es/animation/waapi/utils/attach-timeline.mjs
   function attachTimeline(animation3, timeline) {
     animation3.timeline = timeline;
     animation3.onfinish = null;
   }
 
-  // node_modules/motion-dom/dist/es/utils/is-bezier-definition.mjs
+  // ../../../node_modules/motion-dom/dist/es/utils/is-bezier-definition.mjs
   var isBezierDefinition = (easing) => Array.isArray(easing) && typeof easing[0] === "number";
 
-  // node_modules/motion-dom/dist/es/utils/supports/flags.mjs
+  // ../../../node_modules/motion-dom/dist/es/utils/supports/flags.mjs
   var supportsFlags = {
     linearEasing: void 0
   };
 
-  // node_modules/motion-dom/dist/es/utils/supports/memo.mjs
+  // ../../../node_modules/motion-dom/dist/es/utils/supports/memo.mjs
   function memoSupports(callback, supportsFlag) {
     const memoized = memo2(callback);
     return () => {
@@ -2384,7 +2384,7 @@
     };
   }
 
-  // node_modules/motion-dom/dist/es/utils/supports/linear-easing.mjs
+  // ../../../node_modules/motion-dom/dist/es/utils/supports/linear-easing.mjs
   var supportsLinearEasing = /* @__PURE__ */ memoSupports(() => {
     try {
       document.createElement("div").animate({ opacity: 0 }, { easing: "linear(0, 1)" });
@@ -2394,7 +2394,7 @@
     return true;
   }, "linearEasing");
 
-  // node_modules/motion-dom/dist/es/animation/waapi/utils/linear.mjs
+  // ../../../node_modules/motion-dom/dist/es/animation/waapi/utils/linear.mjs
   var generateLinearEasing = (easing, duration, resolution = 10) => {
     let points = "";
     const numPoints = Math.max(Math.round(duration / resolution), 2);
@@ -2404,7 +2404,7 @@
     return `linear(${points.substring(0, points.length - 2)})`;
   };
 
-  // node_modules/motion-dom/dist/es/animation/waapi/utils/easing.mjs
+  // ../../../node_modules/motion-dom/dist/es/animation/waapi/utils/easing.mjs
   function isWaapiSupportedEasing(easing) {
     return Boolean(typeof easing === "function" && supportsLinearEasing() || !easing || typeof easing === "string" && (easing in supportedWaapiEasing || supportsLinearEasing()) || isBezierDefinition(easing) || Array.isArray(easing) && easing.every(isWaapiSupportedEasing));
   }
@@ -2434,7 +2434,7 @@
     }
   }
 
-  // node_modules/motion-dom/dist/es/gestures/drag/state/is-active.mjs
+  // ../../../node_modules/motion-dom/dist/es/gestures/drag/state/is-active.mjs
   var isDragging = {
     x: false,
     y: false
@@ -2443,7 +2443,7 @@
     return isDragging.x || isDragging.y;
   }
 
-  // node_modules/motion-dom/dist/es/utils/resolve-elements.mjs
+  // ../../../node_modules/motion-dom/dist/es/utils/resolve-elements.mjs
   function resolveElements(elementOrSelector, scope, selectorCache) {
     var _a;
     if (elementOrSelector instanceof Element) {
@@ -2459,7 +2459,7 @@
     return Array.from(elementOrSelector);
   }
 
-  // node_modules/motion-dom/dist/es/gestures/utils/setup.mjs
+  // ../../../node_modules/motion-dom/dist/es/gestures/utils/setup.mjs
   function setupGesture(elementOrSelector, options) {
     const elements = resolveElements(elementOrSelector);
     const gestureAbortController = new AbortController();
@@ -2472,7 +2472,7 @@
     return [elements, eventOptions, cancel];
   }
 
-  // node_modules/motion-dom/dist/es/gestures/hover.mjs
+  // ../../../node_modules/motion-dom/dist/es/gestures/hover.mjs
   function filterEvents(callback) {
     return (event) => {
       if (event.pointerType === "touch" || isDragActive())
@@ -2499,7 +2499,7 @@
     return cancel;
   }
 
-  // node_modules/motion-dom/dist/es/gestures/utils/is-node-or-child.mjs
+  // ../../../node_modules/motion-dom/dist/es/gestures/utils/is-node-or-child.mjs
   var isNodeOrChild = (parent, child) => {
     if (!child) {
       return false;
@@ -2510,7 +2510,7 @@
     }
   };
 
-  // node_modules/motion-dom/dist/es/gestures/utils/is-primary-pointer.mjs
+  // ../../../node_modules/motion-dom/dist/es/gestures/utils/is-primary-pointer.mjs
   var isPrimaryPointer = (event) => {
     if (event.pointerType === "mouse") {
       return typeof event.button !== "number" || event.button <= 0;
@@ -2519,7 +2519,7 @@
     }
   };
 
-  // node_modules/motion-dom/dist/es/gestures/press/utils/is-keyboard-accessible.mjs
+  // ../../../node_modules/motion-dom/dist/es/gestures/press/utils/is-keyboard-accessible.mjs
   var focusableElements = /* @__PURE__ */ new Set([
     "BUTTON",
     "INPUT",
@@ -2531,10 +2531,10 @@
     return focusableElements.has(element.tagName) || element.tabIndex !== -1;
   }
 
-  // node_modules/motion-dom/dist/es/gestures/press/utils/state.mjs
+  // ../../../node_modules/motion-dom/dist/es/gestures/press/utils/state.mjs
   var isPressing = /* @__PURE__ */ new WeakSet();
 
-  // node_modules/motion-dom/dist/es/gestures/press/utils/keyboard.mjs
+  // ../../../node_modules/motion-dom/dist/es/gestures/press/utils/keyboard.mjs
   function filterEvents2(callback) {
     return (event) => {
       if (event.key !== "Enter")
@@ -2564,7 +2564,7 @@
     element.addEventListener("blur", () => element.removeEventListener("keydown", handleKeydown), eventOptions);
   };
 
-  // node_modules/motion-dom/dist/es/gestures/press/index.mjs
+  // ../../../node_modules/motion-dom/dist/es/gestures/press/index.mjs
   function isValidPressEvent(event) {
     return isPrimaryPointer(event) && !isDragActive();
   }
@@ -2607,7 +2607,7 @@
     return cancelEvents;
   }
 
-  // node_modules/motion-dom/dist/es/gestures/drag/state/set-active.mjs
+  // ../../../node_modules/motion-dom/dist/es/gestures/drag/state/set-active.mjs
   function setDragLock(axis) {
     if (axis === "x" || axis === "y") {
       if (isDragging[axis]) {
@@ -2630,7 +2630,7 @@
     }
   }
 
-  // node_modules/framer-motion/dist/es/render/html/utils/keys-position.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/html/utils/keys-position.mjs
   var positionalKeys = /* @__PURE__ */ new Set([
     "width",
     "height",
@@ -2641,7 +2641,7 @@
     ...transformPropOrder
   ]);
 
-  // node_modules/framer-motion/dist/es/frameloop/sync-time.mjs
+  // ../../../node_modules/framer-motion/dist/es/frameloop/sync-time.mjs
   var now;
   function clearTime() {
     now = void 0;
@@ -2659,7 +2659,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/utils/array.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/array.mjs
   function addUniqueItem(arr, item) {
     if (arr.indexOf(item) === -1)
       arr.push(item);
@@ -2670,7 +2670,7 @@
       arr.splice(index, 1);
   }
 
-  // node_modules/framer-motion/dist/es/utils/subscription-manager.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/subscription-manager.mjs
   var SubscriptionManager = class {
     constructor() {
       this.subscriptions = [];
@@ -2700,12 +2700,12 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/utils/velocity-per-second.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/velocity-per-second.mjs
   function velocityPerSecond(velocity, frameDuration) {
     return frameDuration ? velocity * (1e3 / frameDuration) : 0;
   }
 
-  // node_modules/framer-motion/dist/es/value/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/index.mjs
   var MAX_VELOCITY_DELTA = 30;
   var isFloat = (value) => {
     return !isNaN(parseFloat(value));
@@ -2979,7 +2979,7 @@
     return new MotionValue(init, options);
   }
 
-  // node_modules/framer-motion/dist/es/render/utils/setters.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/utils/setters.mjs
   function setMotionValue(visualElement, key, value) {
     if (visualElement.hasValue(key)) {
       visualElement.getValue(key).set(value);
@@ -2997,12 +2997,12 @@
     }
   }
 
-  // node_modules/framer-motion/dist/es/value/use-will-change/is.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/use-will-change/is.mjs
   function isWillChangeMotionValue(value) {
     return Boolean(isMotionValue(value) && value.add);
   }
 
-  // node_modules/framer-motion/dist/es/value/use-will-change/add-will-change.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/use-will-change/add-will-change.mjs
   function addValueToWillChange(visualElement, key) {
     const willChange = visualElement.getValue("willChange");
     if (isWillChangeMotionValue(willChange)) {
@@ -3010,17 +3010,17 @@
     }
   }
 
-  // node_modules/framer-motion/dist/es/animation/optimized-appear/get-appear-id.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/optimized-appear/get-appear-id.mjs
   function getOptimisedAppearId(visualElement) {
     return visualElement.props[optimizedAppearDataAttribute];
   }
 
-  // node_modules/framer-motion/dist/es/utils/use-instant-transition-state.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/use-instant-transition-state.mjs
   var instantAnimationState = {
     current: false
   };
 
-  // node_modules/framer-motion/dist/es/easing/cubic-bezier.mjs
+  // ../../../node_modules/framer-motion/dist/es/easing/cubic-bezier.mjs
   var calcBezier = (t, a1, a2) => (((1 - 3 * a2 + 3 * a1) * t + (3 * a2 - 6 * a1)) * t + 3 * a1) * t;
   var subdivisionPrecision = 1e-7;
   var subdivisionMaxIterations = 12;
@@ -3046,29 +3046,29 @@
     return (t) => t === 0 || t === 1 ? t : calcBezier(getTForX(t), mY1, mY2);
   }
 
-  // node_modules/framer-motion/dist/es/easing/modifiers/mirror.mjs
+  // ../../../node_modules/framer-motion/dist/es/easing/modifiers/mirror.mjs
   var mirrorEasing = (easing) => (p) => p <= 0.5 ? easing(2 * p) / 2 : (2 - easing(2 * (1 - p))) / 2;
 
-  // node_modules/framer-motion/dist/es/easing/modifiers/reverse.mjs
+  // ../../../node_modules/framer-motion/dist/es/easing/modifiers/reverse.mjs
   var reverseEasing = (easing) => (p) => 1 - easing(1 - p);
 
-  // node_modules/framer-motion/dist/es/easing/back.mjs
+  // ../../../node_modules/framer-motion/dist/es/easing/back.mjs
   var backOut = /* @__PURE__ */ cubicBezier(0.33, 1.53, 0.69, 0.99);
   var backIn = /* @__PURE__ */ reverseEasing(backOut);
   var backInOut = /* @__PURE__ */ mirrorEasing(backIn);
 
-  // node_modules/framer-motion/dist/es/easing/anticipate.mjs
+  // ../../../node_modules/framer-motion/dist/es/easing/anticipate.mjs
   var anticipate = (p) => (p *= 2) < 1 ? 0.5 * backIn(p) : 0.5 * (2 - Math.pow(2, -10 * (p - 1)));
 
-  // node_modules/framer-motion/dist/es/easing/circ.mjs
+  // ../../../node_modules/framer-motion/dist/es/easing/circ.mjs
   var circIn = (p) => 1 - Math.sin(Math.acos(p));
   var circOut = reverseEasing(circIn);
   var circInOut = mirrorEasing(circIn);
 
-  // node_modules/framer-motion/dist/es/utils/is-zero-value-string.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/is-zero-value-string.mjs
   var isZeroValueString = (v) => /^0[^.\s]+$/u.test(v);
 
-  // node_modules/framer-motion/dist/es/animation/utils/is-none.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/utils/is-none.mjs
   function isNone(value) {
     if (typeof value === "number") {
       return value === 0;
@@ -3079,21 +3079,21 @@
     }
   }
 
-  // node_modules/framer-motion/dist/es/value/types/utils/sanitize.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/types/utils/sanitize.mjs
   var sanitize = (v) => Math.round(v * 1e5) / 1e5;
 
-  // node_modules/framer-motion/dist/es/value/types/utils/float-regex.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/types/utils/float-regex.mjs
   var floatRegex = /-?(?:\d+(?:\.\d+)?|\.\d+)/gu;
 
-  // node_modules/framer-motion/dist/es/value/types/utils/is-nullish.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/types/utils/is-nullish.mjs
   function isNullish(v) {
     return v == null;
   }
 
-  // node_modules/framer-motion/dist/es/value/types/utils/single-color-regex.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/types/utils/single-color-regex.mjs
   var singleColorRegex = /^(?:#[\da-f]{3,8}|(?:rgb|hsl)a?\((?:-?[\d.]+%?[,\s]+){2}-?[\d.]+%?\s*(?:[,/]\s*)?(?:\b\d+(?:\.\d+)?|\.\d+)?%?\))$/iu;
 
-  // node_modules/framer-motion/dist/es/value/types/color/utils.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/types/color/utils.mjs
   var isColorString = (type, testProp) => (v) => {
     return Boolean(typeof v === "string" && singleColorRegex.test(v) && v.startsWith(type) || testProp && !isNullish(v) && Object.prototype.hasOwnProperty.call(v, testProp));
   };
@@ -3109,7 +3109,7 @@
     };
   };
 
-  // node_modules/framer-motion/dist/es/value/types/color/rgba.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/types/color/rgba.mjs
   var clampRgbUnit = (v) => clamp(0, 255, v);
   var rgbUnit = {
     ...number,
@@ -3121,7 +3121,7 @@
     transform: ({ red, green, blue, alpha: alpha$1 = 1 }) => "rgba(" + rgbUnit.transform(red) + ", " + rgbUnit.transform(green) + ", " + rgbUnit.transform(blue) + ", " + sanitize(alpha.transform(alpha$1)) + ")"
   };
 
-  // node_modules/framer-motion/dist/es/value/types/color/hex.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/types/color/hex.mjs
   function parseHex(v) {
     let r2 = "";
     let g = "";
@@ -3155,7 +3155,7 @@
     transform: rgba.transform
   };
 
-  // node_modules/framer-motion/dist/es/value/types/color/hsla.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/types/color/hsla.mjs
   var hsla = {
     test: /* @__PURE__ */ isColorString("hsl", "hue"),
     parse: /* @__PURE__ */ splitColor("hue", "saturation", "lightness"),
@@ -3164,7 +3164,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/value/types/color/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/types/color/index.mjs
   var color = {
     test: (v) => rgba.test(v) || hex.test(v) || hsla.test(v),
     parse: (v) => {
@@ -3181,10 +3181,10 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/value/types/utils/color-regex.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/types/utils/color-regex.mjs
   var colorRegex = /(?:#[\da-f]{3,8}|(?:rgb|hsl)a?\((?:-?[\d.]+%?[,\s]+){2}-?[\d.]+%?\s*(?:[,/]\s*)?(?:\b\d+(?:\.\d+)?|\.\d+)?%?\))/giu;
 
-  // node_modules/framer-motion/dist/es/value/types/complex/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/types/complex/index.mjs
   function test(v) {
     var _a, _b;
     return isNaN(v) && typeof v === "string" && (((_a = v.match(floatRegex)) === null || _a === void 0 ? void 0 : _a.length) || 0) + (((_b = v.match(colorRegex)) === null || _b === void 0 ? void 0 : _b.length) || 0) > 0;
@@ -3262,7 +3262,7 @@
     getAnimatableNone
   };
 
-  // node_modules/framer-motion/dist/es/value/types/complex/filter.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/types/complex/filter.mjs
   var maxDefaults = /* @__PURE__ */ new Set(["brightness", "contrast", "saturate", "opacity"]);
   function applyDefaultFilter(v) {
     const [name, value] = v.slice(0, -1).split("(");
@@ -3286,7 +3286,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/render/dom/value-types/defaults.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/value-types/defaults.mjs
   var defaultValueTypes = {
     ...numberValueTypes,
     // Color props
@@ -3306,7 +3306,7 @@
   };
   var getDefaultValueType = (key) => defaultValueTypes[key];
 
-  // node_modules/framer-motion/dist/es/render/dom/value-types/animatable-none.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/value-types/animatable-none.mjs
   function getAnimatableNone2(key, value) {
     let defaultValueType = getDefaultValueType(key);
     if (defaultValueType !== filter)
@@ -3314,7 +3314,7 @@
     return defaultValueType.getAnimatableNone ? defaultValueType.getAnimatableNone(value) : void 0;
   }
 
-  // node_modules/framer-motion/dist/es/render/html/utils/make-none-animatable.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/html/utils/make-none-animatable.mjs
   var invalidTemplates = /* @__PURE__ */ new Set(["auto", "none", "0"]);
   function makeNoneKeyframesAnimatable(unresolvedKeyframes, noneKeyframeIndexes, name) {
     let i = 0;
@@ -3333,7 +3333,7 @@
     }
   }
 
-  // node_modules/framer-motion/dist/es/render/dom/utils/unit-conversion.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/utils/unit-conversion.mjs
   var isNumOrPxType = (v) => v === number || v === px;
   var getPosFromMatrix = (matrix, pos) => parseFloat(matrix.split(", ")[pos]);
   var getTranslateFromMatrix = (pos2, pos3) => (_bbox, { transform }) => {
@@ -3379,7 +3379,7 @@
   positionalValues.translateX = positionalValues.x;
   positionalValues.translateY = positionalValues.y;
 
-  // node_modules/framer-motion/dist/es/render/utils/KeyframesResolver.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/utils/KeyframesResolver.mjs
   var toResolve = /* @__PURE__ */ new Set();
   var isScheduled = false;
   var anyNeedsMeasurement = false;
@@ -3509,10 +3509,10 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/utils/is-numerical-string.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/is-numerical-string.mjs
   var isNumericalString = (v) => /^-?(?:\d+(?:\.\d+)?|\.\d+)$/u.test(v);
 
-  // node_modules/framer-motion/dist/es/render/dom/utils/css-variables-conversion.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/utils/css-variables-conversion.mjs
   var splitCSSVariableRegex = (
     // eslint-disable-next-line redos-detector/no-unsafe-regex -- false positive, as it can match a lot of words
     /^var\(--(?:([\w-]+)|([\w-]+), ?([a-zA-Z\d ()%#.,-]+))\)/u
@@ -3538,20 +3538,20 @@
     return isCSSVariableToken(fallback) ? getVariableValue(fallback, element, depth + 1) : fallback;
   }
 
-  // node_modules/framer-motion/dist/es/render/dom/value-types/test.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/value-types/test.mjs
   var testValueType = (v) => (type) => type.test(v);
 
-  // node_modules/framer-motion/dist/es/render/dom/value-types/type-auto.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/value-types/type-auto.mjs
   var auto = {
     test: (v) => v === "auto",
     parse: (v) => v
   };
 
-  // node_modules/framer-motion/dist/es/render/dom/value-types/dimensions.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/value-types/dimensions.mjs
   var dimensionValueTypes = [number, px, percent, degrees, vw, vh, auto];
   var findDimensionValueType = (v) => dimensionValueTypes.find(testValueType(v));
 
-  // node_modules/framer-motion/dist/es/render/dom/DOMKeyframesResolver.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/DOMKeyframesResolver.mjs
   var DOMKeyframesResolver = class extends KeyframeResolver {
     constructor(unresolvedKeyframes, onComplete, name, motionValue2, element) {
       super(unresolvedKeyframes, onComplete, name, motionValue2, element, true);
@@ -3644,7 +3644,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/animation/utils/is-animatable.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/utils/is-animatable.mjs
   var isAnimatable = (value, name) => {
     if (name === "zIndex")
       return false;
@@ -3658,7 +3658,7 @@
     return false;
   };
 
-  // node_modules/framer-motion/dist/es/animation/animators/utils/can-animate.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/animators/utils/can-animate.mjs
   function hasKeyframesChanged(keyframes2) {
     const current = keyframes2[0];
     if (keyframes2.length === 1)
@@ -3684,7 +3684,7 @@
     return hasKeyframesChanged(keyframes2) || (type === "spring" || isGenerator(type)) && velocity;
   }
 
-  // node_modules/framer-motion/dist/es/animation/animators/waapi/utils/get-final-keyframe.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/animators/waapi/utils/get-final-keyframe.mjs
   var isNotNull = (value) => value !== null;
   function getFinalKeyframe(keyframes2, { repeat, repeatType = "loop" }, finalKeyframe) {
     const resolvedKeyframes = keyframes2.filter(isNotNull);
@@ -3692,7 +3692,7 @@
     return !index || finalKeyframe === void 0 ? resolvedKeyframes[index] : finalKeyframe;
   }
 
-  // node_modules/framer-motion/dist/es/animation/animators/BaseAnimation.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/animators/BaseAnimation.mjs
   var MAX_RESOLVE_DELAY = 40;
   var BaseAnimation = class {
     constructor({ autoplay = true, delay: delay2 = 0, type = "keyframes", repeat = 0, repeatDelay = 0, repeatType = "loop", ...options }) {
@@ -3786,12 +3786,12 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/utils/mix/number.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/mix/number.mjs
   var mixNumber = (from, to, progress2) => {
     return from + (to - from) * progress2;
   };
 
-  // node_modules/framer-motion/dist/es/utils/hsla-to-rgba.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/hsla-to-rgba.mjs
   function hueToRgb(p, q, t) {
     if (t < 0)
       t += 1;
@@ -3829,12 +3829,12 @@
     };
   }
 
-  // node_modules/framer-motion/dist/es/utils/mix/immediate.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/mix/immediate.mjs
   function mixImmediate(a, b) {
     return (p) => p > 0 ? b : a;
   }
 
-  // node_modules/framer-motion/dist/es/utils/mix/color.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/mix/color.mjs
   var mixLinearColor = (from, to, v) => {
     const fromExpo = from * from;
     const expo = v * (to * to - fromExpo) + fromExpo;
@@ -3869,11 +3869,11 @@
     };
   };
 
-  // node_modules/framer-motion/dist/es/utils/pipe.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/pipe.mjs
   var combineFunctions = (a, b) => (v) => b(a(v));
   var pipe = (...transformers) => transformers.reduce(combineFunctions);
 
-  // node_modules/framer-motion/dist/es/utils/mix/visibility.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/mix/visibility.mjs
   var invisibleValues = /* @__PURE__ */ new Set(["none", "hidden"]);
   function mixVisibility(origin, target) {
     if (invisibleValues.has(origin)) {
@@ -3883,7 +3883,7 @@
     }
   }
 
-  // node_modules/framer-motion/dist/es/utils/mix/complex.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/mix/complex.mjs
   function mixNumber2(a, b) {
     return (p) => mixNumber(a, b, p);
   }
@@ -3954,7 +3954,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/utils/mix/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/mix/index.mjs
   function mix(from, to, p) {
     if (typeof from === "number" && typeof to === "number" && typeof p === "number") {
       return mixNumber(from, to, p);
@@ -3963,14 +3963,14 @@
     return mixer(from, to);
   }
 
-  // node_modules/framer-motion/dist/es/animation/generators/utils/velocity.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/generators/utils/velocity.mjs
   var velocitySampleDuration = 5;
   function calcGeneratorVelocity(resolveValue, t, current) {
     const prevT = Math.max(t - velocitySampleDuration, 0);
     return velocityPerSecond(current - resolveValue(prevT), t - prevT);
   }
 
-  // node_modules/framer-motion/dist/es/animation/generators/spring/defaults.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/generators/spring/defaults.mjs
   var springDefaults = {
     // Default spring physics
     stiffness: 100,
@@ -4001,7 +4001,7 @@
     maxDamping: 1
   };
 
-  // node_modules/framer-motion/dist/es/animation/generators/spring/find.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/generators/spring/find.mjs
   var safeMin = 1e-3;
   function findSpring({ duration = springDefaults.duration, bounce = springDefaults.bounce, velocity = springDefaults.velocity, mass = springDefaults.mass }) {
     let envelope;
@@ -4071,7 +4071,7 @@
     return undampedFreq * Math.sqrt(1 - dampingRatio * dampingRatio);
   }
 
-  // node_modules/framer-motion/dist/es/animation/generators/spring/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/generators/spring/index.mjs
   var durationKeys = ["duration", "bounce"];
   var physicsKeys = ["stiffness", "damping", "mass"];
   function isSpringType(options, keys) {
@@ -4175,7 +4175,7 @@
     return generator;
   }
 
-  // node_modules/framer-motion/dist/es/animation/generators/inertia.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/generators/inertia.mjs
   function inertia({ keyframes: keyframes2, velocity = 0, power = 0.8, timeConstant = 325, bounceDamping = 10, bounceStiffness = 500, modifyTarget, min, max, restDelta = 0.5, restSpeed }) {
     const origin = keyframes2[0];
     const state = {
@@ -4239,17 +4239,17 @@
     };
   }
 
-  // node_modules/framer-motion/dist/es/easing/ease.mjs
+  // ../../../node_modules/framer-motion/dist/es/easing/ease.mjs
   var easeIn = /* @__PURE__ */ cubicBezier(0.42, 0, 1, 1);
   var easeOut = /* @__PURE__ */ cubicBezier(0, 0, 0.58, 1);
   var easeInOut = /* @__PURE__ */ cubicBezier(0.42, 0, 0.58, 1);
 
-  // node_modules/framer-motion/dist/es/easing/utils/is-easing-array.mjs
+  // ../../../node_modules/framer-motion/dist/es/easing/utils/is-easing-array.mjs
   var isEasingArray = (ease2) => {
     return Array.isArray(ease2) && typeof ease2[0] !== "number";
   };
 
-  // node_modules/framer-motion/dist/es/easing/utils/map.mjs
+  // ../../../node_modules/framer-motion/dist/es/easing/utils/map.mjs
   var easingLookup = {
     linear: noop,
     easeIn,
@@ -4275,7 +4275,7 @@
     return definition;
   };
 
-  // node_modules/framer-motion/dist/es/utils/interpolate.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/interpolate.mjs
   function createMixers(output, ease2, customMixer) {
     const mixers = [];
     const mixerFactory = customMixer || mix;
@@ -4320,7 +4320,7 @@
     return isClamp ? (v) => interpolator(clamp(input[0], input[inputLength - 1], v)) : interpolator;
   }
 
-  // node_modules/framer-motion/dist/es/utils/offsets/fill.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/offsets/fill.mjs
   function fillOffset(offset, remaining) {
     const min = offset[offset.length - 1];
     for (let i = 1; i <= remaining; i++) {
@@ -4329,19 +4329,19 @@
     }
   }
 
-  // node_modules/framer-motion/dist/es/utils/offsets/default.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/offsets/default.mjs
   function defaultOffset(arr) {
     const offset = [0];
     fillOffset(offset, arr.length - 1);
     return offset;
   }
 
-  // node_modules/framer-motion/dist/es/utils/offsets/time.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/offsets/time.mjs
   function convertOffsetToTimes(offset, duration) {
     return offset.map((o) => o * duration);
   }
 
-  // node_modules/framer-motion/dist/es/animation/generators/keyframes.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/generators/keyframes.mjs
   function defaultEasing(values, easing) {
     return values.map(() => easing || easeInOut).splice(0, values.length - 1);
   }
@@ -4370,7 +4370,7 @@
     };
   }
 
-  // node_modules/framer-motion/dist/es/animation/animators/drivers/driver-frameloop.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/animators/drivers/driver-frameloop.mjs
   var frameloopDriver = (update) => {
     const passTimestamp = ({ timestamp }) => update(timestamp);
     return {
@@ -4384,7 +4384,7 @@
     };
   };
 
-  // node_modules/framer-motion/dist/es/animation/animators/MainThreadAnimation.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/animators/MainThreadAnimation.mjs
   var generators = {
     decay: inertia,
     inertia,
@@ -4646,7 +4646,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/animation/animators/utils/accelerated-values.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/animators/utils/accelerated-values.mjs
   var acceleratedValues = /* @__PURE__ */ new Set([
     "opacity",
     "clipPath",
@@ -4657,7 +4657,7 @@
     // "background-color"
   ]);
 
-  // node_modules/framer-motion/dist/es/animation/animators/waapi/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/animators/waapi/index.mjs
   function startWaapiAnimation(element, valueName, keyframes2, { delay: delay2 = 0, duration = 300, repeat = 0, repeatType = "loop", ease: ease2 = "easeInOut", times } = {}) {
     const keyframeOptions = { [valueName]: keyframes2 };
     if (times)
@@ -4675,10 +4675,10 @@
     });
   }
 
-  // node_modules/framer-motion/dist/es/animation/animators/waapi/utils/supports-waapi.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/animators/waapi/utils/supports-waapi.mjs
   var supportsWaapi = /* @__PURE__ */ memo2(() => Object.hasOwnProperty.call(Element.prototype, "animate"));
 
-  // node_modules/framer-motion/dist/es/animation/animators/AcceleratedAnimation.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/animators/AcceleratedAnimation.mjs
   var sampleDelta = 10;
   var maxDuration = 2e4;
   function requiresPregeneratedKeyframes(options) {
@@ -4907,7 +4907,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/animation/utils/default-transitions.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/utils/default-transitions.mjs
   var underDampedSpring = {
     type: "spring",
     stiffness: 500,
@@ -4938,12 +4938,12 @@
     return ease;
   };
 
-  // node_modules/framer-motion/dist/es/animation/utils/is-transition-defined.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/utils/is-transition-defined.mjs
   function isTransitionDefined({ when, delay: _delay, delayChildren, staggerChildren, staggerDirection, repeat, repeatType, repeatDelay, from, elapsed, ...transition }) {
     return !!Object.keys(transition).length;
   }
 
-  // node_modules/framer-motion/dist/es/animation/interfaces/motion-value.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/interfaces/motion-value.mjs
   var animateMotionValue = (name, value, target, transition = {}, element, isHandoff) => (onComplete) => {
     const valueTransition = getValueTransition(transition, name) || {};
     const delay2 = valueTransition.delay || transition.delay || 0;
@@ -5011,7 +5011,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/animation/interfaces/visual-element-target.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/interfaces/visual-element-target.mjs
   function shouldBlockAnimation({ protectedKeys, needsAnimating }, key) {
     const shouldBlock = protectedKeys.hasOwnProperty(key) && needsAnimating[key] !== true;
     needsAnimating[key] = false;
@@ -5062,7 +5062,7 @@
     return animations2;
   }
 
-  // node_modules/framer-motion/dist/es/animation/interfaces/visual-element-variant.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/interfaces/visual-element-variant.mjs
   function animateVariant(visualElement, variant, options = {}) {
     var _a;
     const resolved = resolveVariant(visualElement, variant, options.type === "exit" ? (_a = visualElement.presenceContext) === null || _a === void 0 ? void 0 : _a.custom : void 0);
@@ -5100,7 +5100,7 @@
     return a.sortNodePosition(b);
   }
 
-  // node_modules/framer-motion/dist/es/animation/interfaces/visual-element.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/interfaces/visual-element.mjs
   function animateVisualElement(visualElement, definition, options = {}) {
     visualElement.notify("AnimationStart", definition);
     let animation3;
@@ -5118,7 +5118,7 @@
     });
   }
 
-  // node_modules/framer-motion/dist/es/render/utils/get-variant-context.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/utils/get-variant-context.mjs
   var numVariantProps = variantProps.length;
   function getVariantContext(visualElement) {
     if (!visualElement)
@@ -5141,7 +5141,7 @@
     return context;
   }
 
-  // node_modules/framer-motion/dist/es/render/utils/animation-state.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/utils/animation-state.mjs
   var reversePriorityOrder = [...variantPriorityOrder].reverse();
   var numAnimationTypes = variantPriorityOrder.length;
   function animateList(visualElement) {
@@ -5328,7 +5328,7 @@
     };
   }
 
-  // node_modules/framer-motion/dist/es/motion/features/Feature.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/features/Feature.mjs
   var Feature = class {
     constructor(node) {
       this.isMounted = false;
@@ -5338,7 +5338,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/motion/features/animation/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/features/animation/index.mjs
   var AnimationFeature = class extends Feature {
     /**
      * We dynamically generate the AnimationState manager as it contains a reference
@@ -5375,7 +5375,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/motion/features/animation/exit.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/features/animation/exit.mjs
   var id = 0;
   var ExitAnimationFeature = class extends Feature {
     constructor() {
@@ -5405,7 +5405,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/motion/features/animations.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/features/animations.mjs
   var animations = {
     animation: {
       Feature: AnimationFeature
@@ -5415,13 +5415,13 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/events/add-dom-event.mjs
+  // ../../../node_modules/framer-motion/dist/es/events/add-dom-event.mjs
   function addDomEvent(target, eventName, handler, options = { passive: true }) {
     target.addEventListener(eventName, handler, options);
     return () => target.removeEventListener(eventName, handler);
   }
 
-  // node_modules/framer-motion/dist/es/events/event-info.mjs
+  // ../../../node_modules/framer-motion/dist/es/events/event-info.mjs
   function extractEventInfo(event) {
     return {
       point: {
@@ -5434,12 +5434,12 @@
     return (event) => isPrimaryPointer(event) && handler(event, extractEventInfo(event));
   };
 
-  // node_modules/framer-motion/dist/es/events/add-pointer-event.mjs
+  // ../../../node_modules/framer-motion/dist/es/events/add-pointer-event.mjs
   function addPointerEvent(target, eventName, handler, options) {
     return addDomEvent(target, eventName, addPointerInfo(handler), options);
   }
 
-  // node_modules/framer-motion/dist/es/utils/distance.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/distance.mjs
   var distance = (a, b) => Math.abs(a - b);
   function distance2D(a, b) {
     const xDelta = distance(a.x, b.x);
@@ -5447,7 +5447,7 @@
     return Math.sqrt(xDelta ** 2 + yDelta ** 2);
   }
 
-  // node_modules/framer-motion/dist/es/gestures/pan/PanSession.mjs
+  // ../../../node_modules/framer-motion/dist/es/gestures/pan/PanSession.mjs
   var PanSession = class {
     constructor(event, handlers, { transformPagePoint, contextWindow, dragSnapToOrigin = false } = {}) {
       this.startEvent = null;
@@ -5568,7 +5568,7 @@
     return currentVelocity;
   }
 
-  // node_modules/framer-motion/dist/es/projection/geometry/delta-calc.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/geometry/delta-calc.mjs
   var SCALE_PRECISION = 1e-4;
   var SCALE_MIN = 1 - SCALE_PRECISION;
   var SCALE_MAX = 1 + SCALE_PRECISION;
@@ -5614,7 +5614,7 @@
     calcRelativeAxisPosition(target.y, layout2.y, parent.y);
   }
 
-  // node_modules/framer-motion/dist/es/gestures/drag/utils/constraints.mjs
+  // ../../../node_modules/framer-motion/dist/es/gestures/drag/utils/constraints.mjs
   function applyConstraints(point, { min, max }, elastic) {
     if (min !== void 0 && point < min) {
       point = elastic ? mixNumber(min, point, elastic.min) : Math.max(point, min);
@@ -5692,7 +5692,7 @@
     return typeof dragElastic === "number" ? dragElastic : dragElastic[label] || 0;
   }
 
-  // node_modules/framer-motion/dist/es/projection/geometry/models.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/geometry/models.mjs
   var createAxisDelta = () => ({
     translate: 0,
     scale: 1,
@@ -5709,12 +5709,12 @@
     y: createAxis()
   });
 
-  // node_modules/framer-motion/dist/es/projection/utils/each-axis.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/utils/each-axis.mjs
   function eachAxis(callback) {
     return [callback("x"), callback("y")];
   }
 
-  // node_modules/framer-motion/dist/es/projection/geometry/conversion.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/geometry/conversion.mjs
   function convertBoundingBoxToBox({ top, left, right, bottom }) {
     return {
       x: { min: left, max: right },
@@ -5737,7 +5737,7 @@
     };
   }
 
-  // node_modules/framer-motion/dist/es/projection/utils/has-transform.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/utils/has-transform.mjs
   function isIdentityScale(scale2) {
     return scale2 === void 0 || scale2 === 1;
   }
@@ -5754,7 +5754,7 @@
     return value && value !== "0%";
   }
 
-  // node_modules/framer-motion/dist/es/projection/geometry/delta-apply.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/geometry/delta-apply.mjs
   function scalePoint(point, scale2, originPoint) {
     const distanceFromOrigin = point - originPoint;
     const scaled = scale2 * distanceFromOrigin;
@@ -5825,7 +5825,7 @@
     transformAxis(box.y, transform.y, transform.scaleY, transform.scale, transform.originY);
   }
 
-  // node_modules/framer-motion/dist/es/projection/utils/measure.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/utils/measure.mjs
   function measureViewportBox(instance, transformPoint2) {
     return convertBoundingBoxToBox(transformBoxPoints(instance.getBoundingClientRect(), transformPoint2));
   }
@@ -5839,12 +5839,12 @@
     return viewportBox;
   }
 
-  // node_modules/framer-motion/dist/es/utils/get-context-window.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/get-context-window.mjs
   var getContextWindow = ({ current }) => {
     return current ? current.ownerDocument.defaultView : null;
   };
 
-  // node_modules/framer-motion/dist/es/gestures/drag/VisualElementDragControls.mjs
+  // ../../../node_modules/framer-motion/dist/es/gestures/drag/VisualElementDragControls.mjs
   var elementDragControls = /* @__PURE__ */ new WeakMap();
   var VisualElementDragControls = class {
     constructor(visualElement) {
@@ -6196,7 +6196,7 @@
     return direction;
   }
 
-  // node_modules/framer-motion/dist/es/gestures/drag/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/gestures/drag/index.mjs
   var DragGesture = class extends Feature {
     constructor(node) {
       super(node);
@@ -6217,7 +6217,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/gestures/pan/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/gestures/pan/index.mjs
   var asyncHandler = (handler) => (event, info) => {
     if (handler) {
       frame.postRender(() => handler(event, info));
@@ -6260,7 +6260,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/projection/node/state.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/node/state.mjs
   var globalProjectionState = {
     /**
      * Global flag as to whether the tree has animated since the last time
@@ -6274,7 +6274,7 @@
     hasEverUpdated: false
   };
 
-  // node_modules/framer-motion/dist/es/projection/styles/scale-border-radius.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/styles/scale-border-radius.mjs
   function pixelsToPercent(pixels, axis) {
     if (axis.max === axis.min)
       return 0;
@@ -6297,7 +6297,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/projection/styles/scale-box-shadow.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/styles/scale-box-shadow.mjs
   var correctBoxShadow = {
     correct: (latest, { treeScale, projectionDelta }) => {
       const original = latest;
@@ -6319,7 +6319,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/motion/features/layout/MeasureLayout.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/features/layout/MeasureLayout.mjs
   var MeasureLayoutWithContext = class extends Component {
     /**
      * This only mounts projection nodes for components that
@@ -6424,22 +6424,22 @@
     boxShadow: correctBoxShadow
   };
 
-  // node_modules/framer-motion/dist/es/animation/animate/single-value.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/animate/single-value.mjs
   function animateSingleValue(value, keyframes2, options) {
     const motionValue$1 = isMotionValue(value) ? value : motionValue(value);
     motionValue$1.start(animateMotionValue("", motionValue$1, keyframes2, options));
     return motionValue$1.animation;
   }
 
-  // node_modules/framer-motion/dist/es/render/dom/utils/is-svg-element.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/utils/is-svg-element.mjs
   function isSVGElement(element) {
     return element instanceof SVGElement && element.tagName !== "svg";
   }
 
-  // node_modules/framer-motion/dist/es/render/utils/compare-by-depth.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/utils/compare-by-depth.mjs
   var compareByDepth = (a, b) => a.depth - b.depth;
 
-  // node_modules/framer-motion/dist/es/render/utils/flat-tree.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/utils/flat-tree.mjs
   var FlatTree = class {
     constructor() {
       this.children = [];
@@ -6460,7 +6460,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/utils/delay.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/delay.mjs
   function delay(callback, timeout) {
     const start = time.now();
     const checkElapsed = ({ timestamp }) => {
@@ -6474,7 +6474,7 @@
     return () => cancelFrame(checkElapsed);
   }
 
-  // node_modules/framer-motion/dist/es/projection/animation/mix-values.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/animation/mix-values.mjs
   var borders = ["TopLeft", "TopRight", "BottomLeft", "BottomRight"];
   var numBorders = borders.length;
   var asNumber = (value) => typeof value === "string" ? parseFloat(value) : value;
@@ -6528,7 +6528,7 @@
     };
   }
 
-  // node_modules/framer-motion/dist/es/projection/geometry/copy.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/geometry/copy.mjs
   function copyAxisInto(axis, originAxis) {
     axis.min = originAxis.min;
     axis.max = originAxis.max;
@@ -6544,7 +6544,7 @@
     delta.origin = originDelta.origin;
   }
 
-  // node_modules/framer-motion/dist/es/projection/geometry/delta-remove.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/geometry/delta-remove.mjs
   function removePointDelta(point, translate, scale2, originPoint, boxScale) {
     point -= translate;
     point = scalePoint(point, 1 / scale2, originPoint);
@@ -6577,7 +6577,7 @@
     removeAxisTransforms(box.y, transforms, yKeys, originBox ? originBox.y : void 0, sourceBox ? sourceBox.y : void 0);
   }
 
-  // node_modules/framer-motion/dist/es/projection/geometry/utils.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/geometry/utils.mjs
   function isAxisDeltaZero(delta) {
     return delta.translate === 0 && delta.scale === 1;
   }
@@ -6603,7 +6603,7 @@
     return a.translate === b.translate && a.scale === b.scale && a.originPoint === b.originPoint;
   }
 
-  // node_modules/framer-motion/dist/es/projection/shared/stack.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/shared/stack.mjs
   var NodeStack = class {
     constructor() {
       this.members = [];
@@ -6695,7 +6695,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/projection/styles/transform.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/styles/transform.mjs
   function buildProjectionTransform(delta, treeScale, latestTransform) {
     let transform = "";
     const xTranslate = delta.x.translate / treeScale.x;
@@ -6730,7 +6730,7 @@
     return transform || "none";
   }
 
-  // node_modules/framer-motion/dist/es/projection/node/create-projection-node.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/node/create-projection-node.mjs
   var metrics = {
     type: "projectionFrame",
     totalNodes: 0,
@@ -7783,7 +7783,7 @@
     return node !== node.root && ((_a = node.scroll) === null || _a === void 0 ? void 0 : _a.wasRoot);
   }
 
-  // node_modules/framer-motion/dist/es/projection/node/DocumentProjectionNode.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/node/DocumentProjectionNode.mjs
   var DocumentProjectionNode = createProjectionNode2({
     attachResizeListener: (ref, notify) => addDomEvent(ref, "resize", notify),
     measureScroll: () => ({
@@ -7793,7 +7793,7 @@
     checkIsScrollRoot: () => true
   });
 
-  // node_modules/framer-motion/dist/es/projection/node/HTMLProjectionNode.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/node/HTMLProjectionNode.mjs
   var rootProjectionNode = {
     current: void 0
   };
@@ -7817,7 +7817,7 @@
     checkIsScrollRoot: (instance) => Boolean(window.getComputedStyle(instance).position === "fixed")
   });
 
-  // node_modules/framer-motion/dist/es/motion/features/drag.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/features/drag.mjs
   var drag = {
     pan: {
       Feature: PanGesture
@@ -7829,7 +7829,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/gestures/hover.mjs
+  // ../../../node_modules/framer-motion/dist/es/gestures/hover.mjs
   function handleHoverEvent(node, event, lifecycle) {
     const { props } = node;
     if (node.animationState && props.whileHover) {
@@ -7855,7 +7855,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/gestures/focus.mjs
+  // ../../../node_modules/framer-motion/dist/es/gestures/focus.mjs
   var FocusGesture = class extends Feature {
     constructor() {
       super(...arguments);
@@ -7886,7 +7886,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/gestures/press.mjs
+  // ../../../node_modules/framer-motion/dist/es/gestures/press.mjs
   function handlePressEvent(node, event, lifecycle) {
     const { props } = node;
     if (node.animationState && props.whileTap) {
@@ -7912,7 +7912,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/motion/features/viewport/observers.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/features/viewport/observers.mjs
   var observerCallbacks = /* @__PURE__ */ new WeakMap();
   var observers = /* @__PURE__ */ new WeakMap();
   var fireObserverCallback = (entry) => {
@@ -7944,7 +7944,7 @@
     };
   }
 
-  // node_modules/framer-motion/dist/es/motion/features/viewport/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/features/viewport/index.mjs
   var thresholdNames = {
     some: 0,
     all: 1
@@ -8002,7 +8002,7 @@
     return (name) => viewport[name] !== prevViewport[name];
   }
 
-  // node_modules/framer-motion/dist/es/motion/features/gestures.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/features/gestures.mjs
   var gestureAnimations = {
     inView: {
       Feature: InViewFeature
@@ -8018,7 +8018,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/motion/features/layout.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/features/layout.mjs
   var layout = {
     layout: {
       ProjectionNode: HTMLProjectionNode,
@@ -8026,11 +8026,11 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/utils/reduced-motion/state.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/reduced-motion/state.mjs
   var prefersReducedMotion = { current: null };
   var hasReducedMotionListener = { current: false };
 
-  // node_modules/framer-motion/dist/es/utils/reduced-motion/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/reduced-motion/index.mjs
   function initPrefersReducedMotion() {
     hasReducedMotionListener.current = true;
     if (!isBrowser)
@@ -8045,14 +8045,14 @@
     }
   }
 
-  // node_modules/framer-motion/dist/es/render/dom/value-types/find.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/value-types/find.mjs
   var valueTypes = [...dimensionValueTypes, color, complex];
   var findValueType = (v) => valueTypes.find(testValueType(v));
 
-  // node_modules/framer-motion/dist/es/render/store.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/store.mjs
   var visualElementStore = /* @__PURE__ */ new WeakMap();
 
-  // node_modules/framer-motion/dist/es/render/utils/motion-values.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/utils/motion-values.mjs
   function updateMotionValuesFromProps(element, next, prev) {
     for (const key in next) {
       const nextValue = next[key];
@@ -8085,7 +8085,7 @@
     return next;
   }
 
-  // node_modules/framer-motion/dist/es/render/VisualElement.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/VisualElement.mjs
   var propEventHandlers = [
     "AnimationStart",
     "AnimationComplete",
@@ -8437,7 +8437,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/render/dom/DOMVisualElement.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/DOMVisualElement.mjs
   var DOMVisualElement = class extends VisualElement {
     constructor() {
       super(...arguments);
@@ -8469,7 +8469,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/render/html/HTMLVisualElement.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/html/HTMLVisualElement.mjs
   function getComputedStyle(element) {
     return window.getComputedStyle(element);
   }
@@ -8500,7 +8500,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/render/svg/SVGVisualElement.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/svg/SVGVisualElement.mjs
   var SVGVisualElement = class extends DOMVisualElement {
     constructor() {
       super(...arguments);
@@ -8534,14 +8534,14 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/render/dom/create-visual-element.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/create-visual-element.mjs
   var createDomVisualElement = (Component2, options) => {
     return isSVGComponent(Component2) ? new SVGVisualElement(options) : new HTMLVisualElement(options, {
       allowProjection: Component2 !== Fragment
     });
   };
 
-  // node_modules/framer-motion/dist/es/render/components/motion/create.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/components/motion/create.mjs
   var createMotionComponent = /* @__PURE__ */ createMotionComponentFactory({
     ...animations,
     ...gestureAnimations,
@@ -8549,10 +8549,10 @@
     ...layout
   }, createDomVisualElement);
 
-  // node_modules/framer-motion/dist/es/render/components/motion/proxy.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/components/motion/proxy.mjs
   var motion = /* @__PURE__ */ createDOMMotionComponentProxy(createMotionComponent);
 
-  // node_modules/clsx/dist/clsx.mjs
+  // ../../../node_modules/clsx/dist/clsx.mjs
   function r(e) {
     var t, f, n = "";
     if ("string" == typeof e || "number" == typeof e) n += e;
@@ -8567,7 +8567,7 @@
     return n;
   }
 
-  // node_modules/tailwind-merge/dist/bundle-mjs.mjs
+  // ../../../node_modules/tailwind-merge/dist/bundle-mjs.mjs
   var CLASS_PART_SEPARATOR = "-";
   var createClassGroupUtils = (config) => {
     const classMap = createClassMap(config);
@@ -11027,7 +11027,7 @@
   };
   var twMerge = /* @__PURE__ */ createTailwindMerge(getDefaultConfig);
 
-  // packages/ui/dist/index.js
+  // ../../ui/dist/index.js
   function cn(...inputs) {
     return twMerge(clsx(inputs));
   }
@@ -11436,7 +11436,7 @@
   }
   ProductGrid.displayName = "ProductGrid";
 
-  // packages/shop-themes/default/src/components/NotFound.tsx
+  // ../default/src/components/NotFound.tsx
   function NotFound({ route, message, onGoHome }) {
     return /* @__PURE__ */ jsx("div", { className: "min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900 px-4", children: /* @__PURE__ */ jsxs("div", { className: "text-center max-w-md w-full", children: [
       /* @__PURE__ */ jsx("div", { className: "mb-8", children: /* @__PURE__ */ jsx("h1", { className: "text-7xl sm:text-9xl font-bold text-gray-200 dark:text-slate-700", children: "404" }) }),
@@ -11450,7 +11450,7 @@
     ] }) });
   }
 
-  // packages/shop-themes/default/src/components/OrderCancelledPage.tsx
+  // ../default/src/components/OrderCancelledPage.tsx
   function OrderCancelledPage({
     config,
     onReturnToCart,
@@ -11547,49 +11547,2381 @@
     ] }) }) });
   }
 
-  // packages/shop-themes/esim/src/site.ts
+  // src/i18n/de.json
+  var de_default = {
+    "/ full trip": "/ ganze Reise",
+    "/day": "/Tag",
+    "200+ destinations": "\xDCber 200 Ziele",
+    "24/7 Global Team": "Globales 24/7-Team",
+    "24/7 travel support": "Reisesupport rund um die Uhr",
+    "4.9 average traveler satisfaction": "4,9 \u2013 durchschnittliche Zufriedenheit der Reisenden",
+    "About BOKMOO": "\xDCber BOKMOO",
+    "Access the world's best venues with BOKMOO.": "Mit BOKMOO erhalten Sie Zugang zu den besten Locations der Welt.",
+    "Account Information": "Kontoinformationen",
+    "Account Preferences": "Kontoeinstellungen",
+    "Account Status": "Kontostatus",
+    "Activate your BOKMOO card over Bluetooth, install and switch eSIM profiles, and track your data \u2014 right from your phone.": "Aktivieren Sie Ihre BOKMOO-Karte \xFCber Bluetooth, installieren und wechseln Sie eSIM-Profile und behalten Sie Ihr Datenvolumen im Blick \u2013 direkt von Ihrem Smartphone aus.",
+    Activation: "Aktivierung",
+    "Activation code": "Aktivierungscode",
+    "Activation expired": "Aktivierung abgelaufen",
+    "Active Member": "Aktives Mitglied",
+    "Add a destination or regional plan to prepare your connectivity before departure.": "F\xFCgen Sie vor der Abreise ein Ziel oder einen regionalen Tarif hinzu, um Ihre Verbindung rechtzeitig vorzubereiten.",
+    "Add a new address": "Neue Adresse hinzuf\xFCgen",
+    "Add a stop": "Station hinzuf\xFCgen",
+    "Add to cart": "In den Warenkorb",
+    "Adding\u2026": "Wird hinzugef\xFCgt\u2026",
+    Address: "Adresse",
+    "Address is required": "Adresse ist erforderlich",
+    "Adjust the route, or browse sellable destinations.": "Passen Sie die Route an oder st\xF6bern Sie in den verf\xFCgbaren Zielen.",
+    "Affiliate Program": "Partnerprogramm",
+    "After checkout the eSIM QR code is issued to your email and account instantly. Add it before boarding; it connects on arrival.": "Nach dem Kauf erhalten Sie den eSIM-QR-Code sofort per E-Mail und in Ihrem Konto. F\xFCgen Sie ihn vor dem Abflug hinzu \u2013 er verbindet sich bei der Ankunft.",
+    All: "Alle",
+    "Asia-Pacific": "Asien-Pazifik",
+    Australia: "Australien",
+    "Australia & NZ": "Australien & NZ",
+    "Awaiting payment": "Wartet auf Zahlung",
+    "BOKMOO Member Benefits": "Vorteile f\xFCr BOKMOO-Mitglieder",
+    "BOKMOO is built for global travelers.": "BOKMOO wurde f\xFCr Reisende rund um die Welt entwickelt.",
+    Back: "Zur\xFCck",
+    "Back to Store": "Zur\xFCck zum Shop",
+    "Back to orders": "Zur\xFCck zu den Bestellungen",
+    "Back to store": "Zur\xFCck zum Shop",
+    "Best single eSIM": "Beste einzelne eSIM",
+    "Bilingual support helps with APN setup, network preference and device compatibility around the clock.": "Unser zweisprachiger Support hilft Ihnen rund um die Uhr bei APN-Einrichtung, der Wahl des bevorzugten Netzes und der Ger\xE4tekompatibilit\xE4t.",
+    "Billing Details": "Rechnungsdaten",
+    Bluetooth: "Bluetooth",
+    "Bokmoo eSIM": "Bokmoo eSIM",
+    "Browse Destinations": "Ziele entdecken",
+    "Buy Now": "Jetzt kaufen",
+    "Buy the trip in segments \u2014 one eSIM per segment below.": "Kaufen Sie die Reise in Abschnitten \u2013 unten finden Sie eine eSIM pro Abschnitt.",
+    "Can I add a stop after buying?": "Kann ich nach dem Kauf eine Station hinzuf\xFCgen?",
+    Canada: "Kanada",
+    Cancel: "Abbrechen",
+    "Cancel order": "Bestellung stornieren",
+    "Cancel reason": "Stornogrund",
+    Cancelled: "Storniert",
+    Cart: "Warenkorb",
+    "Chat with support": "Mit dem Support chatten",
+    "Check compatibility": "Kompatibilit\xE4t pr\xFCfen",
+    "Check compatibility before departure": "Kompatibilit\xE4t vor der Abreise pr\xFCfen",
+    "Choose an option": "Option ausw\xE4hlen",
+    "Choose destinations": "Ziele ausw\xE4hlen",
+    City: "Stadt",
+    "City is required": "Stadt ist erforderlich",
+    Close: "Schlie\xDFen",
+    "Close menu": "Men\xFC schlie\xDFen",
+    "Close support chat": "Support-Chat schlie\xDFen",
+    "Closing without confirming keeps your current route.": "Wenn Sie schlie\xDFen, ohne zu best\xE4tigen, bleibt Ihre aktuelle Route erhalten.",
+    Compatibility: "Kompatibilit\xE4t",
+    "Complete payment and we will start preparing your card for delivery.": "Schlie\xDFen Sie die Zahlung ab, dann beginnen wir, Ihre Karte f\xFCr die Lieferung vorzubereiten.",
+    "Complete payment to provision this eSIM.": "Schlie\xDFen Sie die Zahlung ab, um diese eSIM bereitzustellen.",
+    "Complete payment to unlock your eSIM install details.": "Schlie\xDFen Sie die Zahlung ab, um Ihre Installationsdetails f\xFCr die eSIM freizuschalten.",
+    Completed: "Abgeschlossen",
+    "Confirmation code": "Best\xE4tigungscode",
+    Connection: "Verbindung",
+    "Connects to the BOKMOO app over Bluetooth": "Verbindet sich \xFCber Bluetooth mit der BOKMOO-App",
+    "Contact Information": "Kontaktinformationen",
+    "Contact Support": "Support kontaktieren",
+    "Continue browsing": "Weiter st\xF6bern",
+    "Continue to Payment": "Weiter zur Zahlung",
+    Copy: "Kopieren",
+    "Copy activation code": "Aktivierungscode kopieren",
+    "Copy email": "E-Mail-Adresse kopieren",
+    "Copy order reference": "Bestellnummer kopieren",
+    Countries: "L\xE4nder",
+    Country: "Land",
+    "Country (e.g. CN)": "Land (z. B. CN)",
+    "Country is required": "Land ist erforderlich",
+    Coverage: "Abdeckung",
+    "Coverage detail by stop": "Abdeckungsdetails je Station",
+    Covers: "Deckt ab",
+    Currency: "W\xE4hrung",
+    Current: "Aktuell",
+    Data: "Datenvolumen",
+    "Date of Birth": "Geburtsdatum",
+    Days: "Tage",
+    Default: "Standard",
+    Delete: "L\xF6schen",
+    Delivered: "Zugestellt",
+    Delivery: "Lieferung",
+    "Delivery tracking": "Sendungsverfolgung",
+    "Deselect all": "Auswahl aufheben",
+    "Destination eSIM": "Ziel-eSIM",
+    "Destination search": "Zielsuche",
+    Destinations: "Ziele",
+    Discount: "Rabatt",
+    "Download APK directly": "APK direkt herunterladen",
+    "Download on the App Store": "Laden im App Store",
+    Edit: "Bearbeiten",
+    Editable: "Bearbeitbar",
+    "Email Address": "E-Mail-Adresse",
+    "Email is required": "E-Mail-Adresse ist erforderlich",
+    English: "Englisch",
+    "Enter Code": "Code eingeben",
+    "Enter your email": "E-Mail-Adresse eingeben",
+    Europe: "Europa",
+    "Every purchase stays readable after checkout.": "Jeder Kauf bleibt auch nach der Bestellung einsehbar.",
+    "Example route shown \u2014 your route starts empty below.": "Das ist eine Beispielroute \u2013 Ihre eigene Route beginnt weiter unten leer.",
+    Expires: "L\xE4uft ab",
+    "Explore Now": "Jetzt entdecken",
+    "Explore a Better Night": "Bessere N\xE4chte entdecken",
+    "Explore destination-ready profiles, regional bundles, and premium data options with the clarity of a product catalog.": "Entdecken Sie einsatzbereite Profile f\xFCr Ihr Reiseziel, regionale Pakete und Premium-Datenvolumen \u2013 \xFCbersichtlich wie in einem Produktkatalog.",
+    Failed: "Fehlgeschlagen",
+    "Fewer days": "Weniger Tage",
+    "First name": "Vorname",
+    "First name is required": "Vorname ist erforderlich",
+    "Flexible data": "Flexibles Datenvolumen",
+    "Flexible validity": "Flexible G\xFCltigkeit",
+    "Flexible validity & top-ups": "Flexible G\xFCltigkeit & Aufladungen",
+    "For a new device \u2014 a fresh QR code is issued after payment.": "F\xFCr ein neues Ger\xE4t \u2013 nach der Zahlung erhalten Sie einen neuen QR-Code.",
+    France: "Frankreich",
+    Fulfilled: "Ausgeliefert",
+    "Full name": "Vollst\xE4ndiger Name",
+    "Full refund if not activated": "Volle R\xFCckerstattung, falls nicht aktiviert",
+    "General Notes": "Allgemeine Hinweise",
+    Germany: "Deutschland",
+    "Get BOKMOO": "Holen Sie sich BOKMOO",
+    "Get Started": "Jetzt starten",
+    "Get it on Google Play": "Jetzt bei Google Play",
+    Global: "Weltweit",
+    "Global plan": "Weltweiter Tarif",
+    "Greater China": "Gro\xDFchina",
+    "Happy Users": "Zufriedene Nutzer",
+    "Have a redemption code? Enter it to add an eSIM plan or subscription to your account.": "Sie haben einen Einl\xF6sungscode? Geben Sie ihn ein, um Ihrem Konto einen eSIM-Tarif oder ein Abo hinzuzuf\xFCgen.",
+    "Have a referral code from a creator? Enter it \u2014 your discount is applied to the order total at payment.": "Sie haben einen Empfehlungscode von einem Creator? Geben Sie ihn ein \u2013 Ihr Rabatt wird bei der Zahlung vom Bestellbetrag abgezogen.",
+    Help: "Hilfe",
+    "Help Center": "Hilfezentrum",
+    "Hide other plans": "Andere Tarife ausblenden",
+    "High-speed 4G/5G data": "Schnelles 4G/5G-Datenvolumen",
+    Home: "Startseite",
+    "Hong Kong": "Hongkong",
+    "Hong Kong & Macao": "Hongkong & Macau",
+    "Hotspot sharing": "Hotspot-Freigabe",
+    "Hotspot supported": "Hotspot-Freigabe m\xF6glich",
+    "How eSIM works": "So funktioniert die eSIM",
+    "How to install eSIM": "So installieren Sie die eSIM",
+    Indonesia: "Indonesien",
+    "Install from Google Play, or download the APK directly if Play is unavailable on your device.": "Installieren Sie die App \xFCber Google Play oder laden Sie die APK direkt herunter, falls Google Play auf Ihrem Ger\xE4t nicht verf\xFCgbar ist.",
+    "Install in seconds via QR": "In Sekunden per QR-Code installiert",
+    "Install this eSIM": "Diese eSIM installieren",
+    "Install your eSIM": "Ihre eSIM installieren",
+    "Instant QR delivery \xB7 Refundable before activation": "Sofortige Lieferung per QR-Code \xB7 Vor der Aktivierung erstattungsf\xE4hig",
+    "Instant QR or eSIM profile delivery": "Sofortige Lieferung per QR-Code oder als eSIM-Profil",
+    "Instant delivery via eSIM": "Sofortige Lieferung per eSIM",
+    "Instant eSIM delivery": "Sofortige eSIM-Lieferung",
+    "Instant eSIM delivery after payment": "Sofortige eSIM-Lieferung nach der Zahlung",
+    "Instant eSIM delivery with activation instructions included.": "Sofortige eSIM-Lieferung inklusive Aktivierungsanleitung.",
+    "Instant via QR": "Sofort per QR-Code",
+    "Invalid email address": "Ung\xFCltige E-Mail-Adresse",
+    "Is hotspot sharing supported?": "Wird die Hotspot-Freigabe unterst\xFCtzt?",
+    Italy: "Italien",
+    "Item delivery": "Lieferung des Artikels",
+    Itinerary: "Reiseroute",
+    Japan: "Japan",
+    "Japan & Korea": "Japan & Korea",
+    "Keep a copy of any sensitive credentials in your own password manager or secure notes after claiming the order.": "Bewahren Sie nach dem Abrufen der Bestellung eine Kopie aller vertraulichen Zugangsdaten in Ihrem eigenen Passwort-Manager oder in sicheren Notizen auf.",
+    "Keep it safe": "Sicher aufbewahren",
+    "Keep status, delivery details, and activation notes visible after checkout.": "Status, Lieferdetails und Aktivierungshinweise bleiben auch nach der Bestellung sichtbar.",
+    "Keep your primary SIM in place": "Lassen Sie Ihre Haupt-SIM im Ger\xE4t",
+    "LPA string": "LPA-String",
+    Language: "Sprache",
+    "Last name": "Nachname",
+    "Learn the basics": "Grundlagen lernen",
+    "Loading profile...": "Profil wird geladen\u2026",
+    "Loading\u2026": "Wird geladen\u2026",
+    Local: "Lokal",
+    "Log In": "Anmelden",
+    "Log Out": "Abmelden",
+    Macao: "Macau",
+    "Mainland China": "Festlandchina",
+    Malaysia: "Malaysia",
+    "Manage multiple eSIM profiles over Bluetooth": "Mehrere eSIM-Profile \xFCber Bluetooth verwalten",
+    "Manage your plan": "Tarif verwalten",
+    Management: "Verwaltung",
+    "Maps & chat": "Karten & Chat",
+    "Matching ID": "Matching-ID",
+    Member: "Mitglied",
+    "Member Since": "Mitglied seit",
+    "Member since": "Mitglied seit",
+    Menu: "Men\xFC",
+    "Message could not be delivered. Please try again shortly.": "Ihre Nachricht konnte nicht zugestellt werden. Bitte versuchen Sie es gleich noch einmal.",
+    "More days": "Mehr Tage",
+    "Most plans start on first connection. Plans that start at purchase or install say so explicitly, and the planner counts pre-trip time for them.": "Die meisten Tarife beginnen mit der ersten Verbindung. Tarife, die ab Kauf oder Installation starten, weisen ausdr\xFCcklich darauf hin \u2013 der Routenplaner rechnet bei ihnen die Zeit vor der Reise mit.",
+    "Move down": "Nach unten verschieben",
+    "Move up": "Nach oben verschieben",
+    "Multi-country": "L\xE4nder\xFCbergreifend",
+    "Multiple countries, one purchase, a simpler trip. Pick your route and we verify which single eSIM covers all of it.": "Mehrere L\xE4nder, ein Kauf, eine einfachere Reise. W\xE4hlen Sie Ihre Route \u2013 wir pr\xFCfen, welche einzelne eSIM alles abdeckt.",
+    "My Account": "Mein Konto",
+    "My Addresses": "Meine Adressen",
+    "My Trips": "Meine Reisen",
+    "My eSIMs": "Meine eSIMs",
+    Name: "Name",
+    "Need Help?": "Brauchen Sie Hilfe?",
+    "Needed once per phone \u2014 the package is already on the eSIM and activates right after install.": "Einmal pro Telefon n\xF6tig \u2013 das Datenpaket liegt bereits auf der eSIM und wird direkt nach der Installation aktiviert.",
+    Network: "Netz",
+    "New eSIM (new QR code)": "Neue eSIM (neuer QR-Code)",
+    Newest: "Neueste",
+    Next: "Weiter",
+    "No destination found. Clear the search to browse all.": "Kein Ziel gefunden. L\xF6schen Sie die Suche, um alle anzuzeigen.",
+    "No matching plan yet": "Noch kein passender Tarif",
+    "No physical SIM swap": "Kein Wechsel der physischen SIM-Karte",
+    "No plans matched the current search.": "Keine Tarife entsprechen der aktuellen Suche.",
+    "No plans yet": "Noch keine Tarife",
+    "No roaming charges": "Keine Roaminggeb\xFChren",
+    "No saved addresses yet.": "Noch keine gespeicherten Adressen.",
+    "No shipping required": "Kein Versand erforderlich",
+    "No single plan covers the trip": "Kein einzelner Tarif deckt die Reise ab",
+    "No stops yet \u2014 add your first destination.": "Noch keine Stationen \u2013 f\xFCgen Sie Ihr erstes Ziel hinzu.",
+    "No travel orders yet.": "Noch keine Reisebestellungen.",
+    "Not set": "Nicht festgelegt",
+    Notes: "Notizen",
+    "Official BOKMOO product": "Offizielles BOKMOO-Produkt",
+    "On first connection": "Bei der ersten Verbindung",
+    "One code, seamless roaming": "Ein Code, nahtloses Roaming",
+    "One trip,": "Eine Reise,",
+    "One-tap install (Android)": "Installation mit einem Tipp (Android)",
+    Open: "\xD6ffnen",
+    "Open menu": "Men\xFC \xF6ffnen",
+    "Open order": "Bestellung \xF6ffnen",
+    Order: "Bestellung",
+    "Order History": "Bestellverlauf",
+    "Order Summary": "Bestell\xFCbersicht",
+    "Order archive": "Bestellarchiv",
+    "Order not found": "Bestellung nicht gefunden",
+    "Order reference": "Bestellnummer",
+    "Order total": "Bestellsumme",
+    Orders: "Bestellungen",
+    "Our mission is to make connectivity simple, affordable, and reliable anywhere in the world.": "Unsere Mission: Konnektivit\xE4t \xFCberall auf der Welt einfach, bezahlbar und zuverl\xE4ssig zu machen.",
+    "Our support team is here for you.": "Unser Support-Team ist f\xFCr Sie da.",
+    Page: "Seite",
+    Paid: "Bezahlt",
+    Payment: "Zahlung",
+    "Payment Method": "Zahlungsart",
+    "Payment pending": "Zahlung ausstehend",
+    "Payment successful!": "Zahlung erfolgreich!",
+    Pending: "Ausstehend",
+    "Pending payment": "Zahlung ausstehend",
+    "Per plan terms": "Gem\xE4\xDF Tarifbedingungen",
+    Philippines: "Philippinen",
+    Phone: "Telefon",
+    "Phone Number": "Telefonnummer",
+    "Phone number": "Telefonnummer",
+    "Phone number is required": "Telefonnummer ist erforderlich",
+    "Physical Bluetooth card \u2014 manage multiple eSIM profiles with the BOKMOO app": "Physische Bluetooth-Karte \u2013 mehrere eSIM-Profile mit der BOKMOO-App verwalten",
+    "Physical card": "Physische Karte",
+    "Physical card \u2014 works with the BOKMOO app": "Physische Karte \u2013 funktioniert mit der BOKMOO-App",
+    "Physical eSIM card": "Physische eSIM-Karte",
+    "Pick where you are going and for how long \u2014 we check which single eSIM covers the whole trip.": "W\xE4hlen Sie, wohin und wie lange Sie reisen \u2013 wir pr\xFCfen, welche einzelne eSIM die ganze Reise abdeckt.",
+    Placed: "Eingegangen",
+    "Plan collection": "Tarif\xFCbersicht",
+    "Plan not found": "Tarif nicht gefunden",
+    "Plan validity is shorter than the trip span.": "Die G\xFCltigkeit des Tarifs ist k\xFCrzer als der Reisezeitraum.",
+    "Plans are temporarily unavailable for quoting.": "Tarife stehen derzeit nicht f\xFCr die Angebotsberechnung zur Verf\xFCgung.",
+    "Plans are unavailable right now.": "Tarife sind derzeit nicht verf\xFCgbar.",
+    "Plans confirm hotspot support explicitly; require it in Usage settings and the planner only recommends plans that confirm it.": "Tarife geben an, ob die Hotspot-Freigabe ausdr\xFCcklich unterst\xFCtzt wird. Legen Sie sie in den Nutzungseinstellungen als erforderlich fest, dann empfiehlt der Routenplaner nur Tarife mit dieser Best\xE4tigung.",
+    "Plans unused before activation are refundable per the plan terms shown before checkout.": "Tarife, die vor der Aktivierung nicht genutzt wurden, sind gem\xE4\xDF den vor der Kasse angezeigten Tarifbedingungen erstattungsf\xE4hig.",
+    "Plans you buy are added to these profiles \u2014 no new QR code, no reinstall.": "Gekaufte Tarife werden zu diesen Profilen hinzugef\xFCgt \u2013 kein neuer QR-Code, keine Neuinstallation.",
+    "Please log in to check your BOKMOO account": "Bitte melden Sie sich an, um Ihr BOKMOO-Konto zu pr\xFCfen",
+    Popular: "Beliebt",
+    "Popular Topics": "Beliebte Themen",
+    "Popular destinations": "Beliebte Ziele",
+    "Postal code": "Postleitzahl",
+    "Postal code is required": "Postleitzahl ist erforderlich",
+    "Premium club experiences around the world.": "Exklusive Club-Erlebnisse auf der ganzen Welt.",
+    "Preparing your eSIM\u2026": "Ihre eSIM wird vorbereitet\u2026",
+    Previous: "Zur\xFCck",
+    Price: "Preis",
+    "Priority local network": "Priorisiertes lokales Netz",
+    Privacy: "Datenschutz",
+    "Privacy Policy": "Datenschutzerkl\xE4rung",
+    Processing: "In Bearbeitung",
+    "Processing\u2026": "Wird verarbeitet\u2026",
+    Products: "Produkte",
+    "Promo / referral code": "Promocode / Empfehlungscode",
+    "Provisioned automatically \u2014 your install details are shown above.": "Automatisch bereitgestellt \u2013 Ihre Installationsdetails finden Sie oben.",
+    Provisioning: "Bereitstellung",
+    "Provisioning failed \u2014 our support team has been notified and will follow up.": "Bereitstellung fehlgeschlagen \u2013 unser Support-Team wurde benachrichtigt und meldet sich bei Ihnen.",
+    "Provisioning in progress \u2014 this page updates when the package is ready.": "Bereitstellung l\xE4uft \u2013 diese Seite aktualisiert sich, sobald das Paket bereit ist.",
+    "Provisioning needs attention": "Bereitstellung erfordert Aufmerksamkeit",
+    "QR payload ready": "QR-Inhalt bereit",
+    Qty: "Anz.",
+    Quantity: "Anzahl",
+    "Questions, answered": "Fragen & Antworten",
+    "Quick Facts": "Auf einen Blick",
+    "Ready to install": "Bereit zur Installation",
+    Redeem: "Einl\xF6sen",
+    "Redeem a Code": "Code einl\xF6sen",
+    "Redeeming\u2026": "Wird eingel\xF6st\u2026",
+    "Redemption failed. Please try again later.": "Einl\xF6sung fehlgeschlagen. Bitte versuchen Sie es sp\xE4ter noch einmal.",
+    "Redemption is temporarily unavailable. Please try again later.": "Die Einl\xF6sung ist vor\xFCbergehend nicht m\xF6glich. Bitte versuchen Sie es sp\xE4ter noch einmal.",
+    "Refresh status": "Status aktualisieren",
+    Refunded: "Erstattet",
+    Regional: "Regional",
+    Remove: "Entfernen",
+    "Remove stop": "Station entfernen",
+    "Reorder stop": "Station umordnen",
+    "Replace destination": "Ziel ersetzen",
+    "Replace this stop": "Diese Station ersetzen",
+    "Required hotspot sharing is not confirmed on current plans.": "Die erforderliche Hotspot-Freigabe wird von den aktuellen Tarifen nicht best\xE4tigt.",
+    "Requires iOS 15 or later. Activates BOKMOO cards over Bluetooth.": "Erfordert iOS 15 oder neuer. Aktiviert BOKMOO-Karten \xFCber Bluetooth.",
+    Retry: "Erneut versuchen",
+    "Reusing your eSIM avoids a new QR code \u2014 the plan is added to the profile you already installed.": "Wenn Sie Ihre eSIM wiederverwenden, brauchen Sie keinen neuen QR-Code \u2013 der Tarif wird zum bereits installierten Profil hinzugef\xFCgt.",
+    "Review destinations": "Ziele \xFCberpr\xFCfen",
+    "Review your selected plans.": "Pr\xFCfen Sie Ihre ausgew\xE4hlten Tarife.",
+    "Route Planner": "Routenplaner",
+    "Route planner": "Routenplaner",
+    "SM-DP+ address": "SM-DP+-Adresse",
+    "Save address": "Adresse speichern",
+    "Saved addresses": "Gespeicherte Adressen",
+    "Saved shipping addresses for checkout": "Gespeicherte Lieferadressen f\xFCr die Kasse",
+    "Scan or install manually": "Scannen oder manuell installieren",
+    "Scan with Android": "Mit Android scannen",
+    "Scan with iPhone": "Mit iPhone scannen",
+    "Search country, region or city (e.g. Tokyo)": "Land, Region oder Stadt suchen (z. B. Tokio)",
+    "Search destinations or bundles...": "Ziele oder Pakete suchen\u2026",
+    "Search for help...": "Hilfe suchen\u2026",
+    "Secure Checkout": "Sicher bezahlen",
+    "See plan": "Tarif ansehen",
+    "Select all": "Alle ausw\xE4hlen",
+    "Selected items": "Ausgew\xE4hlte Artikel",
+    Send: "Senden",
+    "Set default": "Als Standard festlegen",
+    "Set up and switch profiles in the BOKMOO app": "Profile in der BOKMOO-App einrichten und wechseln",
+    Settings: "Einstellungen",
+    Setup: "Einrichtung",
+    Shipped: "Versendet",
+    Shipping: "Versand",
+    "Shipping needs attention": "Versand erfordert Aufmerksamkeit",
+    "Shopping Cart": "Warenkorb",
+    "Sign In": "Anmelden",
+    "Sign In / Manage My Cards": "Anmelden / Meine Karten verwalten",
+    "Sign in to view your profile": "Melden Sie sich an, um Ihr Profil anzuzeigen",
+    Singapore: "Singapur",
+    "Smart multi-country top-ups": "Intelligente Aufladungen f\xFCr mehrere L\xE4nder",
+    "South Korea": "S\xFCdkorea",
+    "Southeast Asia": "S\xFCdostasien",
+    Spain: "Spanien",
+    "State / Province": "Bundesland / Provinz",
+    "State is required": "Bundesland / Provinz ist erforderlich",
+    "Stay connected in major cities and more": "Bleiben Sie verbunden \u2013 in Gro\xDFst\xE4dten und dar\xFCber hinaus",
+    "Step-by-step guide": "Schritt-f\xFCr-Schritt-Anleitung",
+    Store: "Shop",
+    Subtotal: "Zwischensumme",
+    Summary: "Zusammenfassung",
+    Support: "Support",
+    "Support:": "Support:",
+    "Supported devices": "Unterst\xFCtzte Ger\xE4te",
+    TBC: "Wird noch best\xE4tigt",
+    Taiwan: "Taiwan",
+    Tax: "Steuern",
+    Terms: "AGB",
+    "Terms of Service": "Nutzungsbedingungen",
+    Thailand: "Thailand",
+    "The product tied to this code is currently unavailable. Please contact support.": "Das mit diesem Code verkn\xFCpfte Produkt ist derzeit nicht verf\xFCgbar. Bitte wenden Sie sich an den Support.",
+    "This code has already been redeemed.": "Dieser Code wurde bereits eingel\xF6st.",
+    "This code has reached its redemption limit.": "Dieser Code hat sein Einl\xF6sungslimit erreicht.",
+    "This code is assigned to a different account.": "Dieser Code ist einem anderen Konto zugeordnet.",
+    "This code is invalid or expired. Please double-check and try again.": "Dieser Code ist ung\xFCltig oder abgelaufen. Bitte \xFCberpr\xFCfen Sie ihn und versuchen Sie es erneut.",
+    "This install code has expired \u2014 contact support to reissue it.": "Dieser Installationscode ist abgelaufen \u2013 wenden Sie sich an den Support, um einen neuen zu erhalten.",
+    "This order is still waiting for fulfillment details. Refresh later or reopen it from the order archive.": "F\xFCr diese Bestellung liegen noch keine Details zur Vorbereitung vor. Aktualisieren Sie die Seite sp\xE4ter oder \xF6ffnen Sie die Bestellung erneut aus dem Bestellarchiv.",
+    "This plan does not confirm hotspot sharing.": "Dieser Tarif best\xE4tigt die Hotspot-Freigabe nicht.",
+    Timezone: "Zeitzone",
+    "Top up & Data plans": "Aufladen & Datenpakete",
+    Total: "Gesamtsumme",
+    "Track package": "Sendung verfolgen",
+    "Track your order": "Bestellung verfolgen",
+    "Travel Cart": "Warenkorb",
+    "Travel Credits": "Reiseguthaben",
+    "Travel bundle": "Reisepaket",
+    "Trip changed or running low mid-journey? Add a data pack without reinstalling.": "Reise ge\xE4ndert oder unterwegs das Datenvolumen knapp? Laden Sie ein Datenpaket nach, ohne neu zu installieren.",
+    "Try Again": "Erneut versuchen",
+    "Try the example trip": "Beispielreise ausprobieren",
+    Type: "Typ",
+    "Type your message\u2026": "Nachricht schreiben\u2026",
+    "Typing\u2026": "Schreibt\u2026",
+    "Unable to load orders.": "Bestellungen konnten nicht geladen werden.",
+    "United Arab Emirates": "Vereinigte Arabische Emirate",
+    "United Kingdom": "Vereinigtes K\xF6nigreich",
+    "United States": "Vereinigte Staaten",
+    Unlimited: "Unbegrenzt",
+    "Unlocked iPhone and Android devices with eSIM support": "Simlock-freie iPhone- und Android-Ger\xE4te mit eSIM-Unterst\xFCtzung",
+    "Upcoming Trips": "Anstehende Reisen",
+    Uptime: "Verf\xFCgbarkeit",
+    Usage: "Nutzung",
+    "Usage mode": "Nutzungsmodus",
+    "Use my existing eSIM": "Meine bestehende eSIM verwenden",
+    Validity: "G\xFCltigkeit",
+    "Validity covers the whole trip": "Die G\xFCltigkeit deckt die ganze Reise ab",
+    "Validity to be confirmed": "G\xFCltigkeit wird noch best\xE4tigt",
+    "Video meetings": "Videomeetings",
+    Vietnam: "Vietnam",
+    "View Details": "Details ansehen",
+    "View and manage your orders": "Bestellungen ansehen und verwalten",
+    "View coverage & plans": "Abdeckung & Tarife ansehen",
+    "View eSIM details": "eSIM-Details ansehen",
+    "Visit Help Center": "Hilfezentrum besuchen",
+    "We could not prepare your install session yet.": "Wir konnten Ihre Installationssitzung noch nicht vorbereiten.",
+    "We could not prepare your shipment yet.": "Wir konnten Ihren Versand noch nicht vorbereiten.",
+    "What if I never activate the eSIM?": "Was ist, wenn ich die eSIM nie aktiviere?",
+    "When does validity start counting?": "Wann beginnt die G\xFCltigkeit?",
+    "Why Bokmoo eSIM": "Warum Bokmoo eSIM",
+    "Works with the BOKMOO app": "Funktioniert mit der BOKMOO-App",
+    "Yes. Your existing order stays valid; the planner re-checks coverage and tells you exactly which new stop needs its own plan.": "Ja. Ihre bestehende Bestellung bleibt g\xFCltig; der Routenplaner pr\xFCft die Abdeckung erneut und sagt Ihnen genau, welche neue Station einen eigenen Tarif ben\xF6tigt.",
+    "Your BOKMOO card, in your pocket.": "Ihre BOKMOO-Karte \u2013 immer dabei.",
+    "Your activation session expired before installation completed.": "Ihre Aktivierungssitzung ist abgelaufen, bevor die Installation abgeschlossen wurde.",
+    "Your booked experiences": "Ihre gebuchten Erlebnisse",
+    "Your card is being prepared for shipment": "Ihre Karte wird f\xFCr den Versand vorbereitet",
+    "Your carrier and tracking updates appear here after dispatch.": "Versanddienstleister und Sendungsverfolgung werden hier angezeigt, sobald Ihre Bestellung verschickt wurde.",
+    "Your cart is empty.": "Ihr Warenkorb ist leer.",
+    "Your eSIM is ready to install.": "Ihre eSIM ist bereit zur Installation.",
+    "Your order is paid. We are packing your Bokmoo Card now \u2014 you will get a shipping confirmation with tracking, and it should arrive within a few business days.": "Ihre Bestellung ist bezahlt. Wir verpacken Ihre Bokmoo-Karte gerade \u2013 Sie erhalten eine Versandbest\xE4tigung mit Sendungsverfolgung, und sie sollte innerhalb weniger Werktage bei Ihnen ankommen.",
+    "Your order is paid. We are preparing the install session now.": "Ihre Bestellung ist bezahlt. Wir bereiten jetzt die Installationssitzung vor.",
+    "Your package has been added to your eSIM.": "Ihr Datenpaket wurde zu Ihrer eSIM hinzugef\xFCgt.",
+    d: "T",
+    "daily average": "Tagesdurchschnitt",
+    "data included": "Datenvolumen inklusive",
+    "day(s)": "Tag(e)",
+    days: "Tage",
+    destinations: "Ziele",
+    "e.g. BOKMOO10": "z. B. BOKMOO10",
+    "e.g. ESIM-JP-7D": "z. B. ESIM-JP-7D",
+    eSIM: "eSIM",
+    "eSIM ICCID": "eSIM-ICCID",
+    "eSIM Plans": "eSIM-Tarife",
+    "eSIM activation": "eSIM-Aktivierung",
+    "eSIM plans built for every journey.": "eSIM-Tarife f\xFCr jede Reise.",
+    en: "en",
+    "iPhone and Android devices": "iPhone- und Android-Ger\xE4te",
+    "iPhone and Android devices with eSIM support": "iPhone- und Android-Ger\xE4te mit eSIM-Unterst\xFCtzung",
+    "iPhone: point the camera at the QR code. Other phones: Settings \u2192 Network \u2192 Add eSIM.": "iPhone: Scannen Sie den QR-Code mit der Kamera. Andere Smartphones: Einstellungen \u2192 Netzwerk \u2192 eSIM hinzuf\xFCgen.",
+    "instant delivery": "sofortige Lieferung",
+    "local network": "lokales Netz",
+    months: "Monate",
+    "one eSIM.": "eine eSIM.",
+    plans: "Tarife",
+    selected: "ausgew\xE4hlt",
+    validity: "G\xFCltigkeit",
+    weeks: "Wochen",
+    ".": ".",
+    ". All rights reserved.": ". Alle Rechte vorbehalten.",
+    "Acceptance of Terms": "Annahme der Bedingungen",
+    Active: "Aktiv",
+    Add: "Hinzuf\xFCgen",
+    "Affiliate data could not be loaded": "Partnerdaten konnten nicht geladen werden",
+    "Affiliate view": "Partneransicht",
+    "Affiliate workspace": "Partnerbereich",
+    "All payments are final and non-refundable unless required by law.": "Sofern gesetzlich nicht anders vorgeschrieben, sind alle Zahlungen endg\xFCltig und nicht erstattungsf\xE4hig.",
+    "Already have an account?": "Sie haben bereits ein Konto?",
+    Approved: "Genehmigt",
+    "Authentication failed": "Authentifizierung fehlgeschlagen",
+    "BOKMOO eSIM Card": "BOKMOO eSIM-Karte",
+    "BOKMOO is not liable for any indirect, incidental, or consequential damages.": "BOKMOO haftet nicht f\xFCr indirekte, Neben- oder Folgesch\xE4den.",
+    "Back home": "Zur\xFCck zur Startseite",
+    "Back to sign in": "Zur\xFCck zur Anmeldung",
+    "Better Nights": "Bessere N\xE4chte",
+    "Brighter Journeys": "Hellere Reisen",
+    "Browse BOKMOO plans by destination and travel region.": "Entdecken Sie BOKMOO-Tarife nach Reiseziel und Region.",
+    "By accessing or using the BOKMOO website and services, you agree to be bound by these Terms of Service.": "Mit dem Zugriff auf die BOKMOO-Website und die Dienste oder deren Nutzung erkl\xE4ren Sie sich mit diesen Nutzungsbedingungen einverstanden.",
+    "Change password": "Passwort \xE4ndern",
+    "Commission rate": "Provisionssatz",
+    "Completing sign in": "Anmeldung wird abgeschlossen",
+    Confirm: "Best\xE4tigen",
+    "Continue to your orders, profiles, and activation workspace.": "Weiter zu Ihren Bestellungen, Profilen und zur Aktivierungsverwaltung.",
+    Copied: "Kopiert",
+    "Copy link": "Link kopieren",
+    "Create account": "Konto erstellen",
+    "Create affiliate account": "Partnerkonto erstellen",
+    "Create organization": "Organisation erstellen",
+    "Create the account your eSIMs follow.": "Erstellen Sie das Konto, dem Ihre eSIMs folgen.",
+    Creating: "Wird erstellt\u2026",
+    "Creator network.": "Creator-Netzwerk.",
+    "Current password": "Aktuelles Passwort",
+    "Data Protection": "Datenschutz",
+    "Default option": "Standardoption",
+    "Deselect item": "Artikel abw\xE4hlen",
+    "Display name": "Anzeigename",
+    Earned: "Verdient",
+    Email: "E-Mail",
+    Expired: "Abgelaufen",
+    "Explore destination eSIMs": "eSIMs nach Reiseziel entdecken",
+    "Forgot password": "Passwort vergessen",
+    "Get help fast": "Schnelle Hilfe erhalten",
+    "Hide password": "Passwort ausblenden",
+    "Hover a store button (or scan the card QR) to download.": "Fahren Sie mit der Maus \xFCber eine Shop-Schaltfl\xE4che (oder scannen Sie den QR-Code der Karte), um herunterzuladen.",
+    "How We Use Information": "Nutzung Ihrer Daten",
+    "How it works": "So funktioniert es",
+    Inactive: "Inaktiv",
+    Influencer: "Influencer",
+    "Information We Collect": "Von uns erhobene Informationen",
+    "Instant QR delivery after payment": "QR-Code sofort nach der Zahlung",
+    "Keep access secure between trips.": "Halten Sie Ihren Zugang auch zwischen Reisen sicher.",
+    "Keep orders, activation codes, profile history, and support cases attached to one BOKMOO identity.": "Verkn\xFCpfen Sie Bestellungen, Aktivierungscodes, Profilverlauf und Supportf\xE4lle mit einer einzigen BOKMOO-Identit\xE4t.",
+    "Keep your BOKMOO account ready for the next trip.": "Halten Sie Ihr BOKMOO-Konto f\xFCr die n\xE4chste Reise bereit.",
+    "Last updated: April 15, 2024": "Zuletzt aktualisiert: 15. April 2024",
+    "Limitation of Liability": "Haftungsbeschr\xE4nkung",
+    "Manage BOKMOO eSIM profiles, orders, and activation details from the same black-and-gold travel control surface.": "Verwalten Sie BOKMOO-eSIM-Profile, Bestellungen und Aktivierungsdetails in derselben schwarz-goldenen Reiseoberfl\xE4che.",
+    "Manage eSIMs": "eSIMs verwalten",
+    Manager: "Manager",
+    "Member could not be added": "Mitglied konnte nicht hinzugef\xFCgt werden",
+    "Member email": "E-Mail des Mitglieds",
+    "New password": "Neues Passwort",
+    "No commissions yet": "Noch keine Provisionen",
+    "No region collections are available yet.": "Noch keine regionalen Sammlungen verf\xFCgbar.",
+    "One Card.\nGlobal Connection.": "Eine Karte.\nWeltweite Verbindung.",
+    "One eSIM for the whole trip \u2014 pick your destinations and go.": "Ein eSIM f\xFCr die ganze Reise \u2014 Ziele ausw\xE4hlen und losfahren.",
+    Organization: "Organisation",
+    "Organization affiliate": "Organisationspartner",
+    "Organization code (optional)": "Organisationscode (optional)",
+    "Organization commissions": "Provisionen der Organisation",
+    "Organization could not be created": "Organisation konnte nicht erstellt werden",
+    "Organization data could not be loaded": "Organisationsdaten konnten nicht geladen werden",
+    "Organization name": "Name der Organisation",
+    Partner: "Partner",
+    "Partner commissions": "Partnerprovisionen",
+    Password: "Passwort",
+    "Passwords do not match": "Passw\xF6rter stimmen nicht \xFCberein",
+    "Personal affiliate": "Pers\xF6nlicher Partner",
+    "Powered by": "Bereitgestellt von",
+    Profiles: "Profile",
+    "Protected traveler identity": "Gesch\xFCtzte Reisendenidentit\xE4t",
+    "Purchases and Payments": "K\xE4ufe und Zahlungen",
+    "Questions about setup? Contact": "Fragen zur Einrichtung? Kontakt",
+    Rate: "Satz",
+    Refresh: "Aktualisieren",
+    "Region Collections": "Regionale Sammlungen",
+    "Registration failed": "Registrierung fehlgeschlagen",
+    SAMPLE: "BEISPIEL",
+    "Save profile": "Profil speichern",
+    "Saving...": "Wird gespeichert\u2026",
+    "Secure account access": "Sicherer Kontozugriff",
+    "Securing your session and returning you to the BOKMOO storefront.": "Ihre Sitzung wird gesichert und Sie kehren zum BOKMOO-Shop zur\xFCck.",
+    "Select item": "Artikel ausw\xE4hlen",
+    "Shop eSIM Plans": "eSIM-Tarife entdecken",
+    "Show password": "Passwort anzeigen",
+    "Sign in": "Anmelden",
+    "Sign in before your next border.": "Melden Sie sich vor der n\xE4chsten Grenze an.",
+    "Sign in to manage your account": "Melden Sie sich an, um Ihr Konto zu verwalten",
+    "Signing in": "Anmeldung l\xE4uft\u2026",
+    "Start with a secure profile for purchases and global activation support.": "Beginnen Sie mit einem sicheren Profil f\xFCr K\xE4ufe und weltweite Aktivierungsunterst\xFCtzung.",
+    Suspended: "Gesperrt",
+    "Track purchases": "K\xE4ufe verfolgen",
+    "Traveler profile": "Reiseprofil",
+    "Unable to load Bokmoo plans.": "Bokmoo-Tarife konnten nicht geladen werden.",
+    "Updating...": "Wird aktualisiert\u2026",
+    "Use of Services": "Nutzung der Dienste",
+    Used: "Verwendet",
+    "View category": "Kategorie ansehen",
+    "We collect information you provide directly to us, such as when you create an account or make a purchase.": "Wir erheben Informationen, die Sie uns direkt bereitstellen, etwa beim Anlegen eines Kontos oder einem Kauf.",
+    "We implement appropriate security measures to protect your data.": "Wir setzen geeignete Sicherheitsma\xDFnahmen zum Schutz Ihrer Daten ein.",
+    "We use the information to provide, maintain, and improve our services.": "Wir verwenden diese Informationen, um unsere Dienste bereitzustellen, zu warten und zu verbessern.",
+    "Welcome back": "Willkommen zur\xFCck",
+    "You agree to use our services only for lawful purposes and in accordance with these Terms.": "Sie stimmen zu, unsere Dienste nur f\xFCr rechtm\xE4\xDFige Zwecke und gem\xE4\xDF diesen Bedingungen zu nutzen.",
+    "You have the right to access, update, or delete your personal information.": "Sie haben das Recht, auf Ihre pers\xF6nlichen Daten zuzugreifen, sie zu aktualisieren oder zu l\xF6schen.",
+    "Your Rights": "Ihre Rechte",
+    "Your referral ledger.": "Ihr Empfehlungsprotokoll.",
+    "already with us": "Bereits dabei?",
+    "or email": "oder per E-Mail",
+    "organization rate": "Organisationssatz",
+    "Group destination-ready plans into clearer regional entry points.": "B\xFCndelt die fertig konfigurierten Zieltarife zu \xFCbersichtlichen regionalen Einstiegen."
+  };
+
+  // src/i18n/fr.json
+  var fr_default = {
+    "/ full trip": "/ voyage entier",
+    "/day": "/ jour",
+    "200+ destinations": "Plus de 200 destinations",
+    "24/7 Global Team": "\xC9quipe mondiale 24h/24, 7j/7",
+    "24/7 travel support": "Assistance voyage 24h/24, 7j/7",
+    "4.9 average traveler satisfaction": "Satisfaction moyenne des voyageurs : 4,9",
+    "About BOKMOO": "\xC0 propos de BOKMOO",
+    "Access the world's best venues with BOKMOO.": "Acc\xE9dez aux meilleures adresses du monde avec BOKMOO.",
+    "Account Information": "Informations du compte",
+    "Account Preferences": "Pr\xE9f\xE9rences du compte",
+    "Account Status": "Statut du compte",
+    "Activate your BOKMOO card over Bluetooth, install and switch eSIM profiles, and track your data \u2014 right from your phone.": "Activez votre carte BOKMOO via Bluetooth, installez et changez de profil eSIM, et suivez votre consommation de donn\xE9es \u2014 directement depuis votre t\xE9l\xE9phone.",
+    Activation: "Activation",
+    "Activation code": "Code d'activation",
+    "Activation expired": "Activation expir\xE9e",
+    "Active Member": "Membre actif",
+    "Add a destination or regional plan to prepare your connectivity before departure.": "Ajoutez une destination ou un forfait r\xE9gional pour pr\xE9parer votre connexion avant le d\xE9part.",
+    "Add a new address": "Ajouter une nouvelle adresse",
+    "Add a stop": "Ajouter une \xE9tape",
+    "Add to cart": "Ajouter au panier",
+    "Adding\u2026": "Ajout\u2026",
+    Address: "Adresse",
+    "Address is required": "L'adresse est obligatoire",
+    "Adjust the route, or browse sellable destinations.": "Ajustez l'itin\xE9raire ou parcourez les destinations disponibles.",
+    "Affiliate Program": "Programme d'affiliation",
+    "After checkout the eSIM QR code is issued to your email and account instantly. Add it before boarding; it connects on arrival.": "Apr\xE8s le paiement, vous recevez imm\xE9diatement le code QR de votre eSIM par e-mail et dans votre compte. Installez-la avant d'embarquer ; elle se connecte d\xE8s votre arriv\xE9e.",
+    All: "Tous",
+    "Asia-Pacific": "Asie-Pacifique",
+    Australia: "Australie",
+    "Australia & NZ": "Australie & NZ",
+    "Awaiting payment": "En attente de paiement",
+    "BOKMOO Member Benefits": "Avantages membres BOKMOO",
+    "BOKMOO is built for global travelers.": "BOKMOO est con\xE7u pour les voyageurs du monde entier.",
+    Back: "Retour",
+    "Back to Store": "Retour \xE0 la boutique",
+    "Back to orders": "Retour aux commandes",
+    "Back to store": "Retour \xE0 la boutique",
+    "Best single eSIM": "Meilleure eSIM unique",
+    "Bilingual support helps with APN setup, network preference and device compatibility around the clock.": "Une assistance bilingue disponible 24h/24 vous aide \xE0 configurer l'APN, \xE0 d\xE9finir vos pr\xE9f\xE9rences de r\xE9seau et \xE0 v\xE9rifier la compatibilit\xE9 de votre appareil.",
+    "Billing Details": "Coordonn\xE9es de facturation",
+    Bluetooth: "Bluetooth",
+    "Bokmoo eSIM": "eSIM Bokmoo",
+    "Browse Destinations": "Parcourir les destinations",
+    "Buy Now": "Acheter maintenant",
+    "Buy the trip in segments \u2014 one eSIM per segment below.": "Achetez le voyage par segments \u2014 une eSIM par segment ci-dessous.",
+    "Can I add a stop after buying?": "Puis-je ajouter une \xE9tape apr\xE8s l'achat ?",
+    Canada: "Canada",
+    Cancel: "Annuler",
+    "Cancel order": "Annuler la commande",
+    "Cancel reason": "Motif d'annulation",
+    Cancelled: "Annul\xE9e",
+    Cart: "Panier",
+    "Chat with support": "Discuter avec l'assistance",
+    "Check compatibility": "V\xE9rifier la compatibilit\xE9",
+    "Check compatibility before departure": "V\xE9rifier la compatibilit\xE9 avant le d\xE9part",
+    "Choose an option": "S\xE9lectionner une option",
+    "Choose destinations": "Choisir les destinations",
+    City: "Ville",
+    "City is required": "La ville est obligatoire",
+    Close: "Fermer",
+    "Close menu": "Fermer le menu",
+    "Close support chat": "Fermer la discussion avec l'assistance",
+    "Closing without confirming keeps your current route.": "Fermer sans confirmer conserve votre itin\xE9raire actuel.",
+    Compatibility: "Compatibilit\xE9",
+    "Complete payment and we will start preparing your card for delivery.": "Finalisez le paiement et nous commencerons \xE0 pr\xE9parer votre carte pour la livraison.",
+    "Complete payment to provision this eSIM.": "Finalisez le paiement pour mettre cette eSIM en service.",
+    "Complete payment to unlock your eSIM install details.": "Finalisez le paiement pour d\xE9bloquer les informations d'installation de votre eSIM.",
+    Completed: "Termin\xE9e",
+    "Confirmation code": "Code de confirmation",
+    Connection: "Connexion",
+    "Connects to the BOKMOO app over Bluetooth": "Se connecte \xE0 l'application BOKMOO via Bluetooth",
+    "Contact Information": "Coordonn\xE9es",
+    "Contact Support": "Contacter l'assistance",
+    "Continue browsing": "Continuer la navigation",
+    "Continue to Payment": "Continuer vers le paiement",
+    Copy: "Copier",
+    "Copy activation code": "Copier le code d'activation",
+    "Copy email": "Copier l'adresse e-mail",
+    "Copy order reference": "Copier la r\xE9f\xE9rence de la commande",
+    Countries: "Pays",
+    Country: "Pays",
+    "Country (e.g. CN)": "Pays (ex. CN)",
+    "Country is required": "Le pays est obligatoire",
+    Coverage: "Couverture",
+    "Coverage detail by stop": "D\xE9tail de la couverture par \xE9tape",
+    Covers: "Couvre",
+    Currency: "Devise",
+    Current: "En cours",
+    Data: "Donn\xE9es",
+    "Date of Birth": "Date de naissance",
+    Days: "Jours",
+    Default: "Par d\xE9faut",
+    Delete: "Supprimer",
+    Delivered: "Livr\xE9e",
+    Delivery: "Livraison",
+    "Delivery tracking": "Suivi de livraison",
+    "Deselect all": "Tout d\xE9s\xE9lectionner",
+    "Destination eSIM": "eSIM de destination",
+    "Destination search": "Recherche de destinations",
+    Destinations: "Destinations",
+    Discount: "R\xE9duction",
+    "Download APK directly": "T\xE9l\xE9charger l'APK directement",
+    "Download on the App Store": "T\xE9l\xE9charger dans l'App Store",
+    Edit: "Modifier",
+    Editable: "Modifiable",
+    "Email Address": "Adresse e-mail",
+    "Email is required": "L'adresse e-mail est obligatoire",
+    English: "Anglais",
+    "Enter Code": "Saisir un code",
+    "Enter your email": "Saisissez votre adresse e-mail",
+    Europe: "Europe",
+    "Every purchase stays readable after checkout.": "Chaque achat reste consultable apr\xE8s le paiement.",
+    "Example route shown \u2014 your route starts empty below.": "Itin\xE9raire d'exemple \u2014 le v\xF4tre d\xE9marre vide ci-dessous.",
+    Expires: "Expire",
+    "Explore Now": "D\xE9couvrir maintenant",
+    "Explore a Better Night": "D\xE9couvrez des soir\xE9es d'exception",
+    "Explore destination-ready profiles, regional bundles, and premium data options with the clarity of a product catalog.": "Explorez des profils pr\xEAts pour votre destination, des packs r\xE9gionaux et des options de donn\xE9es premium, avec la clart\xE9 d'un catalogue de produits.",
+    Failed: "\xC9chec",
+    "Fewer days": "Moins de jours",
+    "First name": "Pr\xE9nom",
+    "First name is required": "Le pr\xE9nom est obligatoire",
+    "Flexible data": "Donn\xE9es flexibles",
+    "Flexible validity": "Validit\xE9 flexible",
+    "Flexible validity & top-ups": "Validit\xE9 flexible & rechargements",
+    "For a new device \u2014 a fresh QR code is issued after payment.": "Pour un nouvel appareil \u2014 un nouveau code QR est \xE9mis apr\xE8s le paiement.",
+    France: "France",
+    Fulfilled: "Pr\xE9par\xE9e",
+    "Full name": "Nom complet",
+    "Full refund if not activated": "Remboursement int\xE9gral en l'absence d'activation",
+    "General Notes": "Remarques g\xE9n\xE9rales",
+    Germany: "Allemagne",
+    "Get BOKMOO": "Obtenir BOKMOO",
+    "Get Started": "Commencer",
+    "Get it on Google Play": "Disponible sur Google Play",
+    Global: "Mondial",
+    "Global plan": "Forfait mondial",
+    "Greater China": "Grande Chine",
+    "Happy Users": "Utilisateurs satisfaits",
+    "Have a redemption code? Enter it to add an eSIM plan or subscription to your account.": "Vous avez un code d'\xE9change ? Saisissez-le pour ajouter un forfait eSIM ou un abonnement \xE0 votre compte.",
+    "Have a referral code from a creator? Enter it \u2014 your discount is applied to the order total at payment.": "Vous avez un code de parrainage transmis par un cr\xE9ateur ? Saisissez-le \u2014 votre r\xE9duction s'applique au total de la commande au moment du paiement.",
+    Help: "Aide",
+    "Help Center": "Centre d'aide",
+    "Hide other plans": "Masquer les autres forfaits",
+    "High-speed 4G/5G data": "Donn\xE9es 4G/5G \xE0 haut d\xE9bit",
+    Home: "Accueil",
+    "Hong Kong": "Hong Kong",
+    "Hong Kong & Macao": "Hong Kong & Macao",
+    "Hotspot sharing": "Partage de connexion",
+    "Hotspot supported": "Partage de connexion pris en charge",
+    "How eSIM works": "Comment fonctionne l'eSIM",
+    "How to install eSIM": "Comment installer une eSIM",
+    Indonesia: "Indon\xE9sie",
+    "Install from Google Play, or download the APK directly if Play is unavailable on your device.": "Installez l'application depuis Google Play, ou t\xE9l\xE9chargez directement l'APK si Google Play n'est pas disponible sur votre appareil.",
+    "Install in seconds via QR": "Installation en quelques secondes via un code QR",
+    "Install this eSIM": "Installer cette eSIM",
+    "Install your eSIM": "Installer votre eSIM",
+    "Instant QR delivery \xB7 Refundable before activation": "Livraison instantan\xE9e du code QR \xB7 Remboursable avant activation",
+    "Instant QR or eSIM profile delivery": "Livraison instantan\xE9e du code QR ou du profil eSIM",
+    "Instant delivery via eSIM": "Livraison instantan\xE9e par eSIM",
+    "Instant eSIM delivery": "Livraison instantan\xE9e de l'eSIM",
+    "Instant eSIM delivery after payment": "Livraison instantan\xE9e de l'eSIM apr\xE8s le paiement",
+    "Instant eSIM delivery with activation instructions included.": "Livraison instantan\xE9e de l'eSIM, instructions d'activation comprises.",
+    "Instant via QR": "Instantan\xE9 par code QR",
+    "Invalid email address": "Adresse e-mail invalide",
+    "Is hotspot sharing supported?": "Le partage de connexion est-il pris en charge ?",
+    Italy: "Italie",
+    "Item delivery": "Livraison de l'article",
+    Itinerary: "Itin\xE9raire",
+    Japan: "Japon",
+    "Japan & Korea": "Japon & Cor\xE9e",
+    "Keep a copy of any sensitive credentials in your own password manager or secure notes after claiming the order.": "Apr\xE8s avoir r\xE9cup\xE9r\xE9 votre commande, conservez une copie de vos identifiants sensibles dans votre gestionnaire de mots de passe ou dans des notes s\xE9curis\xE9es.",
+    "Keep it safe": "Conservez-le en lieu s\xFBr",
+    "Keep status, delivery details, and activation notes visible after checkout.": "Gardez le statut, les d\xE9tails de livraison et les notes d'activation visibles apr\xE8s le paiement.",
+    "Keep your primary SIM in place": "Gardez votre SIM principale en place",
+    "LPA string": "Cha\xEEne LPA",
+    Language: "Langue",
+    "Last name": "Nom",
+    "Learn the basics": "D\xE9couvrir les bases",
+    "Loading profile...": "Chargement du profil...",
+    "Loading\u2026": "Chargement\u2026",
+    Local: "Local",
+    "Log In": "Se connecter",
+    "Log Out": "Se d\xE9connecter",
+    Macao: "Macao",
+    "Mainland China": "Chine continentale",
+    Malaysia: "Malaisie",
+    "Manage multiple eSIM profiles over Bluetooth": "G\xE9rez plusieurs profils eSIM via Bluetooth",
+    "Manage your plan": "G\xE9rer votre forfait",
+    Management: "Gestion",
+    "Maps & chat": "Cartes & discussion",
+    "Matching ID": "Identifiant d'appairage (Matching ID)",
+    Member: "Membre",
+    "Member Since": "Membre depuis",
+    "Member since": "Membre depuis",
+    Menu: "Menu",
+    "Message could not be delivered. Please try again shortly.": "Le message n'a pas pu \xEAtre remis. Veuillez r\xE9essayer dans un instant.",
+    "More days": "Plus de jours",
+    "Most plans start on first connection. Plans that start at purchase or install say so explicitly, and the planner counts pre-trip time for them.": "La plupart des forfaits d\xE9marrent \xE0 la premi\xE8re connexion. Les forfaits qui d\xE9marrent \xE0 l'achat ou \xE0 l'installation l'indiquent explicitement, et le planificateur compte pour eux le temps \xE9coul\xE9 avant le d\xE9part.",
+    "Move down": "Descendre",
+    "Move up": "Monter",
+    "Multi-country": "Multi-pays",
+    "Multiple countries, one purchase, a simpler trip. Pick your route and we verify which single eSIM covers all of it.": "Plusieurs pays, un seul achat, un voyage plus simple. Choisissez votre itin\xE9raire et nous v\xE9rifions quelle eSIM unique couvre la totalit\xE9 du voyage.",
+    "My Account": "Mon compte",
+    "My Addresses": "Mes adresses",
+    "My Trips": "Mes voyages",
+    "My eSIMs": "Mes eSIM",
+    Name: "Nom",
+    "Need Help?": "Besoin d'aide ?",
+    "Needed once per phone \u2014 the package is already on the eSIM and activates right after install.": "\xC0 faire une seule fois par t\xE9l\xE9phone \u2014 le forfait est d\xE9j\xE0 sur l'eSIM et s'active juste apr\xE8s l'installation.",
+    Network: "R\xE9seau",
+    "New eSIM (new QR code)": "Nouvelle eSIM (nouveau code QR)",
+    Newest: "Plus r\xE9cents",
+    Next: "Suivant",
+    "No destination found. Clear the search to browse all.": "Aucune destination trouv\xE9e. Effacez la recherche pour tout parcourir.",
+    "No matching plan yet": "Aucun forfait correspondant pour le moment",
+    "No physical SIM swap": "Pas de changement de carte SIM physique",
+    "No plans matched the current search.": "Aucun forfait ne correspond \xE0 la recherche actuelle.",
+    "No plans yet": "Aucun forfait pour le moment",
+    "No roaming charges": "Aucun frais d'itin\xE9rance",
+    "No saved addresses yet.": "Aucune adresse enregistr\xE9e pour le moment.",
+    "No shipping required": "Aucune livraison requise",
+    "No single plan covers the trip": "Aucun forfait unique ne couvre le voyage",
+    "No stops yet \u2014 add your first destination.": "Aucune \xE9tape pour l'instant \u2014 ajoutez votre premi\xE8re destination.",
+    "No travel orders yet.": "Aucune commande voyage pour le moment.",
+    "Not set": "Non d\xE9fini",
+    Notes: "Notes",
+    "Official BOKMOO product": "Produit officiel BOKMOO",
+    "On first connection": "\xC0 la premi\xE8re connexion",
+    "One code, seamless roaming": "Un seul code, une itin\xE9rance sans interruption",
+    "One trip,": "Un voyage,",
+    "One-tap install (Android)": "Installation en un clic (Android)",
+    Open: "Ouvrir",
+    "Open menu": "Ouvrir le menu",
+    "Open order": "Ouvrir la commande",
+    Order: "Commande",
+    "Order History": "Historique des commandes",
+    "Order Summary": "R\xE9capitulatif de la commande",
+    "Order archive": "Archive des commandes",
+    "Order not found": "Commande introuvable",
+    "Order reference": "R\xE9f\xE9rence de la commande",
+    "Order total": "Total de la commande",
+    Orders: "Commandes",
+    "Our mission is to make connectivity simple, affordable, and reliable anywhere in the world.": "Notre mission est de rendre la connectivit\xE9 simple, abordable et fiable, partout dans le monde.",
+    "Our support team is here for you.": "Notre \xE9quipe d'assistance est \xE0 votre disposition.",
+    Page: "Page",
+    Paid: "Pay\xE9e",
+    Payment: "Paiement",
+    "Payment Method": "Moyen de paiement",
+    "Payment pending": "Paiement en attente",
+    "Payment successful!": "Paiement r\xE9ussi !",
+    Pending: "En attente",
+    "Pending payment": "En attente de paiement",
+    "Per plan terms": "Selon les conditions du forfait",
+    Philippines: "Philippines",
+    Phone: "T\xE9l\xE9phone",
+    "Phone Number": "Num\xE9ro de t\xE9l\xE9phone",
+    "Phone number": "Num\xE9ro de t\xE9l\xE9phone",
+    "Phone number is required": "Le num\xE9ro de t\xE9l\xE9phone est obligatoire",
+    "Physical Bluetooth card \u2014 manage multiple eSIM profiles with the BOKMOO app": "Carte Bluetooth physique \u2014 pour g\xE9rer plusieurs profils eSIM avec l'application BOKMOO",
+    "Physical card": "Carte physique",
+    "Physical card \u2014 works with the BOKMOO app": "Carte physique \u2014 compatible avec l'application BOKMOO",
+    "Physical eSIM card": "Carte eSIM physique",
+    "Pick where you are going and for how long \u2014 we check which single eSIM covers the whole trip.": "Choisissez o\xF9 vous allez et pour combien de temps \u2014 nous v\xE9rifions quelle eSIM unique couvre l'ensemble du voyage.",
+    Placed: "Pass\xE9e",
+    "Plan collection": "Collection de forfaits",
+    "Plan not found": "Forfait introuvable",
+    "Plan validity is shorter than the trip span.": "La validit\xE9 du forfait est plus courte que la dur\xE9e du voyage.",
+    "Plans are temporarily unavailable for quoting.": "Les forfaits sont temporairement indisponibles pour l'estimation.",
+    "Plans are unavailable right now.": "Les forfaits sont indisponibles pour le moment.",
+    "Plans confirm hotspot support explicitly; require it in Usage settings and the planner only recommends plans that confirm it.": "Les forfaits indiquent explicitement s'ils prennent en charge le partage de connexion ; exigez-le dans les param\xE8tres d'utilisation et le planificateur ne recommandera que les forfaits qui le confirment.",
+    "Plans unused before activation are refundable per the plan terms shown before checkout.": "Les forfaits non utilis\xE9s avant activation sont remboursables selon les conditions du forfait affich\xE9es avant le paiement.",
+    "Plans you buy are added to these profiles \u2014 no new QR code, no reinstall.": "Les forfaits que vous achetez sont ajout\xE9s \xE0 ces profils \u2014 pas de nouveau code QR, pas de r\xE9installation.",
+    "Please log in to check your BOKMOO account": "Veuillez vous connecter pour consulter votre compte BOKMOO",
+    Popular: "Populaire",
+    "Popular Topics": "Sujets populaires",
+    "Popular destinations": "Destinations populaires",
+    "Postal code": "Code postal",
+    "Postal code is required": "Le code postal est obligatoire",
+    "Premium club experiences around the world.": "Des exp\xE9riences premium dans les clubs du monde entier.",
+    "Preparing your eSIM\u2026": "Pr\xE9paration de votre eSIM\u2026",
+    Previous: "Pr\xE9c\xE9dent",
+    Price: "Prix",
+    "Priority local network": "R\xE9seau local prioritaire",
+    Privacy: "Confidentialit\xE9",
+    "Privacy Policy": "Politique de confidentialit\xE9",
+    Processing: "En cours de traitement",
+    "Processing\u2026": "Traitement\u2026",
+    Products: "Produits",
+    "Promo / referral code": "Code promo / code de parrainage",
+    "Provisioned automatically \u2014 your install details are shown above.": "Mise en service automatique \u2014 vos informations d'installation sont affich\xE9es ci-dessus.",
+    Provisioning: "Mise en service",
+    "Provisioning failed \u2014 our support team has been notified and will follow up.": "\xC9chec de la mise en service \u2014 notre \xE9quipe d'assistance a \xE9t\xE9 pr\xE9venue et reviendra vers vous.",
+    "Provisioning in progress \u2014 this page updates when the package is ready.": "Mise en service en cours \u2014 cette page se met \xE0 jour d\xE8s que le forfait est pr\xEAt.",
+    "Provisioning needs attention": "Mise en service : action requise",
+    "QR payload ready": "Contenu du code QR pr\xEAt",
+    Qty: "Qt\xE9",
+    Quantity: "Quantit\xE9",
+    "Questions, answered": "Vos questions, nos r\xE9ponses",
+    "Quick Facts": "Points cl\xE9s",
+    "Ready to install": "Pr\xEAte \xE0 installer",
+    Redeem: "\xC9changer",
+    "Redeem a Code": "\xC9changer un code",
+    "Redeeming\u2026": "\xC9change\u2026",
+    "Redemption failed. Please try again later.": "\xC9chec de l'\xE9change. Veuillez r\xE9essayer plus tard.",
+    "Redemption is temporarily unavailable. Please try again later.": "L'\xE9change est temporairement indisponible. Veuillez r\xE9essayer plus tard.",
+    "Refresh status": "Actualiser le statut",
+    Refunded: "Rembours\xE9e",
+    Regional: "R\xE9gional",
+    Remove: "Retirer",
+    "Remove stop": "Retirer l'\xE9tape",
+    "Reorder stop": "R\xE9ordonner l'\xE9tape",
+    "Replace destination": "Remplacer la destination",
+    "Replace this stop": "Remplacer cette \xE9tape",
+    "Required hotspot sharing is not confirmed on current plans.": "Le partage de connexion exig\xE9 n'est pas confirm\xE9 sur les forfaits actuels.",
+    "Requires iOS 15 or later. Activates BOKMOO cards over Bluetooth.": "N\xE9cessite iOS 15 ou version ult\xE9rieure. Active les cartes BOKMOO via Bluetooth.",
+    Retry: "R\xE9essayer",
+    "Reusing your eSIM avoids a new QR code \u2014 the plan is added to the profile you already installed.": "R\xE9utiliser votre eSIM \xE9vite un nouveau code QR \u2014 le forfait est ajout\xE9 au profil d\xE9j\xE0 install\xE9.",
+    "Review destinations": "V\xE9rifier les destinations",
+    "Review your selected plans.": "V\xE9rifiez les forfaits s\xE9lectionn\xE9s.",
+    "Route Planner": "Planificateur d'itin\xE9raire",
+    "Route planner": "Planificateur d'itin\xE9raire",
+    "SM-DP+ address": "Adresse SM-DP+",
+    "Save address": "Enregistrer l'adresse",
+    "Saved addresses": "Adresses enregistr\xE9es",
+    "Saved shipping addresses for checkout": "Adresses de livraison enregistr\xE9es pour le paiement",
+    "Scan or install manually": "Scanner ou installer manuellement",
+    "Scan with Android": "Scanner avec Android",
+    "Scan with iPhone": "Scanner avec un iPhone",
+    "Search country, region or city (e.g. Tokyo)": "Rechercher un pays, une r\xE9gion ou une ville (ex. Tokyo)",
+    "Search destinations or bundles...": "Rechercher une destination ou un pack...",
+    "Search for help...": "Rechercher dans l'aide...",
+    "Secure Checkout": "Paiement s\xE9curis\xE9",
+    "See plan": "Voir le forfait",
+    "Select all": "Tout s\xE9lectionner",
+    "Selected items": "Articles s\xE9lectionn\xE9s",
+    Send: "Envoyer",
+    "Set default": "D\xE9finir par d\xE9faut",
+    "Set up and switch profiles in the BOKMOO app": "Configurez et changez de profil dans l'application BOKMOO",
+    Settings: "Param\xE8tres",
+    Setup: "Configuration",
+    Shipped: "Exp\xE9di\xE9e",
+    Shipping: "Livraison",
+    "Shipping needs attention": "Exp\xE9dition : action requise",
+    "Shopping Cart": "Panier",
+    "Sign In": "Se connecter",
+    "Sign In / Manage My Cards": "Se connecter / G\xE9rer mes cartes",
+    "Sign in to view your profile": "Connectez-vous pour voir votre profil",
+    Singapore: "Singapour",
+    "Smart multi-country top-ups": "Rechargements multi-pays intelligents",
+    "South Korea": "Cor\xE9e du Sud",
+    "Southeast Asia": "Asie du Sud-Est",
+    Spain: "Espagne",
+    "State / Province": "\xC9tat / Province",
+    "State is required": "L'\xE9tat ou la province est obligatoire",
+    "Stay connected in major cities and more": "Restez connect\xE9 dans les grandes villes et bien plus encore",
+    "Step-by-step guide": "Guide pas \xE0 pas",
+    Store: "Boutique",
+    Subtotal: "Sous-total",
+    Summary: "R\xE9capitulatif",
+    Support: "Assistance",
+    "Support:": "Assistance :",
+    "Supported devices": "Appareils compatibles",
+    TBC: "\xC0 confirmer",
+    Taiwan: "Ta\xEFwan",
+    Tax: "Taxe",
+    Terms: "Conditions",
+    "Terms of Service": "Conditions d'utilisation",
+    Thailand: "Tha\xEFlande",
+    "The product tied to this code is currently unavailable. Please contact support.": "Le produit associ\xE9 \xE0 ce code est actuellement indisponible. Veuillez contacter l'assistance.",
+    "This code has already been redeemed.": "Ce code a d\xE9j\xE0 \xE9t\xE9 \xE9chang\xE9.",
+    "This code has reached its redemption limit.": "Ce code a atteint son nombre maximal d'utilisations.",
+    "This code is assigned to a different account.": "Ce code est associ\xE9 \xE0 un autre compte.",
+    "This code is invalid or expired. Please double-check and try again.": "Ce code est invalide ou a expir\xE9. V\xE9rifiez-le et r\xE9essayez.",
+    "This install code has expired \u2014 contact support to reissue it.": "Ce code d'installation a expir\xE9 \u2014 contactez l'assistance pour en obtenir un nouveau.",
+    "This order is still waiting for fulfillment details. Refresh later or reopen it from the order archive.": "Cette commande attend toujours les informations de pr\xE9paration. Actualisez plus tard ou rouvrez-la depuis l'archive des commandes.",
+    "This plan does not confirm hotspot sharing.": "Ce forfait ne confirme pas la prise en charge du partage de connexion.",
+    Timezone: "Fuseau horaire",
+    "Top up & Data plans": "Rechargement & forfaits data",
+    Total: "Total",
+    "Track package": "Suivre le colis",
+    "Track your order": "Suivre votre commande",
+    "Travel Cart": "Panier voyage",
+    "Travel Credits": "Cr\xE9dits voyage",
+    "Travel bundle": "Pack voyage",
+    "Trip changed or running low mid-journey? Add a data pack without reinstalling.": "Voyage modifi\xE9 ou donn\xE9es bient\xF4t \xE9puis\xE9es en route ? Ajoutez un pack de donn\xE9es sans r\xE9installer.",
+    "Try Again": "R\xE9essayer",
+    "Try the example trip": "Essayer le voyage d'exemple",
+    Type: "Type",
+    "Type your message\u2026": "Saisissez votre message\u2026",
+    "Typing\u2026": "En train d'\xE9crire\u2026",
+    "Unable to load orders.": "Impossible de charger les commandes.",
+    "United Arab Emirates": "\xC9mirats arabes unis",
+    "United Kingdom": "Royaume-Uni",
+    "United States": "\xC9tats-Unis",
+    Unlimited: "Illimit\xE9",
+    "Unlocked iPhone and Android devices with eSIM support": "iPhone et appareils Android d\xE9bloqu\xE9s et compatibles eSIM",
+    "Upcoming Trips": "Voyages \xE0 venir",
+    Uptime: "Disponibilit\xE9",
+    Usage: "Utilisation",
+    "Usage mode": "Mode d'utilisation",
+    "Use my existing eSIM": "Utiliser mon eSIM existante",
+    Validity: "Validit\xE9",
+    "Validity covers the whole trip": "La validit\xE9 couvre tout le voyage",
+    "Validity to be confirmed": "Validit\xE9 \xE0 confirmer",
+    "Video meetings": "Rendez-vous vid\xE9o",
+    Vietnam: "Vietnam",
+    "View Details": "Voir les d\xE9tails",
+    "View and manage your orders": "Consultez et g\xE9rez vos commandes",
+    "View coverage & plans": "Voir la couverture & les forfaits",
+    "View eSIM details": "Voir les d\xE9tails de l'eSIM",
+    "Visit Help Center": "Consulter le Centre d'aide",
+    "We could not prepare your install session yet.": "Nous n'avons pas encore pu pr\xE9parer votre session d'installation.",
+    "We could not prepare your shipment yet.": "Nous n'avons pas encore pu pr\xE9parer votre exp\xE9dition.",
+    "What if I never activate the eSIM?": "Que se passe-t-il si je n'active jamais l'eSIM ?",
+    "When does validity start counting?": "Quand la validit\xE9 commence-t-elle \xE0 courir ?",
+    "Why Bokmoo eSIM": "Pourquoi l'eSIM Bokmoo",
+    "Works with the BOKMOO app": "Compatible avec l'application BOKMOO",
+    "Yes. Your existing order stays valid; the planner re-checks coverage and tells you exactly which new stop needs its own plan.": "Oui. Votre commande existante reste valable ; le planificateur v\xE9rifie \xE0 nouveau la couverture et vous indique pr\xE9cis\xE9ment quelle nouvelle \xE9tape n\xE9cessite son propre forfait.",
+    "Your BOKMOO card, in your pocket.": "Votre carte BOKMOO, dans votre poche.",
+    "Your activation session expired before installation completed.": "Votre session d'activation a expir\xE9 avant la fin de l'installation.",
+    "Your booked experiences": "Vos exp\xE9riences r\xE9serv\xE9es",
+    "Your card is being prepared for shipment": "Votre carte est en cours de pr\xE9paration pour l'exp\xE9dition",
+    "Your carrier and tracking updates appear here after dispatch.": "Votre transporteur et les mises \xE0 jour du suivi s'afficheront ici apr\xE8s l'exp\xE9dition.",
+    "Your cart is empty.": "Votre panier est vide.",
+    "Your eSIM is ready to install.": "Votre eSIM est pr\xEAte \xE0 installer.",
+    "Your order is paid. We are packing your Bokmoo Card now \u2014 you will get a shipping confirmation with tracking, and it should arrive within a few business days.": "Votre commande est pay\xE9e. Nous pr\xE9parons actuellement votre carte Bokmoo \u2014 vous recevrez une confirmation d'exp\xE9dition avec un num\xE9ro de suivi, et elle devrait arriver d'ici quelques jours ouvr\xE9s.",
+    "Your order is paid. We are preparing the install session now.": "Votre commande est pay\xE9e. Nous pr\xE9parons votre session d'installation.",
+    "Your package has been added to your eSIM.": "Votre forfait a \xE9t\xE9 ajout\xE9 \xE0 votre eSIM.",
+    d: "j",
+    "daily average": "moyenne quotidienne",
+    "data included": "donn\xE9es incluses",
+    "day(s)": "jour(s)",
+    days: "jours",
+    destinations: "destinations",
+    "e.g. BOKMOO10": "ex. BOKMOO10",
+    "e.g. ESIM-JP-7D": "ex. ESIM-JP-7D",
+    eSIM: "eSIM",
+    "eSIM ICCID": "ICCID de l'eSIM",
+    "eSIM Plans": "Forfaits eSIM",
+    "eSIM activation": "Activation de l'eSIM",
+    "eSIM plans built for every journey.": "Des forfaits eSIM con\xE7us pour chaque voyage.",
+    en: "en",
+    "iPhone and Android devices": "iPhone et appareils Android",
+    "iPhone and Android devices with eSIM support": "iPhone et appareils Android compatibles eSIM",
+    "iPhone: point the camera at the QR code. Other phones: Settings \u2192 Network \u2192 Add eSIM.": "iPhone : pointez l'appareil photo vers le code QR. Autres t\xE9l\xE9phones : Param\xE8tres \u2192 R\xE9seau \u2192 Ajouter une eSIM.",
+    "instant delivery": "livraison instantan\xE9e",
+    "local network": "r\xE9seau local",
+    months: "mois",
+    "one eSIM.": "une eSIM.",
+    plans: "forfaits",
+    selected: "s\xE9lectionn\xE9s",
+    validity: "validit\xE9",
+    weeks: "semaines",
+    ".": ".",
+    ". All rights reserved.": ". Tous droits r\xE9serv\xE9s.",
+    "Acceptance of Terms": "Acceptation des conditions",
+    Active: "Actif",
+    Add: "Ajouter",
+    "Affiliate data could not be loaded": "Impossible de charger les donn\xE9es des partenaires",
+    "Affiliate view": "Vue partenaire",
+    "Affiliate workspace": "Espace partenaire",
+    "All payments are final and non-refundable unless required by law.": "Sauf obligation l\xE9gale, tous les paiements sont d\xE9finitifs et non remboursables.",
+    "Already have an account?": "Vous avez d\xE9j\xE0 un compte ?",
+    Approved: "Approuv\xE9",
+    "Authentication failed": "\xC9chec de l\u2019authentification",
+    "BOKMOO eSIM Card": "Carte eSIM BOKMOO",
+    "BOKMOO is not liable for any indirect, incidental, or consequential damages.": "BOKMOO n\u2019est responsable d\u2019aucun dommage indirect, accessoire ou cons\xE9cutif.",
+    "Back home": "Retour \xE0 l\u2019accueil",
+    "Back to sign in": "Retour \xE0 la connexion",
+    "Better Nights": "De meilleures nuits",
+    "Brighter Journeys": "Des voyages plus lumineux",
+    "Browse BOKMOO plans by destination and travel region.": "Parcourez les forfaits BOKMOO par destination et r\xE9gion de voyage.",
+    "By accessing or using the BOKMOO website and services, you agree to be bound by these Terms of Service.": "En acc\xE9dant au site web et aux services BOKMOO ou en les utilisant, vous acceptez d\u2019\xEAtre li\xE9 par les pr\xE9sentes conditions d\u2019utilisation.",
+    "Change password": "Changer le mot de passe",
+    "Commission rate": "Taux de commission",
+    "Completing sign in": "Finalisation de la connexion",
+    Confirm: "Confirmer",
+    "Continue to your orders, profiles, and activation workspace.": "Acc\xE9dez \xE0 votre espace commandes, profils et activation.",
+    Copied: "Copi\xE9",
+    "Copy link": "Copier le lien",
+    "Create account": "Cr\xE9er un compte",
+    "Create affiliate account": "Cr\xE9er un compte partenaire",
+    "Create organization": "Cr\xE9er l\u2019organisation",
+    "Create the account your eSIMs follow.": "Cr\xE9ez le compte que vos eSIM suivront partout.",
+    Creating: "Cr\xE9ation\u2026",
+    "Creator network.": "R\xE9seau de cr\xE9ateurs.",
+    "Current password": "Mot de passe actuel",
+    "Data Protection": "Protection des donn\xE9es",
+    "Default option": "Option par d\xE9faut",
+    "Deselect item": "D\xE9s\xE9lectionner l\u2019article",
+    "Display name": "Nom d\u2019affichage",
+    Earned: "Gains",
+    Email: "E-mail",
+    Expired: "Expir\xE9",
+    "Explore destination eSIMs": "Explorez les eSIM par destination",
+    "Forgot password": "Mot de passe oubli\xE9",
+    "Get help fast": "Obtenez de l\u2019aide rapidement",
+    "Hide password": "Masquer le mot de passe",
+    "Hover a store button (or scan the card QR) to download.": "Survolez un bouton de boutique (ou scannez le QR code de la carte) pour t\xE9l\xE9charger.",
+    "How We Use Information": "Utilisation des informations",
+    "How it works": "Comment \xE7a marche",
+    Inactive: "Inactif",
+    Influencer: "Influenceur",
+    "Information We Collect": "Informations que nous collectons",
+    "Instant QR delivery after payment": "Code QR remis instantan\xE9ment apr\xE8s paiement",
+    "Keep access secure between trips.": "S\xE9curisez votre acc\xE8s entre deux voyages.",
+    "Keep orders, activation codes, profile history, and support cases attached to one BOKMOO identity.": "Rattachez commandes, codes d\u2019activation, historique des profils et demandes d\u2019assistance \xE0 une seule identit\xE9 BOKMOO.",
+    "Keep your BOKMOO account ready for the next trip.": "Gardez votre compte BOKMOO pr\xEAt pour le prochain voyage.",
+    "Last updated: April 15, 2024": "Derni\xE8re mise \xE0 jour : 15 avril 2024",
+    "Limitation of Liability": "Limitation de responsabilit\xE9",
+    "Manage BOKMOO eSIM profiles, orders, and activation details from the same black-and-gold travel control surface.": "G\xE9rez vos profils eSIM, commandes BOKMOO et d\xE9tails d\u2019activation depuis la m\xEAme interface de voyage noir et or.",
+    "Manage eSIMs": "G\xE9rer les eSIM",
+    Manager: "Gestionnaire",
+    "Member could not be added": "Le membre n\u2019a pas pu \xEAtre ajout\xE9",
+    "Member email": "E-mail du membre",
+    "New password": "Nouveau mot de passe",
+    "No commissions yet": "Aucune commission pour le moment",
+    "No region collections are available yet.": "Aucune collection r\xE9gionale n\u2019est disponible pour le moment.",
+    "One Card.\nGlobal Connection.": "Une seule carte.\nUne connexion mondiale.",
+    "One eSIM for the whole trip \u2014 pick your destinations and go.": "Un seul eSIM pour tout le voyage \u2014 choisissez vos destinations et partez.",
+    Organization: "Organisation",
+    "Organization affiliate": "Partenaire de l\u2019organisation",
+    "Organization code (optional)": "Code de l\u2019organisation (facultatif)",
+    "Organization commissions": "Commissions de l\u2019organisation",
+    "Organization could not be created": "L\u2019organisation n\u2019a pas pu \xEAtre cr\xE9\xE9e",
+    "Organization data could not be loaded": "Impossible de charger les donn\xE9es de l\u2019organisation",
+    "Organization name": "Nom de l\u2019organisation",
+    Partner: "Partenaire",
+    "Partner commissions": "Commissions du partenaire",
+    Password: "Mot de passe",
+    "Passwords do not match": "Les mots de passe ne correspondent pas",
+    "Personal affiliate": "Partenaire individuel",
+    "Powered by": "Propuls\xE9 par",
+    Profiles: "Profils",
+    "Protected traveler identity": "Identit\xE9 de voyageur prot\xE9g\xE9e",
+    "Purchases and Payments": "Achats et paiements",
+    "Questions about setup? Contact": "Des questions sur la configuration ? Contactez",
+    Rate: "Taux",
+    Refresh: "Actualiser",
+    "Region Collections": "Collections r\xE9gionales",
+    "Registration failed": "L\u2019inscription a \xE9chou\xE9",
+    SAMPLE: "EXEMPLE",
+    "Save profile": "Enregistrer le profil",
+    "Saving...": "Enregistrement...",
+    "Secure account access": "Acc\xE8s s\xE9curis\xE9 au compte",
+    "Securing your session and returning you to the BOKMOO storefront.": "S\xE9curisation de votre session et retour vers la boutique BOKMOO.",
+    "Select item": "S\xE9lectionner l\u2019article",
+    "Shop eSIM Plans": "Voir les forfaits eSIM",
+    "Show password": "Afficher le mot de passe",
+    "Sign in": "Se connecter",
+    "Sign in before your next border.": "Connectez-vous avant votre prochaine fronti\xE8re.",
+    "Sign in to manage your account": "Connectez-vous pour g\xE9rer votre compte",
+    "Signing in": "Connexion\u2026",
+    "Start with a secure profile for purchases and global activation support.": "Commencez par un profil s\xE9curis\xE9 pour vos achats et l\u2019assistance \xE0 l\u2019activation dans le monde.",
+    Suspended: "Suspendu",
+    "Track purchases": "Suivre vos achats",
+    "Traveler profile": "Profil du voyageur",
+    "Unable to load Bokmoo plans.": "Impossible de charger les forfaits Bokmoo.",
+    "Updating...": "Mise \xE0 jour...",
+    "Use of Services": "Utilisation des services",
+    Used: "Utilis\xE9",
+    "View category": "Voir la cat\xE9gorie",
+    "We collect information you provide directly to us, such as when you create an account or make a purchase.": "Nous collectons les informations que vous nous fournissez directement, par exemple lorsque vous cr\xE9ez un compte ou effectuez un achat.",
+    "We implement appropriate security measures to protect your data.": "Nous mettons en \u0153uvre des mesures de s\xE9curit\xE9 appropri\xE9es pour prot\xE9ger vos donn\xE9es.",
+    "We use the information to provide, maintain, and improve our services.": "Nous utilisons ces informations pour fournir, maintenir et am\xE9liorer nos services.",
+    "Welcome back": "Bon retour",
+    "You agree to use our services only for lawful purposes and in accordance with these Terms.": "Vous acceptez d\u2019utiliser nos services uniquement \xE0 des fins licites et conform\xE9ment aux pr\xE9sentes conditions.",
+    "You have the right to access, update, or delete your personal information.": "Vous avez le droit d\u2019acc\xE9der \xE0 vos informations personnelles, de les mettre \xE0 jour ou de les supprimer.",
+    "Your Rights": "Vos droits",
+    "Your referral ledger.": "Votre registre de parrainage.",
+    "already with us": "D\xE9j\xE0 client ?",
+    "or email": "ou par e-mail",
+    "organization rate": "Taux de l\u2019organisation",
+    "Group destination-ready plans into clearer regional entry points.": "Regroupez les forfaits par destination dans des acc\xE8s r\xE9gionaux plus clairs."
+  };
+
+  // src/i18n/ja.json
+  var ja_default = {
+    "/ full trip": "/ \u65C5\u884C\u5168\u4F53",
+    "/day": "/\u65E5",
+    "200+ destinations": "200\u4EE5\u4E0A\u306E\u76EE\u7684\u5730",
+    "24/7 Global Team": "24\u6642\u9593365\u65E5\u5BFE\u5FDC\u306E\u30B0\u30ED\u30FC\u30D0\u30EB\u30C1\u30FC\u30E0",
+    "24/7 travel support": "24\u6642\u9593365\u65E5\u306E\u30C8\u30E9\u30D9\u30EB\u30B5\u30DD\u30FC\u30C8",
+    "4.9 average traveler satisfaction": "\u65C5\u884C\u8005\u306E\u5E73\u5747\u6E80\u8DB3\u5EA64.9",
+    "About BOKMOO": "BOKMOO \u306B\u3064\u3044\u3066",
+    "Access the world's best venues with BOKMOO.": "BOKMOO \u3067\u3001\u4E16\u754C\u306E\u4E00\u6D41\u65BD\u8A2D\u3092\u3054\u5229\u7528\u3044\u305F\u3060\u3051\u307E\u3059\u3002",
+    "Account Information": "\u30A2\u30AB\u30A6\u30F3\u30C8\u60C5\u5831",
+    "Account Preferences": "\u30A2\u30AB\u30A6\u30F3\u30C8\u8A2D\u5B9A",
+    "Account Status": "\u30A2\u30AB\u30A6\u30F3\u30C8\u30B9\u30C6\u30FC\u30BF\u30B9",
+    "Activate your BOKMOO card over Bluetooth, install and switch eSIM profiles, and track your data \u2014 right from your phone.": "BOKMOO\u30AB\u30FC\u30C9\u3092 Bluetooth \u3067\u6709\u52B9\u5316\u3057\u3001eSIM\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u306E\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3084\u5207\u308A\u66FF\u3048\u3001\u30C7\u30FC\u30BF\u4F7F\u7528\u91CF\u306E\u78BA\u8A8D\u307E\u3067\u3001\u3059\u3079\u3066\u30B9\u30DE\u30FC\u30C8\u30D5\u30A9\u30F3\u3072\u3068\u3064\u3067\u884C\u3048\u307E\u3059\u3002",
+    Activation: "\u6709\u52B9\u5316",
+    "Activation code": "\u30A2\u30AF\u30C6\u30A3\u30D9\u30FC\u30B7\u30E7\u30F3\u30B3\u30FC\u30C9",
+    "Activation expired": "\u6709\u52B9\u5316\u671F\u9650\u5207\u308C",
+    "Active Member": "\u30A2\u30AF\u30C6\u30A3\u30D6\u30E1\u30F3\u30D0\u30FC",
+    "Add a destination or regional plan to prepare your connectivity before departure.": "\u51FA\u767A\u524D\u306E\u901A\u4FE1\u74B0\u5883\u3092\u6574\u3048\u308B\u306B\u306F\u3001\u76EE\u7684\u5730\u5225\u30D7\u30E9\u30F3\u307E\u305F\u306F\u30EA\u30FC\u30B8\u30E7\u30CA\u30EB\u30D7\u30E9\u30F3\u3092\u8FFD\u52A0\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    "Add a new address": "\u65B0\u3057\u3044\u4F4F\u6240\u3092\u8FFD\u52A0",
+    "Add a stop": "\u7D4C\u7531\u5730\u3092\u8FFD\u52A0",
+    "Add to cart": "\u30AB\u30FC\u30C8\u306B\u8FFD\u52A0",
+    "Adding\u2026": "\u8FFD\u52A0\u4E2D\u2026",
+    Address: "\u4F4F\u6240",
+    "Address is required": "\u4F4F\u6240\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044",
+    "Adjust the route, or browse sellable destinations.": "\u30EB\u30FC\u30C8\u3092\u8ABF\u6574\u3059\u308B\u304B\u3001\u8CFC\u5165\u53EF\u80FD\u306A\u76EE\u7684\u5730\u3092\u53C2\u7167\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    "Affiliate Program": "\u30A2\u30D5\u30A3\u30EA\u30A8\u30A4\u30C8\u30D7\u30ED\u30B0\u30E9\u30E0",
+    "After checkout the eSIM QR code is issued to your email and account instantly. Add it before boarding; it connects on arrival.": "\u3054\u6CE8\u6587\u624B\u7D9A\u304D\u306E\u5F8C\u3001eSIM \u306E QR\u30B3\u30FC\u30C9\u304C\u3059\u3050\u306B\u30E1\u30FC\u30EB\u3068\u30A2\u30AB\u30A6\u30F3\u30C8\u3078\u767A\u884C\u3055\u308C\u307E\u3059\u3002\u642D\u4E57\u524D\u306B\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3057\u3066\u304A\u3051\u3070\u3001\u73FE\u5730\u5230\u7740\u5F8C\u3059\u3050\u306B\u63A5\u7D9A\u3067\u304D\u307E\u3059\u3002",
+    All: "\u3059\u3079\u3066",
+    "Asia-Pacific": "\u30A2\u30B8\u30A2\u592A\u5E73\u6D0B",
+    Australia: "\u30AA\u30FC\u30B9\u30C8\u30E9\u30EA\u30A2",
+    "Australia & NZ": "\u30AA\u30FC\u30B9\u30C8\u30E9\u30EA\u30A2\u30FB\u30CB\u30E5\u30FC\u30B8\u30FC\u30E9\u30F3\u30C9",
+    "Awaiting payment": "\u304A\u652F\u6255\u3044\u5F85\u3061",
+    "BOKMOO Member Benefits": "BOKMOO\u30E1\u30F3\u30D0\u30FC\u7279\u5178",
+    "BOKMOO is built for global travelers.": "BOKMOO \u306F\u3001\u4E16\u754C\u4E2D\u3092\u65C5\u3059\u308B\u65B9\u306E\u305F\u3081\u306B\u4F5C\u3089\u308C\u307E\u3057\u305F\u3002",
+    Back: "\u623B\u308B",
+    "Back to Store": "\u30B9\u30C8\u30A2\u306B\u623B\u308B",
+    "Back to orders": "\u6CE8\u6587\u4E00\u89A7\u306B\u623B\u308B",
+    "Back to store": "\u30B9\u30C8\u30A2\u306B\u623B\u308B",
+    "Best single eSIM": "\u6700\u9069\u306A eSIM 1\u679A",
+    "Bilingual support helps with APN setup, network preference and device compatibility around the clock.": "2\u8A00\u8A9E\u5BFE\u5FDC\u306E\u30B5\u30DD\u30FC\u30C8\u304C\u3001APN\u8A2D\u5B9A\u3001\u30CD\u30C3\u30C8\u30EF\u30FC\u30AF\u306E\u512A\u5148\u8A2D\u5B9A\u3001\u30C7\u30D0\u30A4\u30B9\u306E\u4E92\u63DB\u6027\u306B\u3064\u3044\u306624\u6642\u9593365\u65E5\u3054\u6848\u5185\u3057\u307E\u3059\u3002",
+    "Billing Details": "\u8ACB\u6C42\u5148\u60C5\u5831",
+    Bluetooth: "Bluetooth",
+    "Bokmoo eSIM": "BOKMOO eSIM",
+    "Browse Destinations": "\u76EE\u7684\u5730\u3092\u898B\u308B",
+    "Buy Now": "\u4ECA\u3059\u3050\u8CFC\u5165",
+    "Buy the trip in segments \u2014 one eSIM per segment below.": "\u65C5\u884C\u3092\u533A\u9593\u3054\u3068\u306B\u8CFC\u5165\u3067\u304D\u307E\u3059\u3002\u4EE5\u4E0B\u306E\u5404\u533A\u9593\u306B\u306F\u3001eSIM \u304C1\u679A\u305A\u3064\u5BFE\u5FDC\u3057\u307E\u3059\u3002",
+    "Can I add a stop after buying?": "\u8CFC\u5165\u5F8C\u306B\u7D4C\u7531\u5730\u3092\u8FFD\u52A0\u3067\u304D\u307E\u3059\u304B\uFF1F",
+    Canada: "\u30AB\u30CA\u30C0",
+    Cancel: "\u30AD\u30E3\u30F3\u30BB\u30EB",
+    "Cancel order": "\u6CE8\u6587\u3092\u30AD\u30E3\u30F3\u30BB\u30EB",
+    "Cancel reason": "\u30AD\u30E3\u30F3\u30BB\u30EB\u7406\u7531",
+    Cancelled: "\u30AD\u30E3\u30F3\u30BB\u30EB\u6E08\u307F",
+    Cart: "\u30AB\u30FC\u30C8",
+    "Chat with support": "\u30B5\u30DD\u30FC\u30C8\u3068\u30C1\u30E3\u30C3\u30C8",
+    "Check compatibility": "\u5BFE\u5FDC\u72B6\u6CC1\u3092\u78BA\u8A8D",
+    "Check compatibility before departure": "\u51FA\u767A\u524D\u306B\u5BFE\u5FDC\u72B6\u6CC1\u3092\u78BA\u8A8D",
+    "Choose an option": "\u30AA\u30D7\u30B7\u30E7\u30F3\u3092\u9078\u629E",
+    "Choose destinations": "\u76EE\u7684\u5730\u3092\u9078\u629E",
+    City: "\u5E02\u533A\u753A\u6751",
+    "City is required": "\u5E02\u533A\u753A\u6751\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044",
+    Close: "\u9589\u3058\u308B",
+    "Close menu": "\u30E1\u30CB\u30E5\u30FC\u3092\u9589\u3058\u308B",
+    "Close support chat": "\u30B5\u30DD\u30FC\u30C8\u30C1\u30E3\u30C3\u30C8\u3092\u9589\u3058\u308B",
+    "Closing without confirming keeps your current route.": "\u78BA\u8A8D\u305B\u305A\u306B\u9589\u3058\u305F\u5834\u5408\u3001\u73FE\u5728\u306E\u30EB\u30FC\u30C8\u306F\u305D\u306E\u307E\u307E\u4FDD\u6301\u3055\u308C\u307E\u3059\u3002",
+    Compatibility: "\u5BFE\u5FDC\u72B6\u6CC1",
+    "Complete payment and we will start preparing your card for delivery.": "\u304A\u652F\u6255\u3044\u304C\u5B8C\u4E86\u3059\u308B\u3068\u3001\u30AB\u30FC\u30C9\u306E\u767A\u9001\u6E96\u5099\u3092\u958B\u59CB\u3057\u307E\u3059\u3002",
+    "Complete payment to provision this eSIM.": "\u304A\u652F\u6255\u3044\u304C\u5B8C\u4E86\u3059\u308B\u3068\u3001\u3053\u306E eSIM \u306E\u958B\u901A\u51E6\u7406\u3092\u958B\u59CB\u3057\u307E\u3059\u3002",
+    "Complete payment to unlock your eSIM install details.": "\u304A\u652F\u6255\u3044\u304C\u5B8C\u4E86\u3059\u308B\u3068\u3001eSIM \u306E\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u60C5\u5831\u304C\u3054\u89A7\u3044\u305F\u3060\u3051\u307E\u3059\u3002",
+    Completed: "\u5B8C\u4E86",
+    "Confirmation code": "\u78BA\u8A8D\u30B3\u30FC\u30C9",
+    Connection: "\u63A5\u7D9A",
+    "Connects to the BOKMOO app over Bluetooth": "Bluetooth \u3067 BOKMOO\u30A2\u30D7\u30EA\u306B\u63A5\u7D9A",
+    "Contact Information": "\u9023\u7D61\u5148\u60C5\u5831",
+    "Contact Support": "\u30B5\u30DD\u30FC\u30C8\u306B\u554F\u3044\u5408\u308F\u305B\u308B",
+    "Continue browsing": "\u95B2\u89A7\u3092\u7D9A\u3051\u308B",
+    "Continue to Payment": "\u3054\u6CE8\u6587\u624B\u7D9A\u304D\u3078",
+    Copy: "\u30B3\u30D4\u30FC",
+    "Copy activation code": "\u30A2\u30AF\u30C6\u30A3\u30D9\u30FC\u30B7\u30E7\u30F3\u30B3\u30FC\u30C9\u3092\u30B3\u30D4\u30FC",
+    "Copy email": "\u30E1\u30FC\u30EB\u30A2\u30C9\u30EC\u30B9\u3092\u30B3\u30D4\u30FC",
+    "Copy order reference": "\u6CE8\u6587\u756A\u53F7\u3092\u30B3\u30D4\u30FC",
+    Countries: "\u56FD\u30FB\u5730\u57DF",
+    Country: "\u56FD",
+    "Country (e.g. CN)": "\u56FD\uFF08\u4F8B\uFF1ACN\uFF09",
+    "Country is required": "\u56FD\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044",
+    Coverage: "\u30AB\u30D0\u30FC\u7BC4\u56F2",
+    "Coverage detail by stop": "\u7D4C\u7531\u5730\u3054\u3068\u306E\u30AB\u30D0\u30FC\u7BC4\u56F2",
+    Covers: "\u30AB\u30D0\u30FC\u7BC4\u56F2",
+    Currency: "\u901A\u8CA8",
+    Current: "\u73FE\u5728",
+    Data: "\u30C7\u30FC\u30BF",
+    "Date of Birth": "\u751F\u5E74\u6708\u65E5",
+    Days: "\u65E5\u6570",
+    Default: "\u30C7\u30D5\u30A9\u30EB\u30C8",
+    Delete: "\u524A\u9664",
+    Delivered: "\u304A\u5C4A\u3051\u6E08\u307F",
+    Delivery: "\u304A\u5C4A\u3051",
+    "Delivery tracking": "\u304A\u5C4A\u3051\u72B6\u6CC1",
+    "Deselect all": "\u9078\u629E\u3092\u3059\u3079\u3066\u89E3\u9664",
+    "Destination eSIM": "\u76EE\u7684\u5730\u5225eSIM",
+    "Destination search": "\u76EE\u7684\u5730\u3092\u691C\u7D22",
+    Destinations: "\u76EE\u7684\u5730",
+    Discount: "\u5272\u5F15",
+    "Download APK directly": "APK \u3092\u76F4\u63A5\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9",
+    "Download on the App Store": "App Store \u304B\u3089\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9",
+    Edit: "\u7DE8\u96C6",
+    Editable: "\u7DE8\u96C6\u53EF\u80FD",
+    "Email Address": "\u30E1\u30FC\u30EB\u30A2\u30C9\u30EC\u30B9",
+    "Email is required": "\u30E1\u30FC\u30EB\u30A2\u30C9\u30EC\u30B9\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044",
+    English: "\u82F1\u8A9E",
+    "Enter Code": "\u30B3\u30FC\u30C9\u3092\u5165\u529B",
+    "Enter your email": "\u30E1\u30FC\u30EB\u30A2\u30C9\u30EC\u30B9\u3092\u5165\u529B",
+    Europe: "\u30E8\u30FC\u30ED\u30C3\u30D1",
+    "Every purchase stays readable after checkout.": "\u8CFC\u5165\u5185\u5BB9\u306F\u3001\u3054\u6CE8\u6587\u624B\u7D9A\u304D\u306E\u5F8C\u3082\u3044\u3064\u3067\u3082\u78BA\u8A8D\u3067\u304D\u307E\u3059\u3002",
+    "Example route shown \u2014 your route starts empty below.": "\u8868\u793A\u3055\u308C\u3066\u3044\u308B\u30EB\u30FC\u30C8\u306F\u30B5\u30F3\u30D7\u30EB\u3067\u3059\u3002\u3054\u81EA\u8EAB\u306E\u30EB\u30FC\u30C8\u306F\u3001\u4E0B\u304B\u3089\u7A7A\u306E\u72B6\u614B\u3067\u59CB\u307E\u308A\u307E\u3059\u3002",
+    Expires: "\u6709\u52B9\u671F\u9650",
+    "Explore Now": "\u4ECA\u3059\u3050\u898B\u308B",
+    "Explore a Better Night": "\u3082\u3063\u3068\u4E0A\u8CEA\u306A\u591C\u3092",
+    "Explore destination-ready profiles, regional bundles, and premium data options with the clarity of a product catalog.": "\u76EE\u7684\u5730\u3067\u3059\u3050\u306B\u4F7F\u3048\u308B\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3001\u30EA\u30FC\u30B8\u30E7\u30CA\u30EB\u30D0\u30F3\u30C9\u30EB\u3001\u30D7\u30EC\u30DF\u30A2\u30E0\u30C7\u30FC\u30BF\u30AA\u30D7\u30B7\u30E7\u30F3\u3092\u3001\u30AB\u30BF\u30ED\u30B0\u306E\u3088\u3046\u306B\u308F\u304B\u308A\u3084\u3059\u304F\u3054\u89A7\u3044\u305F\u3060\u3051\u307E\u3059\u3002",
+    Failed: "\u5931\u6557",
+    "Fewer days": "\u65E5\u6570\u3092\u6E1B\u3089\u3059",
+    "First name": "\u540D",
+    "First name is required": "\u540D\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044",
+    "Flexible data": "\u67D4\u8EDF\u306A\u30C7\u30FC\u30BF\u91CF",
+    "Flexible validity": "\u67D4\u8EDF\u306A\u6709\u52B9\u671F\u9650",
+    "Flexible validity & top-ups": "\u67D4\u8EDF\u306A\u6709\u52B9\u671F\u9650\u30FB\u8FFD\u52A0\u30C1\u30E3\u30FC\u30B8\u5BFE\u5FDC",
+    "For a new device \u2014 a fresh QR code is issued after payment.": "\u65B0\u3057\u3044\u30C7\u30D0\u30A4\u30B9\u3067\u4F7F\u3046\u5834\u5408\u3067\u3059\u3002\u304A\u652F\u6255\u3044\u5F8C\u306B\u65B0\u3057\u3044 QR\u30B3\u30FC\u30C9\u304C\u767A\u884C\u3055\u308C\u307E\u3059\u3002",
+    France: "\u30D5\u30E9\u30F3\u30B9",
+    Fulfilled: "\u6E96\u5099\u5B8C\u4E86",
+    "Full name": "\u6C0F\u540D",
+    "Full refund if not activated": "\u6709\u52B9\u5316\u524D\u306F\u5168\u984D\u8FD4\u91D1",
+    "General Notes": "\u4E00\u822C\u7684\u306A\u6CE8\u610F\u4E8B\u9805",
+    Germany: "\u30C9\u30A4\u30C4",
+    "Get BOKMOO": "BOKMOO \u3092\u5165\u624B",
+    "Get Started": "\u306F\u3058\u3081\u308B",
+    "Get it on Google Play": "Google Play \u3067\u5165\u624B",
+    Global: "\u30B0\u30ED\u30FC\u30D0\u30EB",
+    "Global plan": "\u30B0\u30ED\u30FC\u30D0\u30EB\u30D7\u30E9\u30F3",
+    "Greater China": "\u5927\u4E2D\u83EF\u570F",
+    "Happy Users": "\u6E80\u8DB3\u30E6\u30FC\u30B6\u30FC",
+    "Have a redemption code? Enter it to add an eSIM plan or subscription to your account.": "\u5F15\u304D\u63DB\u3048\u30B3\u30FC\u30C9\u3092\u304A\u6301\u3061\u3067\u3059\u304B\uFF1F\u5165\u529B\u3059\u308B\u3068\u3001eSIM\u30D7\u30E9\u30F3\u307E\u305F\u306F\u30B5\u30D6\u30B9\u30AF\u30EA\u30D7\u30B7\u30E7\u30F3\u3092\u30A2\u30AB\u30A6\u30F3\u30C8\u306B\u8FFD\u52A0\u3067\u304D\u307E\u3059\u3002",
+    "Have a referral code from a creator? Enter it \u2014 your discount is applied to the order total at payment.": "\u30AF\u30EA\u30A8\u30A4\u30BF\u30FC\u304B\u3089\u306E\u7D39\u4ECB\u30B3\u30FC\u30C9\u3092\u304A\u6301\u3061\u3067\u3059\u304B\uFF1F\u5165\u529B\u3059\u308B\u3068\u3001\u304A\u652F\u6255\u3044\u6642\u306B\u6CE8\u6587\u5408\u8A08\u304B\u3089\u5272\u5F15\u304C\u9069\u7528\u3055\u308C\u307E\u3059\u3002",
+    Help: "\u30D8\u30EB\u30D7",
+    "Help Center": "\u30D8\u30EB\u30D7\u30BB\u30F3\u30BF\u30FC",
+    "Hide other plans": "\u4ED6\u306E\u30D7\u30E9\u30F3\u3092\u975E\u8868\u793A",
+    "High-speed 4G/5G data": "\u9AD8\u901F4G/5G\u30C7\u30FC\u30BF",
+    Home: "\u30DB\u30FC\u30E0",
+    "Hong Kong": "\u9999\u6E2F",
+    "Hong Kong & Macao": "\u9999\u6E2F\u30FB\u30DE\u30AB\u30AA",
+    "Hotspot sharing": "\u30C6\u30B6\u30EA\u30F3\u30B0",
+    "Hotspot supported": "\u30C6\u30B6\u30EA\u30F3\u30B0\u5BFE\u5FDC",
+    "How eSIM works": "eSIM \u306E\u4ED5\u7D44\u307F",
+    "How to install eSIM": "eSIM \u306E\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u65B9\u6CD5",
+    Indonesia: "\u30A4\u30F3\u30C9\u30CD\u30B7\u30A2",
+    "Install from Google Play, or download the APK directly if Play is unavailable on your device.": "Google Play \u304B\u3089\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3067\u304D\u307E\u3059\u3002\u304A\u4F7F\u3044\u306E\u30C7\u30D0\u30A4\u30B9\u3067 Play \u3092\u3054\u5229\u7528\u3044\u305F\u3060\u3051\u306A\u3044\u5834\u5408\u306F\u3001APK \u3092\u76F4\u63A5\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    "Install in seconds via QR": "QR\u30B3\u30FC\u30C9\u3067\u6570\u79D2\u3067\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB",
+    "Install this eSIM": "\u3053\u306E eSIM \u3092\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB",
+    "Install your eSIM": "eSIM \u3092\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB",
+    "Instant QR delivery \xB7 Refundable before activation": "QR\u30B3\u30FC\u30C9\u3067\u3059\u3050\u304A\u5C4A\u3051 \xB7 \u6709\u52B9\u5316\u524D\u306F\u8FD4\u91D1\u53EF",
+    "Instant QR or eSIM profile delivery": "QR\u30B3\u30FC\u30C9\u307E\u305F\u306F eSIM\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3067\u3059\u3050\u306B\u304A\u5C4A\u3051",
+    "Instant delivery via eSIM": "eSIM \u3067\u3059\u3050\u306B\u304A\u5C4A\u3051",
+    "Instant eSIM delivery": "eSIM \u3092\u3059\u3050\u306B\u304A\u5C4A\u3051",
+    "Instant eSIM delivery after payment": "\u304A\u652F\u6255\u3044\u5F8C\u3059\u3050\u306B eSIM \u3092\u304A\u5C4A\u3051",
+    "Instant eSIM delivery with activation instructions included.": "\u6709\u52B9\u5316\u306E\u624B\u9806\u4ED8\u304D\u3067\u3001eSIM \u3092\u3059\u3050\u306B\u304A\u5C4A\u3051\u3057\u307E\u3059\u3002",
+    "Instant via QR": "QR\u30B3\u30FC\u30C9\u3067\u5373\u6642\u304A\u5C4A\u3051",
+    "Invalid email address": "\u30E1\u30FC\u30EB\u30A2\u30C9\u30EC\u30B9\u306E\u5F62\u5F0F\u304C\u6B63\u3057\u304F\u3042\u308A\u307E\u305B\u3093",
+    "Is hotspot sharing supported?": "\u30C6\u30B6\u30EA\u30F3\u30B0\u306B\u5BFE\u5FDC\u3057\u3066\u3044\u307E\u3059\u304B\uFF1F",
+    Italy: "\u30A4\u30BF\u30EA\u30A2",
+    "Item delivery": "\u5546\u54C1\u306E\u304A\u5C4A\u3051",
+    Itinerary: "\u65C5\u7A0B",
+    Japan: "\u65E5\u672C",
+    "Japan & Korea": "\u65E5\u672C\u30FB\u97D3\u56FD",
+    "Keep a copy of any sensitive credentials in your own password manager or secure notes after claiming the order.": "\u3054\u6CE8\u6587\u306E\u53D7\u3051\u53D6\u308A\u5F8C\u306F\u3001\u6A5F\u5BC6\u6027\u306E\u9AD8\u3044\u8A8D\u8A3C\u60C5\u5831\u3092\u3054\u81EA\u8EAB\u306E\u30D1\u30B9\u30EF\u30FC\u30C9\u30DE\u30CD\u30FC\u30B8\u30E3\u30FC\u3084\u5B89\u5168\u306A\u30E1\u30E2\u306B\u63A7\u3048\u3066\u304A\u3044\u3066\u304F\u3060\u3055\u3044\u3002",
+    "Keep it safe": "\u5B89\u5168\u306B\u4FDD\u7BA1\u3057\u3066\u304F\u3060\u3055\u3044",
+    "Keep status, delivery details, and activation notes visible after checkout.": "\u3054\u6CE8\u6587\u624B\u7D9A\u304D\u306E\u5F8C\u3082\u3001\u30B9\u30C6\u30FC\u30BF\u30B9\u30FB\u304A\u5C4A\u3051\u8A73\u7D30\u30FB\u6709\u52B9\u5316\u30E1\u30E2\u3092\u5F15\u304D\u7D9A\u304D\u78BA\u8A8D\u3067\u304D\u307E\u3059\u3002",
+    "Keep your primary SIM in place": "\u30E1\u30A4\u30F3\u306E SIM \u306F\u305D\u306E\u307E\u307E\u306B",
+    "LPA string": "LPA\u6587\u5B57\u5217",
+    Language: "\u8A00\u8A9E",
+    "Last name": "\u59D3",
+    "Learn the basics": "\u57FA\u672C\u3092\u77E5\u308B",
+    "Loading profile...": "\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3092\u8AAD\u307F\u8FBC\u307F\u4E2D\u2026",
+    "Loading\u2026": "\u8AAD\u307F\u8FBC\u307F\u4E2D\u2026",
+    Local: "\u30ED\u30FC\u30AB\u30EB",
+    "Log In": "\u30ED\u30B0\u30A4\u30F3",
+    "Log Out": "\u30ED\u30B0\u30A2\u30A6\u30C8",
+    Macao: "\u30DE\u30AB\u30AA",
+    "Mainland China": "\u4E2D\u56FD\u672C\u571F",
+    Malaysia: "\u30DE\u30EC\u30FC\u30B7\u30A2",
+    "Manage multiple eSIM profiles over Bluetooth": "Bluetooth \u3067\u8907\u6570\u306E eSIM\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3092\u7BA1\u7406",
+    "Manage your plan": "\u30D7\u30E9\u30F3\u3092\u7BA1\u7406",
+    Management: "\u7BA1\u7406",
+    "Maps & chat": "\u5730\u56F3\u3068\u30C1\u30E3\u30C3\u30C8",
+    "Matching ID": "\u30DE\u30C3\u30C1\u30F3\u30B0ID",
+    Member: "\u30E1\u30F3\u30D0\u30FC",
+    "Member Since": "\u30E1\u30F3\u30D0\u30FC\u767B\u9332\u65E5",
+    "Member since": "\u30E1\u30F3\u30D0\u30FC\u767B\u9332\u65E5",
+    Menu: "\u30E1\u30CB\u30E5\u30FC",
+    "Message could not be delivered. Please try again shortly.": "\u30E1\u30C3\u30BB\u30FC\u30B8\u3092\u9001\u4FE1\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u3057\u3070\u3089\u304F\u3057\u3066\u304B\u3089\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
+    "More days": "\u65E5\u6570\u3092\u5897\u3084\u3059",
+    "Most plans start on first connection. Plans that start at purchase or install say so explicitly, and the planner counts pre-trip time for them.": "\u307B\u3068\u3093\u3069\u306E\u30D7\u30E9\u30F3\u306F\u521D\u56DE\u63A5\u7D9A\u6642\u306B\u958B\u59CB\u3055\u308C\u307E\u3059\u3002\u8CFC\u5165\u6642\u3084\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u6642\u306B\u958B\u59CB\u3055\u308C\u308B\u30D7\u30E9\u30F3\u306B\u306F\u305D\u306E\u65E8\u304C\u660E\u8A18\u3055\u308C\u3001\u30D7\u30E9\u30F3\u30CA\u30FC\u306F\u305D\u308C\u3089\u306E\u30D7\u30E9\u30F3\u306E\u51FA\u767A\u524D\u306E\u6642\u9593\u3082\u542B\u3081\u3066\u8A08\u7B97\u3057\u307E\u3059\u3002",
+    "Move down": "\u4E0B\u3078\u79FB\u52D5",
+    "Move up": "\u4E0A\u3078\u79FB\u52D5",
+    "Multi-country": "\u8907\u6570\u56FD\u5BFE\u5FDC",
+    "Multiple countries, one purchase, a simpler trip. Pick your route and we verify which single eSIM covers all of it.": "\u8907\u6570\u306E\u56FD\u3082\u30011\u56DE\u306E\u8CFC\u5165\u3067\u3001\u3082\u3063\u3068\u30B7\u30F3\u30D7\u30EB\u306A\u65C5\u884C\u306B\u3002\u30EB\u30FC\u30C8\u3092\u9078\u3076\u3068\u3001\u305D\u306E\u3059\u3079\u3066\u3092\u30AB\u30D0\u30FC\u3067\u304D\u308B eSIM 1\u679A\u3092\u78BA\u8A8D\u3057\u307E\u3059\u3002",
+    "My Account": "\u30DE\u30A4\u30A2\u30AB\u30A6\u30F3\u30C8",
+    "My Addresses": "\u4F4F\u6240\u4E00\u89A7",
+    "My Trips": "\u65C5\u884C\u4E00\u89A7",
+    "My eSIMs": "eSIM\u4E00\u89A7",
+    Name: "\u6C0F\u540D",
+    "Need Help?": "\u304A\u56F0\u308A\u3067\u3059\u304B\uFF1F",
+    "Needed once per phone \u2014 the package is already on the eSIM and activates right after install.": "\u30B9\u30DE\u30FC\u30C8\u30D5\u30A9\u30F31\u53F0\u306B\u3064\u304D1\u56DE\u3060\u3051\u5FC5\u8981\u3067\u3059\u3002\u30D1\u30C3\u30B1\u30FC\u30B8\u306F\u3059\u3067\u306B eSIM \u306B\u7D44\u307F\u8FBC\u307E\u308C\u3066\u304A\u308A\u3001\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u5F8C\u3059\u3050\u306B\u6709\u52B9\u5316\u3055\u308C\u307E\u3059\u3002",
+    Network: "\u30CD\u30C3\u30C8\u30EF\u30FC\u30AF",
+    "New eSIM (new QR code)": "\u65B0\u3057\u3044 eSIM\uFF08\u65B0\u3057\u3044 QR\u30B3\u30FC\u30C9\uFF09",
+    Newest: "\u65B0\u7740\u9806",
+    Next: "\u6B21\u3078",
+    "No destination found. Clear the search to browse all.": "\u76EE\u7684\u5730\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093\u3002\u691C\u7D22\u3092\u30AF\u30EA\u30A2\u3059\u308B\u3068\u3001\u3059\u3079\u3066\u306E\u76EE\u7684\u5730\u3092\u53C2\u7167\u3067\u304D\u307E\u3059\u3002",
+    "No matching plan yet": "\u4E00\u81F4\u3059\u308B\u30D7\u30E9\u30F3\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093",
+    "No physical SIM swap": "\u7269\u7406SIM \u306E\u4EA4\u63DB\u4E0D\u8981",
+    "No plans matched the current search.": "\u73FE\u5728\u306E\u691C\u7D22\u306B\u4E00\u81F4\u3059\u308B\u30D7\u30E9\u30F3\u306F\u3042\u308A\u307E\u305B\u3093\u3002",
+    "No plans yet": "\u30D7\u30E9\u30F3\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093",
+    "No roaming charges": "\u30ED\u30FC\u30DF\u30F3\u30B0\u6599\u91D1\u306A\u3057",
+    "No saved addresses yet.": "\u4FDD\u5B58\u3057\u305F\u4F4F\u6240\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002",
+    "No shipping required": "\u767A\u9001\u4E0D\u8981",
+    "No single plan covers the trip": "1\u3064\u306E\u30D7\u30E9\u30F3\u3067\u306F\u65C5\u884C\u5168\u4F53\u3092\u30AB\u30D0\u30FC\u3067\u304D\u307E\u305B\u3093",
+    "No stops yet \u2014 add your first destination.": "\u7D4C\u7531\u5730\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002\u6700\u521D\u306E\u76EE\u7684\u5730\u3092\u8FFD\u52A0\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    "No travel orders yet.": "\u65C5\u884C\u306E\u6CE8\u6587\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002",
+    "Not set": "\u672A\u8A2D\u5B9A",
+    Notes: "\u30E1\u30E2",
+    "Official BOKMOO product": "BOKMOO\u516C\u5F0F\u88FD\u54C1",
+    "On first connection": "\u521D\u56DE\u63A5\u7D9A\u6642\u304B\u3089",
+    "One code, seamless roaming": "1\u3064\u306E\u30B3\u30FC\u30C9\u3067\u3001\u30B7\u30FC\u30E0\u30EC\u30B9\u306A\u30ED\u30FC\u30DF\u30F3\u30B0",
+    "One trip,": "1\u56DE\u306E\u65C5\u884C\u3001",
+    "One-tap install (Android)": "\u30EF\u30F3\u30BF\u30C3\u30D7\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\uFF08Android\uFF09",
+    Open: "\u958B\u304F",
+    "Open menu": "\u30E1\u30CB\u30E5\u30FC\u3092\u958B\u304F",
+    "Open order": "\u6CE8\u6587\u3092\u958B\u304F",
+    Order: "\u6CE8\u6587",
+    "Order History": "\u6CE8\u6587\u5C65\u6B74",
+    "Order Summary": "\u3054\u6CE8\u6587\u5185\u5BB9",
+    "Order archive": "\u6CE8\u6587\u30A2\u30FC\u30AB\u30A4\u30D6",
+    "Order not found": "\u6CE8\u6587\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093",
+    "Order reference": "\u6CE8\u6587\u756A\u53F7",
+    "Order total": "\u3054\u6CE8\u6587\u5408\u8A08",
+    Orders: "\u6CE8\u6587\u4E00\u89A7",
+    "Our mission is to make connectivity simple, affordable, and reliable anywhere in the world.": "\u79C1\u305F\u3061\u306E\u30DF\u30C3\u30B7\u30E7\u30F3\u306F\u3001\u4E16\u754C\u4E2D\u306E\u3069\u3053\u3067\u3082\u30B7\u30F3\u30D7\u30EB\u3067\u624B\u9803\u3001\u305D\u3057\u3066\u4FE1\u983C\u3067\u304D\u308B\u901A\u4FE1\u3092\u5C4A\u3051\u308B\u3053\u3068\u3067\u3059\u3002",
+    "Our support team is here for you.": "\u30B5\u30DD\u30FC\u30C8\u30C1\u30FC\u30E0\u306B\u304A\u6C17\u8EFD\u306B\u3054\u76F8\u8AC7\u304F\u3060\u3055\u3044\u3002",
+    Page: "\u30DA\u30FC\u30B8",
+    Paid: "\u652F\u6255\u3044\u6E08\u307F",
+    Payment: "\u304A\u652F\u6255\u3044",
+    "Payment Method": "\u304A\u652F\u6255\u3044\u65B9\u6CD5",
+    "Payment pending": "\u304A\u652F\u6255\u3044\u5F85\u3061",
+    "Payment successful!": "\u304A\u652F\u6255\u3044\u304C\u5B8C\u4E86\u3057\u307E\u3057\u305F\uFF01",
+    Pending: "\u4FDD\u7559\u4E2D",
+    "Pending payment": "\u304A\u652F\u6255\u3044\u5F85\u3061",
+    "Per plan terms": "\u30D7\u30E9\u30F3\u898F\u7D04\u306B\u6E96\u62E0",
+    Philippines: "\u30D5\u30A3\u30EA\u30D4\u30F3",
+    Phone: "\u96FB\u8A71\u756A\u53F7",
+    "Phone Number": "\u96FB\u8A71\u756A\u53F7",
+    "Phone number": "\u96FB\u8A71\u756A\u53F7",
+    "Phone number is required": "\u96FB\u8A71\u756A\u53F7\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044",
+    "Physical Bluetooth card \u2014 manage multiple eSIM profiles with the BOKMOO app": "Bluetooth\u5BFE\u5FDC\u306E\u7269\u7406\u30AB\u30FC\u30C9 \u2014 BOKMOO\u30A2\u30D7\u30EA\u3067\u8907\u6570\u306E eSIM\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3092\u7BA1\u7406",
+    "Physical card": "\u7269\u7406\u30AB\u30FC\u30C9",
+    "Physical card \u2014 works with the BOKMOO app": "\u7269\u7406\u30AB\u30FC\u30C9 \u2014 BOKMOO\u30A2\u30D7\u30EA\u306B\u5BFE\u5FDC",
+    "Physical eSIM card": "\u7269\u7406eSIM\u30AB\u30FC\u30C9",
+    "Pick where you are going and for how long \u2014 we check which single eSIM covers the whole trip.": "\u884C\u304D\u5148\u3068\u6EDE\u5728\u65E5\u6570\u3092\u9078\u3076\u3060\u3051\u3067\u3001\u65C5\u884C\u5168\u4F53\u3092\u30AB\u30D0\u30FC\u3067\u304D\u308B eSIM 1\u679A\u3092\u78BA\u8A8D\u3057\u307E\u3059\u3002",
+    Placed: "\u6CE8\u6587\u6E08\u307F",
+    "Plan collection": "\u30D7\u30E9\u30F3\u4E00\u89A7",
+    "Plan not found": "\u30D7\u30E9\u30F3\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093",
+    "Plan validity is shorter than the trip span.": "\u30D7\u30E9\u30F3\u306E\u6709\u52B9\u671F\u9650\u304C\u65C5\u884C\u671F\u9593\u306B\u6E80\u305F\u307E\u305B\u3093\u3002",
+    "Plans are temporarily unavailable for quoting.": "\u30D7\u30E9\u30F3\u306E\u898B\u7A4D\u3082\u308A\u306F\u4E00\u6642\u7684\u306B\u3054\u5229\u7528\u3044\u305F\u3060\u3051\u307E\u305B\u3093\u3002",
+    "Plans are unavailable right now.": "\u73FE\u5728\u3001\u30D7\u30E9\u30F3\u3092\u3054\u5229\u7528\u3044\u305F\u3060\u3051\u307E\u305B\u3093\u3002",
+    "Plans confirm hotspot support explicitly; require it in Usage settings and the planner only recommends plans that confirm it.": "\u30D7\u30E9\u30F3\u306E\u30C6\u30B6\u30EA\u30F3\u30B0\u5BFE\u5FDC\u53EF\u5426\u306F\u5404\u30D7\u30E9\u30F3\u306B\u660E\u8A18\u3055\u308C\u3066\u3044\u307E\u3059\u3002\u5229\u7528\u8A2D\u5B9A\u3067\u30C6\u30B6\u30EA\u30F3\u30B0\u3092\u5FC5\u9808\u306B\u3059\u308B\u3068\u3001\u5BFE\u5FDC\u304C\u78BA\u8A8D\u3067\u304D\u308B\u30D7\u30E9\u30F3\u3060\u3051\u304C\u304A\u3059\u3059\u3081\u306B\u8868\u793A\u3055\u308C\u307E\u3059\u3002",
+    "Plans unused before activation are refundable per the plan terms shown before checkout.": "\u6709\u52B9\u5316\u524D\u3067\u672A\u4F7F\u7528\u306E\u30D7\u30E9\u30F3\u306F\u3001\u3054\u6CE8\u6587\u624B\u7D9A\u304D\u306E\u524D\u306B\u8868\u793A\u3055\u308C\u308B\u30D7\u30E9\u30F3\u898F\u7D04\u306B\u5F93\u3063\u3066\u8FD4\u91D1\u306E\u5BFE\u8C61\u3068\u306A\u308A\u307E\u3059\u3002",
+    "Plans you buy are added to these profiles \u2014 no new QR code, no reinstall.": "\u3054\u8CFC\u5165\u306E\u30D7\u30E9\u30F3\u306F\u3053\u308C\u3089\u306E\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u306B\u8FFD\u52A0\u3055\u308C\u307E\u3059\u3002\u65B0\u3057\u3044 QR\u30B3\u30FC\u30C9\u3082\u3001\u518D\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3082\u4E0D\u8981\u3067\u3059\u3002",
+    "Please log in to check your BOKMOO account": "BOKMOO\u30A2\u30AB\u30A6\u30F3\u30C8\u3092\u78BA\u8A8D\u3059\u308B\u306B\u306F\u3001\u30ED\u30B0\u30A4\u30F3\u3057\u3066\u304F\u3060\u3055\u3044",
+    Popular: "\u4EBA\u6C17\u9806",
+    "Popular Topics": "\u4EBA\u6C17\u306E\u30C8\u30D4\u30C3\u30AF",
+    "Popular destinations": "\u4EBA\u6C17\u306E\u76EE\u7684\u5730",
+    "Postal code": "\u90F5\u4FBF\u756A\u53F7",
+    "Postal code is required": "\u90F5\u4FBF\u756A\u53F7\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044",
+    "Premium club experiences around the world.": "\u4E16\u754C\u5404\u5730\u3067\u3001\u30D7\u30EC\u30DF\u30A2\u30E0\u306A\u30AF\u30E9\u30D6\u4F53\u9A13\u3092\u3002",
+    "Preparing your eSIM\u2026": "eSIM \u3092\u6E96\u5099\u3057\u3066\u3044\u307E\u3059\u2026",
+    Previous: "\u524D\u3078",
+    Price: "\u4FA1\u683C",
+    "Priority local network": "\u73FE\u5730\u30CD\u30C3\u30C8\u30EF\u30FC\u30AF\u512A\u5148",
+    Privacy: "\u30D7\u30E9\u30A4\u30D0\u30B7\u30FC",
+    "Privacy Policy": "\u30D7\u30E9\u30A4\u30D0\u30B7\u30FC\u30DD\u30EA\u30B7\u30FC",
+    Processing: "\u51E6\u7406\u4E2D",
+    "Processing\u2026": "\u51E6\u7406\u4E2D\u2026",
+    Products: "\u5546\u54C1",
+    "Promo / referral code": "\u30D7\u30ED\u30E2\u30B3\u30FC\u30C9 / \u7D39\u4ECB\u30B3\u30FC\u30C9",
+    "Provisioned automatically \u2014 your install details are shown above.": "\u81EA\u52D5\u7684\u306B\u958B\u901A\u3055\u308C\u307E\u3057\u305F\u3002\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u60C5\u5831\u306F\u4E0A\u306B\u8868\u793A\u3055\u308C\u3066\u3044\u307E\u3059\u3002",
+    Provisioning: "\u958B\u901A\u4E2D",
+    "Provisioning failed \u2014 our support team has been notified and will follow up.": "\u958B\u901A\u51E6\u7406\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002\u30B5\u30DD\u30FC\u30C8\u30C1\u30FC\u30E0\u306B\u901A\u77E5\u6E08\u307F\u3067\u3001\u5F8C\u307B\u3069\u3054\u9023\u7D61\u3044\u305F\u3057\u307E\u3059\u3002",
+    "Provisioning in progress \u2014 this page updates when the package is ready.": "\u958B\u901A\u51E6\u7406\u4E2D\u3067\u3059\u3002\u30D1\u30C3\u30B1\u30FC\u30B8\u306E\u6E96\u5099\u304C\u3067\u304D\u6B21\u7B2C\u3001\u3053\u306E\u30DA\u30FC\u30B8\u304C\u66F4\u65B0\u3055\u308C\u307E\u3059\u3002",
+    "Provisioning needs attention": "\u958B\u901A\u51E6\u7406\u306B\u8981\u5BFE\u5FDC",
+    "QR payload ready": "QR\u30C7\u30FC\u30BF\u6E96\u5099\u6E08\u307F",
+    Qty: "\u6570\u91CF",
+    Quantity: "\u6570\u91CF",
+    "Questions, answered": "\u7591\u554F\u306B\u304A\u7B54\u3048\u3057\u307E\u3059",
+    "Quick Facts": "\u57FA\u672C\u60C5\u5831",
+    "Ready to install": "\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u53EF\u80FD",
+    Redeem: "\u5F15\u304D\u63DB\u3048\u308B",
+    "Redeem a Code": "\u30B3\u30FC\u30C9\u3092\u5F15\u304D\u63DB\u3048\u308B",
+    "Redeeming\u2026": "\u5F15\u304D\u63DB\u3048\u4E2D\u2026",
+    "Redemption failed. Please try again later.": "\u5F15\u304D\u63DB\u3048\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002\u3057\u3070\u3089\u304F\u3057\u3066\u304B\u3089\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
+    "Redemption is temporarily unavailable. Please try again later.": "\u5F15\u304D\u63DB\u3048\u306F\u4E00\u6642\u7684\u306B\u3054\u5229\u7528\u3044\u305F\u3060\u3051\u307E\u305B\u3093\u3002\u3057\u3070\u3089\u304F\u3057\u3066\u304B\u3089\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
+    "Refresh status": "\u30B9\u30C6\u30FC\u30BF\u30B9\u3092\u66F4\u65B0",
+    Refunded: "\u8FD4\u91D1\u6E08\u307F",
+    Regional: "\u30EA\u30FC\u30B8\u30E7\u30CA\u30EB",
+    Remove: "\u524A\u9664",
+    "Remove stop": "\u7D4C\u7531\u5730\u3092\u524A\u9664",
+    "Reorder stop": "\u7D4C\u7531\u5730\u306E\u9806\u5E8F\u3092\u5909\u66F4",
+    "Replace destination": "\u76EE\u7684\u5730\u3092\u5909\u66F4",
+    "Replace this stop": "\u3053\u306E\u7D4C\u7531\u5730\u3092\u5909\u66F4",
+    "Required hotspot sharing is not confirmed on current plans.": "\u73FE\u5728\u306E\u30D7\u30E9\u30F3\u3067\u306F\u3001\u5FC5\u9808\u3068\u3057\u3066\u8A2D\u5B9A\u3057\u305F\u30C6\u30B6\u30EA\u30F3\u30B0\u3078\u306E\u5BFE\u5FDC\u304C\u78BA\u8A8D\u3055\u308C\u3066\u3044\u307E\u305B\u3093\u3002",
+    "Requires iOS 15 or later. Activates BOKMOO cards over Bluetooth.": "iOS 15\u4EE5\u964D\u304C\u5FC5\u8981\u3067\u3059\u3002Bluetooth \u3067 BOKMOO\u30AB\u30FC\u30C9\u3092\u6709\u52B9\u5316\u3057\u307E\u3059\u3002",
+    Retry: "\u518D\u8A66\u884C",
+    "Reusing your eSIM avoids a new QR code \u2014 the plan is added to the profile you already installed.": "\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u6E08\u307F\u306E eSIM \u3092\u518D\u5229\u7528\u3059\u308C\u3070\u3001\u65B0\u3057\u3044 QR\u30B3\u30FC\u30C9\u306F\u4E0D\u8981\u3067\u3059\u3002\u30D7\u30E9\u30F3\u306F\u3059\u3067\u306B\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u6E08\u307F\u306E\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u306B\u8FFD\u52A0\u3055\u308C\u307E\u3059\u3002",
+    "Review destinations": "\u76EE\u7684\u5730\u306E\u78BA\u8A8D",
+    "Review your selected plans.": "\u9078\u629E\u3057\u305F\u30D7\u30E9\u30F3\u3092\u78BA\u8A8D\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    "Route Planner": "\u30EB\u30FC\u30C8\u30D7\u30E9\u30F3\u30CA\u30FC",
+    "Route planner": "\u30EB\u30FC\u30C8\u30D7\u30E9\u30F3\u30CA\u30FC",
+    "SM-DP+ address": "SM-DP+\u30A2\u30C9\u30EC\u30B9",
+    "Save address": "\u4F4F\u6240\u3092\u4FDD\u5B58",
+    "Saved addresses": "\u4FDD\u5B58\u3057\u305F\u4F4F\u6240",
+    "Saved shipping addresses for checkout": "\u3054\u6CE8\u6587\u624B\u7D9A\u304D\u3067\u4F7F\u3046\u4FDD\u5B58\u6E08\u307F\u306E\u304A\u5C4A\u3051\u5148",
+    "Scan or install manually": "\u30B9\u30AD\u30E3\u30F3\u307E\u305F\u306F\u624B\u52D5\u3067\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB",
+    "Scan with Android": "Android \u3067\u30B9\u30AD\u30E3\u30F3",
+    "Scan with iPhone": "iPhone \u3067\u30B9\u30AD\u30E3\u30F3",
+    "Search country, region or city (e.g. Tokyo)": "\u56FD\u30FB\u5730\u57DF\u30FB\u90FD\u5E02\u3092\u691C\u7D22\uFF08\u4F8B\uFF1A\u6771\u4EAC\uFF09",
+    "Search destinations or bundles...": "\u76EE\u7684\u5730\u3084\u30D0\u30F3\u30C9\u30EB\u3092\u691C\u7D22\u2026",
+    "Search for help...": "\u30D8\u30EB\u30D7\u3092\u691C\u7D22\u2026",
+    "Secure Checkout": "\u5B89\u5168\u306A\u3054\u6CE8\u6587\u624B\u7D9A\u304D",
+    "See plan": "\u30D7\u30E9\u30F3\u3092\u898B\u308B",
+    "Select all": "\u3059\u3079\u3066\u9078\u629E",
+    "Selected items": "\u9078\u629E\u4E2D\u306E\u9805\u76EE",
+    Send: "\u9001\u4FE1",
+    "Set default": "\u30C7\u30D5\u30A9\u30EB\u30C8\u306B\u8A2D\u5B9A",
+    "Set up and switch profiles in the BOKMOO app": "BOKMOO\u30A2\u30D7\u30EA\u3067\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u306E\u8A2D\u5B9A\u30FB\u5207\u308A\u66FF\u3048",
+    Settings: "\u8A2D\u5B9A",
+    Setup: "\u30BB\u30C3\u30C8\u30A2\u30C3\u30D7",
+    Shipped: "\u767A\u9001\u6E08\u307F",
+    Shipping: "\u914D\u9001",
+    "Shipping needs attention": "\u914D\u9001\u306B\u8981\u5BFE\u5FDC",
+    "Shopping Cart": "\u30B7\u30E7\u30C3\u30D4\u30F3\u30B0\u30AB\u30FC\u30C8",
+    "Sign In": "\u30ED\u30B0\u30A4\u30F3",
+    "Sign In / Manage My Cards": "\u30ED\u30B0\u30A4\u30F3 / \u30DE\u30A4\u30AB\u30FC\u30C9\u306E\u7BA1\u7406",
+    "Sign in to view your profile": "\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3092\u8868\u793A\u3059\u308B\u306B\u306F\u30ED\u30B0\u30A4\u30F3\u3057\u3066\u304F\u3060\u3055\u3044",
+    Singapore: "\u30B7\u30F3\u30AC\u30DD\u30FC\u30EB",
+    "Smart multi-country top-ups": "\u30B9\u30DE\u30FC\u30C8\u306A\u8907\u6570\u56FD\u8FFD\u52A0\u30C1\u30E3\u30FC\u30B8",
+    "South Korea": "\u97D3\u56FD",
+    "Southeast Asia": "\u6771\u5357\u30A2\u30B8\u30A2",
+    Spain: "\u30B9\u30DA\u30A4\u30F3",
+    "State / Province": "\u90FD\u9053\u5E9C\u770C / \u5DDE",
+    "State is required": "\u90FD\u9053\u5E9C\u770C / \u5DDE\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044",
+    "Stay connected in major cities and more": "\u4E3B\u8981\u90FD\u5E02\u3092\u306F\u3058\u3081\u3001\u3069\u3053\u3067\u3082\u3064\u306A\u304C\u308B",
+    "Step-by-step guide": "\u624B\u9806\u30AC\u30A4\u30C9",
+    Store: "\u30B9\u30C8\u30A2",
+    Subtotal: "\u5C0F\u8A08",
+    Summary: "\u6982\u8981",
+    Support: "\u30B5\u30DD\u30FC\u30C8",
+    "Support:": "\u30B5\u30DD\u30FC\u30C8\uFF1A",
+    "Supported devices": "\u5BFE\u5FDC\u30C7\u30D0\u30A4\u30B9",
+    TBC: "\u672A\u5B9A",
+    Taiwan: "\u53F0\u6E7E",
+    Tax: "\u7A0E\u984D",
+    Terms: "\u898F\u7D04",
+    "Terms of Service": "\u5229\u7528\u898F\u7D04",
+    Thailand: "\u30BF\u30A4",
+    "The product tied to this code is currently unavailable. Please contact support.": "\u3053\u306E\u30B3\u30FC\u30C9\u306B\u7D10\u3065\u304F\u5546\u54C1\u306F\u73FE\u5728\u3054\u5229\u7528\u3044\u305F\u3060\u3051\u307E\u305B\u3093\u3002\u30B5\u30DD\u30FC\u30C8\u307E\u3067\u304A\u554F\u3044\u5408\u308F\u305B\u304F\u3060\u3055\u3044\u3002",
+    "This code has already been redeemed.": "\u3053\u306E\u30B3\u30FC\u30C9\u306F\u3059\u3067\u306B\u5F15\u304D\u63DB\u3048\u6E08\u307F\u3067\u3059\u3002",
+    "This code has reached its redemption limit.": "\u3053\u306E\u30B3\u30FC\u30C9\u306F\u5F15\u304D\u63DB\u3048\u56DE\u6570\u306E\u4E0A\u9650\u306B\u9054\u3057\u307E\u3057\u305F\u3002",
+    "This code is assigned to a different account.": "\u3053\u306E\u30B3\u30FC\u30C9\u306F\u5225\u306E\u30A2\u30AB\u30A6\u30F3\u30C8\u306B\u5272\u308A\u5F53\u3066\u3089\u308C\u3066\u3044\u307E\u3059\u3002",
+    "This code is invalid or expired. Please double-check and try again.": "\u3053\u306E\u30B3\u30FC\u30C9\u306F\u7121\u52B9\u304B\u3001\u6709\u52B9\u671F\u9650\u304C\u5207\u308C\u3066\u3044\u307E\u3059\u3002\u3054\u78BA\u8A8D\u306E\u3046\u3048\u3001\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
+    "This install code has expired \u2014 contact support to reissue it.": "\u3053\u306E\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u30B3\u30FC\u30C9\u306F\u6709\u52B9\u671F\u9650\u304C\u5207\u308C\u3066\u3044\u307E\u3059\u3002\u518D\u767A\u884C\u306B\u3064\u3044\u3066\u306F\u30B5\u30DD\u30FC\u30C8\u307E\u3067\u304A\u554F\u3044\u5408\u308F\u305B\u304F\u3060\u3055\u3044\u3002",
+    "This order is still waiting for fulfillment details. Refresh later or reopen it from the order archive.": "\u3053\u306E\u6CE8\u6587\u306F\u307E\u3060\u6E96\u5099\u72B6\u6CC1\u306E\u8A73\u7D30\u3092\u5F85\u3063\u3066\u3044\u308B\u72B6\u614B\u3067\u3059\u3002\u3057\u3070\u3089\u304F\u3057\u3066\u304B\u3089\u66F4\u65B0\u3059\u308B\u304B\u3001\u6CE8\u6587\u30A2\u30FC\u30AB\u30A4\u30D6\u304B\u3089\u518D\u5EA6\u958B\u3044\u3066\u304F\u3060\u3055\u3044\u3002",
+    "This plan does not confirm hotspot sharing.": "\u3053\u306E\u30D7\u30E9\u30F3\u306F\u30C6\u30B6\u30EA\u30F3\u30B0\u3078\u306E\u5BFE\u5FDC\u304C\u78BA\u8A8D\u3055\u308C\u3066\u3044\u307E\u305B\u3093\u3002",
+    Timezone: "\u30BF\u30A4\u30E0\u30BE\u30FC\u30F3",
+    "Top up & Data plans": "\u8FFD\u52A0\u30C1\u30E3\u30FC\u30B8\u3068\u30C7\u30FC\u30BF\u30D7\u30E9\u30F3",
+    Total: "\u5408\u8A08",
+    "Track package": "\u8377\u7269\u3092\u8FFD\u8DE1",
+    "Track your order": "\u6CE8\u6587\u3092\u8FFD\u8DE1",
+    "Travel Cart": "\u30C8\u30E9\u30D9\u30EB\u30AB\u30FC\u30C8",
+    "Travel Credits": "\u30C8\u30E9\u30D9\u30EB\u30AF\u30EC\u30B8\u30C3\u30C8",
+    "Travel bundle": "\u30C8\u30E9\u30D9\u30EB\u30D0\u30F3\u30C9\u30EB",
+    "Trip changed or running low mid-journey? Add a data pack without reinstalling.": "\u65C5\u306E\u9014\u4E2D\u3067\u30D7\u30E9\u30F3\u304C\u5909\u308F\u3063\u305F\u308A\u30C7\u30FC\u30BF\u304C\u8DB3\u308A\u306A\u304F\u306A\u3063\u305F\u308A\u3057\u305F\u3089\uFF1F\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3057\u76F4\u3055\u305A\u306B\u30C7\u30FC\u30BF\u30D1\u30C3\u30AF\u3092\u8FFD\u52A0\u3067\u304D\u307E\u3059\u3002",
+    "Try Again": "\u3082\u3046\u4E00\u5EA6\u8A66\u3059",
+    "Try the example trip": "\u30B5\u30F3\u30D7\u30EB\u306E\u65C5\u884C\u3092\u8A66\u3059",
+    Type: "\u7A2E\u985E",
+    "Type your message\u2026": "\u30E1\u30C3\u30BB\u30FC\u30B8\u3092\u5165\u529B\u2026",
+    "Typing\u2026": "\u5165\u529B\u4E2D\u2026",
+    "Unable to load orders.": "\u6CE8\u6587\u3092\u8AAD\u307F\u8FBC\u3081\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
+    "United Arab Emirates": "\u30A2\u30E9\u30D6\u9996\u9577\u56FD\u9023\u90A6",
+    "United Kingdom": "\u30A4\u30AE\u30EA\u30B9",
+    "United States": "\u30A2\u30E1\u30EA\u30AB",
+    Unlimited: "\u7121\u5236\u9650",
+    "Unlocked iPhone and Android devices with eSIM support": "eSIM\u5BFE\u5FDC\u306E SIM\u30D5\u30EA\u30FCiPhone \u304A\u3088\u3073 Android\u30C7\u30D0\u30A4\u30B9",
+    "Upcoming Trips": "\u4ECA\u5F8C\u306E\u65C5\u884C",
+    Uptime: "\u7A3C\u50CD\u7387",
+    Usage: "\u5229\u7528\u8A2D\u5B9A",
+    "Usage mode": "\u5229\u7528\u30E2\u30FC\u30C9",
+    "Use my existing eSIM": "\u65E2\u5B58\u306E eSIM \u3092\u4F7F\u3046",
+    Validity: "\u6709\u52B9\u671F\u9650",
+    "Validity covers the whole trip": "\u6709\u52B9\u671F\u9650\u304C\u65C5\u884C\u5168\u4F53\u3092\u30AB\u30D0\u30FC",
+    "Validity to be confirmed": "\u6709\u52B9\u671F\u9650\u306F\u5F8C\u65E5\u78BA\u8A8D",
+    "Video meetings": "\u30D3\u30C7\u30AA\u4F1A\u8B70",
+    Vietnam: "\u30D9\u30C8\u30CA\u30E0",
+    "View Details": "\u8A73\u7D30\u3092\u898B\u308B",
+    "View and manage your orders": "\u6CE8\u6587\u306E\u78BA\u8A8D\u30FB\u7BA1\u7406",
+    "View coverage & plans": "\u30AB\u30D0\u30FC\u7BC4\u56F2\u3068\u30D7\u30E9\u30F3\u3092\u898B\u308B",
+    "View eSIM details": "eSIM \u306E\u8A73\u7D30\u3092\u898B\u308B",
+    "Visit Help Center": "\u30D8\u30EB\u30D7\u30BB\u30F3\u30BF\u30FC\u3092\u898B\u308B",
+    "We could not prepare your install session yet.": "\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u30BB\u30C3\u30B7\u30E7\u30F3\u3092\u6E96\u5099\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
+    "We could not prepare your shipment yet.": "\u767A\u9001\u306E\u6E96\u5099\u304C\u307E\u3060\u3067\u304D\u3066\u3044\u307E\u305B\u3093\u3002",
+    "What if I never activate the eSIM?": "eSIM \u3092\u6709\u52B9\u5316\u3057\u306A\u304B\u3063\u305F\u5834\u5408\u306F\u3069\u3046\u306A\u308A\u307E\u3059\u304B\uFF1F",
+    "When does validity start counting?": "\u6709\u52B9\u671F\u9650\u306F\u3044\u3064\u304B\u3089\u30AB\u30A6\u30F3\u30C8\u3055\u308C\u307E\u3059\u304B\uFF1F",
+    "Why Bokmoo eSIM": "BOKMOO eSIM \u304C\u9078\u3070\u308C\u308B\u7406\u7531",
+    "Works with the BOKMOO app": "BOKMOO\u30A2\u30D7\u30EA\u306B\u5BFE\u5FDC",
+    "Yes. Your existing order stays valid; the planner re-checks coverage and tells you exactly which new stop needs its own plan.": "\u306F\u3044\u3002\u65E2\u5B58\u306E\u3054\u6CE8\u6587\u306F\u305D\u306E\u307E\u307E\u6709\u52B9\u3067\u3059\u3002\u30D7\u30E9\u30F3\u30CA\u30FC\u304C\u30AB\u30D0\u30FC\u7BC4\u56F2\u3092\u518D\u30C1\u30A7\u30C3\u30AF\u3057\u3001\u3069\u306E\u65B0\u3057\u3044\u7D4C\u7531\u5730\u306B\u5C02\u7528\u306E\u30D7\u30E9\u30F3\u304C\u5FC5\u8981\u304B\u3092\u6B63\u78BA\u306B\u304A\u77E5\u3089\u305B\u3057\u307E\u3059\u3002",
+    "Your BOKMOO card, in your pocket.": "BOKMOO\u30AB\u30FC\u30C9\u3092\u3001\u30DD\u30B1\u30C3\u30C8\u306B\u3002",
+    "Your activation session expired before installation completed.": "\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u304C\u5B8C\u4E86\u3059\u308B\u524D\u306B\u3001\u6709\u52B9\u5316\u30BB\u30C3\u30B7\u30E7\u30F3\u306E\u6709\u52B9\u671F\u9650\u304C\u5207\u308C\u307E\u3057\u305F\u3002",
+    "Your booked experiences": "\u3054\u4E88\u7D04\u6E08\u307F\u306E\u4F53\u9A13",
+    "Your card is being prepared for shipment": "\u30AB\u30FC\u30C9\u306F\u767A\u9001\u306E\u6E96\u5099\u4E2D\u3067\u3059",
+    "Your carrier and tracking updates appear here after dispatch.": "\u767A\u9001\u5F8C\u3001\u904B\u9001\u4F1A\u793E\u60C5\u5831\u3068\u8FFD\u8DE1\u72B6\u6CC1\u304C\u3053\u3053\u306B\u8868\u793A\u3055\u308C\u307E\u3059\u3002",
+    "Your cart is empty.": "\u30AB\u30FC\u30C8\u306F\u7A7A\u3067\u3059\u3002",
+    "Your eSIM is ready to install.": "eSIM \u306E\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u6E96\u5099\u304C\u3067\u304D\u307E\u3057\u305F\u3002",
+    "Your order is paid. We are packing your Bokmoo Card now \u2014 you will get a shipping confirmation with tracking, and it should arrive within a few business days.": "\u304A\u652F\u6255\u3044\u304C\u5B8C\u4E86\u3057\u307E\u3057\u305F\u3002\u305F\u3060\u3044\u307E BOKMOO\u30AB\u30FC\u30C9\u3092\u68B1\u5305\u4E2D\u3067\u3059\u3002\u8FFD\u8DE1\u756A\u53F7\u4ED8\u304D\u306E\u767A\u9001\u78BA\u8A8D\u30E1\u30FC\u30EB\u3092\u304A\u9001\u308A\u3057\u307E\u3059\u306E\u3067\u3001\u6570\u55B6\u696D\u65E5\u4EE5\u5185\u306E\u304A\u5C4A\u3051\u4E88\u5B9A\u3067\u3059\u3002",
+    "Your order is paid. We are preparing the install session now.": "\u304A\u652F\u6255\u3044\u304C\u5B8C\u4E86\u3057\u307E\u3057\u305F\u3002\u305F\u3060\u3044\u307E\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u306E\u6E96\u5099\u3092\u9032\u3081\u3066\u3044\u307E\u3059\u3002",
+    "Your package has been added to your eSIM.": "\u30D1\u30C3\u30B1\u30FC\u30B8\u304C eSIM \u306B\u8FFD\u52A0\u3055\u308C\u307E\u3057\u305F\u3002",
+    d: "\u65E5",
+    "daily average": "1\u65E5\u5E73\u5747",
+    "data included": "\u30C7\u30FC\u30BF\u91CF",
+    "day(s)": "\u65E5",
+    days: "\u65E5",
+    destinations: "\u76EE\u7684\u5730",
+    "e.g. BOKMOO10": "\u4F8B\uFF1ABOKMOO10",
+    "e.g. ESIM-JP-7D": "\u4F8B\uFF1AESIM-JP-7D",
+    eSIM: "eSIM",
+    "eSIM ICCID": "eSIM ICCID",
+    "eSIM Plans": "eSIM\u30D7\u30E9\u30F3",
+    "eSIM activation": "eSIM \u306E\u6709\u52B9\u5316",
+    "eSIM plans built for every journey.": "\u3042\u3089\u3086\u308B\u65C5\u306E\u305F\u3081\u306B\u4F5C\u3089\u308C\u305F eSIM\u30D7\u30E9\u30F3\u3002",
+    en: "en",
+    "iPhone and Android devices": "iPhone \u304A\u3088\u3073 Android\u30C7\u30D0\u30A4\u30B9",
+    "iPhone and Android devices with eSIM support": "eSIM\u5BFE\u5FDC\u306E iPhone \u304A\u3088\u3073 Android\u30C7\u30D0\u30A4\u30B9",
+    "iPhone: point the camera at the QR code. Other phones: Settings \u2192 Network \u2192 Add eSIM.": "iPhone\uFF1A\u30AB\u30E1\u30E9\u3067 QR\u30B3\u30FC\u30C9\u3092\u8AAD\u307F\u53D6\u308A\u307E\u3059\u3002\u305D\u306E\u4ED6\u306E\u30B9\u30DE\u30FC\u30C8\u30D5\u30A9\u30F3\uFF1A\u8A2D\u5B9A \u2192 \u30CD\u30C3\u30C8\u30EF\u30FC\u30AF \u2192 eSIM \u3092\u8FFD\u52A0\u3002",
+    "instant delivery": "\u5373\u6642\u304A\u5C4A\u3051",
+    "local network": "\u73FE\u5730\u30CD\u30C3\u30C8\u30EF\u30FC\u30AF",
+    months: "\u304B\u6708",
+    "one eSIM.": "1\u679A\u306E eSIM\u3002",
+    plans: "\u30D7\u30E9\u30F3",
+    selected: "\u9078\u629E\u4E2D",
+    validity: "\u6709\u52B9\u671F\u9650",
+    weeks: "\u9031",
+    ".": "\u3002",
+    ". All rights reserved.": "\u3002\u7121\u65AD\u8EE2\u8F09\u3092\u7981\u3058\u307E\u3059\u3002",
+    "Acceptance of Terms": "\u898F\u7D04\u3078\u306E\u540C\u610F",
+    Active: "\u30A2\u30AF\u30C6\u30A3\u30D6",
+    Add: "\u8FFD\u52A0",
+    "Affiliate data could not be loaded": "\u30A2\u30D5\u30A3\u30EA\u30A8\u30A4\u30C8\u30C7\u30FC\u30BF\u3092\u8AAD\u307F\u8FBC\u3081\u307E\u305B\u3093\u3067\u3057\u305F",
+    "Affiliate view": "\u30A2\u30D5\u30A3\u30EA\u30A8\u30A4\u30C8\u8868\u793A",
+    "Affiliate workspace": "\u30A2\u30D5\u30A3\u30EA\u30A8\u30A4\u30C8\u7BA1\u7406\u753B\u9762",
+    "All payments are final and non-refundable unless required by law.": "\u6CD5\u4EE4\u3067\u5B9A\u3081\u3089\u308C\u305F\u5834\u5408\u3092\u9664\u304D\u3001\u3059\u3079\u3066\u306E\u304A\u652F\u6255\u3044\u306F\u8FD4\u91D1\u4E0D\u53EF\u3067\u3059\u3002",
+    "Already have an account?": "\u3059\u3067\u306B\u30A2\u30AB\u30A6\u30F3\u30C8\u3092\u304A\u6301\u3061\u3067\u3059\u304B\uFF1F",
+    Approved: "\u627F\u8A8D\u6E08\u307F",
+    "Authentication failed": "\u8A8D\u8A3C\u306B\u5931\u6557\u3057\u307E\u3057\u305F",
+    "BOKMOO eSIM Card": "BOKMOO eSIM \u30AB\u30FC\u30C9",
+    "BOKMOO is not liable for any indirect, incidental, or consequential damages.": "BOKMOO \u306F\u3001\u9593\u63A5\u7684\u30FB\u5076\u767A\u7684\u30FB\u7D50\u679C\u7684\u306A\u640D\u5BB3\u306B\u3064\u3044\u3066\u4E00\u5207\u306E\u8CAC\u4EFB\u3092\u8CA0\u3044\u307E\u305B\u3093\u3002",
+    "Back home": "\u30DB\u30FC\u30E0\u306B\u623B\u308B",
+    "Back to sign in": "\u30ED\u30B0\u30A4\u30F3\u306B\u623B\u308B",
+    "Better Nights": "\u3088\u308A\u826F\u3044\u591C\u3092",
+    "Brighter Journeys": "\u3088\u308A\u660E\u308B\u3044\u65C5\u3092",
+    "Browse BOKMOO plans by destination and travel region.": "\u76EE\u7684\u5730\u3084\u65C5\u884C\u5730\u57DF\u304B\u3089 BOKMOO \u306E\u30D7\u30E9\u30F3\u3092\u63A2\u305B\u307E\u3059\u3002",
+    "By accessing or using the BOKMOO website and services, you agree to be bound by these Terms of Service.": "BOKMOO \u306E\u30A6\u30A7\u30D6\u30B5\u30A4\u30C8\u304A\u3088\u3073\u30B5\u30FC\u30D3\u30B9\u306B\u30A2\u30AF\u30BB\u30B9\u307E\u305F\u306F\u3054\u5229\u7528\u306B\u306A\u308B\u3053\u3068\u3067\u3001\u672C\u5229\u7528\u898F\u7D04\u306B\u540C\u610F\u3057\u305F\u3082\u306E\u3068\u307F\u306A\u3055\u308C\u307E\u3059\u3002",
+    "Change password": "\u30D1\u30B9\u30EF\u30FC\u30C9\u3092\u5909\u66F4",
+    "Commission rate": "\u5831\u916C\u7387",
+    "Completing sign in": "\u30ED\u30B0\u30A4\u30F3\u3092\u5B8C\u4E86\u3057\u3066\u3044\u307E\u3059",
+    Confirm: "\u78BA\u8A8D",
+    "Continue to your orders, profiles, and activation workspace.": "\u6CE8\u6587\u3001\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3001\u30A2\u30AF\u30C6\u30A3\u30D9\u30FC\u30B7\u30E7\u30F3\u306E\u7BA1\u7406\u753B\u9762\u3078\u9032\u307F\u307E\u3059\u3002",
+    Copied: "\u30B3\u30D4\u30FC\u3057\u307E\u3057\u305F",
+    "Copy link": "\u30EA\u30F3\u30AF\u3092\u30B3\u30D4\u30FC",
+    "Create account": "\u30A2\u30AB\u30A6\u30F3\u30C8\u3092\u4F5C\u6210",
+    "Create affiliate account": "\u30A2\u30D5\u30A3\u30EA\u30A8\u30A4\u30C8\u30A2\u30AB\u30A6\u30F3\u30C8\u3092\u4F5C\u6210",
+    "Create organization": "\u7D44\u7E54\u3092\u4F5C\u6210",
+    "Create the account your eSIMs follow.": "eSIM \u304C\u3059\u3079\u3066\u7D10\u3065\u304F\u3001\u3042\u306A\u305F\u3060\u3051\u306E\u30A2\u30AB\u30A6\u30F3\u30C8\u3092\u4F5C\u6210\u3057\u307E\u3057\u3087\u3046\u3002",
+    Creating: "\u4F5C\u6210\u4E2D\u2026",
+    "Creator network.": "\u30AF\u30EA\u30A8\u30A4\u30BF\u30FC\u30CD\u30C3\u30C8\u30EF\u30FC\u30AF\u3002",
+    "Current password": "\u73FE\u5728\u306E\u30D1\u30B9\u30EF\u30FC\u30C9",
+    "Data Protection": "\u30C7\u30FC\u30BF\u4FDD\u8B77",
+    "Default option": "\u6A19\u6E96\u30AA\u30D7\u30B7\u30E7\u30F3",
+    "Deselect item": "\u9078\u629E\u3092\u89E3\u9664",
+    "Display name": "\u8868\u793A\u540D",
+    Earned: "\u7372\u5F97\u984D",
+    Email: "\u30E1\u30FC\u30EB\u30A2\u30C9\u30EC\u30B9",
+    Expired: "\u6709\u52B9\u671F\u9650\u5207\u308C",
+    "Explore destination eSIMs": "\u76EE\u7684\u5730\u5225 eSIM \u3092\u898B\u308B",
+    "Forgot password": "\u30D1\u30B9\u30EF\u30FC\u30C9\u3092\u304A\u5FD8\u308C\u3067\u3059\u304B",
+    "Get help fast": "\u3059\u3050\u306B\u30B5\u30DD\u30FC\u30C8\u3092\u53D7\u3051\u3089\u308C\u307E\u3059",
+    "Hide password": "\u30D1\u30B9\u30EF\u30FC\u30C9\u3092\u96A0\u3059",
+    "Hover a store button (or scan the card QR) to download.": "\u30B9\u30C8\u30A2\u30DC\u30BF\u30F3\u306B\u30AB\u30FC\u30BD\u30EB\u3092\u5408\u308F\u305B\u308B\uFF08\u307E\u305F\u306F\u30AB\u30FC\u30C9\u306E QR \u30B3\u30FC\u30C9\u3092\u30B9\u30AD\u30E3\u30F3\u3059\u308B\uFF09\u3068\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u3067\u304D\u307E\u3059\u3002",
+    "How We Use Information": "\u60C5\u5831\u306E\u5229\u7528\u65B9\u6CD5",
+    "How it works": "\u3054\u5229\u7528\u306E\u6D41\u308C",
+    Inactive: "\u672A\u30A2\u30AF\u30C6\u30A3\u30D6",
+    Influencer: "\u30A4\u30F3\u30D5\u30EB\u30A8\u30F3\u30B5\u30FC",
+    "Information We Collect": "\u53CE\u96C6\u3059\u308B\u60C5\u5831",
+    "Instant QR delivery after payment": "\u652F\u6255\u3044\u5F8C\u306B QR \u30B3\u30FC\u30C9\u3092\u3059\u3050\u306B\u304A\u5C4A\u3051",
+    "Keep access secure between trips.": "\u65C5\u884C\u3068\u65C5\u884C\u306E\u3042\u3044\u3060\u3082\u3001\u30A2\u30AB\u30A6\u30F3\u30C8\u306E\u5B89\u5168\u3092\u4FDD\u3061\u307E\u3057\u3087\u3046\u3002",
+    "Keep orders, activation codes, profile history, and support cases attached to one BOKMOO identity.": "\u6CE8\u6587\u3001\u30A2\u30AF\u30C6\u30A3\u30D9\u30FC\u30B7\u30E7\u30F3\u30B3\u30FC\u30C9\u3001\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u5C65\u6B74\u3001\u30B5\u30DD\u30FC\u30C8\u6848\u4EF6\u3092\u3001\u3072\u3068\u3064\u306E BOKMOO ID \u306B\u307E\u3068\u3081\u3066\u7BA1\u7406\u3067\u304D\u307E\u3059\u3002",
+    "Keep your BOKMOO account ready for the next trip.": "\u6B21\u306E\u65C5\u884C\u306B\u5411\u3051\u3066\u3001BOKMOO \u30A2\u30AB\u30A6\u30F3\u30C8\u3092\u6574\u3048\u3066\u304A\u304D\u307E\u3057\u3087\u3046\u3002",
+    "Last updated: April 15, 2024": "\u6700\u7D42\u66F4\u65B0\u65E5\uFF1A2024 \u5E74 4 \u6708 15 \u65E5",
+    "Limitation of Liability": "\u8CAC\u4EFB\u306E\u5236\u9650",
+    "Manage BOKMOO eSIM profiles, orders, and activation details from the same black-and-gold travel control surface.": "\u9ED2\u3068\u91D1\u306E\u30C8\u30E9\u30D9\u30EB\u30B3\u30F3\u30C8\u30ED\u30FC\u30EB\u753B\u9762\u304B\u3089\u3001BOKMOO \u306E eSIM \u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3001\u6CE8\u6587\u3001\u30A2\u30AF\u30C6\u30A3\u30D9\u30FC\u30B7\u30E7\u30F3\u60C5\u5831\u3092\u307E\u3068\u3081\u3066\u7BA1\u7406\u3067\u304D\u307E\u3059\u3002",
+    "Manage eSIMs": "eSIM \u3092\u7BA1\u7406",
+    Manager: "\u30DE\u30CD\u30FC\u30B8\u30E3\u30FC",
+    "Member could not be added": "\u30E1\u30F3\u30D0\u30FC\u3092\u8FFD\u52A0\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F",
+    "Member email": "\u30E1\u30F3\u30D0\u30FC\u306E\u30E1\u30FC\u30EB\u30A2\u30C9\u30EC\u30B9",
+    "New password": "\u65B0\u3057\u3044\u30D1\u30B9\u30EF\u30FC\u30C9",
+    "No commissions yet": "\u5831\u916C\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093",
+    "No region collections are available yet.": "\u5730\u57DF\u30B3\u30EC\u30AF\u30B7\u30E7\u30F3\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002",
+    "One Card.\nGlobal Connection.": "1\u679A\u306E\u30AB\u30FC\u30C9\u3067\u3002\n\u4E16\u754C\u306B\u3064\u306A\u304C\u308B\u3002",
+    "One eSIM for the whole trip \u2014 pick your destinations and go.": "\u65C5\u5168\u4F53\u3092 1 \u679A\u306E eSIM \u3067\u3002\u76EE\u7684\u5730\u3092\u9078\u3093\u3060\u3089\u3001\u3042\u3068\u306F\u51FA\u304B\u3051\u308B\u3060\u3051\u3002",
+    Organization: "\u7D44\u7E54",
+    "Organization affiliate": "\u7D44\u7E54\u306E\u30A2\u30D5\u30A3\u30EA\u30A8\u30A4\u30C8",
+    "Organization code (optional)": "\u7D44\u7E54\u30B3\u30FC\u30C9\uFF08\u4EFB\u610F\uFF09",
+    "Organization commissions": "\u7D44\u7E54\u306E\u5831\u916C",
+    "Organization could not be created": "\u7D44\u7E54\u3092\u4F5C\u6210\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F",
+    "Organization data could not be loaded": "\u7D44\u7E54\u30C7\u30FC\u30BF\u3092\u8AAD\u307F\u8FBC\u3081\u307E\u305B\u3093\u3067\u3057\u305F",
+    "Organization name": "\u7D44\u7E54\u540D",
+    Partner: "\u30D1\u30FC\u30C8\u30CA\u30FC",
+    "Partner commissions": "\u30D1\u30FC\u30C8\u30CA\u30FC\u5831\u916C",
+    Password: "\u30D1\u30B9\u30EF\u30FC\u30C9",
+    "Passwords do not match": "\u30D1\u30B9\u30EF\u30FC\u30C9\u304C\u4E00\u81F4\u3057\u307E\u305B\u3093",
+    "Personal affiliate": "\u500B\u4EBA\u30A2\u30D5\u30A3\u30EA\u30A8\u30A4\u30C8",
+    "Powered by": "Powered by",
+    Profiles: "\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB",
+    "Protected traveler identity": "\u5B88\u3089\u308C\u305F\u30C8\u30E9\u30D9\u30E9\u30FC\u30A2\u30A4\u30C7\u30F3\u30C6\u30A3\u30C6\u30A3",
+    "Purchases and Payments": "\u8CFC\u5165\u3068\u652F\u6255\u3044",
+    "Questions about setup? Contact": "\u30BB\u30C3\u30C8\u30A2\u30C3\u30D7\u306B\u3064\u3044\u3066\u306E\u3054\u8CEA\u554F\u306F\u3001\u3053\u3061\u3089\u307E\u3067\u304A\u554F\u3044\u5408\u308F\u305B\u304F\u3060\u3055\u3044\uFF1A",
+    Rate: "\u7387",
+    Refresh: "\u66F4\u65B0",
+    "Region Collections": "\u5730\u57DF\u30B3\u30EC\u30AF\u30B7\u30E7\u30F3",
+    "Registration failed": "\u767B\u9332\u306B\u5931\u6557\u3057\u307E\u3057\u305F",
+    SAMPLE: "\u30B5\u30F3\u30D7\u30EB",
+    "Save profile": "\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3092\u4FDD\u5B58",
+    "Saving...": "\u4FDD\u5B58\u4E2D\u2026",
+    "Secure account access": "\u5B89\u5168\u306A\u30A2\u30AB\u30A6\u30F3\u30C8\u30A2\u30AF\u30BB\u30B9",
+    "Securing your session and returning you to the BOKMOO storefront.": "\u30BB\u30C3\u30B7\u30E7\u30F3\u3092\u4FDD\u8B77\u3057\u3001BOKMOO \u30B9\u30C8\u30A2\u306B\u623B\u308A\u307E\u3059\u3002",
+    "Select item": "\u9078\u629E",
+    "Shop eSIM Plans": "eSIM \u30D7\u30E9\u30F3\u3092\u898B\u308B",
+    "Show password": "\u30D1\u30B9\u30EF\u30FC\u30C9\u3092\u8868\u793A",
+    "Sign in": "\u30ED\u30B0\u30A4\u30F3",
+    "Sign in before your next border.": "\u6B21\u306E\u56FD\u5883\u3092\u8D8A\u3048\u308B\u524D\u306B\u3001\u30ED\u30B0\u30A4\u30F3\u3057\u3066\u304A\u304D\u307E\u3057\u3087\u3046\u3002",
+    "Sign in to manage your account": "\u30A2\u30AB\u30A6\u30F3\u30C8\u3092\u7BA1\u7406\u3059\u308B\u306B\u306F\u30ED\u30B0\u30A4\u30F3\u3057\u3066\u304F\u3060\u3055\u3044",
+    "Signing in": "\u30ED\u30B0\u30A4\u30F3\u4E2D\u2026",
+    "Start with a secure profile for purchases and global activation support.": "\u8CFC\u5165\u3068\u4E16\u754C\u306E\u30A2\u30AF\u30C6\u30A3\u30D9\u30FC\u30B7\u30E7\u30F3\u30B5\u30DD\u30FC\u30C8\u306B\u5BFE\u5FDC\u3057\u305F\u3001\u5B89\u5168\u306A\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u304B\u3089\u59CB\u3081\u307E\u3057\u3087\u3046\u3002",
+    Suspended: "\u5229\u7528\u505C\u6B62\u4E2D",
+    "Track purchases": "\u8CFC\u5165\u3092\u7BA1\u7406",
+    "Traveler profile": "\u30C8\u30E9\u30D9\u30E9\u30FC\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB",
+    "Unable to load Bokmoo plans.": "Bokmoo \u306E\u30D7\u30E9\u30F3\u3092\u8AAD\u307F\u8FBC\u3081\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
+    "Updating...": "\u66F4\u65B0\u4E2D\u2026",
+    "Use of Services": "\u30B5\u30FC\u30D3\u30B9\u306E\u5229\u7528",
+    Used: "\u4F7F\u7528\u6E08\u307F",
+    "View category": "\u30AB\u30C6\u30B4\u30EA\u3092\u898B\u308B",
+    "We collect information you provide directly to us, such as when you create an account or make a purchase.": "\u30A2\u30AB\u30A6\u30F3\u30C8\u306E\u4F5C\u6210\u3084\u8CFC\u5165\u306E\u969B\u306A\u3069\u3001\u304A\u5BA2\u69D8\u304C\u76F4\u63A5\u3054\u63D0\u4F9B\u3044\u305F\u3060\u304F\u60C5\u5831\u3092\u53CE\u96C6\u3057\u307E\u3059\u3002",
+    "We implement appropriate security measures to protect your data.": "\u304A\u5BA2\u69D8\u306E\u30C7\u30FC\u30BF\u3092\u5B88\u308B\u305F\u3081\u3001\u9069\u5207\u306A\u30BB\u30AD\u30E5\u30EA\u30C6\u30A3\u5BFE\u7B56\u3092\u5B9F\u65BD\u3057\u3066\u3044\u307E\u3059\u3002",
+    "We use the information to provide, maintain, and improve our services.": "\u53CE\u96C6\u3057\u305F\u60C5\u5831\u306F\u3001\u30B5\u30FC\u30D3\u30B9\u306E\u63D0\u4F9B\u30FB\u7DAD\u6301\u30FB\u6539\u5584\u306E\u305F\u3081\u306B\u5229\u7528\u3057\u307E\u3059\u3002",
+    "Welcome back": "\u304A\u304B\u3048\u308A\u306A\u3055\u3044",
+    "You agree to use our services only for lawful purposes and in accordance with these Terms.": "\u5F53\u793E\u306E\u30B5\u30FC\u30D3\u30B9\u3092\u3001\u9069\u6CD5\u306A\u76EE\u7684\u306B\u306E\u307F\u3001\u307E\u305F\u672C\u898F\u7D04\u306B\u5F93\u3063\u3066\u3054\u5229\u7528\u3044\u305F\u3060\u304F\u3053\u3068\u306B\u3054\u540C\u610F\u3044\u305F\u3060\u304D\u307E\u3059\u3002",
+    "You have the right to access, update, or delete your personal information.": "\u3054\u81EA\u8EAB\u306E\u500B\u4EBA\u60C5\u5831\u306E\u95B2\u89A7\u30FB\u66F4\u65B0\u30FB\u524A\u9664\u3092\u6C42\u3081\u308B\u6A29\u5229\u3092\u6709\u3057\u307E\u3059\u3002",
+    "Your Rights": "\u304A\u5BA2\u69D8\u306E\u6A29\u5229",
+    "Your referral ledger.": "\u3042\u306A\u305F\u306E\u7D39\u4ECB\u5C65\u6B74\u3002",
+    "already with us": "\u3059\u3067\u306B\u767B\u9332\u6E08\u307F\u306E\u65B9",
+    "or email": "\u307E\u305F\u306F\u30E1\u30FC\u30EB\u30A2\u30C9\u30EC\u30B9",
+    "organization rate": "\u7D44\u7E54\u306E\u5831\u916C\u7387",
+    "Group destination-ready plans into clearer regional entry points.": "\u76EE\u7684\u5730\u5225\u306E\u30D7\u30E9\u30F3\u3092\u3001\u308F\u304B\u308A\u3084\u3059\u3044\u5730\u57DF\u3054\u3068\u306E\u5165\u53E3\u306B\u307E\u3068\u3081\u307E\u3059\u3002"
+  };
+
+  // src/i18n/ko.json
+  var ko_default = {
+    "/ full trip": "/ \uC804\uCCB4 \uC5EC\uD589",
+    "/day": "/\uC77C",
+    "200+ destinations": "200\uAC1C \uC774\uC0C1\uC758 \uBAA9\uC801\uC9C0",
+    "24/7 Global Team": "24\uC2DC\uAC04 365\uC77C \uAE00\uB85C\uBC8C \uD300",
+    "24/7 travel support": "24\uC2DC\uAC04 365\uC77C \uC5EC\uD589 \uACE0\uAC1D \uC9C0\uC6D0",
+    "4.9 average traveler satisfaction": "\uC5EC\uD589\uAC1D \uB9CC\uC871\uB3C4 \uD3C9\uADE0 4.9\uC810",
+    "About BOKMOO": "BOKMOO \uC18C\uAC1C",
+    "Access the world's best venues with BOKMOO.": "BOKMOO\uC640 \uD568\uAED8 \uC138\uACC4 \uCD5C\uACE0\uC758 \uBCA0\uB274\uB97C \uC774\uC6A9\uD574 \uBCF4\uC138\uC694.",
+    "Account Information": "\uACC4\uC815 \uC815\uBCF4",
+    "Account Preferences": "\uACC4\uC815 \uD658\uACBD\uC124\uC815",
+    "Account Status": "\uACC4\uC815 \uC0C1\uD0DC",
+    "Activate your BOKMOO card over Bluetooth, install and switch eSIM profiles, and track your data \u2014 right from your phone.": "Bluetooth\uB85C BOKMOO \uCE74\uB4DC\uB97C \uD65C\uC131\uD654\uD558\uACE0, eSIM \uD504\uB85C\uD544\uC744 \uC124\uCE58\uD558\uACE0 \uC804\uD658\uD558\uACE0, \uB370\uC774\uD130 \uC0AC\uC6A9\uB7C9\uAE4C\uC9C0 \uD734\uB300\uD3F0\uC5D0\uC11C \uBC14\uB85C \uD655\uC778\uD560 \uC218 \uC788\uC5B4\uC694.",
+    Activation: "\uD65C\uC131\uD654",
+    "Activation code": "\uD65C\uC131\uD654 \uCF54\uB4DC",
+    "Activation expired": "\uD65C\uC131\uD654 \uAE30\uD55C \uB9CC\uB8CC",
+    "Active Member": "\uD65C\uC131 \uBA64\uBC84",
+    "Add a destination or regional plan to prepare your connectivity before departure.": "\uCD9C\uBC1C \uC804 \uC5F0\uACB0\uC744 \uC900\uBE44\uD558\uB824\uBA74 \uBAA9\uC801\uC9C0\uB098 \uC9C0\uC5ED \uC694\uAE08\uC81C\uB97C \uCD94\uAC00\uD574 \uBCF4\uC138\uC694.",
+    "Add a new address": "\uC0C8 \uC8FC\uC18C \uCD94\uAC00",
+    "Add a stop": "\uACBD\uC720\uC9C0 \uCD94\uAC00",
+    "Add to cart": "\uC7A5\uBC14\uAD6C\uB2C8\uC5D0 \uCD94\uAC00",
+    "Adding\u2026": "\uCD94\uAC00\uD558\uB294 \uC911\u2026",
+    Address: "\uC8FC\uC18C",
+    "Address is required": "\uC8FC\uC18C\uB97C \uC785\uB825\uD574 \uC8FC\uC138\uC694",
+    "Adjust the route, or browse sellable destinations.": "\uB8E8\uD2B8\uB97C \uC870\uC815\uD558\uAC70\uB098 \uD310\uB9E4 \uC911\uC778 \uBAA9\uC801\uC9C0\uB97C \uB458\uB7EC\uBCF4\uC138\uC694.",
+    "Affiliate Program": "\uC81C\uD734 \uD504\uB85C\uADF8\uB7A8",
+    "After checkout the eSIM QR code is issued to your email and account instantly. Add it before boarding; it connects on arrival.": "\uACB0\uC81C \uD6C4 eSIM QR \uCF54\uB4DC\uAC00 \uC774\uBA54\uC77C\uACFC \uACC4\uC815\uC5D0 \uC989\uC2DC \uBC1C\uAE09\uB3FC\uC694. \uD0D1\uC2B9 \uC804\uC5D0 \uBBF8\uB9AC \uCD94\uAC00\uD574 \uB450\uBA74 \uB3C4\uCC29\uD588\uC744 \uB54C \uBC14\uB85C \uC5F0\uACB0\uB3FC\uC694.",
+    All: "\uC804\uCCB4",
+    "Asia-Pacific": "\uC544\uC2DC\uC544 \uD0DC\uD3C9\uC591",
+    Australia: "\uD638\uC8FC",
+    "Australia & NZ": "\uD638\uC8FC\xB7\uB274\uC9C8\uB79C\uB4DC",
+    "Awaiting payment": "\uACB0\uC81C \uB300\uAE30",
+    "BOKMOO Member Benefits": "BOKMOO \uBA64\uBC84 \uD61C\uD0DD",
+    "BOKMOO is built for global travelers.": "BOKMOO\uB294 \uC804 \uC138\uACC4 \uC5EC\uD589\uAC1D\uC744 \uC704\uD574 \uB9CC\uB4E4\uC5B4\uC84C\uC5B4\uC694.",
+    Back: "\uB4A4\uB85C",
+    "Back to Store": "\uC2A4\uD1A0\uC5B4\uB85C \uB3CC\uC544\uAC00\uAE30",
+    "Back to orders": "\uC8FC\uBB38 \uBAA9\uB85D\uC73C\uB85C \uB3CC\uC544\uAC00\uAE30",
+    "Back to store": "\uC2A4\uD1A0\uC5B4\uB85C \uB3CC\uC544\uAC00\uAE30",
+    "Best single eSIM": "\uCD5C\uC801\uC758 \uB2E8\uC77C eSIM",
+    "Bilingual support helps with APN setup, network preference and device compatibility around the clock.": "\uC774\uC911 \uC5B8\uC5B4 \uACE0\uAC1D \uC9C0\uC6D0\uD300\uC774 APN \uC124\uC815, \uB124\uD2B8\uC6CC\uD06C \uC6B0\uC120\uC21C\uC704, \uAE30\uAE30 \uD638\uD658\uC131 \uBB38\uC81C\uB97C 24\uC2DC\uAC04 365\uC77C \uB3C4\uC640\uB4DC\uB824\uC694.",
+    "Billing Details": "\uACB0\uC81C \uC815\uBCF4",
+    Bluetooth: "Bluetooth",
+    "Bokmoo eSIM": "Bokmoo eSIM",
+    "Browse Destinations": "\uBAA9\uC801\uC9C0 \uB458\uB7EC\uBCF4\uAE30",
+    "Buy Now": "\uC9C0\uAE08 \uAD6C\uB9E4",
+    "Buy the trip in segments \u2014 one eSIM per segment below.": "\uC5EC\uD589\uC744 \uAD6C\uAC04\uBCC4\uB85C \uAD6C\uB9E4\uD574 \uBCF4\uC138\uC694. \uC544\uB798\uC5D0\uC11C \uAD6C\uAC04\uB9C8\uB2E4 eSIM \uD558\uB098\uC529 \uC120\uD0DD\uD560 \uC218 \uC788\uC5B4\uC694.",
+    "Can I add a stop after buying?": "\uAD6C\uB9E4 \uD6C4\uC5D0 \uACBD\uC720\uC9C0\uB97C \uCD94\uAC00\uD560 \uC218 \uC788\uB098\uC694?",
+    Canada: "\uCE90\uB098\uB2E4",
+    Cancel: "\uCDE8\uC18C",
+    "Cancel order": "\uC8FC\uBB38 \uCDE8\uC18C",
+    "Cancel reason": "\uCDE8\uC18C \uC0AC\uC720",
+    Cancelled: "\uCDE8\uC18C\uB428",
+    Cart: "\uC7A5\uBC14\uAD6C\uB2C8",
+    "Chat with support": "\uACE0\uAC1D \uC9C0\uC6D0 \uCC44\uD305",
+    "Check compatibility": "\uD638\uD658\uC131 \uD655\uC778",
+    "Check compatibility before departure": "\uCD9C\uBC1C \uC804\uC5D0 \uD638\uD658\uC131\uC744 \uD655\uC778\uD558\uC138\uC694",
+    "Choose an option": "\uC635\uC158 \uC120\uD0DD",
+    "Choose destinations": "\uBAA9\uC801\uC9C0 \uC120\uD0DD",
+    City: "\uB3C4\uC2DC",
+    "City is required": "\uB3C4\uC2DC\uB97C \uC785\uB825\uD574 \uC8FC\uC138\uC694",
+    Close: "\uB2EB\uAE30",
+    "Close menu": "\uBA54\uB274 \uB2EB\uAE30",
+    "Close support chat": "\uACE0\uAC1D \uC9C0\uC6D0 \uCC44\uD305 \uB2EB\uAE30",
+    "Closing without confirming keeps your current route.": "\uD655\uC778 \uC5C6\uC774 \uB2EB\uC73C\uBA74 \uD604\uC7AC \uB8E8\uD2B8\uAC00 \uADF8\uB300\uB85C \uC720\uC9C0\uB3FC\uC694.",
+    Compatibility: "\uD638\uD658\uC131",
+    "Complete payment and we will start preparing your card for delivery.": "\uACB0\uC81C\uB97C \uC644\uB8CC\uD558\uBA74 \uCE74\uB4DC \uBC30\uC1A1 \uC900\uBE44\uB97C \uBC14\uB85C \uC2DC\uC791\uD560\uAC8C\uC694.",
+    "Complete payment to provision this eSIM.": "\uC774 eSIM\uC744 \uAC1C\uD1B5\uD558\uB824\uBA74 \uACB0\uC81C\uB97C \uC644\uB8CC\uD574 \uC8FC\uC138\uC694.",
+    "Complete payment to unlock your eSIM install details.": "eSIM \uC124\uCE58 \uC815\uBCF4\uB97C \uD655\uC778\uD558\uB824\uBA74 \uACB0\uC81C\uB97C \uC644\uB8CC\uD574 \uC8FC\uC138\uC694.",
+    Completed: "\uC644\uB8CC\uB428",
+    "Confirmation code": "\uD655\uC778 \uCF54\uB4DC",
+    Connection: "\uC5F0\uACB0",
+    "Connects to the BOKMOO app over Bluetooth": "Bluetooth\uB85C BOKMOO \uC571\uACFC \uC5F0\uACB0\uB3FC\uC694",
+    "Contact Information": "\uC5F0\uB77D\uCC98 \uC815\uBCF4",
+    "Contact Support": "\uACE0\uAC1D \uC9C0\uC6D0 \uBB38\uC758",
+    "Continue browsing": "\uACC4\uC18D \uB458\uB7EC\uBCF4\uAE30",
+    "Continue to Payment": "\uACB0\uC81C\uD558\uAE30",
+    Copy: "\uBCF5\uC0AC",
+    "Copy activation code": "\uD65C\uC131\uD654 \uCF54\uB4DC \uBCF5\uC0AC",
+    "Copy email": "\uC774\uBA54\uC77C \uBCF5\uC0AC",
+    "Copy order reference": "\uC8FC\uBB38 \uBC88\uD638 \uBCF5\uC0AC",
+    Countries: "\uAD6D\uAC00",
+    Country: "\uAD6D\uAC00",
+    "Country (e.g. CN)": "\uAD6D\uAC00 (\uC608: CN)",
+    "Country is required": "\uAD6D\uAC00\uB97C \uC785\uB825\uD574 \uC8FC\uC138\uC694",
+    Coverage: "\uCEE4\uBC84\uB9AC\uC9C0",
+    "Coverage detail by stop": "\uACBD\uC720\uC9C0\uBCC4 \uCEE4\uBC84\uB9AC\uC9C0 \uC0C1\uC138",
+    Covers: "\uCEE4\uBC84 \uBC94\uC704",
+    Currency: "\uD1B5\uD654",
+    Current: "\uD604\uC7AC",
+    Data: "\uB370\uC774\uD130",
+    "Date of Birth": "\uC0DD\uB144\uC6D4\uC77C",
+    Days: "\uC77C\uC218",
+    Default: "\uAE30\uBCF8",
+    Delete: "\uC0AD\uC81C",
+    Delivered: "\uBC30\uC1A1 \uC644\uB8CC",
+    Delivery: "\uBC30\uC1A1",
+    "Delivery tracking": "\uBC30\uC1A1 \uC870\uD68C",
+    "Deselect all": "\uC804\uCCB4 \uC120\uD0DD \uD574\uC81C",
+    "Destination eSIM": "\uBAA9\uC801\uC9C0 eSIM",
+    "Destination search": "\uBAA9\uC801\uC9C0 \uAC80\uC0C9",
+    Destinations: "\uBAA9\uC801\uC9C0",
+    Discount: "\uD560\uC778",
+    "Download APK directly": "APK \uBC14\uB85C \uB2E4\uC6B4\uB85C\uB4DC",
+    "Download on the App Store": "App Store\uC5D0\uC11C \uB2E4\uC6B4\uB85C\uB4DC",
+    Edit: "\uD3B8\uC9D1",
+    Editable: "\uD3B8\uC9D1 \uAC00\uB2A5",
+    "Email Address": "\uC774\uBA54\uC77C \uC8FC\uC18C",
+    "Email is required": "\uC774\uBA54\uC77C\uC744 \uC785\uB825\uD574 \uC8FC\uC138\uC694",
+    English: "\uC601\uC5B4",
+    "Enter Code": "\uCF54\uB4DC \uC785\uB825",
+    "Enter your email": "\uC774\uBA54\uC77C \uC785\uB825",
+    Europe: "\uC720\uB7FD",
+    "Every purchase stays readable after checkout.": "\uACB0\uC81C \uD6C4\uC5D0\uB3C4 \uBAA8\uB4E0 \uAD6C\uB9E4 \uB0B4\uC6A9\uC744 \uACC4\uC18D \uD655\uC778\uD560 \uC218 \uC788\uC5B4\uC694.",
+    "Example route shown \u2014 your route starts empty below.": "\uC608\uC2DC \uB8E8\uD2B8\uAC00 \uD45C\uC2DC\uB3FC\uC694. \uC544\uB798\uC5D0\uC11C \uB0B4 \uB8E8\uD2B8\uB294 \uBE48 \uC0C1\uD0DC\uB85C \uC2DC\uC791\uB3FC\uC694.",
+    Expires: "\uB9CC\uB8CC\uC77C",
+    "Explore Now": "\uC9C0\uAE08 \uB458\uB7EC\uBCF4\uAE30",
+    "Explore a Better Night": "\uB354 \uD2B9\uBCC4\uD55C \uBC24\uC744 \uACBD\uD5D8\uD574 \uBCF4\uC138\uC694",
+    "Explore destination-ready profiles, regional bundles, and premium data options with the clarity of a product catalog.": "\uBAA9\uC801\uC9C0\uBCC4 \uD504\uB85C\uD544, \uC9C0\uC5ED \uBC88\uB4E4, \uD504\uB9AC\uBBF8\uC5C4 \uB370\uC774\uD130 \uC635\uC158\uC744 \uCE74\uD0C8\uB85C\uADF8\uCC98\uB7FC \uD55C\uB208\uC5D0 \uBA85\uD655\uD558\uAC8C \uB458\uB7EC\uBCF4\uC138\uC694.",
+    Failed: "\uC2E4\uD328",
+    "Fewer days": "\uC77C\uC218 \uC904\uC774\uAE30",
+    "First name": "\uC774\uB984",
+    "First name is required": "\uC774\uB984\uC744 \uC785\uB825\uD574 \uC8FC\uC138\uC694",
+    "Flexible data": "\uC720\uC5F0\uD55C \uB370\uC774\uD130",
+    "Flexible validity": "\uC720\uC5F0\uD55C \uC720\uD6A8\uAE30\uAC04",
+    "Flexible validity & top-ups": "\uC720\uC5F0\uD55C \uC720\uD6A8\uAE30\uAC04 \uBC0F \uCDA9\uC804",
+    "For a new device \u2014 a fresh QR code is issued after payment.": "\uC0C8 \uAE30\uAE30\uC5D0 \uC124\uCE58\uD560 \uB54C \uC120\uD0DD\uD558\uC138\uC694. \uACB0\uC81C \uD6C4 \uC0C8 QR \uCF54\uB4DC\uAC00 \uBC1C\uAE09\uB3FC\uC694.",
+    France: "\uD504\uB791\uC2A4",
+    Fulfilled: "\uC900\uBE44 \uC644\uB8CC",
+    "Full name": "\uC804\uCCB4 \uC774\uB984",
+    "Full refund if not activated": "\uD65C\uC131\uD654 \uC804\uAE4C\uC9C0 \uC804\uC561 \uD658\uBD88",
+    "General Notes": "\uC77C\uBC18 \uC548\uB0B4",
+    Germany: "\uB3C5\uC77C",
+    "Get BOKMOO": "BOKMOO \uC774\uC6A9\uD558\uAE30",
+    "Get Started": "\uC2DC\uC791\uD558\uAE30",
+    "Get it on Google Play": "Google Play\uC5D0\uC11C \uB2E4\uC6B4\uB85C\uB4DC",
+    Global: "\uAE00\uB85C\uBC8C",
+    "Global plan": "\uAE00\uB85C\uBC8C \uC694\uAE08\uC81C",
+    "Greater China": "\uB300\uC911\uD654\uAD8C",
+    "Happy Users": "\uB9CC\uC871\uD55C \uC774\uC6A9\uC790",
+    "Have a redemption code? Enter it to add an eSIM plan or subscription to your account.": "\uAD50\uD658 \uCF54\uB4DC\uAC00 \uC788\uB098\uC694? \uCF54\uB4DC\uB97C \uC785\uB825\uD558\uBA74 eSIM \uC694\uAE08\uC81C\uB098 \uAD6C\uB3C5\uC744 \uACC4\uC815\uC5D0 \uCD94\uAC00\uD560 \uC218 \uC788\uC5B4\uC694.",
+    "Have a referral code from a creator? Enter it \u2014 your discount is applied to the order total at payment.": "\uD06C\uB9AC\uC5D0\uC774\uD130\uC5D0\uAC8C \uBC1B\uC740 \uCD94\uCC9C \uCF54\uB4DC\uAC00 \uC788\uB098\uC694? \uCF54\uB4DC\uB97C \uC785\uB825\uD558\uBA74 \uACB0\uC81C \uC2DC \uC8FC\uBB38 \uCD1D\uC561\uC5D0\uC11C \uD560\uC778\uC774 \uC801\uC6A9\uB3FC\uC694.",
+    Help: "\uB3C4\uC6C0\uB9D0",
+    "Help Center": "\uB3C4\uC6C0\uB9D0 \uC13C\uD130",
+    "Hide other plans": "\uB2E4\uB978 \uC694\uAE08\uC81C \uC228\uAE30\uAE30",
+    "High-speed 4G/5G data": "\uACE0\uC18D 4G/5G \uB370\uC774\uD130",
+    Home: "\uD648",
+    "Hong Kong": "\uD64D\uCF69",
+    "Hong Kong & Macao": "\uD64D\uCF69\xB7\uB9C8\uCE74\uC624",
+    "Hotspot sharing": "\uD56B\uC2A4\uD31F \uACF5\uC720",
+    "Hotspot supported": "\uD56B\uC2A4\uD31F \uC9C0\uC6D0",
+    "How eSIM works": "eSIM \uC791\uB3D9 \uBC29\uC2DD",
+    "How to install eSIM": "eSIM \uC124\uCE58 \uBC29\uBC95",
+    Indonesia: "\uC778\uB3C4\uB124\uC2DC\uC544",
+    "Install from Google Play, or download the APK directly if Play is unavailable on your device.": "Google Play\uC5D0\uC11C \uC124\uCE58\uD558\uAC70\uB098, \uAE30\uAE30\uC5D0\uC11C Play\uB97C \uC774\uC6A9\uD560 \uC218 \uC5C6\uB2E4\uBA74 APK\uB97C \uBC14\uB85C \uB2E4\uC6B4\uB85C\uB4DC\uD558\uC138\uC694.",
+    "Install in seconds via QR": "QR \uCF54\uB4DC\uB85C \uBA87 \uCD08 \uB9CC\uC5D0 \uC124\uCE58",
+    "Install this eSIM": "\uC774 eSIM \uC124\uCE58\uD558\uAE30",
+    "Install your eSIM": "eSIM \uC124\uCE58\uD558\uAE30",
+    "Instant QR delivery \xB7 Refundable before activation": "QR \uCF54\uB4DC \uC989\uC2DC \uBC1C\uAE09 \xB7 \uD65C\uC131\uD654 \uC804 \uD658\uBD88 \uAC00\uB2A5",
+    "Instant QR or eSIM profile delivery": "QR \uCF54\uB4DC \uB610\uB294 eSIM \uD504\uB85C\uD544 \uC989\uC2DC \uBC1C\uAE09",
+    "Instant delivery via eSIM": "eSIM\uC73C\uB85C \uC989\uC2DC \uBC1C\uAE09",
+    "Instant eSIM delivery": "eSIM \uC989\uC2DC \uBC1C\uAE09",
+    "Instant eSIM delivery after payment": "\uACB0\uC81C \uD6C4 eSIM \uC989\uC2DC \uBC1C\uAE09",
+    "Instant eSIM delivery with activation instructions included.": "\uD65C\uC131\uD654 \uC548\uB0B4\uC640 \uD568\uAED8 eSIM\uC744 \uC989\uC2DC \uBC1C\uAE09\uD574 \uB4DC\uB824\uC694.",
+    "Instant via QR": "QR \uCF54\uB4DC\uB85C \uC989\uC2DC \uBC1C\uAE09",
+    "Invalid email address": "\uC62C\uBC14\uB978 \uC774\uBA54\uC77C \uC8FC\uC18C\uB97C \uC785\uB825\uD574 \uC8FC\uC138\uC694",
+    "Is hotspot sharing supported?": "\uD56B\uC2A4\uD31F \uACF5\uC720\uAC00 \uC9C0\uC6D0\uB418\uB098\uC694?",
+    Italy: "\uC774\uD0C8\uB9AC\uC544",
+    "Item delivery": "\uC0C1\uD488 \uC81C\uACF5 \uBC29\uC2DD",
+    Itinerary: "\uC5EC\uC815",
+    Japan: "\uC77C\uBCF8",
+    "Japan & Korea": "\uC77C\uBCF8\xB7\uD55C\uAD6D",
+    "Keep a copy of any sensitive credentials in your own password manager or secure notes after claiming the order.": "\uC8FC\uBB38\uC744 \uC218\uB839\uD55C \uD6C4\uC5D0\uB294 \uBBFC\uAC10\uD55C \uC778\uC99D \uC815\uBCF4\uB97C \uBCF8\uC778\uC758 \uBE44\uBC00\uBC88\uD638 \uAD00\uB9AC\uC790\uB098 \uBCF4\uC548 \uBA54\uBAA8\uC5D0 \uBCC4\uB3C4\uB85C \uBCF4\uAD00\uD574 \uC8FC\uC138\uC694.",
+    "Keep it safe": "\uC548\uC804\uD558\uAC8C \uBCF4\uAD00\uD558\uC138\uC694",
+    "Keep status, delivery details, and activation notes visible after checkout.": "\uACB0\uC81C \uD6C4\uC5D0\uB3C4 \uC0C1\uD0DC, \uBC30\uC1A1 \uC815\uBCF4, \uD65C\uC131\uD654 \uC548\uB0B4\uB97C \uACC4\uC18D \uD655\uC778\uD560 \uC218 \uC788\uC5B4\uC694.",
+    "Keep your primary SIM in place": "\uAE30\uC874 SIM \uCE74\uB4DC\uB294 \uADF8\uB300\uB85C \uB450\uC138\uC694",
+    "LPA string": "LPA \uBB38\uC790\uC5F4",
+    Language: "\uC5B8\uC5B4",
+    "Last name": "\uC131",
+    "Learn the basics": "\uAE30\uBCF8 \uB0B4\uC6A9 \uC54C\uC544\uBCF4\uAE30",
+    "Loading profile...": "\uD504\uB85C\uD544 \uBD88\uB7EC\uC624\uB294 \uC911...",
+    "Loading\u2026": "\uBD88\uB7EC\uC624\uB294 \uC911\u2026",
+    Local: "\uB85C\uCEEC",
+    "Log In": "\uB85C\uADF8\uC778",
+    "Log Out": "\uB85C\uADF8\uC544\uC6C3",
+    Macao: "\uB9C8\uCE74\uC624",
+    "Mainland China": "\uC911\uAD6D \uBCF8\uD1A0",
+    Malaysia: "\uB9D0\uB808\uC774\uC2DC\uC544",
+    "Manage multiple eSIM profiles over Bluetooth": "Bluetooth\uB85C \uC5EC\uB7EC eSIM \uD504\uB85C\uD544 \uAD00\uB9AC",
+    "Manage your plan": "\uC694\uAE08\uC81C \uAD00\uB9AC",
+    Management: "\uAD00\uB9AC",
+    "Maps & chat": "\uC9C0\uB3C4 \uBC0F \uCC44\uD305",
+    "Matching ID": "\uB9E4\uCE6D ID",
+    Member: "\uBA64\uBC84",
+    "Member Since": "\uAC00\uC785\uC77C",
+    "Member since": "\uAC00\uC785\uC77C",
+    Menu: "\uBA54\uB274",
+    "Message could not be delivered. Please try again shortly.": "\uBA54\uC2DC\uC9C0\uB97C \uBCF4\uB0B4\uC9C0 \uBABB\uD588\uC5B4\uC694. \uC7A0\uC2DC \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD574 \uC8FC\uC138\uC694.",
+    "More days": "\uC77C\uC218 \uB298\uB9AC\uAE30",
+    "Most plans start on first connection. Plans that start at purchase or install say so explicitly, and the planner counts pre-trip time for them.": "\uB300\uBD80\uBD84\uC758 \uC694\uAE08\uC81C\uB294 \uCCAB \uC5F0\uACB0 \uC2DC\uC810\uC5D0 \uC720\uD6A8\uAE30\uAC04\uC774 \uC2DC\uC791\uB3FC\uC694. \uAD6C\uB9E4\uB098 \uC124\uCE58 \uC2DC\uC810\uC5D0 \uC2DC\uC791\uB418\uB294 \uC694\uAE08\uC81C\uB294 \uB530\uB85C \uC548\uB0B4\uB418\uBA70, \uC774\uB7F0 \uC694\uAE08\uC81C\uB294 \uD50C\uB798\uB108\uAC00 \uCD9C\uBC1C \uC804 \uC2DC\uAC04\uB3C4 \uACC4\uC0B0\uC5D0 \uD3EC\uD568\uD574\uC694.",
+    "Move down": "\uC544\uB798\uB85C \uC774\uB3D9",
+    "Move up": "\uC704\uB85C \uC774\uB3D9",
+    "Multi-country": "\uB2E4\uAD6D\uAC00",
+    "Multiple countries, one purchase, a simpler trip. Pick your route and we verify which single eSIM covers all of it.": "\uC5EC\uB7EC \uAD6D\uAC00\uB3C4 \uD55C \uBC88\uC758 \uAD6C\uB9E4\uB85C \uB354 \uAC04\uD3B8\uD55C \uC5EC\uD589\uC774 \uB3FC\uC694. \uB8E8\uD2B8\uB97C \uACE0\uB974\uBA74 \uC804\uCCB4\uB97C \uCEE4\uBC84\uD558\uB294 \uB2E8\uC77C eSIM\uC774 \uBB34\uC5C7\uC778\uC9C0 \uD655\uC778\uD574 \uB4DC\uB824\uC694.",
+    "My Account": "\uB0B4 \uACC4\uC815",
+    "My Addresses": "\uB0B4 \uC8FC\uC18C",
+    "My Trips": "\uB0B4 \uC5EC\uD589",
+    "My eSIMs": "\uB0B4 eSIM",
+    Name: "\uC774\uB984",
+    "Need Help?": "\uB3C4\uC6C0\uC774 \uD544\uC694\uD55C\uAC00\uC694?",
+    "Needed once per phone \u2014 the package is already on the eSIM and activates right after install.": "\uC124\uCE58\uB294 \uD734\uB300\uD3F0\uB2F9 \uD55C \uBC88\uC774\uBA74 \uB3FC\uC694. \uD328\uD0A4\uC9C0\uB294 \uC774\uBBF8 eSIM\uC5D0 \uB2F4\uACA8 \uC788\uC5B4 \uC124\uCE58 \uC9C1\uD6C4 \uBC14\uB85C \uD65C\uC131\uD654\uB3FC\uC694.",
+    Network: "\uB124\uD2B8\uC6CC\uD06C",
+    "New eSIM (new QR code)": "\uC0C8 eSIM (\uC0C8 QR \uCF54\uB4DC)",
+    Newest: "\uCD5C\uC2E0\uC21C",
+    Next: "\uB2E4\uC74C",
+    "No destination found. Clear the search to browse all.": "\uBAA9\uC801\uC9C0\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC5B4\uC694. \uAC80\uC0C9\uC5B4\uB97C \uC9C0\uC6B0\uBA74 \uC804\uCCB4\uB97C \uBCFC \uC218 \uC788\uC5B4\uC694.",
+    "No matching plan yet": "\uC544\uC9C1 \uC77C\uCE58\uD558\uB294 \uC694\uAE08\uC81C\uAC00 \uC5C6\uC5B4\uC694",
+    "No physical SIM swap": "\uBB3C\uB9AC\uC801 SIM \uCE74\uB4DC \uAD50\uCCB4 \uBD88\uD544\uC694",
+    "No plans matched the current search.": "\uD604\uC7AC \uAC80\uC0C9\uC5D0 \uC77C\uCE58\uD558\uB294 \uC694\uAE08\uC81C\uAC00 \uC5C6\uC5B4\uC694.",
+    "No plans yet": "\uC544\uC9C1 \uC694\uAE08\uC81C\uAC00 \uC5C6\uC5B4\uC694",
+    "No roaming charges": "\uB85C\uBC0D \uC694\uAE08 \uC5C6\uC74C",
+    "No saved addresses yet.": "\uC544\uC9C1 \uC800\uC7A5\uB41C \uC8FC\uC18C\uAC00 \uC5C6\uC5B4\uC694.",
+    "No shipping required": "\uBC30\uC1A1 \uBD88\uD544\uC694",
+    "No single plan covers the trip": "\uC5EC\uD589 \uC804\uCCB4\uB97C \uCEE4\uBC84\uD558\uB294 \uB2E8\uC77C \uC694\uAE08\uC81C\uAC00 \uC5C6\uC5B4\uC694",
+    "No stops yet \u2014 add your first destination.": "\uC544\uC9C1 \uACBD\uC720\uC9C0\uAC00 \uC5C6\uC5B4\uC694. \uCCAB \uBAA9\uC801\uC9C0\uB97C \uCD94\uAC00\uD574 \uBCF4\uC138\uC694.",
+    "No travel orders yet.": "\uC544\uC9C1 \uC5EC\uD589 \uC8FC\uBB38\uC774 \uC5C6\uC5B4\uC694.",
+    "Not set": "\uBBF8\uC124\uC815",
+    Notes: "\uBA54\uBAA8",
+    "Official BOKMOO product": "BOKMOO \uACF5\uC2DD \uC81C\uD488",
+    "On first connection": "\uCCAB \uC5F0\uACB0 \uC2DC",
+    "One code, seamless roaming": "\uCF54\uB4DC \uD558\uB098\uB85C \uB04A\uAE40 \uC5C6\uB294 \uB85C\uBC0D",
+    "One trip,": "\uC5EC\uD589 \uD558\uB098,",
+    "One-tap install (Android)": "\uC6D0\uD0ED \uC124\uCE58 (Android)",
+    Open: "\uC5F4\uAE30",
+    "Open menu": "\uBA54\uB274 \uC5F4\uAE30",
+    "Open order": "\uC8FC\uBB38 \uBCF4\uAE30",
+    Order: "\uC8FC\uBB38",
+    "Order History": "\uC8FC\uBB38 \uB0B4\uC5ED",
+    "Order Summary": "\uC8FC\uBB38 \uC694\uC57D",
+    "Order archive": "\uC9C0\uB09C \uC8FC\uBB38",
+    "Order not found": "\uC8FC\uBB38\uC744 \uCC3E\uC744 \uC218 \uC5C6\uC5B4\uC694",
+    "Order reference": "\uC8FC\uBB38 \uBC88\uD638",
+    "Order total": "\uC8FC\uBB38 \uCD1D\uC561",
+    Orders: "\uC8FC\uBB38",
+    "Our mission is to make connectivity simple, affordable, and reliable anywhere in the world.": "\uC5B4\uB514\uC5D0\uC11C\uB098 \uC5F0\uACB0\uC744 \uAC04\uD3B8\uD558\uACE0 \uD569\uB9AC\uC801\uC774\uBA70 \uC548\uC815\uC801\uC73C\uB85C \uB9CC\uB4DC\uB294 \uAC83\uC774 \uC800\uD76C\uC758 \uBBF8\uC158\uC774\uC5D0\uC694.",
+    "Our support team is here for you.": "\uACE0\uAC1D \uC9C0\uC6D0\uD300\uC774 \uC5B8\uC81C\uB098 \uACC1\uC5D0 \uC788\uC5B4\uC694.",
+    Page: "\uD398\uC774\uC9C0",
+    Paid: "\uACB0\uC81C \uC644\uB8CC",
+    Payment: "\uACB0\uC81C",
+    "Payment Method": "\uACB0\uC81C \uC218\uB2E8",
+    "Payment pending": "\uACB0\uC81C \uB300\uAE30 \uC911",
+    "Payment successful!": "\uACB0\uC81C\uAC00 \uC644\uB8CC\uB418\uC5C8\uC5B4\uC694!",
+    Pending: "\uB300\uAE30 \uC911",
+    "Pending payment": "\uACB0\uC81C \uB300\uAE30",
+    "Per plan terms": "\uC694\uAE08\uC81C \uC57D\uAD00\uC5D0 \uB530\uB984",
+    Philippines: "\uD544\uB9AC\uD540",
+    Phone: "\uC804\uD654\uBC88\uD638",
+    "Phone Number": "\uC804\uD654\uBC88\uD638",
+    "Phone number": "\uC804\uD654\uBC88\uD638",
+    "Phone number is required": "\uC804\uD654\uBC88\uD638\uB97C \uC785\uB825\uD574 \uC8FC\uC138\uC694",
+    "Physical Bluetooth card \u2014 manage multiple eSIM profiles with the BOKMOO app": "Bluetooth \uC2E4\uBB3C \uCE74\uB4DC \u2014 BOKMOO \uC571\uC73C\uB85C \uC5EC\uB7EC eSIM \uD504\uB85C\uD544\uC744 \uAD00\uB9AC\uD558\uC138\uC694",
+    "Physical card": "\uC2E4\uBB3C \uCE74\uB4DC",
+    "Physical card \u2014 works with the BOKMOO app": "\uC2E4\uBB3C \uCE74\uB4DC \u2014 BOKMOO \uC571\uACFC \uD568\uAED8 \uC0AC\uC6A9\uD560 \uC218 \uC788\uC5B4\uC694",
+    "Physical eSIM card": "eSIM \uC2E4\uBB3C \uCE74\uB4DC",
+    "Pick where you are going and for how long \u2014 we check which single eSIM covers the whole trip.": "\uC5EC\uD589\uC9C0\uC640 \uAE30\uAC04\uB9CC \uC815\uD558\uBA74 \uC804\uCCB4 \uC5EC\uD589\uC744 \uCEE4\uBC84\uD558\uB294 \uB2E8\uC77C eSIM\uC744 \uD655\uC778\uD574 \uB4DC\uB824\uC694.",
+    Placed: "\uC8FC\uBB38 \uC811\uC218",
+    "Plan collection": "\uC694\uAE08\uC81C \uBAA8\uC74C",
+    "Plan not found": "\uC694\uAE08\uC81C\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC5B4\uC694",
+    "Plan validity is shorter than the trip span.": "\uC694\uAE08\uC81C\uC758 \uC720\uD6A8\uAE30\uAC04\uC774 \uC5EC\uD589 \uAE30\uAC04\uBCF4\uB2E4 \uC9E7\uC544\uC694.",
+    "Plans are temporarily unavailable for quoting.": "\uC77C\uC2DC\uC801\uC73C\uB85C \uC694\uAE08\uC81C \uACAC\uC801\uC744 \uC81C\uACF5\uD560 \uC218 \uC5C6\uC5B4\uC694.",
+    "Plans are unavailable right now.": "\uD604\uC7AC \uC694\uAE08\uC81C\uB97C \uBD88\uB7EC\uC62C \uC218 \uC5C6\uC5B4\uC694.",
+    "Plans confirm hotspot support explicitly; require it in Usage settings and the planner only recommends plans that confirm it.": "\uC694\uAE08\uC81C\uB9C8\uB2E4 \uD56B\uC2A4\uD31F \uC9C0\uC6D0 \uC5EC\uBD80\uAC00 \uBA85\uC2DC\uB418\uC5B4 \uC788\uC5B4\uC694. \uC0AC\uC6A9 \uC124\uC815\uC5D0\uC11C \uD56B\uC2A4\uD31F \uACF5\uC720\uB97C \uD544\uC218\uB85C \uC9C0\uC815\uD558\uBA74 \uD50C\uB798\uB108\uAC00 \uC774\uB97C \uC9C0\uC6D0\uD55C\uB2E4\uACE0 \uBA85\uC2DC\uD55C \uC694\uAE08\uC81C\uB9CC \uCD94\uCC9C\uD574\uC694.",
+    "Plans unused before activation are refundable per the plan terms shown before checkout.": "\uD65C\uC131\uD654\uD558\uAE30 \uC804 \uC0AC\uC6A9\uD558\uC9C0 \uC54A\uC740 \uC694\uAE08\uC81C\uB294 \uACB0\uC81C \uC804\uC5D0 \uC548\uB0B4\uB41C \uC694\uAE08\uC81C \uC57D\uAD00\uC5D0 \uB530\uB77C \uD658\uBD88\uBC1B\uC744 \uC218 \uC788\uC5B4\uC694.",
+    "Plans you buy are added to these profiles \u2014 no new QR code, no reinstall.": "\uAD6C\uB9E4\uD55C \uC694\uAE08\uC81C\uB294 \uC774 \uD504\uB85C\uD544\uC5D0 \uCD94\uAC00\uB3FC\uC694. \uC0C8 QR \uCF54\uB4DC\uB3C4, \uC7AC\uC124\uCE58\uB3C4 \uD544\uC694 \uC5C6\uC5B4\uC694.",
+    "Please log in to check your BOKMOO account": "BOKMOO \uACC4\uC815\uC744 \uD655\uC778\uD558\uB824\uBA74 \uB85C\uADF8\uC778\uD574 \uC8FC\uC138\uC694",
+    Popular: "\uC778\uAE30",
+    "Popular Topics": "\uC778\uAE30 \uC8FC\uC81C",
+    "Popular destinations": "\uC778\uAE30 \uBAA9\uC801\uC9C0",
+    "Postal code": "\uC6B0\uD3B8\uBC88\uD638",
+    "Postal code is required": "\uC6B0\uD3B8\uBC88\uD638\uB97C \uC785\uB825\uD574 \uC8FC\uC138\uC694",
+    "Premium club experiences around the world.": "\uC804 \uC138\uACC4 \uD504\uB9AC\uBBF8\uC5C4 \uD074\uB7FD \uACBD\uD5D8\uC744 \uB9CC\uB098 \uBCF4\uC138\uC694.",
+    "Preparing your eSIM\u2026": "eSIM\uC744 \uC900\uBE44\uD558\uACE0 \uC788\uC5B4\uC694\u2026",
+    Previous: "\uC774\uC804",
+    Price: "\uAC00\uACA9",
+    "Priority local network": "\uC6B0\uC120\uC21C\uC704 \uB85C\uCEEC \uB124\uD2B8\uC6CC\uD06C",
+    Privacy: "\uAC1C\uC778\uC815\uBCF4",
+    "Privacy Policy": "\uAC1C\uC778\uC815\uBCF4 \uCC98\uB9AC\uBC29\uCE68",
+    Processing: "\uCC98\uB9AC \uC911",
+    "Processing\u2026": "\uCC98\uB9AC \uC911\u2026",
+    Products: "\uC0C1\uD488",
+    "Promo / referral code": "\uD504\uB85C\uBAA8 / \uCD94\uCC9C \uCF54\uB4DC",
+    "Provisioned automatically \u2014 your install details are shown above.": "\uC790\uB3D9\uC73C\uB85C \uAC1C\uD1B5\uB418\uC5C8\uC5B4\uC694. \uC124\uCE58 \uC815\uBCF4\uB294 \uC704\uC5D0 \uD45C\uC2DC\uB418\uC5B4 \uC788\uC5B4\uC694.",
+    Provisioning: "\uAC1C\uD1B5",
+    "Provisioning failed \u2014 our support team has been notified and will follow up.": "\uAC1C\uD1B5\uC5D0 \uC2E4\uD328\uD588\uC5B4\uC694. \uACE0\uAC1D \uC9C0\uC6D0\uD300\uC5D0 \uC54C\uB9BC\uC774 \uC804\uB2EC\uB418\uC5C8\uC73C\uBA70, \uACE7 \uC5F0\uB77D\uB4DC\uB9B4\uAC8C\uC694.",
+    "Provisioning in progress \u2014 this page updates when the package is ready.": "\uAC1C\uD1B5\uC744 \uC9C4\uD589\uD558\uACE0 \uC788\uC5B4\uC694. \uD328\uD0A4\uC9C0\uAC00 \uC900\uBE44\uB418\uBA74 \uC774 \uD398\uC774\uC9C0\uAC00 \uC790\uB3D9\uC73C\uB85C \uC5C5\uB370\uC774\uD2B8\uB3FC\uC694.",
+    "Provisioning needs attention": "\uAC1C\uD1B5 \uD655\uC778 \uD544\uC694",
+    "QR payload ready": "QR \uCF54\uB4DC \uB370\uC774\uD130 \uC900\uBE44 \uC644\uB8CC",
+    Qty: "\uC218\uB7C9",
+    Quantity: "\uC218\uB7C9",
+    "Questions, answered": "\uC9C8\uBB38\uACFC \uB2F5\uBCC0",
+    "Quick Facts": "\uD575\uC2EC \uC815\uBCF4",
+    "Ready to install": "\uC124\uCE58 \uC900\uBE44 \uC644\uB8CC",
+    Redeem: "\uAD50\uD658",
+    "Redeem a Code": "\uCF54\uB4DC \uAD50\uD658",
+    "Redeeming\u2026": "\uAD50\uD658\uD558\uB294 \uC911\u2026",
+    "Redemption failed. Please try again later.": "\uAD50\uD658\uC5D0 \uC2E4\uD328\uD588\uC5B4\uC694. \uC7A0\uC2DC \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD574 \uC8FC\uC138\uC694.",
+    "Redemption is temporarily unavailable. Please try again later.": "\uC77C\uC2DC\uC801\uC73C\uB85C \uCF54\uB4DC \uAD50\uD658\uC744 \uC774\uC6A9\uD560 \uC218 \uC5C6\uC5B4\uC694. \uC7A0\uC2DC \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD574 \uC8FC\uC138\uC694.",
+    "Refresh status": "\uC0C1\uD0DC \uC0C8\uB85C\uACE0\uCE68",
+    Refunded: "\uD658\uBD88\uB428",
+    Regional: "\uC9C0\uC5ED",
+    Remove: "\uC81C\uAC70",
+    "Remove stop": "\uACBD\uC720\uC9C0 \uC81C\uAC70",
+    "Reorder stop": "\uACBD\uC720\uC9C0 \uC21C\uC11C \uBCC0\uACBD",
+    "Replace destination": "\uBAA9\uC801\uC9C0 \uBCC0\uACBD",
+    "Replace this stop": "\uC774 \uACBD\uC720\uC9C0 \uBCC0\uACBD",
+    "Required hotspot sharing is not confirmed on current plans.": "\uD604\uC7AC \uC694\uAE08\uC81C \uC911 \uD544\uC218 \uD56B\uC2A4\uD31F \uACF5\uC720 \uC9C0\uC6D0\uC774 \uD655\uC778\uB41C \uC694\uAE08\uC81C\uAC00 \uC5C6\uC5B4\uC694.",
+    "Requires iOS 15 or later. Activates BOKMOO cards over Bluetooth.": "iOS 15 \uC774\uC0C1\uC774 \uD544\uC694\uD574\uC694. Bluetooth\uB85C BOKMOO \uCE74\uB4DC\uB97C \uD65C\uC131\uD654\uD574\uC694.",
+    Retry: "\uB2E4\uC2DC \uC2DC\uB3C4",
+    "Reusing your eSIM avoids a new QR code \u2014 the plan is added to the profile you already installed.": "\uAE30\uC874 eSIM\uC744 \uC7AC\uC0AC\uC6A9\uD558\uBA74 \uC0C8 QR \uCF54\uB4DC\uAC00 \uD544\uC694 \uC5C6\uC5B4\uC694. \uC694\uAE08\uC81C\uB294 \uC774\uBBF8 \uC124\uCE58\uD55C \uD504\uB85C\uD544\uC5D0 \uCD94\uAC00\uB3FC\uC694.",
+    "Review destinations": "\uBAA9\uC801\uC9C0 \uD655\uC778",
+    "Review your selected plans.": "\uC120\uD0DD\uD55C \uC694\uAE08\uC81C\uB97C \uD655\uC778\uD574 \uC8FC\uC138\uC694.",
+    "Route Planner": "\uB8E8\uD2B8 \uD50C\uB798\uB108",
+    "Route planner": "\uB8E8\uD2B8 \uD50C\uB798\uB108",
+    "SM-DP+ address": "SM-DP+ \uC8FC\uC18C",
+    "Save address": "\uC8FC\uC18C \uC800\uC7A5",
+    "Saved addresses": "\uC800\uC7A5\uB41C \uC8FC\uC18C",
+    "Saved shipping addresses for checkout": "\uACB0\uC81C \uC2DC \uC0AC\uC6A9\uD560 \uBC30\uC1A1 \uC8FC\uC18C \uBAA9\uB85D",
+    "Scan or install manually": "\uC2A4\uCE94 \uB610\uB294 \uC218\uB3D9 \uC124\uCE58",
+    "Scan with Android": "Android\uB85C \uC2A4\uCE94",
+    "Scan with iPhone": "iPhone\uC73C\uB85C \uC2A4\uCE94",
+    "Search country, region or city (e.g. Tokyo)": "\uAD6D\uAC00, \uC9C0\uC5ED \uB610\uB294 \uB3C4\uC2DC \uAC80\uC0C9 (\uC608: \uB3C4\uCFC4)",
+    "Search destinations or bundles...": "\uBAA9\uC801\uC9C0 \uB610\uB294 \uBC88\uB4E4 \uAC80\uC0C9...",
+    "Search for help...": "\uB3C4\uC6C0\uB9D0 \uAC80\uC0C9...",
+    "Secure Checkout": "\uC548\uC804\uD55C \uACB0\uC81C",
+    "See plan": "\uC694\uAE08\uC81C \uBCF4\uAE30",
+    "Select all": "\uC804\uCCB4 \uC120\uD0DD",
+    "Selected items": "\uC120\uD0DD\uD55C \uC0C1\uD488",
+    Send: "\uBCF4\uB0B4\uAE30",
+    "Set default": "\uAE30\uBCF8\uC73C\uB85C \uC124\uC815",
+    "Set up and switch profiles in the BOKMOO app": "BOKMOO \uC571\uC5D0\uC11C \uD504\uB85C\uD544\uC744 \uC124\uC815\uD558\uACE0 \uC804\uD658\uD574 \uBCF4\uC138\uC694",
+    Settings: "\uC124\uC815",
+    Setup: "\uC124\uC815 \uBC29\uBC95",
+    Shipped: "\uBC30\uC1A1 \uC911",
+    Shipping: "\uBC30\uC1A1",
+    "Shipping needs attention": "\uBC30\uC1A1 \uD655\uC778 \uD544\uC694",
+    "Shopping Cart": "\uC7A5\uBC14\uAD6C\uB2C8",
+    "Sign In": "\uB85C\uADF8\uC778",
+    "Sign In / Manage My Cards": "\uB85C\uADF8\uC778 / \uB0B4 \uCE74\uB4DC \uAD00\uB9AC",
+    "Sign in to view your profile": "\uD504\uB85C\uD544\uC744 \uBCF4\uB824\uBA74 \uB85C\uADF8\uC778\uD574 \uC8FC\uC138\uC694",
+    Singapore: "\uC2F1\uAC00\uD3EC\uB974",
+    "Smart multi-country top-ups": "\uC2A4\uB9C8\uD2B8 \uB2E4\uAD6D\uAC00 \uCDA9\uC804",
+    "South Korea": "\uD55C\uAD6D",
+    "Southeast Asia": "\uB3D9\uB0A8\uC544\uC2DC\uC544",
+    Spain: "\uC2A4\uD398\uC778",
+    "State / Province": "\uC8FC/\uB3C4",
+    "State is required": "\uC8FC/\uB3C4\uB97C \uC785\uB825\uD574 \uC8FC\uC138\uC694",
+    "Stay connected in major cities and more": "\uC8FC\uC694 \uB3C4\uC2DC\uB97C \uBE44\uB86F\uD55C \uB2E4\uC591\uD55C \uC9C0\uC5ED\uC5D0\uC11C \uC5F0\uACB0\uC744 \uC720\uC9C0\uD574 \uBCF4\uC138\uC694",
+    "Step-by-step guide": "\uB2E8\uACC4\uBCC4 \uC548\uB0B4",
+    Store: "\uC2A4\uD1A0\uC5B4",
+    Subtotal: "\uC18C\uACC4",
+    Summary: "\uC694\uC57D",
+    Support: "\uACE0\uAC1D \uC9C0\uC6D0",
+    "Support:": "\uACE0\uAC1D \uC9C0\uC6D0:",
+    "Supported devices": "\uC9C0\uC6D0 \uAE30\uAE30",
+    TBC: "\uCD94\uD6C4 \uC548\uB0B4",
+    Taiwan: "\uB300\uB9CC",
+    Tax: "\uC138\uAE08",
+    Terms: "\uC57D\uAD00",
+    "Terms of Service": "\uC11C\uBE44\uC2A4 \uC774\uC6A9\uC57D\uAD00",
+    Thailand: "\uD0DC\uAD6D",
+    "The product tied to this code is currently unavailable. Please contact support.": "\uC774 \uCF54\uB4DC\uC5D0 \uC5F0\uACB0\uB41C \uC0C1\uD488\uC740 \uD604\uC7AC \uC774\uC6A9\uD560 \uC218 \uC5C6\uC5B4\uC694. \uACE0\uAC1D \uC9C0\uC6D0\uC5D0 \uBB38\uC758\uD574 \uC8FC\uC138\uC694.",
+    "This code has already been redeemed.": "\uC774\uBBF8 \uAD50\uD658\uB41C \uCF54\uB4DC\uC608\uC694.",
+    "This code has reached its redemption limit.": "\uC774 \uCF54\uB4DC\uB294 \uAD50\uD658 \uAC00\uB2A5 \uD69F\uC218\uAC00 \uBAA8\uB450 \uC18C\uC9C4\uB418\uC5C8\uC5B4\uC694.",
+    "This code is assigned to a different account.": "\uC774 \uCF54\uB4DC\uB294 \uB2E4\uB978 \uACC4\uC815\uC5D0 \uD560\uB2F9\uB418\uC5B4 \uC788\uC5B4\uC694.",
+    "This code is invalid or expired. Please double-check and try again.": "\uC720\uD6A8\uD558\uC9C0 \uC54A\uAC70\uB098 \uB9CC\uB8CC\uB41C \uCF54\uB4DC\uC608\uC694. \uB2E4\uC2DC \uD655\uC778\uD55C \uD6C4 \uC2DC\uB3C4\uD574 \uC8FC\uC138\uC694.",
+    "This install code has expired \u2014 contact support to reissue it.": "\uC774 \uC124\uCE58 \uCF54\uB4DC\uB294 \uB9CC\uB8CC\uB418\uC5C8\uC5B4\uC694. \uC7AC\uBC1C\uAE09\uC744 \uC704\uD574 \uACE0\uAC1D \uC9C0\uC6D0\uC5D0 \uBB38\uC758\uD574 \uC8FC\uC138\uC694.",
+    "This order is still waiting for fulfillment details. Refresh later or reopen it from the order archive.": "\uC774 \uC8FC\uBB38\uC740 \uC544\uC9C1 \uC900\uBE44 \uC815\uBCF4\uAC00 \uB4F1\uB85D\uB418\uC9C0 \uC54A\uC558\uC5B4\uC694. \uC7A0\uC2DC \uD6C4 \uC0C8\uB85C\uACE0\uCE68\uD558\uAC70\uB098 \uC9C0\uB09C \uC8FC\uBB38\uC5D0\uC11C \uB2E4\uC2DC \uC5F4\uC5B4 \uC8FC\uC138\uC694.",
+    "This plan does not confirm hotspot sharing.": "\uC774 \uC694\uAE08\uC81C\uB294 \uD56B\uC2A4\uD31F \uACF5\uC720 \uC9C0\uC6D0\uC774 \uD655\uC778\uB418\uC9C0 \uC54A\uC558\uC5B4\uC694.",
+    Timezone: "\uC2DC\uAC04\uB300",
+    "Top up & Data plans": "\uCDA9\uC804 \uBC0F \uB370\uC774\uD130 \uC694\uAE08\uC81C",
+    Total: "\uD569\uACC4",
+    "Track package": "\uBC30\uC1A1 \uC870\uD68C",
+    "Track your order": "\uC8FC\uBB38 \uBC30\uC1A1 \uC870\uD68C",
+    "Travel Cart": "\uC5EC\uD589 \uC7A5\uBC14\uAD6C\uB2C8",
+    "Travel Credits": "\uD2B8\uB798\uBE14 \uD06C\uB808\uB527",
+    "Travel bundle": "\uC5EC\uD589 \uBC88\uB4E4",
+    "Trip changed or running low mid-journey? Add a data pack without reinstalling.": "\uC5EC\uD589 \uC77C\uC815\uC774 \uBC14\uB00C\uC5C8\uAC70\uB098 \uB3C4\uC911\uC5D0 \uB370\uC774\uD130\uAC00 \uBD80\uC871\uD55C\uAC00\uC694? \uB2E4\uC2DC \uC124\uCE58\uD558\uC9C0 \uC54A\uACE0\uB3C4 \uB370\uC774\uD130 \uD329\uC744 \uCD94\uAC00\uD560 \uC218 \uC788\uC5B4\uC694.",
+    "Try Again": "\uB2E4\uC2DC \uC2DC\uB3C4",
+    "Try the example trip": "\uC608\uC2DC \uC5EC\uD589 \uC801\uC6A9\uD574 \uBCF4\uAE30",
+    Type: "\uC720\uD615",
+    "Type your message\u2026": "\uBA54\uC2DC\uC9C0 \uC785\uB825\u2026",
+    "Typing\u2026": "\uC785\uB825 \uC911\u2026",
+    "Unable to load orders.": "\uC8FC\uBB38\uC744 \uBD88\uB7EC\uC62C \uC218 \uC5C6\uC5B4\uC694.",
+    "United Arab Emirates": "\uC544\uB78D\uC5D0\uBBF8\uB9AC\uD2B8",
+    "United Kingdom": "\uC601\uAD6D",
+    "United States": "\uBBF8\uAD6D",
+    Unlimited: "\uBB34\uC81C\uD55C",
+    "Unlocked iPhone and Android devices with eSIM support": "eSIM\uC744 \uC9C0\uC6D0\uD558\uB294 \uC790\uAE09\uC81C iPhone \uBC0F Android \uAE30\uAE30",
+    "Upcoming Trips": "\uC608\uC815\uB41C \uC5EC\uD589",
+    Uptime: "\uAC00\uB3D9 \uC2DC\uAC04",
+    Usage: "\uC0AC\uC6A9",
+    "Usage mode": "\uC0AC\uC6A9 \uBAA8\uB4DC",
+    "Use my existing eSIM": "\uAE30\uC874 eSIM \uC0AC\uC6A9\uD558\uAE30",
+    Validity: "\uC720\uD6A8\uAE30\uAC04",
+    "Validity covers the whole trip": "\uC720\uD6A8\uAE30\uAC04\uC774 \uC5EC\uD589 \uC804\uCCB4\uB97C \uCEE4\uBC84\uD574\uC694",
+    "Validity to be confirmed": "\uC720\uD6A8\uAE30\uAC04 \uCD94\uD6C4 \uC548\uB0B4",
+    "Video meetings": "\uD654\uC0C1 \uD68C\uC758",
+    Vietnam: "\uBCA0\uD2B8\uB0A8",
+    "View Details": "\uC0C1\uC138 \uBCF4\uAE30",
+    "View and manage your orders": "\uC8FC\uBB38\uC744 \uD655\uC778\uD558\uACE0 \uAD00\uB9AC\uD574 \uBCF4\uC138\uC694",
+    "View coverage & plans": "\uCEE4\uBC84\uB9AC\uC9C0 \uBC0F \uC694\uAE08\uC81C \uBCF4\uAE30",
+    "View eSIM details": "eSIM \uC0C1\uC138 \uBCF4\uAE30",
+    "Visit Help Center": "\uB3C4\uC6C0\uB9D0 \uC13C\uD130 \uBC14\uB85C\uAC00\uAE30",
+    "We could not prepare your install session yet.": "\uC544\uC9C1 \uC124\uCE58 \uC138\uC158\uC744 \uC900\uBE44\uD558\uC9C0 \uBABB\uD588\uC5B4\uC694.",
+    "We could not prepare your shipment yet.": "\uC544\uC9C1 \uBC30\uC1A1 \uC900\uBE44\uB97C \uD558\uC9C0 \uBABB\uD588\uC5B4\uC694.",
+    "What if I never activate the eSIM?": "eSIM\uC744 \uD65C\uC131\uD654\uD558\uC9C0 \uC54A\uC73C\uBA74 \uC5B4\uB5BB\uAC8C \uB418\uB098\uC694?",
+    "When does validity start counting?": "\uC720\uD6A8\uAE30\uAC04\uC740 \uC5B8\uC81C\uBD80\uD130 \uACC4\uC0B0\uB418\uB098\uC694?",
+    "Why Bokmoo eSIM": "Bokmoo eSIM\uC744 \uC120\uD0DD\uD558\uB294 \uC774\uC720",
+    "Works with the BOKMOO app": "BOKMOO \uC571\uC5D0\uC11C \uC0AC\uC6A9\uD560 \uC218 \uC788\uC5B4\uC694",
+    "Yes. Your existing order stays valid; the planner re-checks coverage and tells you exactly which new stop needs its own plan.": "\uB124, \uAC00\uB2A5\uD574\uC694. \uAE30\uC874 \uC8FC\uBB38\uC740 \uADF8\uB300\uB85C \uC720\uD6A8\uD558\uBA70, \uD50C\uB798\uB108\uAC00 \uCEE4\uBC84\uB9AC\uC9C0\uB97C \uB2E4\uC2DC \uD655\uC778\uD574 \uC0C8\uB85C \uCD94\uAC00\uD55C \uACBD\uC720\uC9C0 \uC911 \uC5B4\uB5A4 \uACF3\uC5D0 \uBCC4\uB3C4 \uC694\uAE08\uC81C\uAC00 \uD544\uC694\uD55C\uC9C0 \uC815\uD655\uD788 \uC54C\uB824 \uB4DC\uB824\uC694.",
+    "Your BOKMOO card, in your pocket.": "\uC8FC\uBA38\uB2C8 \uC18D BOKMOO \uCE74\uB4DC.",
+    "Your activation session expired before installation completed.": "\uC124\uCE58\uB97C \uC644\uB8CC\uD558\uAE30 \uC804\uC5D0 \uD65C\uC131\uD654 \uC138\uC158\uC774 \uB9CC\uB8CC\uB418\uC5C8\uC5B4\uC694.",
+    "Your booked experiences": "\uC608\uC57D\uD55C \uCCB4\uD5D8",
+    "Your card is being prepared for shipment": "\uCE74\uB4DC \uBC30\uC1A1 \uC900\uBE44 \uC911\uC774\uC5D0\uC694",
+    "Your carrier and tracking updates appear here after dispatch.": "\uD0DD\uBC30\uC0AC\uC640 \uBC30\uC1A1 \uCD94\uC801 \uC815\uBCF4\uB294 \uBC1C\uC1A1 \uD6C4 \uC5EC\uAE30\uC5D0 \uD45C\uC2DC\uB3FC\uC694.",
+    "Your cart is empty.": "\uC7A5\uBC14\uAD6C\uB2C8\uAC00 \uBE44\uC5B4 \uC788\uC5B4\uC694.",
+    "Your eSIM is ready to install.": "eSIM\uC744 \uC124\uCE58\uD560 \uC900\uBE44\uAC00 \uB418\uC5C8\uC5B4\uC694.",
+    "Your order is paid. We are packing your Bokmoo Card now \u2014 you will get a shipping confirmation with tracking, and it should arrive within a few business days.": "\uC8FC\uBB38 \uACB0\uC81C\uAC00 \uC644\uB8CC\uB418\uC5C8\uC5B4\uC694. \uC9C0\uAE08 Bokmoo \uCE74\uB4DC\uB97C \uD3EC\uC7A5\uD558\uACE0 \uC788\uC5B4\uC694. \uCD94\uC801 \uC815\uBCF4\uAC00 \uB2F4\uAE34 \uBC30\uC1A1 \uC548\uB0B4 \uBA54\uC77C\uC744 \uBCF4\uB0B4 \uB4DC\uB9AC\uBA70, \uC601\uC5C5\uC77C \uAE30\uC900 \uBA70\uCE60 \uB0B4\uC5D0 \uBC1B\uC544\uBCFC \uC218 \uC788\uC5B4\uC694.",
+    "Your order is paid. We are preparing the install session now.": "\uC8FC\uBB38 \uACB0\uC81C\uAC00 \uC644\uB8CC\uB418\uC5C8\uC5B4\uC694. \uC9C0\uAE08 \uC124\uCE58 \uC138\uC158\uC744 \uC900\uBE44\uD558\uACE0 \uC788\uC5B4\uC694.",
+    "Your package has been added to your eSIM.": "\uD328\uD0A4\uC9C0\uAC00 eSIM\uC5D0 \uCD94\uAC00\uB418\uC5C8\uC5B4\uC694.",
+    d: "\uC77C",
+    "daily average": "\uC77C\uC77C \uD3C9\uADE0",
+    "data included": "\uD3EC\uD568 \uB370\uC774\uD130",
+    "day(s)": "\uC77C",
+    days: "\uC77C",
+    destinations: "\uBAA9\uC801\uC9C0",
+    "e.g. BOKMOO10": "\uC608: BOKMOO10",
+    "e.g. ESIM-JP-7D": "\uC608: ESIM-JP-7D",
+    eSIM: "eSIM",
+    "eSIM ICCID": "eSIM ICCID",
+    "eSIM Plans": "eSIM \uC694\uAE08\uC81C",
+    "eSIM activation": "eSIM \uD65C\uC131\uD654",
+    "eSIM plans built for every journey.": "\uBAA8\uB4E0 \uC5EC\uC815\uC744 \uC704\uD55C eSIM \uC694\uAE08\uC81C.",
+    en: "en",
+    "iPhone and Android devices": "iPhone \uBC0F Android \uAE30\uAE30",
+    "iPhone and Android devices with eSIM support": "eSIM\uC744 \uC9C0\uC6D0\uD558\uB294 iPhone \uBC0F Android \uAE30\uAE30",
+    "iPhone: point the camera at the QR code. Other phones: Settings \u2192 Network \u2192 Add eSIM.": "iPhone: \uCE74\uBA54\uB77C\uB85C QR \uCF54\uB4DC\uB97C \uC2A4\uCE94\uD558\uC138\uC694. \uADF8 \uC678 \uD734\uB300\uD3F0: \uC124\uC815 \u2192 \uB124\uD2B8\uC6CC\uD06C \u2192 eSIM \uCD94\uAC00.",
+    "instant delivery": "\uC989\uC2DC \uBC1C\uAE09",
+    "local network": "\uB85C\uCEEC \uB124\uD2B8\uC6CC\uD06C",
+    months: "\uAC1C\uC6D4",
+    "one eSIM.": "eSIM \uD558\uB098.",
+    plans: "\uC694\uAE08\uC81C",
+    selected: "\uC120\uD0DD\uB428",
+    validity: "\uC720\uD6A8\uAE30\uAC04",
+    weeks: "\uC8FC",
+    ".": ".",
+    ". All rights reserved.": ". \uBAA8\uB4E0 \uAD8C\uB9AC \uBCF4\uC720.",
+    "Acceptance of Terms": "\uC57D\uAD00 \uB3D9\uC758",
+    Active: "\uD65C\uC131",
+    Add: "\uCD94\uAC00",
+    "Affiliate data could not be loaded": "\uC81C\uD734 \uB370\uC774\uD130\uB97C \uBD88\uB7EC\uC62C \uC218 \uC5C6\uC5B4\uC694",
+    "Affiliate view": "\uC81C\uD734 \uBCF4\uAE30",
+    "Affiliate workspace": "\uC81C\uD734 \uC6CC\uD06C\uC2A4\uD398\uC774\uC2A4",
+    "All payments are final and non-refundable unless required by law.": "\uBC95\uB839\uC73C\uB85C \uC815\uD55C \uACBD\uC6B0\uB97C \uC81C\uC678\uD558\uBA74 \uBAA8\uB4E0 \uACB0\uC81C\uB294 \uD658\uBD88\uB418\uC9C0 \uC54A\uC544\uC694.",
+    "Already have an account?": "\uC774\uBBF8 \uACC4\uC815\uC774 \uC788\uB098\uC694?",
+    Approved: "\uC2B9\uC778\uB428",
+    "Authentication failed": "\uC778\uC99D\uC5D0 \uC2E4\uD328\uD588\uC5B4\uC694",
+    "BOKMOO eSIM Card": "BOKMOO eSIM \uCE74\uB4DC",
+    "BOKMOO is not liable for any indirect, incidental, or consequential damages.": "BOKMOO\uB294 \uAC04\uC811\uC801\xB7\uC6B0\uBC1C\uC801\xB7\uACB0\uACFC\uC801 \uC190\uD574\uC5D0 \uB300\uD574 \uCC45\uC784\uC744 \uC9C0\uC9C0 \uC54A\uC544\uC694.",
+    "Back home": "\uD648\uC73C\uB85C",
+    "Back to sign in": "\uB85C\uADF8\uC778\uC73C\uB85C \uB3CC\uC544\uAC00\uAE30",
+    "Better Nights": "\uB354 \uB098\uC740 \uBC24",
+    "Brighter Journeys": "\uB354 \uBC1D\uC740 \uC5EC\uC815",
+    "Browse BOKMOO plans by destination and travel region.": "\uBAA9\uC801\uC9C0\uC640 \uC5EC\uD589 \uC9C0\uC5ED\uBCC4\uB85C BOKMOO \uC694\uAE08\uC81C\uB97C \uB458\uB7EC\uBCF4\uC138\uC694.",
+    "By accessing or using the BOKMOO website and services, you agree to be bound by these Terms of Service.": "BOKMOO \uC6F9\uC0AC\uC774\uD2B8\uC640 \uC11C\uBE44\uC2A4\uC5D0 \uC811\uADFC\uD558\uAC70\uB098 \uC774\uC6A9\uD558\uBA74 \uC774 \uC11C\uBE44\uC2A4 \uC774\uC6A9\uC57D\uAD00\uC5D0 \uB3D9\uC758\uD55C \uAC83\uC73C\uB85C \uAC04\uC8FC\uB3FC\uC694.",
+    "Change password": "\uBE44\uBC00\uBC88\uD638 \uBCC0\uACBD",
+    "Commission rate": "\uCEE4\uBBF8\uC158 \uBE44\uC728",
+    "Completing sign in": "\uB85C\uADF8\uC778\uC744 \uC644\uB8CC\uD558\uB294 \uC911",
+    Confirm: "\uD655\uC778",
+    "Continue to your orders, profiles, and activation workspace.": "\uC8FC\uBB38, \uD504\uB85C\uD544, \uD65C\uC131\uD654 \uAD00\uB9AC \uD398\uC774\uC9C0\uB85C \uACC4\uC18D \uC9C4\uD589\uD574\uC694.",
+    Copied: "\uBCF5\uC0AC\uB428",
+    "Copy link": "\uB9C1\uD06C \uBCF5\uC0AC",
+    "Create account": "\uACC4\uC815 \uB9CC\uB4E4\uAE30",
+    "Create affiliate account": "\uC81C\uD734 \uACC4\uC815 \uB9CC\uB4E4\uAE30",
+    "Create organization": "\uC870\uC9C1 \uB9CC\uB4E4\uAE30",
+    "Create the account your eSIMs follow.": "\uBAA8\uB4E0 eSIM\uC774 \uB530\uB77C\uC624\uB294 \uACC4\uC815\uC744 \uB9CC\uB4E4\uC5B4 \uBCF4\uC138\uC694.",
+    Creating: "\uC0DD\uC131 \uC911\u2026",
+    "Creator network.": "\uD06C\uB9AC\uC5D0\uC774\uD130 \uB124\uD2B8\uC6CC\uD06C.",
+    "Current password": "\uD604\uC7AC \uBE44\uBC00\uBC88\uD638",
+    "Data Protection": "\uB370\uC774\uD130 \uBCF4\uD638",
+    "Default option": "\uAE30\uBCF8 \uC635\uC158",
+    "Deselect item": "\uC120\uD0DD \uCDE8\uC18C",
+    "Display name": "\uD45C\uC2DC \uC774\uB984",
+    Earned: "\uD68D\uB4DD\uC561",
+    Email: "\uC774\uBA54\uC77C",
+    Expired: "\uB9CC\uB8CC\uB428",
+    "Explore destination eSIMs": "\uBAA9\uC801\uC9C0\uBCC4 eSIM \uB458\uB7EC\uBCF4\uAE30",
+    "Forgot password": "\uBE44\uBC00\uBC88\uD638\uB97C \uC78A\uC73C\uC168\uB098\uC694?",
+    "Get help fast": "\uBE60\uB974\uAC8C \uB3C4\uC6C0 \uBC1B\uAE30",
+    "Hide password": "\uBE44\uBC00\uBC88\uD638 \uC228\uAE30\uAE30",
+    "Hover a store button (or scan the card QR) to download.": "\uC2A4\uD1A0\uC5B4 \uBC84\uD2BC\uC5D0 \uB9C8\uC6B0\uC2A4\uB97C \uC62C\uB9AC\uAC70\uB098 \uCE74\uB4DC\uC758 QR \uCF54\uB4DC\uB97C \uC2A4\uCE94\uD558\uBA74 \uB2E4\uC6B4\uB85C\uB4DC\uD560 \uC218 \uC788\uC5B4\uC694.",
+    "How We Use Information": "\uC815\uBCF4 \uC774\uC6A9 \uC548\uB0B4",
+    "How it works": "\uC774\uC6A9 \uBC29\uBC95",
+    Inactive: "\uBE44\uD65C\uC131",
+    Influencer: "\uC778\uD50C\uB8E8\uC5B8\uC11C",
+    "Information We Collect": "\uC218\uC9D1\uD558\uB294 \uC815\uBCF4",
+    "Instant QR delivery after payment": "\uACB0\uC81C \uD6C4 QR \uCF54\uB4DC \uC989\uC2DC \uBC1C\uAE09",
+    "Keep access secure between trips.": "\uC5EC\uD589 \uC0AC\uC774\uC5D0\uB3C4 \uACC4\uC815 \uC811\uADFC\uC744 \uC548\uC804\uD558\uAC8C \uC720\uC9C0\uD558\uC138\uC694.",
+    "Keep orders, activation codes, profile history, and support cases attached to one BOKMOO identity.": "\uC8FC\uBB38, \uD65C\uC131\uD654 \uCF54\uB4DC, \uD504\uB85C\uD544 \uAE30\uB85D, \uBB38\uC758 \uB0B4\uC5ED\uC744 \uD558\uB098\uC758 BOKMOO \uACC4\uC815\uC73C\uB85C \uAD00\uB9AC\uD574\uC694.",
+    "Keep your BOKMOO account ready for the next trip.": "\uB2E4\uC74C \uC5EC\uD589\uC744 \uC704\uD574 BOKMOO \uACC4\uC815\uC744 \uC900\uBE44\uD574 \uB450\uC138\uC694.",
+    "Last updated: April 15, 2024": "\uCD5C\uC885 \uC5C5\uB370\uC774\uD2B8: 2024\uB144 4\uC6D4 15\uC77C",
+    "Limitation of Liability": "\uCC45\uC784 \uC81C\uD55C",
+    "Manage BOKMOO eSIM profiles, orders, and activation details from the same black-and-gold travel control surface.": "\uBE14\uB799 \uC564 \uACE8\uB4DC \uC5EC\uD589 \uC81C\uC5B4 \uD654\uBA74\uC5D0\uC11C BOKMOO eSIM \uD504\uB85C\uD544, \uC8FC\uBB38, \uD65C\uC131\uD654 \uC815\uBCF4\uB97C \uD55C\uACF3\uC5D0\uC11C \uAD00\uB9AC\uD574\uC694.",
+    "Manage eSIMs": "eSIM \uAD00\uB9AC",
+    Manager: "\uAD00\uB9AC\uC790",
+    "Member could not be added": "\uBA64\uBC84\uB97C \uCD94\uAC00\uD560 \uC218 \uC5C6\uC5B4\uC694",
+    "Member email": "\uBA64\uBC84 \uC774\uBA54\uC77C",
+    "New password": "\uC0C8 \uBE44\uBC00\uBC88\uD638",
+    "No commissions yet": "\uC544\uC9C1 \uCEE4\uBBF8\uC158\uC774 \uC5C6\uC5B4\uC694",
+    "No region collections are available yet.": "\uC544\uC9C1 \uC9C0\uC5ED \uBAA8\uC74C\uC774 \uC5C6\uC5B4\uC694.",
+    "One Card.\nGlobal Connection.": "\uCE74\uB4DC \uD55C \uC7A5\uC73C\uB85C.\n\uC804 \uC138\uACC4 \uC5B4\uB514\uC11C\uB098 \uC5F0\uACB0.",
+    "One eSIM for the whole trip \u2014 pick your destinations and go.": "\uC5EC\uD589 \uB0B4\uB0B4 \uB2E8 \uD558\uB098\uC758 eSIM. \uBAA9\uC801\uC9C0\uB97C \uACE0\uB974\uACE0 \uB5A0\uB098\uC138\uC694.",
+    Organization: "\uC870\uC9C1",
+    "Organization affiliate": "\uC870\uC9C1 \uC81C\uD734",
+    "Organization code (optional)": "\uC870\uC9C1 \uCF54\uB4DC (\uC120\uD0DD)",
+    "Organization commissions": "\uC870\uC9C1 \uCEE4\uBBF8\uC158",
+    "Organization could not be created": "\uC870\uC9C1\uC744 \uB9CC\uB4E4 \uC218 \uC5C6\uC5B4\uC694",
+    "Organization data could not be loaded": "\uC870\uC9C1 \uB370\uC774\uD130\uB97C \uBD88\uB7EC\uC62C \uC218 \uC5C6\uC5B4\uC694",
+    "Organization name": "\uC870\uC9C1 \uC774\uB984",
+    Partner: "\uD30C\uD2B8\uB108",
+    "Partner commissions": "\uD30C\uD2B8\uB108 \uCEE4\uBBF8\uC158",
+    Password: "\uBE44\uBC00\uBC88\uD638",
+    "Passwords do not match": "\uBE44\uBC00\uBC88\uD638\uAC00 \uC77C\uCE58\uD558\uC9C0 \uC54A\uC544\uC694",
+    "Personal affiliate": "\uAC1C\uC778 \uC81C\uD734",
+    "Powered by": "Powered by",
+    Profiles: "\uD504\uB85C\uD544",
+    "Protected traveler identity": "\uBCF4\uD638\uB418\uB294 \uC5EC\uD589\uC790 \uC2E0\uC6D0",
+    "Purchases and Payments": "\uAD6C\uB9E4 \uBC0F \uACB0\uC81C",
+    "Questions about setup? Contact": "\uC124\uC815\uC5D0 \uB300\uD574 \uAD81\uAE08\uD55C \uC810\uC774 \uC788\uB098\uC694? \uBB38\uC758:",
+    Rate: "\uBE44\uC728",
+    Refresh: "\uC0C8\uB85C\uACE0\uCE68",
+    "Region Collections": "\uC9C0\uC5ED \uBAA8\uC74C",
+    "Registration failed": "\uB4F1\uB85D\uC5D0 \uC2E4\uD328\uD588\uC5B4\uC694",
+    SAMPLE: "\uC0D8\uD50C",
+    "Save profile": "\uD504\uB85C\uD544 \uC800\uC7A5",
+    "Saving...": "\uC800\uC7A5 \uC911...",
+    "Secure account access": "\uC548\uC804\uD55C \uACC4\uC815 \uC811\uADFC",
+    "Securing your session and returning you to the BOKMOO storefront.": "\uC138\uC158\uC744 \uBCF4\uD638\uD55C \uB4A4 BOKMOO \uC2A4\uD1A0\uC5B4\uB85C \uB3CC\uC544\uAC00\uC694.",
+    "Select item": "\uC120\uD0DD",
+    "Shop eSIM Plans": "eSIM \uC694\uAE08\uC81C \uBCF4\uAE30",
+    "Show password": "\uBE44\uBC00\uBC88\uD638 \uD45C\uC2DC",
+    "Sign in": "\uB85C\uADF8\uC778",
+    "Sign in before your next border.": "\uB2E4\uC74C \uAD6D\uACBD\uC744 \uB118\uAE30 \uC804\uC5D0 \uB85C\uADF8\uC778\uD574 \uB450\uC138\uC694.",
+    "Sign in to manage your account": "\uACC4\uC815\uC744 \uAD00\uB9AC\uD558\uB824\uBA74 \uB85C\uADF8\uC778\uD574 \uC8FC\uC138\uC694",
+    "Signing in": "\uB85C\uADF8\uC778 \uC911\u2026",
+    "Start with a secure profile for purchases and global activation support.": "\uAD6C\uB9E4\uC640 \uAE00\uB85C\uBC8C \uD65C\uC131\uD654 \uC9C0\uC6D0\uC744 \uC704\uD55C \uC548\uC804\uD55C \uD504\uB85C\uD544\uBD80\uD130 \uC2DC\uC791\uD574\uC694.",
+    Suspended: "\uC77C\uC2DC \uC815\uC9C0",
+    "Track purchases": "\uAD6C\uB9E4 \uB0B4\uC5ED \uD655\uC778",
+    "Traveler profile": "\uC5EC\uD589\uC790 \uD504\uB85C\uD544",
+    "Unable to load Bokmoo plans.": "Bokmoo \uC694\uAE08\uC81C\uB97C \uBD88\uB7EC\uC62C \uC218 \uC5C6\uC5B4\uC694.",
+    "Updating...": "\uC5C5\uB370\uC774\uD2B8 \uC911...",
+    "Use of Services": "\uC11C\uBE44\uC2A4 \uC774\uC6A9",
+    Used: "\uC0AC\uC6A9\uB428",
+    "View category": "\uCE74\uD14C\uACE0\uB9AC \uBCF4\uAE30",
+    "We collect information you provide directly to us, such as when you create an account or make a purchase.": "\uACC4\uC815\uC744 \uB9CC\uB4E4\uAC70\uB098 \uAD6C\uB9E4\uD560 \uB54C\uCC98\uB7FC \uC774\uC6A9\uC790\uAC00 \uC9C1\uC811 \uC81C\uACF5\uD558\uB294 \uC815\uBCF4\uB97C \uC218\uC9D1\uD574\uC694.",
+    "We implement appropriate security measures to protect your data.": "\uC774\uC6A9\uC790\uC758 \uB370\uC774\uD130\uB97C \uBCF4\uD638\uD558\uAE30 \uC704\uD574 \uC801\uC808\uD55C \uBCF4\uC548 \uC870\uCE58\uB97C \uC2DC\uD589\uD574\uC694.",
+    "We use the information to provide, maintain, and improve our services.": "\uC218\uC9D1\uD55C \uC815\uBCF4\uB294 \uC11C\uBE44\uC2A4 \uC81C\uACF5\xB7\uC720\uC9C0\xB7\uAC1C\uC120\uC744 \uC704\uD574 \uC0AC\uC6A9\uD574\uC694.",
+    "Welcome back": "\uB2E4\uC2DC \uC624\uC2E0 \uAC83\uC744 \uD658\uC601\uD574\uC694",
+    "You agree to use our services only for lawful purposes and in accordance with these Terms.": "\uB2F9\uC0AC\uC758 \uC11C\uBE44\uC2A4\uB97C \uC801\uBC95\uD55C \uBAA9\uC801\uC73C\uB85C\uB9CC, \uADF8\uB9AC\uACE0 \uC774 \uC57D\uAD00\uC5D0 \uB530\uB77C\uC11C\uB9CC \uC774\uC6A9\uD558\uB294 \uB370 \uB3D9\uC758\uD574\uC694.",
+    "You have the right to access, update, or delete your personal information.": "\uC774\uC6A9\uC790\uB294 \uC790\uC2E0\uC758 \uAC1C\uC778\uC815\uBCF4\uC5D0 \uC811\uADFC\uD558\uAC70\uB098 \uC218\uC815\xB7\uC0AD\uC81C\uD560 \uAD8C\uB9AC\uAC00 \uC788\uC5B4\uC694.",
+    "Your Rights": "\uC774\uC6A9\uC790\uC758 \uAD8C\uB9AC",
+    "Your referral ledger.": "\uB098\uC758 \uCD94\uCC9C \uB0B4\uC5ED.",
+    "already with us": "\uC774\uBBF8 \uAC00\uC785\uD558\uC168\uB098\uC694",
+    "or email": "\uB610\uB294 \uC774\uBA54\uC77C\uB85C",
+    "organization rate": "\uC870\uC9C1 \uCEE4\uBBF8\uC158 \uBE44\uC728",
+    "Group destination-ready plans into clearer regional entry points.": "\uBAA9\uC801\uC9C0\uBCC4 \uC694\uAE08\uC81C\uB97C \uC9C0\uC5ED\uBCC4\uB85C \uD55C\uB208\uC5D0 \uBCFC \uC218 \uC788\uAC8C \uBB36\uC5B4\uC694."
+  };
+
+  // src/i18n/index.ts
+  var THEME_MESSAGES = { ja: ja_default, ko: ko_default, fr: fr_default, de: de_default };
+  function isCatalogLocale(locale) {
+    return locale === "ja" || locale === "ko" || locale === "fr" || locale === "de";
+  }
+  function themeMessage(locale, english) {
+    if (!isCatalogLocale(locale)) return null;
+    const hit = THEME_MESSAGES[locale][english];
+    return typeof hit === "string" && hit ? hit : null;
+  }
+
+  // src/site.ts
   function zhModeOf(locale) {
     if (locale === "zh-Hant") return "zh-Hant";
     if (locale === "zh-Hans") return "zh-Hans";
     return null;
   }
   function pickCopy(locale, copy) {
-    if (locale === "ja") return copy.ja ?? copy.en;
-    if (locale === "ko") return copy.ko ?? copy.en;
-    if (locale === "fr") return copy.fr ?? copy.en;
-    if (locale === "de") return copy.de ?? copy.en;
+    const catalog = copy.en ? themeMessage(locale, copy.en) : null;
+    if (locale === "ja") return copy.ja ?? catalog ?? copy.en;
+    if (locale === "ko") return copy.ko ?? catalog ?? copy.en;
+    if (locale === "fr") return copy.fr ?? catalog ?? copy.en;
+    if (locale === "de") return copy.de ?? catalog ?? copy.en;
     const mode = zhModeOf(locale);
     if (mode === "zh-Hant") return copy.hant ?? copy.en;
     if (mode === "zh-Hans") return copy.hans ?? copy.hant ?? copy.en;
     return copy.en;
   }
-  function pickLocalized(configured, englishDefault, zhHans, zhHant, mode) {
+  function catalogCopy(locale, english) {
+    return themeMessage(locale, english) ?? english;
+  }
+  function pickLocalized(configured, englishDefault, zhHans, zhHant, locale) {
     const value = configured?.trim();
     if (value && value !== englishDefault) return value;
+    const mode = zhModeOf(locale);
     if (mode === "zh-Hant") return zhHant;
     if (mode === "zh-Hans") return zhHans;
-    return englishDefault;
+    return themeMessage(locale, englishDefault) ?? englishDefault;
   }
   function resolveEsimSiteConfig(config, locale) {
     const brandName = config?.brand?.name?.trim() || "BOKMOO";
     const siteConfig = config?.site || {};
-    const mode = zhModeOf(locale);
     const englishSubheadline = `Use multiple eSIM profiles on your ${brandName} card. Stay connected in 200+ countries.`;
+    const SUBHEADLINE_FRAMES = {
+      ja: (brand) => `${brand} \u30AB\u30FC\u30C9\u3067\u8907\u6570\u306E eSIM \u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3092\u5229\u7528\u3002200 \u4EE5\u4E0A\u306E\u56FD\u30FB\u5730\u57DF\u3067\u3064\u306A\u304C\u308A\u7D9A\u3051\u3089\u308C\u307E\u3059\u3002`,
+      ko: (brand) => `${brand} \uCE74\uB4DC\uC5D0\uC11C \uC5EC\uB7EC eSIM \uD504\uB85C\uD544\uC744 \uC0AC\uC6A9\uD558\uC138\uC694. 200\uAC1C \uC774\uC0C1\uC758 \uAD6D\uAC00\xB7\uC9C0\uC5ED\uC5D0\uC11C \uC5F0\uACB0\uC744 \uC720\uC9C0\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.`,
+      fr: (brand) => `Utilisez plusieurs profils eSIM sur votre carte ${brand}. Restez connect\xE9 dans plus de 200 pays.`,
+      de: (brand) => `Nutzen Sie mehrere eSIM-Profile auf Ihrer ${brand}-Karte. Bleiben Sie in \xFCber 200 L\xE4ndern verbunden.`
+    };
+    const subheadlineFrame = locale && locale in SUBHEADLINE_FRAMES ? SUBHEADLINE_FRAMES[locale](brandName) : null;
+    const zhMode = zhModeOf(locale);
+    const defaultSubheadline = subheadlineFrame ?? (zhMode === "zh-Hant" ? `\u5728\u60A8\u7684 ${brandName} \u5361\u4E0A\u4F7F\u7528\u591A\u500B eSIM \u8A2D\u5B9A\u6A94\uFF0C200+ \u500B\u570B\u5BB6/\u5730\u5340\u4FDD\u6301\u9023\u7DDA\u3002` : zhMode === "zh-Hans" ? `\u5728\u60A8\u7684 ${brandName} \u5361\u4E0A\u4F7F\u7528\u591A\u4E2A eSIM \u914D\u7F6E\u6587\u4EF6\uFF0C200+ \u4E2A\u56FD\u5BB6/\u5730\u533A\u4FDD\u6301\u8FDE\u63A5\u3002` : englishSubheadline);
+    const customizedSubheadline = siteConfig.subheadline?.trim();
+    const subheadline = customizedSubheadline && customizedSubheadline !== englishSubheadline ? customizedSubheadline : defaultSubheadline;
     return {
       brandName,
-      eyebrow: pickLocalized(siteConfig.eyebrow, "BOKMOO eSIM Card", "BOKMOO eSIM \u5361", "BOKMOO eSIM \u5361", mode),
-      headline: pickLocalized(siteConfig.headline, "One Card.\nGlobal Connection.", "\u4E00\u5F20\u5361\u3002\n\u5168\u7403\u8FDE\u63A5\u3002", "\u4E00\u5F35\u5361\u3002\n\u5168\u7403\u9023\u7DDA\u3002", mode),
-      subheadline: pickLocalized(
-        siteConfig.subheadline,
-        englishSubheadline,
-        `\u5728\u60A8\u7684 ${brandName} \u5361\u4E0A\u4F7F\u7528\u591A\u4E2A eSIM \u914D\u7F6E\u6587\u4EF6\uFF0C200+ \u4E2A\u56FD\u5BB6/\u5730\u533A\u4FDD\u6301\u8FDE\u63A5\u3002`,
-        `\u5728\u60A8\u7684 ${brandName} \u5361\u4E0A\u4F7F\u7528\u591A\u500B eSIM \u8A2D\u5B9A\u6A94\uFF0C200+ \u500B\u570B\u5BB6/\u5730\u5340\u4FDD\u6301\u9023\u7DDA\u3002`,
-        mode
-      ),
+      eyebrow: pickLocalized(siteConfig.eyebrow, "BOKMOO eSIM Card", "BOKMOO eSIM \u5361", "BOKMOO eSIM \u5361", locale),
+      headline: pickLocalized(siteConfig.headline, "One Card.\nGlobal Connection.", "\u4E00\u5F20\u5361\u3002\n\u5168\u7403\u8FDE\u63A5\u3002", "\u4E00\u5F35\u5361\u3002\n\u5168\u7403\u9023\u7DDA\u3002", locale),
+      subheadline,
       supportEmail: siteConfig.supportEmail?.trim() || "support@bokmoo.com",
-      primaryCtaLabel: pickLocalized(siteConfig.primaryCtaLabel, "Shop eSIM Plans", "\u9009\u8D2D eSIM \u65B9\u6848", "\u9078\u8CFC eSIM \u65B9\u6848", mode),
+      primaryCtaLabel: pickLocalized(siteConfig.primaryCtaLabel, "Shop eSIM Plans", "\u9009\u8D2D eSIM \u65B9\u6848", "\u9078\u8CFC eSIM \u65B9\u6848", locale),
       primaryCtaHref: siteConfig.primaryCtaHref?.trim() || "/products",
-      secondaryCtaLabel: pickLocalized(siteConfig.secondaryCtaLabel, "How it works", "\u4E86\u89E3\u4F7F\u7528\u65B9\u5F0F", "\u77AD\u89E3\u4F7F\u7528\u65B9\u5F0F", mode),
+      secondaryCtaLabel: pickLocalized(siteConfig.secondaryCtaLabel, "How it works", "\u4E86\u89E3\u4F7F\u7528\u65B9\u5F0F", "\u77AD\u89E3\u4F7F\u7528\u65B9\u5F0F", locale),
       secondaryCtaHref: siteConfig.secondaryCtaHref?.trim() || "/#how-it-works",
       apiBaseUrl: siteConfig.apiBaseUrl?.trim() || "https://api.bokmoo.com"
     };
@@ -11603,7 +13935,70 @@
     return (products || []).filter((product) => isEsimPlanProduct(product));
   }
 
-  // packages/shop-themes/esim/src/lib/api.ts
+  // src/lib/esim/order-copy.ts
+  var DATE_TAGS = {
+    "zh-Hans": "zh-CN",
+    "zh-Hant": "zh-TW",
+    ja: "ja-JP",
+    ko: "ko-KR",
+    fr: "fr-FR",
+    de: "de-DE"
+  };
+  function localeTag(locale) {
+    return locale && DATE_TAGS[locale] || "en-US";
+  }
+  function formatOrderDate(value, locale, withTime = true) {
+    const date = typeof value === "string" ? new Date(value) : value;
+    if (Number.isNaN(date.getTime())) return "";
+    return withTime ? date.toLocaleString(localeTag(locale)) : date.toLocaleDateString(localeTag(locale));
+  }
+  var ORDER_STATUS = {
+    PENDING: { en: "Pending payment", hans: "\u5F85\u652F\u4ED8", hant: "\u5F85\u4ED8\u6B3E", ja: "\u652F\u6255\u3044\u5F85\u3061", ko: "\uACB0\uC81C \uB300\uAE30", fr: "En attente de paiement", de: "Zahlung ausstehend" },
+    PAID: { en: "Paid", hans: "\u5DF2\u652F\u4ED8", hant: "\u5DF2\u4ED8\u6B3E", ja: "\u652F\u6255\u3044\u6E08\u307F", ko: "\uACB0\uC81C \uC644\uB8CC", fr: "Pay\xE9", de: "Bezahlt" },
+    PROCESSING: { en: "Processing", hans: "\u5904\u7406\u4E2D", hant: "\u8655\u7406\u4E2D", ja: "\u51E6\u7406\u4E2D", ko: "\uCC98\uB9AC \uC911", fr: "En cours", de: "In Bearbeitung" },
+    SHIPPED: { en: "Shipped", hans: "\u5DF2\u53D1\u8D27", hant: "\u5DF2\u51FA\u8CA8", ja: "\u767A\u9001\u6E08\u307F", ko: "\uBC30\uC1A1\uB428", fr: "Exp\xE9di\xE9", de: "Versendet" },
+    DELIVERED: { en: "Delivered", hans: "\u5DF2\u4EA4\u4ED8", hant: "\u5DF2\u4EA4\u4ED8", ja: "\u5B8C\u4E86", ko: "\uC644\uB8CC", fr: "Livr\xE9", de: "Zugestellt" },
+    COMPLETED: { en: "Completed", hans: "\u5DF2\u5B8C\u6210", hant: "\u5DF2\u5B8C\u6210", ja: "\u5B8C\u4E86", ko: "\uC644\uB8CC", fr: "Termin\xE9", de: "Abgeschlossen" },
+    CANCELLED: { en: "Cancelled", hans: "\u5DF2\u53D6\u6D88", hant: "\u5DF2\u53D6\u6D88", ja: "\u30AD\u30E3\u30F3\u30BB\u30EB\u6E08\u307F", ko: "\uCDE8\uC18C\uB428", fr: "Annul\xE9", de: "Storniert" },
+    CANCELED: { en: "Cancelled", hans: "\u5DF2\u53D6\u6D88", hant: "\u5DF2\u53D6\u6D88", ja: "\u30AD\u30E3\u30F3\u30BB\u30EB\u6E08\u307F", ko: "\uCDE8\uC18C\uB428", fr: "Annul\xE9", de: "Storniert" },
+    REFUNDED: { en: "Refunded", hans: "\u5DF2\u9000\u6B3E", hant: "\u5DF2\u9000\u6B3E", ja: "\u8FD4\u91D1\u6E08\u307F", ko: "\uD658\uBD88\uB428", fr: "Rembours\xE9", de: "Erstattet" },
+    FAILED: { en: "Failed", hans: "\u5931\u8D25", hant: "\u5931\u6557", ja: "\u5931\u6557", ko: "\uC2E4\uD328", fr: "\xC9chec", de: "Fehlgeschlagen" }
+  };
+  var ITEM_STATUS = {
+    pending: { en: "Pending", hans: "\u5F85\u4EA4\u4ED8", hant: "\u5F85\u4EA4\u4ED8", ja: "\u767A\u884C\u5F85\u3061", ko: "\uBC1C\uAE09 \uB300\uAE30", fr: "En attente", de: "Ausstehend" },
+    processing: { en: "Processing", hans: "\u5904\u7406\u4E2D", hant: "\u8655\u7406\u4E2D", ja: "\u51E6\u7406\u4E2D", ko: "\uCC98\uB9AC \uC911", fr: "En cours", de: "In Bearbeitung" },
+    shipped: { en: "Shipped", hans: "\u5DF2\u53D1\u8D27", hant: "\u5DF2\u51FA\u8CA8", ja: "\u767A\u9001\u6E08\u307F", ko: "\uBC30\uC1A1\uB428", fr: "Exp\xE9di\xE9", de: "Versendet" },
+    delivered: { en: "Delivered", hans: "\u5DF2\u4EA4\u4ED8", hant: "\u5DF2\u4EA4\u4ED8", ja: "\u767A\u884C\u6E08\u307F", ko: "\uBC1C\uAE09\uB428", fr: "Livr\xE9", de: "Zugestellt" },
+    completed: { en: "Completed", hans: "\u5DF2\u5B8C\u6210", hant: "\u5DF2\u5B8C\u6210", ja: "\u5B8C\u4E86", ko: "\uC644\uB8CC", fr: "Termin\xE9", de: "Abgeschlossen" },
+    fulfilled: { en: "Fulfilled", hans: "\u5DF2\u5B8C\u6210", hant: "\u5DF2\u5B8C\u6210", ja: "\u63D0\u4F9B\u6E08\u307F", ko: "\uC81C\uACF5\uB428", fr: "R\xE9alis\xE9", de: "Erledigt" },
+    failed: { en: "Failed", hans: "\u4EA4\u4ED8\u5931\u8D25", hant: "\u4EA4\u4ED8\u5931\u6557", ja: "\u767A\u884C\u5931\u6557", ko: "\uBC1C\uAE09 \uC2E4\uD328", fr: "\xC9chec", de: "Fehlgeschlagen" },
+    cancelled: { en: "Cancelled", hans: "\u5DF2\u53D6\u6D88", hant: "\u5DF2\u53D6\u6D88", ja: "\u30AD\u30E3\u30F3\u30BB\u30EB\u6E08\u307F", ko: "\uCDE8\uC18C\uB428", fr: "Annul\xE9", de: "Storniert" }
+  };
+  function orderStatusLabel(status, locale) {
+    const raw = String(status);
+    const copy = ORDER_STATUS[raw.toUpperCase()];
+    return copy ? pickCopy(locale, copy) : raw.replace(/_/g, " ");
+  }
+  function itemStatusLabel(status, locale) {
+    const copy = ITEM_STATUS[String(status).toLowerCase()];
+    return copy ? pickCopy(locale, copy) : orderStatusLabel(status, locale);
+  }
+  function statusTone(status) {
+    const normalized = String(status).toUpperCase();
+    const base = "whitespace-nowrap ";
+    if (normalized === "DELIVERED" || normalized === "COMPLETED" || normalized === "FULFILLED") {
+      return base + "bg-[color:color-mix(in_oklab,var(--esim-success)_16%,transparent)] text-[var(--esim-success)]";
+    }
+    if (normalized === "PENDING" || normalized === "PAID" || normalized === "PROCESSING" || normalized === "SHIPPED") {
+      return base + "bg-[color:color-mix(in_oklab,var(--esim-warning)_16%,transparent)] text-[var(--esim-warning)]";
+    }
+    if (normalized === "CANCELLED" || normalized === "CANCELED" || normalized === "REFUNDED" || normalized === "FAILED") {
+      return base + "bg-[color:color-mix(in_oklab,var(--esim-danger)_18%,transparent)] text-[var(--esim-danger)]";
+    }
+    return base + "bg-[var(--esim-primary-soft)] text-[var(--esim-primary-strong)]";
+  }
+
+  // src/lib/api.ts
   var EsimApiError = class extends Error {
     constructor(status, code, message, requestId) {
       super(message);
@@ -12028,7 +14423,7 @@
     });
   }
 
-  // packages/shop-themes/esim/src/components/ProfilePage.tsx
+  // src/components/ProfilePage.tsx
   var SCRIPT_FONT = '"Snell Roundhand", "Savoye LET", "Segoe Script", "Brush Script MT", cursive';
   function svgBackgroundUri(svg) {
     return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
@@ -12040,10 +14435,22 @@
     `<svg xmlns='http://www.w3.org/2000/svg' width='420' height='320' viewBox='0 0 420 320'><defs><linearGradient id='dusk' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='#181231'/><stop offset='0.44' stop-color='#2c2044'/><stop offset='0.7' stop-color='#4b2d3d'/><stop offset='1' stop-color='#0d0a12'/></linearGradient><radialGradient id='duskglow' cx='0.72' cy='0.58' r='0.5'><stop offset='0' stop-color='#e8a45c' stop-opacity='0.34'/><stop offset='1' stop-color='#e8a45c' stop-opacity='0'/></radialGradient></defs><rect width='420' height='320' fill='url(#dusk)'/><rect width='420' height='320' fill='url(#duskglow)'/><g fill='#ffffff' opacity='0.55'><circle cx='60' cy='52' r='1.1'/><circle cx='150' cy='34' r='0.9'/><circle cx='236' cy='60' r='1.2'/><circle cx='318' cy='40' r='1'/><circle cx='374' cy='84' r='0.9'/><circle cx='104' cy='96' r='0.8'/><circle cx='286' cy='104' r='0.8'/></g><g stroke='#070509' stroke-linecap='round' fill='none'><path d='M64 320C70 264 66 228 76 184' stroke-width='9'/><path d='M76 184C46 168 20 170 2 184M76 184C90 156 118 146 148 150M76 184C66 154 44 138 16 136M76 184C104 170 132 174 156 190M76 184C80 156 94 134 120 126' stroke-width='7'/></g><g fill='#e8a45c'><rect x='150' y='212' width='150' height='2.6' rx='1.3' opacity='0.3'/><rect x='196' y='236' width='170' height='2.6' rx='1.3' opacity='0.2'/><rect x='120' y='262' width='210' height='2.6' rx='1.3' opacity='0.13'/></g></svg>`
   );
   var GOLD_GRADIENT_BG = "bg-[linear-gradient(145deg,color-mix(in_oklab,var(--esim-gold)_82%,white),color-mix(in_oklab,var(--esim-gold)_65%,black))]";
+  var ESIM_STATUS = {
+    ACTIVE: { en: "Active", hans: "\u5DF2\u6FC0\u6D3B", hant: "\u5DF2\u555F\u7528", ja: "\u30A2\u30AF\u30C6\u30A3\u30D6", ko: "\uD65C\uC131", fr: "Actif", de: "Aktiv" },
+    INACTIVE: { en: "Inactive", hans: "\u672A\u6FC0\u6D3B", hant: "\u672A\u555F\u7528", ja: "\u672A\u30A2\u30AF\u30C6\u30A3\u30D6", ko: "\uBE44\uD65C\uC131", fr: "Inactif", de: "Inaktiv" },
+    SUSPENDED: { en: "Suspended", hans: "\u5DF2\u6682\u505C", hant: "\u5DF2\u66AB\u505C", ja: "\u5229\u7528\u505C\u6B62\u4E2D", ko: "\uC77C\uC2DC \uC815\uC9C0", fr: "Suspendu", de: "Gesperrt" },
+    EXPIRED: { en: "Expired", hans: "\u5DF2\u8FC7\u671F", hant: "\u5DF2\u904E\u671F", ja: "\u6709\u52B9\u671F\u9650\u5207\u308C", ko: "\uB9CC\uB8CC\uB428", fr: "Expir\xE9", de: "Abgelaufen" },
+    USED: { en: "Used", hans: "\u5DF2\u4F7F\u7528", hant: "\u5DF2\u4F7F\u7528", ja: "\u4F7F\u7528\u6E08\u307F", ko: "\uC0AC\uC6A9\uB428", fr: "Utilis\xE9", de: "Verwendet" }
+  };
+  function esimStatusLabel(status, locale) {
+    const raw = String(status || "ACTIVE");
+    const copy = ESIM_STATUS[raw.toUpperCase()];
+    return copy ? pickCopy(locale, copy) : raw.replace(/_/g, " ");
+  }
   function formatDate(iso, locale) {
     const date = new Date(iso);
     if (Number.isNaN(date.getTime())) return "\u2014";
-    return date.toLocaleDateString(locale === "zh-Hant" ? "zh-TW" : "en-US", {
+    return date.toLocaleDateString(localeTag(locale), {
       year: "numeric",
       month: "short",
       day: "numeric"
@@ -12089,7 +14496,7 @@
       /* @__PURE__ */ jsx("div", { className: "mt-4 grid gap-3", children: assets.map((asset) => /* @__PURE__ */ jsxs("div", { className: "rounded-[0.95rem] border border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_86%,black)] px-4 py-3", children: [
         /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between gap-3", children: [
           /* @__PURE__ */ jsx("p", { className: "text-sm font-medium text-[var(--esim-ink)]", children: asset.label || pickCopy(locale, { en: "Bokmoo eSIM", hans: "Bokmoo eSIM", hant: "Bokmoo eSIM" }) }),
-          /* @__PURE__ */ jsx("span", { className: "rounded-full border border-[color:color-mix(in_oklab,var(--esim-gold)_34%,transparent)] px-2 py-0.5 text-[10px] tracking-[0.14em] text-[var(--esim-gold)]", children: (asset.status || "ACTIVE").toUpperCase() })
+          /* @__PURE__ */ jsx("span", { className: "rounded-full border border-[color:color-mix(in_oklab,var(--esim-gold)_34%,transparent)] px-2 py-0.5 text-[10px] tracking-[0.14em] text-[var(--esim-gold)]", children: esimStatusLabel(asset.status, locale) })
         ] }),
         /* @__PURE__ */ jsxs("p", { className: "mt-1.5 font-mono text-xs text-[var(--esim-copy-soft)]", children: [
           "ICCID \xB7\xB7\xB7\xB7",
@@ -12124,7 +14531,7 @@
           onNavigate(path);
           return;
         }
-        const prefix = locale === "zh-Hant" ? "/zh-Hant" : locale === "zh-Hans" ? "/zh-Hans" : "/en";
+        const prefix = locale && locale !== "en" ? `/${locale}` : "/en";
         window.location.assign(`${prefix}${path}`);
       },
       [onNavigate, isZhHant]
@@ -12233,7 +14640,14 @@
     }
     const displayName = (user.name || "").trim();
     const firstName = displayName ? displayName.split(/\s+/)[0] : "";
-    const greeting = firstName ? locale === "zh-Hant" ? `\u4F60\u597D\uFF0C${firstName}\uFF01` : locale === "zh-Hans" ? `\u4F60\u597D\uFF0C${firstName}\uFF01` : `Hi ${firstName}!` : locale === "zh-Hant" ? "\u4F60\u597D\uFF01" : locale === "zh-Hans" ? "\u4F60\u597D\uFF01" : "Hi there!";
+    const greeting = (() => {
+      if (locale === "ja") return firstName ? `${firstName} \u3055\u3093\u3001\u3053\u3093\u306B\u3061\u306F\u3002` : "\u3053\u3093\u306B\u3061\u306F\u3002";
+      if (locale === "ko") return firstName ? `${firstName}\uB2D8, \uC548\uB155\uD558\uC138\uC694!` : "\uC548\uB155\uD558\uC138\uC694!";
+      if (locale === "fr") return firstName ? `Bonjour ${firstName} !` : "Bonjour !";
+      if (locale === "de") return firstName ? `Hallo ${firstName}!` : "Hallo!";
+      const zh = locale === "zh-Hant" || locale === "zh-Hans";
+      return firstName ? zh ? `\u4F60\u597D\uFF0C${firstName}\uFF01` : `Hi ${firstName}!` : zh ? "\u4F60\u597D\uFF01" : "Hi there!";
+    })();
     const accountInitial = (displayName || user.email).trim().charAt(0).toUpperCase();
     const memberSince = user.createdAt ? formatDate(user.createdAt, locale) : "\u2014";
     const navItems = [
@@ -12362,9 +14776,9 @@
                     className: "bg-[linear-gradient(120deg,#f6d78a,var(--esim-gold-strong)_55%,#c99b3e)] bg-clip-text text-right text-[1.65rem] italic leading-[1.2] text-transparent",
                     style: { fontFamily: SCRIPT_FONT },
                     children: [
-                      "Better Nights",
+                      pickCopy(locale, { en: "Better Nights", hans: "\u591C\u66F4\u5B89\u7720", hant: "\u591C\u66F4\u5B89\u7720" }),
                       /* @__PURE__ */ jsx("br", {}),
-                      "Brighter Journeys"
+                      pickCopy(locale, { en: "Brighter Journeys", hans: "\u65C5\u7A0B\u66F4\u7CBE\u5F69", hant: "\u65C5\u7A0B\u66F4\u7CBE\u5F69" })
                     ]
                   }
                 ),
@@ -12648,12 +15062,8 @@
                 children: [
                   /* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-[linear-gradient(92deg,rgba(8,6,4,0.86)_8%,rgba(8,6,4,0.42)_58%,rgba(8,6,4,0.12))]" }),
                   /* @__PURE__ */ jsxs("div", { className: "relative flex h-full flex-col p-6", children: [
-                    /* @__PURE__ */ jsx("h3", { className: "text-[1.55rem] font-bold leading-tight text-white", children: locale === "zh-Hant" ? "\u63A2\u7D22\u5C0A\u8CB4\u6703\u6240" : locale === "zh-Hans" ? "\u63A2\u7D22\u5C0A\u8D35\u4F1A\u6240" : /* @__PURE__ */ jsxs(Fragment2, { children: [
-                      "Discover",
-                      /* @__PURE__ */ jsx("br", {}),
-                      "Exclusive Clubs"
-                    ] }) }),
-                    /* @__PURE__ */ jsx("p", { className: "mt-2.5 max-w-[15rem] text-sm leading-relaxed text-white/75", children: pickCopy(locale, { en: "Access the world's best venues with BOKMOO.", hans: "\u4E0E BOKMOO \u901A\u884C\u5168\u7403\u9876\u7EA7\u573A\u6240\u3002", hant: "\u8207 BOKMOO \u901A\u884C\u5168\u7403\u9802\u7D1A\u5834\u6240\u3002" }) }),
+                    /* @__PURE__ */ jsx("h3", { className: "text-[1.55rem] font-bold leading-tight text-white", children: pickCopy(locale, { en: "Explore destination eSIMs", hans: "\u63A2\u7D22\u76EE\u7684\u5730 eSIM", hant: "\u63A2\u7D22\u76EE\u7684\u5730 eSIM" }) }),
+                    /* @__PURE__ */ jsx("p", { className: "mt-2.5 max-w-[15rem] text-sm leading-relaxed text-white/75", children: pickCopy(locale, { en: "One eSIM for the whole trip \u2014 pick your destinations and go.", hans: "\u4E00\u5F20 eSIM \u8D70\u5B8C\u884C\u7A0B\u2014\u2014\u9009\u597D\u76EE\u7684\u5730\uFF0C\u51FA\u53D1\u5373\u53EF\u3002", hant: "\u4E00\u5F35 eSIM \u8D70\u5B8C\u6574\u8D9F\u65C5\u7A0B\u2014\u2014\u9078\u597D\u76EE\u7684\u5730\uFF0C\u51FA\u767C\u5373\u53EF\u3002" }) }),
                     /* @__PURE__ */ jsxs("span", { className: "mt-auto inline-flex items-center gap-1.5 self-start rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--esim-gold)_86%,white),color-mix(in_oklab,var(--esim-gold)_70%,black))] px-5 py-2.5 text-[0.8rem] font-bold text-[var(--esim-bg)] transition-transform duration-300 group-hover:-translate-y-0.5", children: [
                       pickCopy(locale, { en: "Explore Now", hans: "\u7ACB\u5373\u63A2\u7D22", hant: "\u7ACB\u5373\u63A2\u7D22" }),
                       /* @__PURE__ */ jsx(ArrowRight, { className: "h-4 w-4" })
@@ -12667,12 +15077,12 @@
                 /* @__PURE__ */ jsx(Crown, { className: "h-5 w-5 text-[var(--esim-gold)]" }),
                 /* @__PURE__ */ jsx("h3", { className: "text-[1.05rem] font-bold tracking-tight text-[var(--esim-ink)]", children: pickCopy(locale, { en: "BOKMOO Member Benefits", hans: "BOKMOO \u4F1A\u5458\u6743\u76CA", hant: "BOKMOO \u6703\u54E1\u6B0A\u76CA" }) })
               ] }),
-              /* @__PURE__ */ jsx("ul", { className: "mt-5 space-y-3.5", children: (locale === "zh-Hant" ? ["\u5168\u7403\u9802\u7D1A\u6703\u6240\u901A\u884C", "\u6703\u54E1\u5C08\u5C6C\u512A\u60E0", "\u8F15\u9B06\u9810\u8A02\uFF0C\u5373\u6642\u78BA\u8A8D", "\u5C08\u5C6C\u652F\u63F4"] : locale === "zh-Hans" ? ["\u5168\u7403\u9876\u7EA7\u4F1A\u6240\u901A\u884C", "\u4F1A\u5458\u4E13\u5C5E\u4F18\u60E0", "\u8F7B\u677E\u9884\u8BA2\uFF0C\u5373\u65F6\u786E\u8BA4", "\u4E13\u5C5E\u652F\u63F4"] : [
-                "Access to premier clubs worldwide",
-                "Exclusive member-only offers",
-                "Easy booking and instant confirmation",
-                "Dedicated support"
-              ]).map((benefit) => /* @__PURE__ */ jsxs("li", { className: "flex items-start gap-3", children: [
+              /* @__PURE__ */ jsx("ul", { className: "mt-5 space-y-3.5", children: [
+                { en: "Instant QR delivery after payment", hans: "\u4ED8\u6B3E\u540E\u5373\u65F6\u53D1\u653E", hant: "\u4ED8\u6B3E\u5F8C\u5373\u6642\u767C\u653E" },
+                { en: "No physical SIM swap", hans: "\u65E0\u9700\u66F4\u6362\u5B9E\u4F53 SIM \u5361", hant: "\u7121\u9700\u66F4\u63DB\u5BE6\u9AD4 SIM \u5361" },
+                { en: "24/7 travel support", hans: "24/7 \u65C5\u9014\u652F\u6301", hant: "24/7 \u65C5\u9014\u652F\u63F4" },
+                { en: "Full refund if not activated", hans: "\u672A\u6FC0\u6D3B\u53EF\u5168\u989D\u9000\u6B3E", hant: "\u672A\u555F\u7528\u53EF\u5168\u984D\u9000\u6B3E" }
+              ].map((benefit) => pickCopy(locale, benefit)).map((benefit) => /* @__PURE__ */ jsxs("li", { className: "flex items-start gap-3", children: [
                 /* @__PURE__ */ jsx(Check, { className: "mt-0.5 h-4 w-4 shrink-0 text-[var(--esim-gold)]" }),
                 /* @__PURE__ */ jsx("span", { className: "text-sm leading-relaxed text-[var(--esim-copy)]", children: benefit })
               ] }, benefit)) })
@@ -12714,16 +15124,27 @@
     ] });
   });
 
-  // packages/shop-themes/esim/src/components/AuthCallbackPage.tsx
+  // src/components/AuthCallbackPage.tsx
   var FOCUS_VISIBLE_RING = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--esim-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--esim-bg)]";
   function AuthCallbackPage({
     isLoading,
     error,
     config,
+    locale,
     onRetry,
     onNavigateToHome
   }) {
-    const site = resolveEsimSiteConfig(config);
+    const site = resolveEsimSiteConfig(config, locale);
+    const t = (copy) => pickCopy(locale, copy);
+    const accountLabel = pickCopy(locale, {
+      en: `${site.brandName.toUpperCase()} account`,
+      hans: `${site.brandName.toUpperCase()} \u8D26\u6237`,
+      hant: `${site.brandName.toUpperCase()} \u5E33\u6236`,
+      ja: `${site.brandName.toUpperCase()} \u30A2\u30AB\u30A6\u30F3\u30C8`,
+      ko: `${site.brandName.toUpperCase()} \uACC4\uC815`,
+      fr: `Compte ${site.brandName.toUpperCase()}`,
+      de: `${site.brandName.toUpperCase()}-Konto`
+    });
     return /* @__PURE__ */ jsxs("div", { className: "relative flex min-h-screen items-center justify-center overflow-hidden bg-[var(--esim-bg)] px-4 py-12 text-[var(--esim-ink)]", children: [
       /* @__PURE__ */ jsxs("div", { className: "pointer-events-none absolute inset-0", children: [
         /* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,color-mix(in_oklab,var(--esim-gold)_18%,transparent),transparent_26%),linear-gradient(180deg,var(--esim-bg),color-mix(in_oklab,var(--esim-bg)_84%,black))]" }),
@@ -12731,12 +15152,9 @@
       ] }),
       /* @__PURE__ */ jsx("section", { className: "relative w-full max-w-[30rem] rounded-[1.45rem] border border-[color:color-mix(in_oklab,var(--esim-gold)_22%,transparent)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--esim-bg-elevated)_94%,white),var(--esim-bg-elevated))] p-5 shadow-[var(--esim-shadow)] sm:p-7", children: /* @__PURE__ */ jsxs("div", { className: "rounded-[1.1rem] border border-[var(--esim-line)] bg-[color:oklch(0.055_0.006_75_/_0.78)] p-6 text-center", children: [
         /* @__PURE__ */ jsx("div", { className: "mx-auto flex h-16 w-16 items-center justify-center rounded-[1rem] border border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-gold)_12%,transparent)] text-[var(--esim-gold)]", children: error ? /* @__PURE__ */ jsx(TriangleAlert, { className: "h-7 w-7" }) : isLoading ? /* @__PURE__ */ jsx(LoaderCircle, { className: "h-7 w-7 animate-spin" }) : /* @__PURE__ */ jsx(ShieldCheck, { className: "h-7 w-7" }) }),
-        /* @__PURE__ */ jsxs("p", { className: "mt-6 text-[11px] font-bold uppercase tracking-[0.24em] text-[var(--esim-gold)]", children: [
-          site.brandName.toUpperCase(),
-          " account"
-        ] }),
-        /* @__PURE__ */ jsx("h1", { className: "mt-3 text-3xl font-semibold leading-none tracking-[-0.05em] text-[var(--esim-ink)]", children: error ? "Authentication failed" : "Completing sign in" }),
-        /* @__PURE__ */ jsx("p", { className: "mt-4 text-sm leading-6 text-[var(--esim-copy)]", children: error || "Securing your session and returning you to the BOKMOO storefront." }),
+        /* @__PURE__ */ jsx("p", { className: "mt-6 text-[11px] font-bold uppercase tracking-[0.24em] text-[var(--esim-gold)]", children: accountLabel }),
+        /* @__PURE__ */ jsx("h1", { className: "mt-3 text-3xl font-semibold leading-none tracking-[-0.05em] text-[var(--esim-ink)]", children: error ? t({ en: "Authentication failed", hans: "\u8EAB\u4EFD\u9A8C\u8BC1\u5931\u8D25", hant: "\u8EAB\u5206\u9A57\u8B49\u5931\u6557" }) : t({ en: "Completing sign in", hans: "\u6B63\u5728\u5B8C\u6210\u767B\u5F55", hant: "\u6B63\u5728\u5B8C\u6210\u767B\u5165" }) }),
+        /* @__PURE__ */ jsx("p", { className: "mt-4 text-sm leading-6 text-[var(--esim-copy)]", children: error || t({ en: "Securing your session and returning you to the BOKMOO storefront.", hans: "\u6B63\u5728\u4FDD\u62A4\u60A8\u7684\u767B\u5F55\u4F1A\u8BDD\uFF0C\u5373\u5C06\u8FD4\u56DE BOKMOO \u5546\u57CE\u3002", hant: "\u6B63\u5728\u4FDD\u8B77\u60A8\u7684\u767B\u5165\u5DE5\u4F5C\u968E\u6BB5\uFF0C\u5373\u5C07\u8FD4\u56DE BOKMOO \u5546\u57CE\u3002" }) }),
         /* @__PURE__ */ jsxs("div", { className: "mt-7 grid gap-3 sm:grid-cols-2", children: [
           /* @__PURE__ */ jsx(
             "button",
@@ -12744,7 +15162,7 @@
               type: "button",
               onClick: onRetry,
               className: `inline-flex min-h-12 items-center justify-center rounded-[0.95rem] border border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_86%,black)] px-4 text-sm font-semibold text-[var(--esim-ink)] transition-colors hover:border-[var(--esim-gold)] hover:text-[var(--esim-gold)] ${FOCUS_VISIBLE_RING}`,
-              children: "Back to sign in"
+              children: t({ en: "Back to sign in", hans: "\u8FD4\u56DE\u767B\u5F55", hant: "\u8FD4\u56DE\u767B\u5165" })
             }
           ),
           /* @__PURE__ */ jsx(
@@ -12753,7 +15171,7 @@
               type: "button",
               onClick: onNavigateToHome,
               className: `inline-flex min-h-12 items-center justify-center rounded-[0.95rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--esim-gold)_88%,white),color-mix(in_oklab,var(--esim-gold)_64%,black))] px-4 text-sm font-black uppercase tracking-[0.16em] text-[var(--esim-bg)] ${FOCUS_VISIBLE_RING}`,
-              children: "Home"
+              children: t({ en: "Home", hans: "\u9996\u9875", hant: "\u9996\u9801" })
             }
           )
         ] })
@@ -12761,7 +15179,7 @@
     ] });
   }
 
-  // packages/shop-themes/esim/src/components/AffiliatePage.tsx
+  // src/components/AffiliatePage.tsx
   function money(items) {
     const total = items.reduce((sum, item) => sum + Number(item.amount || 0), 0);
     return `${items[0]?.currency || "USD"} ${total.toFixed(2)}`;
@@ -12780,7 +15198,7 @@
     onNavigateBack,
     onNavigateToLogin
   }) {
-    const site = resolveEsimSiteConfig(config);
+    const site = resolveEsimSiteConfig(config, locale);
     const api = react_default.useMemo(() => ({ baseUrl: site.apiBaseUrl }), [site.apiBaseUrl]);
     const [view2, setView] = react_default.useState("partner");
     const [partner, setPartner] = react_default.useState(null);
@@ -12796,6 +15214,7 @@
     const [organizationRate, setOrganizationRate] = react_default.useState("2.5");
     const [memberEmail, setMemberEmail] = react_default.useState("");
     const [memberRole, setMemberRole] = react_default.useState("INFLUENCER");
+    const t = (copy) => pickCopy(locale, copy);
     const refresh = react_default.useCallback(async () => {
       if (!isAuthenticated) return;
       setLoading(true);
@@ -12814,16 +15233,16 @@
         setPartner(partnerResult.value[0]);
         setCommissions(partnerResult.value[1]);
       } else if (!(partnerResult.reason instanceof EsimApiError && partnerResult.reason.status === 404)) {
-        setError(partnerResult.reason instanceof Error ? partnerResult.reason.message : "Affiliate data could not be loaded");
+        setError(partnerResult.reason instanceof Error ? partnerResult.reason.message : pickCopy(locale, { en: "Affiliate data could not be loaded", hans: "\u8054\u76DF\u63A8\u5E7F\u6570\u636E\u52A0\u8F7D\u5931\u8D25", hant: "\u806F\u76DF\u63A8\u5EE3\u8CC7\u6599\u8F09\u5165\u5931\u6557" }));
       }
       if (organizationResult.status === "fulfilled") {
         setOrganization(organizationResult.value[0]);
         setOrganizationCommissions(organizationResult.value[1]);
       } else if (!(organizationResult.reason instanceof EsimApiError && organizationResult.reason.status === 404)) {
-        setError(organizationResult.reason instanceof Error ? organizationResult.reason.message : "Organization data could not be loaded");
+        setError(organizationResult.reason instanceof Error ? organizationResult.reason.message : pickCopy(locale, { en: "Organization data could not be loaded", hans: "\u7EC4\u7EC7\u6570\u636E\u52A0\u8F7D\u5931\u8D25", hant: "\u7D44\u7E54\u8CC7\u6599\u8F09\u5165\u5931\u6557" }));
       }
       setLoading(false);
-    }, [api, isAuthenticated]);
+    }, [api, isAuthenticated, locale]);
     react_default.useEffect(() => {
       void refresh();
     }, [refresh]);
@@ -12831,25 +15250,25 @@
     if (!isAuthenticated) {
       return /* @__PURE__ */ jsx("div", { className: "flex min-h-screen items-center justify-center bg-[var(--esim-bg)] px-5", children: /* @__PURE__ */ jsxs("div", { className: "max-w-md border-y border-[var(--esim-line)] py-10 text-center", children: [
         /* @__PURE__ */ jsx(WalletCards, { className: "mx-auto h-7 w-7 text-[var(--esim-gold)]" }),
-        /* @__PURE__ */ jsx("h1", { className: "mt-5 text-3xl text-[var(--esim-ink)]", children: "Affiliate workspace" }),
-        /* @__PURE__ */ jsx("button", { onClick: onNavigateToLogin, className: "mt-7 min-h-11 bg-[var(--esim-gold)] px-6 text-sm font-semibold text-[var(--esim-bg)]", type: "button", children: "Sign in" })
+        /* @__PURE__ */ jsx("h1", { className: "mt-5 text-3xl text-[var(--esim-ink)]", children: t({ en: "Affiliate workspace", hans: "\u8054\u76DF\u63A8\u5E7F\u5DE5\u4F5C\u53F0", hant: "\u806F\u76DF\u63A8\u5EE3\u5DE5\u4F5C\u53F0" }) }),
+        /* @__PURE__ */ jsx("button", { onClick: onNavigateToLogin, className: "mt-7 min-h-11 bg-[var(--esim-gold)] px-6 text-sm font-semibold text-[var(--esim-bg)]", type: "button", children: t({ en: "Sign In", hans: "\u767B\u5165", hant: "\u767B\u5165" }) })
       ] }) });
     }
     const shareUrl = partner && typeof window !== "undefined" ? `${window.location.origin}/${locale || "en"}/r/${encodeURIComponent(partner.code)}` : "";
     return /* @__PURE__ */ jsx("main", { className: "min-h-screen bg-[var(--esim-bg)] px-4 pb-20 pt-20 sm:px-6 lg:px-8", children: /* @__PURE__ */ jsxs("div", { className: "mx-auto max-w-6xl", children: [
       /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap items-center justify-between gap-4 border-b border-[var(--esim-line)] pb-6", children: [
-        /* @__PURE__ */ jsx("button", { onClick: onNavigateBack, className: "inline-flex h-10 w-10 items-center justify-center border border-[var(--esim-line)] text-[var(--esim-copy)]", "aria-label": "Back", type: "button", children: /* @__PURE__ */ jsx(ArrowLeft, { className: "h-4 w-4" }) }),
-        /* @__PURE__ */ jsxs("div", { className: "flex border border-[var(--esim-line)] p-1", role: "tablist", "aria-label": "Affiliate view", children: [
-          /* @__PURE__ */ jsx("button", { onClick: () => setView("partner"), className: `min-h-9 px-4 text-xs font-semibold ${view2 === "partner" ? "bg-[var(--esim-gold)] text-[var(--esim-bg)]" : "text-[var(--esim-copy)]"}`, type: "button", children: "Partner" }),
-          /* @__PURE__ */ jsx("button", { onClick: () => setView("organization"), className: `min-h-9 px-4 text-xs font-semibold ${view2 === "organization" ? "bg-[var(--esim-gold)] text-[var(--esim-bg)]" : "text-[var(--esim-copy)]"}`, type: "button", children: "Organization" })
+        /* @__PURE__ */ jsx("button", { onClick: onNavigateBack, className: "inline-flex h-10 w-10 items-center justify-center border border-[var(--esim-line)] text-[var(--esim-copy)]", "aria-label": t({ en: "Back", hans: "\u8FD4\u56DE", hant: "\u8FD4\u56DE" }), type: "button", children: /* @__PURE__ */ jsx(ArrowLeft, { className: "h-4 w-4" }) }),
+        /* @__PURE__ */ jsxs("div", { className: "flex border border-[var(--esim-line)] p-1", role: "tablist", "aria-label": t({ en: "Affiliate view", hans: "\u8054\u76DF\u89C6\u56FE", hant: "\u806F\u76DF\u6AA2\u8996" }), children: [
+          /* @__PURE__ */ jsx("button", { onClick: () => setView("partner"), className: `min-h-9 px-4 text-xs font-semibold ${view2 === "partner" ? "bg-[var(--esim-gold)] text-[var(--esim-bg)]" : "text-[var(--esim-copy)]"}`, type: "button", children: t({ en: "Partner", hans: "\u4E2A\u4EBA\u63A8\u5E7F", hant: "\u500B\u4EBA\u63A8\u5EE3" }) }),
+          /* @__PURE__ */ jsx("button", { onClick: () => setView("organization"), className: `min-h-9 px-4 text-xs font-semibold ${view2 === "organization" ? "bg-[var(--esim-gold)] text-[var(--esim-bg)]" : "text-[var(--esim-copy)]"}`, type: "button", children: t({ en: "Organization", hans: "\u7EC4\u7EC7", hant: "\u7D44\u7E54" }) })
         ] }),
-        /* @__PURE__ */ jsx("button", { onClick: () => void refresh(), className: "inline-flex h-10 w-10 items-center justify-center border border-[var(--esim-line)] text-[var(--esim-copy)]", "aria-label": "Refresh", type: "button", children: /* @__PURE__ */ jsx(RefreshCw, { className: `h-4 w-4 ${loading ? "animate-spin" : ""}` }) })
+        /* @__PURE__ */ jsx("button", { onClick: () => void refresh(), className: "inline-flex h-10 w-10 items-center justify-center border border-[var(--esim-line)] text-[var(--esim-copy)]", "aria-label": t({ en: "Refresh", hans: "\u5237\u65B0", hant: "\u91CD\u65B0\u6574\u7406" }), type: "button", children: /* @__PURE__ */ jsx(RefreshCw, { className: `h-4 w-4 ${loading ? "animate-spin" : ""}` }) })
       ] }),
       error ? /* @__PURE__ */ jsx("div", { className: "mt-5 border border-[color:color-mix(in_oklab,var(--esim-danger)_55%,transparent)] bg-[color:color-mix(in_oklab,var(--esim-danger)_10%,transparent)] px-4 py-3 text-sm text-[var(--esim-ink)]", children: error }) : null,
       view2 === "partner" ? /* @__PURE__ */ jsx("section", { className: "pt-10", children: /* @__PURE__ */ jsxs("div", { className: "grid gap-8 lg:grid-cols-[1.1fr_0.9fr]", children: [
         /* @__PURE__ */ jsxs("div", { children: [
-          /* @__PURE__ */ jsx("p", { className: "text-xs font-semibold uppercase text-[var(--esim-copy-soft)]", children: "Personal affiliate" }),
-          /* @__PURE__ */ jsx("h1", { className: "mt-3 max-w-2xl text-4xl text-[var(--esim-ink)] sm:text-5xl", children: "Your referral ledger." }),
+          /* @__PURE__ */ jsx("p", { className: "text-xs font-semibold uppercase text-[var(--esim-copy-soft)]", children: t({ en: "Personal affiliate", hans: "\u4E2A\u4EBA\u63A8\u5E7F", hant: "\u500B\u4EBA\u63A8\u5EE3" }) }),
+          /* @__PURE__ */ jsx("h1", { className: "mt-3 max-w-2xl text-4xl text-[var(--esim-ink)] sm:text-5xl", children: t({ en: "Your referral ledger.", hans: "\u4F60\u7684\u63A8\u5E7F\u4F63\u91D1\u8D26\u672C\u3002", hant: "\u4F60\u7684\u63A8\u5EE3\u4F63\u91D1\u5E33\u672C\u3002" }) }),
           partner ? /* @__PURE__ */ jsxs("div", { className: "mt-10 border-y border-[var(--esim-line)] py-6", children: [
             /* @__PURE__ */ jsxs("div", { className: "flex flex-col gap-3 sm:flex-row", children: [
               /* @__PURE__ */ jsx("div", { className: "min-w-0 flex-1 border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-4 py-3 text-sm text-[var(--esim-copy)]", children: /* @__PURE__ */ jsx("span", { className: "block truncate", children: shareUrl }) }),
@@ -12859,24 +15278,24 @@
                 window.setTimeout(() => setCopied(false), 1600);
               }, className: "inline-flex min-h-11 items-center justify-center gap-2 bg-[var(--esim-gold)] px-5 text-sm font-semibold text-[var(--esim-bg)]", type: "button", children: [
                 copied ? /* @__PURE__ */ jsx(Check, { className: "h-4 w-4" }) : /* @__PURE__ */ jsx(Copy, { className: "h-4 w-4" }),
-                copied ? "Copied" : "Copy link"
+                copied ? t({ en: "Copied", hans: "\u5DF2\u590D\u5236", hant: "\u5DF2\u8907\u88FD" }) : t({ en: "Copy link", hans: "\u590D\u5236\u94FE\u63A5", hant: "\u8907\u88FD\u9023\u7D50" })
               ] })
             ] }),
             /* @__PURE__ */ jsxs("div", { className: "mt-5 flex flex-wrap gap-x-10 gap-y-4 text-sm", children: [
               /* @__PURE__ */ jsxs("span", { children: [
                 /* @__PURE__ */ jsx("b", { className: "text-2xl text-[var(--esim-ink)]", children: money(commissions) }),
-                /* @__PURE__ */ jsx("small", { className: "ml-2 text-[var(--esim-copy-soft)]", children: "earned" })
+                /* @__PURE__ */ jsx("small", { className: "ml-2 text-[var(--esim-copy-soft)]", children: t({ en: "Earned", hans: "\u7D2F\u8BA1\u6536\u76CA", hant: "\u7D2F\u8A08\u6536\u76CA" }) })
               ] }),
               /* @__PURE__ */ jsxs("span", { children: [
                 /* @__PURE__ */ jsxs("b", { className: "text-2xl text-[var(--esim-ink)]", children: [
                   partner.commissionRate,
                   "%"
                 ] }),
-                /* @__PURE__ */ jsx("small", { className: "ml-2 text-[var(--esim-copy-soft)]", children: "rate" })
+                /* @__PURE__ */ jsx("small", { className: "ml-2 text-[var(--esim-copy-soft)]", children: t({ en: "Rate", hans: "\u4F63\u91D1\u6BD4\u4F8B", hant: "\u4F63\u91D1\u6BD4\u4F8B" }) })
               ] }),
               /* @__PURE__ */ jsxs("span", { children: [
                 /* @__PURE__ */ jsx("b", { className: "text-2xl text-[var(--esim-ink)]", children: commissions.length }),
-                /* @__PURE__ */ jsx("small", { className: "ml-2 text-[var(--esim-copy-soft)]", children: "orders" })
+                /* @__PURE__ */ jsx("small", { className: "ml-2 text-[var(--esim-copy-soft)]", children: t({ en: "Orders", hans: "\u8BA2\u5355", hant: "\u8A02\u55AE" }) })
               ] })
             ] })
           ] }) : /* @__PURE__ */ jsxs("form", { onSubmit: async (event) => {
@@ -12887,21 +15306,21 @@
               await registerEsimAffiliatePartner(api, { displayName, organizationCode: organizationCode || void 0 });
               await refresh();
             } catch (cause) {
-              setError(cause instanceof Error ? cause.message : "Registration failed");
+              setError(cause instanceof Error ? cause.message : t({ en: "Registration failed", hans: "\u6CE8\u518C\u5931\u8D25", hant: "\u8A3B\u518A\u5931\u6557" }));
             } finally {
               setLoading(false);
             }
           }, className: "mt-10 grid max-w-xl gap-4 border-y border-[var(--esim-line)] py-7", children: [
-            /* @__PURE__ */ jsx("input", { value: displayName, onChange: (event) => setDisplayName(event.target.value), placeholder: "Display name", required: true, className: "h-12 border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-4 text-sm text-[var(--esim-ink)] outline-none" }),
-            /* @__PURE__ */ jsx("input", { value: organizationCode, onChange: (event) => setOrganizationCode(event.target.value.toUpperCase()), placeholder: "Organization code (optional)", className: "h-12 border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-4 text-sm text-[var(--esim-ink)] outline-none" }),
-            /* @__PURE__ */ jsx("button", { disabled: loading, className: "min-h-12 bg-[var(--esim-gold)] px-5 text-sm font-semibold text-[var(--esim-bg)] disabled:opacity-50", type: "submit", children: "Create affiliate account" })
+            /* @__PURE__ */ jsx("input", { value: displayName, onChange: (event) => setDisplayName(event.target.value), placeholder: t({ en: "Display name", hans: "\u663E\u793A\u540D\u79F0", hant: "\u986F\u793A\u540D\u7A31" }), required: true, className: "h-12 border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-4 text-sm text-[var(--esim-ink)] outline-none" }),
+            /* @__PURE__ */ jsx("input", { value: organizationCode, onChange: (event) => setOrganizationCode(event.target.value.toUpperCase()), placeholder: t({ en: "Organization code (optional)", hans: "\u7EC4\u7EC7\u7F16\u7801\uFF08\u53EF\u9009\uFF09", hant: "\u7D44\u7E54\u7DE8\u78BC\uFF08\u9078\u586B\uFF09" }), className: "h-12 border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-4 text-sm text-[var(--esim-ink)] outline-none" }),
+            /* @__PURE__ */ jsx("button", { disabled: loading, className: "min-h-12 bg-[var(--esim-gold)] px-5 text-sm font-semibold text-[var(--esim-bg)] disabled:opacity-50", type: "submit", children: t({ en: "Create affiliate account", hans: "\u521B\u5EFA\u63A8\u5E7F\u8D26\u53F7", hant: "\u5EFA\u7ACB\u63A8\u5EE3\u5E33\u865F" }) })
           ] })
         ] }),
-        /* @__PURE__ */ jsx(CommissionList, { items: commissions, title: "Partner commissions" })
+        /* @__PURE__ */ jsx(CommissionList, { items: commissions, title: t({ en: "Partner commissions", hans: "\u4E2A\u4EBA\u63A8\u5E7F\u4F63\u91D1", hant: "\u500B\u4EBA\u63A8\u5EE3\u4F63\u91D1" }), locale })
       ] }) }) : /* @__PURE__ */ jsx("section", { className: "pt-10", children: /* @__PURE__ */ jsxs("div", { className: "grid gap-8 lg:grid-cols-[1.1fr_0.9fr]", children: [
         /* @__PURE__ */ jsxs("div", { children: [
-          /* @__PURE__ */ jsx("p", { className: "text-xs font-semibold uppercase text-[var(--esim-copy-soft)]", children: "Organization affiliate" }),
-          /* @__PURE__ */ jsx("h1", { className: "mt-3 max-w-2xl text-4xl text-[var(--esim-ink)] sm:text-5xl", children: "Creator network." }),
+          /* @__PURE__ */ jsx("p", { className: "text-xs font-semibold uppercase text-[var(--esim-copy-soft)]", children: t({ en: "Organization affiliate", hans: "\u7EC4\u7EC7\u63A8\u5E7F", hant: "\u7D44\u7E54\u63A8\u5EE3" }) }),
+          /* @__PURE__ */ jsx("h1", { className: "mt-3 max-w-2xl text-4xl text-[var(--esim-ink)] sm:text-5xl", children: t({ en: "Creator network.", hans: "\u521B\u4F5C\u8005\u7F51\u7EDC\u3002", hant: "\u5275\u4F5C\u8005\u7DB2\u7D61\u3002" }) }),
           organization ? /* @__PURE__ */ jsxs("div", { className: "mt-9", children: [
             /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap items-end justify-between gap-5 border-y border-[var(--esim-line)] py-6", children: [
               /* @__PURE__ */ jsxs("div", { children: [
@@ -12912,7 +15331,8 @@
                 /* @__PURE__ */ jsx("p", { className: "text-2xl font-semibold text-[var(--esim-ink)]", children: money(organizationCommissions) }),
                 /* @__PURE__ */ jsxs("p", { className: "text-xs text-[var(--esim-copy-soft)]", children: [
                   organization.commissionRate,
-                  "% organization rate"
+                  "% ",
+                  t({ en: "organization rate", hans: "\u7EC4\u7EC7\u4F63\u91D1\u6BD4\u4F8B", hant: "\u7D44\u7E54\u4F63\u91D1\u6BD4\u4F8B" })
                 ] })
               ] })
             ] }),
@@ -12925,19 +15345,19 @@
                 setMemberEmail("");
                 await refresh();
               } catch (cause) {
-                setError(cause instanceof Error ? cause.message : "Member could not be added");
+                setError(cause instanceof Error ? cause.message : t({ en: "Member could not be added", hans: "\u6210\u5458\u6DFB\u52A0\u5931\u8D25", hant: "\u6210\u54E1\u65B0\u589E\u5931\u6557" }));
               } finally {
                 setLoading(false);
               }
             }, className: "mt-7 flex flex-col gap-3 sm:flex-row", children: [
-              /* @__PURE__ */ jsx("input", { type: "email", value: memberEmail, onChange: (event) => setMemberEmail(event.target.value), placeholder: "Member email", required: true, className: "h-11 min-w-0 flex-1 border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-4 text-sm text-[var(--esim-ink)] outline-none" }),
+              /* @__PURE__ */ jsx("input", { type: "email", value: memberEmail, onChange: (event) => setMemberEmail(event.target.value), placeholder: t({ en: "Member email", hans: "\u6210\u5458\u90AE\u7BB1", hant: "\u6210\u54E1\u4FE1\u7BB1" }), required: true, className: "h-11 min-w-0 flex-1 border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-4 text-sm text-[var(--esim-ink)] outline-none" }),
               /* @__PURE__ */ jsxs("select", { value: memberRole, onChange: (event) => setMemberRole(event.target.value), className: "h-11 border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-3 text-sm text-[var(--esim-ink)]", children: [
-                /* @__PURE__ */ jsx("option", { value: "INFLUENCER", children: "Influencer" }),
-                /* @__PURE__ */ jsx("option", { value: "MANAGER", children: "Manager" })
+                /* @__PURE__ */ jsx("option", { value: "INFLUENCER", children: t({ en: "Influencer", hans: "\u8FBE\u4EBA", hant: "\u9054\u4EBA" }) }),
+                /* @__PURE__ */ jsx("option", { value: "MANAGER", children: t({ en: "Manager", hans: "\u7BA1\u7406\u5458", hant: "\u7BA1\u7406\u54E1" }) })
               ] }),
               /* @__PURE__ */ jsxs("button", { className: "inline-flex h-11 items-center justify-center gap-2 bg-[var(--esim-gold)] px-5 text-sm font-semibold text-[var(--esim-bg)]", type: "submit", children: [
                 /* @__PURE__ */ jsx(UserPlus, { className: "h-4 w-4" }),
-                "Add"
+                t({ en: "Add", hans: "\u6DFB\u52A0", hant: "\u65B0\u589E" })
               ] })
             ] }),
             /* @__PURE__ */ jsx("div", { className: "mt-7 divide-y divide-[var(--esim-line)] border-y border-[var(--esim-line)]", children: organization.members.map((member) => /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between gap-4 py-4", children: [
@@ -12945,7 +15365,7 @@
                 /* @__PURE__ */ jsx("p", { className: "truncate text-sm font-semibold text-[var(--esim-ink)]", children: member.username || member.email }),
                 /* @__PURE__ */ jsx("p", { className: "mt-1 truncate text-xs text-[var(--esim-copy-soft)]", children: member.email })
               ] }),
-              /* @__PURE__ */ jsx("span", { className: "text-xs font-semibold text-[var(--esim-gold)]", children: member.role })
+              /* @__PURE__ */ jsx("span", { className: "text-xs font-semibold text-[var(--esim-gold)]", children: member.role === "MANAGER" ? t({ en: "Manager", hans: "\u7BA1\u7406\u5458", hant: "\u7BA1\u7406\u54E1" }) : t({ en: "Influencer", hans: "\u8FBE\u4EBA", hant: "\u9054\u4EBA" }) })
             ] }, member.id)) })
           ] }) : /* @__PURE__ */ jsxs("form", { onSubmit: async (event) => {
             event.preventDefault();
@@ -12955,27 +15375,37 @@
               await createEsimAffiliateOrganization(api, { name: organizationName, commissionRate: Number(organizationRate) });
               await refresh();
             } catch (cause) {
-              setError(cause instanceof Error ? cause.message : "Organization could not be created");
+              setError(cause instanceof Error ? cause.message : t({ en: "Organization could not be created", hans: "\u7EC4\u7EC7\u521B\u5EFA\u5931\u8D25", hant: "\u7D44\u7E54\u5EFA\u7ACB\u5931\u6557" }));
             } finally {
               setLoading(false);
             }
           }, className: "mt-10 grid max-w-xl gap-4 border-y border-[var(--esim-line)] py-7", children: [
-            /* @__PURE__ */ jsx("input", { value: organizationName, onChange: (event) => setOrganizationName(event.target.value), placeholder: "Organization name", required: true, className: "h-12 border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-4 text-sm text-[var(--esim-ink)] outline-none" }),
+            /* @__PURE__ */ jsx("input", { value: organizationName, onChange: (event) => setOrganizationName(event.target.value), placeholder: t({ en: "Organization name", hans: "\u7EC4\u7EC7\u540D\u79F0", hant: "\u7D44\u7E54\u540D\u7A31" }), required: true, className: "h-12 border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-4 text-sm text-[var(--esim-ink)] outline-none" }),
             /* @__PURE__ */ jsxs("label", { className: "flex items-center gap-4", children: [
-              /* @__PURE__ */ jsx("span", { className: "text-sm text-[var(--esim-copy)]", children: "Commission rate" }),
+              /* @__PURE__ */ jsx("span", { className: "text-sm text-[var(--esim-copy)]", children: t({ en: "Commission rate", hans: "\u4F63\u91D1\u6BD4\u4F8B", hant: "\u4F63\u91D1\u6BD4\u4F8B" }) }),
               /* @__PURE__ */ jsx("input", { type: "number", min: "0", max: "90", step: "0.1", value: organizationRate, onChange: (event) => setOrganizationRate(event.target.value), className: "h-12 w-28 border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-4 text-sm text-[var(--esim-ink)] outline-none" })
             ] }),
             /* @__PURE__ */ jsxs("button", { disabled: loading, className: "inline-flex min-h-12 items-center justify-center gap-2 bg-[var(--esim-gold)] px-5 text-sm font-semibold text-[var(--esim-bg)] disabled:opacity-50", type: "submit", children: [
               /* @__PURE__ */ jsx(Plus, { className: "h-4 w-4" }),
-              "Create organization"
+              t({ en: "Create organization", hans: "\u521B\u5EFA\u7EC4\u7EC7", hant: "\u5EFA\u7ACB\u7D44\u7E54" })
             ] })
           ] })
         ] }),
-        /* @__PURE__ */ jsx(CommissionList, { items: organizationCommissions, title: "Organization commissions" })
+        /* @__PURE__ */ jsx(CommissionList, { items: organizationCommissions, title: t({ en: "Organization commissions", hans: "\u7EC4\u7EC7\u4F63\u91D1", hant: "\u7D44\u7E54\u4F63\u91D1" }), locale })
       ] }) })
     ] }) });
   });
-  function CommissionList({ items, title }) {
+  function commissionStatus(status, locale) {
+    const copy = {
+      pending: { en: "Pending", hans: "\u5F85\u7ED3\u7B97", hant: "\u5F85\u7D50\u7B97" },
+      approved: { en: "Approved", hans: "\u5DF2\u6279\u51C6", hant: "\u5DF2\u6279\u51C6" },
+      paid: { en: "Paid", hans: "\u5DF2\u7ED3\u7B97", hant: "\u5DF2\u7D50\u7B97" },
+      cancelled: { en: "Cancelled", hans: "\u5DF2\u53D6\u6D88", hant: "\u5DF2\u53D6\u6D88" }
+    };
+    return copy[String(status).toLowerCase()] ? pickCopy(locale, copy[String(status).toLowerCase()]) : String(status);
+  }
+  function CommissionList({ items, title, locale }) {
+    const t = (copy) => pickCopy(locale, copy);
     return /* @__PURE__ */ jsxs("aside", { className: "border-l border-[var(--esim-line)] pl-0 lg:pl-8", children: [
       /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3", children: [
         /* @__PURE__ */ jsx(Link2, { className: "h-4 w-4 text-[var(--esim-gold)]" }),
@@ -12984,7 +15414,7 @@
       /* @__PURE__ */ jsx("div", { className: "mt-5 divide-y divide-[var(--esim-line)] border-y border-[var(--esim-line)]", children: items.length ? items.map((item) => /* @__PURE__ */ jsxs("div", { className: "grid grid-cols-[1fr_auto] gap-4 py-4", children: [
         /* @__PURE__ */ jsxs("div", { className: "min-w-0", children: [
           /* @__PURE__ */ jsx("p", { className: "truncate text-sm text-[var(--esim-ink)]", children: orderId(item) }),
-          /* @__PURE__ */ jsx("p", { className: "mt-1 text-xs text-[var(--esim-copy-soft)]", children: createdAt(item) ? new Date(createdAt(item)).toLocaleDateString() : item.status })
+          /* @__PURE__ */ jsx("p", { className: "mt-1 text-xs text-[var(--esim-copy-soft)]", children: createdAt(item) ? formatOrderDate(createdAt(item), locale, false) : commissionStatus(item.status, locale) })
         ] }),
         /* @__PURE__ */ jsxs("div", { className: "text-right", children: [
           /* @__PURE__ */ jsxs("p", { className: "text-sm font-semibold text-[var(--esim-ink)]", children: [
@@ -12992,27 +15422,27 @@
             " ",
             Number(item.amount).toFixed(2)
           ] }),
-          /* @__PURE__ */ jsx("p", { className: "mt-1 text-xs uppercase text-[var(--esim-copy-soft)]", children: item.status })
+          /* @__PURE__ */ jsx("p", { className: "mt-1 text-xs uppercase text-[var(--esim-copy-soft)]", children: commissionStatus(item.status, locale) })
         ] })
       ] }, item.id)) : /* @__PURE__ */ jsxs("div", { className: "py-10 text-center", children: [
         /* @__PURE__ */ jsx(UsersRound, { className: "mx-auto h-5 w-5 text-[var(--esim-copy-soft)]" }),
-        /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm text-[var(--esim-copy-soft)]", children: "No commissions yet" })
+        /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm text-[var(--esim-copy-soft)]", children: t({ en: "No commissions yet", hans: "\u6682\u65E0\u4F63\u91D1", hant: "\u66AB\u7121\u4F63\u91D1" }) })
       ] }) })
     ] });
   }
 
-  // packages/ui/src/utils/cn.ts
+  // ../../ui/src/utils/cn.ts
   function cn2(...inputs) {
     return twMerge(clsx(inputs));
   }
 
-  // packages/ui/src/utils/a11y.ts
+  // ../../ui/src/utils/a11y.ts
   function prefersReducedMotion3() {
     if (typeof window === "undefined") return false;
     return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   }
 
-  // packages/ui/src/components/Button/Button.tsx
+  // ../../ui/src/components/Button/Button.tsx
   var variantStyles2 = {
     primary: "bg-blue-600 text-white hover:bg-blue-700 shadow-brand-sm hover:shadow-brand-md",
     secondary: "bg-slate-100 text-slate-900 hover:bg-slate-200",
@@ -13100,7 +15530,7 @@
   );
   Button2.displayName = "Button";
 
-  // packages/ui/src/components/Card/ProductCard.tsx
+  // ../../ui/src/components/Card/ProductCard.tsx
   var aspectRatioStyles2 = {
     square: "aspect-square",
     portrait: "aspect-[4/5]",
@@ -13212,7 +15642,7 @@
   );
   ProductCard2.displayName = "ProductCard";
 
-  // packages/ui/src/components/Input/Input.tsx
+  // ../../ui/src/components/Input/Input.tsx
   var Input2 = forwardRef(
     ({
       label,
@@ -13295,7 +15725,7 @@
   );
   Input2.displayName = "Input";
 
-  // packages/ui/src/components/Navigation/Navigation.tsx
+  // ../../ui/src/components/Navigation/Navigation.tsx
   function Navigation2({ logo, items, actions, className }) {
     const [scrolled, setScrolled] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -13388,7 +15818,7 @@
   }
   Navigation2.displayName = "Navigation";
 
-  // packages/ui/src/components/Grid/ProductGrid.tsx
+  // ../../ui/src/components/Grid/ProductGrid.tsx
   var gapStyles2 = {
     sm: "gap-4",
     md: "gap-6",
@@ -13422,7 +15852,170 @@
   }
   ProductGrid2.displayName = "ProductGrid";
 
-  // packages/shop-themes/esim/src/components/CartPage.tsx
+  // src/lib/esim/catalog.ts
+  function destination(code, names, aliases, popular = false) {
+    const [en, hans, hant, ja, ko, fr, de] = names;
+    return { code, en, hans, hant, ja, ko, fr, de, aliases, popular };
+  }
+  var DESTINATION_REGISTRY = [
+    destination("JP", ["Japan", "\u65E5\u672C", "\u65E5\u672C", "\u65E5\u672C", "\uC77C\uBCF8", "Japon", "Japan"], ["\u4E1C\u4EAC", "\u6771\u4EAC", "tokyo", "\u5927\u962A", "osaka", "\u4EAC\u90FD", "kyoto", "\uB3C4\uCFC4", "\uC624\uC0AC\uCE74", "\uAD50\uD1A0", "japan"], true),
+    destination("KR", ["South Korea", "\u97E9\u56FD", "\u97D3\u570B", "\u97D3\u56FD", "\uD55C\uAD6D", "Cor\xE9e du Sud", "S\xFCdkorea"], ["\u9996\u5C14", "\uC11C\uC6B8", "seoul", "\u91DC\u5C71", "\uBD80\uC0B0", "busan", "korea"], true),
+    // Mainland China (roaming egress) — onboarded 2026-11-20 with CN/GC packs.
+    destination("CN", ["Mainland China", "\u4E2D\u56FD\u5927\u9646", "\u4E2D\u570B\u5927\u9678", "\u4E2D\u56FD\u672C\u571F", "\uC911\uAD6D \uBCF8\uD1A0", "Chine continentale", "Festlandchina"], ["\u5927\u9646", "\u5185\u5730", "\u4E2D\u570B", "\u4E2D\u56FD", "china", "mainland", "\u4E0A\u6D77", "\u5317\u4EAC", "\u5E7F\u5DDE", "\u6DF1\u5733", "\u6210\u90FD", "\uC0C1\uD558\uC774", "\uBCA0\uC774\uC9D5"], true),
+    destination("SG", ["Singapore", "\u65B0\u52A0\u5761", "\u65B0\u52A0\u5761", "\u30B7\u30F3\u30AC\u30DD\u30FC\u30EB", "\uC2F1\uAC00\uD3EC\uB974", "Singapour", "Singapur"], ["\u72EE\u57CE", "singapore"], true),
+    destination("HK", ["Hong Kong", "\u9999\u6E2F", "\u9999\u6E2F", "\u9999\u6E2F", "\uD64D\uCF69", "Hong Kong", "Hongkong"], ["\u9999\u6E2F", "hongkong", "hong kong"], true),
+    destination("TW", ["Taiwan", "\u53F0\u6E7E", "\u53F0\u7063", "\u53F0\u6E7E", "\uB300\uB9CC", "Ta\xEFwan", "Taiwan"], ["\u53F0\u5317", "taipei", "taiwan"], true),
+    destination("TH", ["Thailand", "\u6CF0\u56FD", "\u6CF0\u570B", "\u30BF\u30A4", "\uD0DC\uAD6D", "Tha\xEFlande", "Thailand"], ["\u66FC\u8C37", "\uBC29\uCF55", "bangkok", "\u6E05\u8FC8", "\u30C1\u30A8\u30F3\u30DE\u30A4", "thailand"], true),
+    destination("MY", ["Malaysia", "\u9A6C\u6765\u897F\u4E9A", "\u99AC\u4F86\u897F\u4E9E", "\u30DE\u30EC\u30FC\u30B7\u30A2", "\uB9D0\uB808\uC774\uC2DC\uC544", "Malaisie", "Malaysia"], ["\u5409\u9686\u5761", "kuala lumpur", "\uCFE0\uC54C\uB77C\uB8F8\uD478\uB974", "malaysia"]),
+    destination("US", ["United States", "\u7F8E\u56FD", "\u7F8E\u570B", "\u30A2\u30E1\u30EA\u30AB", "\uBBF8\uAD6D", "\xC9tats-Unis", "USA"], ["\u7F8E\u56FD", "usa", "united states", "\u6D1B\u6749\u77F6", "los angeles", "new york", "\u7EBD\u7EA6", "\u30CB\u30E5\u30FC\u30E8\u30FC\u30AF", "\uB274\uC695", "\u30ED\u30B5\u30F3\u30BC\u30EB\u30B9", "\uB85C\uC2A4\uC564\uC824\uB808\uC2A4"], true),
+    destination("GB", ["United Kingdom", "\u82F1\u56FD", "\u82F1\u570B", "\u30A4\u30AE\u30EA\u30B9", "\uC601\uAD6D", "Royaume-Uni", "Vereinigtes K\xF6nigreich"], ["\u82F1\u56FD", "uk", "london", "\u4F26\u6566", "\u30ED\u30F3\u30C9\u30F3", "\uB7F0\uB358"]),
+    destination("AE", ["United Arab Emirates", "\u963F\u8054\u914B", "\u963F\u806F\u914B", "\u30A2\u30E9\u30D6\u9996\u9577\u56FD\u9023\u90A6", "\uC544\uB78D\uC5D0\uBBF8\uB9AC\uD2B8", "\xC9mirats arabes unis", "Vereinigte Arabische Emirate"], ["\u8FEA\u62DC", "dubai", "\u30C9\u30D0\u30A4", "\uB450\uBC14\uC774", "uae"]),
+    destination("IT", ["Italy", "\u610F\u5927\u5229", "\u7FA9\u5927\u5229", "\u30A4\u30BF\u30EA\u30A2", "\uC774\uD0C8\uB9AC\uC544", "Italie", "Italien"], ["\u7F57\u9A6C", "rome", "\u30ED\u30FC\u30DE", "\uB85C\uB9C8", "italy"]),
+    destination("FR", ["France", "\u6CD5\u56FD", "\u6CD5\u570B", "\u30D5\u30E9\u30F3\u30B9", "\uD504\uB791\uC2A4", "France", "Frankreich"], ["\u5DF4\u9ECE", "paris", "\u30D1\u30EA", "\uD30C\uB9AC", "france"]),
+    destination("DE", ["Germany", "\u5FB7\u56FD", "\u5FB7\u570B", "\u30C9\u30A4\u30C4", "\uB3C5\uC77C", "Allemagne", "Deutschland"], ["\u67CF\u6797", "berlin", "\u30D9\u30EB\u30EA\u30F3", "\uBCA0\uB97C\uB9B0", "germany"]),
+    destination("ES", ["Spain", "\u897F\u73ED\u7259", "\u897F\u73ED\u7259", "\u30B9\u30DA\u30A4\u30F3", "\uC2A4\uD398\uC778", "Espagne", "Spanien"], ["\u5DF4\u585E\u7F57\u90A3", "barcelona", "\u30D0\u30EB\u30BB\u30ED\u30CA", "\uBC14\uB974\uC140\uB85C\uB098", "spain"]),
+    destination("AU", ["Australia", "\u6FB3\u5927\u5229\u4E9A", "\u6FB3\u5927\u5229\u4E9E", "\u30AA\u30FC\u30B9\u30C8\u30E9\u30EA\u30A2", "\uD638\uC8FC", "Australie", "Australien"], ["\u6089\u5C3C", "sydney", "\u30B7\u30C9\u30CB\u30FC", "\uC2DC\uB4DC\uB2C8", "australia"]),
+    destination("CA", ["Canada", "\u52A0\u62FF\u5927", "\u52A0\u62FF\u5927", "\u30AB\u30CA\u30C0", "\uCE90\uB098\uB2E4", "Canada", "Kanada"], ["\u591A\u4F26\u591A", "toronto", "\u30C8\u30ED\u30F3\u30C8", "\uD1A0\uB860\uD1A0", "canada"]),
+    destination("MO", ["Macao", "\u6FB3\u95E8", "\u6FB3\u9580", "\u30DE\u30AB\u30AA", "\uB9C8\uCE74\uC624", "Macao", "Macau"], ["\u6FB3\u95E8", "macau", "macao"]),
+    destination("PH", ["Philippines", "\u83F2\u5F8B\u5BBE", "\u83F2\u5F8B\u8CD3", "\u30D5\u30A3\u30EA\u30D4\u30F3", "\uD544\uB9AC\uD540", "Philippines", "Philippinen"], ["\u9A6C\u5C3C\u62C9", "manila", "\u30DE\u30CB\u30E9", "\uB9C8\uB2D0\uB77C", "philippines"]),
+    destination("ID", ["Indonesia", "\u5370\u5EA6\u5C3C\u897F\u4E9A", "\u5370\u5C3C", "\u30A4\u30F3\u30C9\u30CD\u30B7\u30A2", "\uC778\uB3C4\uB124\uC2DC\uC544", "Indon\xE9sie", "Indonesien"], ["\u5DF4\u5398\u5C9B", "bali", "\u30D0\u30EA", "\uBC1C\uB9AC", "jakarta", "indonesia"]),
+    destination("VN", ["Vietnam", "\u8D8A\u5357", "\u8D8A\u5357", "\u30D9\u30C8\u30CA\u30E0", "\uBCA0\uD2B8\uB0A8", "Vietnam", "Vietnam"], ["\u80E1\u5FD7\u660E\u5E02", "\u6CB3\u5185", "hanoi", "\u30DB\u30FC\u30C1\u30DF\u30F3", "\uD638\uCE58\uBBFC", "\uD558\uB178\uC774", "vietnam"])
+  ];
+  var REGISTRY_BY_CODE = new Map(DESTINATION_REGISTRY.map((entry) => [entry.code, entry]));
+  function placeNames(place) {
+    return [place.en, place.hans, place.hant, place.ja, place.ko, place.fr, place.de];
+  }
+  function normalizeCountryCode(value) {
+    if (!value) return null;
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    return trimmed.length === 2 ? trimmed.toUpperCase() : null;
+  }
+  function lookupDestination(code) {
+    return REGISTRY_BY_CODE.get(code.toUpperCase()) || null;
+  }
+  function searchDestinations(query, limit = 8) {
+    const q = query.trim().toLowerCase();
+    if (!q) {
+      return DESTINATION_REGISTRY.filter((entry) => entry.popular).slice(0, limit);
+    }
+    const scored = [];
+    for (const entry of DESTINATION_REGISTRY) {
+      const names = placeNames(entry);
+      let score = 0;
+      if (entry.code.toLowerCase() === q) score = 100;
+      else if (names.some((name) => name.toLowerCase() === q)) score = 95;
+      else if (entry.aliases.some((alias) => alias.toLowerCase() === q)) score = 90;
+      else if (names.some((name) => name.toLowerCase().includes(q))) score = 60;
+      else if (entry.aliases.some((alias) => alias.toLowerCase().includes(q))) score = 50;
+      if (score > 0) scored.push({ entry, score: score + (entry.popular ? 5 : 0) });
+    }
+    scored.sort((a, b) => b.score - a.score);
+    return scored.slice(0, limit).map((item) => item.entry);
+  }
+  function readPlanAttributes(product) {
+    const fromTypeData = product.typeData?.esim;
+    if (fromTypeData && (fromTypeData.destinations?.length || fromTypeData.country)) {
+      return fromTypeData;
+    }
+    const variant = product.variants?.find((candidate) => candidate.attributes?.esim);
+    if (variant?.attributes?.esim) {
+      return variant.attributes.esim;
+    }
+    return fromTypeData || {};
+  }
+  function planCoverageCodes(product) {
+    const attrs = readPlanAttributes(product);
+    const codes = /* @__PURE__ */ new Set();
+    for (const code of attrs.destinations || []) {
+      const normalized = normalizeCountryCode(code);
+      if (normalized) codes.add(normalized);
+    }
+    const single = normalizeCountryCode(attrs.country);
+    if (single) codes.add(single);
+    return [...codes];
+  }
+  function planPrice(product) {
+    const variantPrice = product.variants?.find((candidate) => candidate.isActive !== false)?.salePrice;
+    return typeof variantPrice === "number" && variantPrice > 0 ? variantPrice : product.price || 0;
+  }
+  function buildDestinationCatalog(products, locale) {
+    const byCode = /* @__PURE__ */ new Map();
+    for (const product of products) {
+      const price = planPrice(product);
+      for (const code of planCoverageCodes(product)) {
+        const current = byCode.get(code) || { planCount: 0, cheapest: null };
+        current.planCount += 1;
+        if (current.cheapest === null || price < current.cheapest) current.cheapest = price;
+        byCode.set(code, current);
+      }
+    }
+    const entries = [];
+    for (const [code, stats] of byCode) {
+      const info = lookupDestination(code);
+      if (!info) continue;
+      entries.push({ info, planCount: stats.planCount, cheapestPrice: stats.cheapest, currency: "USD" });
+    }
+    const collator = new Intl.Collator(locale || "en");
+    entries.sort((a, b) => {
+      if (a.info.popular !== b.info.popular) return a.info.popular ? -1 : 1;
+      if (b.planCount !== a.planCount) return b.planCount - a.planCount;
+      return collator.compare(pickCopy(locale, a.info), pickCopy(locale, b.info));
+    });
+    return entries;
+  }
+  var REGION_LABELS = {
+    HKMO: { en: "Hong Kong & Macao", hans: "\u6E2F\u6FB3", hant: "\u6E2F\u6FB3", ja: "\u9999\u6E2F\u30FB\u30DE\u30AB\u30AA", ko: "\uD64D\uCF69\xB7\uB9C8\uCE74\uC624", fr: "Hong Kong & Macao", de: "Hongkong & Macau" },
+    SEA: { en: "Southeast Asia", hans: "\u4E1C\u5357\u4E9A", hant: "\u6771\u5357\u4E9E", ja: "\u6771\u5357\u30A2\u30B8\u30A2", ko: "\uB3D9\uB0A8\uC544\uC2DC\uC544", fr: "Asie du Sud-Est", de: "S\xFCdostasien" },
+    JK: { en: "Japan & Korea", hans: "\u65E5\u97E9", hant: "\u65E5\u97D3", ja: "\u65E5\u672C\u30FB\u97D3\u56FD", ko: "\uC77C\uBCF8\xB7\uD55C\uAD6D", fr: "Japon & Cor\xE9e", de: "Japan & Korea" },
+    APAC: { en: "Asia-Pacific", hans: "\u4E9A\u592A", hant: "\u4E9E\u592A", ja: "\u30A2\u30B8\u30A2\u592A\u5E73\u6D0B", ko: "\uC544\uC2DC\uC544 \uD0DC\uD3C9\uC591", fr: "Asie-Pacifique", de: "Asien-Pazifik" },
+    EU: { en: "Europe", hans: "\u6B27\u6D32", hant: "\u6B50\u6D32", ja: "\u30E8\u30FC\u30ED\u30C3\u30D1", ko: "\uC720\uB7FD", fr: "Europe", de: "Europa" },
+    US: { en: "United States", hans: "\u7F8E\u56FD", hant: "\u7F8E\u570B", ja: "\u30A2\u30E1\u30EA\u30AB", ko: "\uBBF8\uAD6D", fr: "\xC9tats-Unis", de: "USA" },
+    AU: { en: "Australia & NZ", hans: "\u6FB3\u65B0", hant: "\u6FB3\u65B0", ja: "\u30AA\u30FC\u30B9\u30C8\u30E9\u30EA\u30A2\u30FB\u30CB\u30E5\u30FC\u30B8\u30FC\u30E9\u30F3\u30C9", ko: "\uD638\uC8FC\xB7\uB274\uC9C8\uB79C\uB4DC", fr: "Australie & NZ", de: "Australien & NZ" },
+    GLOBAL: { en: "Global", hans: "\u5168\u7403", hant: "\u5168\u7403", ja: "\u30B0\u30ED\u30FC\u30D0\u30EB", ko: "\uAE00\uB85C\uBC8C", fr: "Monde entier", de: "Global" },
+    JP: { en: "Japan", hans: "\u65E5\u672C", hant: "\u65E5\u672C", ja: "\u65E5\u672C", ko: "\uC77C\uBCF8", fr: "Japon", de: "Japan" },
+    KR: { en: "South Korea", hans: "\u97E9\u56FD", hant: "\u97D3\u570B", ja: "\u97D3\u56FD", ko: "\uD55C\uAD6D", fr: "Cor\xE9e du Sud", de: "S\xFCdkorea" },
+    TH: { en: "Thailand", hans: "\u6CF0\u56FD", hant: "\u6CF0\u570B", ja: "\u30BF\u30A4", ko: "\uD0DC\uAD6D", fr: "Tha\xEFlande", de: "Thailand" },
+    SG: { en: "Singapore", hans: "\u65B0\u52A0\u5761", hant: "\u65B0\u52A0\u5761", ja: "\u30B7\u30F3\u30AC\u30DD\u30FC\u30EB", ko: "\uC2F1\uAC00\uD3EC\uB974", fr: "Singapour", de: "Singapur" },
+    UK: { en: "United Kingdom", hans: "\u82F1\u56FD", hant: "\u82F1\u570B", ja: "\u30A4\u30AE\u30EA\u30B9", ko: "\uC601\uAD6D", fr: "Royaume-Uni", de: "Vereinigtes K\xF6nigreich" },
+    CN: { en: "Mainland China", hans: "\u4E2D\u56FD\u5927\u9646", hant: "\u4E2D\u570B\u5927\u9678", ja: "\u4E2D\u56FD\u672C\u571F", ko: "\uC911\uAD6D \uBCF8\uD1A0", fr: "Chine continentale", de: "Festlandchina" },
+    GC: { en: "Greater China", hans: "\u5927\u4E2D\u534E", hant: "\u5927\u4E2D\u83EF", ja: "\u5927\u4E2D\u83EF\u570F", ko: "\uB300\uC911\uD654\uAD8C", fr: "Grande Chine", de: "Gro\xDFchina" }
+  };
+  function regionLabelOf(defaultCode, locale) {
+    const label = REGION_LABELS[(defaultCode || "").split("-")[0]];
+    return label ? pickCopy(locale, label) : null;
+  }
+  function destinationLabel(code, locale) {
+    const info = lookupDestination(code);
+    return info ? pickCopy(locale, info) : code;
+  }
+  function planFacts(source) {
+    const code = String(source || "").trim().replace(/^boss-/i, "").toUpperCase();
+    const region = REGION_LABELS[code.split("-")[0]];
+    const gb = /(\d+)GB/.exec(code)?.[1];
+    const days = /-(\d+)D$/.exec(code)?.[1];
+    return region && gb && days ? { region, gb, days } : null;
+  }
+  function planTitle(source, fallback, locale) {
+    const facts = planFacts(source);
+    if (!facts || locale && locale.startsWith("zh")) return fallback;
+    const region = pickCopy(locale, facts.region);
+    const single = Number(facts.days) === 1;
+    switch (locale) {
+      case "ja":
+        return `${region} ${facts.gb}GB / ${facts.days}\u65E5\u9593`;
+      case "ko":
+        return `${region} ${facts.gb}GB / ${facts.days}\uC77C`;
+      case "fr":
+        return `${region} ${facts.gb} Go / ${facts.days} ${single ? "jour" : "jours"}`;
+      case "de":
+        return `${region} ${facts.gb} GB / ${facts.days} ${single ? "Tag" : "Tage"}`;
+      default:
+        return `${region} ${facts.gb}GB / ${facts.days} ${single ? "day" : "days"}`;
+    }
+  }
+
+  // src/components/CartPage.tsx
   var CartPage = react_default.memo(function CartPage2({
     cart,
     isLoading,
@@ -13538,13 +16131,13 @@
                     "mt-1 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md border transition-colors",
                     selectedIdSet.has(item.id) ? "border-[var(--esim-gold)] bg-[var(--esim-gold)] text-[var(--esim-bg)]" : "border-[var(--esim-line-strong)] bg-[var(--esim-bg)] text-transparent"
                   ),
-                  "aria-label": selectedIdSet.has(item.id) ? "Deselect item" : "Select item",
+                  "aria-label": selectedIdSet.has(item.id) ? pickCopy(locale, { en: "Deselect item", hans: "\u53D6\u6D88\u9009\u62E9", hant: "\u53D6\u6D88\u9078\u53D6" }) : pickCopy(locale, { en: "Select item", hans: "\u9009\u62E9\u6B64\u5546\u54C1", hant: "\u9078\u53D6\u6B64\u5546\u54C1" }),
                   children: /* @__PURE__ */ jsx(Check, { className: "h-3.5 w-3.5" })
                 }
               ) : null,
-              /* @__PURE__ */ jsx("div", { className: "relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] bg-[linear-gradient(155deg,color-mix(in_oklab,var(--esim-gold)_10%,transparent),transparent_55%),var(--esim-bg)]", children: item.productImage ? /* @__PURE__ */ jsx("img", { src: item.productImage, alt: item.productName, className: "h-full w-full object-cover" }) : /* @__PURE__ */ jsx("div", { className: "flex h-full items-end p-3 text-[10px] tracking-[0.16em] text-[var(--esim-gold)]", children: "BOKMOO" }) }),
+              /* @__PURE__ */ jsx("div", { className: "relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] bg-[linear-gradient(155deg,color-mix(in_oklab,var(--esim-gold)_10%,transparent),transparent_55%),var(--esim-bg)]", children: item.productImage ? /* @__PURE__ */ jsx("img", { src: item.productImage, alt: planTitle(item.productId, item.productName, locale), className: "h-full w-full object-cover" }) : /* @__PURE__ */ jsx("div", { className: "flex h-full items-end p-3 text-[10px] tracking-[0.16em] text-[var(--esim-gold)]", children: "BOKMOO" }) }),
               /* @__PURE__ */ jsxs("div", { className: "min-w-0 flex-1", children: [
-                /* @__PURE__ */ jsx("h2", { className: "text-lg font-medium text-[var(--esim-ink)]", children: item.productName }),
+                /* @__PURE__ */ jsx("h2", { className: "text-lg font-medium text-[var(--esim-ink)]", children: planTitle(item.productId, item.productName, locale) }),
                 item.variantName ? /* @__PURE__ */ jsx("p", { className: "mt-1 text-xs tracking-[0.16em] text-[var(--esim-copy-soft)]", children: item.variantName }) : null,
                 /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm text-[var(--esim-copy)]", children: t({ en: "Instant eSIM delivery with activation instructions included.", hans: "\u5373\u65F6\u9001\u8FBE eSIM\uFF0C\u542B\u6FC0\u6D3B\u8BF4\u660E\u3002", hant: "\u5373\u6642\u9001\u9054 eSIM\uFF0C\u542B\u555F\u7528\u8AAA\u660E\u3002" }) }),
                 /* @__PURE__ */ jsxs("div", { className: "mt-4 flex items-center gap-3", children: [
@@ -13656,14 +16249,16 @@
     ] }) });
   });
 
-  // packages/shop-themes/esim/src/components/CategoriesPage.tsx
+  // src/components/CategoriesPage.tsx
   var CategoriesPage = react_default.memo(function CategoriesPage2({
     categories,
+    locale,
     isLoading,
     error,
     onCategoryClick,
     onNavigateToHome
   }) {
+    const t = (copy) => pickCopy(locale, copy);
     if (isLoading) {
       return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-[var(--esim-bg)]" });
     }
@@ -13671,8 +16266,8 @@
       /* @__PURE__ */ jsx("section", { className: "rounded-[var(--esim-radius-xl)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-6 shadow-[var(--esim-shadow)] sm:p-8", children: /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-4", children: [
         /* @__PURE__ */ jsx("div", { className: "flex h-12 w-12 items-center justify-center rounded-[1rem] bg-[color:color-mix(in_oklab,var(--esim-gold)_14%,transparent)] text-[var(--esim-gold)]", children: /* @__PURE__ */ jsx(Earth, { className: "h-6 w-6" }) }),
         /* @__PURE__ */ jsxs("div", { children: [
-          /* @__PURE__ */ jsx("p", { className: "text-[11px] font-semibold tracking-[0.18em] text-[var(--esim-copy-soft)]", children: "Region Collections" }),
-          /* @__PURE__ */ jsx("h1", { className: "mt-2 text-[clamp(2.2rem,5vw,4rem)] leading-[0.94] tracking-[-0.05em] text-[var(--esim-ink)]", children: "Browse BOKMOO plans by destination and travel region." })
+          /* @__PURE__ */ jsx("p", { className: "text-[11px] font-semibold tracking-[0.18em] text-[var(--esim-copy-soft)]", children: t({ en: "Region Collections", hans: "\u5730\u533A\u5408\u96C6", hant: "\u5730\u5340\u5408\u8F2F" }) }),
+          /* @__PURE__ */ jsx("h1", { className: "mt-2 text-[clamp(2.2rem,5vw,4rem)] leading-[0.94] tracking-[-0.05em] text-[var(--esim-ink)]", children: t({ en: "Browse BOKMOO plans by destination and travel region.", hans: "\u6309\u76EE\u7684\u5730\u548C\u65C5\u884C\u5730\u533A\u6D4F\u89C8 BOKMOO \u5957\u9910\u3002", hant: "\u6309\u76EE\u7684\u5730\u548C\u65C5\u884C\u5730\u5340\u700F\u89BD BOKMOO \u65B9\u6848\u3002" }) })
         ] })
       ] }) }),
       error ? /* @__PURE__ */ jsx("div", { className: "mt-6 rounded-[var(--esim-radius-xl)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-6 text-[var(--esim-copy)] shadow-[var(--esim-shadow)]", children: error }) : null,
@@ -13683,34 +16278,39 @@
           className: "group rounded-[var(--esim-radius-xl)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-6 text-left shadow-[var(--esim-shadow)] transition-transform duration-300 hover:-translate-y-1",
           type: "button",
           children: [
-            /* @__PURE__ */ jsxs("p", { className: "text-[11px] font-semibold tracking-[0.18em] text-[var(--esim-gold)]", children: [
-              category.productCount,
-              " plans"
-            ] }),
+            /* @__PURE__ */ jsx("p", { className: "text-[11px] font-semibold tracking-[0.18em] text-[var(--esim-gold)]", children: pickCopy(locale, {
+              en: category.productCount === 1 ? "1 plan" : `${category.productCount} plans`,
+              hans: `${category.productCount} \u4E2A\u5957\u9910`,
+              hant: `${category.productCount} \u500B\u65B9\u6848`,
+              ja: category.productCount === 1 ? "1 \u30D7\u30E9\u30F3" : `\u30D7\u30E9\u30F3 ${category.productCount} \u4EF6`,
+              ko: category.productCount === 1 ? "\uD50C\uB79C 1\uAC1C" : `\uD50C\uB79C ${category.productCount}\uAC1C`,
+              fr: category.productCount === 1 ? "1 forfait" : `${category.productCount} forfaits`,
+              de: category.productCount === 1 ? "1 Tarif" : `${category.productCount} Tarife`
+            }) }),
             /* @__PURE__ */ jsx("h2", { className: "mt-4 text-2xl leading-[1.02] tracking-[-0.04em] text-[var(--esim-ink)]", children: category.name }),
-            /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm leading-6 text-[var(--esim-copy)]", children: category.description || "Group destination-ready plans into clearer regional entry points." }),
+            /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm leading-6 text-[var(--esim-copy)]", children: category.description || t({ en: "Group destination-ready plans into clearer regional entry points.", hans: "\u628A\u5404\u76EE\u7684\u5730\u7684\u5957\u9910\u6574\u7406\u6210\u6E05\u6670\u7684\u5730\u533A\u5165\u53E3\u3002", hant: "\u628A\u5404\u76EE\u7684\u5730\u7684\u65B9\u6848\u6574\u7406\u6210\u6E05\u6670\u7684\u5730\u5340\u5165\u53E3\u3002" }) }),
             /* @__PURE__ */ jsxs("span", { className: "mt-4 inline-flex items-center gap-2 text-[11px] font-semibold tracking-[0.18em] text-[var(--esim-gold)]", children: [
-              "View category",
+              t({ en: "View category", hans: "\u67E5\u770B\u5206\u7C7B", hant: "\u67E5\u770B\u5206\u985E" }),
               /* @__PURE__ */ jsx(ArrowRight, { className: "h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" })
             ] })
           ]
         },
         category.id
       )) }),
-      categories.length === 0 ? /* @__PURE__ */ jsx("div", { className: "mt-6 rounded-[var(--esim-radius-xl)] border border-dashed border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-16 text-center text-[var(--esim-copy)]", children: "No region collections are available yet." }) : null,
+      categories.length === 0 ? /* @__PURE__ */ jsx("div", { className: "mt-6 rounded-[var(--esim-radius-xl)] border border-dashed border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-16 text-center text-[var(--esim-copy)]", children: t({ en: "No region collections are available yet.", hans: "\u6682\u65E0\u5730\u533A\u5408\u96C6\u3002", hant: "\u5C1A\u7121\u5730\u5340\u5408\u8F2F\u3002" }) }) : null,
       onNavigateToHome ? /* @__PURE__ */ jsx("div", { className: "mt-8", children: /* @__PURE__ */ jsx(
         "button",
         {
           onClick: onNavigateToHome,
           className: "rounded-full border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--esim-copy)]",
           type: "button",
-          children: "Back home"
+          children: t({ en: "Back home", hans: "\u8FD4\u56DE\u9996\u9875", hant: "\u8FD4\u56DE\u9996\u9801" })
         }
       ) }) : null
     ] }) });
   });
 
-  // packages/shop-themes/esim/src/components/CheckoutPage.tsx
+  // src/components/CheckoutPage.tsx
   var CheckoutPage = react_default.memo(function CheckoutPage2({
     cart,
     isLoading,
@@ -13869,7 +16469,7 @@
           /* @__PURE__ */ jsx("div", { className: "mt-4 space-y-3", children: cart.items.map((item) => /* @__PURE__ */ jsx("div", { className: "rounded-[0.95rem] border border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_84%,black)] p-3", children: /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-3", children: [
             /* @__PURE__ */ jsx("div", { className: "h-14 w-16 overflow-hidden rounded-[0.8rem] bg-[linear-gradient(160deg,#924a57_0%,#261922_44%,#0f1115_100%)]" }),
             /* @__PURE__ */ jsxs("div", { className: "min-w-0 flex-1", children: [
-              /* @__PURE__ */ jsx("p", { className: "text-sm font-medium text-[var(--esim-ink)]", children: item.productName }),
+              /* @__PURE__ */ jsx("p", { className: "text-sm font-medium text-[var(--esim-ink)]", children: planTitle(item.productId, item.productName, locale) }),
               /* @__PURE__ */ jsxs("p", { className: "mt-1 text-xs text-[var(--esim-copy-soft)]", children: [
                 pickCopy(locale, { en: "Qty", hans: "\u6570\u91CF", hant: "\u6578\u91CF" }),
                 " ",
@@ -14171,7 +16771,7 @@
     ] }) });
   });
 
-  // packages/shop-themes/esim/src/lib/digital-fulfillment.ts
+  // src/lib/digital-fulfillment.ts
   function toRecord(input) {
     if (!input) return {};
     if (typeof input === "string") {
@@ -14380,141 +16980,7 @@
     return sections3.codes.length + sections3.credentials.length + sections3.links.length;
   }
 
-  // packages/shop-themes/esim/src/lib/esim/catalog.ts
-  var DESTINATION_REGISTRY = [
-    { code: "JP", en: "Japan", hans: "\u65E5\u672C", hant: "\u65E5\u672C", aliases: ["\u4E1C\u4EAC", "tokyo", "\u5927\u962A", "osaka", "\u4EAC\u90FD", "kyoto", "japan"], popular: true },
-    { code: "KR", en: "South Korea", hans: "\u97E9\u56FD", hant: "\u97D3\u570B", aliases: ["\u9996\u5C14", "seoul", "\u91DC\u5C71", "busan", "korea"], popular: true },
-    // Mainland China (roaming egress) — onboarded 2026-11-20 with CN/GC packs.
-    { code: "CN", en: "Mainland China", hans: "\u4E2D\u56FD\u5927\u9646", hant: "\u4E2D\u570B\u5927\u9678", aliases: ["\u5927\u9646", "\u5185\u5730", "\u4E2D\u570B", "\u4E2D\u56FD", "china", "mainland", "\u4E0A\u6D77", "\u5317\u4EAC", "\u5E7F\u5DDE", "\u6DF1\u5733", "\u6210\u90FD"], popular: true },
-    { code: "SG", en: "Singapore", hans: "\u65B0\u52A0\u5761", hant: "\u65B0\u52A0\u5761", aliases: ["\u72EE\u57CE", "singapore"], popular: true },
-    { code: "HK", en: "Hong Kong", hans: "\u9999\u6E2F", hant: "\u9999\u6E2F", aliases: ["\u9999\u6E2F", "hongkong", "hong kong"], popular: true },
-    { code: "TW", en: "Taiwan", hans: "\u53F0\u6E7E", hant: "\u53F0\u7063", aliases: ["\u53F0\u5317", "taipei", "taiwan"], popular: true },
-    { code: "TH", en: "Thailand", hans: "\u6CF0\u56FD", hant: "\u6CF0\u570B", aliases: ["\u66FC\u8C37", "bangkok", "\u6E05\u8FC8", "thailand"], popular: true },
-    { code: "MY", en: "Malaysia", hans: "\u9A6C\u6765\u897F\u4E9A", hant: "\u99AC\u4F86\u897F\u4E9E", aliases: ["\u5409\u9686\u5761", "kuala lumpur", "malaysia"], popular: false },
-    { code: "US", en: "United States", hans: "\u7F8E\u56FD", hant: "\u7F8E\u570B", aliases: ["\u7F8E\u56FD", "usa", "united states", "\u6D1B\u6749\u77F6", "new york", "\u7EBD\u7EA6"], popular: true },
-    { code: "GB", en: "United Kingdom", hans: "\u82F1\u56FD", hant: "\u82F1\u570B", aliases: ["\u82F1\u56FD", "uk", "london", "\u4F26\u6566"], popular: false },
-    { code: "AE", en: "United Arab Emirates", hans: "\u963F\u8054\u914B", hant: "\u963F\u806F\u914B", aliases: ["\u8FEA\u62DC", "dubai", "uae"], popular: false },
-    { code: "IT", en: "Italy", hans: "\u610F\u5927\u5229", hant: "\u7FA9\u5927\u5229", aliases: ["\u7F57\u9A6C", "rome", "italy"], popular: false },
-    { code: "FR", en: "France", hans: "\u6CD5\u56FD", hant: "\u6CD5\u570B", aliases: ["\u5DF4\u9ECE", "paris", "france"], popular: false },
-    { code: "DE", en: "Germany", hans: "\u5FB7\u56FD", hant: "\u5FB7\u570B", aliases: ["\u67CF\u6797", "berlin", "germany"], popular: false },
-    { code: "ES", en: "Spain", hans: "\u897F\u73ED\u7259", hant: "\u897F\u73ED\u7259", aliases: ["\u5DF4\u585E\u7F57\u90A3", "barcelona", "spain"], popular: false },
-    { code: "AU", en: "Australia", hans: "\u6FB3\u5927\u5229\u4E9A", hant: "\u6FB3\u5927\u5229\u4E9E", aliases: ["\u6089\u5C3C", "sydney", "australia"], popular: false },
-    { code: "CA", en: "Canada", hans: "\u52A0\u62FF\u5927", hant: "\u52A0\u62FF\u5927", aliases: ["\u591A\u4F26\u591A", "toronto", "canada"], popular: false },
-    { code: "MO", en: "Macao", hans: "\u6FB3\u95E8", hant: "\u6FB3\u9580", aliases: ["\u6FB3\u95E8", "macau", "macao"], popular: false },
-    { code: "PH", en: "Philippines", hans: "\u83F2\u5F8B\u5BBE", hant: "\u83F2\u5F8B\u8CD3", aliases: ["\u9A6C\u5C3C\u62C9", "manila", "philippines"], popular: false },
-    { code: "ID", en: "Indonesia", hans: "\u5370\u5EA6\u5C3C\u897F\u4E9A", hant: "\u5370\u5C3C", aliases: ["\u5DF4\u5398\u5C9B", "bali", "jakarta", "indonesia"], popular: false },
-    { code: "VN", en: "Vietnam", hans: "\u8D8A\u5357", hant: "\u8D8A\u5357", aliases: ["\u80E1\u5FD7\u660E\u5E02", "\u6CB3\u5185", "vietnam"], popular: false }
-  ];
-  var REGISTRY_BY_CODE = new Map(DESTINATION_REGISTRY.map((entry) => [entry.code, entry]));
-  function normalizeCountryCode(value) {
-    if (!value) return null;
-    const trimmed = value.trim();
-    if (!trimmed) return null;
-    return trimmed.length === 2 ? trimmed.toUpperCase() : null;
-  }
-  function lookupDestination(code) {
-    return REGISTRY_BY_CODE.get(code.toUpperCase()) || null;
-  }
-  function searchDestinations(query, limit = 8) {
-    const q = query.trim().toLowerCase();
-    if (!q) {
-      return DESTINATION_REGISTRY.filter((entry) => entry.popular).slice(0, limit);
-    }
-    const scored = [];
-    for (const entry of DESTINATION_REGISTRY) {
-      let score = 0;
-      if (entry.code.toLowerCase() === q) score = 100;
-      else if (entry.en.toLowerCase() === q) score = 95;
-      else if (entry.hans === query.trim() || entry.hant === query.trim()) score = 95;
-      else if (entry.aliases.some((alias) => alias.toLowerCase() === q)) score = 90;
-      else if (entry.en.toLowerCase().includes(q)) score = 60;
-      else if (entry.hans.includes(query.trim()) || entry.hant.includes(query.trim())) score = 60;
-      else if (entry.aliases.some((alias) => alias.toLowerCase().includes(q))) score = 50;
-      if (score > 0) scored.push({ entry, score: score + (entry.popular ? 5 : 0) });
-    }
-    scored.sort((a, b) => b.score - a.score);
-    return scored.slice(0, limit).map((item) => item.entry);
-  }
-  function readPlanAttributes(product) {
-    const fromTypeData = product.typeData?.esim;
-    if (fromTypeData && (fromTypeData.destinations?.length || fromTypeData.country)) {
-      return fromTypeData;
-    }
-    const variant = product.variants?.find((candidate) => candidate.attributes?.esim);
-    if (variant?.attributes?.esim) {
-      return variant.attributes.esim;
-    }
-    return fromTypeData || {};
-  }
-  function planCoverageCodes(product) {
-    const attrs = readPlanAttributes(product);
-    const codes = /* @__PURE__ */ new Set();
-    for (const code of attrs.destinations || []) {
-      const normalized = normalizeCountryCode(code);
-      if (normalized) codes.add(normalized);
-    }
-    const single = normalizeCountryCode(attrs.country);
-    if (single) codes.add(single);
-    return [...codes];
-  }
-  function planPrice(product) {
-    const variantPrice = product.variants?.find((candidate) => candidate.isActive !== false)?.salePrice;
-    return typeof variantPrice === "number" && variantPrice > 0 ? variantPrice : product.price || 0;
-  }
-  function buildDestinationCatalog(products) {
-    const byCode = /* @__PURE__ */ new Map();
-    for (const product of products) {
-      const price = planPrice(product);
-      for (const code of planCoverageCodes(product)) {
-        const current = byCode.get(code) || { planCount: 0, cheapest: null };
-        current.planCount += 1;
-        if (current.cheapest === null || price < current.cheapest) current.cheapest = price;
-        byCode.set(code, current);
-      }
-    }
-    const entries = [];
-    for (const [code, stats] of byCode) {
-      const info = lookupDestination(code);
-      if (!info) continue;
-      entries.push({ info, planCount: stats.planCount, cheapestPrice: stats.cheapest, currency: "USD" });
-    }
-    entries.sort((a, b) => {
-      if (a.info.popular !== b.info.popular) return a.info.popular ? -1 : 1;
-      if (b.planCount !== a.planCount) return b.planCount - a.planCount;
-      return a.info.en.localeCompare(b.info.en);
-    });
-    return entries;
-  }
-  var REGION_LABELS = {
-    HKMO: { zh: "\u6E2F\u6FB3", hant: "\u6E2F\u6FB3", en: "Hong Kong & Macao" },
-    SEA: { zh: "\u4E1C\u5357\u4E9A", hant: "\u6771\u5357\u4E9E", en: "Southeast Asia" },
-    JK: { zh: "\u65E5\u97E9", hant: "\u65E5\u97D3", en: "Japan & Korea" },
-    APAC: { zh: "\u4E9A\u592A", hant: "\u4E9E\u592A", en: "Asia-Pacific" },
-    EU: { zh: "\u6B27\u6D32", hant: "\u6B50\u6D32", en: "Europe" },
-    US: { zh: "\u7F8E\u56FD", hant: "\u7F8E\u570B", en: "United States" },
-    AU: { zh: "\u6FB3\u65B0", hant: "\u6FB3\u65B0", en: "Australia & NZ" },
-    GLOBAL: { zh: "\u5168\u7403", hant: "\u5168\u7403", en: "Global" },
-    JP: { zh: "\u65E5\u672C", hant: "\u65E5\u672C", en: "Japan" },
-    KR: { zh: "\u97E9\u56FD", hant: "\u97D3\u570B", en: "South Korea" },
-    TH: { zh: "\u6CF0\u56FD", hant: "\u6CF0\u570B", en: "Thailand" },
-    SG: { zh: "\u65B0\u52A0\u5761", hant: "\u65B0\u52A0\u5761", en: "Singapore" },
-    UK: { zh: "\u82F1\u56FD", hant: "\u82F1\u570B", en: "United Kingdom" },
-    CN: { zh: "\u4E2D\u56FD\u5927\u9646", hant: "\u4E2D\u570B\u5927\u9678", en: "Mainland China" },
-    GC: { zh: "\u5927\u4E2D\u534E", hant: "\u5927\u4E2D\u83EF", en: "Greater China" }
-  };
-  function regionLabelOf(defaultCode, locale) {
-    const label = REGION_LABELS[(defaultCode || "").split("-")[0]];
-    return label ? pickCopy(locale, { en: label.en, hans: label.zh, hant: label.hant }) : null;
-  }
-  function destinationLabel(code, locale) {
-    const info = lookupDestination(code);
-    if (!info) return code;
-    if (locale === "zh-Hant") return info.hant;
-    if (locale && locale.startsWith("zh")) return info.hans;
-    return info.en;
-  }
-
-  // packages/shop-themes/esim/src/components/ProductsPage.tsx
+  // src/components/ProductsPage.tsx
   var GOLD_CTA = "bg-[linear-gradient(135deg,var(--esim-gold-strong),var(--esim-gold)_55%,color-mix(in_oklab,var(--esim-gold)_70%,#7a5c14))]";
   var FOCUS_VISIBLE_RING2 = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--esim-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--esim-bg)]";
   var CATALOG_FILTERS = ["All", "Popular", "Local", "Regional", "Global"];
@@ -14619,7 +17085,7 @@
           setRemoteTotal(isLocalScope ? scopedItems.length : Number(response.total || scopedItems.length || 0));
           setRemoteTotalPages(Math.max(1, Math.ceil((isLocalScope ? scopedItems.length : Number(response.total || scopedItems.length || 0)) / 12)));
         } catch (error) {
-          const message = error instanceof Error ? error.message : "Unable to load Bokmoo plans.";
+          const message = error instanceof Error ? error.message : pickCopy(locale, { en: "Unable to load Bokmoo plans.", hans: "\u65E0\u6CD5\u52A0\u8F7D Bokmoo \u5957\u9910\u3002", hant: "\u7121\u6CD5\u8F09\u5165 Bokmoo \u65B9\u6848\u3002" });
           setRemoteError(message);
           setRemoteProducts([]);
           setRemoteTotal(0);
@@ -14752,7 +17218,7 @@
             const destinations = esim?.destinations || [];
             const regionName = regionLabelOf(esim?.defaultCode || "", locale);
             const isMultiCountry = destinations.length > 1;
-            const coverageLine = destinations.length > 0 ? isMultiCountry ? `${regionName ? `${regionName} \xB7 ` : ""}${t({ en: `covers ${destinations.length} destinations`, hans: `\u8986\u76D6 ${destinations.length} \u4E2A\u76EE\u7684\u5730`, hant: `\u8986\u84CB ${destinations.length} \u500B\u76EE\u7684\u5730` })}` : `${t({ en: "Covers", hans: "\u8986\u76D6", hant: "\u8986\u84CB" })} ${destinations.map((code) => destinationLabel(code, locale)).join("/")}` : profile.coverageLabel;
+            const coverageLine = destinations.length > 0 ? isMultiCountry ? `${regionName ? `${regionName} \xB7 ` : ""}${t({ en: `covers ${destinations.length} destinations`, hans: `\u8986\u76D6 ${destinations.length} \u4E2A\u76EE\u7684\u5730`, hant: `\u8986\u84CB ${destinations.length} \u500B\u76EE\u7684\u5730`, ja: `${destinations.length} \u306E\u76EE\u7684\u5730\u3092\u30AB\u30D0\u30FC`, ko: `${destinations.length}\uAC1C \uBAA9\uC801\uC9C0 \uCEE4\uBC84`, fr: `couvre ${destinations.length} destinations`, de: `deckt ${destinations.length} Ziele ab` })}` : `${t({ en: "Covers", hans: "\u8986\u76D6", hant: "\u8986\u84CB" })} ${destinations.map((code) => destinationLabel(code, locale)).join("/")}` : profile.coverageLabel;
             const eyebrowLabel = destinations.length > 1 ? regionName || t({ en: "Multi-country", hans: "\u591A\u56FD\u8054\u7A0B", hant: "\u591A\u570B\u806F\u7A0B" }) : regionName || profile.cardEyebrow;
             const variantSalePrices = (Array.isArray(product.variants) ? product.variants : []).map((variant) => Number(variant.salePrice ?? variant.price ?? 0)).filter((price) => price > 0);
             const listPrice = Number(product.price || 0);
@@ -14782,7 +17248,7 @@
                           /* @__PURE__ */ jsx("span", { className: "rounded-full border border-[color:color-mix(in_oklab,var(--esim-gold)_30%,transparent)] bg-[#1c1f26]/90 px-3 py-1 font-mono text-[11px] font-semibold uppercase tracking-wider text-[var(--esim-gold)]", children: eyebrowLabel }),
                           /* @__PURE__ */ jsx("span", { className: "rounded-full bg-[linear-gradient(90deg,var(--esim-gold),var(--esim-gold-strong))] px-3 py-1 font-mono text-[11px] font-bold text-[#141414] shadow-sm", children: profile.deliveryLabel })
                         ] }),
-                        /* @__PURE__ */ jsx("h2", { className: "font-serif text-2xl font-normal leading-[1.12] tracking-tight text-[var(--esim-ink)] lg:text-3xl", children: displayProductTitle(product.name) }),
+                        /* @__PURE__ */ jsx("h2", { className: "font-serif text-2xl font-normal leading-[1.12] tracking-tight text-[var(--esim-ink)] lg:text-3xl", children: planTitle(esim?.defaultCode || product.id, displayProductTitle(product.name), locale) }),
                         /* @__PURE__ */ jsxs("p", { className: "inline-flex items-center gap-2 text-sm text-[var(--esim-gold)]", children: [
                           /* @__PURE__ */ jsx("span", { className: "inline-flex h-[18px] w-[18px] items-center justify-center rounded-full bg-[var(--esim-gold)] text-[10px] font-bold text-[#141414]", children: "\u2713" }),
                           /* @__PURE__ */ jsx("span", { className: "font-semibold text-[var(--esim-ink)]", children: coverageLine })
@@ -14880,7 +17346,7 @@
     ] }) });
   });
 
-  // packages/shop-themes/esim/src/components/CollectionPages.tsx
+  // src/components/CollectionPages.tsx
   var esimPlansOf = (props) => filterEsimPlans(props.products);
   var BestsellersPage = (props) => /* @__PURE__ */ jsx(
     ProductsPage,
@@ -14951,7 +17417,7 @@
     }
   );
 
-  // packages/shop-themes/esim/src/components/ContactPage.tsx
+  // src/components/ContactPage.tsx
   var ContactPage = react_default.memo(function ContactPage2({ config, locale }) {
     const t = (copy) => pickCopy(locale, copy);
     const site = resolveEsimSiteConfig(config);
@@ -14992,7 +17458,7 @@
     ] }) }) }) });
   });
 
-  // packages/shop-themes/esim/src/components/DownloadAppPage.tsx
+  // src/components/DownloadAppPage.tsx
   var ANDROID_PLAY_URL = "https://play.google.com/store/apps/details?id=com.bokmoo.app";
   var ANDROID_APK_URL = "https://bokmoo.com/extensions/downloads/bokmoo-0.0.12-vc20.apk";
   var ANDROID_APK_VERSION = "0.0.12 (20)";
@@ -15030,7 +17496,7 @@
           hans: "\u901A\u8FC7\u84DD\u7259\u6FC0\u6D3B\u60A8\u7684 BOKMOO \u5361\uFF0C\u5B89\u88C5\u548C\u5207\u6362 eSIM \u914D\u7F6E\u6587\u4EF6\uFF0C\u968F\u65F6\u638C\u63E1\u6570\u636E\u2014\u2014\u5C31\u5728\u60A8\u7684\u624B\u673A\u4E0A\u3002",
           hant: "\u900F\u904E\u85CD\u7259\u555F\u7528\u60A8\u7684 BOKMOO \u5361\uFF0C\u5B89\u88DD\u548C\u5207\u63DB eSIM \u8A2D\u5B9A\u6A94\uFF0C\u96A8\u6642\u638C\u63E1\u6578\u64DA\u2014\u2014\u5C31\u5728\u60A8\u7684\u624B\u6A5F\u4E0A\u3002"
         }) }),
-        /* @__PURE__ */ jsx("p", { className: "mt-3 hidden text-xs text-[var(--esim-copy-soft)] lg:block", children: "Hover a store button (or scan the card QR) to download." })
+        /* @__PURE__ */ jsx("p", { className: "mt-3 hidden text-xs text-[var(--esim-copy-soft)] lg:block", children: pickCopy(locale, { en: "Hover a store button (or scan the card QR) to download.", hans: "\u5C06\u9F20\u6807\u79FB\u5230\u5546\u5E97\u6309\u94AE\u4E0A\uFF08\u6216\u626B\u63CF\u5361\u7247\u4E8C\u7EF4\u7801\uFF09\u5373\u53EF\u4E0B\u8F7D\u3002", hant: "\u5C07\u6E38\u6A19\u79FB\u5230\u5546\u5E97\u6309\u9215\u4E0A\uFF08\u6216\u6383\u63CF\u5361\u7247 QR \u78BC\uFF09\u5373\u53EF\u4E0B\u8F09\u3002" }) })
       ] }),
       /* @__PURE__ */ jsxs("div", { className: "mt-10 grid gap-5 lg:grid-cols-2", children: [
         /* @__PURE__ */ jsxs("div", { className: "rounded-[1.35rem] border border-[color:color-mix(in_oklab,var(--esim-gold)_18%,var(--esim-line))] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--esim-bg-elevated)_80%,black),color-mix(in_oklab,var(--esim-bg-elevated)_92%,black))] p-6 shadow-[var(--esim-shadow)] sm:p-8", children: [
@@ -15101,19 +17567,19 @@
               }
             )
           ] }),
-          /* @__PURE__ */ jsx("p", { className: "mt-3 text-center text-xs text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: `Version ${ANDROID_APK_VERSION} \xB7 ${ANDROID_APK_SIZE} \xB7 allow installs from your browser when prompted.`, hans: `\u7248\u672C ${ANDROID_APK_VERSION} \xB7 ${ANDROID_APK_SIZE} \xB7 \u51FA\u73B0\u63D0\u793A\u65F6\u5141\u8BB8\u6D4F\u89C8\u5668\u5B89\u88C5\u5E94\u7528\u3002`, hant: `\u7248\u672C ${ANDROID_APK_VERSION} \xB7 ${ANDROID_APK_SIZE} \xB7 \u51FA\u73FE\u63D0\u793A\u6642\u5141\u8A31\u700F\u89BD\u5668\u5B89\u88DD\u61C9\u7528\u3002` }) })
+          /* @__PURE__ */ jsx("p", { className: "mt-3 text-center text-xs text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: `Version ${ANDROID_APK_VERSION} \xB7 ${ANDROID_APK_SIZE} \xB7 allow installs from your browser when prompted.`, hans: `\u7248\u672C ${ANDROID_APK_VERSION} \xB7 ${ANDROID_APK_SIZE} \xB7 \u51FA\u73B0\u63D0\u793A\u65F6\u5141\u8BB8\u6D4F\u89C8\u5668\u5B89\u88C5\u5E94\u7528\u3002`, hant: `\u7248\u672C ${ANDROID_APK_VERSION} \xB7 ${ANDROID_APK_SIZE} \xB7 \u51FA\u73FE\u63D0\u793A\u6642\u5141\u8A31\u700F\u89BD\u5668\u5B89\u88DD\u61C9\u7528\u3002`, ja: `\u30D0\u30FC\u30B8\u30E7\u30F3 ${ANDROID_APK_VERSION} \xB7 ${ANDROID_APK_SIZE} \xB7 \u8868\u793A\u3055\u308C\u305F\u3089\u30D6\u30E9\u30A6\u30B6\u304B\u3089\u306E\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3092\u8A31\u53EF\u3057\u3066\u304F\u3060\u3055\u3044\u3002`, ko: `\uBC84\uC804 ${ANDROID_APK_VERSION} \xB7 ${ANDROID_APK_SIZE} \xB7 \uC548\uB0B4\uAC00 \uD45C\uC2DC\uB418\uBA74 \uBE0C\uB77C\uC6B0\uC800\uC5D0\uC11C \uC124\uCE58\uB97C \uD5C8\uC6A9\uD558\uC138\uC694.`, fr: `Version ${ANDROID_APK_VERSION} \xB7 ${ANDROID_APK_SIZE} \xB7 autorisez l'installation depuis votre navigateur lorsque vous y \xEAtes invit\xE9.`, de: `Version ${ANDROID_APK_VERSION} \xB7 ${ANDROID_APK_SIZE} \xB7 erlauben Sie die Installation aus dem Browser, wenn Sie dazu aufgefordert werden.` }) })
         ] })
       ] }),
       /* @__PURE__ */ jsxs("p", { className: "mt-10 text-center text-sm text-[var(--esim-copy-soft)]", children: [
-        "Questions about setup? Contact",
+        pickCopy(locale, { en: "Questions about setup? Contact", hans: "\u8BBE\u7F6E\u65B9\u9762\u6709\u7591\u95EE\uFF1F\u8BF7\u8054\u7CFB", hant: "\u8A2D\u5B9A\u65B9\u9762\u6709\u7591\u554F\uFF1F\u8ACB\u806F\u7D61" }),
         " ",
         /* @__PURE__ */ jsx("a", { href: `mailto:${site.supportEmail}`, className: "text-[var(--esim-gold)] hover:underline", children: site.supportEmail }),
-        "."
+        pickCopy(locale, { en: ".", hans: "\u3002", hant: "\u3002" })
       ] })
     ] }) });
   });
 
-  // packages/shop-themes/esim/src/components/SupportChat.tsx
+  // src/components/SupportChat.tsx
   var VISITOR_TOKEN_STORAGE_KEY = "esim-support-visitor-token";
   var CONFIG_ENDPOINT = "/api/v1/plugins/support-hub/store/config";
   var MESSAGES_ENDPOINT = "/api/v1/plugins/support-hub/store/chat/messages";
@@ -15400,7 +17866,7 @@
     ] });
   });
 
-  // packages/shop-themes/esim/src/components/Footer.tsx
+  // src/components/Footer.tsx
   function EsimLogoLockup({ className }) {
     return /* @__PURE__ */ jsx("svg", { "aria-label": "BOKMOO", className, role: "img", viewBox: "0 0 750 82", xmlns: "http://www.w3.org/2000/svg", children: /* @__PURE__ */ jsxs("g", { fill: "#e2c26a", children: [
       /* @__PURE__ */ jsxs("g", { transform: "translate(0 0) scale(.08) translate(-49.42 -140.06)", children: [
@@ -15474,7 +17940,7 @@
             year,
             " ",
             site.brandName.toUpperCase(),
-            ". All rights reserved."
+            pickCopy(locale, { en: ". All rights reserved.", hans: " \u4FDD\u7559\u6240\u6709\u6743\u5229\u3002", hant: " \u4FDD\u7559\u6240\u6709\u6B0A\u5229\u3002" })
           ] })
         ] })
       ] }),
@@ -15486,7 +17952,8 @@
           rel: "noopener noreferrer",
           className: "text-[11px] uppercase tracking-[0.16em] text-[var(--esim-copy-soft)] transition-colors hover:text-[#E5C365]",
           children: [
-            "Powered by ",
+            pickCopy(locale, { en: "Powered by", hans: "\u6280\u672F\u652F\u6301", hant: "\u6280\u8853\u652F\u63F4" }),
+            " ",
             poweredByLabel
           ]
         }
@@ -15518,7 +17985,7 @@
     return /^(https?:)?\/\//.test(href);
   }
 
-  // packages/shop-themes/esim/src/components/Header.tsx
+  // src/components/Header.tsx
   function EsimLogoLockup2({ className }) {
     return /* @__PURE__ */ jsx(
       "svg",
@@ -15879,7 +18346,7 @@
     return /^(https?:)?\/\//.test(href);
   }
 
-  // packages/shop-themes/esim/src/components/HelpPage.tsx
+  // src/components/HelpPage.tsx
   var topics = [
     {
       title: { en: "How to install eSIM", hans: "\u5982\u4F55\u5B89\u88C5 eSIM", hant: "\u5982\u4F55\u5B89\u88DD eSIM" },
@@ -15955,7 +18422,7 @@
     ] }) }) });
   });
 
-  // packages/shop-themes/esim/src/lib/esim/itinerary.ts
+  // src/lib/esim/itinerary.ts
   function createEmptyDraft() {
     return { version: 0, stops: [], usageMode: "mapChat", hotspot: false };
   }
@@ -16020,7 +18487,7 @@
     }
   }
 
-  // packages/shop-themes/esim/src/lib/esim/matcher.ts
+  // src/lib/esim/matcher.ts
   var MATCH_RULES_VERSION = "route-matcher-v1";
   function saleable(product) {
     return planPrice(product) > 0;
@@ -16130,7 +18597,7 @@
     return { meta, status, recommendation, alternatives: recommendations.slice(1, 4), gaps, segments, estimatedGb };
   }
 
-  // packages/shop-themes/esim/src/components/route/RoutePlanner.tsx
+  // src/components/route/RoutePlanner.tsx
   var HAIRLINE = "border-[color:rgba(255,255,255,0.08)]";
   var EXAMPLE_TRIP_STOPS = [
     { code: "JP", days: 5 },
@@ -16138,15 +18605,7 @@
     { code: "SG", days: 8 }
   ];
   function useCopy(locale) {
-    const t = react_default.useCallback(
-      (copy) => {
-        if (locale === "zh-Hant") return copy.hant;
-        if (locale && locale.startsWith("zh")) return copy.hans;
-        return copy.en;
-      },
-      [locale]
-    );
-    return t;
+    return react_default.useCallback((copy) => pickCopy(locale, copy), [locale]);
   }
   function PriceTag({ price, currency }) {
     const symbol = currency === "USD" ? "$" : currency === "CNY" ? "\xA5" : `${currency} `;
@@ -16155,10 +18614,10 @@
       price
     ] });
   }
-  function SampleBadge({ product }) {
+  function SampleBadge({ product, label }) {
     const attrs = readPlanAttributes(product);
     if (attrs.sample !== true) return null;
-    return /* @__PURE__ */ jsx("span", { className: "rounded border border-[rgba(212,175,55,0.35)] bg-[rgba(212,175,55,0.12)] px-2 py-0.5 text-[11px] font-medium tracking-[0.14em] text-[var(--esim-gold-strong)]", children: "SAMPLE" });
+    return /* @__PURE__ */ jsx("span", { className: "rounded border border-[rgba(212,175,55,0.35)] bg-[rgba(212,175,55,0.12)] px-2 py-0.5 text-[11px] font-medium tracking-[0.14em] text-[var(--esim-gold-strong)]", children: label });
   }
   function VerifiedChip({ ok, label }) {
     return /* @__PURE__ */ jsxs(
@@ -16229,7 +18688,7 @@
               className: `flex min-h-[44px] w-full items-center justify-between rounded-xl border px-4 py-2.5 text-left text-sm transition-colors ${selected ? "border-[rgba(212,175,55,0.55)] bg-[rgba(212,175,55,0.12)] text-[var(--esim-ink)]" : "border-[rgba(255,255,255,0.1)] bg-[#1c1c1e] text-[var(--esim-copy)] hover:border-[rgba(212,175,55,0.3)]"}`,
               children: [
                 /* @__PURE__ */ jsxs("span", { children: [
-                  locale === "zh-Hant" ? entry.info.hant : locale && locale.startsWith("zh") ? entry.info.hans : entry.info.en,
+                  destinationLabel(entry.info.code, locale),
                   /* @__PURE__ */ jsxs("span", { className: "ml-2 text-xs text-[var(--esim-copy-soft)]", children: [
                     entry.planCount,
                     " ",
@@ -16243,7 +18702,7 @@
           );
         }),
         unsellableResults.map((entry) => /* @__PURE__ */ jsxs("div", { className: "flex min-h-[44px] items-center justify-between rounded-xl border border-[rgba(255,255,255,0.06)] bg-[#141414] px-4 py-2.5 text-sm text-[var(--esim-copy-soft)]", children: [
-          /* @__PURE__ */ jsx("span", { children: locale === "zh-Hant" ? entry.info.hant : locale && locale.startsWith("zh") ? entry.info.hans : entry.info.en }),
+          /* @__PURE__ */ jsx("span", { children: destinationLabel(entry.info.code, locale) }),
           /* @__PURE__ */ jsx("span", { className: "text-xs", children: t({ en: "No plans yet", hans: "\u6682\u65E0\u53EF\u552E\u5957\u9910", hant: "\u66AB\u7121\u53EF\u552E\u5957\u9910" }) })
         ] }, entry.info.code)),
         matchedInfos && sellableResults.length === 0 && unsellableResults.length === 0 && /* @__PURE__ */ jsx("p", { className: "py-6 text-center text-sm text-[var(--esim-copy-soft)]", children: t({ en: "No destination found. Clear the search to browse all.", hans: "\u6CA1\u6709\u627E\u5230\u8FD9\u4E2A\u76EE\u7684\u5730\uFF0C\u6E05\u7A7A\u641C\u7D22\u67E5\u770B\u5168\u90E8\u3002", hant: "\u6C92\u6709\u627E\u5230\u9019\u500B\u76EE\u7684\u5730\uFF0C\u6E05\u7A7A\u641C\u5C0B\u67E5\u770B\u5168\u90E8\u3002" }) })
@@ -16260,7 +18719,7 @@
             onClick: confirm,
             disabled: staged.length === 0,
             className: "mt-4 min-h-[44px] w-full rounded-xl bg-[var(--esim-gold)] px-4 py-3 text-sm font-semibold text-black transition-colors hover:bg-[var(--esim-gold-strong)] disabled:cursor-not-allowed disabled:opacity-40",
-            children: t({ en: `Confirm ${staged.length} destination${staged.length === 1 ? "" : "s"}`, hans: `\u786E\u8BA4 ${staged.length} \u4E2A\u76EE\u7684\u5730`, hant: `\u78BA\u8A8D ${staged.length} \u500B\u76EE\u7684\u5730` })
+            children: t({ en: `Confirm ${staged.length} destination${staged.length === 1 ? "" : "s"}`, hans: `\u786E\u8BA4 ${staged.length} \u4E2A\u76EE\u7684\u5730`, hant: `\u78BA\u8A8D ${staged.length} \u500B\u76EE\u7684\u5730`, ja: `${staged.length} \u4EF6\u306E\u76EE\u7684\u5730\u3092\u78BA\u5B9A`, ko: `\uBAA9\uC801\uC9C0 ${staged.length}\uAC1C \uD655\uC778`, fr: `Confirmer ${staged.length} destination${staged.length === 1 ? "" : "s"}`, de: `${staged.length} Ziel${staged.length === 1 ? "" : "e"} best\xE4tigen` })
           }
         ),
         /* @__PURE__ */ jsx("p", { className: "mt-2 text-center text-xs text-[var(--esim-copy-soft)]", children: t({ en: "Closing without confirming keeps your current route.", hans: "\u4E0D\u786E\u8BA4\u76F4\u63A5\u5173\u95ED\u5C06\u4FDD\u7559\u539F\u8DEF\u7EBF\u3002", hant: "\u4E0D\u78BA\u8A8D\u76F4\u63A5\u95DC\u9589\u5C07\u4FDD\u7559\u539F\u8DEF\u7DDA\u3002" }) })
@@ -16415,7 +18874,7 @@
             t({ en: "Hotspot sharing", hans: "\u70ED\u70B9\u5171\u4EAB", hant: "\u71B1\u9EDE\u5171\u4EAB" })
           ] })
         ] }),
-        draft.stops.length > 0 && /* @__PURE__ */ jsx("p", { className: "mt-2.5 text-xs text-[var(--esim-copy-soft)]", children: t({ en: `Estimated data need: ~${estimatedGb} GB`, hans: `\u9884\u8BA1\u9700\u8981\u7EA6 ${estimatedGb} GB`, hant: `\u9810\u8A08\u9700\u8981\u7D04 ${estimatedGb} GB` }) })
+        draft.stops.length > 0 && /* @__PURE__ */ jsx("p", { className: "mt-2.5 text-xs text-[var(--esim-copy-soft)]", children: t({ en: `Estimated data need: ~${estimatedGb} GB`, hans: `\u9884\u8BA1\u9700\u8981\u7EA6 ${estimatedGb} GB`, hant: `\u9810\u8A08\u9700\u8981\u7D04 ${estimatedGb} GB`, ja: `\u63A8\u5B9A\u5FC5\u8981\u30C7\u30FC\u30BF\u91CF: \u7D04 ${estimatedGb} GB`, ko: `\uC608\uC0C1 \uB370\uC774\uD130 \uC0AC\uC6A9\uB7C9: \uC57D ${estimatedGb} GB`, fr: `Besoin en donn\xE9es estim\xE9 : ~${estimatedGb} Go`, de: `Gesch\xE4tzter Datenbedarf: ~${estimatedGb} GB` }) })
       ] })
     ] });
   }
@@ -16472,11 +18931,11 @@
         /* @__PURE__ */ jsxs("div", { className: "rounded-2xl border border-[rgba(212,175,55,0.4)] bg-[#141414] p-5", children: [
           /* @__PURE__ */ jsxs("div", { className: "mb-3 flex items-center justify-between", children: [
             /* @__PURE__ */ jsx("span", { className: "rounded border border-[rgba(212,175,55,0.35)] px-2 py-0.5 text-[11px] uppercase tracking-[0.16em] text-[var(--esim-gold-strong)]", children: t({ en: "Best single eSIM", hans: "\u9996\u9009\u5957\u9910", hant: "\u9996\u9078\u5957\u9910" }) }),
-            /* @__PURE__ */ jsx(SampleBadge, { product: rec.product })
+            /* @__PURE__ */ jsx(SampleBadge, { product: rec.product, label: t({ en: "SAMPLE", hans: "\u793A\u4F8B", hant: "\u7BC4\u4F8B" }) })
           ] }),
-          /* @__PURE__ */ jsx("h3", { className: "text-xl font-medium text-[var(--esim-ink)]", children: rec.product.name }),
+          /* @__PURE__ */ jsx("h3", { className: "text-xl font-medium text-[var(--esim-ink)]", children: planTitle(rec.product.id, rec.product.name, locale) }),
           /* @__PURE__ */ jsxs("div", { className: "mt-3 flex flex-wrap gap-2", children: [
-            /* @__PURE__ */ jsx(VerifiedChip, { ok: rec.verified.allDestinationsCovered, label: t({ en: `${rec.coverageCodes.length} destinations covered`, hans: `${rec.coverageCodes.length} \u4E2A\u76EE\u7684\u5730\u5DF2\u8986\u76D6`, hant: `${rec.coverageCodes.length} \u500B\u76EE\u7684\u5730\u5DF2\u8986\u84CB` }) }),
+            /* @__PURE__ */ jsx(VerifiedChip, { ok: rec.verified.allDestinationsCovered, label: t({ en: `${rec.coverageCodes.length} destinations covered`, hans: `${rec.coverageCodes.length} \u4E2A\u76EE\u7684\u5730\u5DF2\u8986\u76D6`, hant: `${rec.coverageCodes.length} \u500B\u76EE\u7684\u5730\u5DF2\u8986\u84CB`, ja: `${rec.coverageCodes.length} \u306E\u76EE\u7684\u5730\u3092\u30AB\u30D0\u30FC`, ko: `${rec.coverageCodes.length}\uAC1C \uBAA9\uC801\uC9C0 \uCEE4\uBC84`, fr: `${rec.coverageCodes.length} destinations couvertes`, de: `${rec.coverageCodes.length} Ziele abgedeckt` }) }),
             /* @__PURE__ */ jsx(VerifiedChip, { ok: rec.verified.validityCoversSpan, label: rec.verified.validityCoversSpan ? t({ en: "Validity covers the whole trip", hans: "\u5168\u7A0B\u8986\u76D6\u5DF2\u6838\u9A8C", hant: "\u5168\u7A0B\u8986\u84CB\u5DF2\u6838\u9A57" }) : t({ en: "Validity to be confirmed", hans: "\u8986\u76D6\u5DF2\u786E\u8BA4\uFF0C\u6709\u6548\u671F\u5F85\u6838\u9A8C", hant: "\u8986\u84CB\u5DF2\u78BA\u8A8D\uFF0C\u6709\u6548\u671F\u5F85\u6838\u9A57" }) }),
             outcome.recommendation && outcome.recommendation.verified.hotspotConfirmed && /* @__PURE__ */ jsx(VerifiedChip, { ok: true, label: t({ en: "Hotspot supported", hans: "\u652F\u6301\u70ED\u70B9\u5171\u4EAB", hant: "\u652F\u6301\u71B1\u9EDE\u5171\u4EAB" }) })
           ] }),
@@ -16500,7 +18959,7 @@
           ] }),
           /* @__PURE__ */ jsxs("div", { className: "mt-4 flex items-baseline justify-between", children: [
             /* @__PURE__ */ jsx(PriceTag, { price: rec.price, currency: rec.currency }),
-            /* @__PURE__ */ jsx("span", { className: "text-xs text-[var(--esim-copy-soft)]", children: t({ en: `~${outcome.estimatedGb} GB needed`, hans: `\u9884\u8BA1\u9700\u8981 ~${outcome.estimatedGb} GB`, hant: `\u9810\u8A08\u9700\u8981 ~${outcome.estimatedGb} GB` }) })
+            /* @__PURE__ */ jsx("span", { className: "text-xs text-[var(--esim-copy-soft)]", children: t({ en: `~${outcome.estimatedGb} GB needed`, hans: `\u9884\u8BA1\u9700\u8981 ~${outcome.estimatedGb} GB`, hant: `\u9810\u8A08\u9700\u8981 ~${outcome.estimatedGb} GB`, ja: `\u7D04 ${outcome.estimatedGb} GB \u5FC5\u8981`, ko: `\uC57D ${outcome.estimatedGb} GB \uD544\uC694`, fr: `~${outcome.estimatedGb} Go n\xE9cessaires`, de: `~${outcome.estimatedGb} GB ben\xF6tigt` }) })
           ] }),
           /* @__PURE__ */ jsxs(
             "button",
@@ -16517,12 +18976,12 @@
           attrs.hotspot === false && draftHotspotNote(locale),
           outcome.alternatives.length > 0 && /* @__PURE__ */ jsxs(Fragment2, { children: [
             /* @__PURE__ */ jsxs("button", { type: "button", onClick: () => setShowAlternatives((value) => !value), className: "mt-3 flex min-h-[44px] w-full items-center justify-center gap-1.5 text-sm text-[var(--esim-copy)] hover:text-[var(--esim-gold-strong)]", children: [
-              showAlternatives ? t({ en: "Hide other plans", hans: "\u6536\u8D77\u5176\u4ED6\u5957\u9910", hant: "\u6536\u8D77\u5176\u4ED6\u5957\u9910" }) : t({ en: `View other plans (${outcome.alternatives.length})`, hans: `\u67E5\u770B\u5176\u4ED6\u53EF\u7528\u5957\u9910\uFF08${outcome.alternatives.length}\uFF09`, hant: `\u67E5\u770B\u5176\u4ED6\u53EF\u7528\u5957\u9910\uFF08${outcome.alternatives.length}\uFF09` }),
+              showAlternatives ? t({ en: "Hide other plans", hans: "\u6536\u8D77\u5176\u4ED6\u5957\u9910", hant: "\u6536\u8D77\u5176\u4ED6\u5957\u9910" }) : t({ en: `View other plans (${outcome.alternatives.length})`, hans: `\u67E5\u770B\u5176\u4ED6\u53EF\u7528\u5957\u9910\uFF08${outcome.alternatives.length}\uFF09`, hant: `\u67E5\u770B\u5176\u4ED6\u53EF\u7528\u5957\u9910\uFF08${outcome.alternatives.length}\uFF09`, ja: `\u4ED6\u306E\u30D7\u30E9\u30F3\u3092\u898B\u308B\uFF08${outcome.alternatives.length}\uFF09`, ko: `\uB2E4\uB978 \uC694\uAE08\uC81C \uBCF4\uAE30 (${outcome.alternatives.length})`, fr: `Voir les autres forfaits (${outcome.alternatives.length})`, de: `Weitere Tarife anzeigen (${outcome.alternatives.length})` }),
               showAlternatives ? /* @__PURE__ */ jsx(ChevronUp, { className: "h-4 w-4", "aria-hidden": "true" }) : /* @__PURE__ */ jsx(ChevronDown, { className: "h-4 w-4", "aria-hidden": "true" })
             ] }),
             showAlternatives && /* @__PURE__ */ jsx("ul", { className: "mt-2 space-y-2", children: outcome.alternatives.map((alt) => /* @__PURE__ */ jsx("li", { children: /* @__PURE__ */ jsxs("button", { type: "button", onClick: () => onViewPlan(alt.product), className: "flex min-h-[44px] w-full items-center justify-between rounded-xl border border-[rgba(255,255,255,0.1)] px-3.5 py-2.5 text-left text-sm hover:border-[rgba(212,175,55,0.35)]", children: [
               /* @__PURE__ */ jsxs("span", { className: "text-[var(--esim-copy)]", children: [
-                alt.product.name,
+                planTitle(alt.product.id, alt.product.name, locale),
                 alt.gb !== null ? ` \xB7 ${alt.gb}GB` : "",
                 alt.validityDays !== null ? ` \xB7 ${alt.validityDays}${t({ en: "d", hans: "\u5929", hant: "\u5929" })}` : ""
               ] }),
@@ -16549,14 +19008,14 @@
             /* @__PURE__ */ jsxs("span", { className: "text-[var(--esim-copy)]", children: [
               destinationLabel(segment.code, locale),
               " \xB7 ",
-              segment.product.name
+              planTitle(segment.product.id, segment.product.name, locale)
             ] }),
             /* @__PURE__ */ jsxs("span", { className: "font-semibold text-[var(--esim-gold)]", children: [
               "$",
               segment.price
             ] })
           ] }) }, segment.code)) }),
-          /* @__PURE__ */ jsx("p", { className: "mt-3 text-xs text-[var(--esim-copy-soft)]", children: t({ en: `${outcome.segments.length} eSIMs to install for the full trip.`, hans: `\u5168\u7A0B\u9700\u5B89\u88C5 ${outcome.segments.length} \u5F20 eSIM\u3002`, hant: `\u5168\u7A0B\u9700\u5B89\u88DD ${outcome.segments.length} \u5F35 eSIM\u3002` }) })
+          /* @__PURE__ */ jsx("p", { className: "mt-3 text-xs text-[var(--esim-copy-soft)]", children: t({ en: `${outcome.segments.length} eSIMs to install for the full trip.`, hans: `\u5168\u7A0B\u9700\u5B89\u88C5 ${outcome.segments.length} \u5F20 eSIM\u3002`, hant: `\u5168\u7A0B\u9700\u5B89\u88DD ${outcome.segments.length} \u5F35 eSIM\u3002`, ja: `\u5168\u884C\u7A0B\u306B ${outcome.segments.length} \u679A\u306E eSIM \u306E\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u304C\u5FC5\u8981\u3067\u3059\u3002`, ko: `\uC804\uCCB4 \uC5EC\uD589\uC5D0 eSIM ${outcome.segments.length}\uAC1C \uC124\uCE58\uAC00 \uD544\uC694\uD569\uB2C8\uB2E4.`, fr: `${outcome.segments.length} eSIM \xE0 installer pour couvrir tout le voyage.`, de: `F\xFCr die gesamte Reise sind ${outcome.segments.length} eSIM zu installieren.` }) })
         ] }),
         /* @__PURE__ */ jsx(CoverageDetails, { outcome, locale })
       ] });
@@ -16565,7 +19024,7 @@
     return /* @__PURE__ */ jsxs("div", { className: `rounded-2xl border ${HAIRLINE} bg-[#141414] p-5`, "aria-live": "polite", children: [
       /* @__PURE__ */ jsx("span", { className: "rounded border border-[rgba(255,255,255,0.2)] px-2 py-0.5 text-[11px] uppercase tracking-[0.16em] text-[var(--esim-copy)]", children: t({ en: "No matching plan yet", hans: "\u6682\u65E0\u5339\u914D\u5957\u9910", hant: "\u66AB\u7121\u5339\u914D\u5957\u9910" }) }),
       /* @__PURE__ */ jsxs("ul", { className: "mt-3 space-y-1.5 text-sm text-[var(--esim-copy)]", children: [
-        missingCodes.map((code) => /* @__PURE__ */ jsx("li", { children: t({ en: `${destinationLabel(code, locale)} is not covered by current plans.`, hans: `\u5F53\u524D\u5957\u9910\u4E0D\u8986\u76D6${destinationLabel(code, "zh-Hans")}\u3002`, hant: `\u7576\u524D\u5957\u9910\u4E0D\u8986\u84CB${destinationLabel(code, "zh-Hant")}\u3002` }) }, code)),
+        missingCodes.map((code) => /* @__PURE__ */ jsx("li", { children: t({ en: `${destinationLabel(code, locale)} is not covered by current plans.`, hans: `\u5F53\u524D\u5957\u9910\u4E0D\u8986\u76D6${destinationLabel(code, "zh-Hans")}\u3002`, hant: `\u7576\u524D\u5957\u9910\u4E0D\u8986\u84CB${destinationLabel(code, "zh-Hant")}\u3002`, ja: `${destinationLabel(code, locale)} \u306F\u73FE\u5728\u306E\u30D7\u30E9\u30F3\u306E\u30AB\u30D0\u30FC\u7BC4\u56F2\u5916\u3067\u3059\u3002`, ko: `${destinationLabel(code, locale)}\uC740(\uB294) \uD604\uC7AC \uC694\uAE08\uC81C\uAC00 \uCEE4\uBC84\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.`, fr: `${destinationLabel(code, locale)} n'est pas couvert par les forfaits actuels.`, de: `${destinationLabel(code, locale)} wird von den aktuellen Tarifen nicht abgedeckt.` }) }, code)),
         outcome.gaps.some((gap) => gap.kind === "validity-short") && /* @__PURE__ */ jsx("li", { children: t({ en: "Plan validity is shorter than the trip span.", hans: "\u5957\u9910\u6709\u6548\u671F\u77ED\u4E8E\u884C\u7A0B\u8DE8\u5EA6\u3002", hant: "\u5957\u9910\u6709\u6548\u671F\u77ED\u65BC\u884C\u7A0B\u8DE8\u5EA6\u3002" }) }),
         outcome.gaps.some((gap) => gap.kind === "hotspot-unavailable") && /* @__PURE__ */ jsx("li", { children: t({ en: "Required hotspot sharing is not confirmed on current plans.", hans: "\u6240\u9700\u7684\u70ED\u70B9\u5171\u4EAB\u5728\u5F53\u524D\u5957\u9910\u672A\u786E\u8BA4\u3002", hant: "\u6240\u9700\u7684\u71B1\u9EDE\u5171\u4EAB\u5728\u7576\u524D\u5957\u9910\u672A\u78BA\u8A8D\u3002" }) })
       ] }),
@@ -16574,12 +19033,7 @@
     ] });
   }
   function draftHotspotNote(locale) {
-    const t = (copy) => {
-      if (locale === "zh-Hant") return copy.hant;
-      if (locale && locale.startsWith("zh")) return copy.hans;
-      return copy.en;
-    };
-    return /* @__PURE__ */ jsx("p", { className: "mt-2 text-xs text-[var(--esim-copy-soft)]", children: t({ en: "This plan does not confirm hotspot sharing.", hans: "\u8BE5\u5957\u9910\u672A\u786E\u8BA4\u652F\u6301\u70ED\u70B9\u5171\u4EAB\u3002", hant: "\u8A72\u5957\u9910\u672A\u78BA\u8A8D\u652F\u6301\u71B1\u9EDE\u5171\u4EAB\u3002" }) });
+    return /* @__PURE__ */ jsx("p", { className: "mt-2 text-xs text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: "This plan does not confirm hotspot sharing.", hans: "\u8BE5\u5957\u9910\u672A\u786E\u8BA4\u652F\u6301\u70ED\u70B9\u5171\u4EAB\u3002", hant: "\u8A72\u5957\u9910\u672A\u78BA\u8A8D\u652F\u6301\u71B1\u9EDE\u5171\u4EAB\u3002" }) });
   }
   function CoverageDetails({ outcome, locale }) {
     const t = useCopy(locale);
@@ -16614,7 +19068,7 @@
           ] }, code)),
           outcome.segments.map((segment) => /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between gap-3", children: [
             /* @__PURE__ */ jsx("dt", { className: "text-[var(--esim-copy)]", children: destinationLabel(segment.code, locale) }),
-            /* @__PURE__ */ jsx("dd", { className: "text-right text-xs text-[var(--esim-copy-soft)]", children: segment.product.name })
+            /* @__PURE__ */ jsx("dd", { className: "text-right text-xs text-[var(--esim-copy-soft)]", children: planTitle(segment.product.id, segment.product.name, locale) })
           ] }, `seg-${segment.code}`))
         ] }),
         attrs?.fairUse && /* @__PURE__ */ jsx("p", { className: "mt-3 border-t border-[rgba(255,255,255,0.08)] pt-2.5 text-xs text-[var(--esim-copy-soft)]", children: attrs.fairUse })
@@ -16655,7 +19109,7 @@
       if (restored && restored.stops.length > 0) setDraft(restored);
       setDraftRestored(true);
     }, []);
-    const catalog = react_default.useMemo(() => buildDestinationCatalog(products), [products]);
+    const catalog = react_default.useMemo(() => buildDestinationCatalog(products, locale), [products, locale]);
     const outcome = react_default.useMemo(() => matchRoute(draft, products), [draft, products]);
     const mutate = react_default.useCallback((fn) => {
       setDraft((prev) => {
@@ -16775,13 +19229,13 @@
     return react_default.useState(initial);
   }
 
-  // packages/shop-themes/esim/src/components/HomePage.tsx
+  // src/components/HomePage.tsx
   var HAIRLINE2 = "border-[color:rgba(255,255,255,0.08)]";
   function RouteProgressHero({
     locale,
     stops
   }) {
-    const t = (copy) => locale === "zh-Hant" ? copy.hant : locale && locale.startsWith("zh") ? copy.hans : copy.en;
+    const t = (copy) => pickCopy(locale, copy);
     if (stops.length === 0) return null;
     return /* @__PURE__ */ jsx("div", { className: `mx-auto mt-10 w-full max-w-3xl rounded-2xl border ${HAIRLINE2} bg-[#141414]/70 px-6 py-4`, children: /* @__PURE__ */ jsx("ol", { className: "flex items-start justify-between py-3", children: stops.map((stop, index) => /* @__PURE__ */ jsxs(react_default.Fragment, { children: [
       index > 0 && /* @__PURE__ */ jsx("span", { className: "mt-[7px] h-px flex-1 bg-[rgba(212,175,55,0.45)]", "aria-hidden": "true" }),
@@ -16861,7 +19315,7 @@
   ];
   function FaqSection({ locale }) {
     const [openIndex, setOpenIndex] = react_default.useState(null);
-    const t = (copy) => locale === "zh-Hant" ? copy.hant : locale && locale.startsWith("zh") ? copy.hans : copy.en;
+    const t = (copy) => pickCopy(locale, copy);
     return /* @__PURE__ */ jsxs("section", { className: "mx-auto max-w-3xl px-6 py-16", "aria-labelledby": "esim-faq-heading", children: [
       /* @__PURE__ */ jsx("h2", { id: "esim-faq-heading", className: "mb-8 text-center text-2xl font-light tracking-tight text-[var(--esim-ink)]", children: t({ en: "Questions, answered", hans: "\u5E38\u89C1\u7591\u95EE\u4E0E\u4FDD\u969C", hant: "\u5E38\u898B\u7591\u554F\u8207\u4FDD\u969C" }) }),
       /* @__PURE__ */ jsx("div", { className: "space-y-2.5", children: FAQ_ITEMS.map((item, index) => {
@@ -16920,7 +19374,7 @@
     ] });
   });
 
-  // packages/shop-themes/esim/src/components/LoginPage.tsx
+  // src/components/LoginPage.tsx
   var FOCUS_VISIBLE_RING4 = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--esim-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--esim-bg)]";
   function LoginPage({
     isLoading,
@@ -16930,9 +19384,20 @@
     onOAuthClick,
     onAppleOAuthClick,
     onNavigateToRegister,
-    onNavigateToForgotPassword
+    onNavigateToForgotPassword,
+    locale
   }) {
-    const site = resolveEsimSiteConfig(config);
+    const site = resolveEsimSiteConfig(config, locale);
+    const t = (copy) => pickCopy(locale, copy);
+    const accountLabel = pickCopy(locale, {
+      en: `${site.brandName.toUpperCase()} account`,
+      hans: `${site.brandName.toUpperCase()} \u8D26\u6237`,
+      hant: `${site.brandName.toUpperCase()} \u5E33\u6236`,
+      ja: `${site.brandName.toUpperCase()} \u30A2\u30AB\u30A6\u30F3\u30C8`,
+      ko: `${site.brandName.toUpperCase()} \uACC4\uC815`,
+      fr: `Compte ${site.brandName.toUpperCase()}`,
+      de: `${site.brandName.toUpperCase()}-Konto`
+    });
     const [email, setEmail] = react_default.useState("");
     const [password, setPassword] = react_default.useState("");
     const [showPassword, setShowPassword] = react_default.useState(false);
@@ -16959,14 +19424,18 @@
         /* @__PURE__ */ jsxs("section", { className: "hidden lg:block", children: [
           /* @__PURE__ */ jsxs("div", { className: "inline-flex items-center gap-3 rounded-full border border-[color:color-mix(in_oklab,var(--esim-gold)_24%,transparent)] bg-[color:oklch(0.065_0.007_75_/_0.72)] px-5 py-2.5 text-[0.72rem] font-bold uppercase tracking-[0.28em] text-[var(--esim-gold)]", children: [
             /* @__PURE__ */ jsx(ShieldCheck, { className: "h-4 w-4" }),
-            "Secure account access"
+            t({ en: "Secure account access", hans: "\u5B89\u5168\u8BBF\u95EE\u8D26\u6237", hant: "\u5B89\u5168\u5B58\u53D6\u5E33\u6236" })
           ] }),
-          /* @__PURE__ */ jsx("h1", { className: "mt-7 max-w-3xl text-[clamp(3.5rem,7vw,6.4rem)] font-semibold leading-[0.92] tracking-[-0.065em] text-[var(--esim-ink)]", children: "Sign in before your next border." }),
-          /* @__PURE__ */ jsx("p", { className: "mt-7 max-w-2xl text-lg leading-8 text-[var(--esim-copy)]", children: "Manage BOKMOO eSIM profiles, orders, and activation details from the same black-and-gold travel control surface." }),
+          /* @__PURE__ */ jsx("h1", { className: "mt-7 max-w-3xl text-[clamp(3.5rem,7vw,6.4rem)] font-semibold leading-[0.92] tracking-[-0.065em] text-[var(--esim-ink)]", children: t({ en: "Sign in before your next border.", hans: "\u4E0B\u6B21\u51FA\u5883\u524D\uFF0C\u5148\u767B\u5F55\u8D26\u6237\u3002", hant: "\u4E0B\u6B21\u51FA\u5883\u524D\uFF0C\u5148\u767B\u5165\u5E33\u6236\u3002" }) }),
+          /* @__PURE__ */ jsx("p", { className: "mt-7 max-w-2xl text-lg leading-8 text-[var(--esim-copy)]", children: t({
+            en: "Manage BOKMOO eSIM profiles, orders, and activation details from the same black-and-gold travel control surface.",
+            hans: "\u5728\u540C\u4E00\u4E2A\u9ED1\u91D1\u65C5\u884C\u63A7\u5236\u53F0\u91CC\u7BA1\u7406 BOKMOO eSIM \u914D\u7F6E\u6587\u4EF6\u3001\u8BA2\u5355\u548C\u6FC0\u6D3B\u8BE6\u60C5\u3002",
+            hant: "\u5728\u540C\u4E00\u500B\u9ED1\u91D1\u65C5\u884C\u63A7\u5236\u53F0\u88E1\u7BA1\u7406 BOKMOO eSIM \u8A2D\u5B9A\u6A94\u3001\u8A02\u55AE\u548C\u555F\u7528\u8A73\u60C5\u3002"
+          }) }),
           /* @__PURE__ */ jsx("div", { className: "mt-10 grid max-w-2xl gap-3 sm:grid-cols-3", children: [
-            ["Orders", "Track purchases"],
-            ["Profiles", "Manage eSIMs"],
-            ["Support", "Get help fast"]
+            [t({ en: "Orders", hans: "\u8BA2\u5355", hant: "\u8A02\u55AE" }), t({ en: "Track purchases", hans: "\u8DDF\u8E2A\u8D2D\u4E70\u8BB0\u5F55", hant: "\u8FFD\u8E64\u8CFC\u8CB7\u7D00\u9304" })],
+            [t({ en: "Profiles", hans: "eSIM \u914D\u7F6E", hant: "eSIM \u8A2D\u5B9A\u6A94" }), t({ en: "Manage eSIMs", hans: "\u7BA1\u7406 eSIM", hant: "\u7BA1\u7406 eSIM" })],
+            [t({ en: "Support", hans: "\u652F\u6301", hant: "\u652F\u63F4" }), t({ en: "Get help fast", hans: "\u5FEB\u901F\u83B7\u5F97\u5E2E\u52A9", hant: "\u5FEB\u901F\u7372\u5F97\u5354\u52A9" })]
           ].map(([title, body]) => /* @__PURE__ */ jsxs(
             "div",
             {
@@ -16981,12 +19450,9 @@
         ] }),
         /* @__PURE__ */ jsx("section", { className: "mx-auto w-full max-w-[30rem] rounded-[1.45rem] border border-[color:color-mix(in_oklab,var(--esim-gold)_22%,transparent)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--esim-bg-elevated)_94%,white),var(--esim-bg-elevated))] p-5 shadow-[var(--esim-shadow)] sm:p-7", children: /* @__PURE__ */ jsxs("div", { className: "rounded-[1.1rem] border border-[var(--esim-line)] bg-[color:oklch(0.055_0.006_75_/_0.78)] p-5 sm:p-6", children: [
           /* @__PURE__ */ jsxs("div", { children: [
-            /* @__PURE__ */ jsxs("p", { className: "text-[11px] font-bold uppercase tracking-[0.24em] text-[var(--esim-gold)]", children: [
-              site.brandName.toUpperCase(),
-              " account"
-            ] }),
-            /* @__PURE__ */ jsx("h2", { className: "mt-3 text-3xl font-semibold leading-none tracking-[-0.05em] text-[var(--esim-ink)]", children: "Welcome back" }),
-            /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm leading-6 text-[var(--esim-copy)]", children: "Continue to your orders, profiles, and activation workspace." })
+            /* @__PURE__ */ jsx("p", { className: "text-[11px] font-bold uppercase tracking-[0.24em] text-[var(--esim-gold)]", children: accountLabel }),
+            /* @__PURE__ */ jsx("h2", { className: "mt-3 text-3xl font-semibold leading-none tracking-[-0.05em] text-[var(--esim-ink)]", children: t({ en: "Welcome back", hans: "\u6B22\u8FCE\u56DE\u6765", hant: "\u6B61\u8FCE\u56DE\u4F86" }) }),
+            /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm leading-6 text-[var(--esim-copy)]", children: t({ en: "Continue to your orders, profiles, and activation workspace.", hans: "\u7EE7\u7EED\u524D\u5F80\u60A8\u7684\u8BA2\u5355\u3001eSIM \u914D\u7F6E\u548C\u6FC0\u6D3B\u5DE5\u4F5C\u53F0\u3002", hant: "\u7E7C\u7E8C\u524D\u5F80\u60A8\u7684\u8A02\u55AE\u3001eSIM \u8A2D\u5B9A\u6A94\u548C\u555F\u7528\u5DE5\u4F5C\u53F0\u3002" }) })
           ] }),
           /* @__PURE__ */ jsxs("div", { className: "mt-7 grid gap-3 sm:grid-cols-2", children: [
             /* @__PURE__ */ jsxs(
@@ -17018,13 +19484,13 @@
           ] }),
           /* @__PURE__ */ jsxs("div", { className: "mt-6 flex items-center gap-3", children: [
             /* @__PURE__ */ jsx("div", { className: "h-px flex-1 bg-[var(--esim-line)]" }),
-            /* @__PURE__ */ jsx("span", { className: "text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--esim-copy-soft)]", children: "or email" }),
+            /* @__PURE__ */ jsx("span", { className: "text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--esim-copy-soft)]", children: t({ en: "or email", hans: "\u6216\u4F7F\u7528\u90AE\u7BB1", hant: "\u6216\u4F7F\u7528\u96FB\u5B50\u90F5\u4EF6" }) }),
             /* @__PURE__ */ jsx("div", { className: "h-px flex-1 bg-[var(--esim-line)]" })
           ] }),
           /* @__PURE__ */ jsxs("form", { onSubmit: handleSubmit, className: "mt-7 space-y-5", children: [
             error ? /* @__PURE__ */ jsx("div", { className: "rounded-[0.95rem] border border-[color:color-mix(in_oklab,var(--esim-danger)_48%,transparent)] bg-[color:color-mix(in_oklab,var(--esim-danger)_12%,transparent)] p-4 text-sm leading-6 text-[var(--esim-ink)]", children: error }) : null,
             /* @__PURE__ */ jsxs("label", { className: "block", children: [
-              /* @__PURE__ */ jsx("span", { className: "text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--esim-copy-soft)]", children: "Email" }),
+              /* @__PURE__ */ jsx("span", { className: "text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--esim-copy-soft)]", children: t({ en: "Email", hans: "\u90AE\u7BB1", hant: "\u96FB\u5B50\u90F5\u4EF6" }) }),
               /* @__PURE__ */ jsxs("span", { className: "relative mt-2 block", children: [
                 /* @__PURE__ */ jsx(Mail, { className: "pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--esim-copy-soft)]" }),
                 /* @__PURE__ */ jsx(
@@ -17044,7 +19510,7 @@
               ] })
             ] }),
             /* @__PURE__ */ jsxs("label", { className: "block", children: [
-              /* @__PURE__ */ jsx("span", { className: "text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--esim-copy-soft)]", children: "Password" }),
+              /* @__PURE__ */ jsx("span", { className: "text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--esim-copy-soft)]", children: t({ en: "Password", hans: "\u5BC6\u7801", hant: "\u5BC6\u78BC" }) }),
               /* @__PURE__ */ jsxs("span", { className: "relative mt-2 block", children: [
                 /* @__PURE__ */ jsx(LockKeyhole, { className: "pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--esim-copy-soft)]" }),
                 /* @__PURE__ */ jsx(
@@ -17068,7 +19534,7 @@
                     onClick: () => setShowPassword((value) => !value),
                     className: `absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-[0.8rem] text-[var(--esim-copy-soft)] hover:text-[var(--esim-gold)] ${FOCUS_VISIBLE_RING4}`,
                     disabled: isLoading,
-                    "aria-label": showPassword ? "Hide password" : "Show password",
+                    "aria-label": showPassword ? t({ en: "Hide password", hans: "\u9690\u85CF\u5BC6\u7801", hant: "\u96B1\u85CF\u5BC6\u78BC" }) : t({ en: "Show password", hans: "\u663E\u793A\u5BC6\u7801", hant: "\u986F\u793A\u5BC6\u78BC" }),
                     children: showPassword ? /* @__PURE__ */ jsx(EyeOff, { className: "h-4 w-4" }) : /* @__PURE__ */ jsx(Eye, { className: "h-4 w-4" })
                   }
                 )
@@ -17081,7 +19547,7 @@
                 onClick: onNavigateToForgotPassword,
                 className: `text-sm font-medium text-[var(--esim-copy)] underline decoration-[var(--esim-line)] underline-offset-4 hover:text-[var(--esim-gold)] ${FOCUS_VISIBLE_RING4}`,
                 disabled: isLoading,
-                children: "Forgot password"
+                children: t({ en: "Forgot password", hans: "\u5FD8\u8BB0\u5BC6\u7801", hant: "\u5FD8\u8A18\u5BC6\u78BC" })
               }
             ) }),
             /* @__PURE__ */ jsx(
@@ -17092,17 +19558,21 @@
                 className: `inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-[1rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--esim-gold)_88%,white),color-mix(in_oklab,var(--esim-gold)_64%,black))] px-5 text-sm font-black uppercase tracking-[0.2em] text-[var(--esim-bg)] shadow-[0_18px_42px_color-mix(in_oklab,var(--esim-gold)_16%,transparent)] transition-transform duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING4}`,
                 children: isLoading ? /* @__PURE__ */ jsxs(Fragment2, { children: [
                   /* @__PURE__ */ jsx(LoaderCircle, { className: "h-4 w-4 animate-spin" }),
-                  "Signing in"
-                ] }) : "Sign in"
+                  t({ en: "Signing in", hans: "\u767B\u5F55\u4E2D\u2026", hant: "\u767B\u5165\u4E2D\u2026" })
+                ] }) : t({ en: "Sign in", hans: "\u767B\u5F55", hant: "\u767B\u5165" })
               }
             )
           ] }),
           /* @__PURE__ */ jsxs("div", { className: "mt-7 border-t border-[var(--esim-line)] pt-6 text-center", children: [
-            /* @__PURE__ */ jsxs("p", { className: "text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--esim-copy-soft)]", children: [
-              "New to ",
-              site.brandName.toUpperCase(),
-              "?"
-            ] }),
+            /* @__PURE__ */ jsx("p", { className: "text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--esim-copy-soft)]", children: pickCopy(locale, {
+              en: `New to ${site.brandName.toUpperCase()}?`,
+              hans: `\u8FD8\u6CA1\u6709 ${site.brandName.toUpperCase()} \u8D26\u6237\uFF1F`,
+              hant: `\u9084\u6C92\u6709 ${site.brandName.toUpperCase()} \u5E33\u6236\uFF1F`,
+              ja: `${site.brandName.toUpperCase()} \u3092\u521D\u3081\u3066\u3054\u5229\u7528\u3067\u3059\u304B\uFF1F`,
+              ko: `${site.brandName.toUpperCase()}\uC774(\uAC00) \uCC98\uC74C\uC774\uC2E0\uAC00\uC694?`,
+              fr: `Nouveau sur ${site.brandName.toUpperCase()} ?`,
+              de: `Neu bei ${site.brandName.toUpperCase()}?`
+            }) }),
             /* @__PURE__ */ jsx(
               "button",
               {
@@ -17110,25 +19580,29 @@
                 onClick: onNavigateToRegister,
                 className: `mt-3 text-sm font-semibold text-[var(--esim-gold)] hover:text-[var(--esim-gold-strong)] ${FOCUS_VISIBLE_RING4}`,
                 disabled: isLoading,
-                children: "Create account"
+                children: t({ en: "Create account", hans: "\u521B\u5EFA\u8D26\u6237", hant: "\u5EFA\u7ACB\u5E33\u6236" })
               }
             ),
             typeof window !== "undefined" && window.location.hostname.split(".").filter(Boolean).length > 2 ? /* @__PURE__ */ jsxs(Fragment2, { children: [
               /* @__PURE__ */ jsxs("div", { className: "mt-6 flex items-center gap-3", children: [
                 /* @__PURE__ */ jsx("div", { className: "h-px flex-1 bg-[var(--esim-line)]" }),
-                /* @__PURE__ */ jsx("span", { className: "text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--esim-copy-soft)]", children: "already with us" }),
+                /* @__PURE__ */ jsx("span", { className: "text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--esim-copy-soft)]", children: t({ en: "already with us", hans: "\u5DF2\u6709\u8D26\u6237", hant: "\u5DF2\u6709\u5E33\u6236" }) }),
                 /* @__PURE__ */ jsx("div", { className: "h-px flex-1 bg-[var(--esim-line)]" })
               ] }),
-              /* @__PURE__ */ jsxs(
+              /* @__PURE__ */ jsx(
                 "a",
                 {
                   href: `https://bokmoo.com/auth-sync?back=${encodeURIComponent(window.location.origin + window.location.pathname)}`,
                   className: `mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-[0.95rem] border border-[var(--esim-line)] px-4 text-sm font-medium text-[var(--esim-copy)] transition-colors hover:border-[var(--esim-gold)] hover:text-[var(--esim-gold)] ${FOCUS_VISIBLE_RING4}`,
-                  children: [
-                    "Use your ",
-                    site.brandName,
-                    " session to sign in"
-                  ]
+                  children: pickCopy(locale, {
+                    en: `Use your ${site.brandName} session to sign in`,
+                    hans: `\u4F7F\u7528 ${site.brandName} \u8D26\u6237\u4F1A\u8BDD\u767B\u5F55`,
+                    hant: `\u4F7F\u7528 ${site.brandName} \u5E33\u6236\u5DE5\u4F5C\u968E\u6BB5\u767B\u5165`,
+                    ja: `${site.brandName} \u306E\u30BB\u30C3\u30B7\u30E7\u30F3\u3067\u30ED\u30B0\u30A4\u30F3`,
+                    ko: `${site.brandName} \uC138\uC158\uC73C\uB85C \uB85C\uADF8\uC778`,
+                    fr: `Utilisez votre session ${site.brandName} pour vous connecter`,
+                    de: `Mit Ihrer ${site.brandName}-Sitzung anmelden`
+                  })
                 }
               )
             ] }) : null
@@ -17138,7 +19612,7 @@
     ] });
   }
 
-  // packages/shop-themes/esim/src/lib/qrcodegen.ts
+  // src/lib/qrcodegen.ts
   var qrcodegen;
   ((qrcodegen2) => {
     const _QrCode = class _QrCode {
@@ -17857,7 +20331,7 @@
   })(qrcodegen || (qrcodegen = {}));
   var qrcodegen_default = qrcodegen;
 
-  // packages/shop-themes/esim/src/components/InstallSessionPanel.tsx
+  // src/components/InstallSessionPanel.tsx
   function copyToClipboard(value) {
     if (!value || typeof navigator === "undefined" || !navigator.clipboard?.writeText) return;
     navigator.clipboard.writeText(value).catch(() => void 0);
@@ -17941,11 +20415,19 @@
           return qrPayload ? tr({
             en: `Package added to your eSIM${iccidTail ? ` ${iccidTail}` : ""}. Not installed this eSIM yet? Scan below to set it up \u2014 skip this if it is already on your phone.`,
             hans: `\u5957\u9910\u5DF2\u52A0\u5230\u4F60\u7684 eSIM${iccidTail ? ` ${iccidTail}` : ""}\u3002\u8FD9\u5F20 eSIM \u8FD8\u6CA1\u88C5\u5230\u624B\u673A\uFF1F\u626B\u4E0B\u65B9\u4E8C\u7EF4\u7801\u5B89\u88C5\uFF1B\u5DF2\u7ECF\u88C5\u8FC7\u53EF\u4EE5\u5FFD\u7565\u3002`,
-            hant: `\u5957\u9910\u5DF2\u52A0\u5230\u4F60\u7684 eSIM${iccidTail ? ` ${iccidTail}` : ""}\u3002\u9019\u5F35 eSIM \u9084\u6C92\u88DD\u5230\u624B\u6A5F\uFF1F\u6383\u4E0B\u65B9\u4E8C\u7DAD\u78BC\u5B89\u88DD\uFF1B\u5DF2\u7D93\u88DD\u904E\u53EF\u4EE5\u5FFD\u7565\u3002`
+            hant: `\u5957\u9910\u5DF2\u52A0\u5230\u4F60\u7684 eSIM${iccidTail ? ` ${iccidTail}` : ""}\u3002\u9019\u5F35 eSIM \u9084\u6C92\u88DD\u5230\u624B\u6A5F\uFF1F\u6383\u4E0B\u65B9\u4E8C\u7DAD\u78BC\u5B89\u88DD\uFF1B\u5DF2\u7D93\u88DD\u904E\u53EF\u4EE5\u5FFD\u7565\u3002`,
+            ja: `\u30D7\u30E9\u30F3\u3092\u3042\u306A\u305F\u306E eSIM${iccidTail ? ` ${iccidTail}` : ""}\u306B\u8FFD\u52A0\u3057\u307E\u3057\u305F\u3002\u3053\u306E eSIM \u3092\u307E\u3060\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3057\u3066\u3044\u306A\u3044\u5834\u5408\u306F\u3001\u4E0B\u306E QR \u30B3\u30FC\u30C9\u3092\u30B9\u30AD\u30E3\u30F3\u3057\u3066\u8A2D\u5B9A\u3057\u3066\u304F\u3060\u3055\u3044\u3002\u3059\u3067\u306B\u30B9\u30DE\u30FC\u30C8\u30D5\u30A9\u30F3\u306B\u5165\u3063\u3066\u3044\u308B\u5834\u5408\u306F\u305D\u306E\u307E\u307E\u3067\u69CB\u3044\u307E\u305B\u3093\u3002`,
+            ko: `\uC694\uAE08\uC81C\uAC00 \uD68C\uC6D0\uB2D8\uC758 eSIM${iccidTail ? ` ${iccidTail}` : ""}\uC5D0 \uCD94\uAC00\uB418\uC5C8\uC2B5\uB2C8\uB2E4. \uC774 eSIM\uC744 \uC544\uC9C1 \uC124\uCE58\uD558\uC9C0 \uC54A\uC73C\uC168\uB098\uC694? \uC544\uB798 QR \uCF54\uB4DC\uB97C \uC2A4\uCE94\uD574 \uC124\uC815\uD558\uC138\uC694. \uC774\uBBF8 \uD734\uB300\uD3F0\uC5D0 \uC788\uB2E4\uBA74 \uAC74\uB108\uB6F0\uC5B4\uB3C4 \uB429\uB2C8\uB2E4.`,
+            fr: `Forfait ajout\xE9 \xE0 votre eSIM${iccidTail ? ` ${iccidTail}` : ""}. Vous n'avez pas encore install\xE9 cet eSIM ? Scannez le code ci-dessous pour le configurer \u2014 inutile s'il est d\xE9j\xE0 sur votre t\xE9l\xE9phone.`,
+            de: `Paket zu Ihrer eSIM${iccidTail ? ` ${iccidTail}` : ""} hinzugef\xFCgt. Diese eSIM noch nicht installiert? Scannen Sie unten zum Einrichten \u2014 falls sie schon auf Ihrem Telefon ist, \xFCberspringen Sie diesen Schritt.`
           }) : tr({
             en: `Package added to your eSIM${iccidTail ? ` ${iccidTail}` : ""} \u2014 no new install needed. Not installed it yet? The install code is on the order that first issued this eSIM.`,
             hans: `\u5957\u9910\u5DF2\u52A0\u5230\u4F60\u7684 eSIM${iccidTail ? ` ${iccidTail}` : ""}\u2014\u2014\u65E0\u9700\u91CD\u65B0\u5B89\u88C5\u3002\u5982\u679C\u8FD8\u6CA1\u88C5\u8FC7\uFF0C\u5B89\u88C5\u7801\u5728\u9996\u6B21\u5F00\u901A\u8FD9\u5F20 eSIM \u7684\u90A3\u7B14\u8BA2\u5355\u91CC\u3002`,
-            hant: `\u5957\u9910\u5DF2\u52A0\u5230\u4F60\u7684 eSIM${iccidTail ? ` ${iccidTail}` : ""}\u2014\u2014\u7121\u9700\u91CD\u65B0\u5B89\u88DD\u3002\u5982\u679C\u9084\u6C92\u88DD\u904E\uFF0C\u5B89\u88DD\u78BC\u5728\u9996\u6B21\u958B\u901A\u9019\u5F35 eSIM \u7684\u90A3\u7B46\u8A02\u55AE\u88E1\u3002`
+            hant: `\u5957\u9910\u5DF2\u52A0\u5230\u4F60\u7684 eSIM${iccidTail ? ` ${iccidTail}` : ""}\u2014\u2014\u7121\u9700\u91CD\u65B0\u5B89\u88DD\u3002\u5982\u679C\u9084\u6C92\u88DD\u904E\uFF0C\u5B89\u88DD\u78BC\u5728\u9996\u6B21\u958B\u901A\u9019\u5F35 eSIM \u7684\u90A3\u7B46\u8A02\u55AE\u88E1\u3002`,
+            ja: `\u30D7\u30E9\u30F3\u3092\u3042\u306A\u305F\u306E eSIM${iccidTail ? ` ${iccidTail}` : ""}\u306B\u8FFD\u52A0\u3057\u307E\u3057\u305F\u3002\u518D\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u306F\u4E0D\u8981\u3067\u3059\u3002\u307E\u3060\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3057\u3066\u3044\u306A\u3044\u5834\u5408\u306F\u3001\u3053\u306E eSIM \u3092\u6700\u521D\u306B\u767A\u884C\u3057\u305F\u6CE8\u6587\u306B\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u30B3\u30FC\u30C9\u304C\u8A18\u8F09\u3055\u308C\u3066\u3044\u307E\u3059\u3002`,
+            ko: `\uC694\uAE08\uC81C\uAC00 \uD68C\uC6D0\uB2D8\uC758 eSIM${iccidTail ? ` ${iccidTail}` : ""}\uC5D0 \uCD94\uAC00\uB418\uC5C8\uC2B5\uB2C8\uB2E4. \uB2E4\uC2DC \uC124\uCE58\uD560 \uD544\uC694\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4. \uC544\uC9C1 \uC124\uCE58\uD558\uC9C0 \uC54A\uC73C\uC168\uB2E4\uBA74 \uC774 eSIM\uC744 \uCC98\uC74C \uBC1C\uAE09\uD55C \uC8FC\uBB38\uC5D0\uC11C \uC124\uCE58 \uCF54\uB4DC\uB97C \uD655\uC778\uD558\uC138\uC694.`,
+            fr: `Forfait ajout\xE9 \xE0 votre eSIM${iccidTail ? ` ${iccidTail}` : ""} \u2014 rien \xE0 r\xE9installer. Pas encore install\xE9 ? Le code d'installation se trouve sur la commande qui a \xE9mis cet eSIM.`,
+            de: `Paket zu Ihrer eSIM${iccidTail ? ` ${iccidTail}` : ""} hinzugef\xFCgt \u2014 keine Neuinstallation n\xF6tig. Noch nicht installiert? Den Installationscode finden Sie in der Bestellung, mit der diese eSIM ausgestellt wurde.`
           });
         case "failed":
           return tr({
@@ -17972,7 +20454,7 @@
             /* @__PURE__ */ jsx("div", { className: "flex h-10 w-10 items-center justify-center rounded-[0.9rem] bg-[color:color-mix(in_oklab,var(--esim-gold)_10%,transparent)] text-[var(--esim-gold)]", children: /* @__PURE__ */ jsx(QrCode, { className: "h-5 w-5" }) }),
             /* @__PURE__ */ jsxs("div", { children: [
               /* @__PURE__ */ jsx("p", { className: "text-sm font-medium text-[var(--esim-ink)]", children: title ?? tr({ en: "Install your eSIM", hans: "\u5B89\u88C5\u4F60\u7684 eSIM", hant: "\u5B89\u88DD\u4F60\u7684 eSIM" }) }),
-              /* @__PURE__ */ jsx("p", { className: "mt-1 text-xs text-[var(--esim-copy-soft)]", children: session.packageTitle })
+              /* @__PURE__ */ jsx("p", { className: "mt-1 text-xs text-[var(--esim-copy-soft)]", children: planTitle(session.defaultCode, session.packageTitle, locale) })
             ] })
           ] }),
           statusBanner ? /* @__PURE__ */ jsx("p", { className: "mt-3 rounded-[0.9rem] border border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-gold)_7%,transparent)] px-3 py-2 text-xs leading-5 text-[var(--esim-copy)]", children: statusBanner }) : null,
@@ -18085,64 +20567,7 @@
     );
   });
 
-  // packages/shop-themes/esim/src/lib/esim/order-copy.ts
-  function localeTag(locale) {
-    if (locale === "zh-Hant") return "zh-TW";
-    if (locale && locale.startsWith("zh")) return "zh-CN";
-    return "en-US";
-  }
-  function formatOrderDate(value, locale, withTime = true) {
-    const date = typeof value === "string" ? new Date(value) : value;
-    if (Number.isNaN(date.getTime())) return "";
-    return withTime ? date.toLocaleString(localeTag(locale)) : date.toLocaleDateString(localeTag(locale));
-  }
-  var ORDER_STATUS = {
-    PENDING: { en: "Pending payment", hans: "\u5F85\u652F\u4ED8", hant: "\u5F85\u4ED8\u6B3E" },
-    PAID: { en: "Paid", hans: "\u5DF2\u652F\u4ED8", hant: "\u5DF2\u4ED8\u6B3E" },
-    PROCESSING: { en: "Processing", hans: "\u5904\u7406\u4E2D", hant: "\u8655\u7406\u4E2D" },
-    SHIPPED: { en: "Shipped", hans: "\u5DF2\u53D1\u8D27", hant: "\u5DF2\u51FA\u8CA8" },
-    DELIVERED: { en: "Delivered", hans: "\u5DF2\u4EA4\u4ED8", hant: "\u5DF2\u4EA4\u4ED8" },
-    COMPLETED: { en: "Completed", hans: "\u5DF2\u5B8C\u6210", hant: "\u5DF2\u5B8C\u6210" },
-    CANCELLED: { en: "Cancelled", hans: "\u5DF2\u53D6\u6D88", hant: "\u5DF2\u53D6\u6D88" },
-    CANCELED: { en: "Cancelled", hans: "\u5DF2\u53D6\u6D88", hant: "\u5DF2\u53D6\u6D88" },
-    REFUNDED: { en: "Refunded", hans: "\u5DF2\u9000\u6B3E", hant: "\u5DF2\u9000\u6B3E" },
-    FAILED: { en: "Failed", hans: "\u5931\u8D25", hant: "\u5931\u6557" }
-  };
-  var ITEM_STATUS = {
-    pending: { en: "Pending", hans: "\u5F85\u4EA4\u4ED8", hant: "\u5F85\u4EA4\u4ED8" },
-    processing: { en: "Processing", hans: "\u5904\u7406\u4E2D", hant: "\u8655\u7406\u4E2D" },
-    shipped: { en: "Shipped", hans: "\u5DF2\u53D1\u8D27", hant: "\u5DF2\u51FA\u8CA8" },
-    delivered: { en: "Delivered", hans: "\u5DF2\u4EA4\u4ED8", hant: "\u5DF2\u4EA4\u4ED8" },
-    completed: { en: "Completed", hans: "\u5DF2\u5B8C\u6210", hant: "\u5DF2\u5B8C\u6210" },
-    fulfilled: { en: "Fulfilled", hans: "\u5DF2\u5B8C\u6210", hant: "\u5DF2\u5B8C\u6210" },
-    failed: { en: "Failed", hans: "\u4EA4\u4ED8\u5931\u8D25", hant: "\u4EA4\u4ED8\u5931\u6557" },
-    cancelled: { en: "Cancelled", hans: "\u5DF2\u53D6\u6D88", hant: "\u5DF2\u53D6\u6D88" }
-  };
-  function orderStatusLabel(status, locale) {
-    const raw = String(status);
-    const copy = ORDER_STATUS[raw.toUpperCase()];
-    return copy ? pickCopy(locale, copy) : raw.replace(/_/g, " ");
-  }
-  function itemStatusLabel(status, locale) {
-    const copy = ITEM_STATUS[String(status).toLowerCase()];
-    return copy ? pickCopy(locale, copy) : orderStatusLabel(status, locale);
-  }
-  function statusTone(status) {
-    const normalized = String(status).toUpperCase();
-    const base = "whitespace-nowrap ";
-    if (normalized === "DELIVERED" || normalized === "COMPLETED" || normalized === "FULFILLED") {
-      return base + "bg-[color:color-mix(in_oklab,var(--esim-success)_16%,transparent)] text-[var(--esim-success)]";
-    }
-    if (normalized === "PENDING" || normalized === "PAID" || normalized === "PROCESSING" || normalized === "SHIPPED") {
-      return base + "bg-[color:color-mix(in_oklab,var(--esim-warning)_16%,transparent)] text-[var(--esim-warning)]";
-    }
-    if (normalized === "CANCELLED" || normalized === "CANCELED" || normalized === "REFUNDED" || normalized === "FAILED") {
-      return base + "bg-[color:color-mix(in_oklab,var(--esim-danger)_18%,transparent)] text-[var(--esim-danger)]";
-    }
-    return base + "bg-[var(--esim-primary-soft)] text-[var(--esim-primary-strong)]";
-  }
-
-  // packages/shop-themes/esim/src/components/OrderDetailPage.tsx
+  // src/components/OrderDetailPage.tsx
   function copyToClipboard2(value) {
     if (typeof navigator === "undefined" || !navigator.clipboard?.writeText) return;
     navigator.clipboard.writeText(value).catch(() => void 0);
@@ -18248,7 +20673,7 @@
             /* @__PURE__ */ jsxs("div", { children: [
               /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap items-center gap-2", children: [
                 /* @__PURE__ */ jsx("span", { className: cn2("rounded-full px-3 py-1 text-[11px] font-semibold tracking-[0.16em]", statusTone(effectiveOrder.status)), children: orderStatusLabel(effectiveOrder.status, locale) }),
-                artifactCount > 0 ? /* @__PURE__ */ jsx("span", { className: "rounded-full border border-[var(--esim-line)] px-3 py-1 text-[11px] font-semibold tracking-[0.16em] text-[var(--esim-copy)]", children: t({ en: `${artifactCount} delivered item${artifactCount === 1 ? "" : "s"}`, hans: `\u5DF2\u4EA4\u4ED8 ${artifactCount} \u9879\u5185\u5BB9`, hant: `\u5DF2\u4EA4\u4ED8 ${artifactCount} \u9805\u5167\u5BB9` }) }) : null
+                artifactCount > 0 ? /* @__PURE__ */ jsx("span", { className: "rounded-full border border-[var(--esim-line)] px-3 py-1 text-[11px] font-semibold tracking-[0.16em] text-[var(--esim-copy)]", children: t({ en: `${artifactCount} delivered item${artifactCount === 1 ? "" : "s"}`, hans: `\u5DF2\u4EA4\u4ED8 ${artifactCount} \u9879\u5185\u5BB9`, hant: `\u5DF2\u4EA4\u4ED8 ${artifactCount} \u9805\u5167\u5BB9`, ja: `${artifactCount} \u4EF6\u306E\u30B3\u30F3\u30C6\u30F3\u30C4\u3092\u767A\u884C\u6E08\u307F`, ko: `${artifactCount}\uAC1C \uCF58\uD150\uCE20 \uBC1C\uAE09\uB428`, fr: `${artifactCount} contenu${artifactCount === 1 ? "" : "s"} livr\xE9${artifactCount === 1 ? "" : "s"}`, de: `${artifactCount} Inhalt${artifactCount === 1 ? "" : "e"} zugestellt` }) }) : null
               ] }),
               /* @__PURE__ */ jsxs("h1", { className: "mt-5 text-[clamp(2.2rem,4vw,4rem)] font-black tracking-[-0.05em] text-[var(--esim-ink)]", children: [
                 t({ en: "Order", hans: "\u8BA2\u5355", hant: "\u8A02\u55AE" }),
@@ -18345,7 +20770,7 @@
                 orderId: effectiveOrder.id,
                 orderNumber: effectiveOrder.id,
                 status: "ready",
-                packageTitle: item.productName
+                packageTitle: planTitle(item.productId, item.productName, locale)
               });
             })();
             const hasContent = sections3.codes.length + sections3.credentials.length + sections3.links.length + sections3.meta.length + sections3.notes.length > 0;
@@ -18357,7 +20782,7 @@
                   /* @__PURE__ */ jsxs("div", { className: "flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between", children: [
                     /* @__PURE__ */ jsxs("div", { children: [
                       /* @__PURE__ */ jsx("p", { className: "text-[11px] font-semibold tracking-[0.16em] text-[var(--esim-copy-soft)]", children: t({ en: "Item delivery", hans: "\u5546\u54C1\u4EA4\u4ED8", hant: "\u5546\u54C1\u4EA4\u4ED8" }) }),
-                      /* @__PURE__ */ jsx("h2", { className: "mt-3 text-2xl font-black tracking-[-0.04em] text-[var(--esim-ink)]", children: item.productName }),
+                      /* @__PURE__ */ jsx("h2", { className: "mt-3 text-2xl font-black tracking-[-0.04em] text-[var(--esim-ink)]", children: planTitle(item.productId, item.productName, locale) }),
                       /* @__PURE__ */ jsxs("p", { className: "mt-2 text-sm text-[var(--esim-copy)]", children: [
                         t({ en: "Qty", hans: "\u6570\u91CF", hant: "\u6578\u91CF" }),
                         " ",
@@ -18500,7 +20925,7 @@
     ] }) });
   });
 
-  // packages/shop-themes/esim/src/components/OrdersPage.tsx
+  // src/components/OrdersPage.tsx
   var OrdersPage = react_default.memo(function OrdersPage2({
     orders,
     isLoading,
@@ -18583,7 +21008,7 @@
               /* @__PURE__ */ jsxs("div", { className: "min-w-0", children: [
                 /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap items-center gap-2", children: [
                   /* @__PURE__ */ jsx("span", { className: cn2("rounded-full px-3 py-1 text-[11px] font-semibold tracking-[0.16em]", statusTone(order.status)), children: orderStatusLabel(order.status, locale) }),
-                  artifactCount > 0 ? /* @__PURE__ */ jsx("span", { className: "rounded-full border border-[var(--esim-line)] px-3 py-1 text-[11px] font-semibold tracking-[0.16em] text-[var(--esim-copy)]", children: t({ en: artifactCount === 1 ? "1 delivered item" : `${artifactCount} delivered items`, hans: `${artifactCount} \u9879\u5DF2\u4EA4\u4ED8\u5185\u5BB9`, hant: `${artifactCount} \u9805\u5DF2\u4EA4\u4ED8\u5167\u5BB9` }) }) : null
+                  artifactCount > 0 ? /* @__PURE__ */ jsx("span", { className: "rounded-full border border-[var(--esim-line)] px-3 py-1 text-[11px] font-semibold tracking-[0.16em] text-[var(--esim-copy)]", children: t({ en: artifactCount === 1 ? "1 delivered item" : `${artifactCount} delivered items`, hans: `${artifactCount} \u9879\u5DF2\u4EA4\u4ED8\u5185\u5BB9`, hant: `${artifactCount} \u9805\u5DF2\u4EA4\u4ED8\u5167\u5BB9`, ja: `${artifactCount} \u4EF6\u306E\u30B3\u30F3\u30C6\u30F3\u30C4\u3092\u767A\u884C\u6E08\u307F`, ko: `${artifactCount}\uAC1C \uCF58\uD150\uCE20 \uBC1C\uAE09\uB428`, fr: `${artifactCount} contenu${artifactCount === 1 ? "" : "s"} livr\xE9${artifactCount === 1 ? "" : "s"}`, de: `${artifactCount} Inhalt${artifactCount === 1 ? "" : "e"} zugestellt` }) }) : null
                 ] }),
                 /* @__PURE__ */ jsxs("h2", { className: "mt-4 text-2xl font-black tracking-[-0.04em] text-[var(--esim-ink)]", children: [
                   t({ en: "Order", hans: "\u8BA2\u5355", hant: "\u8A02\u55AE" }),
@@ -18666,7 +21091,7 @@
     ] }) });
   });
 
-  // packages/shop-themes/esim/src/components/OrderSuccessPage.tsx
+  // src/components/OrderSuccessPage.tsx
   function copyToClipboard3(value) {
     if (!value || typeof navigator === "undefined" || !navigator.clipboard?.writeText) return;
     navigator.clipboard.writeText(value).catch(() => void 0);
@@ -18766,7 +21191,7 @@
       installSession?.packageTitle ? /* @__PURE__ */ jsx("div", { className: "mx-auto mt-8 max-w-[320px] rounded-[1rem] border border-[var(--esim-line)] bg-[var(--esim-bg)] p-4 text-left", children: /* @__PURE__ */ jsxs("div", { className: "flex gap-3", children: [
         /* @__PURE__ */ jsx("div", { className: "h-16 w-20 overflow-hidden rounded-[0.8rem] bg-[linear-gradient(160deg,#924a57_0%,#261922_44%,#0f1115_100%)]" }),
         /* @__PURE__ */ jsxs("div", { children: [
-          /* @__PURE__ */ jsx("p", { className: "text-sm font-medium text-[var(--esim-ink)]", children: installSession.packageTitle }),
+          /* @__PURE__ */ jsx("p", { className: "text-sm font-medium text-[var(--esim-ink)]", children: planTitle(installSession.defaultCode, installSession.packageTitle, locale) }),
           /* @__PURE__ */ jsx("p", { className: "mt-1 text-xs text-[var(--esim-copy-soft)]", children: installSession.smdpAddress || t({ en: "eSIM activation", hans: "eSIM \u6FC0\u6D3B", hant: "eSIM \u555F\u7528" }) }),
           /* @__PURE__ */ jsx("p", { className: "mt-1 text-xs text-[var(--esim-copy-soft)]", children: installSession.status === "pending_payment" ? t({ en: "Awaiting payment", hans: "\u5F85\u652F\u4ED8", hant: "\u5F85\u4ED8\u6B3E" }) : installSession.status === "processing" || isWorking ? t({ en: "Provisioning", hans: "\u5F00\u901A\u4E2D", hant: "\u958B\u901A\u4E2D" }) : installSession.expiresAt ? t({ en: "Expires", hans: "\u6709\u6548\u671F\u81F3", hant: "\u6709\u6548\u671F\u81F3" }) + " " + formatOrderDate(installSession.expiresAt, locale, false) : t({ en: "Ready to install", hans: "\u53EF\u7ACB\u5373\u5B89\u88C5", hant: "\u53EF\u7ACB\u5373\u5B89\u88DD" }) })
         ] })
@@ -18827,7 +21252,7 @@
     ] }) }) });
   });
 
-  // packages/shop-themes/esim/src/components/PrivacyPage.tsx
+  // src/components/PrivacyPage.tsx
   var sections = [
     {
       en: { title: "Information We Collect", body: "We collect information you provide directly to us, such as when you create an account or make a purchase." },
@@ -18854,9 +21279,10 @@
     const t = (copy) => pickCopy(locale, copy);
     return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-[var(--esim-bg)] px-4 pb-24 pt-10 sm:px-6 lg:px-8", children: /* @__PURE__ */ jsxs("div", { className: "mx-auto max-w-[980px] rounded-[1.6rem] border border-[var(--esim-line)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--esim-bg-elevated)_96%,white),var(--esim-bg-elevated))] p-6 shadow-[var(--esim-shadow)] sm:p-8", children: [
       /* @__PURE__ */ jsx("h1", { className: "text-[clamp(2.2rem,4vw,3.5rem)] font-semibold tracking-[-0.05em] text-[var(--esim-ink)]", children: t({ en: "Privacy Policy", hans: "\u9690\u79C1\u653F\u7B56", hant: "\u96B1\u79C1\u653F\u7B56" }) }),
-      /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm text-[var(--esim-copy-soft)]", children: "Last updated: April 15, 2024" }),
+      /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm text-[var(--esim-copy-soft)]", children: t({ en: "Last updated: April 15, 2024", hans: "\u6700\u540E\u66F4\u65B0\uFF1A2024 \u5E74 4 \u6708 15 \u65E5", hant: "\u6700\u5F8C\u66F4\u65B0\uFF1A2024 \u5E74 4 \u6708 15 \u65E5" }) }),
       /* @__PURE__ */ jsx("div", { className: "mt-8 space-y-5", children: sections.map((section, index) => {
-        const copy = locale === "zh-Hans" ? section.hans : locale === "zh-Hant" ? section.hant : section.en;
+        const title = catalogCopy(locale, section.en.title);
+        const body = catalogCopy(locale, section.en.body);
         return /* @__PURE__ */ jsxs(
           "section",
           {
@@ -18865,9 +21291,9 @@
               /* @__PURE__ */ jsxs("p", { className: "text-base font-medium text-[var(--esim-ink)]", children: [
                 index + 1,
                 ". ",
-                copy.title
+                title
               ] }),
-              /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm leading-7 text-[var(--esim-copy)]", children: copy.body })
+              /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm leading-7 text-[var(--esim-copy)]", children: body })
             ]
           },
           section.en.title
@@ -18876,7 +21302,7 @@
     ] }) });
   });
 
-  // packages/shop-themes/esim/src/components/ProfileSettingsPage.tsx
+  // src/components/ProfileSettingsPage.tsx
   var ProfileSettingsPage = react_default.memo(function ProfileSettingsPage2({
     user,
     isLoading,
@@ -18884,8 +21310,10 @@
     onSaveProfile,
     onChangePassword,
     onNavigateBack,
-    onNavigateToLogin
+    onNavigateToLogin,
+    locale
   }) {
+    const t = (copy) => pickCopy(locale, copy);
     const [profile, setProfile] = react_default.useState({
       name: user?.name || "",
       phone: user?.phone || "",
@@ -18915,14 +21343,14 @@
     }
     if (!isAuthenticated || !user) {
       return /* @__PURE__ */ jsx("div", { className: "flex min-h-screen items-center justify-center bg-[var(--esim-bg)] px-4", children: /* @__PURE__ */ jsxs("div", { className: "rounded-[var(--esim-radius-xl)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-10 text-center shadow-[var(--esim-shadow)]", children: [
-        /* @__PURE__ */ jsx("h1", { className: "text-3xl leading-[1] tracking-[-0.04em] text-[var(--esim-ink)]", children: "Sign in to manage your account" }),
+        /* @__PURE__ */ jsx("h1", { className: "text-3xl leading-[1] tracking-[-0.04em] text-[var(--esim-ink)]", children: t({ en: "Sign in to manage your account", hans: "\u767B\u5165\u4EE5\u7BA1\u7406\u4F60\u7684\u8D26\u6237", hant: "\u767B\u5165\u4EE5\u7BA1\u7406\u4F60\u7684\u5E33\u6236" }) }),
         /* @__PURE__ */ jsx(
           "button",
           {
             onClick: onNavigateToLogin,
             className: "mt-6 rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--esim-gold)_82%,white),color-mix(in_oklab,var(--esim-gold)_65%,black))] px-6 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--esim-bg)]",
             type: "button",
-            children: "Log In"
+            children: t({ en: "Log In", hans: "\u767B\u5F55", hant: "\u767B\u5165" })
           }
         )
       ] }) });
@@ -18936,7 +21364,7 @@
           type: "button",
           children: [
             /* @__PURE__ */ jsx(ArrowLeft, { className: "h-4 w-4" }),
-            "Back"
+            t({ en: "Back", hans: "\u8FD4\u56DE", hant: "\u8FD4\u56DE" })
           ]
         }
       ),
@@ -18945,33 +21373,33 @@
           /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-4", children: [
             /* @__PURE__ */ jsx("div", { className: "flex h-12 w-12 items-center justify-center rounded-[1rem] bg-[color:color-mix(in_oklab,var(--esim-gold)_14%,transparent)] text-[var(--esim-gold)]", children: /* @__PURE__ */ jsx(UserRound, { className: "h-6 w-6" }) }),
             /* @__PURE__ */ jsxs("div", { children: [
-              /* @__PURE__ */ jsx("p", { className: "text-[11px] font-semibold tracking-[0.18em] text-[var(--esim-copy-soft)]", children: "Traveler profile" }),
-              /* @__PURE__ */ jsx("h1", { className: "mt-2 text-3xl leading-[1] tracking-[-0.04em] text-[var(--esim-ink)]", children: "Keep your BOKMOO account ready for the next trip." })
+              /* @__PURE__ */ jsx("p", { className: "text-[11px] font-semibold tracking-[0.18em] text-[var(--esim-copy-soft)]", children: t({ en: "Traveler profile", hans: "\u65C5\u884C\u8005\u8D44\u6599", hant: "\u65C5\u884C\u8005\u8CC7\u6599" }) }),
+              /* @__PURE__ */ jsx("h1", { className: "mt-2 text-3xl leading-[1] tracking-[-0.04em] text-[var(--esim-ink)]", children: t({ en: "Keep your BOKMOO account ready for the next trip.", hans: "\u8BA9\u60A8\u7684 BOKMOO \u8D26\u6237\u4E3A\u4E0B\u4E00\u6B21\u65C5\u884C\u505A\u597D\u51C6\u5907\u3002", hant: "\u8B93\u60A8\u7684 BOKMOO \u5E33\u6236\u70BA\u4E0B\u4E00\u6B21\u65C5\u884C\u505A\u597D\u6E96\u5099\u3002" }) })
             ] })
           ] }),
           /* @__PURE__ */ jsxs("div", { className: "mt-6 grid gap-4 sm:grid-cols-2", children: [
             /* @__PURE__ */ jsxs("label", { className: "grid gap-2 sm:col-span-2", children: [
-              /* @__PURE__ */ jsx("span", { className: "text-[11px] font-semibold tracking-[0.18em] text-[var(--esim-copy-soft)]", children: "Email" }),
+              /* @__PURE__ */ jsx("span", { className: "text-[11px] font-semibold tracking-[0.18em] text-[var(--esim-copy-soft)]", children: t({ en: "Email Address", hans: "\u90AE\u7BB1", hant: "\u4FE1\u7BB1" }) }),
               /* @__PURE__ */ jsx("input", { value: user.email, readOnly: true, className: "h-12 rounded-[1rem] border border-[var(--esim-line)] bg-[var(--esim-bg)] px-4 text-sm text-[var(--esim-copy)] outline-none" })
             ] }),
             /* @__PURE__ */ jsxs("label", { className: "grid gap-2 sm:col-span-2", children: [
-              /* @__PURE__ */ jsx("span", { className: "text-[11px] font-semibold tracking-[0.18em] text-[var(--esim-copy-soft)]", children: "Name" }),
+              /* @__PURE__ */ jsx("span", { className: "text-[11px] font-semibold tracking-[0.18em] text-[var(--esim-copy-soft)]", children: t({ en: "Full name", hans: "\u59D3\u540D", hant: "\u59D3\u540D" }) }),
               /* @__PURE__ */ jsx("input", { value: profile.name, onChange: (event) => setProfile((prev) => ({ ...prev, name: event.target.value })), className: "h-12 rounded-[1rem] border border-[var(--esim-line)] bg-[var(--esim-bg)] px-4 text-sm text-[var(--esim-ink)] outline-none" })
             ] }),
             /* @__PURE__ */ jsxs("label", { className: "grid gap-2", children: [
-              /* @__PURE__ */ jsx("span", { className: "text-[11px] font-semibold tracking-[0.18em] text-[var(--esim-copy-soft)]", children: "Phone" }),
+              /* @__PURE__ */ jsx("span", { className: "text-[11px] font-semibold tracking-[0.18em] text-[var(--esim-copy-soft)]", children: t({ en: "Phone Number", hans: "\u624B\u673A\u53F7", hant: "\u624B\u6A5F\u865F\u78BC" }) }),
               /* @__PURE__ */ jsx("input", { value: profile.phone, onChange: (event) => setProfile((prev) => ({ ...prev, phone: event.target.value })), className: "h-12 rounded-[1rem] border border-[var(--esim-line)] bg-[var(--esim-bg)] px-4 text-sm text-[var(--esim-ink)] outline-none" })
             ] }),
             /* @__PURE__ */ jsxs("label", { className: "grid gap-2", children: [
-              /* @__PURE__ */ jsx("span", { className: "text-[11px] font-semibold tracking-[0.18em] text-[var(--esim-copy-soft)]", children: "Date of birth" }),
+              /* @__PURE__ */ jsx("span", { className: "text-[11px] font-semibold tracking-[0.18em] text-[var(--esim-copy-soft)]", children: t({ en: "Date of Birth", hans: "\u51FA\u751F\u65E5\u671F", hant: "\u51FA\u751F\u65E5\u671F" }) }),
               /* @__PURE__ */ jsx("input", { value: profile.dateOfBirth, onChange: (event) => setProfile((prev) => ({ ...prev, dateOfBirth: event.target.value })), className: "h-12 rounded-[1rem] border border-[var(--esim-line)] bg-[var(--esim-bg)] px-4 text-sm text-[var(--esim-ink)] outline-none" })
             ] }),
             /* @__PURE__ */ jsxs("label", { className: "grid gap-2", children: [
-              /* @__PURE__ */ jsx("span", { className: "text-[11px] font-semibold tracking-[0.18em] text-[var(--esim-copy-soft)]", children: "Language" }),
+              /* @__PURE__ */ jsx("span", { className: "text-[11px] font-semibold tracking-[0.18em] text-[var(--esim-copy-soft)]", children: t({ en: "Language", hans: "\u8BED\u8A00", hant: "\u8A9E\u8A00" }) }),
               /* @__PURE__ */ jsx("input", { value: profile.preferredLanguage, onChange: (event) => setProfile((prev) => ({ ...prev, preferredLanguage: event.target.value })), className: "h-12 rounded-[1rem] border border-[var(--esim-line)] bg-[var(--esim-bg)] px-4 text-sm text-[var(--esim-ink)] outline-none" })
             ] }),
             /* @__PURE__ */ jsxs("label", { className: "grid gap-2", children: [
-              /* @__PURE__ */ jsx("span", { className: "text-[11px] font-semibold tracking-[0.18em] text-[var(--esim-copy-soft)]", children: "Timezone" }),
+              /* @__PURE__ */ jsx("span", { className: "text-[11px] font-semibold tracking-[0.18em] text-[var(--esim-copy-soft)]", children: t({ en: "Timezone", hans: "\u65F6\u533A", hant: "\u6642\u5340" }) }),
               /* @__PURE__ */ jsx("input", { value: profile.timezone, onChange: (event) => setProfile((prev) => ({ ...prev, timezone: event.target.value })), className: "h-12 rounded-[1rem] border border-[var(--esim-line)] bg-[var(--esim-bg)] px-4 text-sm text-[var(--esim-ink)] outline-none" })
             ] })
           ] }),
@@ -18991,7 +21419,7 @@
               type: "button",
               children: [
                 /* @__PURE__ */ jsx(Save, { className: "h-4 w-4" }),
-                savingProfile ? "Saving..." : "Save profile"
+                savingProfile ? t({ en: "Saving...", hans: "\u4FDD\u5B58\u4E2D...", hant: "\u5132\u5B58\u4E2D\u2026" }) : t({ en: "Save profile", hans: "\u4FDD\u5B58\u8D44\u6599", hant: "\u5132\u5B58\u8CC7\u6599" })
               ]
             }
           )
@@ -19000,17 +21428,17 @@
           /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-4", children: [
             /* @__PURE__ */ jsx("div", { className: "flex h-12 w-12 items-center justify-center rounded-[1rem] bg-[color:color-mix(in_oklab,var(--esim-gold)_14%,transparent)] text-[var(--esim-gold)]", children: /* @__PURE__ */ jsx(LockKeyhole, { className: "h-6 w-6" }) }),
             /* @__PURE__ */ jsxs("div", { children: [
-              /* @__PURE__ */ jsx("p", { className: "text-[11px] font-semibold tracking-[0.18em] text-[var(--esim-copy-soft)]", children: "Password" }),
-              /* @__PURE__ */ jsx("h2", { className: "mt-2 text-3xl leading-[1] tracking-[-0.04em] text-[var(--esim-ink)]", children: "Keep access secure between trips." })
+              /* @__PURE__ */ jsx("p", { className: "text-[11px] font-semibold tracking-[0.18em] text-[var(--esim-copy-soft)]", children: t({ en: "Password", hans: "\u5BC6\u7801", hant: "\u5BC6\u78BC" }) }),
+              /* @__PURE__ */ jsx("h2", { className: "mt-2 text-3xl leading-[1] tracking-[-0.04em] text-[var(--esim-ink)]", children: t({ en: "Keep access secure between trips.", hans: "\u5728\u4E24\u6B21\u65C5\u884C\u4E4B\u95F4\u4FDD\u6301\u8D26\u6237\u8BBF\u95EE\u5B89\u5168\u3002", hant: "\u5728\u5169\u6B21\u65C5\u884C\u4E4B\u9593\u4FDD\u6301\u5E33\u6236\u5B58\u53D6\u5B89\u5168\u3002" }) })
             ] })
           ] }),
           /* @__PURE__ */ jsxs("div", { className: "mt-6 grid gap-4", children: [
             /* @__PURE__ */ jsxs("label", { className: "grid gap-2", children: [
-              /* @__PURE__ */ jsx("span", { className: "text-[11px] font-semibold tracking-[0.18em] text-[var(--esim-copy-soft)]", children: "Current password" }),
+              /* @__PURE__ */ jsx("span", { className: "text-[11px] font-semibold tracking-[0.18em] text-[var(--esim-copy-soft)]", children: t({ en: "Current password", hans: "\u5F53\u524D\u5BC6\u7801", hant: "\u76EE\u524D\u5BC6\u78BC" }) }),
               /* @__PURE__ */ jsx("input", { type: "password", value: password.currentPassword, onChange: (event) => setPassword((prev) => ({ ...prev, currentPassword: event.target.value })), className: "h-12 rounded-[1rem] border border-[var(--esim-line)] bg-[var(--esim-bg)] px-4 text-sm text-[var(--esim-ink)] outline-none" })
             ] }),
             /* @__PURE__ */ jsxs("label", { className: "grid gap-2", children: [
-              /* @__PURE__ */ jsx("span", { className: "text-[11px] font-semibold tracking-[0.18em] text-[var(--esim-copy-soft)]", children: "New password" }),
+              /* @__PURE__ */ jsx("span", { className: "text-[11px] font-semibold tracking-[0.18em] text-[var(--esim-copy-soft)]", children: t({ en: "New password", hans: "\u65B0\u5BC6\u7801", hant: "\u65B0\u5BC6\u78BC" }) }),
               /* @__PURE__ */ jsx("input", { type: "password", value: password.newPassword, onChange: (event) => setPassword((prev) => ({ ...prev, newPassword: event.target.value })), className: "h-12 rounded-[1rem] border border-[var(--esim-line)] bg-[var(--esim-bg)] px-4 text-sm text-[var(--esim-ink)] outline-none" })
             ] })
           ] }),
@@ -19031,7 +21459,7 @@
               type: "button",
               children: [
                 /* @__PURE__ */ jsx(LockKeyhole, { className: "h-4 w-4 text-[var(--esim-gold)]" }),
-                savingPassword ? "Updating..." : "Change password"
+                savingPassword ? t({ en: "Updating...", hans: "\u66F4\u65B0\u4E2D...", hant: "\u66F4\u65B0\u4E2D\u2026" }) : t({ en: "Change password", hans: "\u4FEE\u6539\u5BC6\u7801", hant: "\u8B8A\u66F4\u5BC6\u78BC" })
               ]
             }
           )
@@ -19040,7 +21468,7 @@
     ] }) });
   });
 
-  // packages/shop-themes/esim/src/components/RegisterPage.tsx
+  // src/components/RegisterPage.tsx
   var FOCUS_VISIBLE_RING5 = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--esim-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--esim-bg)]";
   function RegisterPage({
     isLoading,
@@ -19049,9 +21477,20 @@
     onSubmit,
     onOAuthClick,
     onAppleOAuthClick,
-    onNavigateToLogin
+    onNavigateToLogin,
+    locale
   }) {
-    const site = resolveEsimSiteConfig(config);
+    const t = (copy) => pickCopy(locale, copy);
+    const site = resolveEsimSiteConfig(config, locale);
+    const accountLabel = pickCopy(locale, {
+      en: `${site.brandName.toUpperCase()} account`,
+      hans: `${site.brandName.toUpperCase()} \u8D26\u6237`,
+      hant: `${site.brandName.toUpperCase()} \u5E33\u6236`,
+      ja: `${site.brandName.toUpperCase()} \u30A2\u30AB\u30A6\u30F3\u30C8`,
+      ko: `${site.brandName.toUpperCase()} \uACC4\uC815`,
+      fr: `Compte ${site.brandName.toUpperCase()}`,
+      de: `${site.brandName.toUpperCase()}-Konto`
+    });
     const [formData, setFormData] = react_default.useState({
       firstName: "",
       lastName: "",
@@ -19079,18 +21518,19 @@
         /* @__PURE__ */ jsxs("section", { className: "hidden lg:block", children: [
           /* @__PURE__ */ jsxs("div", { className: "inline-flex items-center gap-3 rounded-full border border-[color:color-mix(in_oklab,var(--esim-gold)_24%,transparent)] bg-[color:oklch(0.065_0.007_75_/_0.72)] px-5 py-2.5 text-[0.72rem] font-bold uppercase tracking-[0.28em] text-[var(--esim-gold)]", children: [
             /* @__PURE__ */ jsx(ShieldCheck, { className: "h-4 w-4" }),
-            "Protected traveler identity"
+            t({ en: "Protected traveler identity", hans: "\u53D7\u4FDD\u62A4\u7684\u65C5\u884C\u8005\u8EAB\u4EFD", hant: "\u53D7\u4FDD\u8B77\u7684\u65C5\u884C\u8005\u8EAB\u5206" })
           ] }),
-          /* @__PURE__ */ jsx("h1", { className: "mt-7 max-w-3xl text-[clamp(3.4rem,7vw,6.1rem)] font-semibold leading-[0.92] tracking-[-0.065em] text-[var(--esim-ink)]", children: "Create the account your eSIMs follow." }),
-          /* @__PURE__ */ jsx("p", { className: "mt-7 max-w-2xl text-lg leading-8 text-[var(--esim-copy)]", children: "Keep orders, activation codes, profile history, and support cases attached to one BOKMOO identity." })
+          /* @__PURE__ */ jsx("h1", { className: "mt-7 max-w-3xl text-[clamp(3.4rem,7vw,6.1rem)] font-semibold leading-[0.92] tracking-[-0.065em] text-[var(--esim-ink)]", children: t({ en: "Create the account your eSIMs follow.", hans: "\u521B\u5EFA\u4E00\u4E2A\u8D26\u6237\uFF0C\u6240\u6709 eSIM \u968F\u884C\u3002", hant: "\u5EFA\u7ACB\u4E00\u500B\u5E33\u6236\uFF0C\u6240\u6709 eSIM \u96A8\u884C\u3002" }) }),
+          /* @__PURE__ */ jsx("p", { className: "mt-7 max-w-2xl text-lg leading-8 text-[var(--esim-copy)]", children: t({
+            en: "Keep orders, activation codes, profile history, and support cases attached to one BOKMOO identity.",
+            hans: "\u8BA2\u5355\u3001\u6FC0\u6D3B\u7801\u3001\u914D\u7F6E\u6587\u4EF6\u5386\u53F2\u548C\u5BA2\u670D\u5DE5\u5355\uFF0C\u90FD\u5F52\u5C5E\u540C\u4E00\u4E2A BOKMOO \u8EAB\u4EFD\u3002",
+            hant: "\u8A02\u55AE\u3001\u555F\u7528\u78BC\u3001\u8A2D\u5B9A\u6A94\u6B77\u53F2\u548C\u5BA2\u670D\u5DE5\u55AE\uFF0C\u90FD\u6B78\u5C6C\u540C\u4E00\u500B BOKMOO \u8EAB\u5206\u3002"
+          }) })
         ] }),
         /* @__PURE__ */ jsx("section", { className: "mx-auto w-full max-w-[32rem] rounded-[1.45rem] border border-[color:color-mix(in_oklab,var(--esim-gold)_22%,transparent)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--esim-bg-elevated)_94%,white),var(--esim-bg-elevated))] p-5 shadow-[var(--esim-shadow)] sm:p-7", children: /* @__PURE__ */ jsxs("div", { className: "rounded-[1.1rem] border border-[var(--esim-line)] bg-[color:oklch(0.055_0.006_75_/_0.78)] p-5 sm:p-6", children: [
-          /* @__PURE__ */ jsxs("p", { className: "text-[11px] font-bold uppercase tracking-[0.24em] text-[var(--esim-gold)]", children: [
-            site.brandName.toUpperCase(),
-            " account"
-          ] }),
-          /* @__PURE__ */ jsx("h2", { className: "mt-3 text-3xl font-semibold leading-none tracking-[-0.05em] text-[var(--esim-ink)]", children: "Create account" }),
-          /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm leading-6 text-[var(--esim-copy)]", children: "Start with a secure profile for purchases and global activation support." }),
+          /* @__PURE__ */ jsx("p", { className: "text-[11px] font-bold uppercase tracking-[0.24em] text-[var(--esim-gold)]", children: accountLabel }),
+          /* @__PURE__ */ jsx("h2", { className: "mt-3 text-3xl font-semibold leading-none tracking-[-0.05em] text-[var(--esim-ink)]", children: t({ en: "Create account", hans: "\u521B\u5EFA\u8D26\u6237", hant: "\u5EFA\u7ACB\u5E33\u6236" }) }),
+          /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm leading-6 text-[var(--esim-copy)]", children: t({ en: "Start with a secure profile for purchases and global activation support.", hans: "\u5148\u521B\u5EFA\u4E00\u4EFD\u5B89\u5168\u7684\u8D44\u6599\uFF0C\u7528\u4E8E\u8D2D\u4E70\u548C\u5168\u7403\u6FC0\u6D3B\u652F\u6301\u3002", hant: "\u5148\u5EFA\u7ACB\u4E00\u4EFD\u5B89\u5168\u7684\u8CC7\u6599\uFF0C\u7528\u65BC\u8CFC\u8CB7\u548C\u5168\u7403\u555F\u7528\u652F\u63F4\u3002" }) }),
           /* @__PURE__ */ jsxs("div", { className: "mt-7 grid gap-3 sm:grid-cols-2", children: [
             /* @__PURE__ */ jsxs(
               "button",
@@ -19121,13 +21561,13 @@
           ] }),
           /* @__PURE__ */ jsxs("div", { className: "mt-6 flex items-center gap-3", children: [
             /* @__PURE__ */ jsx("div", { className: "h-px flex-1 bg-[var(--esim-line)]" }),
-            /* @__PURE__ */ jsx("span", { className: "text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--esim-copy-soft)]", children: "or email" }),
+            /* @__PURE__ */ jsx("span", { className: "text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--esim-copy-soft)]", children: t({ en: "or email", hans: "\u6216\u4F7F\u7528\u90AE\u7BB1", hant: "\u6216\u4F7F\u7528\u96FB\u5B50\u90F5\u4EF6" }) }),
             /* @__PURE__ */ jsx("div", { className: "h-px flex-1 bg-[var(--esim-line)]" })
           ] }),
           /* @__PURE__ */ jsxs("form", { onSubmit: handleSubmit, className: "mt-7 space-y-5", children: [
             error ? /* @__PURE__ */ jsx("div", { className: "rounded-[0.95rem] border border-[color:color-mix(in_oklab,var(--esim-danger)_48%,transparent)] bg-[color:color-mix(in_oklab,var(--esim-danger)_12%,transparent)] p-4 text-sm leading-6 text-[var(--esim-ink)]", children: error }) : null,
             /* @__PURE__ */ jsx("div", { className: "grid gap-4 sm:grid-cols-2", children: ["firstName", "lastName"].map((field) => /* @__PURE__ */ jsxs("label", { className: "block", children: [
-              /* @__PURE__ */ jsx("span", { className: "text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--esim-copy-soft)]", children: field === "firstName" ? "First name" : "Last name" }),
+              /* @__PURE__ */ jsx("span", { className: "text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--esim-copy-soft)]", children: field === "firstName" ? t({ en: "First name", hans: "\u540D", hant: "\u540D" }) : t({ en: "Last name", hans: "\u59D3", hant: "\u59D3" }) }),
               /* @__PURE__ */ jsxs("span", { className: "relative mt-2 block", children: [
                 /* @__PURE__ */ jsx(UserRound, { className: "pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--esim-copy-soft)]" }),
                 /* @__PURE__ */ jsx(
@@ -19145,7 +21585,7 @@
               ] })
             ] }, field)) }),
             /* @__PURE__ */ jsxs("label", { className: "block", children: [
-              /* @__PURE__ */ jsx("span", { className: "text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--esim-copy-soft)]", children: "Email" }),
+              /* @__PURE__ */ jsx("span", { className: "text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--esim-copy-soft)]", children: t({ en: "Email", hans: "\u90AE\u7BB1", hant: "\u96FB\u5B50\u90F5\u4EF6" }) }),
               /* @__PURE__ */ jsxs("span", { className: "relative mt-2 block", children: [
                 /* @__PURE__ */ jsx(Mail, { className: "pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--esim-copy-soft)]" }),
                 /* @__PURE__ */ jsx(
@@ -19164,7 +21604,7 @@
             ] }),
             /* @__PURE__ */ jsxs("div", { className: "grid gap-4 sm:grid-cols-2", children: [
               /* @__PURE__ */ jsxs("label", { className: "block", children: [
-                /* @__PURE__ */ jsx("span", { className: "text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--esim-copy-soft)]", children: "Password" }),
+                /* @__PURE__ */ jsx("span", { className: "text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--esim-copy-soft)]", children: t({ en: "Password", hans: "\u5BC6\u7801", hant: "\u5BC6\u78BC" }) }),
                 /* @__PURE__ */ jsxs("span", { className: "relative mt-2 block", children: [
                   /* @__PURE__ */ jsx(LockKeyhole, { className: "pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--esim-copy-soft)]" }),
                   /* @__PURE__ */ jsx(
@@ -19186,14 +21626,14 @@
                       onClick: () => setShowPassword((value) => !value),
                       className: `absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-[0.8rem] text-[var(--esim-copy-soft)] hover:text-[var(--esim-gold)] ${FOCUS_VISIBLE_RING5}`,
                       disabled: isLoading,
-                      "aria-label": showPassword ? "Hide password" : "Show password",
+                      "aria-label": showPassword ? t({ en: "Hide password", hans: "\u9690\u85CF\u5BC6\u7801", hant: "\u96B1\u85CF\u5BC6\u78BC" }) : t({ en: "Show password", hans: "\u663E\u793A\u5BC6\u7801", hant: "\u986F\u793A\u5BC6\u78BC" }),
                       children: showPassword ? /* @__PURE__ */ jsx(EyeOff, { className: "h-4 w-4" }) : /* @__PURE__ */ jsx(Eye, { className: "h-4 w-4" })
                     }
                   )
                 ] })
               ] }),
               /* @__PURE__ */ jsxs("label", { className: "block", children: [
-                /* @__PURE__ */ jsx("span", { className: "text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--esim-copy-soft)]", children: "Confirm" }),
+                /* @__PURE__ */ jsx("span", { className: "text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--esim-copy-soft)]", children: t({ en: "Confirm", hans: "\u786E\u8BA4\u5BC6\u7801", hant: "\u78BA\u8A8D\u5BC6\u78BC" }) }),
                 /* @__PURE__ */ jsxs("span", { className: "relative mt-2 block", children: [
                   /* @__PURE__ */ jsx(LockKeyhole, { className: "pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--esim-copy-soft)]" }),
                   /* @__PURE__ */ jsx(
@@ -19215,12 +21655,12 @@
                       onClick: () => setShowConfirmPassword((value) => !value),
                       className: `absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-[0.8rem] text-[var(--esim-copy-soft)] hover:text-[var(--esim-gold)] ${FOCUS_VISIBLE_RING5}`,
                       disabled: isLoading,
-                      "aria-label": showConfirmPassword ? "Hide password" : "Show password",
+                      "aria-label": showConfirmPassword ? t({ en: "Hide password", hans: "\u9690\u85CF\u5BC6\u7801", hant: "\u96B1\u85CF\u5BC6\u78BC" }) : t({ en: "Show password", hans: "\u663E\u793A\u5BC6\u7801", hant: "\u986F\u793A\u5BC6\u78BC" }),
                       children: showConfirmPassword ? /* @__PURE__ */ jsx(EyeOff, { className: "h-4 w-4" }) : /* @__PURE__ */ jsx(Eye, { className: "h-4 w-4" })
                     }
                   )
                 ] }),
-                formData.confirmPassword && !passwordsMatch ? /* @__PURE__ */ jsx("span", { className: "mt-2 block text-xs text-[var(--esim-danger)]", children: "Passwords do not match" }) : null
+                formData.confirmPassword && !passwordsMatch ? /* @__PURE__ */ jsx("span", { className: "mt-2 block text-xs text-[var(--esim-danger)]", children: t({ en: "Passwords do not match", hans: "\u4E24\u6B21\u8F93\u5165\u7684\u5BC6\u7801\u4E0D\u4E00\u81F4", hant: "\u5169\u6B21\u8F38\u5165\u7684\u5BC6\u78BC\u4E0D\u4E00\u81F4" }) }) : null
               ] })
             ] }),
             /* @__PURE__ */ jsx(
@@ -19231,13 +21671,13 @@
                 className: `inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-[1rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--esim-gold)_88%,white),color-mix(in_oklab,var(--esim-gold)_64%,black))] px-5 text-sm font-black uppercase tracking-[0.2em] text-[var(--esim-bg)] shadow-[0_18px_42px_color-mix(in_oklab,var(--esim-gold)_16%,transparent)] transition-transform duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING5}`,
                 children: isLoading ? /* @__PURE__ */ jsxs(Fragment2, { children: [
                   /* @__PURE__ */ jsx(LoaderCircle, { className: "h-4 w-4 animate-spin" }),
-                  "Creating"
-                ] }) : "Create account"
+                  t({ en: "Creating", hans: "\u521B\u5EFA\u4E2D\u2026", hant: "\u5EFA\u7ACB\u4E2D\u2026" })
+                ] }) : t({ en: "Create account", hans: "\u521B\u5EFA\u8D26\u6237", hant: "\u5EFA\u7ACB\u5E33\u6236" })
               }
             )
           ] }),
           /* @__PURE__ */ jsxs("div", { className: "mt-7 border-t border-[var(--esim-line)] pt-6 text-center", children: [
-            /* @__PURE__ */ jsx("p", { className: "text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--esim-copy-soft)]", children: "Already have an account?" }),
+            /* @__PURE__ */ jsx("p", { className: "text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--esim-copy-soft)]", children: t({ en: "Already have an account?", hans: "\u5DF2\u6709\u8D26\u6237\uFF1F", hant: "\u5DF2\u6709\u5E33\u6236\uFF1F" }) }),
             /* @__PURE__ */ jsx(
               "button",
               {
@@ -19245,7 +21685,7 @@
                 onClick: onNavigateToLogin,
                 className: `mt-3 text-sm font-semibold text-[var(--esim-gold)] hover:text-[var(--esim-gold-strong)] ${FOCUS_VISIBLE_RING5}`,
                 disabled: isLoading,
-                children: "Sign in"
+                children: t({ en: "Sign in", hans: "\u767B\u5F55", hant: "\u767B\u5165" })
               }
             )
           ] })
@@ -19254,14 +21694,14 @@
     ] });
   }
 
-  // packages/shop-themes/esim/src/components/ProductDetailPage.tsx
+  // src/components/ProductDetailPage.tsx
   function getProductImage(product) {
     if (!product?.images?.length) return null;
     const primary = product.images.find((image) => image.isMain) || product.images[0];
     return primary?.url || null;
   }
-  function getVariantLabel(variant) {
-    return variant.name || variant.value || variant.sku || "Default option";
+  function getVariantLabel(variant, locale) {
+    return variant.name || variant.value || variant.sku || pickCopy(locale, { en: "Default option", hans: "\u9ED8\u8BA4\u9009\u9879", hant: "\u9810\u8A2D\u9078\u9805" });
   }
   var ProductDetailPage = react_default.memo(function ProductDetailPage2({
     product,
@@ -19285,6 +21725,11 @@
       [product, remoteProduct]
     );
     const profile = react_default.useMemo(() => getEsimTravelProfile(normalizedProduct, locale), [normalizedProduct, locale]);
+    const planName = planTitle(
+      normalizedProduct?.typeData?.esim?.defaultCode || remoteEsim?.defaultCode || normalizedProduct?.id,
+      normalizedProduct?.name || "",
+      locale
+    );
     const isGoodsProduct = normalizedProduct?.productKind === "goods";
     const isBluetoothCard = isGoodsProduct && /bluetooth|蓝牙/i.test(normalizedProduct?.description || "");
     const goodsSubtitle = isBluetoothCard ? { en: "Physical Bluetooth card \u2014 manage multiple eSIM profiles with the BOKMOO app", hans: "\u5B9E\u4F53\u84DD\u7259\u5361\uFF0C\u642D\u914D BOKMOO App \u7BA1\u7406\u591A\u4E2A eSIM \u5957\u9910", hant: "\u5BE6\u9AD4\u85CD\u7259\u5361\uFF0C\u642D\u914D BOKMOO App \u7BA1\u7406\u591A\u500B eSIM \u8A2D\u5B9A\u6A94" } : { en: "Physical card \u2014 works with the BOKMOO app", hans: "\u5B9E\u4F53\u5361\uFF0C\u642D\u914D BOKMOO App \u4F7F\u7528", hant: "\u5BE6\u9AD4\u5361\uFF0C\u642D\u914D BOKMOO App \u4F7F\u7528" };
@@ -19307,9 +21752,9 @@
     const goodsSetupValue = isBluetoothCard ? pickCopy(locale, { en: "Connects to the BOKMOO app over Bluetooth", hans: "\u84DD\u7259\u8FDE\u63A5 BOKMOO App \u7BA1\u7406", hant: "\u85CD\u7259\u9023\u7DDA BOKMOO App \u7BA1\u7406" }) : pickCopy(locale, { en: "Works with the BOKMOO app", hans: "\u642D\u914D BOKMOO App \u4F7F\u7528", hant: "\u642D\u914D BOKMOO App \u4F7F\u7528" });
     const goodsCompatValue = isBluetoothCard ? pickCopy(locale, { en: "iPhone and Android devices with eSIM support", hans: "\u652F\u6301 eSIM \u7684 iPhone \u4E0E Android \u8BBE\u5907", hant: "\u652F\u63F4 eSIM \u7684 iPhone \u8207 Android \u88DD\u7F6E" }) : pickCopy(locale, { en: "iPhone and Android devices", hans: "iPhone \u4E0E Android \u8BBE\u5907", hant: "iPhone \u8207 Android \u88DD\u7F6E" });
     react_default.useEffect(() => {
-      if (!normalizedProduct?.name) return;
-      document.title = `${normalizedProduct.name} | ${site.brandName}`;
-    }, [normalizedProduct?.name, site.brandName]);
+      if (!planName) return;
+      document.title = `${planName} | ${site.brandName}`;
+    }, [planName, site.brandName]);
     const effectiveSelectedVariant = selectedVariant || normalizedProduct?.variants?.[0]?.id || null;
     const currentVariant = react_default.useMemo(() => {
       if (!normalizedProduct?.variants?.length || !effectiveSelectedVariant) return null;
@@ -19416,7 +21861,7 @@
             "img",
             {
               src: image,
-              alt: normalizedProduct.name,
+              alt: planName,
               className: "esim-pdp-media-goods object-cover"
             }
           ) : /* @__PURE__ */ jsx("div", { className: "aspect-[1.28/1] bg-[linear-gradient(160deg,#924a57_0%,#261922_44%,#0f1115_100%)] sm:aspect-[1.6/1]" }) }) : /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap items-center gap-2", children: [
@@ -19428,7 +21873,7 @@
           ] }),
           /* @__PURE__ */ jsxs("div", { className: "mt-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4", children: [
             /* @__PURE__ */ jsxs("div", { children: [
-              /* @__PURE__ */ jsx("h1", { className: "esim-pdp-title font-serif text-3xl font-normal tracking-tight text-[var(--esim-ink)] lg:text-4xl", children: normalizedProduct.name }),
+              /* @__PURE__ */ jsx("h1", { className: "esim-pdp-title font-serif text-3xl font-normal tracking-tight text-[var(--esim-ink)] lg:text-4xl", children: planName }),
               !isGoodsProduct ? /* @__PURE__ */ jsxs("p", { className: "mt-3 inline-flex items-center gap-2 text-sm text-[var(--esim-copy)]", children: [
                 /* @__PURE__ */ jsx("span", { className: "inline-flex h-4 w-4 items-center justify-center rounded-full bg-[var(--esim-gold)] text-[9px] font-bold text-[#0d0d0d]", children: "\u2713" }),
                 (() => {
@@ -19505,7 +21950,7 @@
                     isActive ? "border-[var(--esim-line-strong)] bg-[color:color-mix(in_oklab,var(--esim-gold)_14%,transparent)] text-[var(--esim-ink)]" : "border-[var(--esim-line)] text-[var(--esim-copy)]"
                   ),
                   type: "button",
-                  children: getVariantLabel(variant)
+                  children: getVariantLabel(variant, locale)
                 },
                 variant.id
               );
@@ -19544,13 +21989,13 @@
               type: "button",
               children: justAdded ? /* @__PURE__ */ jsxs(Fragment2, { children: [
                 /* @__PURE__ */ jsx(Check, { className: "h-4 w-4" }),
-                pickCopy(locale, { en: `Added to cart \u2014 $${priceValue.toFixed(2)}`, hans: `\u5DF2\u52A0\u5165\u8D2D\u7269\u8F66 \u2014 $${priceValue.toFixed(2)}`, hant: `\u5DF2\u52A0\u5165\u8CFC\u7269\u8ECA \u2014 $${priceValue.toFixed(2)}` })
+                pickCopy(locale, { en: `Added to cart \u2014 $${priceValue.toFixed(2)}`, hans: `\u5DF2\u52A0\u5165\u8D2D\u7269\u8F66 \u2014 $${priceValue.toFixed(2)}`, hant: `\u5DF2\u52A0\u5165\u8CFC\u7269\u8ECA \u2014 $${priceValue.toFixed(2)}`, ja: `\u30AB\u30FC\u30C8\u306B\u8FFD\u52A0\u6E08\u307F \u2014 $${priceValue.toFixed(2)}`, ko: `\uC7A5\uBC14\uAD6C\uB2C8\uC5D0 \uCD94\uAC00\uB428 \u2014 $${priceValue.toFixed(2)}`, fr: `Ajout\xE9 au panier \u2014 $${priceValue.toFixed(2)}`, de: `Zum Warenkorb hinzugef\xFCgt \u2014 $${priceValue.toFixed(2)}` })
               ] }) : adding ? /* @__PURE__ */ jsxs(Fragment2, { children: [
                 /* @__PURE__ */ jsx(ShoppingBag, { className: "h-4 w-4 animate-pulse" }),
                 pickCopy(locale, { en: "Adding\u2026", hans: "\u6DFB\u52A0\u4E2D\u2026", hant: "\u6DFB\u52A0\u4E2D\u2026" })
               ] }) : /* @__PURE__ */ jsxs(Fragment2, { children: [
                 /* @__PURE__ */ jsx(ShoppingBag, { className: "h-4 w-4" }),
-                pickCopy(locale, { en: `Add to Cart \u2014 $${priceValue.toFixed(2)}`, hans: `\u52A0\u5165\u8D2D\u7269\u8F66 \u2014 $${priceValue.toFixed(2)}`, hant: `\u52A0\u5165\u8CFC\u7269\u8ECA \u2014 $${priceValue.toFixed(2)}` })
+                pickCopy(locale, { en: `Add to Cart \u2014 $${priceValue.toFixed(2)}`, hans: `\u52A0\u5165\u8D2D\u7269\u8F66 \u2014 $${priceValue.toFixed(2)}`, hant: `\u52A0\u5165\u8CFC\u7269\u8ECA \u2014 $${priceValue.toFixed(2)}`, ja: `\u30AB\u30FC\u30C8\u306B\u8FFD\u52A0 \u2014 $${priceValue.toFixed(2)}`, ko: `\uC7A5\uBC14\uAD6C\uB2C8\uC5D0 \uCD94\uAC00 \u2014 $${priceValue.toFixed(2)}`, fr: `Ajouter au panier \u2014 $${priceValue.toFixed(2)}`, de: `In den Warenkorb \u2014 $${priceValue.toFixed(2)}` })
               ] })
             }
           ),
@@ -19576,7 +22021,7 @@
     ] }) });
   });
 
-  // packages/shop-themes/esim/src/components/TermsPage.tsx
+  // src/components/TermsPage.tsx
   var sections2 = [
     {
       en: { title: "Acceptance of Terms", body: "By accessing or using the BOKMOO website and services, you agree to be bound by these Terms of Service." },
@@ -19603,9 +22048,10 @@
     const t = (copy) => pickCopy(locale, copy);
     return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-[var(--esim-bg)] px-4 pb-24 pt-10 sm:px-6 lg:px-8", children: /* @__PURE__ */ jsxs("div", { className: "mx-auto max-w-[980px] rounded-[1.6rem] border border-[var(--esim-line)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--esim-bg-elevated)_96%,white),var(--esim-bg-elevated))] p-6 shadow-[var(--esim-shadow)] sm:p-8", children: [
       /* @__PURE__ */ jsx("h1", { className: "text-[clamp(2.2rem,4vw,3.5rem)] font-semibold tracking-[-0.05em] text-[var(--esim-ink)]", children: t({ en: "Terms of Service", hans: "\u670D\u52A1\u6761\u6B3E", hant: "\u670D\u52D9\u689D\u6B3E" }) }),
-      /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm text-[var(--esim-copy-soft)]", children: "Last updated: April 15, 2024" }),
+      /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm text-[var(--esim-copy-soft)]", children: t({ en: "Last updated: April 15, 2024", hans: "\u6700\u540E\u66F4\u65B0\uFF1A2024 \u5E74 4 \u6708 15 \u65E5", hant: "\u6700\u5F8C\u66F4\u65B0\uFF1A2024 \u5E74 4 \u6708 15 \u65E5" }) }),
       /* @__PURE__ */ jsx("div", { className: "mt-8 space-y-5", children: sections2.map((section, index) => {
-        const copy = locale === "zh-Hans" ? section.hans : locale === "zh-Hant" ? section.hant : section.en;
+        const title = catalogCopy(locale, section.en.title);
+        const body = catalogCopy(locale, section.en.body);
         return /* @__PURE__ */ jsxs(
           "section",
           {
@@ -19614,9 +22060,9 @@
               /* @__PURE__ */ jsxs("p", { className: "text-base font-medium text-[var(--esim-ink)]", children: [
                 index + 1,
                 ". ",
-                copy.title
+                title
               ] }),
-              /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm leading-7 text-[var(--esim-copy)]", children: copy.body })
+              /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm leading-7 text-[var(--esim-copy)]", children: body })
             ]
           },
           section.en.title
@@ -19625,7 +22071,7 @@
     ] }) });
   });
 
-  // packages/shop-themes/esim/src/runtime.ts
+  // src/runtime.ts
   var theme = {
     components: {
       HomePage,
@@ -19691,7 +22137,7 @@
   };
   var runtime_default = theme;
 
-  // packages/shop-themes/esim/esim-theme-runtime-entry.ts
+  // esim-theme-runtime-entry.ts
   var tokenStyleId = "esim-runtime-tokens";
   var tokenStyle = document.getElementById(tokenStyleId);
   if (!tokenStyle) {
@@ -20038,7 +22484,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "esim",
-      version: "0.0.21",
+      version: "0.0.22",
       target: "shop"
     }
   };

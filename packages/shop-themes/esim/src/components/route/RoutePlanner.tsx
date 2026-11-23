@@ -2,12 +2,13 @@ import React from 'react';
 import { ArrowDown, ArrowRight, ArrowUp, Check, ChevronDown, ChevronUp, Plus, Search, Trash2, X } from 'lucide-react';
 import type { ThemeConfig } from 'shared/src/types/theme';
 import { getEsimProducts, type EsimApiProduct } from '../../lib/api';
-import { resolveEsimSiteConfig } from '../../site';
+import { type ThemeCopy, pickCopy, resolveEsimSiteConfig } from '../../site';
 import {
   buildDestinationCatalog,
   destinationLabel,
   lookupDestination,
   planPrice,
+  planTitle,
   readPlanAttributes,
   searchDestinations,
   type DestinationCatalogEntry,
@@ -44,16 +45,10 @@ export const EXAMPLE_TRIP_STOPS = [
 
 type CatalogState = 'loading' | 'ready' | 'error';
 
+// One resolution path for every component: inline zh copy, the theme
+// message catalog for ja/ko/fr/de, English as the last resort.
 function useCopy(locale?: string) {
-  const t = React.useCallback(
-    (copy: { en: string; hans: string; hant: string }) => {
-      if (locale === 'zh-Hant') return copy.hant;
-      if (locale && locale.startsWith('zh')) return copy.hans;
-      return copy.en;
-    },
-    [locale]
-  );
-  return t;
+  return React.useCallback((copy: ThemeCopy) => pickCopy(locale, copy), [locale]);
 }
 
 function PriceTag({ price, currency }: { price: number; currency: string }) {
@@ -66,12 +61,12 @@ function PriceTag({ price, currency }: { price: number; currency: string }) {
   );
 }
 
-function SampleBadge({ product }: { product: EsimApiProduct }) {
+function SampleBadge({ product, label }: { product: EsimApiProduct; label: string }) {
   const attrs = readPlanAttributes(product);
   if ((attrs as { sample?: boolean }).sample !== true) return null;
   return (
     <span className="rounded border border-[rgba(212,175,55,0.35)] bg-[rgba(212,175,55,0.12)] px-2 py-0.5 text-[11px] font-medium tracking-[0.14em] text-[var(--esim-gold-strong)]">
-      SAMPLE
+      {label}
     </span>
   );
 }
@@ -182,7 +177,7 @@ function DestinationPicker({
                 }`}
               >
                 <span>
-                  {locale === 'zh-Hant' ? entry.info.hant : locale && locale.startsWith('zh') ? entry.info.hans : entry.info.en}
+                  {destinationLabel(entry.info.code, locale)}
                   <span className="ml-2 text-xs text-[var(--esim-copy-soft)]">
                     {entry.planCount} {t({ en: 'plans', hans: '个套餐', hant: '個套餐' })}
                   </span>
@@ -195,7 +190,7 @@ function DestinationPicker({
           })}
           {unsellableResults.map((entry) => (
             <div key={entry.info.code} className="flex min-h-[44px] items-center justify-between rounded-xl border border-[rgba(255,255,255,0.06)] bg-[#141414] px-4 py-2.5 text-sm text-[var(--esim-copy-soft)]">
-              <span>{locale === 'zh-Hant' ? entry.info.hant : locale && locale.startsWith('zh') ? entry.info.hans : entry.info.en}</span>
+              <span>{destinationLabel(entry.info.code, locale)}</span>
               <span className="text-xs">{t({ en: 'No plans yet', hans: '暂无可售套餐', hant: '暫無可售套餐' })}</span>
             </div>
           ))}
@@ -224,7 +219,7 @@ function DestinationPicker({
               disabled={staged.length === 0}
               className="mt-4 min-h-[44px] w-full rounded-xl bg-[var(--esim-gold)] px-4 py-3 text-sm font-semibold text-black transition-colors hover:bg-[var(--esim-gold-strong)] disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {t({ en: `Confirm ${staged.length} destination${staged.length === 1 ? '' : 's'}`, hans: `确认 ${staged.length} 个目的地`, hant: `確認 ${staged.length} 個目的地` })}
+              {t({ en: `Confirm ${staged.length} destination${staged.length === 1 ? '' : 's'}`, hans: `确认 ${staged.length} 个目的地`, hant: `確認 ${staged.length} 個目的地`, ja: `${staged.length} 件の目的地を確定`, ko: `목적지 ${staged.length}개 확인`, fr: `Confirmer ${staged.length} destination${staged.length === 1 ? '' : 's'}`, de: `${staged.length} Ziel${staged.length === 1 ? '' : 'e'} bestätigen`})}
             </button>
             <p className="mt-2 text-center text-xs text-[var(--esim-copy-soft)]">
               {t({ en: 'Closing without confirming keeps your current route.', hans: '不确认直接关闭将保留原路线。', hant: '不確認直接關閉將保留原路線。' })}
@@ -277,7 +272,7 @@ function RouteProgress({ draft, locale, onEditClick }: { draft: RouteDraft; loca
       )}
       {draft.stops.length > 0 && (
         <p className="text-xs text-[var(--esim-copy-soft)]">
-          {t({ en: `Total ${span} days`, hans: `全程 ${span} 天`, hant: `全程 ${span} 天` })}
+          {t({ en: `Total ${span} days`, hans: `全程 ${span} 天`, hant: `全程 ${span} 天`, ja: `合計 ${span} 日間`, ko: `총 ${span}일`, fr: `Durée totale : ${span} jours`, de: `Gesamtdauer: ${span} Tage`})}
         </p>
       )}
     </div>
@@ -447,7 +442,7 @@ function RouteEditor({
         </div>
         {draft.stops.length > 0 && (
           <p className="mt-2.5 text-xs text-[var(--esim-copy-soft)]">
-            {t({ en: `Estimated data need: ~${estimatedGb} GB`, hans: `预计需要约 ${estimatedGb} GB`, hant: `預計需要約 ${estimatedGb} GB` })}
+            {t({ en: `Estimated data need: ~${estimatedGb} GB`, hans: `预计需要约 ${estimatedGb} GB`, hant: `預計需要約 ${estimatedGb} GB`, ja: `推定必要データ量: 約 ${estimatedGb} GB`, ko: `예상 데이터 사용량: 약 ${estimatedGb} GB`, fr: `Besoin en données estimé : ~${estimatedGb} Go`, de: `Geschätzter Datenbedarf: ~${estimatedGb} GB`})}
           </p>
         )}
       </div>
@@ -542,11 +537,11 @@ function RecommendationCard({
             <span className="rounded border border-[rgba(212,175,55,0.35)] px-2 py-0.5 text-[11px] uppercase tracking-[0.16em] text-[var(--esim-gold-strong)]">
               {t({ en: 'Best single eSIM', hans: '首选套餐', hant: '首選套餐' })}
             </span>
-            <SampleBadge product={rec.product} />
+            <SampleBadge product={rec.product} label={t({ en: 'SAMPLE', hans: '示例', hant: '範例' })} />
           </div>
-          <h3 className="text-xl font-medium text-[var(--esim-ink)]">{rec.product.name}</h3>
+          <h3 className="text-xl font-medium text-[var(--esim-ink)]">{planTitle(rec.product.id, rec.product.name, locale)}</h3>
           <div className="mt-3 flex flex-wrap gap-2">
-            <VerifiedChip ok={rec.verified.allDestinationsCovered} label={t({ en: `${rec.coverageCodes.length} destinations covered`, hans: `${rec.coverageCodes.length} 个目的地已覆盖`, hant: `${rec.coverageCodes.length} 個目的地已覆蓋` })} />
+            <VerifiedChip ok={rec.verified.allDestinationsCovered} label={t({ en: `${rec.coverageCodes.length} destinations covered`, hans: `${rec.coverageCodes.length} 个目的地已覆盖`, hant: `${rec.coverageCodes.length} 個目的地已覆蓋`, ja: `${rec.coverageCodes.length} の目的地をカバー`, ko: `${rec.coverageCodes.length}개 목적지 커버`, fr: `${rec.coverageCodes.length} destinations couvertes`, de: `${rec.coverageCodes.length} Ziele abgedeckt`})} />
             <VerifiedChip ok={rec.verified.validityCoversSpan} label={rec.verified.validityCoversSpan ? t({ en: 'Validity covers the whole trip', hans: '全程覆盖已核验', hant: '全程覆蓋已核驗' }) : t({ en: 'Validity to be confirmed', hans: '覆盖已确认，有效期待核验', hant: '覆蓋已確認，有效期待核驗' })} />
             {outcome.recommendation && outcome.recommendation.verified.hotspotConfirmed && (
               <VerifiedChip ok label={t({ en: 'Hotspot supported', hans: '支持热点共享', hant: '支持熱點共享' })} />
@@ -573,7 +568,7 @@ function RecommendationCard({
           <div className="mt-4 flex items-baseline justify-between">
             <PriceTag price={rec.price} currency={rec.currency} />
             <span className="text-xs text-[var(--esim-copy-soft)]">
-              {t({ en: `~${outcome.estimatedGb} GB needed`, hans: `预计需要 ~${outcome.estimatedGb} GB`, hant: `預計需要 ~${outcome.estimatedGb} GB` })}
+              {t({ en: `~${outcome.estimatedGb} GB needed`, hans: `预计需要 ~${outcome.estimatedGb} GB`, hant: `預計需要 ~${outcome.estimatedGb} GB`, ja: `約 ${outcome.estimatedGb} GB 必要`, ko: `약 ${outcome.estimatedGb} GB 필요`, fr: `~${outcome.estimatedGb} Go nécessaires`, de: `~${outcome.estimatedGb} GB benötigt`})}
             </span>
           </div>
           <button
@@ -590,7 +585,7 @@ function RecommendationCard({
               <button type="button" onClick={() => setShowAlternatives((value) => !value)} className="mt-3 flex min-h-[44px] w-full items-center justify-center gap-1.5 text-sm text-[var(--esim-copy)] hover:text-[var(--esim-gold-strong)]">
                 {showAlternatives
                   ? t({ en: 'Hide other plans', hans: '收起其他套餐', hant: '收起其他套餐' })
-                  : t({ en: `View other plans (${outcome.alternatives.length})`, hans: `查看其他可用套餐（${outcome.alternatives.length}）`, hant: `查看其他可用套餐（${outcome.alternatives.length}）` })}
+                  : t({ en: `View other plans (${outcome.alternatives.length})`, hans: `查看其他可用套餐（${outcome.alternatives.length}）`, hant: `查看其他可用套餐（${outcome.alternatives.length}）`, ja: `他のプランを見る（${outcome.alternatives.length}）`, ko: `다른 요금제 보기 (${outcome.alternatives.length})`, fr: `Voir les autres forfaits (${outcome.alternatives.length})`, de: `Weitere Tarife anzeigen (${outcome.alternatives.length})`})}
                 {showAlternatives ? <ChevronUp className="h-4 w-4" aria-hidden="true" /> : <ChevronDown className="h-4 w-4" aria-hidden="true" />}
               </button>
               {showAlternatives && (
@@ -599,7 +594,7 @@ function RecommendationCard({
                     <li key={alt.product.id}>
                       <button type="button" onClick={() => onViewPlan(alt.product)} className="flex min-h-[44px] w-full items-center justify-between rounded-xl border border-[rgba(255,255,255,0.1)] px-3.5 py-2.5 text-left text-sm hover:border-[rgba(212,175,55,0.35)]">
                         <span className="text-[var(--esim-copy)]">
-                          {alt.product.name}
+                          {planTitle(alt.product.id, alt.product.name, locale)}
                           {alt.gb !== null ? ` · ${alt.gb}GB` : ''}
                           {alt.validityDays !== null ? ` · ${alt.validityDays}${t({ en: 'd', hans: '天', hant: '天' })}` : ''}
                         </span>
@@ -636,7 +631,7 @@ function RecommendationCard({
               <li key={segment.code}>
                 <button type="button" onClick={() => onViewPlan(segment.product)} className="flex min-h-[44px] w-full items-center justify-between rounded-xl border border-[rgba(255,255,255,0.1)] px-3.5 py-2.5 text-left text-sm hover:border-[rgba(212,175,55,0.35)]">
                   <span className="text-[var(--esim-copy)]">
-                    {destinationLabel(segment.code, locale)} · {segment.product.name}
+                    {destinationLabel(segment.code, locale)} · {planTitle(segment.product.id, segment.product.name, locale)}
                   </span>
                   <span className="font-semibold text-[var(--esim-gold)]">${segment.price}</span>
                 </button>
@@ -644,7 +639,7 @@ function RecommendationCard({
             ))}
           </ul>
           <p className="mt-3 text-xs text-[var(--esim-copy-soft)]">
-            {t({ en: `${outcome.segments.length} eSIMs to install for the full trip.`, hans: `全程需安装 ${outcome.segments.length} 张 eSIM。`, hant: `全程需安裝 ${outcome.segments.length} 張 eSIM。` })}
+            {t({ en: `${outcome.segments.length} eSIMs to install for the full trip.`, hans: `全程需安装 ${outcome.segments.length} 张 eSIM。`, hant: `全程需安裝 ${outcome.segments.length} 張 eSIM。`, ja: `全行程に ${outcome.segments.length} 枚の eSIM のインストールが必要です。`, ko: `전체 여행에 eSIM ${outcome.segments.length}개 설치가 필요합니다.`, fr: `${outcome.segments.length} eSIM à installer pour couvrir tout le voyage.`, de: `Für die gesamte Reise sind ${outcome.segments.length} eSIM zu installieren.`})}
           </p>
         </div>
         <CoverageDetails outcome={outcome} locale={locale} />
@@ -662,7 +657,7 @@ function RecommendationCard({
       <ul className="mt-3 space-y-1.5 text-sm text-[var(--esim-copy)]">
         {missingCodes.map((code) => (
           <li key={code}>
-            {t({ en: `${destinationLabel(code, locale)} is not covered by current plans.`, hans: `当前套餐不覆盖${destinationLabel(code, 'zh-Hans')}。`, hant: `當前套餐不覆蓋${destinationLabel(code, 'zh-Hant')}。` })}
+            {t({ en: `${destinationLabel(code, locale)} is not covered by current plans.`, hans: `当前套餐不覆盖${destinationLabel(code, 'zh-Hans')}。`, hant: `當前套餐不覆蓋${destinationLabel(code, 'zh-Hant')}。`, ja: `${destinationLabel(code, locale)} は現在のプランのカバー範囲外です。`, ko: `${destinationLabel(code, locale)}은(는) 현재 요금제가 커버하지 않습니다.`, fr: `${destinationLabel(code, locale)} n'est pas couvert par les forfaits actuels.`, de: `${destinationLabel(code, locale)} wird von den aktuellen Tarifen nicht abgedeckt.`})}
           </li>
         ))}
         {outcome.gaps.some((gap) => gap.kind === 'validity-short') && (
@@ -683,14 +678,9 @@ function RecommendationCard({
 }
 
 function draftHotspotNote(locale?: string): React.ReactNode {
-  const t = (copy: { en: string; hans: string; hant: string }) => {
-    if (locale === 'zh-Hant') return copy.hant;
-    if (locale && locale.startsWith('zh')) return copy.hans;
-    return copy.en;
-  };
   return (
     <p className="mt-2 text-xs text-[var(--esim-copy-soft)]">
-      {t({ en: 'This plan does not confirm hotspot sharing.', hans: '该套餐未确认支持热点共享。', hant: '該套餐未確認支持熱點共享。' })}
+      {pickCopy(locale, { en: 'This plan does not confirm hotspot sharing.', hans: '该套餐未确认支持热点共享。', hant: '該套餐未確認支持熱點共享。' })}
     </p>
   );
 }
@@ -738,7 +728,7 @@ function CoverageDetails({ outcome, locale }: { outcome: MatchOutcome; locale?: 
             {outcome.segments.map((segment) => (
               <div key={`seg-${segment.code}`} className="flex items-center justify-between gap-3">
                 <dt className="text-[var(--esim-copy)]">{destinationLabel(segment.code, locale)}</dt>
-                <dd className="text-right text-xs text-[var(--esim-copy-soft)]">{segment.product.name}</dd>
+                <dd className="text-right text-xs text-[var(--esim-copy-soft)]">{planTitle(segment.product.id, segment.product.name, locale)}</dd>
               </div>
             ))}
           </dl>
@@ -796,7 +786,7 @@ export function RoutePlanner({
     setDraftRestored(true);
   }, []);
 
-  const catalog = React.useMemo(() => buildDestinationCatalog(products), [products]);
+  const catalog = React.useMemo(() => buildDestinationCatalog(products, locale), [products, locale]);
   const outcome = React.useMemo(() => matchRoute(draft, products), [draft, products]);
 
   const mutate = React.useCallback((fn: (draft: RouteDraft) => void) => {

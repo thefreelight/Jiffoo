@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowLeft, CreditCard, Mail, ShieldCheck, Wallet } from 'lucide-react';
 import { cn } from '@jiffoo/ui';
+import { planTitle } from '../lib/esim/catalog';
 import { pickCopy, resolveEsimSiteConfig } from '../site';
 import { getEsimAssets, type EsimAsset } from '../lib/api';
 import type { CheckoutPageProps, SavedAddress } from 'shared/src/types/theme';
@@ -195,7 +196,7 @@ export const CheckoutPage = React.memo(function CheckoutPage({
                     <div className="flex items-start gap-3">
                       <div className="h-14 w-16 overflow-hidden rounded-[0.8rem] bg-[linear-gradient(160deg,#924a57_0%,#261922_44%,#0f1115_100%)]" />
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-[var(--esim-ink)]">{item.productName}</p>
+                        <p className="text-sm font-medium text-[var(--esim-ink)]">{planTitle(item.productId, item.productName, locale)}</p>
                         <p className="mt-1 text-xs text-[var(--esim-copy-soft)]">
                           {pickCopy(locale, { en: 'Qty', hans: '数量', hant: '數量' })} {item.quantity}{item.variantName ? ` · ${item.variantName}` : ''}
                         </p>

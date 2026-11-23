@@ -1,6 +1,6 @@
 import React from 'react';
 import type { TermsPageProps } from 'shared/src/types/theme';
-import { pickCopy } from '../site';
+import { type ThemeCopy, catalogCopy, pickCopy } from '../site';
 
 const sections = [
   {
@@ -26,27 +26,28 @@ const sections = [
 ];
 
 export const TermsPage = React.memo(function TermsPage({ locale }: TermsPageProps) {
-  const t = (copy: { en: string; hans: string; hant: string }) => pickCopy(locale, copy);
+  const t = (copy: ThemeCopy) => pickCopy(locale, copy);
   return (
     <div className="min-h-screen bg-[var(--esim-bg)] px-4 pb-24 pt-10 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-[980px] rounded-[1.6rem] border border-[var(--esim-line)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--esim-bg-elevated)_96%,white),var(--esim-bg-elevated))] p-6 shadow-[var(--esim-shadow)] sm:p-8">
         <h1 className="text-[clamp(2.2rem,4vw,3.5rem)] font-semibold tracking-[-0.05em] text-[var(--esim-ink)]">
           {t({ en: 'Terms of Service', hans: '服务条款', hant: '服務條款' })}
         </h1>
-        <p className="mt-3 text-sm text-[var(--esim-copy-soft)]">Last updated: April 15, 2024</p>
+        <p className="mt-3 text-sm text-[var(--esim-copy-soft)]">{t({ en: 'Last updated: April 15, 2024', hans: '最后更新：2024 年 4 月 15 日', hant: '最後更新：2024 年 4 月 15 日' })}</p>
 
         <div className="mt-8 space-y-5">
           {sections.map((section, index) => {
-            const copy = locale === 'zh-Hans' ? section.hans : locale === 'zh-Hant' ? section.hant : section.en;
+            const title = catalogCopy(locale, section.en.title);
+            const body = catalogCopy(locale, section.en.body);
             return (
             <section
               key={section.en.title}
               className="rounded-[1rem] border border-[var(--esim-line)] bg-[var(--esim-bg)] p-5"
             >
               <p className="text-base font-medium text-[var(--esim-ink)]">
-                {index + 1}. {copy.title}
+                {index + 1}. {title}
               </p>
-              <p className="mt-3 text-sm leading-7 text-[var(--esim-copy)]">{copy.body}</p>
+              <p className="mt-3 text-sm leading-7 text-[var(--esim-copy)]">{body}</p>
             </section>
           );})}
         </div>

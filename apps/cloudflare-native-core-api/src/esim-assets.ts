@@ -345,6 +345,8 @@ export async function tryNativeEsimInstallSession(request: Request, env: EsimAss
     ...(resolution ? { installCodeSource: resolution.source } : {}),
     ...(resolution?.sourceOrderId ? { installCodeOrderId: resolution.sourceOrderId } : {}),
     iccid: iccid || null,
+    // SKU without the `boss-` id prefix, so the storefront can title the plan per locale.
+    defaultCode: String(bossItem.productId).replace(/^boss-/, ''),
     upstreamStatus: pickString(orderFacts, ['upstreamStatus', 'upstream_status']) || (lineStatus || null),
     ...(upstreamMsg ? { upstreamMsg } : {}),
     ...(line?.error ? { error: line.error } : {}),

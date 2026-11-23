@@ -40,11 +40,10 @@ import { tryNativeSeoStore } from './seo-store';
 import { tryNativeMailBounces } from './mail-bounces';
 import { tryNativeMailReceipts } from './mail-receipts';
 import { processScheduledOdooCatalogSync, tryNativeOdooCatalogSync } from './odoo-catalog';
-import { snapshotFallbackKey, snapshotKey } from './snapshot-key';
 import { processScheduledBossCatalogSync } from './boss-upstream';
+import { readSnapshot, readSnapshotWithProductCopy, type Snapshot } from './snapshot-read';
 import { tryNativeEsimAssets, tryNativeEsimInstallSession } from './esim-assets';
 import { syncBossOrderStatuses } from './boss-orders';
-import { applyProductCopyOverrides, loadProductCopyOverrides, productCopyPathKind } from './product-copy';
 import { authenticateNativeAdmin } from './auth';
 import { authenticateJobsUser, processNativeJobsSync, tryNativeJobsAdminProxy, tryNativeJobsProxy, type NativeJobsProxyEnv } from './jobs-proxy';
 import { tryNativeRemoteRadarApplications } from './remoteradar-applications';
@@ -78,12 +77,6 @@ type WorkerEnv = Cloudflare.Env & NativeAuthEnv & NativeJobsProxyEnv & {
   BOSS_API_KEY?: string;
   BOSS_BASE_URL?: string;
 };
-
-interface Snapshot {
-  payload: string;
-  status_code: number;
-  content_type: string;
-}
 
 interface ProductDetail {
   id: string;
@@ -154,36 +147,6 @@ async function proxy(request: Request, env: WorkerEnv): Promise<Response> {
     statusText: upstream.statusText,
     headers: runtimeHeaders('cloudflare-fallback-origin', upstream.headers),
   });
-}
-
-async function readSnapshot(url: URL, env: WorkerEnv): Promise<Snapshot | null> {
-  const key = snapshotKey(url);
-  const exact = await env.DB.prepare(
-    'SELECT payload, status_code, content_type FROM core_api_snapshots WHERE cache_key = ?1',
-  ).bind(key).first<Snapshot>();
-  if (exact) return exact;
-
-  const fallbackKey = snapshotFallbackKey(url);
-  if (!fallbackKey) return null;
-  const fallback = await env.DB.prepare(
-    'SELECT payload, status_code, content_type FROM core_api_snapshots WHERE cache_key = ?1',
-  ).bind(fallbackKey).first<Snapshot>();
-  return fallback ?? null;
-}
-
-// Storefront copy overrides (admin-edited product descriptions) apply to the
-// served snapshot payload; the sync snapshot itself stays untouched.
-async function readSnapshotWithProductCopy(url: URL, env: WorkerEnv): Promise<Snapshot | null> {
-  const snapshot = await readSnapshot(url, env);
-  if (!snapshot || snapshot.status_code !== 200) return snapshot;
-  if (productCopyPathKind(url.pathname) === null) return snapshot;
-  try {
-    const overrides = await loadProductCopyOverrides(env.DB);
-    if (overrides.size === 0) return snapshot;
-    return { ...snapshot, payload: applyProductCopyOverrides(snapshot.payload, overrides) };
-  } catch {
-    return snapshot;
-  }
 }
 
 function snapshotResponse(snapshot: Snapshot): Response {

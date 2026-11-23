@@ -3,7 +3,7 @@ import { ChevronDown } from 'lucide-react';
 import type { HomePageProps } from 'shared/src/types/theme';
 import { RoutePlanner, EXAMPLE_TRIP_STOPS } from './route/RoutePlanner';
 import { destinationLabel } from '../lib/esim/catalog';
-import { pickCopy } from '../site';
+import { type ThemeCopy, pickCopy } from '../site';
 
 /**
  * 路线通 — eSIM Route Mall homepage (PRD §5).
@@ -20,8 +20,7 @@ function RouteProgressHero({
   locale?: string;
   stops: Array<{ code: string; days: number }>;
 }) {
-  const t = (copy: { en: string; hans: string; hant: string }) =>
-    locale === 'zh-Hant' ? copy.hant : locale && locale.startsWith('zh') ? copy.hans : copy.en;
+  const t = (copy: ThemeCopy) => pickCopy(locale, copy);
   if (stops.length === 0) return null;
   return (
     <div className={`mx-auto mt-10 w-full max-w-3xl rounded-2xl border ${HAIRLINE} bg-[#141414]/70 px-6 py-4`}>
@@ -110,8 +109,7 @@ const FAQ_ITEMS: Array<{ q: { en: string; hans: string; hant: string }; a: { en:
 
 function FaqSection({ locale }: { locale?: string }) {
   const [openIndex, setOpenIndex] = React.useState<number | null>(null);
-  const t = (copy: { en: string; hans: string; hant: string }) =>
-    locale === 'zh-Hant' ? copy.hant : locale && locale.startsWith('zh') ? copy.hans : copy.en;
+  const t = (copy: ThemeCopy) => pickCopy(locale, copy);
   return (
     <section className="mx-auto max-w-3xl px-6 py-16" aria-labelledby="esim-faq-heading">
       <h2 id="esim-faq-heading" className="mb-8 text-center text-2xl font-light tracking-tight text-[var(--esim-ink)]">
@@ -141,7 +139,7 @@ function FaqSection({ locale }: { locale?: string }) {
 }
 
 export const HomePage = React.memo(function HomePage({ locale, config, onNavigate }: HomePageProps) {
-  const t = (copy: { en: string; hans: string; hant: string }) => pickCopy(locale, copy);
+  const t = (copy: ThemeCopy) => pickCopy(locale, copy);
   void config;
 
   return (

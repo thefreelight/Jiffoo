@@ -2,7 +2,8 @@ import React from 'react';
 import { ArrowLeft, Check, Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react';
 import { cn } from '@jiffoo/ui';
 import type { CartPageProps } from 'shared/src/types/theme';
-import { pickCopy } from '../site';
+import { planTitle } from '../lib/esim/catalog';
+import { type ThemeCopy, pickCopy } from '../site';
 
 export const CartPage = React.memo(function CartPage({
   cart,
@@ -19,7 +20,7 @@ export const CartPage = React.memo(function CartPage({
   onContinueShopping,
   locale,
 }: CartPageProps) {
-  const t = (copy: { en: string; hans: string; hant: string }) => pickCopy(locale, copy);
+  const t = (copy: ThemeCopy) => pickCopy(locale, copy);
   const supportsSelection = Boolean(
     onCheckoutSelected && onToggleItemSelection && onSelectAllItems && onDeselectAllItems
   );
@@ -138,7 +139,7 @@ export const CartPage = React.memo(function CartPage({
                           ? 'border-[var(--esim-gold)] bg-[var(--esim-gold)] text-[var(--esim-bg)]'
                           : 'border-[var(--esim-line-strong)] bg-[var(--esim-bg)] text-transparent'
                       )}
-                      aria-label={selectedIdSet.has(item.id) ? 'Deselect item' : 'Select item'}
+                      aria-label={selectedIdSet.has(item.id) ? pickCopy(locale, { en: 'Deselect item', hans: '取消选择', hant: '取消選取' }) : pickCopy(locale, { en: 'Select item', hans: '选择此商品', hant: '選取此商品' })}
                     >
                       <Check className="h-3.5 w-3.5" />
                     </button>
@@ -146,7 +147,7 @@ export const CartPage = React.memo(function CartPage({
 
                   <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] bg-[linear-gradient(155deg,color-mix(in_oklab,var(--esim-gold)_10%,transparent),transparent_55%),var(--esim-bg)]">
                     {item.productImage ? (
-                      <img src={item.productImage} alt={item.productName} className="h-full w-full object-cover" />
+                      <img src={item.productImage} alt={planTitle(item.productId, item.productName, locale)} className="h-full w-full object-cover" />
                     ) : (
                       <div className="flex h-full items-end p-3 text-[10px] tracking-[0.16em] text-[var(--esim-gold)]">
                         BOKMOO
@@ -155,7 +156,7 @@ export const CartPage = React.memo(function CartPage({
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <h2 className="text-lg font-medium text-[var(--esim-ink)]">{item.productName}</h2>
+                    <h2 className="text-lg font-medium text-[var(--esim-ink)]">{planTitle(item.productId, item.productName, locale)}</h2>
                     {item.variantName ? (
                       <p className="mt-1 text-xs tracking-[0.16em] text-[var(--esim-copy-soft)]">
                         {item.variantName}
