@@ -72,7 +72,7 @@ describe('storefront payment result defaults', () => {
       expect(response?.status).toBe(201);
       expect(calls).toHaveLength(1);
       const form = new URLSearchParams(calls[0]);
-      expect(form.get('success_url')).toBe('https://remoteradar.cc/payment/success?session_id={CHECKOUT_SESSION_ID}');
+      expect(form.get('success_url')).toBe('https://remoteradar.cc/payment/success?session_id={CHECKOUT_SESSION_ID}&orderId=ord-test-1');
       expect(form.get('cancel_url')).toBe('https://remoteradar.cc/checkout');
     } finally {
       global.fetch = originalFetch;
@@ -101,9 +101,50 @@ describe('storefront payment result defaults', () => {
       expect(response?.status).toBe(201);
       expect(calls).toHaveLength(1);
       const form = new URLSearchParams(calls[0]);
-      expect(form.get('success_url')).toBe('https://remoteradar.cc/payment/success?session_id={CHECKOUT_SESSION_ID}');
+      expect(form.get('success_url')).toBe('https://remoteradar.cc/payment/success?session_id={CHECKOUT_SESSION_ID}&orderId=ord-test-1');
     } finally {
       global.fetch = originalFetch;
+    }
+  });
+
+  it('answers the payment-result page session check with the order id', async () => {
+    // The storefront calls /payments/verify/:sessionId right after the
+    // gateway sends the shopper back. Without the order id the success page
+    // cannot tell which order it is showing and stays on "preparing" forever.
+    const sessionRow = { id: 'cs_test_1', user_id: 'user-1', order_id: 'ord-test-1', status: 'SUCCEEDED', provider: 'stripe' };
+    const dbWith = (row: typeof sessionRow | null) => ({
+      prepare: (sql: string) => ({
+        bind: (...values: unknown[]) => ({
+          first: async () => (sql.includes('FROM native_payment_sessions') ? row : null),
+        }),
+        first: async () => null,
+        all: async () => ({ results: [] }),
+        run: async () => ({ success: true }),
+      }),
+    }) as never;
+
+    authenticateNativeUser.mockResolvedValue({ id: 'user-1', email: 'u@example.com', username: 'u', role: 'USER' });
+    for (const path of ['/api/v1/payments/verify/cs_test_1', '/api/v1/payments/sessions/cs_test_1']) {
+      const response = await tryNativeCheckout(
+        new Request(`https://api.example${path}`, { method: 'GET' }),
+        { DB: dbWith(sessionRow), NATIVE_CHECKOUT_ENABLED: 'true' } as never,
+        () => Promise.resolve(null),
+      );
+      expect(response?.status, path).toBe(200);
+      expect(await response!.json(), path).toMatchObject({
+        success: true,
+        data: { sessionId: 'cs_test_1', orderId: 'ord-test-1', status: 'paid', paymentMethod: 'stripe' },
+      });
+    }
+
+    // A session the caller does not own (or that never existed) is declined.
+    for (const path of ['/api/v1/payments/verify/cs_test_1', '/api/v1/payments/verify/missing']) {
+      const response = await tryNativeCheckout(
+        new Request(`https://api.example${path}`, { method: 'GET' }),
+        { DB: dbWith(null), NATIVE_CHECKOUT_ENABLED: 'true' } as never,
+        () => Promise.resolve(null),
+      );
+      expect(response, path).toBeNull();
     }
   });
 
