@@ -2,17 +2,10 @@ import React from 'react';
 import { ArrowRight, Clock3, Package2, ShieldCheck } from 'lucide-react';
 import { cn } from '@jiffoo/ui';
 import type { OrdersPageProps } from 'shared/src/types/theme';
-import { getEsimOrders, mapEsimApiOrderToThemeOrder } from '../lib/api';
+import { EsimApiError, getEsimOrders, mapEsimApiOrderToThemeOrder } from '../lib/api';
 import { getDeliveredArtifactCount } from '../lib/digital-fulfillment';
+import { formatOrderDate, orderStatusLabel, statusTone } from '../lib/esim/order-copy';
 import { pickCopy, resolveEsimSiteConfig } from '../site';
-
-function getStatusTone(status: string): string {
-  const normalized = status.toUpperCase();
-  if (normalized === 'DELIVERED' || normalized === 'COMPLETED') return 'bg-[color:color-mix(in_oklab,var(--esim-success)_18%,white)] text-[var(--esim-ink)]';
-  if (normalized === 'PENDING' || normalized === 'PAID' || normalized === 'PROCESSING') return 'bg-[color:color-mix(in_oklab,var(--esim-warning)_18%,white)] text-[var(--esim-ink)]';
-  if (normalized === 'CANCELLED' || normalized === 'REFUNDED') return 'bg-[color:color-mix(in_oklab,var(--esim-danger)_14%,white)] text-[var(--esim-ink)]';
-  return 'bg-[var(--esim-primary-soft)] text-[var(--esim-primary-strong)]';
-}
 
 export const OrdersPage = React.memo(function OrdersPage({
   orders,
@@ -29,19 +22,6 @@ export const OrdersPage = React.memo(function OrdersPage({
   const site = resolveEsimSiteConfig(config);
   const t = (copy: { en: string; hans: string; hant: string }) => pickCopy(locale, copy);
 
-  const statusLabels: Record<string, { en: string; hans: string; hant: string }> = {
-    PENDING: { en: 'Pending', hans: '待支付', hant: '待付款' },
-    PAID: { en: 'Paid', hans: '已支付', hant: '已付款' },
-    PROCESSING: { en: 'Processing', hans: '处理中', hant: '處理中' },
-    DELIVERED: { en: 'Delivered', hans: '已交付', hant: '已交付' },
-    COMPLETED: { en: 'Completed', hans: '已完成', hant: '已完成' },
-    CANCELLED: { en: 'Cancelled', hans: '已取消', hant: '已取消' },
-    REFUNDED: { en: 'Refunded', hans: '已退款', hant: '已退款' },
-  };
-  const statusText = (status: string) => {
-    const key = status.toUpperCase();
-    return statusLabels[key] ? t(statusLabels[key]) : status;
-  };
   const [remoteOrders, setRemoteOrders] = React.useState<OrdersPageProps['orders']>([]);
   const [remoteTotalPages, setRemoteTotalPages] = React.useState(1);
   const [remoteLoading, setRemoteLoading] = React.useState(false);
@@ -70,7 +50,9 @@ export const OrdersPage = React.memo(function OrdersPage({
       })
       .catch((loadError) => {
         if (cancelled) return;
-        const message = loadError instanceof Error ? loadError.message : 'Unable to load orders.';
+        // Only surface a reason the server actually gave; anything else
+        // (network blip) is reported in the storefront's own words.
+        const message = loadError instanceof EsimApiError ? loadError.message : t({ en: 'Unable to load orders.', hans: '订单加载失败，请稍后重试。', hant: '訂單載入失敗，請稍後重試。' });
         setRemoteError(message);
         setRemoteOrders([]);
         setRemoteTotalPages(1);
@@ -140,12 +122,15 @@ export const OrdersPage = React.memo(function OrdersPage({
                   <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className={cn('rounded-full px-3 py-1 text-[11px] font-semibold tracking-[0.16em]', getStatusTone(order.status))}>
-                          {statusText(order.status)}
+                        <span className={cn('rounded-full px-3 py-1 text-[11px] font-semibold tracking-[0.16em]', statusTone(order.status))}>
+                          {orderStatusLabel(order.status, locale)}
                         </span>
-                        <span className="rounded-full border border-[var(--esim-line)] px-3 py-1 text-[11px] font-semibold tracking-[0.16em] text-[var(--esim-copy)]">
-                          {artifactCount} {t({ en: artifactCount === 1 ? 'delivered item' : 'delivered items', hans: '个已交付项目', hant: '個已交付項目' })}
-                        </span>
+                        {/* Only meaningful when the order carries deliverable content. */}
+                        {artifactCount > 0 ? (
+                          <span className="rounded-full border border-[var(--esim-line)] px-3 py-1 text-[11px] font-semibold tracking-[0.16em] text-[var(--esim-copy)]">
+                            {t({ en: artifactCount === 1 ? '1 delivered item' : `${artifactCount} delivered items`, hans: `${artifactCount} 项已交付内容`, hant: `${artifactCount} 項已交付內容` })}
+                          </span>
+                        ) : null}
                       </div>
                       <h2 className="mt-4 text-2xl font-black tracking-[-0.04em] text-[var(--esim-ink)]">
                         {t({ en: 'Order', hans: '订单', hant: '訂單' })} #{order.id.slice(-8).toUpperCase()}
@@ -153,7 +138,7 @@ export const OrdersPage = React.memo(function OrdersPage({
                       <div className="mt-3 flex flex-wrap gap-4 text-sm text-[var(--esim-copy)]">
                         <span className="inline-flex items-center gap-2">
                           <Clock3 className="h-4 w-4" />
-                          {new Date(order.createdAt).toLocaleString()}
+                          {formatOrderDate(order.createdAt, locale)}
                         </span>
                         <span className="inline-flex items-center gap-2">
                           <Package2 className="h-4 w-4" />

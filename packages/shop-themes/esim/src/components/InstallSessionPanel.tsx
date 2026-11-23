@@ -72,10 +72,10 @@ export const InstallSessionPanel = React.memo(function InstallSessionPanel({
   const scannableQr = qrPayload && !getQrImageSrc(qrPayload);
   const showQr = Boolean(session.status === 'ready' || session.status === 'installed' || qrImageSrc || session.lpaString);
   const fields = [
-    ['SM-DP+', session.smdpAddress || '—'],
-    ['Matching ID', session.matchingId || '—'],
-    ['Activation Code', session.activationCode || '—'],
-    ['Confirmation Code', session.confirmationCode || '—'],
+    [tr({ en: 'SM-DP+ address', hans: 'SM-DP+ 地址', hant: 'SM-DP+ 位址' }), session.smdpAddress || '—'],
+    [tr({ en: 'Matching ID', hans: '匹配码（Matching ID）', hant: '配對碼（Matching ID）' }), session.matchingId || '—'],
+    [tr({ en: 'Activation code', hans: '激活码', hant: '啟用碼' }), session.activationCode || '—'],
+    [tr({ en: 'Confirmation code', hans: '确认码', hant: '確認碼' }), session.confirmationCode || '—'],
   ];
   const android = isAndroidDevice();
 
@@ -244,7 +244,9 @@ export const InstallSessionPanel = React.memo(function InstallSessionPanel({
         <div className="mt-3 rounded-[0.9rem] border border-[var(--esim-line)] px-3 py-3">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-[11px] uppercase tracking-[0.14em] text-[var(--esim-copy-soft)]">LPA String</p>
+              <p className="text-[11px] uppercase tracking-[0.14em] text-[var(--esim-copy-soft)]">
+                {tr({ en: 'LPA string', hans: 'LPA 安装串', hant: 'LPA 安裝字串' })}
+              </p>
               <p className="mt-1 break-all text-sm text-[var(--esim-ink)]">{session.lpaString}</p>
             </div>
             <button

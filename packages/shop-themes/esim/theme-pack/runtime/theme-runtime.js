@@ -17909,10 +17909,10 @@
     const scannableQr = qrPayload && !getQrImageSrc(qrPayload);
     const showQr = Boolean(session.status === "ready" || session.status === "installed" || qrImageSrc || session.lpaString);
     const fields = [
-      ["SM-DP+", session.smdpAddress || "\u2014"],
-      ["Matching ID", session.matchingId || "\u2014"],
-      ["Activation Code", session.activationCode || "\u2014"],
-      ["Confirmation Code", session.confirmationCode || "\u2014"]
+      [tr({ en: "SM-DP+ address", hans: "SM-DP+ \u5730\u5740", hant: "SM-DP+ \u4F4D\u5740" }), session.smdpAddress || "\u2014"],
+      [tr({ en: "Matching ID", hans: "\u5339\u914D\u7801\uFF08Matching ID\uFF09", hant: "\u914D\u5C0D\u78BC\uFF08Matching ID\uFF09" }), session.matchingId || "\u2014"],
+      [tr({ en: "Activation code", hans: "\u6FC0\u6D3B\u7801", hant: "\u555F\u7528\u78BC" }), session.activationCode || "\u2014"],
+      [tr({ en: "Confirmation code", hans: "\u786E\u8BA4\u7801", hant: "\u78BA\u8A8D\u78BC" }), session.confirmationCode || "\u2014"]
     ];
     const android = isAndroidDevice();
     const statusBanner = (() => {
@@ -18042,7 +18042,7 @@
           )) }),
           session.lpaString ? /* @__PURE__ */ jsx("div", { className: "mt-3 rounded-[0.9rem] border border-[var(--esim-line)] px-3 py-3", children: /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between gap-3", children: [
             /* @__PURE__ */ jsxs("div", { children: [
-              /* @__PURE__ */ jsx("p", { className: "text-[11px] uppercase tracking-[0.14em] text-[var(--esim-copy-soft)]", children: "LPA String" }),
+              /* @__PURE__ */ jsx("p", { className: "text-[11px] uppercase tracking-[0.14em] text-[var(--esim-copy-soft)]", children: tr({ en: "LPA string", hans: "LPA \u5B89\u88C5\u4E32", hant: "LPA \u5B89\u88DD\u5B57\u4E32" }) }),
               /* @__PURE__ */ jsx("p", { className: "mt-1 break-all text-sm text-[var(--esim-ink)]", children: session.lpaString })
             ] }),
             /* @__PURE__ */ jsx(
@@ -18078,17 +18078,66 @@
     );
   });
 
+  // packages/shop-themes/esim/src/lib/esim/order-copy.ts
+  function localeTag(locale) {
+    if (locale === "zh-Hant") return "zh-TW";
+    if (locale && locale.startsWith("zh")) return "zh-CN";
+    return "en-US";
+  }
+  function formatOrderDate(value, locale, withTime = true) {
+    const date = typeof value === "string" ? new Date(value) : value;
+    if (Number.isNaN(date.getTime())) return "";
+    return withTime ? date.toLocaleString(localeTag(locale)) : date.toLocaleDateString(localeTag(locale));
+  }
+  var ORDER_STATUS = {
+    PENDING: { en: "Pending payment", hans: "\u5F85\u652F\u4ED8", hant: "\u5F85\u4ED8\u6B3E" },
+    PAID: { en: "Paid", hans: "\u5DF2\u652F\u4ED8", hant: "\u5DF2\u4ED8\u6B3E" },
+    PROCESSING: { en: "Processing", hans: "\u5904\u7406\u4E2D", hant: "\u8655\u7406\u4E2D" },
+    SHIPPED: { en: "Shipped", hans: "\u5DF2\u53D1\u8D27", hant: "\u5DF2\u51FA\u8CA8" },
+    DELIVERED: { en: "Delivered", hans: "\u5DF2\u4EA4\u4ED8", hant: "\u5DF2\u4EA4\u4ED8" },
+    COMPLETED: { en: "Completed", hans: "\u5DF2\u5B8C\u6210", hant: "\u5DF2\u5B8C\u6210" },
+    CANCELLED: { en: "Cancelled", hans: "\u5DF2\u53D6\u6D88", hant: "\u5DF2\u53D6\u6D88" },
+    CANCELED: { en: "Cancelled", hans: "\u5DF2\u53D6\u6D88", hant: "\u5DF2\u53D6\u6D88" },
+    REFUNDED: { en: "Refunded", hans: "\u5DF2\u9000\u6B3E", hant: "\u5DF2\u9000\u6B3E" },
+    FAILED: { en: "Failed", hans: "\u5931\u8D25", hant: "\u5931\u6557" }
+  };
+  var ITEM_STATUS = {
+    pending: { en: "Pending", hans: "\u5F85\u4EA4\u4ED8", hant: "\u5F85\u4EA4\u4ED8" },
+    processing: { en: "Processing", hans: "\u5904\u7406\u4E2D", hant: "\u8655\u7406\u4E2D" },
+    shipped: { en: "Shipped", hans: "\u5DF2\u53D1\u8D27", hant: "\u5DF2\u51FA\u8CA8" },
+    delivered: { en: "Delivered", hans: "\u5DF2\u4EA4\u4ED8", hant: "\u5DF2\u4EA4\u4ED8" },
+    completed: { en: "Completed", hans: "\u5DF2\u5B8C\u6210", hant: "\u5DF2\u5B8C\u6210" },
+    fulfilled: { en: "Fulfilled", hans: "\u5DF2\u5B8C\u6210", hant: "\u5DF2\u5B8C\u6210" },
+    failed: { en: "Failed", hans: "\u4EA4\u4ED8\u5931\u8D25", hant: "\u4EA4\u4ED8\u5931\u6557" },
+    cancelled: { en: "Cancelled", hans: "\u5DF2\u53D6\u6D88", hant: "\u5DF2\u53D6\u6D88" }
+  };
+  function orderStatusLabel(status, locale) {
+    const raw = String(status);
+    const copy = ORDER_STATUS[raw.toUpperCase()];
+    return copy ? pickCopy(locale, copy) : raw.replace(/_/g, " ");
+  }
+  function itemStatusLabel(status, locale) {
+    const copy = ITEM_STATUS[String(status).toLowerCase()];
+    return copy ? pickCopy(locale, copy) : orderStatusLabel(status, locale);
+  }
+  function statusTone(status) {
+    const normalized = String(status).toUpperCase();
+    if (normalized === "DELIVERED" || normalized === "COMPLETED" || normalized === "FULFILLED") {
+      return "bg-[color:color-mix(in_oklab,var(--esim-success)_16%,transparent)] text-[var(--esim-success)]";
+    }
+    if (normalized === "PENDING" || normalized === "PAID" || normalized === "PROCESSING" || normalized === "SHIPPED") {
+      return "bg-[color:color-mix(in_oklab,var(--esim-warning)_16%,transparent)] text-[var(--esim-warning)]";
+    }
+    if (normalized === "CANCELLED" || normalized === "CANCELED" || normalized === "REFUNDED" || normalized === "FAILED") {
+      return "bg-[color:color-mix(in_oklab,var(--esim-danger)_18%,transparent)] text-[var(--esim-danger)]";
+    }
+    return "bg-[var(--esim-primary-soft)] text-[var(--esim-primary-strong)]";
+  }
+
   // packages/shop-themes/esim/src/components/OrderDetailPage.tsx
   function copyToClipboard2(value) {
     if (typeof navigator === "undefined" || !navigator.clipboard?.writeText) return;
     navigator.clipboard.writeText(value).catch(() => void 0);
-  }
-  function statusTone(status) {
-    const normalized = status.toUpperCase();
-    if (normalized === "DELIVERED" || normalized === "COMPLETED") return "bg-[color:color-mix(in_oklab,var(--esim-success)_18%,white)] text-[var(--esim-ink)]";
-    if (normalized === "PENDING" || normalized === "PAID" || normalized === "PROCESSING") return "bg-[color:color-mix(in_oklab,var(--esim-warning)_18%,white)] text-[var(--esim-ink)]";
-    if (normalized === "CANCELLED" || normalized === "REFUNDED") return "bg-[color:color-mix(in_oklab,var(--esim-danger)_14%,white)] text-[var(--esim-ink)]";
-    return "bg-[var(--esim-primary-soft)] text-[var(--esim-primary-strong)]";
   }
   function renderField(label, value, action) {
     return /* @__PURE__ */ jsxs("div", { className: "rounded-[var(--esim-radius-md)] border border-[var(--esim-line)] bg-[var(--esim-bg)] p-4", children: [
@@ -18110,6 +18159,7 @@
   }) {
     const handleBack = onBack || onBackToOrders;
     const site = resolveEsimSiteConfig(config);
+    const t = (copy) => pickCopy(locale, copy);
     const [remoteOrder, setRemoteOrder] = react_default.useState(null);
     const [installSession, setInstallSession] = react_default.useState(null);
     const effectiveOrder = order || remoteOrder;
@@ -18154,7 +18204,7 @@
     }
     if (!effectiveOrder) {
       return /* @__PURE__ */ jsx("div", { className: "flex min-h-screen items-center justify-center bg-[var(--esim-bg)] px-4", children: /* @__PURE__ */ jsxs("div", { className: "rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] bg-[var(--esim-surface)] p-10 text-center shadow-[var(--esim-shadow)]", children: [
-        /* @__PURE__ */ jsx("h1", { className: "text-3xl font-black tracking-[-0.04em] text-[var(--esim-ink)]", children: "Order not found" }),
+        /* @__PURE__ */ jsx("h1", { className: "text-3xl font-black tracking-[-0.04em] text-[var(--esim-ink)]", children: t({ en: "Order not found", hans: "\u627E\u4E0D\u5230\u8BA2\u5355", hant: "\u627E\u4E0D\u5230\u8A02\u55AE" }) }),
         handleBack ? /* @__PURE__ */ jsxs(
           "button",
           {
@@ -18162,7 +18212,7 @@
             className: "mt-6 inline-flex items-center gap-2 rounded-full bg-[var(--esim-primary)] px-5 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-white",
             children: [
               /* @__PURE__ */ jsx(ArrowLeft, { className: "h-4 w-4" }),
-              "Back to orders"
+              t({ en: "Back to orders", hans: "\u8FD4\u56DE\u8BA2\u5355\u5217\u8868", hant: "\u8FD4\u56DE\u8A02\u55AE\u5217\u8868" })
             ]
           }
         ) : null
@@ -18180,7 +18230,7 @@
           className: "inline-flex items-center gap-2 rounded-full border border-[var(--esim-line)] bg-[var(--esim-surface)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--esim-copy)]",
           children: [
             /* @__PURE__ */ jsx(ArrowLeft, { className: "h-4 w-4" }),
-            "Back to orders"
+            t({ en: "Back to orders", hans: "\u8FD4\u56DE\u8BA2\u5355\u5217\u8868", hant: "\u8FD4\u56DE\u8A02\u55AE\u5217\u8868" })
           ]
         }
       ) : null,
@@ -18189,22 +18239,24 @@
           /* @__PURE__ */ jsx("div", { className: "rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] bg-[var(--esim-surface)] p-6 shadow-[var(--esim-shadow)] sm:p-8", children: /* @__PURE__ */ jsxs("div", { className: "flex flex-col gap-4 md:flex-row md:items-end md:justify-between", children: [
             /* @__PURE__ */ jsxs("div", { children: [
               /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap items-center gap-2", children: [
-                /* @__PURE__ */ jsx("span", { className: cn2("rounded-full px-3 py-1 text-[11px] font-semibold tracking-[0.16em]", statusTone(effectiveOrder.status)), children: effectiveOrder.status }),
-                /* @__PURE__ */ jsxs("span", { className: "rounded-full border border-[var(--esim-line)] px-3 py-1 text-[11px] font-semibold tracking-[0.16em] text-[var(--esim-copy)]", children: [
-                  artifactCount,
-                  " delivered item",
-                  artifactCount === 1 ? "" : "s"
-                ] })
+                /* @__PURE__ */ jsx("span", { className: cn2("rounded-full px-3 py-1 text-[11px] font-semibold tracking-[0.16em]", statusTone(effectiveOrder.status)), children: orderStatusLabel(effectiveOrder.status, locale) }),
+                artifactCount > 0 ? /* @__PURE__ */ jsx("span", { className: "rounded-full border border-[var(--esim-line)] px-3 py-1 text-[11px] font-semibold tracking-[0.16em] text-[var(--esim-copy)]", children: t({ en: `${artifactCount} delivered item${artifactCount === 1 ? "" : "s"}`, hans: `\u5DF2\u4EA4\u4ED8 ${artifactCount} \u9879\u5185\u5BB9`, hant: `\u5DF2\u4EA4\u4ED8 ${artifactCount} \u9805\u5167\u5BB9` }) }) : null
               ] }),
               /* @__PURE__ */ jsxs("h1", { className: "mt-5 text-[clamp(2.2rem,4vw,4rem)] font-black tracking-[-0.05em] text-[var(--esim-ink)]", children: [
-                "Order #",
+                t({ en: "Order", hans: "\u8BA2\u5355", hant: "\u8A02\u55AE" }),
+                " #",
                 effectiveOrder.id.slice(-8).toUpperCase()
               ] }),
               /* @__PURE__ */ jsxs("p", { className: "mt-3 text-sm leading-6 text-[var(--esim-copy)]", children: [
-                "Created ",
-                new Date(effectiveOrder.createdAt).toLocaleString(),
-                " \xB7 payment ",
-                effectiveOrder.paymentStatus
+                t(
+                  { en: "Placed", hans: "\u4E0B\u5355\u4E8E", hant: "\u4E0B\u55AE\u65BC" }
+                ),
+                " ",
+                formatOrderDate(effectiveOrder.createdAt, locale),
+                " \xB7 ",
+                t({ en: "Payment", hans: "\u652F\u4ED8\u72B6\u6001", hant: "\u4ED8\u6B3E\u72C0\u614B" }),
+                " ",
+                orderStatusLabel(effectiveOrder.paymentStatus, locale)
               ] })
             ] }),
             onCancelOrder && ["PENDING", "PAID"].includes(effectiveOrder.status.toUpperCase()) ? /* @__PURE__ */ jsx(
@@ -18212,14 +18264,14 @@
               {
                 onClick: () => onCancelOrder(),
                 className: "inline-flex min-h-12 items-center justify-center rounded-full border border-[var(--esim-line)] bg-[var(--esim-bg)] px-5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--esim-copy)]",
-                children: "Cancel order"
+                children: t({ en: "Cancel order", hans: "\u53D6\u6D88\u8BA2\u5355", hant: "\u53D6\u6D88\u8A02\u55AE" })
               }
             ) : null
           ] }) }),
           installSession ? /* @__PURE__ */ jsx(
             InstallSessionPanel,
             {
-              title: locale === "zh-Hans" ? "\u5B89\u88C5\u4F60\u7684 eSIM" : locale === "zh-Hant" ? "\u5B89\u88DD\u4F60\u7684 eSIM" : "Install your eSIM",
+              title: t({ en: "Install your eSIM", hans: "\u5B89\u88C5\u4F60\u7684 eSIM", hant: "\u5B89\u88DD\u4F60\u7684 eSIM" }),
               session: installSession,
               locale,
               className: "border-[var(--esim-line)] bg-[var(--esim-bg)]"
@@ -18229,8 +18281,8 @@
             /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-3", children: [
               /* @__PURE__ */ jsx(PackageCheck, { className: "mt-1 h-5 w-5 shrink-0 text-[var(--esim-primary)]" }),
               /* @__PURE__ */ jsxs("div", { children: [
-                /* @__PURE__ */ jsx("h2", { className: "text-2xl font-black tracking-[-0.04em] text-[var(--esim-ink)]", children: "Delivery tracking" }),
-                /* @__PURE__ */ jsx("p", { className: "mt-2 text-sm leading-6 text-[var(--esim-copy)]", children: "Your carrier and tracking updates appear here after dispatch." })
+                /* @__PURE__ */ jsx("h2", { className: "text-2xl font-black tracking-[-0.04em] text-[var(--esim-ink)]", children: t({ en: "Delivery tracking", hans: "\u7269\u6D41\u8DDF\u8E2A", hant: "\u7269\u6D41\u8FFD\u8E64" }) }),
+                /* @__PURE__ */ jsx("p", { className: "mt-2 text-sm leading-6 text-[var(--esim-copy)]", children: t({ en: "Your carrier and tracking updates appear here after dispatch.", hans: "\u53D1\u8D27\u540E\uFF0C\u627F\u8FD0\u5546\u4E0E\u7269\u6D41\u52A8\u6001\u4F1A\u663E\u793A\u5728\u8FD9\u91CC\u3002", hant: "\u51FA\u8CA8\u5F8C\uFF0C\u627F\u904B\u5546\u8207\u7269\u6D41\u52D5\u614B\u6703\u986F\u793A\u5728\u9019\u88E1\u3002" }) })
               ] })
             ] }),
             /* @__PURE__ */ jsx("div", { className: "mt-6 grid gap-4", children: effectiveOrder.shipments.map((shipment) => /* @__PURE__ */ jsxs("div", { className: "rounded-[var(--esim-radius-md)] border border-[var(--esim-line)] bg-[var(--esim-bg)] p-4", children: [
@@ -18242,27 +18294,30 @@
                   ] }),
                   /* @__PURE__ */ jsx("p", { className: "mt-2 break-all font-mono text-sm font-semibold text-[var(--esim-ink)]", children: shipment.trackingNumber })
                 ] }),
-                /* @__PURE__ */ jsx("span", { className: cn2("rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em]", statusTone(shipment.status)), children: shipment.status })
+                /* @__PURE__ */ jsx("span", { className: cn2("rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em]", statusTone(shipment.status)), children: orderStatusLabel(shipment.status, locale) })
               ] }),
               /* @__PURE__ */ jsxs("div", { className: "mt-4 flex flex-wrap items-center gap-3 text-xs text-[var(--esim-copy)]", children: [
                 shipment.shippedAt ? /* @__PURE__ */ jsxs("span", { children: [
-                  "Shipped ",
-                  new Date(shipment.shippedAt).toLocaleDateString()
+                  t({ en: "Shipped", hans: "\u53D1\u8D27\u4E8E", hant: "\u51FA\u8CA8\u65BC" }),
+                  " ",
+                  formatOrderDate(shipment.shippedAt, locale, false)
                 ] }) : null,
                 shipment.deliveredAt ? /* @__PURE__ */ jsxs("span", { children: [
-                  "Delivered ",
-                  new Date(shipment.deliveredAt).toLocaleDateString()
+                  t({ en: "Delivered", hans: "\u7B7E\u6536\u4E8E", hant: "\u7C3D\u6536\u65BC" }),
+                  " ",
+                  formatOrderDate(shipment.deliveredAt, locale, false)
                 ] }) : null,
                 shipment.trackingUrl ? /* @__PURE__ */ jsxs("a", { href: shipment.trackingUrl, target: "_blank", rel: "noreferrer", className: "inline-flex items-center gap-1 font-semibold text-[var(--esim-primary-strong)] underline underline-offset-4", children: [
-                  "Track package ",
+                  t({ en: "Track package", hans: "\u67E5\u770B\u7269\u6D41", hant: "\u67E5\u770B\u7269\u6D41" }),
+                  " ",
                   /* @__PURE__ */ jsx(ExternalLink, { className: "h-3.5 w-3.5" })
                 ] }) : null
               ] }),
               shipment.events?.length ? /* @__PURE__ */ jsx("ol", { className: "mt-5 border-l border-[var(--esim-line-strong)] pl-4", children: shipment.events.map((event, eventIndex) => /* @__PURE__ */ jsxs("li", { className: "relative pb-4 last:pb-0", children: [
                 /* @__PURE__ */ jsx("span", { className: "absolute -left-[21px] top-1 h-2.5 w-2.5 rounded-full bg-[var(--esim-primary)] ring-4 ring-[var(--esim-bg)]" }),
                 /* @__PURE__ */ jsxs("div", { className: "flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between", children: [
-                  /* @__PURE__ */ jsx("p", { className: "text-xs font-semibold text-[var(--esim-ink)]", children: event.status.replace(/_/g, " ") }),
-                  /* @__PURE__ */ jsx("time", { className: "text-[11px] text-[var(--esim-copy-soft)]", dateTime: event.occurredAt, children: new Date(event.occurredAt).toLocaleString() })
+                  /* @__PURE__ */ jsx("p", { className: "text-xs font-semibold text-[var(--esim-ink)]", children: orderStatusLabel(event.status, locale) }),
+                  /* @__PURE__ */ jsx("time", { className: "text-[11px] text-[var(--esim-copy-soft)]", dateTime: event.occurredAt, children: formatOrderDate(event.occurredAt, locale) })
                 ] }),
                 event.description ? /* @__PURE__ */ jsx("p", { className: "mt-1 text-xs leading-5 text-[var(--esim-copy)]", children: event.description }) : null
               ] }, `${event.status}-${event.occurredAt}-${eventIndex}`)) }) : null
@@ -18270,6 +18325,7 @@
           ] }) : null,
           effectiveOrder.items.map((item) => {
             const sections3 = extractDeliverySections(item.fulfillmentData);
+            const isEsimItem = typeof item.productId === "string" && item.productId.startsWith("boss-");
             const installLike = (() => {
               const data = item.fulfillmentData;
               if (!data || typeof data !== "object") return null;
@@ -18292,22 +18348,27 @@
                 children: [
                   /* @__PURE__ */ jsxs("div", { className: "flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between", children: [
                     /* @__PURE__ */ jsxs("div", { children: [
-                      /* @__PURE__ */ jsx("p", { className: "text-[11px] font-semibold tracking-[0.16em] text-[var(--esim-copy-soft)]", children: "Item delivery" }),
+                      /* @__PURE__ */ jsx("p", { className: "text-[11px] font-semibold tracking-[0.16em] text-[var(--esim-copy-soft)]", children: t({ en: "Item delivery", hans: "\u5546\u54C1\u4EA4\u4ED8", hant: "\u5546\u54C1\u4EA4\u4ED8" }) }),
                       /* @__PURE__ */ jsx("h2", { className: "mt-3 text-2xl font-black tracking-[-0.04em] text-[var(--esim-ink)]", children: item.productName }),
                       /* @__PURE__ */ jsxs("p", { className: "mt-2 text-sm text-[var(--esim-copy)]", children: [
-                        "Qty ",
+                        t({ en: "Qty", hans: "\u6570\u91CF", hant: "\u6578\u91CF" }),
+                        " ",
                         item.quantity,
                         item.variantName ? ` \xB7 ${item.variantName}` : ""
                       ] })
                     ] }),
-                    /* @__PURE__ */ jsx("span", { className: cn2("rounded-full px-3 py-1 text-[11px] font-semibold tracking-[0.16em]", statusTone(item.fulfillmentStatus || effectiveOrder.status)), children: item.fulfillmentStatus || effectiveOrder.status })
+                    /* @__PURE__ */ jsx("span", { className: cn2("rounded-full px-3 py-1 text-[11px] font-semibold tracking-[0.16em]", statusTone(item.fulfillmentStatus || effectiveOrder.status)), children: itemStatusLabel(item.fulfillmentStatus || effectiveOrder.status, locale) })
                   ] }),
-                  hasContent ? /* @__PURE__ */ jsxs("div", { className: "mt-6 grid gap-4", children: [
+                  isEsimItem ? installSession ? /* @__PURE__ */ jsx("p", { className: "mt-6 text-sm leading-6 text-[var(--esim-copy)]", children: t({
+                    en: "Provisioned automatically \u2014 your install details are shown above.",
+                    hans: "\u81EA\u52A8\u5F00\u901A\uFF0C\u5B89\u88C5\u4FE1\u606F\u89C1\u4E0A\u65B9\u3002",
+                    hant: "\u81EA\u52D5\u958B\u901A\uFF0C\u5B89\u88DD\u8CC7\u8A0A\u898B\u4E0A\u65B9\u3002"
+                  }) }) : null : hasContent ? /* @__PURE__ */ jsxs("div", { className: "mt-6 grid gap-4", children: [
                     installLike ? /* @__PURE__ */ jsx("div", { className: "grid gap-3 md:grid-cols-2", children: [
-                      ["SM-DP+", installLike.smdpAddress || "\u2014"],
-                      ["Matching ID", installLike.matchingId || "\u2014"],
-                      ["Activation Code", installLike.activationCode || "\u2014"],
-                      ["Confirmation Code", installLike.confirmationCode || "\u2014"]
+                      [t({ en: "SM-DP+ address", hans: "SM-DP+ \u5730\u5740", hant: "SM-DP+ \u4F4D\u5740" }), installLike.smdpAddress || "\u2014"],
+                      [t({ en: "Matching ID", hans: "\u5339\u914D\u7801\uFF08Matching ID\uFF09", hant: "\u914D\u5C0D\u78BC\uFF08Matching ID\uFF09" }), installLike.matchingId || "\u2014"],
+                      [t({ en: "Activation code", hans: "\u6FC0\u6D3B\u7801", hant: "\u555F\u7528\u78BC" }), installLike.activationCode || "\u2014"],
+                      [t({ en: "Confirmation code", hans: "\u786E\u8BA4\u7801", hant: "\u78BA\u8A8D\u78BC" }), installLike.confirmationCode || "\u2014"]
                     ].map(([label, value]) => /* @__PURE__ */ jsx("div", { children: renderField(
                       label,
                       String(value),
@@ -18318,7 +18379,7 @@
                           className: "inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--esim-primary)]",
                           children: [
                             /* @__PURE__ */ jsx(Copy, { className: "h-3.5 w-3.5" }),
-                            "Copy"
+                            t({ en: "Copy", hans: "\u590D\u5236", hant: "\u8907\u88FD" })
                           ]
                         }
                       ) : void 0
@@ -18333,7 +18394,7 @@
                           className: "inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--esim-primary)]",
                           children: [
                             /* @__PURE__ */ jsx(Copy, { className: "h-3.5 w-3.5" }),
-                            "Copy"
+                            t({ en: "Copy", hans: "\u590D\u5236", hant: "\u8907\u88FD" })
                           ]
                         }
                       )
@@ -18348,7 +18409,7 @@
                           className: "inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--esim-primary)]",
                           children: [
                             /* @__PURE__ */ jsx(Copy, { className: "h-3.5 w-3.5" }),
-                            "Copy"
+                            t({ en: "Copy", hans: "\u590D\u5236", hant: "\u8907\u88FD" })
                           ]
                         }
                       )
@@ -18366,7 +18427,7 @@
                             className: "inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--esim-primary)]",
                             children: [
                               /* @__PURE__ */ jsx(ExternalLink, { className: "h-3.5 w-3.5" }),
-                              "Open"
+                              t({ en: "Open", hans: "\u6253\u5F00", hant: "\u958B\u555F" })
                             ]
                           }
                         )
@@ -18374,10 +18435,14 @@
                     ) }) : null,
                     sections3.meta.length ? /* @__PURE__ */ jsx("div", { className: "grid gap-3 md:grid-cols-2", children: sections3.meta.map((field) => /* @__PURE__ */ jsx("div", { children: renderField(field.label, field.value) }, `${item.id}-${field.label}-${field.value}`)) }) : null,
                     sections3.notes.length ? /* @__PURE__ */ jsxs("div", { className: "rounded-[var(--esim-radius-md)] border border-[var(--esim-line)] bg-[var(--esim-bg)] p-5", children: [
-                      /* @__PURE__ */ jsx("p", { className: "text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--esim-copy-soft)]", children: "Notes" }),
+                      /* @__PURE__ */ jsx("p", { className: "text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--esim-copy-soft)]", children: t({ en: "Notes", hans: "\u5907\u6CE8", hant: "\u5099\u8A3B" }) }),
                       /* @__PURE__ */ jsx("div", { className: "mt-3 space-y-2", children: sections3.notes.map((note) => /* @__PURE__ */ jsx("p", { className: "text-sm leading-6 text-[var(--esim-copy)]", children: note }, note)) })
                     ] }) : null
-                  ] }) : /* @__PURE__ */ jsx("div", { className: "mt-6 rounded-[var(--esim-radius-md)] border border-dashed border-[var(--esim-line)] bg-[var(--esim-bg)] p-5 text-sm leading-6 text-[var(--esim-copy)]", children: "This order is still waiting for fulfillment details. Refresh later or reopen it from the order archive." })
+                  ] }) : /* @__PURE__ */ jsx("div", { className: "mt-6 rounded-[var(--esim-radius-md)] border border-dashed border-[var(--esim-line)] bg-[var(--esim-bg)] p-5 text-sm leading-6 text-[var(--esim-copy)]", children: t({
+                    en: "This order is still waiting for fulfillment details. Refresh later or reopen it from the order archive.",
+                    hans: "\u8BE5\u8BA2\u5355\u7684\u4EA4\u4ED8\u4FE1\u606F\u8FD8\u5728\u751F\u6210\u4E2D\uFF0C\u8BF7\u7A0D\u540E\u5237\u65B0\uFF0C\u6216\u4ECE\u8BA2\u5355\u8BB0\u5F55\u4E2D\u91CD\u65B0\u6253\u5F00\u3002",
+                    hant: "\u8A72\u8A02\u55AE\u7684\u4EA4\u4ED8\u8CC7\u8A0A\u9084\u5728\u7522\u751F\u4E2D\uFF0C\u8ACB\u7A0D\u5F8C\u91CD\u65B0\u6574\u7406\uFF0C\u6216\u5F9E\u8A02\u55AE\u7D00\u9304\u4E2D\u91CD\u65B0\u958B\u555F\u3002"
+                  }) })
                 ]
               },
               item.id
@@ -18389,7 +18454,7 @@
             /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3", children: [
               /* @__PURE__ */ jsx("div", { className: "flex h-11 w-11 items-center justify-center rounded-[1rem] bg-[var(--esim-primary-soft)] text-[var(--esim-primary)]", children: /* @__PURE__ */ jsx(PackageCheck, { className: "h-5 w-5" }) }),
               /* @__PURE__ */ jsxs("div", { children: [
-                /* @__PURE__ */ jsx("p", { className: "text-[11px] font-semibold tracking-[0.18em] text-[var(--esim-copy-soft)]", children: "Order total" }),
+                /* @__PURE__ */ jsx("p", { className: "text-[11px] font-semibold tracking-[0.18em] text-[var(--esim-copy-soft)]", children: t({ en: "Order total", hans: "\u8BA2\u5355\u5408\u8BA1", hant: "\u8A02\u55AE\u5408\u8A08" }) }),
                 /* @__PURE__ */ jsxs("p", { className: "mt-1 text-3xl font-black tracking-[-0.04em] text-[var(--esim-ink)]", children: [
                   "$",
                   Number(effectiveOrder.totalAmount || 0).toFixed(2)
@@ -18398,15 +18463,15 @@
             ] }),
             /* @__PURE__ */ jsxs("div", { className: "mt-6 space-y-3 text-sm text-[var(--esim-copy)]", children: [
               /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between", children: [
-                /* @__PURE__ */ jsx("span", { children: "Currency" }),
+                /* @__PURE__ */ jsx("span", { children: t({ en: "Currency", hans: "\u5E01\u79CD", hant: "\u5E63\u5225" }) }),
                 /* @__PURE__ */ jsx("span", { className: "font-semibold text-[var(--esim-ink)]", children: effectiveOrder.currency })
               ] }),
               /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between", children: [
-                /* @__PURE__ */ jsx("span", { children: "Payment" }),
-                /* @__PURE__ */ jsx("span", { className: "font-semibold text-[var(--esim-ink)]", children: effectiveOrder.paymentStatus })
+                /* @__PURE__ */ jsx("span", { children: t({ en: "Payment", hans: "\u652F\u4ED8\u72B6\u6001", hant: "\u4ED8\u6B3E\u72C0\u614B" }) }),
+                /* @__PURE__ */ jsx("span", { className: "font-semibold text-[var(--esim-ink)]", children: orderStatusLabel(effectiveOrder.paymentStatus, locale) })
               ] }),
               effectiveOrder.cancelReason ? /* @__PURE__ */ jsxs("div", { className: "rounded-[var(--esim-radius-md)] border border-[var(--esim-line)] bg-[var(--esim-bg)] p-4", children: [
-                /* @__PURE__ */ jsx("p", { className: "text-[11px] font-semibold tracking-[0.16em] text-[var(--esim-copy-soft)]", children: "Cancel reason" }),
+                /* @__PURE__ */ jsx("p", { className: "text-[11px] font-semibold tracking-[0.16em] text-[var(--esim-copy-soft)]", children: t({ en: "Cancel reason", hans: "\u53D6\u6D88\u539F\u56E0", hant: "\u53D6\u6D88\u539F\u56E0" }) }),
                 /* @__PURE__ */ jsx("p", { className: "mt-2 text-sm text-[var(--esim-copy)]", children: effectiveOrder.cancelReason })
               ] }) : null
             ] })
@@ -18414,8 +18479,12 @@
           /* @__PURE__ */ jsx("div", { className: "rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] bg-[var(--esim-surface)] p-6 shadow-[var(--esim-shadow)]", children: /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3", children: [
             /* @__PURE__ */ jsx("div", { className: "flex h-11 w-11 items-center justify-center rounded-[1rem] bg-[var(--esim-primary-soft)] text-[var(--esim-primary)]", children: /* @__PURE__ */ jsx(ShieldCheck, { className: "h-5 w-5" }) }),
             /* @__PURE__ */ jsxs("div", { children: [
-              /* @__PURE__ */ jsx("p", { className: "text-[11px] font-semibold tracking-[0.18em] text-[var(--esim-copy-soft)]", children: "Access reminder" }),
-              /* @__PURE__ */ jsx("p", { className: "mt-1 text-sm leading-6 text-[var(--esim-copy)]", children: "Keep a copy of any sensitive credentials in your own password manager or secure notes after claiming the order." })
+              /* @__PURE__ */ jsx("p", { className: "text-[11px] font-semibold tracking-[0.18em] text-[var(--esim-copy-soft)]", children: t({ en: "Keep it safe", hans: "\u5B89\u5168\u63D0\u793A", hant: "\u5B89\u5168\u63D0\u793A" }) }),
+              /* @__PURE__ */ jsx("p", { className: "mt-1 text-sm leading-6 text-[var(--esim-copy)]", children: t({
+                en: "Keep a copy of any sensitive credentials in your own password manager or secure notes after claiming the order.",
+                hans: "\u9886\u53D6\u540E\uFF0C\u8BF7\u628A\u6FC0\u6D3B\u7801\u7B49\u654F\u611F\u4FE1\u606F\u4FDD\u5B58\u5230\u4F60\u81EA\u5DF1\u7684\u5BC6\u7801\u7BA1\u7406\u5668\u6216\u5B89\u5168\u7B14\u8BB0\u4E2D\u3002",
+                hant: "\u9818\u53D6\u5F8C\uFF0C\u8ACB\u628A\u555F\u7528\u78BC\u7B49\u654F\u611F\u8CC7\u8A0A\u4FDD\u5B58\u5230\u4F60\u81EA\u5DF1\u7684\u5BC6\u78BC\u7BA1\u7406\u5668\u6216\u5B89\u5168\u7B46\u8A18\u4E2D\u3002"
+              }) })
             ] })
           ] }) })
         ] })
@@ -18424,13 +18493,6 @@
   });
 
   // packages/shop-themes/esim/src/components/OrdersPage.tsx
-  function getStatusTone(status) {
-    const normalized = status.toUpperCase();
-    if (normalized === "DELIVERED" || normalized === "COMPLETED") return "bg-[color:color-mix(in_oklab,var(--esim-success)_18%,white)] text-[var(--esim-ink)]";
-    if (normalized === "PENDING" || normalized === "PAID" || normalized === "PROCESSING") return "bg-[color:color-mix(in_oklab,var(--esim-warning)_18%,white)] text-[var(--esim-ink)]";
-    if (normalized === "CANCELLED" || normalized === "REFUNDED") return "bg-[color:color-mix(in_oklab,var(--esim-danger)_14%,white)] text-[var(--esim-ink)]";
-    return "bg-[var(--esim-primary-soft)] text-[var(--esim-primary-strong)]";
-  }
   var OrdersPage = react_default.memo(function OrdersPage2({
     orders,
     isLoading,
@@ -18445,19 +18507,6 @@
   }) {
     const site = resolveEsimSiteConfig(config);
     const t = (copy) => pickCopy(locale, copy);
-    const statusLabels = {
-      PENDING: { en: "Pending", hans: "\u5F85\u652F\u4ED8", hant: "\u5F85\u4ED8\u6B3E" },
-      PAID: { en: "Paid", hans: "\u5DF2\u652F\u4ED8", hant: "\u5DF2\u4ED8\u6B3E" },
-      PROCESSING: { en: "Processing", hans: "\u5904\u7406\u4E2D", hant: "\u8655\u7406\u4E2D" },
-      DELIVERED: { en: "Delivered", hans: "\u5DF2\u4EA4\u4ED8", hant: "\u5DF2\u4EA4\u4ED8" },
-      COMPLETED: { en: "Completed", hans: "\u5DF2\u5B8C\u6210", hant: "\u5DF2\u5B8C\u6210" },
-      CANCELLED: { en: "Cancelled", hans: "\u5DF2\u53D6\u6D88", hant: "\u5DF2\u53D6\u6D88" },
-      REFUNDED: { en: "Refunded", hans: "\u5DF2\u9000\u6B3E", hant: "\u5DF2\u9000\u6B3E" }
-    };
-    const statusText = (status) => {
-      const key = status.toUpperCase();
-      return statusLabels[key] ? t(statusLabels[key]) : status;
-    };
     const [remoteOrders, setRemoteOrders] = react_default.useState([]);
     const [remoteTotalPages, setRemoteTotalPages] = react_default.useState(1);
     const [remoteLoading, setRemoteLoading] = react_default.useState(false);
@@ -18481,7 +18530,7 @@
         setRemoteTotalPages(Math.max(1, Math.ceil(Number(response.total || response.items.length || 0) / 10)));
       }).catch((loadError) => {
         if (cancelled) return;
-        const message = loadError instanceof Error ? loadError.message : "Unable to load orders.";
+        const message = loadError instanceof EsimApiError ? loadError.message : t({ en: "Unable to load orders.", hans: "\u8BA2\u5355\u52A0\u8F7D\u5931\u8D25\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5\u3002", hant: "\u8A02\u55AE\u8F09\u5165\u5931\u6557\uFF0C\u8ACB\u7A0D\u5F8C\u91CD\u8A66\u3002" });
         setRemoteError(message);
         setRemoteOrders([]);
         setRemoteTotalPages(1);
@@ -18525,12 +18574,8 @@
             children: /* @__PURE__ */ jsxs("div", { className: "flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between", children: [
               /* @__PURE__ */ jsxs("div", { className: "min-w-0", children: [
                 /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap items-center gap-2", children: [
-                  /* @__PURE__ */ jsx("span", { className: cn2("rounded-full px-3 py-1 text-[11px] font-semibold tracking-[0.16em]", getStatusTone(order.status)), children: statusText(order.status) }),
-                  /* @__PURE__ */ jsxs("span", { className: "rounded-full border border-[var(--esim-line)] px-3 py-1 text-[11px] font-semibold tracking-[0.16em] text-[var(--esim-copy)]", children: [
-                    artifactCount,
-                    " ",
-                    t({ en: artifactCount === 1 ? "delivered item" : "delivered items", hans: "\u4E2A\u5DF2\u4EA4\u4ED8\u9879\u76EE", hant: "\u500B\u5DF2\u4EA4\u4ED8\u9805\u76EE" })
-                  ] })
+                  /* @__PURE__ */ jsx("span", { className: cn2("rounded-full px-3 py-1 text-[11px] font-semibold tracking-[0.16em]", statusTone(order.status)), children: orderStatusLabel(order.status, locale) }),
+                  artifactCount > 0 ? /* @__PURE__ */ jsx("span", { className: "rounded-full border border-[var(--esim-line)] px-3 py-1 text-[11px] font-semibold tracking-[0.16em] text-[var(--esim-copy)]", children: t({ en: artifactCount === 1 ? "1 delivered item" : `${artifactCount} delivered items`, hans: `${artifactCount} \u9879\u5DF2\u4EA4\u4ED8\u5185\u5BB9`, hant: `${artifactCount} \u9805\u5DF2\u4EA4\u4ED8\u5167\u5BB9` }) }) : null
                 ] }),
                 /* @__PURE__ */ jsxs("h2", { className: "mt-4 text-2xl font-black tracking-[-0.04em] text-[var(--esim-ink)]", children: [
                   t({ en: "Order", hans: "\u8BA2\u5355", hant: "\u8A02\u55AE" }),
@@ -18540,7 +18585,7 @@
                 /* @__PURE__ */ jsxs("div", { className: "mt-3 flex flex-wrap gap-4 text-sm text-[var(--esim-copy)]", children: [
                   /* @__PURE__ */ jsxs("span", { className: "inline-flex items-center gap-2", children: [
                     /* @__PURE__ */ jsx(Clock3, { className: "h-4 w-4" }),
-                    new Date(order.createdAt).toLocaleString()
+                    formatOrderDate(order.createdAt, locale)
                   ] }),
                   /* @__PURE__ */ jsxs("span", { className: "inline-flex items-center gap-2", children: [
                     /* @__PURE__ */ jsx(Package2, { className: "h-4 w-4" }),
@@ -18629,9 +18674,11 @@
     onContinueShopping,
     onViewOrders,
     config,
-    order
+    order,
+    locale
   }) {
     const site = resolveEsimSiteConfig(config);
+    const t = (copy) => pickCopy(locale, copy);
     const orderId2 = order?.id || getOrderIdFromLocation() || "";
     const [installSession, setInstallSession] = react_default.useState(null);
     const [status, setStatus] = react_default.useState(
@@ -18675,8 +18722,7 @@
         setStatus(session.status);
         setErrorMessage("");
       } catch (error) {
-        const message = error instanceof Error ? error.message : "Failed to load install session.";
-        setErrorMessage(message);
+        setErrorMessage(error instanceof EsimApiError ? error.message : "");
         setStatus("failed");
       }
     }, [orderId2, site.apiBaseUrl]);
@@ -18697,19 +18743,27 @@
     const isReady = status === "ready" || status === "installed";
     const isPendingPayment = status === "pending_payment";
     const supportEmail = installSession?.support?.email || site.supportEmail;
+    const isPhysical = orderKind === "physical";
+    const isWorking = status === "processing" || isVerifying;
+    const heading = status === "failed" ? isPhysical ? t({ en: "Shipping needs attention", hans: "\u53D1\u8D27\u9047\u5230\u95EE\u9898", hant: "\u51FA\u8CA8\u9047\u5230\u554F\u984C" }) : t({ en: "Provisioning needs attention", hans: "\u5F00\u901A\u9047\u5230\u95EE\u9898", hant: "\u958B\u901A\u9047\u5230\u554F\u984C" }) : isPendingPayment ? t({ en: "Payment pending", hans: "\u5F85\u652F\u4ED8", hant: "\u5F85\u4ED8\u6B3E" }) : status === "expired" ? t({ en: "Activation expired", hans: "\u6FC0\u6D3B\u7801\u5DF2\u8FC7\u671F", hant: "\u555F\u7528\u78BC\u5DF2\u904E\u671F" }) : isPhysical ? t({ en: "Your card is being prepared for shipment", hans: "\u4F60\u7684 Bokmoo \u5361\u6B63\u5728\u5907\u8D27", hant: "\u4F60\u7684 Bokmoo \u5361\u6B63\u5728\u5099\u8CA8" }) : isWorking ? t({ en: "Preparing your eSIM\u2026", hans: "\u6B63\u5728\u51C6\u5907\u4F60\u7684 eSIM\u2026", hant: "\u6B63\u5728\u6E96\u5099\u4F60\u7684 eSIM\u2026" }) : t({ en: "Payment successful!", hans: "\u652F\u4ED8\u6210\u529F\uFF01", hant: "\u4ED8\u6B3E\u6210\u529F\uFF01" });
+    const message = status === "failed" ? errorMessage || (isPhysical ? t({ en: "We could not prepare your shipment yet.", hans: "\u6682\u65F6\u65E0\u6CD5\u4E3A\u4F60\u53D1\u8D27\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5\u6216\u8054\u7CFB\u5BA2\u670D\u3002", hant: "\u66AB\u6642\u7121\u6CD5\u70BA\u4F60\u51FA\u8CA8\uFF0C\u8ACB\u7A0D\u5F8C\u91CD\u8A66\u6216\u806F\u7E6B\u5BA2\u670D\u3002" }) : t({ en: "We could not prepare your install session yet.", hans: "\u6682\u65F6\u65E0\u6CD5\u751F\u6210\u4F60\u7684 eSIM \u5B89\u88C5\u4FE1\u606F\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5\u6216\u8054\u7CFB\u5BA2\u670D\u3002", hant: "\u66AB\u6642\u7121\u6CD5\u7522\u751F\u4F60\u7684 eSIM \u5B89\u88DD\u8CC7\u8A0A\uFF0C\u8ACB\u7A0D\u5F8C\u91CD\u8A66\u6216\u806F\u7E6B\u5BA2\u670D\u3002" })) : isPendingPayment ? isPhysical ? t({ en: "Complete payment and we will start preparing your card for delivery.", hans: "\u5B8C\u6210\u652F\u4ED8\u540E\uFF0C\u6211\u4EEC\u5C31\u5F00\u59CB\u4E3A\u4F60\u5907\u8D27\u53D1\u8D27\u3002", hant: "\u5B8C\u6210\u4ED8\u6B3E\u5F8C\uFF0C\u6211\u5011\u5C31\u958B\u59CB\u70BA\u4F60\u5099\u8CA8\u51FA\u8CA8\u3002" }) : t({ en: "Complete payment to unlock your eSIM install details.", hans: "\u5B8C\u6210\u652F\u4ED8\u540E\u5373\u53EF\u67E5\u770B eSIM \u5B89\u88C5\u4FE1\u606F\u3002", hant: "\u5B8C\u6210\u4ED8\u6B3E\u5F8C\u5373\u53EF\u67E5\u770B eSIM \u5B89\u88DD\u8CC7\u8A0A\u3002" }) : isPhysical ? t({
+      en: "Your order is paid. We are packing your Bokmoo Card now \u2014 you will get a shipping confirmation with tracking, and it should arrive within a few business days.",
+      hans: "\u8BA2\u5355\u5DF2\u652F\u4ED8\uFF0C\u6211\u4EEC\u6B63\u5728\u6253\u5305\u4F60\u7684 Bokmoo \u5361\u2014\u2014\u53D1\u8D27\u540E\u4F60\u4F1A\u6536\u5230\u5E26\u8FD0\u5355\u53F7\u7684\u901A\u77E5\uFF0C\u4E00\u822C\u51E0\u4E2A\u5DE5\u4F5C\u65E5\u5185\u9001\u8FBE\u3002",
+      hant: "\u8A02\u55AE\u5DF2\u4ED8\u6B3E\uFF0C\u6211\u5011\u6B63\u5728\u6253\u5305\u4F60\u7684 Bokmoo \u5361\u2014\u2014\u51FA\u8CA8\u5F8C\u4F60\u6703\u6536\u5230\u5E36\u904B\u55AE\u865F\u7684\u901A\u77E5\uFF0C\u4E00\u822C\u5E7E\u500B\u5DE5\u4F5C\u65E5\u5167\u9001\u9054\u3002"
+    }) : status === "expired" ? t({ en: "Your activation session expired before installation completed.", hans: "\u5B89\u88C5\u7801\u5728\u5B89\u88C5\u5B8C\u6210\u524D\u5DF2\u8FC7\u671F\u3002", hant: "\u5B89\u88DD\u78BC\u5728\u5B89\u88DD\u5B8C\u6210\u524D\u5DF2\u904E\u671F\u3002" }) : isWorking ? t({ en: "Your order is paid. We are preparing the install session now.", hans: "\u8BA2\u5355\u5DF2\u652F\u4ED8\uFF0C\u6B63\u5728\u4E3A\u4F60\u51C6\u5907\u5B89\u88C5\u4FE1\u606F\u3002", hant: "\u8A02\u55AE\u5DF2\u4ED8\u6B3E\uFF0C\u6B63\u5728\u70BA\u4F60\u6E96\u5099\u5B89\u88DD\u8CC7\u8A0A\u3002" }) : status === "installed" ? t({ en: "Your package has been added to your eSIM.", hans: "\u5957\u9910\u5DF2\u52A0\u5230\u4F60\u7684 eSIM \u4E0A\u3002", hant: "\u65B9\u6848\u5DF2\u52A0\u5230\u4F60\u7684 eSIM \u4E0A\u3002" }) : t({ en: "Your eSIM is ready to install.", hans: "\u4F60\u7684 eSIM \u5DF2\u5C31\u7EEA\uFF0C\u53EF\u4EE5\u5B89\u88C5\u4E86\u3002", hant: "\u4F60\u7684 eSIM \u5DF2\u5C31\u7DD2\uFF0C\u53EF\u4EE5\u5B89\u88DD\u4E86\u3002" });
     return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-[var(--esim-bg)] px-4 pb-24 pt-10 sm:px-6 lg:px-8", children: /* @__PURE__ */ jsx("div", { className: "mx-auto max-w-[520px]", children: /* @__PURE__ */ jsxs("div", { className: "rounded-[1.6rem] border border-[var(--esim-line)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--esim-bg-elevated)_96%,white),var(--esim-bg-elevated))] p-6 text-center shadow-[var(--esim-shadow)] sm:p-8", children: [
       /* @__PURE__ */ jsx("div", { className: "mx-auto flex h-24 w-24 items-center justify-center rounded-full border border-[color:color-mix(in_oklab,var(--esim-gold)_36%,transparent)] bg-[color:color-mix(in_oklab,var(--esim-gold)_10%,transparent)] text-[var(--esim-gold)]", children: orderKind === "physical" ? status === "failed" ? /* @__PURE__ */ jsx(TriangleAlert, { className: "h-11 w-11" }) : /* @__PURE__ */ jsx(Package, { className: "h-10 w-10" }) : status === "failed" || status === "expired" || isPendingPayment ? /* @__PURE__ */ jsx(TriangleAlert, { className: "h-11 w-11" }) : status === "processing" || isVerifying ? /* @__PURE__ */ jsx(LoaderCircle, { className: "h-11 w-11 animate-spin" }) : /* @__PURE__ */ jsx(CircleCheck, { className: "h-11 w-11" }) }),
-      /* @__PURE__ */ jsx("h1", { className: "mt-8 text-[clamp(2.2rem,4vw,3.6rem)] font-semibold tracking-[-0.05em] text-[var(--esim-ink)]", children: orderKind === "physical" ? status === "failed" ? "Fulfillment Needs Attention" : isPendingPayment ? "Payment Pending" : "Your card is being prepared for shipment" : status === "failed" ? "Fulfillment Needs Attention" : isPendingPayment ? "Payment Pending" : status === "expired" ? "Activation Expired" : status === "processing" || isVerifying ? "Preparing your eSIM..." : "Payment Successful!" }),
-      /* @__PURE__ */ jsx("p", { className: "mt-4 text-base leading-8 text-[var(--esim-copy)]", children: orderKind === "physical" ? status === "failed" ? errorMessage || "We could not prepare your shipment yet." : isPendingPayment ? "Complete payment and we will start preparing your card for delivery." : "Your order is paid. We are packing your Bokmoo Card now \u2014 you will get a shipping confirmation with tracking, and it should arrive within a few business days." : status === "failed" ? errorMessage || "We could not prepare your install session yet." : isPendingPayment ? "Complete payment to unlock your eSIM install details." : status === "expired" ? "Your activation session expired before installation completed." : status === "processing" || isVerifying ? "Your order is paid. We are preparing the install session now." : "Your eSIM is ready to use." }),
+      /* @__PURE__ */ jsx("h1", { className: "mt-8 text-[clamp(2.2rem,4vw,3.6rem)] font-semibold tracking-[-0.05em] text-[var(--esim-ink)]", children: heading }),
+      /* @__PURE__ */ jsx("p", { className: "mt-4 text-base leading-8 text-[var(--esim-copy)]", children: message }),
       installSession?.packageTitle ? /* @__PURE__ */ jsx("div", { className: "mx-auto mt-8 max-w-[320px] rounded-[1rem] border border-[var(--esim-line)] bg-[var(--esim-bg)] p-4 text-left", children: /* @__PURE__ */ jsxs("div", { className: "flex gap-3", children: [
         /* @__PURE__ */ jsx("div", { className: "h-16 w-20 overflow-hidden rounded-[0.8rem] bg-[linear-gradient(160deg,#924a57_0%,#261922_44%,#0f1115_100%)]" }),
         /* @__PURE__ */ jsxs("div", { children: [
           /* @__PURE__ */ jsx("p", { className: "text-sm font-medium text-[var(--esim-ink)]", children: installSession.packageTitle }),
-          /* @__PURE__ */ jsx("p", { className: "mt-1 text-xs text-[var(--esim-copy-soft)]", children: installSession.smdpAddress || "eSIM activation" }),
-          /* @__PURE__ */ jsx("p", { className: "mt-1 text-xs text-[var(--esim-copy-soft)]", children: installSession.expiresAt ? `Expires ${new Date(installSession.expiresAt).toLocaleDateString()}` : "Ready to install" })
+          /* @__PURE__ */ jsx("p", { className: "mt-1 text-xs text-[var(--esim-copy-soft)]", children: installSession.smdpAddress || t({ en: "eSIM activation", hans: "eSIM \u6FC0\u6D3B", hant: "eSIM \u555F\u7528" }) }),
+          /* @__PURE__ */ jsx("p", { className: "mt-1 text-xs text-[var(--esim-copy-soft)]", children: installSession.expiresAt ? t({ en: "Expires", hans: "\u6709\u6548\u671F\u81F3", hant: "\u6709\u6548\u671F\u81F3" }) + " " + formatOrderDate(installSession.expiresAt, locale, false) : t({ en: "Ready to install", hans: "\u53EF\u7ACB\u5373\u5B89\u88C5", hant: "\u53EF\u7ACB\u5373\u5B89\u88DD" }) })
         ] })
       ] }) }) : null,
-      isReady && installSession ? /* @__PURE__ */ jsx(InstallSessionPanel, { className: "mt-8", session: installSession }) : null,
+      isReady && installSession ? /* @__PURE__ */ jsx(InstallSessionPanel, { className: "mt-8", session: installSession, locale }) : null,
       /* @__PURE__ */ jsxs("div", { className: "mt-8 space-y-3", children: [
         orderKind === "physical" ? /* @__PURE__ */ jsx(
           "button",
@@ -18717,7 +18771,7 @@
             onClick: onViewOrders,
             className: "flex min-h-12 w-full items-center justify-center gap-2 rounded-[0.95rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--esim-gold)_82%,white),color-mix(in_oklab,var(--esim-gold)_68%,black))] px-5 text-sm font-semibold text-[var(--esim-bg)]",
             type: "button",
-            children: "Track Your Order"
+            children: t({ en: "Track your order", hans: "\u67E5\u770B\u7269\u6D41", hant: "\u67E5\u770B\u7269\u6D41" })
           }
         ) : /* @__PURE__ */ jsxs(
           "button",
@@ -18726,7 +18780,7 @@
             className: "flex min-h-12 w-full items-center justify-center gap-2 rounded-[0.95rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--esim-gold)_82%,white),color-mix(in_oklab,var(--esim-gold)_68%,black))] px-5 text-sm font-semibold text-[var(--esim-bg)]",
             type: "button",
             children: [
-              isReady ? "View eSIM Details" : "Refresh Status",
+              isReady ? t({ en: "View eSIM details", hans: "\u67E5\u770B eSIM \u8BE6\u60C5", hant: "\u67E5\u770B eSIM \u8A73\u60C5" }) : t({ en: "Refresh status", hans: "\u5237\u65B0\u72B6\u6001", hant: "\u91CD\u65B0\u6574\u7406\u72C0\u614B" }),
               !isReady ? /* @__PURE__ */ jsx(RefreshCw, { className: "h-4 w-4" }) : null
             ]
           }
@@ -18737,13 +18791,13 @@
             onClick: onContinueShopping,
             className: "flex min-h-12 w-full items-center justify-center rounded-[0.95rem] border border-[var(--esim-line)] bg-[var(--esim-bg)] px-5 text-sm font-medium text-[var(--esim-ink)]",
             type: "button",
-            children: "Back to Store"
+            children: t({ en: "Back to store", hans: "\u8FD4\u56DE\u5546\u5E97", hant: "\u8FD4\u56DE\u5546\u5E97" })
           }
         )
       ] }),
       /* @__PURE__ */ jsxs("div", { className: "mt-6 space-y-2 text-sm text-[var(--esim-copy-soft)]", children: [
         /* @__PURE__ */ jsxs("div", { className: "inline-flex items-center gap-2 rounded-full border border-[var(--esim-line)] px-4 py-2", children: [
-          "Order reference",
+          t({ en: "Order reference", hans: "\u8BA2\u5355\u7F16\u53F7", hant: "\u8A02\u55AE\u7DE8\u865F" }),
           /* @__PURE__ */ jsx("code", { className: "font-semibold text-[var(--esim-ink)]", children: orderNumber }),
           /* @__PURE__ */ jsx(
             "button",
@@ -18751,12 +18805,14 @@
               onClick: () => copyToClipboard3(orderNumber),
               className: "text-[var(--esim-gold)]",
               type: "button",
+              "aria-label": t({ en: "Copy order reference", hans: "\u590D\u5236\u8BA2\u5355\u7F16\u53F7", hant: "\u8907\u88FD\u8A02\u55AE\u7DE8\u865F" }),
               children: /* @__PURE__ */ jsx(Copy, { className: "h-3.5 w-3.5" })
             }
           )
         ] }),
         /* @__PURE__ */ jsxs("p", { children: [
-          "Support: ",
+          t({ en: "Support:", hans: "\u5BA2\u670D\uFF1A", hant: "\u5BA2\u670D\uFF1A" }),
+          " ",
           /* @__PURE__ */ jsx("a", { className: "text-[var(--esim-ink)] underline", href: `mailto:${supportEmail}`, children: supportEmail })
         ] })
       ] })
@@ -19971,7 +20027,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "esim",
-      version: "0.0.18",
+      version: "0.0.19",
       target: "shop"
     }
   };
