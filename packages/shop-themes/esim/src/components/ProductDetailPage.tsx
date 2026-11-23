@@ -15,7 +15,7 @@ import { cn } from '@jiffoo/ui';
 import type { Product } from 'shared/src/types/product';
 import type { ProductDetailPageProps } from 'shared/src/types/theme';
 import { getEsimProduct, getProductIdFromLocation, mapEsimApiProductToThemeProduct, normalizeProductForTheme, resolveEsimMediaUrl } from '../lib/api';
-import { pickCopy } from '../site';
+import { isEsimPlanProduct, pickCopy } from '../site';
 import { getEsimTravelProfile } from '../lib/digital-fulfillment';
 import { resolveEsimSiteConfig } from '../site';
 import { destinationLabel, planTitle, regionLabelOf, type EsimPlanAttributes } from '../lib/esim/catalog';
@@ -370,7 +370,8 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
                 </div>
               </div>
 
-              {normalizedProduct.variants?.length ? (
+              {/* An eSIM plan's only variant is the Chinese catalog name itself; the localized plan title above already says it. */}
+              {normalizedProduct.variants?.length && !(isEsimPlanProduct(normalizedProduct) && normalizedProduct.variants.length === 1) ? (
                 <div className="rounded-[1.2rem] border border-[color:color-mix(in_oklab,var(--esim-gold)_16%,var(--esim-line))] bg-[color:color-mix(in_oklab,var(--esim-bg)_88%,black)] p-4">
                   <p className="text-sm font-medium text-[var(--esim-ink)]">{pickCopy(locale, { en: 'Choose an option', hans: '选择选项', hant: '選擇選項' })}</p>
                   <div className="mt-4 flex flex-wrap gap-2">

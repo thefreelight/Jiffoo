@@ -196,6 +196,8 @@ export const OrderDetailPage = React.memo(function OrderDetailPage({
 
             {effectiveOrder.items.map((item) => {
               const sections = extractDeliverySections(item.fulfillmentData);
+              // A BOSS plan's variant repeats the catalog product name (Chinese); only a real option is worth showing.
+              const variantDetail = item.variantName && item.variantName.trim() !== String(item.productName || '').trim() ? item.variantName : null;
               // eSIM items are installed through the panel above; their
               // fulfillmentData.esimIccid is the internal reuse target, not a
               // deliverable to list here (it used to surface as "Esim Iccid").
@@ -253,7 +255,7 @@ export const OrderDetailPage = React.memo(function OrderDetailPage({
                         {planTitle(item.productId, item.productName, locale)}
                       </h2>
                       <p className="mt-2 text-sm text-[var(--esim-copy)]">
-                        {t({ en: 'Qty', hans: '数量', hant: '數量' })} {item.quantity}{item.variantName ? ` · ${item.variantName}` : ''}
+                        {t({ en: 'Qty', hans: '数量', hant: '數量' })} {item.quantity}{variantDetail ? ` · ${variantDetail}` : ''}
                       </p>
                     </div>
                     <span className={cn('rounded-full px-3 py-1 text-[11px] font-semibold tracking-[0.16em]', statusTone(item.fulfillmentStatus || effectiveOrder.status))}>

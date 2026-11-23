@@ -423,10 +423,10 @@ export const ProfilePage = React.memo(function ProfilePage({
             <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(9,7,14,0.1),rgba(9,7,14,0.78))]" />
             <div className="relative flex min-h-[13.5rem] flex-col p-5">
               <h3 className="max-w-[9.5rem] text-xl font-bold leading-snug text-white">
-                {pickCopy(locale, { en: 'Explore a Better Night', hans: '探索更美好的夜晚', hant: '探索更美好的夜晚' })}
+                {pickCopy(locale, { en: 'eSIM plans built for every journey.', hans: '为每次旅程准备的 eSIM 方案。', hant: '為每次旅程準備的 eSIM 方案。' })}
               </h3>
               <p className="mt-2 text-xs leading-relaxed text-white/70">
-                {pickCopy(locale, { en: 'Premium club experiences around the world.', hans: '全球高级会所体验，尽在掌握。', hant: '全球高級會所體驗，盡在掌握。' })}
+                {pickCopy(locale, { en: 'Instant QR or eSIM profile delivery', hans: '即时发放二维码或 eSIM 配置文件', hant: '即時發放 QR 碼或 eSIM 設定檔' })}
               </p>
               <span className="mt-auto inline-flex items-center gap-1.5 self-start rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--esim-gold)_86%,white),color-mix(in_oklab,var(--esim-gold)_70%,black))] px-4 py-2 text-xs font-bold text-[var(--esim-bg)] transition-transform duration-300 group-hover:-translate-y-0.5">
                 {pickCopy(locale, { en: 'Browse Destinations', hans: '浏览目的地', hant: '瀏覽目的地' })}
@@ -857,7 +857,7 @@ export const ProfilePage = React.memo(function ProfilePage({
                     {pickCopy(locale, { en: 'Upcoming Trips', hans: '即将到来的行程', hant: '即將到來的行程' })}
                   </h3>
                   <p className="mt-1 text-sm text-[var(--esim-copy-soft)]">
-                    {pickCopy(locale, { en: 'Your booked experiences', hans: '您已预订的体验', hant: '您已預訂的體驗' })}
+                    {pickCopy(locale, { en: 'Your eSIM plans for upcoming trips.', hans: '您即将到来的行程的 eSIM 方案。', hant: '您即將到來的行程的 eSIM 方案。' })}
                   </p>
                 </div>
               </div>

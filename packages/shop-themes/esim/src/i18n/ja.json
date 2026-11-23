@@ -572,5 +572,17 @@
   "already with us": "すでに登録済みの方",
   "or email": "またはメールアドレス",
   "organization rate": "組織の報酬率",
-  "Group destination-ready plans into clearer regional entry points.": "目的地別のプランを、わかりやすい地域ごとの入口にまとめます。"
+  "Group destination-ready plans into clearer regional entry points.": "目的地別のプランを、わかりやすい地域ごとの入口にまとめます。",
+  "Page Not Found": "ページが見つかりません",
+  "Sorry, we couldn't find the page you're looking for.": "お探しのページは見つかりませんでした。",
+  "Back to Home": "ホームに戻る",
+  "If you believe this is an error, please contact our support team.": "誤りだと思われる場合は、サポートチームまでお問い合わせください。",
+  "Pick your destination": "行き先を選ぶ",
+  "Choose a country or region, the data and the days you need.": "国または地域、必要なデータ量と日数を選びます。",
+  "Check out": "お支払い",
+  "Pay securely. Your plan is issued right after payment.": "安全にお支払いいただけます。プランは支払い後すぐに発行されます。",
+  "Install and connect": "インストールして接続",
+  "Scan the QR code or enter the activation code. Most plans start on first connection.": "QRコードをスキャンするか、アクティベーションコードを入力します。ほとんどのプランは初回接続時に開始されます。",
+  "Three steps from checkout to connected.": "お注文から接続まで、3つのステップ。",
+  "Your eSIM plans for upcoming trips.": "今後の旅行に使う eSIM プラン。"
 }

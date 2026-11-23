@@ -58,29 +58,35 @@ async function read(path: string, env: ReturnType<typeof makeEnv>['env']) {
 const describe_ = CN.description;
 
 describe('product copy follows the storefront locale at read time', () => {
-  it('keeps the seeded Chinese copy for the zh locales and for requests without a locale', async () => {
+  it('keeps the seeded Chinese copy for zh-Hans and for requests without a locale', async () => {
     const { env } = makeEnv();
     expect((await read('/api/v1/products/boss-CN-1GB-7D?locale=zh-Hans', env)).body.data.description).toBe(describe_);
-    expect((await read('/api/v1/products/boss-CN-1GB-7D?locale=zh-Hant', env)).body.data.description).toBe(describe_);
     expect((await read('/api/v1/products/boss-CN-1GB-7D', env)).body.data.description).toBe(describe_);
+  });
+
+  it('gives zh-Hant the Traditional sentence without the Simplified catalog name', async () => {
+    const { env } = makeEnv();
+    const description = (await read('/api/v1/products/boss-CN-1GB-7D?locale=zh-Hant', env)).body.data.description;
+    expect(description).toBe('下單後即時發放，首次連網生效。');
+    expect(description).not.toMatch(/流量包|下单后|联网/);
   });
 
   it('translates the detail description for every non-Chinese locale', async () => {
     const { env } = makeEnv();
-    const name = CN.name;
     const expected: Record<string, string> = {
-      en: '. Delivered right after purchase — activates on first connection.',
-      ja: '。ご注文後すぐに発行され、初めて接続したときに有効化されます。',
-      ko: '. 결제 후 즉시 발급되며, 첫 연결 시 활성화돼요.',
-      fr: '. Livré immédiatement après l’achat — s’active dès la première connexion.',
-      de: '. Sofort nach dem Kauf zugestellt — wird bei der ersten Verbindung aktiviert.',
-      'ja-JP': '。ご注文後すぐに発行され、初めて接続したときに有効化されます。',
+      en: 'Delivered right after purchase — activates on first connection.',
+      ja: 'ご注文後すぐに発行され、初めて接続したときに有効化されます。',
+      ko: '결제 후 즉시 발급되며, 첫 연결 시 활성화돼요.',
+      fr: 'Livré immédiatement après l’achat — s’active dès la première connexion.',
+      de: 'Sofort nach dem Kauf zugestellt — wird bei der ersten Verbindung aktiviert.',
+      'ja-JP': 'ご注文後すぐに発行され、初めて接続したときに有効化されます。',
     };
     for (const [locale, note] of Object.entries(expected)) {
       const { status, body } = await read(`/api/v1/products/boss-CN-1GB-7D?locale=${locale}`, env);
       expect(status).toBe(200);
-      expect(body.data.description, locale).toBe(`${name}${note}`);
-      expect(body.data.description).not.toMatch(/下单后/);
+      expect(body.data.description, locale).toBe(note);
+      // The Chinese catalog name must not leak into a translated description (Japanese legitimately uses kanji).
+      expect(body.data.description).not.toMatch(/流量包|下单后/);
     }
   });
 
