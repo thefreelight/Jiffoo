@@ -22,6 +22,8 @@ import { PageTracker } from '@/components/page-tracker';
 import { Toaster } from '@/components/ui/toaster';
 import { OfflineDetector } from '@/components/offline-detector';
 import { SkipToMain } from '@/components/skip-to-main';
+import { ThemeMessagesRegistrar } from '@/components/theme-messages-registrar';
+import { getThemeMessages } from '@/lib/theme-i18n';
 
 interface Props extends Omit<LocaleLayoutProps, 'params'> {
   params: Promise<{ locale: string }>;
@@ -53,15 +55,22 @@ export default async function LocaleLayout({ children, params }: Props) {
   // active theme. Null on unpinned workers — no behavior change there.
   const initialActiveTheme = buildPinnedActiveTheme();
 
+  // Store Localization (i18n) plugin overrides for the active theme. Null
+  // when the plugin is disabled or unreachable — the theme's built-in copy
+  // then renders exactly as before.
+  const themeMessages = await getThemeMessages(locale);
+
   return (
     <I18nProvider locale={locale as Locale} messages={messages}>
-      <Suspense fallback={<div className="min-h-screen" />}>
-        <SkipToMain />
-        <OfflineDetector position="top" />
-        <PageTracker />
-        <ConditionalLayout initialContext={initialContext} initialActiveTheme={initialActiveTheme}>{children}</ConditionalLayout>
-        <Toaster />
-      </Suspense>
+      <ThemeMessagesRegistrar locale={locale} messages={themeMessages}>
+        <Suspense fallback={<div className="min-h-screen" />}>
+          <SkipToMain />
+          <OfflineDetector position="top" />
+          <PageTracker />
+          <ConditionalLayout initialContext={initialContext} initialActiveTheme={initialActiveTheme}>{children}</ConditionalLayout>
+          <Toaster />
+        </Suspense>
+      </ThemeMessagesRegistrar>
     </I18nProvider>
   );
 }

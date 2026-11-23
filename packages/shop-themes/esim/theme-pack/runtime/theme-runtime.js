@@ -3189,6 +3189,17 @@
     return typeof hit === "string" && hit ? hit : null;
   }
 
+  // src/i18n/overlay.ts
+  var THEME_I18N_NAMESPACE = "theme.esim";
+  var REGISTRY_KEY = "__JIFFOO_THEME_I18N__";
+  function registry() {
+    return globalThis[REGISTRY_KEY];
+  }
+  function pluginMessage(locale, english) {
+    const value = registry()?.messages?.[locale || "en"]?.[THEME_I18N_NAMESPACE]?.[english];
+    return typeof value === "string" && value.trim() ? value : null;
+  }
+
   // src/site.ts
   function zhModeOf(locale) {
     if (locale === "zh-Hant") return "zh-Hant";
@@ -3196,6 +3207,8 @@
     return null;
   }
   function pickCopy(locale, copy) {
+    const override = copy.en ? pluginMessage(locale, copy.en) : null;
+    if (override !== null) return override;
     const catalog = copy.en ? themeMessage(locale, copy.en) : null;
     if (locale === "ja") return copy.ja ?? catalog ?? copy.en;
     if (locale === "ko") return copy.ko ?? catalog ?? copy.en;
@@ -3209,6 +3222,8 @@
   function pickLocalized(configured, englishDefault, zhHans, zhHant, locale) {
     const value = configured?.trim();
     if (value && value !== englishDefault) return value;
+    const override = pluginMessage(locale, englishDefault);
+    if (override !== null) return override;
     const mode = zhModeOf(locale);
     if (mode === "zh-Hant") return zhHant;
     if (mode === "zh-Hans") return zhHans;
@@ -22227,7 +22242,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "esim",
-      version: "0.0.23",
+      version: "0.0.24",
       target: "shop"
     }
   };
