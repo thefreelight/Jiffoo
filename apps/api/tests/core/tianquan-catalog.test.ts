@@ -5,8 +5,8 @@ describe('Tianquan official catalog entries', () => {
   it('exposes the published Tianquan theme', () => {
     expect(getOfficialCatalogEntry('tianquan')).toMatchObject({
       kind: 'theme',
-      version: '0.0.5',
-      packageUrl: 'https://artifacts.jiffoo.com/official-artifacts/themes/tianquan/0.0.5.jtheme',
+      version: '0.0.8',
+      packageUrl: 'https://artifacts.jiffoo.com/official-artifacts/themes/tianquan/0.0.8.jtheme',
     });
   });
 

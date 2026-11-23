@@ -40,7 +40,7 @@ const UPDATE_MANIFEST_TIMEOUT_MS = 5000;
 const MANIFEST_CACHE_TTL_MS = 5 * 60 * 1000;
 const MANIFEST_FAILURE_CACHE_TTL_MS = 60 * 1000;
 
-type ManifestCacheEntry = { at: number; resolution: ManifestResolution };
+type ManifestCacheEntry = { at: number; key: string; resolution: ManifestResolution };
 let manifestCache: ManifestCacheEntry | null = null;
 
 type DeploymentModeDetection = {
@@ -449,14 +449,18 @@ export class UpgradeService {
   }
 
   private static async fetchUpdateManifest(preferredChannel: ReleaseChannel): Promise<ManifestResolution> {
-    if (manifestCache) {
+    // The cache belongs to one manifest URL and channel: a resolution fetched
+    // for another configuration (the env changed, or the channel differs)
+    // must never be served in its place.
+    const cacheKey = `${preferredChannel}|${process.env.JIFFOO_CORE_UPDATE_MANIFEST_URL || process.env.JIFFOO_UPDATE_MANIFEST_URL || ''}`;
+    if (manifestCache && manifestCache.key === cacheKey) {
       const ttl = manifestCache.resolution.status === 'available' ? MANIFEST_CACHE_TTL_MS : MANIFEST_FAILURE_CACHE_TTL_MS;
       if (Date.now() - manifestCache.at < ttl) {
         return manifestCache.resolution;
       }
     }
     const resolution = await this.fetchUpdateManifestUncached(preferredChannel);
-    manifestCache = { at: Date.now(), resolution };
+    manifestCache = { at: Date.now(), key: cacheKey, resolution };
     return resolution;
   }
 

@@ -23,6 +23,9 @@ vi.mock('@/config/database', () => ({
       create: vi.fn(),
       update: vi.fn(),
     },
+    // login records a `login.success` security event in one transaction
+    securityEvent: { create: vi.fn() },
+    $transaction: vi.fn().mockResolvedValue([]),
   },
 }));
 
@@ -471,6 +474,7 @@ describe('AuthService', () => {
           isActive: true,
           emailVerified: true,
           avatar: true,
+          storeId: true,
         },
       });
       expect(result.user.username).toBe(TEST_USER.username);
