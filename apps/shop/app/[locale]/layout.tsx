@@ -23,7 +23,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { OfflineDetector } from '@/components/offline-detector';
 import { SkipToMain } from '@/components/skip-to-main';
 import { ThemeMessagesRegistrar } from '@/components/theme-messages-registrar';
-import { getThemeMessages } from '@/lib/theme-i18n';
+import { getThemeMessages } from '@/lib/theme-i18n-server';
 
 interface Props extends Omit<LocaleLayoutProps, 'params'> {
   params: Promise<{ locale: string }>;
