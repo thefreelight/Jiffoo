@@ -52,7 +52,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
     () => (product ? normalizeProductForTheme(product as unknown as Product) : remoteProduct),
     [product, remoteProduct]
   );
-  const profile = React.useMemo(() => getEsimTravelProfile(normalizedProduct), [normalizedProduct]);
+  const profile = React.useMemo(() => getEsimTravelProfile(normalizedProduct, locale), [normalizedProduct, locale]);
   const isGoodsProduct = normalizedProduct?.productKind === 'goods';
   // Only claim Bluetooth/app-profile management when the catalog copy itself
   // describes it; the basic card ships with generic physical-card copy.

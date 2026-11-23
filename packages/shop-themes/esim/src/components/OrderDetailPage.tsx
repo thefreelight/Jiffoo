@@ -276,7 +276,7 @@ export const OrderDetailPage = React.memo(function OrderDetailPage({
                         <div className="grid gap-3 md:grid-cols-2">
                           {[
                             [t({ en: 'SM-DP+ address', hans: 'SM-DP+ 地址', hant: 'SM-DP+ 位址' }), installLike.smdpAddress || '—'],
-                            [t({ en: 'Matching ID', hans: '匹配码（Matching ID）', hant: '配對碼（Matching ID）' }), installLike.matchingId || '—'],
+                            [t({ en: 'Matching ID', hans: '匹配码', hant: '配對碼' }), installLike.matchingId || '—'],
                             [t({ en: 'Activation code', hans: '激活码', hant: '啟用碼' }), installLike.activationCode || '—'],
                             [t({ en: 'Confirmation code', hans: '确认码', hant: '確認碼' }), installLike.confirmationCode || '—'],
                           ].map(([label, value]) => (

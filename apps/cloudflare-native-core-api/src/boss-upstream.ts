@@ -172,9 +172,10 @@ export function bossPackageToShopProduct(pkg: BossPackage): BossShopProduct | nu
     id: `boss-${pkg.defaultCode}`,
     name: displayName,
     slug: pkg.defaultCode.toLowerCase(),
-    description:
-      `${displayName}。BOSS 上游直供，Odoo 实时价格与库存；下单后即时发放，首次联网生效。` +
-      ` BOSS-supplied eSIM data plan with live Odoo pricing.`,
+    // Customer-facing copy only. This used to append an English sentence and
+    // name the upstream vendor and ERP ("BOSS 上游直供，Odoo 实时价格与库存"),
+    // which is internal plumbing and read as mixed-language on zh cards.
+    description: `${displayName}。下单后即时发放，首次联网生效。`,
     productKind: 'digital',
     requiresShipping: false,
     stock: Math.floor(pkg.qtyAvailable),
@@ -336,11 +337,17 @@ const ESIM_SAMPLE_IDS = [
   'esim-sg-10g-7d', 'esim-hk-10g-7d', 'esim-global-50g-90d',
 ];
 
-function localizedItem(product: BossShopProduct, locale: string): BossShopProduct {
-  // BOSS names are bilingual (Chinese + EN inside name); keep one display
-  // name — storefront locale switch still shows consistent pricing/facts.
-  void locale;
-  return product;
+export function localizedItem(product: BossShopProduct, locale: string): BossShopProduct {
+  // Catalog names come from Odoo as-is. The description is ours, so it
+  // follows the storefront language: Chinese for the zh locales, English
+  // everywhere else (one language per page, never both).
+  if (locale && locale.startsWith('zh')) return product;
+  const displayName = bossDisplayName(product.typeData.esim.defaultCode, product.name);
+  return {
+    ...product,
+    description: `${displayName}. Delivered right after purchase — activates on first connection.`,
+    variants: product.variants.map((variant) => ({ ...variant })),
+  };
 }
 
 export async function syncBossCatalog(env: BossEnv): Promise<{ packages: number; published: number }> {

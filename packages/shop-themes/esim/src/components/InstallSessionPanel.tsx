@@ -73,7 +73,7 @@ export const InstallSessionPanel = React.memo(function InstallSessionPanel({
   const showQr = Boolean(session.status === 'ready' || session.status === 'installed' || qrImageSrc || session.lpaString);
   const fields = [
     [tr({ en: 'SM-DP+ address', hans: 'SM-DP+ 地址', hant: 'SM-DP+ 位址' }), session.smdpAddress || '—'],
-    [tr({ en: 'Matching ID', hans: '匹配码（Matching ID）', hant: '配對碼（Matching ID）' }), session.matchingId || '—'],
+    [tr({ en: 'Matching ID', hans: '匹配码', hant: '配對碼' }), session.matchingId || '—'],
     [tr({ en: 'Activation code', hans: '激活码', hant: '啟用碼' }), session.activationCode || '—'],
     [tr({ en: 'Confirmation code', hans: '确认码', hant: '確認碼' }), session.confirmationCode || '—'],
   ];

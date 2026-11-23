@@ -14225,44 +14225,51 @@
     const match = source.match(pattern);
     return match?.[1]?.trim() || match?.[0]?.trim() || "";
   }
-  function pickCoverage(product, source) {
-    return findSpecificationValue(product, ["coverage", "country", "countries", "destination", "region", "\u5730\u533A", "\u56FD\u5BB6", "\u8986\u76D6"]) || product?.category?.name || (product?.tags || []).find((tag) => !hasKeyword(tag.toLowerCase(), ["esim", "travel", "trip"])) || "200+ destinations";
+  function pickCoverage(product, source, locale) {
+    return findSpecificationValue(product, ["coverage", "country", "countries", "destination", "region", "\u5730\u533A", "\u56FD\u5BB6", "\u8986\u76D6"]) || product?.category?.name || (product?.tags || []).find((tag) => !hasKeyword(tag.toLowerCase(), ["esim", "travel", "trip"])) || pickCopy(locale, { en: "200+ destinations", hans: "200+ \u4E2A\u76EE\u7684\u5730", hant: "200+ \u500B\u76EE\u7684\u5730" });
   }
-  function pickPlan(product, source) {
-    return findSpecificationValue(product, ["data", "allowance", "plan", "package", "bundle", "\u6D41\u91CF", "\u5957\u9910"]) || extractByRegex(source, /\b(unlimited|\d+(?:\.\d+)?\s?(?:gb|mb|tb))\b/i) || "Flexible data bundle";
+  function pickPlan(product, source, locale) {
+    return findSpecificationValue(product, ["data", "allowance", "plan", "package", "bundle", "\u6D41\u91CF", "\u5957\u9910"]) || extractByRegex(source, /\b(unlimited|\d+(?:\.\d+)?\s?(?:gb|mb|tb))\b/i) || pickCopy(locale, { en: "Flexible data", hans: "\u5F39\u6027\u6D41\u91CF", hant: "\u5F48\u6027\u6D41\u91CF" });
   }
-  function pickDuration(product, source) {
-    return findSpecificationValue(product, ["validity", "duration", "days", "period", "\u6709\u6548\u671F", "\u5929", "\u65E5"]) || extractByRegex(source, /\b(\d+\s?(?:day|days|week|weeks|month|months))\b/i) || "Flexible trip validity";
+  function pickDuration(product, source, locale) {
+    const found = findSpecificationValue(product, ["validity", "duration", "days", "period", "\u6709\u6548\u671F", "\u5929", "\u65E5"]) || extractByRegex(source, /\b(\d+\s?(?:day|days|week|weeks|month|months))\b/i);
+    if (!found) return pickCopy(locale, { en: "Flexible validity", hans: "\u5F39\u6027\u6709\u6548\u671F", hant: "\u5F48\u6027\u6709\u6548\u671F" });
+    const units = {
+      day: { en: "days", hans: "\u5929", hant: "\u5929" },
+      week: { en: "weeks", hans: "\u5468", hant: "\u9031" },
+      month: { en: "months", hans: "\u4E2A\u6708", hant: "\u500B\u6708" }
+    };
+    return found.replace(/(\d+)\s*(day|week|month)s?\b/i, (_match, count, unit) => `${count} ${pickCopy(locale, units[unit.toLowerCase()])}`);
   }
-  function pickNetwork(product, source) {
+  function pickNetwork(product, source, locale) {
     const matchedSpeed = extractByRegex(source, /\b(5g|4g|lte)\b/i).toUpperCase();
-    return findSpecificationValue(product, ["network", "speed", "carrier", "band", "\u7F51\u7EDC", "\u901F\u7387"]) || (matchedSpeed ? `${matchedSpeed} local carrier access` : "") || "Priority local carrier access";
+    return findSpecificationValue(product, ["network", "speed", "carrier", "band", "\u7F51\u7EDC", "\u901F\u7387"]) || (matchedSpeed ? `${matchedSpeed} ${pickCopy(locale, { en: "local network", hans: "\u672C\u5730\u7F51\u7EDC", hant: "\u672C\u5730\u7DB2\u8DEF" })}` : "") || pickCopy(locale, { en: "Priority local network", hans: "\u4F18\u5148\u63A5\u5165\u672C\u5730\u7F51\u7EDC", hant: "\u512A\u5148\u63A5\u5165\u672C\u5730\u7DB2\u8DEF" });
   }
-  function pickActivation(product, source) {
+  function pickActivation(product, source, locale) {
     if (hasKeyword(source, ["qr", "scan", "\u626B\u7801", "\u6FC0\u6D3B"])) {
-      return "Install in seconds via QR";
+      return pickCopy(locale, { en: "Install in seconds via QR", hans: "\u626B\u7801\u5373\u88C5", hant: "\u6383\u78BC\u5373\u88DD" });
     }
-    return findSpecificationValue(product, ["activation", "delivery", "install", "setup", "\u6FC0\u6D3B", "\u5B89\u88C5", "\u4EA4\u4ED8"]) || "Instant eSIM delivery after payment";
+    return findSpecificationValue(product, ["activation", "delivery", "install", "setup", "\u6FC0\u6D3B", "\u5B89\u88C5", "\u4EA4\u4ED8"]) || pickCopy(locale, { en: "Instant eSIM delivery after payment", hans: "\u4ED8\u6B3E\u540E\u5373\u65F6\u53D1\u653E", hant: "\u4ED8\u6B3E\u5F8C\u5373\u6642\u767C\u653E" });
   }
-  function pickCompatibility(product) {
-    return findSpecificationValue(product, ["compatibility", "device", "supported devices", "\u517C\u5BB9", "\u8BBE\u5907"]) || "Unlocked iPhone and Android devices with eSIM support";
+  function pickCompatibility(product, locale) {
+    return findSpecificationValue(product, ["compatibility", "device", "supported devices", "\u517C\u5BB9", "\u8BBE\u5907"]) || pickCopy(locale, { en: "Unlocked iPhone and Android devices with eSIM support", hans: "\u652F\u6301 eSIM \u7684\u65E0\u9501 iPhone \u4E0E Android \u8BBE\u5907", hant: "\u652F\u63F4 eSIM \u7684\u7121\u9396 iPhone \u8207 Android \u88DD\u7F6E" });
   }
-  function pickPlanBadge(planLabel) {
-    if (/unlimited|无限/i.test(planLabel)) return "Unlimited";
+  function pickPlanBadge(planLabel, locale) {
+    if (/unlimited|无限/i.test(planLabel)) return pickCopy(locale, { en: "Unlimited", hans: "\u4E0D\u9650\u91CF", hant: "\u4E0D\u9650\u91CF" });
     if (/\b\d+(?:\.\d+)?\s?(?:gb|mb|tb)\b/i.test(planLabel)) return planLabel;
-    return "Travel bundle";
+    return pickCopy(locale, { en: "Travel bundle", hans: "\u65C5\u884C\u6D41\u91CF\u5305", hant: "\u65C5\u884C\u6D41\u91CF\u5305" });
   }
-  function getEsimTravelProfile(product) {
+  function getEsimTravelProfile(product, locale) {
     const source = buildSearchText(product);
-    const coverageLabel = pickCoverage(product, source);
-    const planLabel = pickPlan(product, source);
-    const durationLabel = pickDuration(product, source);
-    const networkLabel = pickNetwork(product, source);
-    const activationLabel = pickActivation(product, source);
-    const compatibilityLabel = pickCompatibility(product);
-    const deliveryLabel = "Instant delivery via eSIM";
-    const planBadge = pickPlanBadge(planLabel);
-    const cardEyebrow = /global|world|europe|asia|全球|欧洲|亚洲/i.test(coverageLabel) ? "Global Plan" : "Destination eSIM";
+    const coverageLabel = pickCoverage(product, source, locale);
+    const planLabel = pickPlan(product, source, locale);
+    const durationLabel = pickDuration(product, source, locale);
+    const networkLabel = pickNetwork(product, source, locale);
+    const activationLabel = pickActivation(product, source, locale);
+    const compatibilityLabel = pickCompatibility(product, locale);
+    const deliveryLabel = pickCopy(locale, { en: "Instant delivery via eSIM", hans: "eSIM \u5373\u65F6\u53D1\u653E", hant: "eSIM \u5373\u6642\u767C\u653E" });
+    const planBadge = pickPlanBadge(planLabel, locale);
+    const cardEyebrow = /global|world|europe|asia|全球|欧洲|亚洲/i.test(coverageLabel) ? pickCopy(locale, { en: "Global plan", hans: "\u901A\u7528\u5957\u9910", hant: "\u901A\u7528\u65B9\u6848" }) : pickCopy(locale, { en: "Destination eSIM", hans: "\u76EE\u7684\u5730 eSIM", hant: "\u76EE\u7684\u5730 eSIM" });
     const specRows = [
       { label: "Coverage", value: coverageLabel },
       { label: "Plan", value: planLabel },
@@ -14284,9 +14291,9 @@
       summary: `${coverageLabel} \xB7 ${planLabel} \xB7 ${durationLabel}`,
       highlights: [planLabel, durationLabel, networkLabel],
       promises: [
-        "Instant QR or eSIM profile delivery",
-        "Keep your primary SIM in place",
-        "Check compatibility before departure"
+        pickCopy(locale, { en: "Instant QR or eSIM profile delivery", hans: "\u4E8C\u7EF4\u7801\u5373\u65F6\u53D1\u653E", hant: "\u4E8C\u7DAD\u78BC\u5373\u6642\u767C\u653E" }),
+        pickCopy(locale, { en: "Keep your primary SIM in place", hans: "\u65E0\u9700\u66F4\u6362\u4E3B\u53F7 SIM \u5361", hant: "\u7121\u9700\u66F4\u63DB\u4E3B\u865F SIM \u5361" }),
+        pickCopy(locale, { en: "Check compatibility before departure", hans: "\u51FA\u53D1\u524D\u8BF7\u786E\u8BA4\u8BBE\u5907\u517C\u5BB9", hant: "\u51FA\u767C\u524D\u8ACB\u78BA\u8A8D\u88DD\u7F6E\u76F8\u5BB9" })
       ],
       specRows
     };
@@ -14741,12 +14748,12 @@
             viewMode === "grid" ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3" : "grid-cols-1"
           ),
           children: normalizedProducts.map(({ product, esim, currency: rawCurrency }) => {
-            const profile = getEsimTravelProfile(product);
+            const profile = getEsimTravelProfile(product, locale);
             const destinations = esim?.destinations || [];
             const regionInfo = regionLabelOf(esim?.defaultCode || "", locale);
             const isMultiCountry = destinations.length > 1;
-            const coverageLine = destinations.length > 0 ? isMultiCountry ? `${regionInfo ? regionInfo.zh : ""}${regionInfo && locale && !locale.startsWith("zh") ? ` ${regionInfo.en}` : ""} \xB7 ${t({ en: `covers ${destinations.length} destinations`, hans: `\u8986\u76D6 ${destinations.length} \u4E2A\u76EE\u7684\u5730`, hant: `\u8986\u84CB ${destinations.length} \u500B\u76EE\u7684\u5730` })}` : `${t({ en: "Covers", hans: "\u8986\u76D6", hant: "\u8986\u84CB" })} ${destinations.map((code) => destinationLabel(code, locale)).join("/")}` : profile.coverageLabel;
-            const eyebrowLabel = destinations.length > 1 ? regionInfo ? regionInfo.zh : t({ en: "Multi-country", hans: "\u591A\u56FD\u8054\u7A0B", hant: "\u591A\u570B\u806F\u7A0B" }) : regionInfo ? regionInfo.zh : profile.cardEyebrow;
+            const coverageLine = destinations.length > 0 ? isMultiCountry ? `${regionInfo ? pickCopy(locale, regionInfo) : ""}${regionInfo ? " \xB7 " : ""}${t({ en: `covers ${destinations.length} destinations`, hans: `\u8986\u76D6 ${destinations.length} \u4E2A\u76EE\u7684\u5730`, hant: `\u8986\u84CB ${destinations.length} \u500B\u76EE\u7684\u5730` })}` : `${t({ en: "Covers", hans: "\u8986\u76D6", hant: "\u8986\u84CB" })} ${destinations.map((code) => destinationLabel(code, locale)).join("/")}` : profile.coverageLabel;
+            const eyebrowLabel = destinations.length > 1 ? regionInfo ? pickCopy(locale, regionInfo) : t({ en: "Multi-country", hans: "\u591A\u56FD\u8054\u7A0B", hant: "\u591A\u570B\u806F\u7A0B" }) : regionInfo ? pickCopy(locale, regionInfo) : profile.cardEyebrow;
             const variantSalePrices = (Array.isArray(product.variants) ? product.variants : []).map((variant) => Number(variant.salePrice ?? variant.price ?? 0)).filter((price) => price > 0);
             const listPrice = Number(product.price || 0);
             const displayPrice = variantSalePrices.length > 0 ? Math.min(listPrice > 0 ? listPrice : Number.POSITIVE_INFINITY, ...variantSalePrices) : listPrice;
@@ -17910,7 +17917,7 @@
     const showQr = Boolean(session.status === "ready" || session.status === "installed" || qrImageSrc || session.lpaString);
     const fields = [
       [tr({ en: "SM-DP+ address", hans: "SM-DP+ \u5730\u5740", hant: "SM-DP+ \u4F4D\u5740" }), session.smdpAddress || "\u2014"],
-      [tr({ en: "Matching ID", hans: "\u5339\u914D\u7801\uFF08Matching ID\uFF09", hant: "\u914D\u5C0D\u78BC\uFF08Matching ID\uFF09" }), session.matchingId || "\u2014"],
+      [tr({ en: "Matching ID", hans: "\u5339\u914D\u7801", hant: "\u914D\u5C0D\u78BC" }), session.matchingId || "\u2014"],
       [tr({ en: "Activation code", hans: "\u6FC0\u6D3B\u7801", hant: "\u555F\u7528\u78BC" }), session.activationCode || "\u2014"],
       [tr({ en: "Confirmation code", hans: "\u786E\u8BA4\u7801", hant: "\u78BA\u8A8D\u78BC" }), session.confirmationCode || "\u2014"]
     ];
@@ -18122,16 +18129,17 @@
   }
   function statusTone(status) {
     const normalized = String(status).toUpperCase();
+    const base = "whitespace-nowrap ";
     if (normalized === "DELIVERED" || normalized === "COMPLETED" || normalized === "FULFILLED") {
-      return "bg-[color:color-mix(in_oklab,var(--esim-success)_16%,transparent)] text-[var(--esim-success)]";
+      return base + "bg-[color:color-mix(in_oklab,var(--esim-success)_16%,transparent)] text-[var(--esim-success)]";
     }
     if (normalized === "PENDING" || normalized === "PAID" || normalized === "PROCESSING" || normalized === "SHIPPED") {
-      return "bg-[color:color-mix(in_oklab,var(--esim-warning)_16%,transparent)] text-[var(--esim-warning)]";
+      return base + "bg-[color:color-mix(in_oklab,var(--esim-warning)_16%,transparent)] text-[var(--esim-warning)]";
     }
     if (normalized === "CANCELLED" || normalized === "CANCELED" || normalized === "REFUNDED" || normalized === "FAILED") {
-      return "bg-[color:color-mix(in_oklab,var(--esim-danger)_18%,transparent)] text-[var(--esim-danger)]";
+      return base + "bg-[color:color-mix(in_oklab,var(--esim-danger)_18%,transparent)] text-[var(--esim-danger)]";
     }
-    return "bg-[var(--esim-primary-soft)] text-[var(--esim-primary-strong)]";
+    return base + "bg-[var(--esim-primary-soft)] text-[var(--esim-primary-strong)]";
   }
 
   // packages/shop-themes/esim/src/components/OrderDetailPage.tsx
@@ -18366,7 +18374,7 @@
                   }) }) : null : hasContent ? /* @__PURE__ */ jsxs("div", { className: "mt-6 grid gap-4", children: [
                     installLike ? /* @__PURE__ */ jsx("div", { className: "grid gap-3 md:grid-cols-2", children: [
                       [t({ en: "SM-DP+ address", hans: "SM-DP+ \u5730\u5740", hant: "SM-DP+ \u4F4D\u5740" }), installLike.smdpAddress || "\u2014"],
-                      [t({ en: "Matching ID", hans: "\u5339\u914D\u7801\uFF08Matching ID\uFF09", hant: "\u914D\u5C0D\u78BC\uFF08Matching ID\uFF09" }), installLike.matchingId || "\u2014"],
+                      [t({ en: "Matching ID", hans: "\u5339\u914D\u7801", hant: "\u914D\u5C0D\u78BC" }), installLike.matchingId || "\u2014"],
                       [t({ en: "Activation code", hans: "\u6FC0\u6D3B\u7801", hant: "\u555F\u7528\u78BC" }), installLike.activationCode || "\u2014"],
                       [t({ en: "Confirmation code", hans: "\u786E\u8BA4\u7801", hant: "\u78BA\u8A8D\u78BC" }), installLike.confirmationCode || "\u2014"]
                     ].map(([label, value]) => /* @__PURE__ */ jsx("div", { children: renderField(
@@ -18760,7 +18768,7 @@
         /* @__PURE__ */ jsxs("div", { children: [
           /* @__PURE__ */ jsx("p", { className: "text-sm font-medium text-[var(--esim-ink)]", children: installSession.packageTitle }),
           /* @__PURE__ */ jsx("p", { className: "mt-1 text-xs text-[var(--esim-copy-soft)]", children: installSession.smdpAddress || t({ en: "eSIM activation", hans: "eSIM \u6FC0\u6D3B", hant: "eSIM \u555F\u7528" }) }),
-          /* @__PURE__ */ jsx("p", { className: "mt-1 text-xs text-[var(--esim-copy-soft)]", children: installSession.expiresAt ? t({ en: "Expires", hans: "\u6709\u6548\u671F\u81F3", hant: "\u6709\u6548\u671F\u81F3" }) + " " + formatOrderDate(installSession.expiresAt, locale, false) : t({ en: "Ready to install", hans: "\u53EF\u7ACB\u5373\u5B89\u88C5", hant: "\u53EF\u7ACB\u5373\u5B89\u88DD" }) })
+          /* @__PURE__ */ jsx("p", { className: "mt-1 text-xs text-[var(--esim-copy-soft)]", children: installSession.status === "pending_payment" ? t({ en: "Awaiting payment", hans: "\u5F85\u652F\u4ED8", hant: "\u5F85\u4ED8\u6B3E" }) : installSession.status === "processing" || isWorking ? t({ en: "Provisioning", hans: "\u5F00\u901A\u4E2D", hant: "\u958B\u901A\u4E2D" }) : installSession.expiresAt ? t({ en: "Expires", hans: "\u6709\u6548\u671F\u81F3", hant: "\u6709\u6548\u671F\u81F3" }) + " " + formatOrderDate(installSession.expiresAt, locale, false) : t({ en: "Ready to install", hans: "\u53EF\u7ACB\u5373\u5B89\u88C5", hant: "\u53EF\u7ACB\u5373\u5B89\u88DD" }) })
         ] })
       ] }) }) : null,
       isReady && installSession ? /* @__PURE__ */ jsx(InstallSessionPanel, { className: "mt-8", session: installSession, locale }) : null,
@@ -19276,7 +19284,7 @@
       () => product ? normalizeProductForTheme(product) : remoteProduct,
       [product, remoteProduct]
     );
-    const profile = react_default.useMemo(() => getEsimTravelProfile(normalizedProduct), [normalizedProduct]);
+    const profile = react_default.useMemo(() => getEsimTravelProfile(normalizedProduct, locale), [normalizedProduct, locale]);
     const isGoodsProduct = normalizedProduct?.productKind === "goods";
     const isBluetoothCard = isGoodsProduct && /bluetooth|蓝牙/i.test(normalizedProduct?.description || "");
     const goodsSubtitle = isBluetoothCard ? { en: "Physical Bluetooth card \u2014 manage multiple eSIM profiles with the BOKMOO app", hans: "\u5B9E\u4F53\u84DD\u7259\u5361\uFF0C\u642D\u914D BOKMOO App \u7BA1\u7406\u591A\u4E2A eSIM \u5957\u9910", hant: "\u5BE6\u9AD4\u85CD\u7259\u5361\uFF0C\u642D\u914D BOKMOO App \u7BA1\u7406\u591A\u500B eSIM \u8A2D\u5B9A\u6A94" } : { en: "Physical card \u2014 works with the BOKMOO app", hans: "\u5B9E\u4F53\u5361\uFF0C\u642D\u914D BOKMOO App \u4F7F\u7528", hant: "\u5BE6\u9AD4\u5361\uFF0C\u642D\u914D BOKMOO App \u4F7F\u7528" };
@@ -20027,7 +20035,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "esim",
-      version: "0.0.19",
+      version: "0.0.20",
       target: "shop"
     }
   };

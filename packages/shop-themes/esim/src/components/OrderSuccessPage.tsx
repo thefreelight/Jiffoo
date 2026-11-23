@@ -185,9 +185,13 @@ export const OrderSuccessPage = React.memo(function OrderSuccessPage({
                   <p className="text-sm font-medium text-[var(--esim-ink)]">{installSession.packageTitle}</p>
                   <p className="mt-1 text-xs text-[var(--esim-copy-soft)]">{installSession.smdpAddress || t({ en: 'eSIM activation', hans: 'eSIM 激活', hant: 'eSIM 啟用' })}</p>
                   <p className="mt-1 text-xs text-[var(--esim-copy-soft)]">
-                    {installSession.expiresAt
-                      ? t({ en: 'Expires', hans: '有效期至', hant: '有效期至' }) + ' ' + formatOrderDate(installSession.expiresAt, locale, false)
-                      : t({ en: 'Ready to install', hans: '可立即安装', hant: '可立即安裝' })}
+                    {installSession.status === 'pending_payment'
+                      ? t({ en: 'Awaiting payment', hans: '待支付', hant: '待付款' })
+                      : installSession.status === 'processing' || isWorking
+                        ? t({ en: 'Provisioning', hans: '开通中', hant: '開通中' })
+                        : installSession.expiresAt
+                          ? t({ en: 'Expires', hans: '有效期至', hant: '有效期至' }) + ' ' + formatOrderDate(installSession.expiresAt, locale, false)
+                          : t({ en: 'Ready to install', hans: '可立即安装', hant: '可立即安裝' })}
                   </p>
                 </div>
               </div>

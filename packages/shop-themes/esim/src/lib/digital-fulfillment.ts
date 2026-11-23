@@ -1,6 +1,8 @@
 import type { Product } from 'shared/src/types/product';
+import { pickCopy } from '../site';
 
 type PlainRecord = Record<string, unknown>;
+type Copy = { en: string; hans: string; hant: string };
 
 export interface DeliveryArtifact {
   label: string;
@@ -117,75 +119,90 @@ function extractByRegex(source: string, pattern: RegExp): string {
   return match?.[1]?.trim() || match?.[0]?.trim() || '';
 }
 
-function pickCoverage(product: Product | null | undefined, source: string): string {
+function pickCoverage(product: Product | null | undefined, source: string, locale?: string): string {
   return (
     findSpecificationValue(product, ['coverage', 'country', 'countries', 'destination', 'region', '地区', '国家', '覆盖']) ||
     product?.category?.name ||
     (product?.tags || []).find((tag) => !hasKeyword(tag.toLowerCase(), ['esim', 'travel', 'trip'])) ||
-    '200+ destinations'
+    pickCopy(locale, { en: '200+ destinations', hans: '200+ 个目的地', hant: '200+ 個目的地' })
   );
 }
 
-function pickPlan(product: Product | null | undefined, source: string): string {
+function pickPlan(product: Product | null | undefined, source: string, locale?: string): string {
   return (
     findSpecificationValue(product, ['data', 'allowance', 'plan', 'package', 'bundle', '流量', '套餐']) ||
     extractByRegex(source, /\b(unlimited|\d+(?:\.\d+)?\s?(?:gb|mb|tb))\b/i) ||
-    'Flexible data bundle'
+    pickCopy(locale, { en: 'Flexible data', hans: '弹性流量', hant: '彈性流量' })
   );
 }
 
-function pickDuration(product: Product | null | undefined, source: string): string {
-  return (
+function pickDuration(product: Product | null | undefined, source: string, locale?: string): string {
+  const found =
     findSpecificationValue(product, ['validity', 'duration', 'days', 'period', '有效期', '天', '日']) ||
-    extractByRegex(source, /\b(\d+\s?(?:day|days|week|weeks|month|months))\b/i) ||
-    'Flexible trip validity'
-  );
+    extractByRegex(source, /\b(\d+\s?(?:day|days|week|weeks|month|months))\b/i);
+  if (!found) return pickCopy(locale, { en: 'Flexible validity', hans: '弹性有效期', hant: '彈性有效期' });
+  // Catalog specs carry English units ("7 Days"); show the unit in the
+  // storefront's language rather than the data's.
+  const units: Record<string, Copy> = {
+    day: { en: 'days', hans: '天', hant: '天' },
+    week: { en: 'weeks', hans: '周', hant: '週' },
+    month: { en: 'months', hans: '个月', hant: '個月' },
+  };
+  return found.replace(/(\d+)\s*(day|week|month)s?\b/i, (_match, count: string, unit: string) => `${count} ${pickCopy(locale, units[unit.toLowerCase()])}`);
 }
 
-function pickNetwork(product: Product | null | undefined, source: string): string {
+function pickNetwork(product: Product | null | undefined, source: string, locale?: string): string {
   const matchedSpeed = extractByRegex(source, /\b(5g|4g|lte)\b/i).toUpperCase();
   return (
     findSpecificationValue(product, ['network', 'speed', 'carrier', 'band', '网络', '速率']) ||
-    (matchedSpeed ? `${matchedSpeed} local carrier access` : '') ||
-    'Priority local carrier access'
+    (matchedSpeed ? `${matchedSpeed} ${pickCopy(locale, { en: 'local network', hans: '本地网络', hant: '本地網路' })}` : '') ||
+    pickCopy(locale, { en: 'Priority local network', hans: '优先接入本地网络', hant: '優先接入本地網路' })
   );
 }
 
-function pickActivation(product: Product | null | undefined, source: string): string {
+function pickActivation(product: Product | null | undefined, source: string, locale?: string): string {
   if (hasKeyword(source, ['qr', 'scan', '扫码', '激活'])) {
-    return 'Install in seconds via QR';
+    return pickCopy(locale, { en: 'Install in seconds via QR', hans: '扫码即装', hant: '掃碼即裝' });
   }
 
   return (
     findSpecificationValue(product, ['activation', 'delivery', 'install', 'setup', '激活', '安装', '交付']) ||
-    'Instant eSIM delivery after payment'
+    pickCopy(locale, { en: 'Instant eSIM delivery after payment', hans: '付款后即时发放', hant: '付款後即時發放' })
   );
 }
 
-function pickCompatibility(product: Product | null | undefined): string {
+function pickCompatibility(product: Product | null | undefined, locale?: string): string {
   return (
     findSpecificationValue(product, ['compatibility', 'device', 'supported devices', '兼容', '设备']) ||
-    'Unlocked iPhone and Android devices with eSIM support'
+    pickCopy(locale, { en: 'Unlocked iPhone and Android devices with eSIM support', hans: '支持 eSIM 的无锁 iPhone 与 Android 设备', hant: '支援 eSIM 的無鎖 iPhone 與 Android 裝置' })
   );
 }
 
-function pickPlanBadge(planLabel: string): string {
-  if (/unlimited|无限/i.test(planLabel)) return 'Unlimited';
+function pickPlanBadge(planLabel: string, locale?: string): string {
+  if (/unlimited|无限/i.test(planLabel)) return pickCopy(locale, { en: 'Unlimited', hans: '不限量', hant: '不限量' });
   if (/\b\d+(?:\.\d+)?\s?(?:gb|mb|tb)\b/i.test(planLabel)) return planLabel;
-  return 'Travel bundle';
+  return pickCopy(locale, { en: 'Travel bundle', hans: '旅行流量包', hant: '旅行流量包' });
 }
 
-export function getEsimTravelProfile(product: Product | null | undefined): EsimTravelProfile {
+/**
+ * Storefront-facing plan copy for an eSIM product. Values that come from the
+ * catalog (data allowance, a speed) pass through; every phrase this module
+ * words itself follows the storefront locale — these used to be English
+ * only, so a zh-Hans page read "Instant delivery via eSIM" and "7 Days".
+ */
+export function getEsimTravelProfile(product: Product | null | undefined, locale?: string): EsimTravelProfile {
   const source = buildSearchText(product);
-  const coverageLabel = pickCoverage(product, source);
-  const planLabel = pickPlan(product, source);
-  const durationLabel = pickDuration(product, source);
-  const networkLabel = pickNetwork(product, source);
-  const activationLabel = pickActivation(product, source);
-  const compatibilityLabel = pickCompatibility(product);
-  const deliveryLabel = 'Instant delivery via eSIM';
-  const planBadge = pickPlanBadge(planLabel);
-  const cardEyebrow = /global|world|europe|asia|全球|欧洲|亚洲/i.test(coverageLabel) ? 'Global Plan' : 'Destination eSIM';
+  const coverageLabel = pickCoverage(product, source, locale);
+  const planLabel = pickPlan(product, source, locale);
+  const durationLabel = pickDuration(product, source, locale);
+  const networkLabel = pickNetwork(product, source, locale);
+  const activationLabel = pickActivation(product, source, locale);
+  const compatibilityLabel = pickCompatibility(product, locale);
+  const deliveryLabel = pickCopy(locale, { en: 'Instant delivery via eSIM', hans: 'eSIM 即时发放', hant: 'eSIM 即時發放' });
+  const planBadge = pickPlanBadge(planLabel, locale);
+  const cardEyebrow = /global|world|europe|asia|全球|欧洲|亚洲/i.test(coverageLabel)
+    ? pickCopy(locale, { en: 'Global plan', hans: '通用套餐', hant: '通用方案' })
+    : pickCopy(locale, { en: 'Destination eSIM', hans: '目的地 eSIM', hant: '目的地 eSIM' });
 
   const specRows = [
     { label: 'Coverage', value: coverageLabel },
@@ -209,9 +226,9 @@ export function getEsimTravelProfile(product: Product | null | undefined): EsimT
     summary: `${coverageLabel} · ${planLabel} · ${durationLabel}`,
     highlights: [planLabel, durationLabel, networkLabel],
     promises: [
-      'Instant QR or eSIM profile delivery',
-      'Keep your primary SIM in place',
-      'Check compatibility before departure',
+      pickCopy(locale, { en: 'Instant QR or eSIM profile delivery', hans: '二维码即时发放', hant: '二維碼即時發放' }),
+      pickCopy(locale, { en: 'Keep your primary SIM in place', hans: '无需更换主号 SIM 卡', hant: '無需更換主號 SIM 卡' }),
+      pickCopy(locale, { en: 'Check compatibility before departure', hans: '出发前请确认设备兼容', hant: '出發前請確認裝置相容' }),
     ],
     specRows,
   };
