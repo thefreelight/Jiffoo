@@ -1,4 +1,5 @@
 /* Vendored: nayuki/QR-Code-generator typescript-javascript/qrcodegen.ts @ master (MIT) 2026-11-20 */
+/* eslint-disable @typescript-eslint/no-namespace -- kept close to upstream, which uses TS namespaces */
 /*
  * QR Code generator library (TypeScript)
  *

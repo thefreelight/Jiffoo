@@ -2,7 +2,6 @@
   "extends": "../../../tsconfig.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "rootDir": "./src",
     "jsx": "react-jsx",
     "module": "esnext",
     "moduleResolution": "bundler",
@@ -10,6 +9,9 @@
     "paths": {
       "shared": [
         "../../shared"
+      ],
+      "shared/src/*": [
+        "../../shared/src/*"
       ],
       "shared/types/theme": [
         "../../shared/dist/shared/src/types/theme.d.ts"
