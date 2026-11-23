@@ -341,20 +341,26 @@ const ESIM_SAMPLE_IDS = [
 ];
 
 /**
- * Delivery sentence appended to the catalog name, per storefront locale.
- * The zh locales keep the seeded Chinese description; an unrecognized
- * locale reads English (one language per page, never both).
+ * Delivery sentence per storefront locale. The catalog name is Chinese data
+ * from Odoo, so it is not prefixed here: a Chinese name followed by a
+ * translated sentence read as mixed-language copy on every non-Chinese page.
+ * The storefront titles the plan from the SKU instead. zh-Hans keeps the
+ * seeded description (it is already Simplified Chinese); zh-Hant gets the
+ * Traditional sentence without the Simplified name; an unrecognized locale
+ * reads English.
  */
 const DELIVERY_NOTE: Record<string, string> = {
-  en: '. Delivered right after purchase — activates on first connection.',
-  ja: '。ご注文後すぐに発行され、初めて接続したときに有効化されます。',
-  ko: '. 결제 후 즉시 발급되며, 첫 연결 시 활성화돼요.',
-  fr: '. Livré immédiatement après l’achat — s’active dès la première connexion.',
-  de: '. Sofort nach dem Kauf zugestellt — wird bei der ersten Verbindung aktiviert.',
+  'zh-Hant': '下單後即時發放，首次連網生效。',
+  en: 'Delivered right after purchase — activates on first connection.',
+  ja: 'ご注文後すぐに発行され、初めて接続したときに有効化されます。',
+  ko: '결제 후 즉시 발급되며, 첫 연결 시 활성화돼요.',
+  fr: 'Livré immédiatement après l’achat — s’active dès la première connexion.',
+  de: 'Sofort nach dem Kauf zugestellt — wird bei der ersten Verbindung aktiviert.',
 };
 
 function deliveryNote(locale: string | undefined): string | null {
   const tag = (locale || '').trim();
+  if (tag === 'zh-Hant' || /^zh-(Hant|TW|HK)(?:-|$)/i.test(tag)) return DELIVERY_NOTE['zh-Hant'];
   if (tag.toLowerCase().startsWith('zh')) return null;
   const primary = tag.toLowerCase().split(/[-_]/)[0] || 'en';
   return DELIVERY_NOTE[tag] ?? DELIVERY_NOTE[primary] ?? DELIVERY_NOTE.en;
@@ -365,10 +371,9 @@ export function localizedItem(product: BossShopProduct, locale: string): BossSho
   // follows the storefront language.
   const note = deliveryNote(locale);
   if (note === null) return product;
-  const displayName = bossDisplayName(product.typeData.esim.defaultCode, product.name);
   return {
     ...product,
-    description: `${displayName}${note}`,
+    description: note,
     variants: product.variants.map((variant) => ({ ...variant })),
   };
 }
@@ -388,8 +393,7 @@ export function localizeBossProduct(item: unknown, locale: string | undefined): 
   if (typeof defaultCode !== 'string' || !defaultCode) return item;
   const note = deliveryNote(locale);
   if (note === null) return item;
-  const displayName = bossDisplayName(defaultCode, product.name || '');
-  return { ...product, description: `${displayName}${note}` };
+  return { ...product, description: note };
 }
 
 export async function syncBossCatalog(env: BossEnv): Promise<{ packages: number; published: number }> {

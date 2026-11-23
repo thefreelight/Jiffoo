@@ -697,6 +697,14 @@
     ["path", { d: "M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4", key: "xoc0q4" }]
   ]);
 
+  // ../../../node_modules/lucide-react/dist/esm/icons/wifi.js
+  var Wifi = createLucideIcon("Wifi", [
+    ["path", { d: "M12 20h.01", key: "zekei9" }],
+    ["path", { d: "M2 8.82a15 15 0 0 1 20 0", key: "dnpr2z" }],
+    ["path", { d: "M5 12.859a10 10 0 0 1 14 0", key: "1x1e6c" }],
+    ["path", { d: "M8.5 16.429a5 5 0 0 1 7 0", key: "1bycff" }]
+  ]);
+
   // ../../../node_modules/lucide-react/dist/esm/icons/x.js
   var X = createLucideIcon("X", [
     ["path", { d: "M18 6 6 18", key: "1bl5f8" }],
@@ -712,6 +720,4032 @@
   var jsx = runtime.jsx;
   var jsxs = runtime.jsxs;
   var jsxDEV = runtime.jsxDEV;
+
+  // ../default/src/components/OrderCancelledPage.tsx
+  function OrderCancelledPage({
+    config,
+    onReturnToCart,
+    onContinueShopping,
+    onContactSupport
+  }) {
+    return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-gray-50 dark:bg-slate-900", children: /* @__PURE__ */ jsx("div", { className: "container mx-auto px-4 py-12 sm:py-16", children: /* @__PURE__ */ jsxs("div", { className: "max-w-3xl mx-auto text-center", children: [
+      /* @__PURE__ */ jsx("div", { className: "mb-8", children: /* @__PURE__ */ jsx("div", { className: "w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-100 dark:border-yellow-800 flex items-center justify-center mx-auto shadow-sm", children: /* @__PURE__ */ jsx(CircleX, { className: "h-12 w-12 sm:h-14 sm:w-14 text-yellow-600 dark:text-yellow-400" }) }) }),
+      /* @__PURE__ */ jsxs("div", { className: "mb-8 sm:mb-12", children: [
+        /* @__PURE__ */ jsxs("div", { className: "inline-flex items-center gap-2 px-4 py-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-full mb-4", children: [
+          /* @__PURE__ */ jsx("div", { className: "w-2 h-2 bg-yellow-600 dark:bg-yellow-400 rounded-full" }),
+          /* @__PURE__ */ jsx("span", { className: "text-[10px] font-bold text-yellow-600 dark:text-yellow-400 uppercase tracking-widest", children: "PAYMENT CANCELLED" })
+        ] }),
+        /* @__PURE__ */ jsx("h1", { className: "text-3xl sm:text-5xl font-bold text-gray-900 dark:text-white mb-4 tracking-tight", children: "Payment Cancelled" }),
+        /* @__PURE__ */ jsx("p", { className: "text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider", children: "NO CHARGES WERE MADE TO YOUR ACCOUNT" })
+      ] }),
+      /* @__PURE__ */ jsx("div", { className: "bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-700 p-6 sm:p-8 mb-6 sm:mb-8", children: /* @__PURE__ */ jsxs("div", { className: "space-y-4 text-left", children: [
+        /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800", children: [
+          /* @__PURE__ */ jsx("div", { className: "w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0", children: /* @__PURE__ */ jsx(ShoppingCart, { className: "h-5 w-5 text-blue-600 dark:text-blue-400" }) }),
+          /* @__PURE__ */ jsxs("div", { children: [
+            /* @__PURE__ */ jsx("p", { className: "font-bold text-sm text-gray-900 dark:text-white uppercase tracking-wider mb-1", children: "CART SAVED" }),
+            /* @__PURE__ */ jsx("p", { className: "text-xs text-gray-600 dark:text-gray-400", children: "All items remain in your cart and you can complete your purchase anytime" })
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-4 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-2xl border border-purple-100 dark:border-purple-800", children: [
+          /* @__PURE__ */ jsx("div", { className: "w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0", children: /* @__PURE__ */ jsx(CircleHelp, { className: "h-5 w-5 text-purple-600 dark:text-purple-400" }) }),
+          /* @__PURE__ */ jsxs("div", { children: [
+            /* @__PURE__ */ jsx("p", { className: "font-bold text-sm text-gray-900 dark:text-white uppercase tracking-wider mb-1", children: "NEED HELP?" }),
+            /* @__PURE__ */ jsx("p", { className: "text-xs text-gray-600 dark:text-gray-400", children: "If you encountered any issues during checkout, please contact our support team" })
+          ] })
+        ] })
+      ] }) }),
+      /* @__PURE__ */ jsxs("div", { className: "bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-700 p-6 sm:p-8 mb-6 sm:mb-8", children: [
+        /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 mb-6 justify-center", children: [
+          /* @__PURE__ */ jsx("div", { className: "h-4 w-1 bg-blue-600 rounded-full" }),
+          /* @__PURE__ */ jsx("h2", { className: "text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest", children: "WHAT HAPPENED" })
+        ] }),
+        /* @__PURE__ */ jsx("p", { className: "text-sm text-gray-600 dark:text-gray-400 text-left mb-4", children: "You cancelled the payment process before completing your order. This could happen if you:" }),
+        /* @__PURE__ */ jsxs("ul", { className: "text-left text-sm text-gray-600 dark:text-gray-400 space-y-2", children: [
+          /* @__PURE__ */ jsxs("li", { className: "flex items-start gap-2", children: [
+            /* @__PURE__ */ jsx("span", { className: "text-blue-600 dark:text-blue-400 mt-1", children: "\u2022" }),
+            /* @__PURE__ */ jsx("span", { children: "Clicked the back button during checkout" })
+          ] }),
+          /* @__PURE__ */ jsxs("li", { className: "flex items-start gap-2", children: [
+            /* @__PURE__ */ jsx("span", { className: "text-blue-600 dark:text-blue-400 mt-1", children: "\u2022" }),
+            /* @__PURE__ */ jsx("span", { children: "Closed the payment window" })
+          ] }),
+          /* @__PURE__ */ jsxs("li", { className: "flex items-start gap-2", children: [
+            /* @__PURE__ */ jsx("span", { className: "text-blue-600 dark:text-blue-400 mt-1", children: "\u2022" }),
+            /* @__PURE__ */ jsx("span", { children: "Decided to review your order again" })
+          ] }),
+          /* @__PURE__ */ jsxs("li", { className: "flex items-start gap-2", children: [
+            /* @__PURE__ */ jsx("span", { className: "text-blue-600 dark:text-blue-400 mt-1", children: "\u2022" }),
+            /* @__PURE__ */ jsx("span", { children: "Encountered a technical issue" })
+          ] })
+        ] })
+      ] }),
+      /* @__PURE__ */ jsxs("div", { className: "flex flex-col sm:flex-row gap-4 justify-center mb-6 sm:mb-8", children: [
+        /* @__PURE__ */ jsxs(
+          "button",
+          {
+            onClick: onReturnToCart,
+            className: "h-12 px-8 rounded-xl font-semibold text-sm shadow-md shadow-blue-100 dark:shadow-none bg-blue-600 hover:bg-blue-700 text-white transition-all flex items-center justify-center gap-2",
+            children: [
+              /* @__PURE__ */ jsx(ShoppingCart, { className: "h-4 w-4" }),
+              "RETURN TO CART"
+            ]
+          }
+        ),
+        /* @__PURE__ */ jsxs(
+          "button",
+          {
+            onClick: onContinueShopping,
+            className: "h-12 px-8 rounded-xl border border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700 font-semibold text-sm text-gray-700 dark:text-gray-300 transition-all flex items-center justify-center gap-2 uppercase tracking-wider",
+            children: [
+              /* @__PURE__ */ jsx(ArrowLeft, { className: "h-4 w-4" }),
+              "CONTINUE SHOPPING"
+            ]
+          }
+        )
+      ] }),
+      onContactSupport && /* @__PURE__ */ jsx("div", { className: "text-xs text-gray-500 dark:text-gray-400", children: /* @__PURE__ */ jsxs("p", { children: [
+        "NEED ASSISTANCE?",
+        " ",
+        /* @__PURE__ */ jsx(
+          "button",
+          {
+            onClick: onContactSupport,
+            className: "text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-bold uppercase tracking-wider",
+            children: "CONTACT SUPPORT"
+          }
+        )
+      ] }) })
+    ] }) }) });
+  }
+
+  // src/i18n/de.json
+  var de_default = {
+    "/ full trip": "/ ganze Reise",
+    "/day": "/Tag",
+    "200+ destinations": "\xDCber 200 Ziele",
+    "24/7 Global Team": "Globales 24/7-Team",
+    "24/7 travel support": "Reisesupport rund um die Uhr",
+    "4.9 average traveler satisfaction": "4,9 \u2013 durchschnittliche Zufriedenheit der Reisenden",
+    "About BOKMOO": "\xDCber BOKMOO",
+    "Access the world's best venues with BOKMOO.": "Mit BOKMOO erhalten Sie Zugang zu den besten Locations der Welt.",
+    "Account Information": "Kontoinformationen",
+    "Account Preferences": "Kontoeinstellungen",
+    "Account Status": "Kontostatus",
+    "Activate your BOKMOO card over Bluetooth, install and switch eSIM profiles, and track your data \u2014 right from your phone.": "Aktivieren Sie Ihre BOKMOO-Karte \xFCber Bluetooth, installieren und wechseln Sie eSIM-Profile und behalten Sie Ihr Datenvolumen im Blick \u2013 direkt von Ihrem Smartphone aus.",
+    Activation: "Aktivierung",
+    "Activation code": "Aktivierungscode",
+    "Activation expired": "Aktivierung abgelaufen",
+    "Active Member": "Aktives Mitglied",
+    "Add a destination or regional plan to prepare your connectivity before departure.": "F\xFCgen Sie vor der Abreise ein Ziel oder einen regionalen Tarif hinzu, um Ihre Verbindung rechtzeitig vorzubereiten.",
+    "Add a new address": "Neue Adresse hinzuf\xFCgen",
+    "Add a stop": "Station hinzuf\xFCgen",
+    "Add to cart": "In den Warenkorb",
+    "Adding\u2026": "Wird hinzugef\xFCgt\u2026",
+    Address: "Adresse",
+    "Address is required": "Adresse ist erforderlich",
+    "Adjust the route, or browse sellable destinations.": "Passen Sie die Route an oder st\xF6bern Sie in den verf\xFCgbaren Zielen.",
+    "Affiliate Program": "Partnerprogramm",
+    "After checkout the eSIM QR code is issued to your email and account instantly. Add it before boarding; it connects on arrival.": "Nach dem Kauf erhalten Sie den eSIM-QR-Code sofort per E-Mail und in Ihrem Konto. F\xFCgen Sie ihn vor dem Abflug hinzu \u2013 er verbindet sich bei der Ankunft.",
+    All: "Alle",
+    "Asia-Pacific": "Asien-Pazifik",
+    Australia: "Australien",
+    "Australia & NZ": "Australien & NZ",
+    "Awaiting payment": "Wartet auf Zahlung",
+    "BOKMOO Member Benefits": "Vorteile f\xFCr BOKMOO-Mitglieder",
+    "BOKMOO is built for global travelers.": "BOKMOO wurde f\xFCr Reisende rund um die Welt entwickelt.",
+    Back: "Zur\xFCck",
+    "Back to Store": "Zur\xFCck zum Shop",
+    "Back to orders": "Zur\xFCck zu den Bestellungen",
+    "Back to store": "Zur\xFCck zum Shop",
+    "Best single eSIM": "Beste einzelne eSIM",
+    "Bilingual support helps with APN setup, network preference and device compatibility around the clock.": "Unser zweisprachiger Support hilft Ihnen rund um die Uhr bei APN-Einrichtung, der Wahl des bevorzugten Netzes und der Ger\xE4tekompatibilit\xE4t.",
+    "Billing Details": "Rechnungsdaten",
+    Bluetooth: "Bluetooth",
+    "Bokmoo eSIM": "Bokmoo eSIM",
+    "Browse Destinations": "Ziele entdecken",
+    "Buy Now": "Jetzt kaufen",
+    "Buy the trip in segments \u2014 one eSIM per segment below.": "Kaufen Sie die Reise in Abschnitten \u2013 unten finden Sie eine eSIM pro Abschnitt.",
+    "Can I add a stop after buying?": "Kann ich nach dem Kauf eine Station hinzuf\xFCgen?",
+    Canada: "Kanada",
+    Cancel: "Abbrechen",
+    "Cancel order": "Bestellung stornieren",
+    "Cancel reason": "Stornogrund",
+    Cancelled: "Storniert",
+    Cart: "Warenkorb",
+    "Chat with support": "Mit dem Support chatten",
+    "Check compatibility": "Kompatibilit\xE4t pr\xFCfen",
+    "Check compatibility before departure": "Kompatibilit\xE4t vor der Abreise pr\xFCfen",
+    "Choose an option": "Option ausw\xE4hlen",
+    "Choose destinations": "Ziele ausw\xE4hlen",
+    City: "Stadt",
+    "City is required": "Stadt ist erforderlich",
+    Close: "Schlie\xDFen",
+    "Close menu": "Men\xFC schlie\xDFen",
+    "Close support chat": "Support-Chat schlie\xDFen",
+    "Closing without confirming keeps your current route.": "Wenn Sie schlie\xDFen, ohne zu best\xE4tigen, bleibt Ihre aktuelle Route erhalten.",
+    Compatibility: "Kompatibilit\xE4t",
+    "Complete payment and we will start preparing your card for delivery.": "Schlie\xDFen Sie die Zahlung ab, dann beginnen wir, Ihre Karte f\xFCr die Lieferung vorzubereiten.",
+    "Complete payment to provision this eSIM.": "Schlie\xDFen Sie die Zahlung ab, um diese eSIM bereitzustellen.",
+    "Complete payment to unlock your eSIM install details.": "Schlie\xDFen Sie die Zahlung ab, um Ihre Installationsdetails f\xFCr die eSIM freizuschalten.",
+    Completed: "Abgeschlossen",
+    "Confirmation code": "Best\xE4tigungscode",
+    Connection: "Verbindung",
+    "Connects to the BOKMOO app over Bluetooth": "Verbindet sich \xFCber Bluetooth mit der BOKMOO-App",
+    "Contact Information": "Kontaktinformationen",
+    "Contact Support": "Support kontaktieren",
+    "Continue browsing": "Weiter st\xF6bern",
+    "Continue to Payment": "Weiter zur Zahlung",
+    Copy: "Kopieren",
+    "Copy activation code": "Aktivierungscode kopieren",
+    "Copy email": "E-Mail-Adresse kopieren",
+    "Copy order reference": "Bestellnummer kopieren",
+    Countries: "L\xE4nder",
+    Country: "Land",
+    "Country (e.g. CN)": "Land (z. B. CN)",
+    "Country is required": "Land ist erforderlich",
+    Coverage: "Abdeckung",
+    "Coverage detail by stop": "Abdeckungsdetails je Station",
+    Covers: "Deckt ab",
+    Currency: "W\xE4hrung",
+    Current: "Aktuell",
+    Data: "Datenvolumen",
+    "Date of Birth": "Geburtsdatum",
+    Days: "Tage",
+    Default: "Standard",
+    Delete: "L\xF6schen",
+    Delivered: "Zugestellt",
+    Delivery: "Lieferung",
+    "Delivery tracking": "Sendungsverfolgung",
+    "Deselect all": "Auswahl aufheben",
+    "Destination eSIM": "Ziel-eSIM",
+    "Destination search": "Zielsuche",
+    Destinations: "Ziele",
+    Discount: "Rabatt",
+    "Download APK directly": "APK direkt herunterladen",
+    "Download on the App Store": "Laden im App Store",
+    Edit: "Bearbeiten",
+    Editable: "Bearbeitbar",
+    "Email Address": "E-Mail-Adresse",
+    "Email is required": "E-Mail-Adresse ist erforderlich",
+    English: "Englisch",
+    "Enter Code": "Code eingeben",
+    "Enter your email": "E-Mail-Adresse eingeben",
+    Europe: "Europa",
+    "Every purchase stays readable after checkout.": "Jeder Kauf bleibt auch nach der Bestellung einsehbar.",
+    "Example route shown \u2014 your route starts empty below.": "Das ist eine Beispielroute \u2013 Ihre eigene Route beginnt weiter unten leer.",
+    Expires: "L\xE4uft ab",
+    "Explore Now": "Jetzt entdecken",
+    "Explore a Better Night": "Bessere N\xE4chte entdecken",
+    "Explore destination-ready profiles, regional bundles, and premium data options with the clarity of a product catalog.": "Entdecken Sie einsatzbereite Profile f\xFCr Ihr Reiseziel, regionale Pakete und Premium-Datenvolumen \u2013 \xFCbersichtlich wie in einem Produktkatalog.",
+    Failed: "Fehlgeschlagen",
+    "Fewer days": "Weniger Tage",
+    "First name": "Vorname",
+    "First name is required": "Vorname ist erforderlich",
+    "Flexible data": "Flexibles Datenvolumen",
+    "Flexible validity": "Flexible G\xFCltigkeit",
+    "Flexible validity & top-ups": "Flexible G\xFCltigkeit & Aufladungen",
+    "For a new device \u2014 a fresh QR code is issued after payment.": "F\xFCr ein neues Ger\xE4t \u2013 nach der Zahlung erhalten Sie einen neuen QR-Code.",
+    France: "Frankreich",
+    Fulfilled: "Ausgeliefert",
+    "Full name": "Vollst\xE4ndiger Name",
+    "Full refund if not activated": "Volle R\xFCckerstattung, falls nicht aktiviert",
+    "General Notes": "Allgemeine Hinweise",
+    Germany: "Deutschland",
+    "Get BOKMOO": "Holen Sie sich BOKMOO",
+    "Get Started": "Jetzt starten",
+    "Get it on Google Play": "Jetzt bei Google Play",
+    Global: "Weltweit",
+    "Global plan": "Weltweiter Tarif",
+    "Greater China": "Gro\xDFchina",
+    "Happy Users": "Zufriedene Nutzer",
+    "Have a redemption code? Enter it to add an eSIM plan or subscription to your account.": "Sie haben einen Einl\xF6sungscode? Geben Sie ihn ein, um Ihrem Konto einen eSIM-Tarif oder ein Abo hinzuzuf\xFCgen.",
+    "Have a referral code from a creator? Enter it \u2014 your discount is applied to the order total at payment.": "Sie haben einen Empfehlungscode von einem Creator? Geben Sie ihn ein \u2013 Ihr Rabatt wird bei der Zahlung vom Bestellbetrag abgezogen.",
+    Help: "Hilfe",
+    "Help Center": "Hilfezentrum",
+    "Hide other plans": "Andere Tarife ausblenden",
+    "High-speed 4G/5G data": "Schnelles 4G/5G-Datenvolumen",
+    Home: "Startseite",
+    "Hong Kong": "Hongkong",
+    "Hong Kong & Macao": "Hongkong & Macau",
+    "Hotspot sharing": "Hotspot-Freigabe",
+    "Hotspot supported": "Hotspot-Freigabe m\xF6glich",
+    "How eSIM works": "So funktioniert die eSIM",
+    "How to install eSIM": "So installieren Sie die eSIM",
+    Indonesia: "Indonesien",
+    "Install from Google Play, or download the APK directly if Play is unavailable on your device.": "Installieren Sie die App \xFCber Google Play oder laden Sie die APK direkt herunter, falls Google Play auf Ihrem Ger\xE4t nicht verf\xFCgbar ist.",
+    "Install in seconds via QR": "In Sekunden per QR-Code installiert",
+    "Install this eSIM": "Diese eSIM installieren",
+    "Install your eSIM": "Ihre eSIM installieren",
+    "Instant QR delivery \xB7 Refundable before activation": "Sofortige Lieferung per QR-Code \xB7 Vor der Aktivierung erstattungsf\xE4hig",
+    "Instant QR or eSIM profile delivery": "Sofortige Lieferung per QR-Code oder als eSIM-Profil",
+    "Instant delivery via eSIM": "Sofortige Lieferung per eSIM",
+    "Instant eSIM delivery": "Sofortige eSIM-Lieferung",
+    "Instant eSIM delivery after payment": "Sofortige eSIM-Lieferung nach der Zahlung",
+    "Instant eSIM delivery with activation instructions included.": "Sofortige eSIM-Lieferung inklusive Aktivierungsanleitung.",
+    "Instant via QR": "Sofort per QR-Code",
+    "Invalid email address": "Ung\xFCltige E-Mail-Adresse",
+    "Is hotspot sharing supported?": "Wird die Hotspot-Freigabe unterst\xFCtzt?",
+    Italy: "Italien",
+    "Item delivery": "Lieferung des Artikels",
+    Itinerary: "Reiseroute",
+    Japan: "Japan",
+    "Japan & Korea": "Japan & Korea",
+    "Keep a copy of any sensitive credentials in your own password manager or secure notes after claiming the order.": "Bewahren Sie nach dem Abrufen der Bestellung eine Kopie aller vertraulichen Zugangsdaten in Ihrem eigenen Passwort-Manager oder in sicheren Notizen auf.",
+    "Keep it safe": "Sicher aufbewahren",
+    "Keep status, delivery details, and activation notes visible after checkout.": "Status, Lieferdetails und Aktivierungshinweise bleiben auch nach der Bestellung sichtbar.",
+    "Keep your primary SIM in place": "Lassen Sie Ihre Haupt-SIM im Ger\xE4t",
+    "LPA string": "LPA-String",
+    Language: "Sprache",
+    "Last name": "Nachname",
+    "Learn the basics": "Grundlagen lernen",
+    "Loading profile...": "Profil wird geladen\u2026",
+    "Loading\u2026": "Wird geladen\u2026",
+    Local: "Lokal",
+    "Log In": "Anmelden",
+    "Log Out": "Abmelden",
+    Macao: "Macau",
+    "Mainland China": "Festlandchina",
+    Malaysia: "Malaysia",
+    "Manage multiple eSIM profiles over Bluetooth": "Mehrere eSIM-Profile \xFCber Bluetooth verwalten",
+    "Manage your plan": "Tarif verwalten",
+    Management: "Verwaltung",
+    "Maps & chat": "Karten & Chat",
+    "Matching ID": "Matching-ID",
+    Member: "Mitglied",
+    "Member Since": "Mitglied seit",
+    "Member since": "Mitglied seit",
+    Menu: "Men\xFC",
+    "Message could not be delivered. Please try again shortly.": "Ihre Nachricht konnte nicht zugestellt werden. Bitte versuchen Sie es gleich noch einmal.",
+    "More days": "Mehr Tage",
+    "Most plans start on first connection. Plans that start at purchase or install say so explicitly, and the planner counts pre-trip time for them.": "Die meisten Tarife beginnen mit der ersten Verbindung. Tarife, die ab Kauf oder Installation starten, weisen ausdr\xFCcklich darauf hin \u2013 der Routenplaner rechnet bei ihnen die Zeit vor der Reise mit.",
+    "Move down": "Nach unten verschieben",
+    "Move up": "Nach oben verschieben",
+    "Multi-country": "L\xE4nder\xFCbergreifend",
+    "Multiple countries, one purchase, a simpler trip. Pick your route and we verify which single eSIM covers all of it.": "Mehrere L\xE4nder, ein Kauf, eine einfachere Reise. W\xE4hlen Sie Ihre Route \u2013 wir pr\xFCfen, welche einzelne eSIM alles abdeckt.",
+    "My Account": "Mein Konto",
+    "My Addresses": "Meine Adressen",
+    "My Trips": "Meine Reisen",
+    "My eSIMs": "Meine eSIMs",
+    Name: "Name",
+    "Need Help?": "Brauchen Sie Hilfe?",
+    "Needed once per phone \u2014 the package is already on the eSIM and activates right after install.": "Einmal pro Telefon n\xF6tig \u2013 das Datenpaket liegt bereits auf der eSIM und wird direkt nach der Installation aktiviert.",
+    Network: "Netz",
+    "New eSIM (new QR code)": "Neue eSIM (neuer QR-Code)",
+    Newest: "Neueste",
+    Next: "Weiter",
+    "No destination found. Clear the search to browse all.": "Kein Ziel gefunden. L\xF6schen Sie die Suche, um alle anzuzeigen.",
+    "No matching plan yet": "Noch kein passender Tarif",
+    "No physical SIM swap": "Kein Wechsel der physischen SIM-Karte",
+    "No plans matched the current search.": "Keine Tarife entsprechen der aktuellen Suche.",
+    "No plans yet": "Noch keine Tarife",
+    "No roaming charges": "Keine Roaminggeb\xFChren",
+    "No saved addresses yet.": "Noch keine gespeicherten Adressen.",
+    "No shipping required": "Kein Versand erforderlich",
+    "No single plan covers the trip": "Kein einzelner Tarif deckt die Reise ab",
+    "No stops yet \u2014 add your first destination.": "Noch keine Stationen \u2013 f\xFCgen Sie Ihr erstes Ziel hinzu.",
+    "No travel orders yet.": "Noch keine Reisebestellungen.",
+    "Not set": "Nicht festgelegt",
+    Notes: "Notizen",
+    "Official BOKMOO product": "Offizielles BOKMOO-Produkt",
+    "On first connection": "Bei der ersten Verbindung",
+    "One code, seamless roaming": "Ein Code, nahtloses Roaming",
+    "One trip,": "Eine Reise,",
+    "One-tap install (Android)": "Installation mit einem Tipp (Android)",
+    Open: "\xD6ffnen",
+    "Open menu": "Men\xFC \xF6ffnen",
+    "Open order": "Bestellung \xF6ffnen",
+    Order: "Bestellung",
+    "Order History": "Bestellverlauf",
+    "Order Summary": "Bestell\xFCbersicht",
+    "Order archive": "Bestellarchiv",
+    "Order not found": "Bestellung nicht gefunden",
+    "Order reference": "Bestellnummer",
+    "Order total": "Bestellsumme",
+    Orders: "Bestellungen",
+    "Our mission is to make connectivity simple, affordable, and reliable anywhere in the world.": "Unsere Mission: Konnektivit\xE4t \xFCberall auf der Welt einfach, bezahlbar und zuverl\xE4ssig zu machen.",
+    "Our support team is here for you.": "Unser Support-Team ist f\xFCr Sie da.",
+    Page: "Seite",
+    Paid: "Bezahlt",
+    Payment: "Zahlung",
+    "Payment Method": "Zahlungsart",
+    "Payment pending": "Zahlung ausstehend",
+    "Payment successful!": "Zahlung erfolgreich!",
+    Pending: "Ausstehend",
+    "Pending payment": "Zahlung ausstehend",
+    "Per plan terms": "Gem\xE4\xDF Tarifbedingungen",
+    Philippines: "Philippinen",
+    Phone: "Telefon",
+    "Phone Number": "Telefonnummer",
+    "Phone number": "Telefonnummer",
+    "Phone number is required": "Telefonnummer ist erforderlich",
+    "Physical Bluetooth card \u2014 manage multiple eSIM profiles with the BOKMOO app": "Physische Bluetooth-Karte \u2013 mehrere eSIM-Profile mit der BOKMOO-App verwalten",
+    "Physical card": "Physische Karte",
+    "Physical card \u2014 works with the BOKMOO app": "Physische Karte \u2013 funktioniert mit der BOKMOO-App",
+    "Physical eSIM card": "Physische eSIM-Karte",
+    "Pick where you are going and for how long \u2014 we check which single eSIM covers the whole trip.": "W\xE4hlen Sie, wohin und wie lange Sie reisen \u2013 wir pr\xFCfen, welche einzelne eSIM die ganze Reise abdeckt.",
+    Placed: "Eingegangen",
+    "Plan collection": "Tarif\xFCbersicht",
+    "Plan not found": "Tarif nicht gefunden",
+    "Plan validity is shorter than the trip span.": "Die G\xFCltigkeit des Tarifs ist k\xFCrzer als der Reisezeitraum.",
+    "Plans are temporarily unavailable for quoting.": "Tarife stehen derzeit nicht f\xFCr die Angebotsberechnung zur Verf\xFCgung.",
+    "Plans are unavailable right now.": "Tarife sind derzeit nicht verf\xFCgbar.",
+    "Plans confirm hotspot support explicitly; require it in Usage settings and the planner only recommends plans that confirm it.": "Tarife geben an, ob die Hotspot-Freigabe ausdr\xFCcklich unterst\xFCtzt wird. Legen Sie sie in den Nutzungseinstellungen als erforderlich fest, dann empfiehlt der Routenplaner nur Tarife mit dieser Best\xE4tigung.",
+    "Plans unused before activation are refundable per the plan terms shown before checkout.": "Tarife, die vor der Aktivierung nicht genutzt wurden, sind gem\xE4\xDF den vor der Kasse angezeigten Tarifbedingungen erstattungsf\xE4hig.",
+    "Plans you buy are added to these profiles \u2014 no new QR code, no reinstall.": "Gekaufte Tarife werden zu diesen Profilen hinzugef\xFCgt \u2013 kein neuer QR-Code, keine Neuinstallation.",
+    "Please log in to check your BOKMOO account": "Bitte melden Sie sich an, um Ihr BOKMOO-Konto zu pr\xFCfen",
+    Popular: "Beliebt",
+    "Popular Topics": "Beliebte Themen",
+    "Popular destinations": "Beliebte Ziele",
+    "Postal code": "Postleitzahl",
+    "Postal code is required": "Postleitzahl ist erforderlich",
+    "Premium club experiences around the world.": "Exklusive Club-Erlebnisse auf der ganzen Welt.",
+    "Preparing your eSIM\u2026": "Ihre eSIM wird vorbereitet\u2026",
+    Previous: "Zur\xFCck",
+    Price: "Preis",
+    "Priority local network": "Priorisiertes lokales Netz",
+    Privacy: "Datenschutz",
+    "Privacy Policy": "Datenschutzerkl\xE4rung",
+    Processing: "In Bearbeitung",
+    "Processing\u2026": "Wird verarbeitet\u2026",
+    Products: "Produkte",
+    "Promo / referral code": "Promocode / Empfehlungscode",
+    "Provisioned automatically \u2014 your install details are shown above.": "Automatisch bereitgestellt \u2013 Ihre Installationsdetails finden Sie oben.",
+    Provisioning: "Bereitstellung",
+    "Provisioning failed \u2014 our support team has been notified and will follow up.": "Bereitstellung fehlgeschlagen \u2013 unser Support-Team wurde benachrichtigt und meldet sich bei Ihnen.",
+    "Provisioning in progress \u2014 this page updates when the package is ready.": "Bereitstellung l\xE4uft \u2013 diese Seite aktualisiert sich, sobald das Paket bereit ist.",
+    "Provisioning needs attention": "Bereitstellung erfordert Aufmerksamkeit",
+    "QR payload ready": "QR-Inhalt bereit",
+    Qty: "Anz.",
+    Quantity: "Anzahl",
+    "Questions, answered": "Fragen & Antworten",
+    "Quick Facts": "Auf einen Blick",
+    "Ready to install": "Bereit zur Installation",
+    Redeem: "Einl\xF6sen",
+    "Redeem a Code": "Code einl\xF6sen",
+    "Redeeming\u2026": "Wird eingel\xF6st\u2026",
+    "Redemption failed. Please try again later.": "Einl\xF6sung fehlgeschlagen. Bitte versuchen Sie es sp\xE4ter noch einmal.",
+    "Redemption is temporarily unavailable. Please try again later.": "Die Einl\xF6sung ist vor\xFCbergehend nicht m\xF6glich. Bitte versuchen Sie es sp\xE4ter noch einmal.",
+    "Refresh status": "Status aktualisieren",
+    Refunded: "Erstattet",
+    Regional: "Regional",
+    Remove: "Entfernen",
+    "Remove stop": "Station entfernen",
+    "Reorder stop": "Station umordnen",
+    "Replace destination": "Ziel ersetzen",
+    "Replace this stop": "Diese Station ersetzen",
+    "Required hotspot sharing is not confirmed on current plans.": "Die erforderliche Hotspot-Freigabe wird von den aktuellen Tarifen nicht best\xE4tigt.",
+    "Requires iOS 15 or later. Activates BOKMOO cards over Bluetooth.": "Erfordert iOS 15 oder neuer. Aktiviert BOKMOO-Karten \xFCber Bluetooth.",
+    Retry: "Erneut versuchen",
+    "Reusing your eSIM avoids a new QR code \u2014 the plan is added to the profile you already installed.": "Wenn Sie Ihre eSIM wiederverwenden, brauchen Sie keinen neuen QR-Code \u2013 der Tarif wird zum bereits installierten Profil hinzugef\xFCgt.",
+    "Review destinations": "Ziele \xFCberpr\xFCfen",
+    "Review your selected plans.": "Pr\xFCfen Sie Ihre ausgew\xE4hlten Tarife.",
+    "Route Planner": "Routenplaner",
+    "Route planner": "Routenplaner",
+    "SM-DP+ address": "SM-DP+-Adresse",
+    "Save address": "Adresse speichern",
+    "Saved addresses": "Gespeicherte Adressen",
+    "Saved shipping addresses for checkout": "Gespeicherte Lieferadressen f\xFCr die Kasse",
+    "Scan or install manually": "Scannen oder manuell installieren",
+    "Scan with Android": "Mit Android scannen",
+    "Scan with iPhone": "Mit iPhone scannen",
+    "Search country, region or city (e.g. Tokyo)": "Land, Region oder Stadt suchen (z. B. Tokio)",
+    "Search destinations or bundles...": "Ziele oder Pakete suchen\u2026",
+    "Search for help...": "Hilfe suchen\u2026",
+    "Secure Checkout": "Sicher bezahlen",
+    "See plan": "Tarif ansehen",
+    "Select all": "Alle ausw\xE4hlen",
+    "Selected items": "Ausgew\xE4hlte Artikel",
+    Send: "Senden",
+    "Set default": "Als Standard festlegen",
+    "Set up and switch profiles in the BOKMOO app": "Profile in der BOKMOO-App einrichten und wechseln",
+    Settings: "Einstellungen",
+    Setup: "Einrichtung",
+    Shipped: "Versendet",
+    Shipping: "Versand",
+    "Shipping needs attention": "Versand erfordert Aufmerksamkeit",
+    "Shopping Cart": "Warenkorb",
+    "Sign In": "Anmelden",
+    "Sign In / Manage My Cards": "Anmelden / Meine Karten verwalten",
+    "Sign in to view your profile": "Melden Sie sich an, um Ihr Profil anzuzeigen",
+    Singapore: "Singapur",
+    "Smart multi-country top-ups": "Intelligente Aufladungen f\xFCr mehrere L\xE4nder",
+    "South Korea": "S\xFCdkorea",
+    "Southeast Asia": "S\xFCdostasien",
+    Spain: "Spanien",
+    "State / Province": "Bundesland / Provinz",
+    "State is required": "Bundesland / Provinz ist erforderlich",
+    "Stay connected in major cities and more": "Bleiben Sie verbunden \u2013 in Gro\xDFst\xE4dten und dar\xFCber hinaus",
+    "Step-by-step guide": "Schritt-f\xFCr-Schritt-Anleitung",
+    Store: "Shop",
+    Subtotal: "Zwischensumme",
+    Summary: "Zusammenfassung",
+    Support: "Support",
+    "Support:": "Support:",
+    "Supported devices": "Unterst\xFCtzte Ger\xE4te",
+    TBC: "Wird noch best\xE4tigt",
+    Taiwan: "Taiwan",
+    Tax: "Steuern",
+    Terms: "AGB",
+    "Terms of Service": "Nutzungsbedingungen",
+    Thailand: "Thailand",
+    "The product tied to this code is currently unavailable. Please contact support.": "Das mit diesem Code verkn\xFCpfte Produkt ist derzeit nicht verf\xFCgbar. Bitte wenden Sie sich an den Support.",
+    "This code has already been redeemed.": "Dieser Code wurde bereits eingel\xF6st.",
+    "This code has reached its redemption limit.": "Dieser Code hat sein Einl\xF6sungslimit erreicht.",
+    "This code is assigned to a different account.": "Dieser Code ist einem anderen Konto zugeordnet.",
+    "This code is invalid or expired. Please double-check and try again.": "Dieser Code ist ung\xFCltig oder abgelaufen. Bitte \xFCberpr\xFCfen Sie ihn und versuchen Sie es erneut.",
+    "This install code has expired \u2014 contact support to reissue it.": "Dieser Installationscode ist abgelaufen \u2013 wenden Sie sich an den Support, um einen neuen zu erhalten.",
+    "This order is still waiting for fulfillment details. Refresh later or reopen it from the order archive.": "F\xFCr diese Bestellung liegen noch keine Details zur Vorbereitung vor. Aktualisieren Sie die Seite sp\xE4ter oder \xF6ffnen Sie die Bestellung erneut aus dem Bestellarchiv.",
+    "This plan does not confirm hotspot sharing.": "Dieser Tarif best\xE4tigt die Hotspot-Freigabe nicht.",
+    Timezone: "Zeitzone",
+    "Top up & Data plans": "Aufladen & Datenpakete",
+    Total: "Gesamtsumme",
+    "Track package": "Sendung verfolgen",
+    "Track your order": "Bestellung verfolgen",
+    "Travel Cart": "Warenkorb",
+    "Travel Credits": "Reiseguthaben",
+    "Travel bundle": "Reisepaket",
+    "Trip changed or running low mid-journey? Add a data pack without reinstalling.": "Reise ge\xE4ndert oder unterwegs das Datenvolumen knapp? Laden Sie ein Datenpaket nach, ohne neu zu installieren.",
+    "Try Again": "Erneut versuchen",
+    "Try the example trip": "Beispielreise ausprobieren",
+    Type: "Typ",
+    "Type your message\u2026": "Nachricht schreiben\u2026",
+    "Typing\u2026": "Schreibt\u2026",
+    "Unable to load orders.": "Bestellungen konnten nicht geladen werden.",
+    "United Arab Emirates": "Vereinigte Arabische Emirate",
+    "United Kingdom": "Vereinigtes K\xF6nigreich",
+    "United States": "Vereinigte Staaten",
+    Unlimited: "Unbegrenzt",
+    "Unlocked iPhone and Android devices with eSIM support": "Simlock-freie iPhone- und Android-Ger\xE4te mit eSIM-Unterst\xFCtzung",
+    "Upcoming Trips": "Anstehende Reisen",
+    Uptime: "Verf\xFCgbarkeit",
+    Usage: "Nutzung",
+    "Usage mode": "Nutzungsmodus",
+    "Use my existing eSIM": "Meine bestehende eSIM verwenden",
+    Validity: "G\xFCltigkeit",
+    "Validity covers the whole trip": "Die G\xFCltigkeit deckt die ganze Reise ab",
+    "Validity to be confirmed": "G\xFCltigkeit wird noch best\xE4tigt",
+    "Video meetings": "Videomeetings",
+    Vietnam: "Vietnam",
+    "View Details": "Details ansehen",
+    "View and manage your orders": "Bestellungen ansehen und verwalten",
+    "View coverage & plans": "Abdeckung & Tarife ansehen",
+    "View eSIM details": "eSIM-Details ansehen",
+    "Visit Help Center": "Hilfezentrum besuchen",
+    "We could not prepare your install session yet.": "Wir konnten Ihre Installationssitzung noch nicht vorbereiten.",
+    "We could not prepare your shipment yet.": "Wir konnten Ihren Versand noch nicht vorbereiten.",
+    "What if I never activate the eSIM?": "Was ist, wenn ich die eSIM nie aktiviere?",
+    "When does validity start counting?": "Wann beginnt die G\xFCltigkeit?",
+    "Why Bokmoo eSIM": "Warum Bokmoo eSIM",
+    "Works with the BOKMOO app": "Funktioniert mit der BOKMOO-App",
+    "Yes. Your existing order stays valid; the planner re-checks coverage and tells you exactly which new stop needs its own plan.": "Ja. Ihre bestehende Bestellung bleibt g\xFCltig; der Routenplaner pr\xFCft die Abdeckung erneut und sagt Ihnen genau, welche neue Station einen eigenen Tarif ben\xF6tigt.",
+    "Your BOKMOO card, in your pocket.": "Ihre BOKMOO-Karte \u2013 immer dabei.",
+    "Your activation session expired before installation completed.": "Ihre Aktivierungssitzung ist abgelaufen, bevor die Installation abgeschlossen wurde.",
+    "Your booked experiences": "Ihre gebuchten Erlebnisse",
+    "Your card is being prepared for shipment": "Ihre Karte wird f\xFCr den Versand vorbereitet",
+    "Your carrier and tracking updates appear here after dispatch.": "Versanddienstleister und Sendungsverfolgung werden hier angezeigt, sobald Ihre Bestellung verschickt wurde.",
+    "Your cart is empty.": "Ihr Warenkorb ist leer.",
+    "Your eSIM is ready to install.": "Ihre eSIM ist bereit zur Installation.",
+    "Your order is paid. We are packing your Bokmoo Card now \u2014 you will get a shipping confirmation with tracking, and it should arrive within a few business days.": "Ihre Bestellung ist bezahlt. Wir verpacken Ihre Bokmoo-Karte gerade \u2013 Sie erhalten eine Versandbest\xE4tigung mit Sendungsverfolgung, und sie sollte innerhalb weniger Werktage bei Ihnen ankommen.",
+    "Your order is paid. We are preparing the install session now.": "Ihre Bestellung ist bezahlt. Wir bereiten jetzt die Installationssitzung vor.",
+    "Your package has been added to your eSIM.": "Ihr Datenpaket wurde zu Ihrer eSIM hinzugef\xFCgt.",
+    d: "T",
+    "daily average": "Tagesdurchschnitt",
+    "data included": "Datenvolumen inklusive",
+    "day(s)": "Tag(e)",
+    days: "Tage",
+    destinations: "Ziele",
+    "e.g. BOKMOO10": "z. B. BOKMOO10",
+    "e.g. ESIM-JP-7D": "z. B. ESIM-JP-7D",
+    eSIM: "eSIM",
+    "eSIM ICCID": "eSIM-ICCID",
+    "eSIM Plans": "eSIM-Tarife",
+    "eSIM activation": "eSIM-Aktivierung",
+    "eSIM plans built for every journey.": "eSIM-Tarife f\xFCr jede Reise.",
+    en: "en",
+    "iPhone and Android devices": "iPhone- und Android-Ger\xE4te",
+    "iPhone and Android devices with eSIM support": "iPhone- und Android-Ger\xE4te mit eSIM-Unterst\xFCtzung",
+    "iPhone: point the camera at the QR code. Other phones: Settings \u2192 Network \u2192 Add eSIM.": "iPhone: Scannen Sie den QR-Code mit der Kamera. Andere Smartphones: Einstellungen \u2192 Netzwerk \u2192 eSIM hinzuf\xFCgen.",
+    "instant delivery": "sofortige Lieferung",
+    "local network": "lokales Netz",
+    months: "Monate",
+    "one eSIM.": "eine eSIM.",
+    plans: "Tarife",
+    selected: "ausgew\xE4hlt",
+    validity: "G\xFCltigkeit",
+    weeks: "Wochen",
+    ".": ".",
+    ". All rights reserved.": ". Alle Rechte vorbehalten.",
+    "Acceptance of Terms": "Annahme der Bedingungen",
+    Active: "Aktiv",
+    Add: "Hinzuf\xFCgen",
+    "Affiliate data could not be loaded": "Partnerdaten konnten nicht geladen werden",
+    "Affiliate view": "Partneransicht",
+    "Affiliate workspace": "Partnerbereich",
+    "All payments are final and non-refundable unless required by law.": "Sofern gesetzlich nicht anders vorgeschrieben, sind alle Zahlungen endg\xFCltig und nicht erstattungsf\xE4hig.",
+    "Already have an account?": "Sie haben bereits ein Konto?",
+    Approved: "Genehmigt",
+    "Authentication failed": "Authentifizierung fehlgeschlagen",
+    "BOKMOO eSIM Card": "BOKMOO eSIM-Karte",
+    "BOKMOO is not liable for any indirect, incidental, or consequential damages.": "BOKMOO haftet nicht f\xFCr indirekte, Neben- oder Folgesch\xE4den.",
+    "Back home": "Zur\xFCck zur Startseite",
+    "Back to sign in": "Zur\xFCck zur Anmeldung",
+    "Better Nights": "Bessere N\xE4chte",
+    "Brighter Journeys": "Hellere Reisen",
+    "Browse BOKMOO plans by destination and travel region.": "Entdecken Sie BOKMOO-Tarife nach Reiseziel und Region.",
+    "By accessing or using the BOKMOO website and services, you agree to be bound by these Terms of Service.": "Mit dem Zugriff auf die BOKMOO-Website und die Dienste oder deren Nutzung erkl\xE4ren Sie sich mit diesen Nutzungsbedingungen einverstanden.",
+    "Change password": "Passwort \xE4ndern",
+    "Commission rate": "Provisionssatz",
+    "Completing sign in": "Anmeldung wird abgeschlossen",
+    Confirm: "Best\xE4tigen",
+    "Continue to your orders, profiles, and activation workspace.": "Weiter zu Ihren Bestellungen, Profilen und zur Aktivierungsverwaltung.",
+    Copied: "Kopiert",
+    "Copy link": "Link kopieren",
+    "Create account": "Konto erstellen",
+    "Create affiliate account": "Partnerkonto erstellen",
+    "Create organization": "Organisation erstellen",
+    "Create the account your eSIMs follow.": "Erstellen Sie das Konto, dem Ihre eSIMs folgen.",
+    Creating: "Wird erstellt\u2026",
+    "Creator network.": "Creator-Netzwerk.",
+    "Current password": "Aktuelles Passwort",
+    "Data Protection": "Datenschutz",
+    "Default option": "Standardoption",
+    "Deselect item": "Artikel abw\xE4hlen",
+    "Display name": "Anzeigename",
+    Earned: "Verdient",
+    Email: "E-Mail",
+    Expired: "Abgelaufen",
+    "Explore destination eSIMs": "eSIMs nach Reiseziel entdecken",
+    "Forgot password": "Passwort vergessen",
+    "Get help fast": "Schnelle Hilfe erhalten",
+    "Hide password": "Passwort ausblenden",
+    "Hover a store button (or scan the card QR) to download.": "Fahren Sie mit der Maus \xFCber eine Shop-Schaltfl\xE4che (oder scannen Sie den QR-Code der Karte), um herunterzuladen.",
+    "How We Use Information": "Nutzung Ihrer Daten",
+    "How it works": "So funktioniert es",
+    Inactive: "Inaktiv",
+    Influencer: "Influencer",
+    "Information We Collect": "Von uns erhobene Informationen",
+    "Instant QR delivery after payment": "QR-Code sofort nach der Zahlung",
+    "Keep access secure between trips.": "Halten Sie Ihren Zugang auch zwischen Reisen sicher.",
+    "Keep orders, activation codes, profile history, and support cases attached to one BOKMOO identity.": "Verkn\xFCpfen Sie Bestellungen, Aktivierungscodes, Profilverlauf und Supportf\xE4lle mit einer einzigen BOKMOO-Identit\xE4t.",
+    "Keep your BOKMOO account ready for the next trip.": "Halten Sie Ihr BOKMOO-Konto f\xFCr die n\xE4chste Reise bereit.",
+    "Last updated: April 15, 2024": "Zuletzt aktualisiert: 15. April 2024",
+    "Limitation of Liability": "Haftungsbeschr\xE4nkung",
+    "Manage BOKMOO eSIM profiles, orders, and activation details from the same black-and-gold travel control surface.": "Verwalten Sie BOKMOO-eSIM-Profile, Bestellungen und Aktivierungsdetails in derselben schwarz-goldenen Reiseoberfl\xE4che.",
+    "Manage eSIMs": "eSIMs verwalten",
+    Manager: "Manager",
+    "Member could not be added": "Mitglied konnte nicht hinzugef\xFCgt werden",
+    "Member email": "E-Mail des Mitglieds",
+    "New password": "Neues Passwort",
+    "No commissions yet": "Noch keine Provisionen",
+    "No region collections are available yet.": "Noch keine regionalen Sammlungen verf\xFCgbar.",
+    "One Card.\nGlobal Connection.": "Eine Karte.\nWeltweite Verbindung.",
+    "One eSIM for the whole trip \u2014 pick your destinations and go.": "Ein eSIM f\xFCr die ganze Reise \u2014 Ziele ausw\xE4hlen und losfahren.",
+    Organization: "Organisation",
+    "Organization affiliate": "Organisationspartner",
+    "Organization code (optional)": "Organisationscode (optional)",
+    "Organization commissions": "Provisionen der Organisation",
+    "Organization could not be created": "Organisation konnte nicht erstellt werden",
+    "Organization data could not be loaded": "Organisationsdaten konnten nicht geladen werden",
+    "Organization name": "Name der Organisation",
+    Partner: "Partner",
+    "Partner commissions": "Partnerprovisionen",
+    Password: "Passwort",
+    "Passwords do not match": "Passw\xF6rter stimmen nicht \xFCberein",
+    "Personal affiliate": "Pers\xF6nlicher Partner",
+    "Powered by": "Bereitgestellt von",
+    Profiles: "Profile",
+    "Protected traveler identity": "Gesch\xFCtzte Reisendenidentit\xE4t",
+    "Purchases and Payments": "K\xE4ufe und Zahlungen",
+    "Questions about setup? Contact": "Fragen zur Einrichtung? Kontakt",
+    Rate: "Satz",
+    Refresh: "Aktualisieren",
+    "Region Collections": "Regionale Sammlungen",
+    "Registration failed": "Registrierung fehlgeschlagen",
+    SAMPLE: "BEISPIEL",
+    "Save profile": "Profil speichern",
+    "Saving...": "Wird gespeichert\u2026",
+    "Secure account access": "Sicherer Kontozugriff",
+    "Securing your session and returning you to the BOKMOO storefront.": "Ihre Sitzung wird gesichert und Sie kehren zum BOKMOO-Shop zur\xFCck.",
+    "Select item": "Artikel ausw\xE4hlen",
+    "Shop eSIM Plans": "eSIM-Tarife entdecken",
+    "Show password": "Passwort anzeigen",
+    "Sign in": "Anmelden",
+    "Sign in before your next border.": "Melden Sie sich vor der n\xE4chsten Grenze an.",
+    "Sign in to manage your account": "Melden Sie sich an, um Ihr Konto zu verwalten",
+    "Signing in": "Anmeldung l\xE4uft\u2026",
+    "Start with a secure profile for purchases and global activation support.": "Beginnen Sie mit einem sicheren Profil f\xFCr K\xE4ufe und weltweite Aktivierungsunterst\xFCtzung.",
+    Suspended: "Gesperrt",
+    "Track purchases": "K\xE4ufe verfolgen",
+    "Traveler profile": "Reiseprofil",
+    "Unable to load Bokmoo plans.": "Bokmoo-Tarife konnten nicht geladen werden.",
+    "Updating...": "Wird aktualisiert\u2026",
+    "Use of Services": "Nutzung der Dienste",
+    Used: "Verwendet",
+    "View category": "Kategorie ansehen",
+    "We collect information you provide directly to us, such as when you create an account or make a purchase.": "Wir erheben Informationen, die Sie uns direkt bereitstellen, etwa beim Anlegen eines Kontos oder einem Kauf.",
+    "We implement appropriate security measures to protect your data.": "Wir setzen geeignete Sicherheitsma\xDFnahmen zum Schutz Ihrer Daten ein.",
+    "We use the information to provide, maintain, and improve our services.": "Wir verwenden diese Informationen, um unsere Dienste bereitzustellen, zu warten und zu verbessern.",
+    "Welcome back": "Willkommen zur\xFCck",
+    "You agree to use our services only for lawful purposes and in accordance with these Terms.": "Sie stimmen zu, unsere Dienste nur f\xFCr rechtm\xE4\xDFige Zwecke und gem\xE4\xDF diesen Bedingungen zu nutzen.",
+    "You have the right to access, update, or delete your personal information.": "Sie haben das Recht, auf Ihre pers\xF6nlichen Daten zuzugreifen, sie zu aktualisieren oder zu l\xF6schen.",
+    "Your Rights": "Ihre Rechte",
+    "Your referral ledger.": "Ihr Empfehlungsprotokoll.",
+    "already with us": "Bereits dabei?",
+    "or email": "oder per E-Mail",
+    "organization rate": "Organisationssatz",
+    "Group destination-ready plans into clearer regional entry points.": "B\xFCndelt die fertig konfigurierten Zieltarife zu \xFCbersichtlichen regionalen Einstiegen.",
+    "Page Not Found": "Seite nicht gefunden",
+    "Sorry, we couldn't find the page you're looking for.": "Leider konnte die Seite nicht gefunden werden.",
+    "Back to Home": "Zur\xFCck zur Startseite",
+    "If you believe this is an error, please contact our support team.": "Wenn Sie dies f\xFCr einen Fehler halten, wenden Sie sich bitte an unser Support-Team.",
+    "Pick your destination": "Reiseziel ausw\xE4hlen",
+    "Choose a country or region, the data and the days you need.": "W\xE4hlen Sie Land oder Region, das Datenvolumen und die Anzahl der Tage.",
+    "Check out": "Zur Kasse",
+    "Pay securely. Your plan is issued right after payment.": "Zahlen Sie sicher. Ihr Tarif wird direkt nach der Zahlung ausgegeben.",
+    "Install and connect": "Installieren und verbinden",
+    "Scan the QR code or enter the activation code. Most plans start on first connection.": "Scannen Sie den QR-Code oder geben Sie den Aktivierungscode ein. Die meisten Tarife starten bei der ersten Verbindung.",
+    "Three steps from checkout to connected.": "Drei Schritte von der Zahlung bis zur Verbindung.",
+    "Your eSIM plans for upcoming trips.": "Ihre eSIM-Tarife f\xFCr anstehende Reisen."
+  };
+
+  // src/i18n/fr.json
+  var fr_default = {
+    "/ full trip": "/ voyage entier",
+    "/day": "/ jour",
+    "200+ destinations": "Plus de 200 destinations",
+    "24/7 Global Team": "\xC9quipe mondiale 24h/24, 7j/7",
+    "24/7 travel support": "Assistance voyage 24h/24, 7j/7",
+    "4.9 average traveler satisfaction": "Satisfaction moyenne des voyageurs : 4,9",
+    "About BOKMOO": "\xC0 propos de BOKMOO",
+    "Access the world's best venues with BOKMOO.": "Acc\xE9dez aux meilleures adresses du monde avec BOKMOO.",
+    "Account Information": "Informations du compte",
+    "Account Preferences": "Pr\xE9f\xE9rences du compte",
+    "Account Status": "Statut du compte",
+    "Activate your BOKMOO card over Bluetooth, install and switch eSIM profiles, and track your data \u2014 right from your phone.": "Activez votre carte BOKMOO via Bluetooth, installez et changez de profil eSIM, et suivez votre consommation de donn\xE9es \u2014 directement depuis votre t\xE9l\xE9phone.",
+    Activation: "Activation",
+    "Activation code": "Code d'activation",
+    "Activation expired": "Activation expir\xE9e",
+    "Active Member": "Membre actif",
+    "Add a destination or regional plan to prepare your connectivity before departure.": "Ajoutez une destination ou un forfait r\xE9gional pour pr\xE9parer votre connexion avant le d\xE9part.",
+    "Add a new address": "Ajouter une nouvelle adresse",
+    "Add a stop": "Ajouter une \xE9tape",
+    "Add to cart": "Ajouter au panier",
+    "Adding\u2026": "Ajout\u2026",
+    Address: "Adresse",
+    "Address is required": "L'adresse est obligatoire",
+    "Adjust the route, or browse sellable destinations.": "Ajustez l'itin\xE9raire ou parcourez les destinations disponibles.",
+    "Affiliate Program": "Programme d'affiliation",
+    "After checkout the eSIM QR code is issued to your email and account instantly. Add it before boarding; it connects on arrival.": "Apr\xE8s le paiement, vous recevez imm\xE9diatement le code QR de votre eSIM par e-mail et dans votre compte. Installez-la avant d'embarquer ; elle se connecte d\xE8s votre arriv\xE9e.",
+    All: "Tous",
+    "Asia-Pacific": "Asie-Pacifique",
+    Australia: "Australie",
+    "Australia & NZ": "Australie & NZ",
+    "Awaiting payment": "En attente de paiement",
+    "BOKMOO Member Benefits": "Avantages membres BOKMOO",
+    "BOKMOO is built for global travelers.": "BOKMOO est con\xE7u pour les voyageurs du monde entier.",
+    Back: "Retour",
+    "Back to Store": "Retour \xE0 la boutique",
+    "Back to orders": "Retour aux commandes",
+    "Back to store": "Retour \xE0 la boutique",
+    "Best single eSIM": "Meilleure eSIM unique",
+    "Bilingual support helps with APN setup, network preference and device compatibility around the clock.": "Une assistance bilingue disponible 24h/24 vous aide \xE0 configurer l'APN, \xE0 d\xE9finir vos pr\xE9f\xE9rences de r\xE9seau et \xE0 v\xE9rifier la compatibilit\xE9 de votre appareil.",
+    "Billing Details": "Coordonn\xE9es de facturation",
+    Bluetooth: "Bluetooth",
+    "Bokmoo eSIM": "eSIM Bokmoo",
+    "Browse Destinations": "Parcourir les destinations",
+    "Buy Now": "Acheter maintenant",
+    "Buy the trip in segments \u2014 one eSIM per segment below.": "Achetez le voyage par segments \u2014 une eSIM par segment ci-dessous.",
+    "Can I add a stop after buying?": "Puis-je ajouter une \xE9tape apr\xE8s l'achat ?",
+    Canada: "Canada",
+    Cancel: "Annuler",
+    "Cancel order": "Annuler la commande",
+    "Cancel reason": "Motif d'annulation",
+    Cancelled: "Annul\xE9e",
+    Cart: "Panier",
+    "Chat with support": "Discuter avec l'assistance",
+    "Check compatibility": "V\xE9rifier la compatibilit\xE9",
+    "Check compatibility before departure": "V\xE9rifier la compatibilit\xE9 avant le d\xE9part",
+    "Choose an option": "S\xE9lectionner une option",
+    "Choose destinations": "Choisir les destinations",
+    City: "Ville",
+    "City is required": "La ville est obligatoire",
+    Close: "Fermer",
+    "Close menu": "Fermer le menu",
+    "Close support chat": "Fermer la discussion avec l'assistance",
+    "Closing without confirming keeps your current route.": "Fermer sans confirmer conserve votre itin\xE9raire actuel.",
+    Compatibility: "Compatibilit\xE9",
+    "Complete payment and we will start preparing your card for delivery.": "Finalisez le paiement et nous commencerons \xE0 pr\xE9parer votre carte pour la livraison.",
+    "Complete payment to provision this eSIM.": "Finalisez le paiement pour mettre cette eSIM en service.",
+    "Complete payment to unlock your eSIM install details.": "Finalisez le paiement pour d\xE9bloquer les informations d'installation de votre eSIM.",
+    Completed: "Termin\xE9e",
+    "Confirmation code": "Code de confirmation",
+    Connection: "Connexion",
+    "Connects to the BOKMOO app over Bluetooth": "Se connecte \xE0 l'application BOKMOO via Bluetooth",
+    "Contact Information": "Coordonn\xE9es",
+    "Contact Support": "Contacter l'assistance",
+    "Continue browsing": "Continuer la navigation",
+    "Continue to Payment": "Continuer vers le paiement",
+    Copy: "Copier",
+    "Copy activation code": "Copier le code d'activation",
+    "Copy email": "Copier l'adresse e-mail",
+    "Copy order reference": "Copier la r\xE9f\xE9rence de la commande",
+    Countries: "Pays",
+    Country: "Pays",
+    "Country (e.g. CN)": "Pays (ex. CN)",
+    "Country is required": "Le pays est obligatoire",
+    Coverage: "Couverture",
+    "Coverage detail by stop": "D\xE9tail de la couverture par \xE9tape",
+    Covers: "Couvre",
+    Currency: "Devise",
+    Current: "En cours",
+    Data: "Donn\xE9es",
+    "Date of Birth": "Date de naissance",
+    Days: "Jours",
+    Default: "Par d\xE9faut",
+    Delete: "Supprimer",
+    Delivered: "Livr\xE9e",
+    Delivery: "Livraison",
+    "Delivery tracking": "Suivi de livraison",
+    "Deselect all": "Tout d\xE9s\xE9lectionner",
+    "Destination eSIM": "eSIM de destination",
+    "Destination search": "Recherche de destinations",
+    Destinations: "Destinations",
+    Discount: "R\xE9duction",
+    "Download APK directly": "T\xE9l\xE9charger l'APK directement",
+    "Download on the App Store": "T\xE9l\xE9charger dans l'App Store",
+    Edit: "Modifier",
+    Editable: "Modifiable",
+    "Email Address": "Adresse e-mail",
+    "Email is required": "L'adresse e-mail est obligatoire",
+    English: "Anglais",
+    "Enter Code": "Saisir un code",
+    "Enter your email": "Saisissez votre adresse e-mail",
+    Europe: "Europe",
+    "Every purchase stays readable after checkout.": "Chaque achat reste consultable apr\xE8s le paiement.",
+    "Example route shown \u2014 your route starts empty below.": "Itin\xE9raire d'exemple \u2014 le v\xF4tre d\xE9marre vide ci-dessous.",
+    Expires: "Expire",
+    "Explore Now": "D\xE9couvrir maintenant",
+    "Explore a Better Night": "D\xE9couvrez des soir\xE9es d'exception",
+    "Explore destination-ready profiles, regional bundles, and premium data options with the clarity of a product catalog.": "Explorez des profils pr\xEAts pour votre destination, des packs r\xE9gionaux et des options de donn\xE9es premium, avec la clart\xE9 d'un catalogue de produits.",
+    Failed: "\xC9chec",
+    "Fewer days": "Moins de jours",
+    "First name": "Pr\xE9nom",
+    "First name is required": "Le pr\xE9nom est obligatoire",
+    "Flexible data": "Donn\xE9es flexibles",
+    "Flexible validity": "Validit\xE9 flexible",
+    "Flexible validity & top-ups": "Validit\xE9 flexible & rechargements",
+    "For a new device \u2014 a fresh QR code is issued after payment.": "Pour un nouvel appareil \u2014 un nouveau code QR est \xE9mis apr\xE8s le paiement.",
+    France: "France",
+    Fulfilled: "Pr\xE9par\xE9e",
+    "Full name": "Nom complet",
+    "Full refund if not activated": "Remboursement int\xE9gral en l'absence d'activation",
+    "General Notes": "Remarques g\xE9n\xE9rales",
+    Germany: "Allemagne",
+    "Get BOKMOO": "Obtenir BOKMOO",
+    "Get Started": "Commencer",
+    "Get it on Google Play": "Disponible sur Google Play",
+    Global: "Mondial",
+    "Global plan": "Forfait mondial",
+    "Greater China": "Grande Chine",
+    "Happy Users": "Utilisateurs satisfaits",
+    "Have a redemption code? Enter it to add an eSIM plan or subscription to your account.": "Vous avez un code d'\xE9change ? Saisissez-le pour ajouter un forfait eSIM ou un abonnement \xE0 votre compte.",
+    "Have a referral code from a creator? Enter it \u2014 your discount is applied to the order total at payment.": "Vous avez un code de parrainage transmis par un cr\xE9ateur ? Saisissez-le \u2014 votre r\xE9duction s'applique au total de la commande au moment du paiement.",
+    Help: "Aide",
+    "Help Center": "Centre d'aide",
+    "Hide other plans": "Masquer les autres forfaits",
+    "High-speed 4G/5G data": "Donn\xE9es 4G/5G \xE0 haut d\xE9bit",
+    Home: "Accueil",
+    "Hong Kong": "Hong Kong",
+    "Hong Kong & Macao": "Hong Kong & Macao",
+    "Hotspot sharing": "Partage de connexion",
+    "Hotspot supported": "Partage de connexion pris en charge",
+    "How eSIM works": "Comment fonctionne l'eSIM",
+    "How to install eSIM": "Comment installer une eSIM",
+    Indonesia: "Indon\xE9sie",
+    "Install from Google Play, or download the APK directly if Play is unavailable on your device.": "Installez l'application depuis Google Play, ou t\xE9l\xE9chargez directement l'APK si Google Play n'est pas disponible sur votre appareil.",
+    "Install in seconds via QR": "Installation en quelques secondes via un code QR",
+    "Install this eSIM": "Installer cette eSIM",
+    "Install your eSIM": "Installer votre eSIM",
+    "Instant QR delivery \xB7 Refundable before activation": "Livraison instantan\xE9e du code QR \xB7 Remboursable avant activation",
+    "Instant QR or eSIM profile delivery": "Livraison instantan\xE9e du code QR ou du profil eSIM",
+    "Instant delivery via eSIM": "Livraison instantan\xE9e par eSIM",
+    "Instant eSIM delivery": "Livraison instantan\xE9e de l'eSIM",
+    "Instant eSIM delivery after payment": "Livraison instantan\xE9e de l'eSIM apr\xE8s le paiement",
+    "Instant eSIM delivery with activation instructions included.": "Livraison instantan\xE9e de l'eSIM, instructions d'activation comprises.",
+    "Instant via QR": "Instantan\xE9 par code QR",
+    "Invalid email address": "Adresse e-mail invalide",
+    "Is hotspot sharing supported?": "Le partage de connexion est-il pris en charge ?",
+    Italy: "Italie",
+    "Item delivery": "Livraison de l'article",
+    Itinerary: "Itin\xE9raire",
+    Japan: "Japon",
+    "Japan & Korea": "Japon & Cor\xE9e",
+    "Keep a copy of any sensitive credentials in your own password manager or secure notes after claiming the order.": "Apr\xE8s avoir r\xE9cup\xE9r\xE9 votre commande, conservez une copie de vos identifiants sensibles dans votre gestionnaire de mots de passe ou dans des notes s\xE9curis\xE9es.",
+    "Keep it safe": "Conservez-le en lieu s\xFBr",
+    "Keep status, delivery details, and activation notes visible after checkout.": "Gardez le statut, les d\xE9tails de livraison et les notes d'activation visibles apr\xE8s le paiement.",
+    "Keep your primary SIM in place": "Gardez votre SIM principale en place",
+    "LPA string": "Cha\xEEne LPA",
+    Language: "Langue",
+    "Last name": "Nom",
+    "Learn the basics": "D\xE9couvrir les bases",
+    "Loading profile...": "Chargement du profil...",
+    "Loading\u2026": "Chargement\u2026",
+    Local: "Local",
+    "Log In": "Se connecter",
+    "Log Out": "Se d\xE9connecter",
+    Macao: "Macao",
+    "Mainland China": "Chine continentale",
+    Malaysia: "Malaisie",
+    "Manage multiple eSIM profiles over Bluetooth": "G\xE9rez plusieurs profils eSIM via Bluetooth",
+    "Manage your plan": "G\xE9rer votre forfait",
+    Management: "Gestion",
+    "Maps & chat": "Cartes & discussion",
+    "Matching ID": "Identifiant d'appairage (Matching ID)",
+    Member: "Membre",
+    "Member Since": "Membre depuis",
+    "Member since": "Membre depuis",
+    Menu: "Menu",
+    "Message could not be delivered. Please try again shortly.": "Le message n'a pas pu \xEAtre remis. Veuillez r\xE9essayer dans un instant.",
+    "More days": "Plus de jours",
+    "Most plans start on first connection. Plans that start at purchase or install say so explicitly, and the planner counts pre-trip time for them.": "La plupart des forfaits d\xE9marrent \xE0 la premi\xE8re connexion. Les forfaits qui d\xE9marrent \xE0 l'achat ou \xE0 l'installation l'indiquent explicitement, et le planificateur compte pour eux le temps \xE9coul\xE9 avant le d\xE9part.",
+    "Move down": "Descendre",
+    "Move up": "Monter",
+    "Multi-country": "Multi-pays",
+    "Multiple countries, one purchase, a simpler trip. Pick your route and we verify which single eSIM covers all of it.": "Plusieurs pays, un seul achat, un voyage plus simple. Choisissez votre itin\xE9raire et nous v\xE9rifions quelle eSIM unique couvre la totalit\xE9 du voyage.",
+    "My Account": "Mon compte",
+    "My Addresses": "Mes adresses",
+    "My Trips": "Mes voyages",
+    "My eSIMs": "Mes eSIM",
+    Name: "Nom",
+    "Need Help?": "Besoin d'aide ?",
+    "Needed once per phone \u2014 the package is already on the eSIM and activates right after install.": "\xC0 faire une seule fois par t\xE9l\xE9phone \u2014 le forfait est d\xE9j\xE0 sur l'eSIM et s'active juste apr\xE8s l'installation.",
+    Network: "R\xE9seau",
+    "New eSIM (new QR code)": "Nouvelle eSIM (nouveau code QR)",
+    Newest: "Plus r\xE9cents",
+    Next: "Suivant",
+    "No destination found. Clear the search to browse all.": "Aucune destination trouv\xE9e. Effacez la recherche pour tout parcourir.",
+    "No matching plan yet": "Aucun forfait correspondant pour le moment",
+    "No physical SIM swap": "Pas de changement de carte SIM physique",
+    "No plans matched the current search.": "Aucun forfait ne correspond \xE0 la recherche actuelle.",
+    "No plans yet": "Aucun forfait pour le moment",
+    "No roaming charges": "Aucun frais d'itin\xE9rance",
+    "No saved addresses yet.": "Aucune adresse enregistr\xE9e pour le moment.",
+    "No shipping required": "Aucune livraison requise",
+    "No single plan covers the trip": "Aucun forfait unique ne couvre le voyage",
+    "No stops yet \u2014 add your first destination.": "Aucune \xE9tape pour l'instant \u2014 ajoutez votre premi\xE8re destination.",
+    "No travel orders yet.": "Aucune commande voyage pour le moment.",
+    "Not set": "Non d\xE9fini",
+    Notes: "Notes",
+    "Official BOKMOO product": "Produit officiel BOKMOO",
+    "On first connection": "\xC0 la premi\xE8re connexion",
+    "One code, seamless roaming": "Un seul code, une itin\xE9rance sans interruption",
+    "One trip,": "Un voyage,",
+    "One-tap install (Android)": "Installation en un clic (Android)",
+    Open: "Ouvrir",
+    "Open menu": "Ouvrir le menu",
+    "Open order": "Ouvrir la commande",
+    Order: "Commande",
+    "Order History": "Historique des commandes",
+    "Order Summary": "R\xE9capitulatif de la commande",
+    "Order archive": "Archive des commandes",
+    "Order not found": "Commande introuvable",
+    "Order reference": "R\xE9f\xE9rence de la commande",
+    "Order total": "Total de la commande",
+    Orders: "Commandes",
+    "Our mission is to make connectivity simple, affordable, and reliable anywhere in the world.": "Notre mission est de rendre la connectivit\xE9 simple, abordable et fiable, partout dans le monde.",
+    "Our support team is here for you.": "Notre \xE9quipe d'assistance est \xE0 votre disposition.",
+    Page: "Page",
+    Paid: "Pay\xE9e",
+    Payment: "Paiement",
+    "Payment Method": "Moyen de paiement",
+    "Payment pending": "Paiement en attente",
+    "Payment successful!": "Paiement r\xE9ussi !",
+    Pending: "En attente",
+    "Pending payment": "En attente de paiement",
+    "Per plan terms": "Selon les conditions du forfait",
+    Philippines: "Philippines",
+    Phone: "T\xE9l\xE9phone",
+    "Phone Number": "Num\xE9ro de t\xE9l\xE9phone",
+    "Phone number": "Num\xE9ro de t\xE9l\xE9phone",
+    "Phone number is required": "Le num\xE9ro de t\xE9l\xE9phone est obligatoire",
+    "Physical Bluetooth card \u2014 manage multiple eSIM profiles with the BOKMOO app": "Carte Bluetooth physique \u2014 pour g\xE9rer plusieurs profils eSIM avec l'application BOKMOO",
+    "Physical card": "Carte physique",
+    "Physical card \u2014 works with the BOKMOO app": "Carte physique \u2014 compatible avec l'application BOKMOO",
+    "Physical eSIM card": "Carte eSIM physique",
+    "Pick where you are going and for how long \u2014 we check which single eSIM covers the whole trip.": "Choisissez o\xF9 vous allez et pour combien de temps \u2014 nous v\xE9rifions quelle eSIM unique couvre l'ensemble du voyage.",
+    Placed: "Pass\xE9e",
+    "Plan collection": "Collection de forfaits",
+    "Plan not found": "Forfait introuvable",
+    "Plan validity is shorter than the trip span.": "La validit\xE9 du forfait est plus courte que la dur\xE9e du voyage.",
+    "Plans are temporarily unavailable for quoting.": "Les forfaits sont temporairement indisponibles pour l'estimation.",
+    "Plans are unavailable right now.": "Les forfaits sont indisponibles pour le moment.",
+    "Plans confirm hotspot support explicitly; require it in Usage settings and the planner only recommends plans that confirm it.": "Les forfaits indiquent explicitement s'ils prennent en charge le partage de connexion ; exigez-le dans les param\xE8tres d'utilisation et le planificateur ne recommandera que les forfaits qui le confirment.",
+    "Plans unused before activation are refundable per the plan terms shown before checkout.": "Les forfaits non utilis\xE9s avant activation sont remboursables selon les conditions du forfait affich\xE9es avant le paiement.",
+    "Plans you buy are added to these profiles \u2014 no new QR code, no reinstall.": "Les forfaits que vous achetez sont ajout\xE9s \xE0 ces profils \u2014 pas de nouveau code QR, pas de r\xE9installation.",
+    "Please log in to check your BOKMOO account": "Veuillez vous connecter pour consulter votre compte BOKMOO",
+    Popular: "Populaire",
+    "Popular Topics": "Sujets populaires",
+    "Popular destinations": "Destinations populaires",
+    "Postal code": "Code postal",
+    "Postal code is required": "Le code postal est obligatoire",
+    "Premium club experiences around the world.": "Des exp\xE9riences premium dans les clubs du monde entier.",
+    "Preparing your eSIM\u2026": "Pr\xE9paration de votre eSIM\u2026",
+    Previous: "Pr\xE9c\xE9dent",
+    Price: "Prix",
+    "Priority local network": "R\xE9seau local prioritaire",
+    Privacy: "Confidentialit\xE9",
+    "Privacy Policy": "Politique de confidentialit\xE9",
+    Processing: "En cours de traitement",
+    "Processing\u2026": "Traitement\u2026",
+    Products: "Produits",
+    "Promo / referral code": "Code promo / code de parrainage",
+    "Provisioned automatically \u2014 your install details are shown above.": "Mise en service automatique \u2014 vos informations d'installation sont affich\xE9es ci-dessus.",
+    Provisioning: "Mise en service",
+    "Provisioning failed \u2014 our support team has been notified and will follow up.": "\xC9chec de la mise en service \u2014 notre \xE9quipe d'assistance a \xE9t\xE9 pr\xE9venue et reviendra vers vous.",
+    "Provisioning in progress \u2014 this page updates when the package is ready.": "Mise en service en cours \u2014 cette page se met \xE0 jour d\xE8s que le forfait est pr\xEAt.",
+    "Provisioning needs attention": "Mise en service : action requise",
+    "QR payload ready": "Contenu du code QR pr\xEAt",
+    Qty: "Qt\xE9",
+    Quantity: "Quantit\xE9",
+    "Questions, answered": "Vos questions, nos r\xE9ponses",
+    "Quick Facts": "Points cl\xE9s",
+    "Ready to install": "Pr\xEAte \xE0 installer",
+    Redeem: "\xC9changer",
+    "Redeem a Code": "\xC9changer un code",
+    "Redeeming\u2026": "\xC9change\u2026",
+    "Redemption failed. Please try again later.": "\xC9chec de l'\xE9change. Veuillez r\xE9essayer plus tard.",
+    "Redemption is temporarily unavailable. Please try again later.": "L'\xE9change est temporairement indisponible. Veuillez r\xE9essayer plus tard.",
+    "Refresh status": "Actualiser le statut",
+    Refunded: "Rembours\xE9e",
+    Regional: "R\xE9gional",
+    Remove: "Retirer",
+    "Remove stop": "Retirer l'\xE9tape",
+    "Reorder stop": "R\xE9ordonner l'\xE9tape",
+    "Replace destination": "Remplacer la destination",
+    "Replace this stop": "Remplacer cette \xE9tape",
+    "Required hotspot sharing is not confirmed on current plans.": "Le partage de connexion exig\xE9 n'est pas confirm\xE9 sur les forfaits actuels.",
+    "Requires iOS 15 or later. Activates BOKMOO cards over Bluetooth.": "N\xE9cessite iOS 15 ou version ult\xE9rieure. Active les cartes BOKMOO via Bluetooth.",
+    Retry: "R\xE9essayer",
+    "Reusing your eSIM avoids a new QR code \u2014 the plan is added to the profile you already installed.": "R\xE9utiliser votre eSIM \xE9vite un nouveau code QR \u2014 le forfait est ajout\xE9 au profil d\xE9j\xE0 install\xE9.",
+    "Review destinations": "V\xE9rifier les destinations",
+    "Review your selected plans.": "V\xE9rifiez les forfaits s\xE9lectionn\xE9s.",
+    "Route Planner": "Planificateur d'itin\xE9raire",
+    "Route planner": "Planificateur d'itin\xE9raire",
+    "SM-DP+ address": "Adresse SM-DP+",
+    "Save address": "Enregistrer l'adresse",
+    "Saved addresses": "Adresses enregistr\xE9es",
+    "Saved shipping addresses for checkout": "Adresses de livraison enregistr\xE9es pour le paiement",
+    "Scan or install manually": "Scanner ou installer manuellement",
+    "Scan with Android": "Scanner avec Android",
+    "Scan with iPhone": "Scanner avec un iPhone",
+    "Search country, region or city (e.g. Tokyo)": "Rechercher un pays, une r\xE9gion ou une ville (ex. Tokyo)",
+    "Search destinations or bundles...": "Rechercher une destination ou un pack...",
+    "Search for help...": "Rechercher dans l'aide...",
+    "Secure Checkout": "Paiement s\xE9curis\xE9",
+    "See plan": "Voir le forfait",
+    "Select all": "Tout s\xE9lectionner",
+    "Selected items": "Articles s\xE9lectionn\xE9s",
+    Send: "Envoyer",
+    "Set default": "D\xE9finir par d\xE9faut",
+    "Set up and switch profiles in the BOKMOO app": "Configurez et changez de profil dans l'application BOKMOO",
+    Settings: "Param\xE8tres",
+    Setup: "Configuration",
+    Shipped: "Exp\xE9di\xE9e",
+    Shipping: "Livraison",
+    "Shipping needs attention": "Exp\xE9dition : action requise",
+    "Shopping Cart": "Panier",
+    "Sign In": "Se connecter",
+    "Sign In / Manage My Cards": "Se connecter / G\xE9rer mes cartes",
+    "Sign in to view your profile": "Connectez-vous pour voir votre profil",
+    Singapore: "Singapour",
+    "Smart multi-country top-ups": "Rechargements multi-pays intelligents",
+    "South Korea": "Cor\xE9e du Sud",
+    "Southeast Asia": "Asie du Sud-Est",
+    Spain: "Espagne",
+    "State / Province": "\xC9tat / Province",
+    "State is required": "L'\xE9tat ou la province est obligatoire",
+    "Stay connected in major cities and more": "Restez connect\xE9 dans les grandes villes et bien plus encore",
+    "Step-by-step guide": "Guide pas \xE0 pas",
+    Store: "Boutique",
+    Subtotal: "Sous-total",
+    Summary: "R\xE9capitulatif",
+    Support: "Assistance",
+    "Support:": "Assistance :",
+    "Supported devices": "Appareils compatibles",
+    TBC: "\xC0 confirmer",
+    Taiwan: "Ta\xEFwan",
+    Tax: "Taxe",
+    Terms: "Conditions",
+    "Terms of Service": "Conditions d'utilisation",
+    Thailand: "Tha\xEFlande",
+    "The product tied to this code is currently unavailable. Please contact support.": "Le produit associ\xE9 \xE0 ce code est actuellement indisponible. Veuillez contacter l'assistance.",
+    "This code has already been redeemed.": "Ce code a d\xE9j\xE0 \xE9t\xE9 \xE9chang\xE9.",
+    "This code has reached its redemption limit.": "Ce code a atteint son nombre maximal d'utilisations.",
+    "This code is assigned to a different account.": "Ce code est associ\xE9 \xE0 un autre compte.",
+    "This code is invalid or expired. Please double-check and try again.": "Ce code est invalide ou a expir\xE9. V\xE9rifiez-le et r\xE9essayez.",
+    "This install code has expired \u2014 contact support to reissue it.": "Ce code d'installation a expir\xE9 \u2014 contactez l'assistance pour en obtenir un nouveau.",
+    "This order is still waiting for fulfillment details. Refresh later or reopen it from the order archive.": "Cette commande attend toujours les informations de pr\xE9paration. Actualisez plus tard ou rouvrez-la depuis l'archive des commandes.",
+    "This plan does not confirm hotspot sharing.": "Ce forfait ne confirme pas la prise en charge du partage de connexion.",
+    Timezone: "Fuseau horaire",
+    "Top up & Data plans": "Rechargement & forfaits data",
+    Total: "Total",
+    "Track package": "Suivre le colis",
+    "Track your order": "Suivre votre commande",
+    "Travel Cart": "Panier voyage",
+    "Travel Credits": "Cr\xE9dits voyage",
+    "Travel bundle": "Pack voyage",
+    "Trip changed or running low mid-journey? Add a data pack without reinstalling.": "Voyage modifi\xE9 ou donn\xE9es bient\xF4t \xE9puis\xE9es en route ? Ajoutez un pack de donn\xE9es sans r\xE9installer.",
+    "Try Again": "R\xE9essayer",
+    "Try the example trip": "Essayer le voyage d'exemple",
+    Type: "Type",
+    "Type your message\u2026": "Saisissez votre message\u2026",
+    "Typing\u2026": "En train d'\xE9crire\u2026",
+    "Unable to load orders.": "Impossible de charger les commandes.",
+    "United Arab Emirates": "\xC9mirats arabes unis",
+    "United Kingdom": "Royaume-Uni",
+    "United States": "\xC9tats-Unis",
+    Unlimited: "Illimit\xE9",
+    "Unlocked iPhone and Android devices with eSIM support": "iPhone et appareils Android d\xE9bloqu\xE9s et compatibles eSIM",
+    "Upcoming Trips": "Voyages \xE0 venir",
+    Uptime: "Disponibilit\xE9",
+    Usage: "Utilisation",
+    "Usage mode": "Mode d'utilisation",
+    "Use my existing eSIM": "Utiliser mon eSIM existante",
+    Validity: "Validit\xE9",
+    "Validity covers the whole trip": "La validit\xE9 couvre tout le voyage",
+    "Validity to be confirmed": "Validit\xE9 \xE0 confirmer",
+    "Video meetings": "Rendez-vous vid\xE9o",
+    Vietnam: "Vietnam",
+    "View Details": "Voir les d\xE9tails",
+    "View and manage your orders": "Consultez et g\xE9rez vos commandes",
+    "View coverage & plans": "Voir la couverture & les forfaits",
+    "View eSIM details": "Voir les d\xE9tails de l'eSIM",
+    "Visit Help Center": "Consulter le Centre d'aide",
+    "We could not prepare your install session yet.": "Nous n'avons pas encore pu pr\xE9parer votre session d'installation.",
+    "We could not prepare your shipment yet.": "Nous n'avons pas encore pu pr\xE9parer votre exp\xE9dition.",
+    "What if I never activate the eSIM?": "Que se passe-t-il si je n'active jamais l'eSIM ?",
+    "When does validity start counting?": "Quand la validit\xE9 commence-t-elle \xE0 courir ?",
+    "Why Bokmoo eSIM": "Pourquoi l'eSIM Bokmoo",
+    "Works with the BOKMOO app": "Compatible avec l'application BOKMOO",
+    "Yes. Your existing order stays valid; the planner re-checks coverage and tells you exactly which new stop needs its own plan.": "Oui. Votre commande existante reste valable ; le planificateur v\xE9rifie \xE0 nouveau la couverture et vous indique pr\xE9cis\xE9ment quelle nouvelle \xE9tape n\xE9cessite son propre forfait.",
+    "Your BOKMOO card, in your pocket.": "Votre carte BOKMOO, dans votre poche.",
+    "Your activation session expired before installation completed.": "Votre session d'activation a expir\xE9 avant la fin de l'installation.",
+    "Your booked experiences": "Vos exp\xE9riences r\xE9serv\xE9es",
+    "Your card is being prepared for shipment": "Votre carte est en cours de pr\xE9paration pour l'exp\xE9dition",
+    "Your carrier and tracking updates appear here after dispatch.": "Votre transporteur et les mises \xE0 jour du suivi s'afficheront ici apr\xE8s l'exp\xE9dition.",
+    "Your cart is empty.": "Votre panier est vide.",
+    "Your eSIM is ready to install.": "Votre eSIM est pr\xEAte \xE0 installer.",
+    "Your order is paid. We are packing your Bokmoo Card now \u2014 you will get a shipping confirmation with tracking, and it should arrive within a few business days.": "Votre commande est pay\xE9e. Nous pr\xE9parons actuellement votre carte Bokmoo \u2014 vous recevrez une confirmation d'exp\xE9dition avec un num\xE9ro de suivi, et elle devrait arriver d'ici quelques jours ouvr\xE9s.",
+    "Your order is paid. We are preparing the install session now.": "Votre commande est pay\xE9e. Nous pr\xE9parons votre session d'installation.",
+    "Your package has been added to your eSIM.": "Votre forfait a \xE9t\xE9 ajout\xE9 \xE0 votre eSIM.",
+    d: "j",
+    "daily average": "moyenne quotidienne",
+    "data included": "donn\xE9es incluses",
+    "day(s)": "jour(s)",
+    days: "jours",
+    destinations: "destinations",
+    "e.g. BOKMOO10": "ex. BOKMOO10",
+    "e.g. ESIM-JP-7D": "ex. ESIM-JP-7D",
+    eSIM: "eSIM",
+    "eSIM ICCID": "ICCID de l'eSIM",
+    "eSIM Plans": "Forfaits eSIM",
+    "eSIM activation": "Activation de l'eSIM",
+    "eSIM plans built for every journey.": "Des forfaits eSIM con\xE7us pour chaque voyage.",
+    en: "en",
+    "iPhone and Android devices": "iPhone et appareils Android",
+    "iPhone and Android devices with eSIM support": "iPhone et appareils Android compatibles eSIM",
+    "iPhone: point the camera at the QR code. Other phones: Settings \u2192 Network \u2192 Add eSIM.": "iPhone : pointez l'appareil photo vers le code QR. Autres t\xE9l\xE9phones : Param\xE8tres \u2192 R\xE9seau \u2192 Ajouter une eSIM.",
+    "instant delivery": "livraison instantan\xE9e",
+    "local network": "r\xE9seau local",
+    months: "mois",
+    "one eSIM.": "une eSIM.",
+    plans: "forfaits",
+    selected: "s\xE9lectionn\xE9s",
+    validity: "validit\xE9",
+    weeks: "semaines",
+    ".": ".",
+    ". All rights reserved.": ". Tous droits r\xE9serv\xE9s.",
+    "Acceptance of Terms": "Acceptation des conditions",
+    Active: "Actif",
+    Add: "Ajouter",
+    "Affiliate data could not be loaded": "Impossible de charger les donn\xE9es des partenaires",
+    "Affiliate view": "Vue partenaire",
+    "Affiliate workspace": "Espace partenaire",
+    "All payments are final and non-refundable unless required by law.": "Sauf obligation l\xE9gale, tous les paiements sont d\xE9finitifs et non remboursables.",
+    "Already have an account?": "Vous avez d\xE9j\xE0 un compte ?",
+    Approved: "Approuv\xE9",
+    "Authentication failed": "\xC9chec de l\u2019authentification",
+    "BOKMOO eSIM Card": "Carte eSIM BOKMOO",
+    "BOKMOO is not liable for any indirect, incidental, or consequential damages.": "BOKMOO n\u2019est responsable d\u2019aucun dommage indirect, accessoire ou cons\xE9cutif.",
+    "Back home": "Retour \xE0 l\u2019accueil",
+    "Back to sign in": "Retour \xE0 la connexion",
+    "Better Nights": "De meilleures nuits",
+    "Brighter Journeys": "Des voyages plus lumineux",
+    "Browse BOKMOO plans by destination and travel region.": "Parcourez les forfaits BOKMOO par destination et r\xE9gion de voyage.",
+    "By accessing or using the BOKMOO website and services, you agree to be bound by these Terms of Service.": "En acc\xE9dant au site web et aux services BOKMOO ou en les utilisant, vous acceptez d\u2019\xEAtre li\xE9 par les pr\xE9sentes conditions d\u2019utilisation.",
+    "Change password": "Changer le mot de passe",
+    "Commission rate": "Taux de commission",
+    "Completing sign in": "Finalisation de la connexion",
+    Confirm: "Confirmer",
+    "Continue to your orders, profiles, and activation workspace.": "Acc\xE9dez \xE0 votre espace commandes, profils et activation.",
+    Copied: "Copi\xE9",
+    "Copy link": "Copier le lien",
+    "Create account": "Cr\xE9er un compte",
+    "Create affiliate account": "Cr\xE9er un compte partenaire",
+    "Create organization": "Cr\xE9er l\u2019organisation",
+    "Create the account your eSIMs follow.": "Cr\xE9ez le compte que vos eSIM suivront partout.",
+    Creating: "Cr\xE9ation\u2026",
+    "Creator network.": "R\xE9seau de cr\xE9ateurs.",
+    "Current password": "Mot de passe actuel",
+    "Data Protection": "Protection des donn\xE9es",
+    "Default option": "Option par d\xE9faut",
+    "Deselect item": "D\xE9s\xE9lectionner l\u2019article",
+    "Display name": "Nom d\u2019affichage",
+    Earned: "Gains",
+    Email: "E-mail",
+    Expired: "Expir\xE9",
+    "Explore destination eSIMs": "Explorez les eSIM par destination",
+    "Forgot password": "Mot de passe oubli\xE9",
+    "Get help fast": "Obtenez de l\u2019aide rapidement",
+    "Hide password": "Masquer le mot de passe",
+    "Hover a store button (or scan the card QR) to download.": "Survolez un bouton de boutique (ou scannez le QR code de la carte) pour t\xE9l\xE9charger.",
+    "How We Use Information": "Utilisation des informations",
+    "How it works": "Comment \xE7a marche",
+    Inactive: "Inactif",
+    Influencer: "Influenceur",
+    "Information We Collect": "Informations que nous collectons",
+    "Instant QR delivery after payment": "Code QR remis instantan\xE9ment apr\xE8s paiement",
+    "Keep access secure between trips.": "S\xE9curisez votre acc\xE8s entre deux voyages.",
+    "Keep orders, activation codes, profile history, and support cases attached to one BOKMOO identity.": "Rattachez commandes, codes d\u2019activation, historique des profils et demandes d\u2019assistance \xE0 une seule identit\xE9 BOKMOO.",
+    "Keep your BOKMOO account ready for the next trip.": "Gardez votre compte BOKMOO pr\xEAt pour le prochain voyage.",
+    "Last updated: April 15, 2024": "Derni\xE8re mise \xE0 jour : 15 avril 2024",
+    "Limitation of Liability": "Limitation de responsabilit\xE9",
+    "Manage BOKMOO eSIM profiles, orders, and activation details from the same black-and-gold travel control surface.": "G\xE9rez vos profils eSIM, commandes BOKMOO et d\xE9tails d\u2019activation depuis la m\xEAme interface de voyage noir et or.",
+    "Manage eSIMs": "G\xE9rer les eSIM",
+    Manager: "Gestionnaire",
+    "Member could not be added": "Le membre n\u2019a pas pu \xEAtre ajout\xE9",
+    "Member email": "E-mail du membre",
+    "New password": "Nouveau mot de passe",
+    "No commissions yet": "Aucune commission pour le moment",
+    "No region collections are available yet.": "Aucune collection r\xE9gionale n\u2019est disponible pour le moment.",
+    "One Card.\nGlobal Connection.": "Une seule carte.\nUne connexion mondiale.",
+    "One eSIM for the whole trip \u2014 pick your destinations and go.": "Un seul eSIM pour tout le voyage \u2014 choisissez vos destinations et partez.",
+    Organization: "Organisation",
+    "Organization affiliate": "Partenaire de l\u2019organisation",
+    "Organization code (optional)": "Code de l\u2019organisation (facultatif)",
+    "Organization commissions": "Commissions de l\u2019organisation",
+    "Organization could not be created": "L\u2019organisation n\u2019a pas pu \xEAtre cr\xE9\xE9e",
+    "Organization data could not be loaded": "Impossible de charger les donn\xE9es de l\u2019organisation",
+    "Organization name": "Nom de l\u2019organisation",
+    Partner: "Partenaire",
+    "Partner commissions": "Commissions du partenaire",
+    Password: "Mot de passe",
+    "Passwords do not match": "Les mots de passe ne correspondent pas",
+    "Personal affiliate": "Partenaire individuel",
+    "Powered by": "Propuls\xE9 par",
+    Profiles: "Profils",
+    "Protected traveler identity": "Identit\xE9 de voyageur prot\xE9g\xE9e",
+    "Purchases and Payments": "Achats et paiements",
+    "Questions about setup? Contact": "Des questions sur la configuration ? Contactez",
+    Rate: "Taux",
+    Refresh: "Actualiser",
+    "Region Collections": "Collections r\xE9gionales",
+    "Registration failed": "L\u2019inscription a \xE9chou\xE9",
+    SAMPLE: "EXEMPLE",
+    "Save profile": "Enregistrer le profil",
+    "Saving...": "Enregistrement...",
+    "Secure account access": "Acc\xE8s s\xE9curis\xE9 au compte",
+    "Securing your session and returning you to the BOKMOO storefront.": "S\xE9curisation de votre session et retour vers la boutique BOKMOO.",
+    "Select item": "S\xE9lectionner l\u2019article",
+    "Shop eSIM Plans": "Voir les forfaits eSIM",
+    "Show password": "Afficher le mot de passe",
+    "Sign in": "Se connecter",
+    "Sign in before your next border.": "Connectez-vous avant votre prochaine fronti\xE8re.",
+    "Sign in to manage your account": "Connectez-vous pour g\xE9rer votre compte",
+    "Signing in": "Connexion\u2026",
+    "Start with a secure profile for purchases and global activation support.": "Commencez par un profil s\xE9curis\xE9 pour vos achats et l\u2019assistance \xE0 l\u2019activation dans le monde.",
+    Suspended: "Suspendu",
+    "Track purchases": "Suivre vos achats",
+    "Traveler profile": "Profil du voyageur",
+    "Unable to load Bokmoo plans.": "Impossible de charger les forfaits Bokmoo.",
+    "Updating...": "Mise \xE0 jour...",
+    "Use of Services": "Utilisation des services",
+    Used: "Utilis\xE9",
+    "View category": "Voir la cat\xE9gorie",
+    "We collect information you provide directly to us, such as when you create an account or make a purchase.": "Nous collectons les informations que vous nous fournissez directement, par exemple lorsque vous cr\xE9ez un compte ou effectuez un achat.",
+    "We implement appropriate security measures to protect your data.": "Nous mettons en \u0153uvre des mesures de s\xE9curit\xE9 appropri\xE9es pour prot\xE9ger vos donn\xE9es.",
+    "We use the information to provide, maintain, and improve our services.": "Nous utilisons ces informations pour fournir, maintenir et am\xE9liorer nos services.",
+    "Welcome back": "Bon retour",
+    "You agree to use our services only for lawful purposes and in accordance with these Terms.": "Vous acceptez d\u2019utiliser nos services uniquement \xE0 des fins licites et conform\xE9ment aux pr\xE9sentes conditions.",
+    "You have the right to access, update, or delete your personal information.": "Vous avez le droit d\u2019acc\xE9der \xE0 vos informations personnelles, de les mettre \xE0 jour ou de les supprimer.",
+    "Your Rights": "Vos droits",
+    "Your referral ledger.": "Votre registre de parrainage.",
+    "already with us": "D\xE9j\xE0 client ?",
+    "or email": "ou par e-mail",
+    "organization rate": "Taux de l\u2019organisation",
+    "Group destination-ready plans into clearer regional entry points.": "Regroupez les forfaits par destination dans des acc\xE8s r\xE9gionaux plus clairs.",
+    "Page Not Found": "Page introuvable",
+    "Sorry, we couldn't find the page you're looking for.": "D\xE9sol\xE9, la page est introuvable.",
+    "Back to Home": "Retour \xE0 l\u2019accueil",
+    "If you believe this is an error, please contact our support team.": "Si vous pensez qu\u2019il s\u2019agit d\u2019une erreur, contactez notre \xE9quipe d\u2019assistance.",
+    "Pick your destination": "Choisissez votre destination",
+    "Choose a country or region, the data and the days you need.": "Choisissez un pays ou une r\xE9gion, le volume de donn\xE9es et le nombre de jours dont vous avez besoin.",
+    "Check out": "Payer",
+    "Pay securely. Your plan is issued right after payment.": "Payez en toute s\xE9curit\xE9. Votre forfait est \xE9mis d\xE8s le paiement.",
+    "Install and connect": "Installer et se connecter",
+    "Scan the QR code or enter the activation code. Most plans start on first connection.": "Scannez le code QR ou saisissez le code d\u2019activation. La plupart des forfaits d\xE9marrent \xE0 la premi\xE8re connexion.",
+    "Three steps from checkout to connected.": "Trois \xE9tapes du paiement \xE0 la connexion.",
+    "Your eSIM plans for upcoming trips.": "Vos forfaits eSIM pour vos prochains voyages."
+  };
+
+  // src/i18n/ja.json
+  var ja_default = {
+    "/ full trip": "/ \u65C5\u884C\u5168\u4F53",
+    "/day": "/\u65E5",
+    "200+ destinations": "200\u4EE5\u4E0A\u306E\u76EE\u7684\u5730",
+    "24/7 Global Team": "24\u6642\u9593365\u65E5\u5BFE\u5FDC\u306E\u30B0\u30ED\u30FC\u30D0\u30EB\u30C1\u30FC\u30E0",
+    "24/7 travel support": "24\u6642\u9593365\u65E5\u306E\u30C8\u30E9\u30D9\u30EB\u30B5\u30DD\u30FC\u30C8",
+    "4.9 average traveler satisfaction": "\u65C5\u884C\u8005\u306E\u5E73\u5747\u6E80\u8DB3\u5EA64.9",
+    "About BOKMOO": "BOKMOO \u306B\u3064\u3044\u3066",
+    "Access the world's best venues with BOKMOO.": "BOKMOO \u3067\u3001\u4E16\u754C\u306E\u4E00\u6D41\u65BD\u8A2D\u3092\u3054\u5229\u7528\u3044\u305F\u3060\u3051\u307E\u3059\u3002",
+    "Account Information": "\u30A2\u30AB\u30A6\u30F3\u30C8\u60C5\u5831",
+    "Account Preferences": "\u30A2\u30AB\u30A6\u30F3\u30C8\u8A2D\u5B9A",
+    "Account Status": "\u30A2\u30AB\u30A6\u30F3\u30C8\u30B9\u30C6\u30FC\u30BF\u30B9",
+    "Activate your BOKMOO card over Bluetooth, install and switch eSIM profiles, and track your data \u2014 right from your phone.": "BOKMOO\u30AB\u30FC\u30C9\u3092 Bluetooth \u3067\u6709\u52B9\u5316\u3057\u3001eSIM\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u306E\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3084\u5207\u308A\u66FF\u3048\u3001\u30C7\u30FC\u30BF\u4F7F\u7528\u91CF\u306E\u78BA\u8A8D\u307E\u3067\u3001\u3059\u3079\u3066\u30B9\u30DE\u30FC\u30C8\u30D5\u30A9\u30F3\u3072\u3068\u3064\u3067\u884C\u3048\u307E\u3059\u3002",
+    Activation: "\u6709\u52B9\u5316",
+    "Activation code": "\u30A2\u30AF\u30C6\u30A3\u30D9\u30FC\u30B7\u30E7\u30F3\u30B3\u30FC\u30C9",
+    "Activation expired": "\u6709\u52B9\u5316\u671F\u9650\u5207\u308C",
+    "Active Member": "\u30A2\u30AF\u30C6\u30A3\u30D6\u30E1\u30F3\u30D0\u30FC",
+    "Add a destination or regional plan to prepare your connectivity before departure.": "\u51FA\u767A\u524D\u306E\u901A\u4FE1\u74B0\u5883\u3092\u6574\u3048\u308B\u306B\u306F\u3001\u76EE\u7684\u5730\u5225\u30D7\u30E9\u30F3\u307E\u305F\u306F\u30EA\u30FC\u30B8\u30E7\u30CA\u30EB\u30D7\u30E9\u30F3\u3092\u8FFD\u52A0\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    "Add a new address": "\u65B0\u3057\u3044\u4F4F\u6240\u3092\u8FFD\u52A0",
+    "Add a stop": "\u7D4C\u7531\u5730\u3092\u8FFD\u52A0",
+    "Add to cart": "\u30AB\u30FC\u30C8\u306B\u8FFD\u52A0",
+    "Adding\u2026": "\u8FFD\u52A0\u4E2D\u2026",
+    Address: "\u4F4F\u6240",
+    "Address is required": "\u4F4F\u6240\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044",
+    "Adjust the route, or browse sellable destinations.": "\u30EB\u30FC\u30C8\u3092\u8ABF\u6574\u3059\u308B\u304B\u3001\u8CFC\u5165\u53EF\u80FD\u306A\u76EE\u7684\u5730\u3092\u53C2\u7167\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    "Affiliate Program": "\u30A2\u30D5\u30A3\u30EA\u30A8\u30A4\u30C8\u30D7\u30ED\u30B0\u30E9\u30E0",
+    "After checkout the eSIM QR code is issued to your email and account instantly. Add it before boarding; it connects on arrival.": "\u3054\u6CE8\u6587\u624B\u7D9A\u304D\u306E\u5F8C\u3001eSIM \u306E QR\u30B3\u30FC\u30C9\u304C\u3059\u3050\u306B\u30E1\u30FC\u30EB\u3068\u30A2\u30AB\u30A6\u30F3\u30C8\u3078\u767A\u884C\u3055\u308C\u307E\u3059\u3002\u642D\u4E57\u524D\u306B\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3057\u3066\u304A\u3051\u3070\u3001\u73FE\u5730\u5230\u7740\u5F8C\u3059\u3050\u306B\u63A5\u7D9A\u3067\u304D\u307E\u3059\u3002",
+    All: "\u3059\u3079\u3066",
+    "Asia-Pacific": "\u30A2\u30B8\u30A2\u592A\u5E73\u6D0B",
+    Australia: "\u30AA\u30FC\u30B9\u30C8\u30E9\u30EA\u30A2",
+    "Australia & NZ": "\u30AA\u30FC\u30B9\u30C8\u30E9\u30EA\u30A2\u30FB\u30CB\u30E5\u30FC\u30B8\u30FC\u30E9\u30F3\u30C9",
+    "Awaiting payment": "\u304A\u652F\u6255\u3044\u5F85\u3061",
+    "BOKMOO Member Benefits": "BOKMOO\u30E1\u30F3\u30D0\u30FC\u7279\u5178",
+    "BOKMOO is built for global travelers.": "BOKMOO \u306F\u3001\u4E16\u754C\u4E2D\u3092\u65C5\u3059\u308B\u65B9\u306E\u305F\u3081\u306B\u4F5C\u3089\u308C\u307E\u3057\u305F\u3002",
+    Back: "\u623B\u308B",
+    "Back to Store": "\u30B9\u30C8\u30A2\u306B\u623B\u308B",
+    "Back to orders": "\u6CE8\u6587\u4E00\u89A7\u306B\u623B\u308B",
+    "Back to store": "\u30B9\u30C8\u30A2\u306B\u623B\u308B",
+    "Best single eSIM": "\u6700\u9069\u306A eSIM 1\u679A",
+    "Bilingual support helps with APN setup, network preference and device compatibility around the clock.": "2\u8A00\u8A9E\u5BFE\u5FDC\u306E\u30B5\u30DD\u30FC\u30C8\u304C\u3001APN\u8A2D\u5B9A\u3001\u30CD\u30C3\u30C8\u30EF\u30FC\u30AF\u306E\u512A\u5148\u8A2D\u5B9A\u3001\u30C7\u30D0\u30A4\u30B9\u306E\u4E92\u63DB\u6027\u306B\u3064\u3044\u306624\u6642\u9593365\u65E5\u3054\u6848\u5185\u3057\u307E\u3059\u3002",
+    "Billing Details": "\u8ACB\u6C42\u5148\u60C5\u5831",
+    Bluetooth: "Bluetooth",
+    "Bokmoo eSIM": "BOKMOO eSIM",
+    "Browse Destinations": "\u76EE\u7684\u5730\u3092\u898B\u308B",
+    "Buy Now": "\u4ECA\u3059\u3050\u8CFC\u5165",
+    "Buy the trip in segments \u2014 one eSIM per segment below.": "\u65C5\u884C\u3092\u533A\u9593\u3054\u3068\u306B\u8CFC\u5165\u3067\u304D\u307E\u3059\u3002\u4EE5\u4E0B\u306E\u5404\u533A\u9593\u306B\u306F\u3001eSIM \u304C1\u679A\u305A\u3064\u5BFE\u5FDC\u3057\u307E\u3059\u3002",
+    "Can I add a stop after buying?": "\u8CFC\u5165\u5F8C\u306B\u7D4C\u7531\u5730\u3092\u8FFD\u52A0\u3067\u304D\u307E\u3059\u304B\uFF1F",
+    Canada: "\u30AB\u30CA\u30C0",
+    Cancel: "\u30AD\u30E3\u30F3\u30BB\u30EB",
+    "Cancel order": "\u6CE8\u6587\u3092\u30AD\u30E3\u30F3\u30BB\u30EB",
+    "Cancel reason": "\u30AD\u30E3\u30F3\u30BB\u30EB\u7406\u7531",
+    Cancelled: "\u30AD\u30E3\u30F3\u30BB\u30EB\u6E08\u307F",
+    Cart: "\u30AB\u30FC\u30C8",
+    "Chat with support": "\u30B5\u30DD\u30FC\u30C8\u3068\u30C1\u30E3\u30C3\u30C8",
+    "Check compatibility": "\u5BFE\u5FDC\u72B6\u6CC1\u3092\u78BA\u8A8D",
+    "Check compatibility before departure": "\u51FA\u767A\u524D\u306B\u5BFE\u5FDC\u72B6\u6CC1\u3092\u78BA\u8A8D",
+    "Choose an option": "\u30AA\u30D7\u30B7\u30E7\u30F3\u3092\u9078\u629E",
+    "Choose destinations": "\u76EE\u7684\u5730\u3092\u9078\u629E",
+    City: "\u5E02\u533A\u753A\u6751",
+    "City is required": "\u5E02\u533A\u753A\u6751\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044",
+    Close: "\u9589\u3058\u308B",
+    "Close menu": "\u30E1\u30CB\u30E5\u30FC\u3092\u9589\u3058\u308B",
+    "Close support chat": "\u30B5\u30DD\u30FC\u30C8\u30C1\u30E3\u30C3\u30C8\u3092\u9589\u3058\u308B",
+    "Closing without confirming keeps your current route.": "\u78BA\u8A8D\u305B\u305A\u306B\u9589\u3058\u305F\u5834\u5408\u3001\u73FE\u5728\u306E\u30EB\u30FC\u30C8\u306F\u305D\u306E\u307E\u307E\u4FDD\u6301\u3055\u308C\u307E\u3059\u3002",
+    Compatibility: "\u5BFE\u5FDC\u72B6\u6CC1",
+    "Complete payment and we will start preparing your card for delivery.": "\u304A\u652F\u6255\u3044\u304C\u5B8C\u4E86\u3059\u308B\u3068\u3001\u30AB\u30FC\u30C9\u306E\u767A\u9001\u6E96\u5099\u3092\u958B\u59CB\u3057\u307E\u3059\u3002",
+    "Complete payment to provision this eSIM.": "\u304A\u652F\u6255\u3044\u304C\u5B8C\u4E86\u3059\u308B\u3068\u3001\u3053\u306E eSIM \u306E\u958B\u901A\u51E6\u7406\u3092\u958B\u59CB\u3057\u307E\u3059\u3002",
+    "Complete payment to unlock your eSIM install details.": "\u304A\u652F\u6255\u3044\u304C\u5B8C\u4E86\u3059\u308B\u3068\u3001eSIM \u306E\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u60C5\u5831\u304C\u3054\u89A7\u3044\u305F\u3060\u3051\u307E\u3059\u3002",
+    Completed: "\u5B8C\u4E86",
+    "Confirmation code": "\u78BA\u8A8D\u30B3\u30FC\u30C9",
+    Connection: "\u63A5\u7D9A",
+    "Connects to the BOKMOO app over Bluetooth": "Bluetooth \u3067 BOKMOO\u30A2\u30D7\u30EA\u306B\u63A5\u7D9A",
+    "Contact Information": "\u9023\u7D61\u5148\u60C5\u5831",
+    "Contact Support": "\u30B5\u30DD\u30FC\u30C8\u306B\u554F\u3044\u5408\u308F\u305B\u308B",
+    "Continue browsing": "\u95B2\u89A7\u3092\u7D9A\u3051\u308B",
+    "Continue to Payment": "\u3054\u6CE8\u6587\u624B\u7D9A\u304D\u3078",
+    Copy: "\u30B3\u30D4\u30FC",
+    "Copy activation code": "\u30A2\u30AF\u30C6\u30A3\u30D9\u30FC\u30B7\u30E7\u30F3\u30B3\u30FC\u30C9\u3092\u30B3\u30D4\u30FC",
+    "Copy email": "\u30E1\u30FC\u30EB\u30A2\u30C9\u30EC\u30B9\u3092\u30B3\u30D4\u30FC",
+    "Copy order reference": "\u6CE8\u6587\u756A\u53F7\u3092\u30B3\u30D4\u30FC",
+    Countries: "\u56FD\u30FB\u5730\u57DF",
+    Country: "\u56FD",
+    "Country (e.g. CN)": "\u56FD\uFF08\u4F8B\uFF1ACN\uFF09",
+    "Country is required": "\u56FD\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044",
+    Coverage: "\u30AB\u30D0\u30FC\u7BC4\u56F2",
+    "Coverage detail by stop": "\u7D4C\u7531\u5730\u3054\u3068\u306E\u30AB\u30D0\u30FC\u7BC4\u56F2",
+    Covers: "\u30AB\u30D0\u30FC\u7BC4\u56F2",
+    Currency: "\u901A\u8CA8",
+    Current: "\u73FE\u5728",
+    Data: "\u30C7\u30FC\u30BF",
+    "Date of Birth": "\u751F\u5E74\u6708\u65E5",
+    Days: "\u65E5\u6570",
+    Default: "\u30C7\u30D5\u30A9\u30EB\u30C8",
+    Delete: "\u524A\u9664",
+    Delivered: "\u304A\u5C4A\u3051\u6E08\u307F",
+    Delivery: "\u304A\u5C4A\u3051",
+    "Delivery tracking": "\u304A\u5C4A\u3051\u72B6\u6CC1",
+    "Deselect all": "\u9078\u629E\u3092\u3059\u3079\u3066\u89E3\u9664",
+    "Destination eSIM": "\u76EE\u7684\u5730\u5225eSIM",
+    "Destination search": "\u76EE\u7684\u5730\u3092\u691C\u7D22",
+    Destinations: "\u76EE\u7684\u5730",
+    Discount: "\u5272\u5F15",
+    "Download APK directly": "APK \u3092\u76F4\u63A5\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9",
+    "Download on the App Store": "App Store \u304B\u3089\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9",
+    Edit: "\u7DE8\u96C6",
+    Editable: "\u7DE8\u96C6\u53EF\u80FD",
+    "Email Address": "\u30E1\u30FC\u30EB\u30A2\u30C9\u30EC\u30B9",
+    "Email is required": "\u30E1\u30FC\u30EB\u30A2\u30C9\u30EC\u30B9\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044",
+    English: "\u82F1\u8A9E",
+    "Enter Code": "\u30B3\u30FC\u30C9\u3092\u5165\u529B",
+    "Enter your email": "\u30E1\u30FC\u30EB\u30A2\u30C9\u30EC\u30B9\u3092\u5165\u529B",
+    Europe: "\u30E8\u30FC\u30ED\u30C3\u30D1",
+    "Every purchase stays readable after checkout.": "\u8CFC\u5165\u5185\u5BB9\u306F\u3001\u3054\u6CE8\u6587\u624B\u7D9A\u304D\u306E\u5F8C\u3082\u3044\u3064\u3067\u3082\u78BA\u8A8D\u3067\u304D\u307E\u3059\u3002",
+    "Example route shown \u2014 your route starts empty below.": "\u8868\u793A\u3055\u308C\u3066\u3044\u308B\u30EB\u30FC\u30C8\u306F\u30B5\u30F3\u30D7\u30EB\u3067\u3059\u3002\u3054\u81EA\u8EAB\u306E\u30EB\u30FC\u30C8\u306F\u3001\u4E0B\u304B\u3089\u7A7A\u306E\u72B6\u614B\u3067\u59CB\u307E\u308A\u307E\u3059\u3002",
+    Expires: "\u6709\u52B9\u671F\u9650",
+    "Explore Now": "\u4ECA\u3059\u3050\u898B\u308B",
+    "Explore a Better Night": "\u3082\u3063\u3068\u4E0A\u8CEA\u306A\u591C\u3092",
+    "Explore destination-ready profiles, regional bundles, and premium data options with the clarity of a product catalog.": "\u76EE\u7684\u5730\u3067\u3059\u3050\u306B\u4F7F\u3048\u308B\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3001\u30EA\u30FC\u30B8\u30E7\u30CA\u30EB\u30D0\u30F3\u30C9\u30EB\u3001\u30D7\u30EC\u30DF\u30A2\u30E0\u30C7\u30FC\u30BF\u30AA\u30D7\u30B7\u30E7\u30F3\u3092\u3001\u30AB\u30BF\u30ED\u30B0\u306E\u3088\u3046\u306B\u308F\u304B\u308A\u3084\u3059\u304F\u3054\u89A7\u3044\u305F\u3060\u3051\u307E\u3059\u3002",
+    Failed: "\u5931\u6557",
+    "Fewer days": "\u65E5\u6570\u3092\u6E1B\u3089\u3059",
+    "First name": "\u540D",
+    "First name is required": "\u540D\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044",
+    "Flexible data": "\u67D4\u8EDF\u306A\u30C7\u30FC\u30BF\u91CF",
+    "Flexible validity": "\u67D4\u8EDF\u306A\u6709\u52B9\u671F\u9650",
+    "Flexible validity & top-ups": "\u67D4\u8EDF\u306A\u6709\u52B9\u671F\u9650\u30FB\u8FFD\u52A0\u30C1\u30E3\u30FC\u30B8\u5BFE\u5FDC",
+    "For a new device \u2014 a fresh QR code is issued after payment.": "\u65B0\u3057\u3044\u30C7\u30D0\u30A4\u30B9\u3067\u4F7F\u3046\u5834\u5408\u3067\u3059\u3002\u304A\u652F\u6255\u3044\u5F8C\u306B\u65B0\u3057\u3044 QR\u30B3\u30FC\u30C9\u304C\u767A\u884C\u3055\u308C\u307E\u3059\u3002",
+    France: "\u30D5\u30E9\u30F3\u30B9",
+    Fulfilled: "\u6E96\u5099\u5B8C\u4E86",
+    "Full name": "\u6C0F\u540D",
+    "Full refund if not activated": "\u6709\u52B9\u5316\u524D\u306F\u5168\u984D\u8FD4\u91D1",
+    "General Notes": "\u4E00\u822C\u7684\u306A\u6CE8\u610F\u4E8B\u9805",
+    Germany: "\u30C9\u30A4\u30C4",
+    "Get BOKMOO": "BOKMOO \u3092\u5165\u624B",
+    "Get Started": "\u306F\u3058\u3081\u308B",
+    "Get it on Google Play": "Google Play \u3067\u5165\u624B",
+    Global: "\u30B0\u30ED\u30FC\u30D0\u30EB",
+    "Global plan": "\u30B0\u30ED\u30FC\u30D0\u30EB\u30D7\u30E9\u30F3",
+    "Greater China": "\u5927\u4E2D\u83EF\u570F",
+    "Happy Users": "\u6E80\u8DB3\u30E6\u30FC\u30B6\u30FC",
+    "Have a redemption code? Enter it to add an eSIM plan or subscription to your account.": "\u5F15\u304D\u63DB\u3048\u30B3\u30FC\u30C9\u3092\u304A\u6301\u3061\u3067\u3059\u304B\uFF1F\u5165\u529B\u3059\u308B\u3068\u3001eSIM\u30D7\u30E9\u30F3\u307E\u305F\u306F\u30B5\u30D6\u30B9\u30AF\u30EA\u30D7\u30B7\u30E7\u30F3\u3092\u30A2\u30AB\u30A6\u30F3\u30C8\u306B\u8FFD\u52A0\u3067\u304D\u307E\u3059\u3002",
+    "Have a referral code from a creator? Enter it \u2014 your discount is applied to the order total at payment.": "\u30AF\u30EA\u30A8\u30A4\u30BF\u30FC\u304B\u3089\u306E\u7D39\u4ECB\u30B3\u30FC\u30C9\u3092\u304A\u6301\u3061\u3067\u3059\u304B\uFF1F\u5165\u529B\u3059\u308B\u3068\u3001\u304A\u652F\u6255\u3044\u6642\u306B\u6CE8\u6587\u5408\u8A08\u304B\u3089\u5272\u5F15\u304C\u9069\u7528\u3055\u308C\u307E\u3059\u3002",
+    Help: "\u30D8\u30EB\u30D7",
+    "Help Center": "\u30D8\u30EB\u30D7\u30BB\u30F3\u30BF\u30FC",
+    "Hide other plans": "\u4ED6\u306E\u30D7\u30E9\u30F3\u3092\u975E\u8868\u793A",
+    "High-speed 4G/5G data": "\u9AD8\u901F4G/5G\u30C7\u30FC\u30BF",
+    Home: "\u30DB\u30FC\u30E0",
+    "Hong Kong": "\u9999\u6E2F",
+    "Hong Kong & Macao": "\u9999\u6E2F\u30FB\u30DE\u30AB\u30AA",
+    "Hotspot sharing": "\u30C6\u30B6\u30EA\u30F3\u30B0",
+    "Hotspot supported": "\u30C6\u30B6\u30EA\u30F3\u30B0\u5BFE\u5FDC",
+    "How eSIM works": "eSIM \u306E\u4ED5\u7D44\u307F",
+    "How to install eSIM": "eSIM \u306E\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u65B9\u6CD5",
+    Indonesia: "\u30A4\u30F3\u30C9\u30CD\u30B7\u30A2",
+    "Install from Google Play, or download the APK directly if Play is unavailable on your device.": "Google Play \u304B\u3089\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3067\u304D\u307E\u3059\u3002\u304A\u4F7F\u3044\u306E\u30C7\u30D0\u30A4\u30B9\u3067 Play \u3092\u3054\u5229\u7528\u3044\u305F\u3060\u3051\u306A\u3044\u5834\u5408\u306F\u3001APK \u3092\u76F4\u63A5\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    "Install in seconds via QR": "QR\u30B3\u30FC\u30C9\u3067\u6570\u79D2\u3067\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB",
+    "Install this eSIM": "\u3053\u306E eSIM \u3092\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB",
+    "Install your eSIM": "eSIM \u3092\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB",
+    "Instant QR delivery \xB7 Refundable before activation": "QR\u30B3\u30FC\u30C9\u3067\u3059\u3050\u304A\u5C4A\u3051 \xB7 \u6709\u52B9\u5316\u524D\u306F\u8FD4\u91D1\u53EF",
+    "Instant QR or eSIM profile delivery": "QR\u30B3\u30FC\u30C9\u307E\u305F\u306F eSIM\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3067\u3059\u3050\u306B\u304A\u5C4A\u3051",
+    "Instant delivery via eSIM": "eSIM \u3067\u3059\u3050\u306B\u304A\u5C4A\u3051",
+    "Instant eSIM delivery": "eSIM \u3092\u3059\u3050\u306B\u304A\u5C4A\u3051",
+    "Instant eSIM delivery after payment": "\u304A\u652F\u6255\u3044\u5F8C\u3059\u3050\u306B eSIM \u3092\u304A\u5C4A\u3051",
+    "Instant eSIM delivery with activation instructions included.": "\u6709\u52B9\u5316\u306E\u624B\u9806\u4ED8\u304D\u3067\u3001eSIM \u3092\u3059\u3050\u306B\u304A\u5C4A\u3051\u3057\u307E\u3059\u3002",
+    "Instant via QR": "QR\u30B3\u30FC\u30C9\u3067\u5373\u6642\u304A\u5C4A\u3051",
+    "Invalid email address": "\u30E1\u30FC\u30EB\u30A2\u30C9\u30EC\u30B9\u306E\u5F62\u5F0F\u304C\u6B63\u3057\u304F\u3042\u308A\u307E\u305B\u3093",
+    "Is hotspot sharing supported?": "\u30C6\u30B6\u30EA\u30F3\u30B0\u306B\u5BFE\u5FDC\u3057\u3066\u3044\u307E\u3059\u304B\uFF1F",
+    Italy: "\u30A4\u30BF\u30EA\u30A2",
+    "Item delivery": "\u5546\u54C1\u306E\u304A\u5C4A\u3051",
+    Itinerary: "\u65C5\u7A0B",
+    Japan: "\u65E5\u672C",
+    "Japan & Korea": "\u65E5\u672C\u30FB\u97D3\u56FD",
+    "Keep a copy of any sensitive credentials in your own password manager or secure notes after claiming the order.": "\u3054\u6CE8\u6587\u306E\u53D7\u3051\u53D6\u308A\u5F8C\u306F\u3001\u6A5F\u5BC6\u6027\u306E\u9AD8\u3044\u8A8D\u8A3C\u60C5\u5831\u3092\u3054\u81EA\u8EAB\u306E\u30D1\u30B9\u30EF\u30FC\u30C9\u30DE\u30CD\u30FC\u30B8\u30E3\u30FC\u3084\u5B89\u5168\u306A\u30E1\u30E2\u306B\u63A7\u3048\u3066\u304A\u3044\u3066\u304F\u3060\u3055\u3044\u3002",
+    "Keep it safe": "\u5B89\u5168\u306B\u4FDD\u7BA1\u3057\u3066\u304F\u3060\u3055\u3044",
+    "Keep status, delivery details, and activation notes visible after checkout.": "\u3054\u6CE8\u6587\u624B\u7D9A\u304D\u306E\u5F8C\u3082\u3001\u30B9\u30C6\u30FC\u30BF\u30B9\u30FB\u304A\u5C4A\u3051\u8A73\u7D30\u30FB\u6709\u52B9\u5316\u30E1\u30E2\u3092\u5F15\u304D\u7D9A\u304D\u78BA\u8A8D\u3067\u304D\u307E\u3059\u3002",
+    "Keep your primary SIM in place": "\u30E1\u30A4\u30F3\u306E SIM \u306F\u305D\u306E\u307E\u307E\u306B",
+    "LPA string": "LPA\u6587\u5B57\u5217",
+    Language: "\u8A00\u8A9E",
+    "Last name": "\u59D3",
+    "Learn the basics": "\u57FA\u672C\u3092\u77E5\u308B",
+    "Loading profile...": "\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3092\u8AAD\u307F\u8FBC\u307F\u4E2D\u2026",
+    "Loading\u2026": "\u8AAD\u307F\u8FBC\u307F\u4E2D\u2026",
+    Local: "\u30ED\u30FC\u30AB\u30EB",
+    "Log In": "\u30ED\u30B0\u30A4\u30F3",
+    "Log Out": "\u30ED\u30B0\u30A2\u30A6\u30C8",
+    Macao: "\u30DE\u30AB\u30AA",
+    "Mainland China": "\u4E2D\u56FD\u672C\u571F",
+    Malaysia: "\u30DE\u30EC\u30FC\u30B7\u30A2",
+    "Manage multiple eSIM profiles over Bluetooth": "Bluetooth \u3067\u8907\u6570\u306E eSIM\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3092\u7BA1\u7406",
+    "Manage your plan": "\u30D7\u30E9\u30F3\u3092\u7BA1\u7406",
+    Management: "\u7BA1\u7406",
+    "Maps & chat": "\u5730\u56F3\u3068\u30C1\u30E3\u30C3\u30C8",
+    "Matching ID": "\u30DE\u30C3\u30C1\u30F3\u30B0ID",
+    Member: "\u30E1\u30F3\u30D0\u30FC",
+    "Member Since": "\u30E1\u30F3\u30D0\u30FC\u767B\u9332\u65E5",
+    "Member since": "\u30E1\u30F3\u30D0\u30FC\u767B\u9332\u65E5",
+    Menu: "\u30E1\u30CB\u30E5\u30FC",
+    "Message could not be delivered. Please try again shortly.": "\u30E1\u30C3\u30BB\u30FC\u30B8\u3092\u9001\u4FE1\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u3057\u3070\u3089\u304F\u3057\u3066\u304B\u3089\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
+    "More days": "\u65E5\u6570\u3092\u5897\u3084\u3059",
+    "Most plans start on first connection. Plans that start at purchase or install say so explicitly, and the planner counts pre-trip time for them.": "\u307B\u3068\u3093\u3069\u306E\u30D7\u30E9\u30F3\u306F\u521D\u56DE\u63A5\u7D9A\u6642\u306B\u958B\u59CB\u3055\u308C\u307E\u3059\u3002\u8CFC\u5165\u6642\u3084\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u6642\u306B\u958B\u59CB\u3055\u308C\u308B\u30D7\u30E9\u30F3\u306B\u306F\u305D\u306E\u65E8\u304C\u660E\u8A18\u3055\u308C\u3001\u30D7\u30E9\u30F3\u30CA\u30FC\u306F\u305D\u308C\u3089\u306E\u30D7\u30E9\u30F3\u306E\u51FA\u767A\u524D\u306E\u6642\u9593\u3082\u542B\u3081\u3066\u8A08\u7B97\u3057\u307E\u3059\u3002",
+    "Move down": "\u4E0B\u3078\u79FB\u52D5",
+    "Move up": "\u4E0A\u3078\u79FB\u52D5",
+    "Multi-country": "\u8907\u6570\u56FD\u5BFE\u5FDC",
+    "Multiple countries, one purchase, a simpler trip. Pick your route and we verify which single eSIM covers all of it.": "\u8907\u6570\u306E\u56FD\u3082\u30011\u56DE\u306E\u8CFC\u5165\u3067\u3001\u3082\u3063\u3068\u30B7\u30F3\u30D7\u30EB\u306A\u65C5\u884C\u306B\u3002\u30EB\u30FC\u30C8\u3092\u9078\u3076\u3068\u3001\u305D\u306E\u3059\u3079\u3066\u3092\u30AB\u30D0\u30FC\u3067\u304D\u308B eSIM 1\u679A\u3092\u78BA\u8A8D\u3057\u307E\u3059\u3002",
+    "My Account": "\u30DE\u30A4\u30A2\u30AB\u30A6\u30F3\u30C8",
+    "My Addresses": "\u4F4F\u6240\u4E00\u89A7",
+    "My Trips": "\u65C5\u884C\u4E00\u89A7",
+    "My eSIMs": "eSIM\u4E00\u89A7",
+    Name: "\u6C0F\u540D",
+    "Need Help?": "\u304A\u56F0\u308A\u3067\u3059\u304B\uFF1F",
+    "Needed once per phone \u2014 the package is already on the eSIM and activates right after install.": "\u30B9\u30DE\u30FC\u30C8\u30D5\u30A9\u30F31\u53F0\u306B\u3064\u304D1\u56DE\u3060\u3051\u5FC5\u8981\u3067\u3059\u3002\u30D1\u30C3\u30B1\u30FC\u30B8\u306F\u3059\u3067\u306B eSIM \u306B\u7D44\u307F\u8FBC\u307E\u308C\u3066\u304A\u308A\u3001\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u5F8C\u3059\u3050\u306B\u6709\u52B9\u5316\u3055\u308C\u307E\u3059\u3002",
+    Network: "\u30CD\u30C3\u30C8\u30EF\u30FC\u30AF",
+    "New eSIM (new QR code)": "\u65B0\u3057\u3044 eSIM\uFF08\u65B0\u3057\u3044 QR\u30B3\u30FC\u30C9\uFF09",
+    Newest: "\u65B0\u7740\u9806",
+    Next: "\u6B21\u3078",
+    "No destination found. Clear the search to browse all.": "\u76EE\u7684\u5730\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093\u3002\u691C\u7D22\u3092\u30AF\u30EA\u30A2\u3059\u308B\u3068\u3001\u3059\u3079\u3066\u306E\u76EE\u7684\u5730\u3092\u53C2\u7167\u3067\u304D\u307E\u3059\u3002",
+    "No matching plan yet": "\u4E00\u81F4\u3059\u308B\u30D7\u30E9\u30F3\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093",
+    "No physical SIM swap": "\u7269\u7406SIM \u306E\u4EA4\u63DB\u4E0D\u8981",
+    "No plans matched the current search.": "\u73FE\u5728\u306E\u691C\u7D22\u306B\u4E00\u81F4\u3059\u308B\u30D7\u30E9\u30F3\u306F\u3042\u308A\u307E\u305B\u3093\u3002",
+    "No plans yet": "\u30D7\u30E9\u30F3\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093",
+    "No roaming charges": "\u30ED\u30FC\u30DF\u30F3\u30B0\u6599\u91D1\u306A\u3057",
+    "No saved addresses yet.": "\u4FDD\u5B58\u3057\u305F\u4F4F\u6240\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002",
+    "No shipping required": "\u767A\u9001\u4E0D\u8981",
+    "No single plan covers the trip": "1\u3064\u306E\u30D7\u30E9\u30F3\u3067\u306F\u65C5\u884C\u5168\u4F53\u3092\u30AB\u30D0\u30FC\u3067\u304D\u307E\u305B\u3093",
+    "No stops yet \u2014 add your first destination.": "\u7D4C\u7531\u5730\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002\u6700\u521D\u306E\u76EE\u7684\u5730\u3092\u8FFD\u52A0\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    "No travel orders yet.": "\u65C5\u884C\u306E\u6CE8\u6587\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002",
+    "Not set": "\u672A\u8A2D\u5B9A",
+    Notes: "\u30E1\u30E2",
+    "Official BOKMOO product": "BOKMOO\u516C\u5F0F\u88FD\u54C1",
+    "On first connection": "\u521D\u56DE\u63A5\u7D9A\u6642\u304B\u3089",
+    "One code, seamless roaming": "1\u3064\u306E\u30B3\u30FC\u30C9\u3067\u3001\u30B7\u30FC\u30E0\u30EC\u30B9\u306A\u30ED\u30FC\u30DF\u30F3\u30B0",
+    "One trip,": "1\u56DE\u306E\u65C5\u884C\u3001",
+    "One-tap install (Android)": "\u30EF\u30F3\u30BF\u30C3\u30D7\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\uFF08Android\uFF09",
+    Open: "\u958B\u304F",
+    "Open menu": "\u30E1\u30CB\u30E5\u30FC\u3092\u958B\u304F",
+    "Open order": "\u6CE8\u6587\u3092\u958B\u304F",
+    Order: "\u6CE8\u6587",
+    "Order History": "\u6CE8\u6587\u5C65\u6B74",
+    "Order Summary": "\u3054\u6CE8\u6587\u5185\u5BB9",
+    "Order archive": "\u6CE8\u6587\u30A2\u30FC\u30AB\u30A4\u30D6",
+    "Order not found": "\u6CE8\u6587\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093",
+    "Order reference": "\u6CE8\u6587\u756A\u53F7",
+    "Order total": "\u3054\u6CE8\u6587\u5408\u8A08",
+    Orders: "\u6CE8\u6587\u4E00\u89A7",
+    "Our mission is to make connectivity simple, affordable, and reliable anywhere in the world.": "\u79C1\u305F\u3061\u306E\u30DF\u30C3\u30B7\u30E7\u30F3\u306F\u3001\u4E16\u754C\u4E2D\u306E\u3069\u3053\u3067\u3082\u30B7\u30F3\u30D7\u30EB\u3067\u624B\u9803\u3001\u305D\u3057\u3066\u4FE1\u983C\u3067\u304D\u308B\u901A\u4FE1\u3092\u5C4A\u3051\u308B\u3053\u3068\u3067\u3059\u3002",
+    "Our support team is here for you.": "\u30B5\u30DD\u30FC\u30C8\u30C1\u30FC\u30E0\u306B\u304A\u6C17\u8EFD\u306B\u3054\u76F8\u8AC7\u304F\u3060\u3055\u3044\u3002",
+    Page: "\u30DA\u30FC\u30B8",
+    Paid: "\u652F\u6255\u3044\u6E08\u307F",
+    Payment: "\u304A\u652F\u6255\u3044",
+    "Payment Method": "\u304A\u652F\u6255\u3044\u65B9\u6CD5",
+    "Payment pending": "\u304A\u652F\u6255\u3044\u5F85\u3061",
+    "Payment successful!": "\u304A\u652F\u6255\u3044\u304C\u5B8C\u4E86\u3057\u307E\u3057\u305F\uFF01",
+    Pending: "\u4FDD\u7559\u4E2D",
+    "Pending payment": "\u304A\u652F\u6255\u3044\u5F85\u3061",
+    "Per plan terms": "\u30D7\u30E9\u30F3\u898F\u7D04\u306B\u6E96\u62E0",
+    Philippines: "\u30D5\u30A3\u30EA\u30D4\u30F3",
+    Phone: "\u96FB\u8A71\u756A\u53F7",
+    "Phone Number": "\u96FB\u8A71\u756A\u53F7",
+    "Phone number": "\u96FB\u8A71\u756A\u53F7",
+    "Phone number is required": "\u96FB\u8A71\u756A\u53F7\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044",
+    "Physical Bluetooth card \u2014 manage multiple eSIM profiles with the BOKMOO app": "Bluetooth\u5BFE\u5FDC\u306E\u7269\u7406\u30AB\u30FC\u30C9 \u2014 BOKMOO\u30A2\u30D7\u30EA\u3067\u8907\u6570\u306E eSIM\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3092\u7BA1\u7406",
+    "Physical card": "\u7269\u7406\u30AB\u30FC\u30C9",
+    "Physical card \u2014 works with the BOKMOO app": "\u7269\u7406\u30AB\u30FC\u30C9 \u2014 BOKMOO\u30A2\u30D7\u30EA\u306B\u5BFE\u5FDC",
+    "Physical eSIM card": "\u7269\u7406eSIM\u30AB\u30FC\u30C9",
+    "Pick where you are going and for how long \u2014 we check which single eSIM covers the whole trip.": "\u884C\u304D\u5148\u3068\u6EDE\u5728\u65E5\u6570\u3092\u9078\u3076\u3060\u3051\u3067\u3001\u65C5\u884C\u5168\u4F53\u3092\u30AB\u30D0\u30FC\u3067\u304D\u308B eSIM 1\u679A\u3092\u78BA\u8A8D\u3057\u307E\u3059\u3002",
+    Placed: "\u6CE8\u6587\u6E08\u307F",
+    "Plan collection": "\u30D7\u30E9\u30F3\u4E00\u89A7",
+    "Plan not found": "\u30D7\u30E9\u30F3\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093",
+    "Plan validity is shorter than the trip span.": "\u30D7\u30E9\u30F3\u306E\u6709\u52B9\u671F\u9650\u304C\u65C5\u884C\u671F\u9593\u306B\u6E80\u305F\u307E\u305B\u3093\u3002",
+    "Plans are temporarily unavailable for quoting.": "\u30D7\u30E9\u30F3\u306E\u898B\u7A4D\u3082\u308A\u306F\u4E00\u6642\u7684\u306B\u3054\u5229\u7528\u3044\u305F\u3060\u3051\u307E\u305B\u3093\u3002",
+    "Plans are unavailable right now.": "\u73FE\u5728\u3001\u30D7\u30E9\u30F3\u3092\u3054\u5229\u7528\u3044\u305F\u3060\u3051\u307E\u305B\u3093\u3002",
+    "Plans confirm hotspot support explicitly; require it in Usage settings and the planner only recommends plans that confirm it.": "\u30D7\u30E9\u30F3\u306E\u30C6\u30B6\u30EA\u30F3\u30B0\u5BFE\u5FDC\u53EF\u5426\u306F\u5404\u30D7\u30E9\u30F3\u306B\u660E\u8A18\u3055\u308C\u3066\u3044\u307E\u3059\u3002\u5229\u7528\u8A2D\u5B9A\u3067\u30C6\u30B6\u30EA\u30F3\u30B0\u3092\u5FC5\u9808\u306B\u3059\u308B\u3068\u3001\u5BFE\u5FDC\u304C\u78BA\u8A8D\u3067\u304D\u308B\u30D7\u30E9\u30F3\u3060\u3051\u304C\u304A\u3059\u3059\u3081\u306B\u8868\u793A\u3055\u308C\u307E\u3059\u3002",
+    "Plans unused before activation are refundable per the plan terms shown before checkout.": "\u6709\u52B9\u5316\u524D\u3067\u672A\u4F7F\u7528\u306E\u30D7\u30E9\u30F3\u306F\u3001\u3054\u6CE8\u6587\u624B\u7D9A\u304D\u306E\u524D\u306B\u8868\u793A\u3055\u308C\u308B\u30D7\u30E9\u30F3\u898F\u7D04\u306B\u5F93\u3063\u3066\u8FD4\u91D1\u306E\u5BFE\u8C61\u3068\u306A\u308A\u307E\u3059\u3002",
+    "Plans you buy are added to these profiles \u2014 no new QR code, no reinstall.": "\u3054\u8CFC\u5165\u306E\u30D7\u30E9\u30F3\u306F\u3053\u308C\u3089\u306E\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u306B\u8FFD\u52A0\u3055\u308C\u307E\u3059\u3002\u65B0\u3057\u3044 QR\u30B3\u30FC\u30C9\u3082\u3001\u518D\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3082\u4E0D\u8981\u3067\u3059\u3002",
+    "Please log in to check your BOKMOO account": "BOKMOO\u30A2\u30AB\u30A6\u30F3\u30C8\u3092\u78BA\u8A8D\u3059\u308B\u306B\u306F\u3001\u30ED\u30B0\u30A4\u30F3\u3057\u3066\u304F\u3060\u3055\u3044",
+    Popular: "\u4EBA\u6C17\u9806",
+    "Popular Topics": "\u4EBA\u6C17\u306E\u30C8\u30D4\u30C3\u30AF",
+    "Popular destinations": "\u4EBA\u6C17\u306E\u76EE\u7684\u5730",
+    "Postal code": "\u90F5\u4FBF\u756A\u53F7",
+    "Postal code is required": "\u90F5\u4FBF\u756A\u53F7\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044",
+    "Premium club experiences around the world.": "\u4E16\u754C\u5404\u5730\u3067\u3001\u30D7\u30EC\u30DF\u30A2\u30E0\u306A\u30AF\u30E9\u30D6\u4F53\u9A13\u3092\u3002",
+    "Preparing your eSIM\u2026": "eSIM \u3092\u6E96\u5099\u3057\u3066\u3044\u307E\u3059\u2026",
+    Previous: "\u524D\u3078",
+    Price: "\u4FA1\u683C",
+    "Priority local network": "\u73FE\u5730\u30CD\u30C3\u30C8\u30EF\u30FC\u30AF\u512A\u5148",
+    Privacy: "\u30D7\u30E9\u30A4\u30D0\u30B7\u30FC",
+    "Privacy Policy": "\u30D7\u30E9\u30A4\u30D0\u30B7\u30FC\u30DD\u30EA\u30B7\u30FC",
+    Processing: "\u51E6\u7406\u4E2D",
+    "Processing\u2026": "\u51E6\u7406\u4E2D\u2026",
+    Products: "\u5546\u54C1",
+    "Promo / referral code": "\u30D7\u30ED\u30E2\u30B3\u30FC\u30C9 / \u7D39\u4ECB\u30B3\u30FC\u30C9",
+    "Provisioned automatically \u2014 your install details are shown above.": "\u81EA\u52D5\u7684\u306B\u958B\u901A\u3055\u308C\u307E\u3057\u305F\u3002\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u60C5\u5831\u306F\u4E0A\u306B\u8868\u793A\u3055\u308C\u3066\u3044\u307E\u3059\u3002",
+    Provisioning: "\u958B\u901A\u4E2D",
+    "Provisioning failed \u2014 our support team has been notified and will follow up.": "\u958B\u901A\u51E6\u7406\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002\u30B5\u30DD\u30FC\u30C8\u30C1\u30FC\u30E0\u306B\u901A\u77E5\u6E08\u307F\u3067\u3001\u5F8C\u307B\u3069\u3054\u9023\u7D61\u3044\u305F\u3057\u307E\u3059\u3002",
+    "Provisioning in progress \u2014 this page updates when the package is ready.": "\u958B\u901A\u51E6\u7406\u4E2D\u3067\u3059\u3002\u30D1\u30C3\u30B1\u30FC\u30B8\u306E\u6E96\u5099\u304C\u3067\u304D\u6B21\u7B2C\u3001\u3053\u306E\u30DA\u30FC\u30B8\u304C\u66F4\u65B0\u3055\u308C\u307E\u3059\u3002",
+    "Provisioning needs attention": "\u958B\u901A\u51E6\u7406\u306B\u8981\u5BFE\u5FDC",
+    "QR payload ready": "QR\u30C7\u30FC\u30BF\u6E96\u5099\u6E08\u307F",
+    Qty: "\u6570\u91CF",
+    Quantity: "\u6570\u91CF",
+    "Questions, answered": "\u7591\u554F\u306B\u304A\u7B54\u3048\u3057\u307E\u3059",
+    "Quick Facts": "\u57FA\u672C\u60C5\u5831",
+    "Ready to install": "\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u53EF\u80FD",
+    Redeem: "\u5F15\u304D\u63DB\u3048\u308B",
+    "Redeem a Code": "\u30B3\u30FC\u30C9\u3092\u5F15\u304D\u63DB\u3048\u308B",
+    "Redeeming\u2026": "\u5F15\u304D\u63DB\u3048\u4E2D\u2026",
+    "Redemption failed. Please try again later.": "\u5F15\u304D\u63DB\u3048\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002\u3057\u3070\u3089\u304F\u3057\u3066\u304B\u3089\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
+    "Redemption is temporarily unavailable. Please try again later.": "\u5F15\u304D\u63DB\u3048\u306F\u4E00\u6642\u7684\u306B\u3054\u5229\u7528\u3044\u305F\u3060\u3051\u307E\u305B\u3093\u3002\u3057\u3070\u3089\u304F\u3057\u3066\u304B\u3089\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
+    "Refresh status": "\u30B9\u30C6\u30FC\u30BF\u30B9\u3092\u66F4\u65B0",
+    Refunded: "\u8FD4\u91D1\u6E08\u307F",
+    Regional: "\u30EA\u30FC\u30B8\u30E7\u30CA\u30EB",
+    Remove: "\u524A\u9664",
+    "Remove stop": "\u7D4C\u7531\u5730\u3092\u524A\u9664",
+    "Reorder stop": "\u7D4C\u7531\u5730\u306E\u9806\u5E8F\u3092\u5909\u66F4",
+    "Replace destination": "\u76EE\u7684\u5730\u3092\u5909\u66F4",
+    "Replace this stop": "\u3053\u306E\u7D4C\u7531\u5730\u3092\u5909\u66F4",
+    "Required hotspot sharing is not confirmed on current plans.": "\u73FE\u5728\u306E\u30D7\u30E9\u30F3\u3067\u306F\u3001\u5FC5\u9808\u3068\u3057\u3066\u8A2D\u5B9A\u3057\u305F\u30C6\u30B6\u30EA\u30F3\u30B0\u3078\u306E\u5BFE\u5FDC\u304C\u78BA\u8A8D\u3055\u308C\u3066\u3044\u307E\u305B\u3093\u3002",
+    "Requires iOS 15 or later. Activates BOKMOO cards over Bluetooth.": "iOS 15\u4EE5\u964D\u304C\u5FC5\u8981\u3067\u3059\u3002Bluetooth \u3067 BOKMOO\u30AB\u30FC\u30C9\u3092\u6709\u52B9\u5316\u3057\u307E\u3059\u3002",
+    Retry: "\u518D\u8A66\u884C",
+    "Reusing your eSIM avoids a new QR code \u2014 the plan is added to the profile you already installed.": "\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u6E08\u307F\u306E eSIM \u3092\u518D\u5229\u7528\u3059\u308C\u3070\u3001\u65B0\u3057\u3044 QR\u30B3\u30FC\u30C9\u306F\u4E0D\u8981\u3067\u3059\u3002\u30D7\u30E9\u30F3\u306F\u3059\u3067\u306B\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u6E08\u307F\u306E\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u306B\u8FFD\u52A0\u3055\u308C\u307E\u3059\u3002",
+    "Review destinations": "\u76EE\u7684\u5730\u306E\u78BA\u8A8D",
+    "Review your selected plans.": "\u9078\u629E\u3057\u305F\u30D7\u30E9\u30F3\u3092\u78BA\u8A8D\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    "Route Planner": "\u30EB\u30FC\u30C8\u30D7\u30E9\u30F3\u30CA\u30FC",
+    "Route planner": "\u30EB\u30FC\u30C8\u30D7\u30E9\u30F3\u30CA\u30FC",
+    "SM-DP+ address": "SM-DP+\u30A2\u30C9\u30EC\u30B9",
+    "Save address": "\u4F4F\u6240\u3092\u4FDD\u5B58",
+    "Saved addresses": "\u4FDD\u5B58\u3057\u305F\u4F4F\u6240",
+    "Saved shipping addresses for checkout": "\u3054\u6CE8\u6587\u624B\u7D9A\u304D\u3067\u4F7F\u3046\u4FDD\u5B58\u6E08\u307F\u306E\u304A\u5C4A\u3051\u5148",
+    "Scan or install manually": "\u30B9\u30AD\u30E3\u30F3\u307E\u305F\u306F\u624B\u52D5\u3067\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB",
+    "Scan with Android": "Android \u3067\u30B9\u30AD\u30E3\u30F3",
+    "Scan with iPhone": "iPhone \u3067\u30B9\u30AD\u30E3\u30F3",
+    "Search country, region or city (e.g. Tokyo)": "\u56FD\u30FB\u5730\u57DF\u30FB\u90FD\u5E02\u3092\u691C\u7D22\uFF08\u4F8B\uFF1A\u6771\u4EAC\uFF09",
+    "Search destinations or bundles...": "\u76EE\u7684\u5730\u3084\u30D0\u30F3\u30C9\u30EB\u3092\u691C\u7D22\u2026",
+    "Search for help...": "\u30D8\u30EB\u30D7\u3092\u691C\u7D22\u2026",
+    "Secure Checkout": "\u5B89\u5168\u306A\u3054\u6CE8\u6587\u624B\u7D9A\u304D",
+    "See plan": "\u30D7\u30E9\u30F3\u3092\u898B\u308B",
+    "Select all": "\u3059\u3079\u3066\u9078\u629E",
+    "Selected items": "\u9078\u629E\u4E2D\u306E\u9805\u76EE",
+    Send: "\u9001\u4FE1",
+    "Set default": "\u30C7\u30D5\u30A9\u30EB\u30C8\u306B\u8A2D\u5B9A",
+    "Set up and switch profiles in the BOKMOO app": "BOKMOO\u30A2\u30D7\u30EA\u3067\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u306E\u8A2D\u5B9A\u30FB\u5207\u308A\u66FF\u3048",
+    Settings: "\u8A2D\u5B9A",
+    Setup: "\u30BB\u30C3\u30C8\u30A2\u30C3\u30D7",
+    Shipped: "\u767A\u9001\u6E08\u307F",
+    Shipping: "\u914D\u9001",
+    "Shipping needs attention": "\u914D\u9001\u306B\u8981\u5BFE\u5FDC",
+    "Shopping Cart": "\u30B7\u30E7\u30C3\u30D4\u30F3\u30B0\u30AB\u30FC\u30C8",
+    "Sign In": "\u30ED\u30B0\u30A4\u30F3",
+    "Sign In / Manage My Cards": "\u30ED\u30B0\u30A4\u30F3 / \u30DE\u30A4\u30AB\u30FC\u30C9\u306E\u7BA1\u7406",
+    "Sign in to view your profile": "\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3092\u8868\u793A\u3059\u308B\u306B\u306F\u30ED\u30B0\u30A4\u30F3\u3057\u3066\u304F\u3060\u3055\u3044",
+    Singapore: "\u30B7\u30F3\u30AC\u30DD\u30FC\u30EB",
+    "Smart multi-country top-ups": "\u30B9\u30DE\u30FC\u30C8\u306A\u8907\u6570\u56FD\u8FFD\u52A0\u30C1\u30E3\u30FC\u30B8",
+    "South Korea": "\u97D3\u56FD",
+    "Southeast Asia": "\u6771\u5357\u30A2\u30B8\u30A2",
+    Spain: "\u30B9\u30DA\u30A4\u30F3",
+    "State / Province": "\u90FD\u9053\u5E9C\u770C / \u5DDE",
+    "State is required": "\u90FD\u9053\u5E9C\u770C / \u5DDE\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044",
+    "Stay connected in major cities and more": "\u4E3B\u8981\u90FD\u5E02\u3092\u306F\u3058\u3081\u3001\u3069\u3053\u3067\u3082\u3064\u306A\u304C\u308B",
+    "Step-by-step guide": "\u624B\u9806\u30AC\u30A4\u30C9",
+    Store: "\u30B9\u30C8\u30A2",
+    Subtotal: "\u5C0F\u8A08",
+    Summary: "\u6982\u8981",
+    Support: "\u30B5\u30DD\u30FC\u30C8",
+    "Support:": "\u30B5\u30DD\u30FC\u30C8\uFF1A",
+    "Supported devices": "\u5BFE\u5FDC\u30C7\u30D0\u30A4\u30B9",
+    TBC: "\u672A\u5B9A",
+    Taiwan: "\u53F0\u6E7E",
+    Tax: "\u7A0E\u984D",
+    Terms: "\u898F\u7D04",
+    "Terms of Service": "\u5229\u7528\u898F\u7D04",
+    Thailand: "\u30BF\u30A4",
+    "The product tied to this code is currently unavailable. Please contact support.": "\u3053\u306E\u30B3\u30FC\u30C9\u306B\u7D10\u3065\u304F\u5546\u54C1\u306F\u73FE\u5728\u3054\u5229\u7528\u3044\u305F\u3060\u3051\u307E\u305B\u3093\u3002\u30B5\u30DD\u30FC\u30C8\u307E\u3067\u304A\u554F\u3044\u5408\u308F\u305B\u304F\u3060\u3055\u3044\u3002",
+    "This code has already been redeemed.": "\u3053\u306E\u30B3\u30FC\u30C9\u306F\u3059\u3067\u306B\u5F15\u304D\u63DB\u3048\u6E08\u307F\u3067\u3059\u3002",
+    "This code has reached its redemption limit.": "\u3053\u306E\u30B3\u30FC\u30C9\u306F\u5F15\u304D\u63DB\u3048\u56DE\u6570\u306E\u4E0A\u9650\u306B\u9054\u3057\u307E\u3057\u305F\u3002",
+    "This code is assigned to a different account.": "\u3053\u306E\u30B3\u30FC\u30C9\u306F\u5225\u306E\u30A2\u30AB\u30A6\u30F3\u30C8\u306B\u5272\u308A\u5F53\u3066\u3089\u308C\u3066\u3044\u307E\u3059\u3002",
+    "This code is invalid or expired. Please double-check and try again.": "\u3053\u306E\u30B3\u30FC\u30C9\u306F\u7121\u52B9\u304B\u3001\u6709\u52B9\u671F\u9650\u304C\u5207\u308C\u3066\u3044\u307E\u3059\u3002\u3054\u78BA\u8A8D\u306E\u3046\u3048\u3001\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
+    "This install code has expired \u2014 contact support to reissue it.": "\u3053\u306E\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u30B3\u30FC\u30C9\u306F\u6709\u52B9\u671F\u9650\u304C\u5207\u308C\u3066\u3044\u307E\u3059\u3002\u518D\u767A\u884C\u306B\u3064\u3044\u3066\u306F\u30B5\u30DD\u30FC\u30C8\u307E\u3067\u304A\u554F\u3044\u5408\u308F\u305B\u304F\u3060\u3055\u3044\u3002",
+    "This order is still waiting for fulfillment details. Refresh later or reopen it from the order archive.": "\u3053\u306E\u6CE8\u6587\u306F\u307E\u3060\u6E96\u5099\u72B6\u6CC1\u306E\u8A73\u7D30\u3092\u5F85\u3063\u3066\u3044\u308B\u72B6\u614B\u3067\u3059\u3002\u3057\u3070\u3089\u304F\u3057\u3066\u304B\u3089\u66F4\u65B0\u3059\u308B\u304B\u3001\u6CE8\u6587\u30A2\u30FC\u30AB\u30A4\u30D6\u304B\u3089\u518D\u5EA6\u958B\u3044\u3066\u304F\u3060\u3055\u3044\u3002",
+    "This plan does not confirm hotspot sharing.": "\u3053\u306E\u30D7\u30E9\u30F3\u306F\u30C6\u30B6\u30EA\u30F3\u30B0\u3078\u306E\u5BFE\u5FDC\u304C\u78BA\u8A8D\u3055\u308C\u3066\u3044\u307E\u305B\u3093\u3002",
+    Timezone: "\u30BF\u30A4\u30E0\u30BE\u30FC\u30F3",
+    "Top up & Data plans": "\u8FFD\u52A0\u30C1\u30E3\u30FC\u30B8\u3068\u30C7\u30FC\u30BF\u30D7\u30E9\u30F3",
+    Total: "\u5408\u8A08",
+    "Track package": "\u8377\u7269\u3092\u8FFD\u8DE1",
+    "Track your order": "\u6CE8\u6587\u3092\u8FFD\u8DE1",
+    "Travel Cart": "\u30C8\u30E9\u30D9\u30EB\u30AB\u30FC\u30C8",
+    "Travel Credits": "\u30C8\u30E9\u30D9\u30EB\u30AF\u30EC\u30B8\u30C3\u30C8",
+    "Travel bundle": "\u30C8\u30E9\u30D9\u30EB\u30D0\u30F3\u30C9\u30EB",
+    "Trip changed or running low mid-journey? Add a data pack without reinstalling.": "\u65C5\u306E\u9014\u4E2D\u3067\u30D7\u30E9\u30F3\u304C\u5909\u308F\u3063\u305F\u308A\u30C7\u30FC\u30BF\u304C\u8DB3\u308A\u306A\u304F\u306A\u3063\u305F\u308A\u3057\u305F\u3089\uFF1F\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3057\u76F4\u3055\u305A\u306B\u30C7\u30FC\u30BF\u30D1\u30C3\u30AF\u3092\u8FFD\u52A0\u3067\u304D\u307E\u3059\u3002",
+    "Try Again": "\u3082\u3046\u4E00\u5EA6\u8A66\u3059",
+    "Try the example trip": "\u30B5\u30F3\u30D7\u30EB\u306E\u65C5\u884C\u3092\u8A66\u3059",
+    Type: "\u7A2E\u985E",
+    "Type your message\u2026": "\u30E1\u30C3\u30BB\u30FC\u30B8\u3092\u5165\u529B\u2026",
+    "Typing\u2026": "\u5165\u529B\u4E2D\u2026",
+    "Unable to load orders.": "\u6CE8\u6587\u3092\u8AAD\u307F\u8FBC\u3081\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
+    "United Arab Emirates": "\u30A2\u30E9\u30D6\u9996\u9577\u56FD\u9023\u90A6",
+    "United Kingdom": "\u30A4\u30AE\u30EA\u30B9",
+    "United States": "\u30A2\u30E1\u30EA\u30AB",
+    Unlimited: "\u7121\u5236\u9650",
+    "Unlocked iPhone and Android devices with eSIM support": "eSIM\u5BFE\u5FDC\u306E SIM\u30D5\u30EA\u30FCiPhone \u304A\u3088\u3073 Android\u30C7\u30D0\u30A4\u30B9",
+    "Upcoming Trips": "\u4ECA\u5F8C\u306E\u65C5\u884C",
+    Uptime: "\u7A3C\u50CD\u7387",
+    Usage: "\u5229\u7528\u8A2D\u5B9A",
+    "Usage mode": "\u5229\u7528\u30E2\u30FC\u30C9",
+    "Use my existing eSIM": "\u65E2\u5B58\u306E eSIM \u3092\u4F7F\u3046",
+    Validity: "\u6709\u52B9\u671F\u9650",
+    "Validity covers the whole trip": "\u6709\u52B9\u671F\u9650\u304C\u65C5\u884C\u5168\u4F53\u3092\u30AB\u30D0\u30FC",
+    "Validity to be confirmed": "\u6709\u52B9\u671F\u9650\u306F\u5F8C\u65E5\u78BA\u8A8D",
+    "Video meetings": "\u30D3\u30C7\u30AA\u4F1A\u8B70",
+    Vietnam: "\u30D9\u30C8\u30CA\u30E0",
+    "View Details": "\u8A73\u7D30\u3092\u898B\u308B",
+    "View and manage your orders": "\u6CE8\u6587\u306E\u78BA\u8A8D\u30FB\u7BA1\u7406",
+    "View coverage & plans": "\u30AB\u30D0\u30FC\u7BC4\u56F2\u3068\u30D7\u30E9\u30F3\u3092\u898B\u308B",
+    "View eSIM details": "eSIM \u306E\u8A73\u7D30\u3092\u898B\u308B",
+    "Visit Help Center": "\u30D8\u30EB\u30D7\u30BB\u30F3\u30BF\u30FC\u3092\u898B\u308B",
+    "We could not prepare your install session yet.": "\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u30BB\u30C3\u30B7\u30E7\u30F3\u3092\u6E96\u5099\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
+    "We could not prepare your shipment yet.": "\u767A\u9001\u306E\u6E96\u5099\u304C\u307E\u3060\u3067\u304D\u3066\u3044\u307E\u305B\u3093\u3002",
+    "What if I never activate the eSIM?": "eSIM \u3092\u6709\u52B9\u5316\u3057\u306A\u304B\u3063\u305F\u5834\u5408\u306F\u3069\u3046\u306A\u308A\u307E\u3059\u304B\uFF1F",
+    "When does validity start counting?": "\u6709\u52B9\u671F\u9650\u306F\u3044\u3064\u304B\u3089\u30AB\u30A6\u30F3\u30C8\u3055\u308C\u307E\u3059\u304B\uFF1F",
+    "Why Bokmoo eSIM": "BOKMOO eSIM \u304C\u9078\u3070\u308C\u308B\u7406\u7531",
+    "Works with the BOKMOO app": "BOKMOO\u30A2\u30D7\u30EA\u306B\u5BFE\u5FDC",
+    "Yes. Your existing order stays valid; the planner re-checks coverage and tells you exactly which new stop needs its own plan.": "\u306F\u3044\u3002\u65E2\u5B58\u306E\u3054\u6CE8\u6587\u306F\u305D\u306E\u307E\u307E\u6709\u52B9\u3067\u3059\u3002\u30D7\u30E9\u30F3\u30CA\u30FC\u304C\u30AB\u30D0\u30FC\u7BC4\u56F2\u3092\u518D\u30C1\u30A7\u30C3\u30AF\u3057\u3001\u3069\u306E\u65B0\u3057\u3044\u7D4C\u7531\u5730\u306B\u5C02\u7528\u306E\u30D7\u30E9\u30F3\u304C\u5FC5\u8981\u304B\u3092\u6B63\u78BA\u306B\u304A\u77E5\u3089\u305B\u3057\u307E\u3059\u3002",
+    "Your BOKMOO card, in your pocket.": "BOKMOO\u30AB\u30FC\u30C9\u3092\u3001\u30DD\u30B1\u30C3\u30C8\u306B\u3002",
+    "Your activation session expired before installation completed.": "\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u304C\u5B8C\u4E86\u3059\u308B\u524D\u306B\u3001\u6709\u52B9\u5316\u30BB\u30C3\u30B7\u30E7\u30F3\u306E\u6709\u52B9\u671F\u9650\u304C\u5207\u308C\u307E\u3057\u305F\u3002",
+    "Your booked experiences": "\u3054\u4E88\u7D04\u6E08\u307F\u306E\u4F53\u9A13",
+    "Your card is being prepared for shipment": "\u30AB\u30FC\u30C9\u306F\u767A\u9001\u306E\u6E96\u5099\u4E2D\u3067\u3059",
+    "Your carrier and tracking updates appear here after dispatch.": "\u767A\u9001\u5F8C\u3001\u904B\u9001\u4F1A\u793E\u60C5\u5831\u3068\u8FFD\u8DE1\u72B6\u6CC1\u304C\u3053\u3053\u306B\u8868\u793A\u3055\u308C\u307E\u3059\u3002",
+    "Your cart is empty.": "\u30AB\u30FC\u30C8\u306F\u7A7A\u3067\u3059\u3002",
+    "Your eSIM is ready to install.": "eSIM \u306E\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u6E96\u5099\u304C\u3067\u304D\u307E\u3057\u305F\u3002",
+    "Your order is paid. We are packing your Bokmoo Card now \u2014 you will get a shipping confirmation with tracking, and it should arrive within a few business days.": "\u304A\u652F\u6255\u3044\u304C\u5B8C\u4E86\u3057\u307E\u3057\u305F\u3002\u305F\u3060\u3044\u307E BOKMOO\u30AB\u30FC\u30C9\u3092\u68B1\u5305\u4E2D\u3067\u3059\u3002\u8FFD\u8DE1\u756A\u53F7\u4ED8\u304D\u306E\u767A\u9001\u78BA\u8A8D\u30E1\u30FC\u30EB\u3092\u304A\u9001\u308A\u3057\u307E\u3059\u306E\u3067\u3001\u6570\u55B6\u696D\u65E5\u4EE5\u5185\u306E\u304A\u5C4A\u3051\u4E88\u5B9A\u3067\u3059\u3002",
+    "Your order is paid. We are preparing the install session now.": "\u304A\u652F\u6255\u3044\u304C\u5B8C\u4E86\u3057\u307E\u3057\u305F\u3002\u305F\u3060\u3044\u307E\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u306E\u6E96\u5099\u3092\u9032\u3081\u3066\u3044\u307E\u3059\u3002",
+    "Your package has been added to your eSIM.": "\u30D1\u30C3\u30B1\u30FC\u30B8\u304C eSIM \u306B\u8FFD\u52A0\u3055\u308C\u307E\u3057\u305F\u3002",
+    d: "\u65E5",
+    "daily average": "1\u65E5\u5E73\u5747",
+    "data included": "\u30C7\u30FC\u30BF\u91CF",
+    "day(s)": "\u65E5",
+    days: "\u65E5",
+    destinations: "\u76EE\u7684\u5730",
+    "e.g. BOKMOO10": "\u4F8B\uFF1ABOKMOO10",
+    "e.g. ESIM-JP-7D": "\u4F8B\uFF1AESIM-JP-7D",
+    eSIM: "eSIM",
+    "eSIM ICCID": "eSIM ICCID",
+    "eSIM Plans": "eSIM\u30D7\u30E9\u30F3",
+    "eSIM activation": "eSIM \u306E\u6709\u52B9\u5316",
+    "eSIM plans built for every journey.": "\u3042\u3089\u3086\u308B\u65C5\u306E\u305F\u3081\u306B\u4F5C\u3089\u308C\u305F eSIM\u30D7\u30E9\u30F3\u3002",
+    en: "en",
+    "iPhone and Android devices": "iPhone \u304A\u3088\u3073 Android\u30C7\u30D0\u30A4\u30B9",
+    "iPhone and Android devices with eSIM support": "eSIM\u5BFE\u5FDC\u306E iPhone \u304A\u3088\u3073 Android\u30C7\u30D0\u30A4\u30B9",
+    "iPhone: point the camera at the QR code. Other phones: Settings \u2192 Network \u2192 Add eSIM.": "iPhone\uFF1A\u30AB\u30E1\u30E9\u3067 QR\u30B3\u30FC\u30C9\u3092\u8AAD\u307F\u53D6\u308A\u307E\u3059\u3002\u305D\u306E\u4ED6\u306E\u30B9\u30DE\u30FC\u30C8\u30D5\u30A9\u30F3\uFF1A\u8A2D\u5B9A \u2192 \u30CD\u30C3\u30C8\u30EF\u30FC\u30AF \u2192 eSIM \u3092\u8FFD\u52A0\u3002",
+    "instant delivery": "\u5373\u6642\u304A\u5C4A\u3051",
+    "local network": "\u73FE\u5730\u30CD\u30C3\u30C8\u30EF\u30FC\u30AF",
+    months: "\u304B\u6708",
+    "one eSIM.": "1\u679A\u306E eSIM\u3002",
+    plans: "\u30D7\u30E9\u30F3",
+    selected: "\u9078\u629E\u4E2D",
+    validity: "\u6709\u52B9\u671F\u9650",
+    weeks: "\u9031",
+    ".": "\u3002",
+    ". All rights reserved.": "\u3002\u7121\u65AD\u8EE2\u8F09\u3092\u7981\u3058\u307E\u3059\u3002",
+    "Acceptance of Terms": "\u898F\u7D04\u3078\u306E\u540C\u610F",
+    Active: "\u30A2\u30AF\u30C6\u30A3\u30D6",
+    Add: "\u8FFD\u52A0",
+    "Affiliate data could not be loaded": "\u30A2\u30D5\u30A3\u30EA\u30A8\u30A4\u30C8\u30C7\u30FC\u30BF\u3092\u8AAD\u307F\u8FBC\u3081\u307E\u305B\u3093\u3067\u3057\u305F",
+    "Affiliate view": "\u30A2\u30D5\u30A3\u30EA\u30A8\u30A4\u30C8\u8868\u793A",
+    "Affiliate workspace": "\u30A2\u30D5\u30A3\u30EA\u30A8\u30A4\u30C8\u7BA1\u7406\u753B\u9762",
+    "All payments are final and non-refundable unless required by law.": "\u6CD5\u4EE4\u3067\u5B9A\u3081\u3089\u308C\u305F\u5834\u5408\u3092\u9664\u304D\u3001\u3059\u3079\u3066\u306E\u304A\u652F\u6255\u3044\u306F\u8FD4\u91D1\u4E0D\u53EF\u3067\u3059\u3002",
+    "Already have an account?": "\u3059\u3067\u306B\u30A2\u30AB\u30A6\u30F3\u30C8\u3092\u304A\u6301\u3061\u3067\u3059\u304B\uFF1F",
+    Approved: "\u627F\u8A8D\u6E08\u307F",
+    "Authentication failed": "\u8A8D\u8A3C\u306B\u5931\u6557\u3057\u307E\u3057\u305F",
+    "BOKMOO eSIM Card": "BOKMOO eSIM \u30AB\u30FC\u30C9",
+    "BOKMOO is not liable for any indirect, incidental, or consequential damages.": "BOKMOO \u306F\u3001\u9593\u63A5\u7684\u30FB\u5076\u767A\u7684\u30FB\u7D50\u679C\u7684\u306A\u640D\u5BB3\u306B\u3064\u3044\u3066\u4E00\u5207\u306E\u8CAC\u4EFB\u3092\u8CA0\u3044\u307E\u305B\u3093\u3002",
+    "Back home": "\u30DB\u30FC\u30E0\u306B\u623B\u308B",
+    "Back to sign in": "\u30ED\u30B0\u30A4\u30F3\u306B\u623B\u308B",
+    "Better Nights": "\u3088\u308A\u826F\u3044\u591C\u3092",
+    "Brighter Journeys": "\u3088\u308A\u660E\u308B\u3044\u65C5\u3092",
+    "Browse BOKMOO plans by destination and travel region.": "\u76EE\u7684\u5730\u3084\u65C5\u884C\u5730\u57DF\u304B\u3089 BOKMOO \u306E\u30D7\u30E9\u30F3\u3092\u63A2\u305B\u307E\u3059\u3002",
+    "By accessing or using the BOKMOO website and services, you agree to be bound by these Terms of Service.": "BOKMOO \u306E\u30A6\u30A7\u30D6\u30B5\u30A4\u30C8\u304A\u3088\u3073\u30B5\u30FC\u30D3\u30B9\u306B\u30A2\u30AF\u30BB\u30B9\u307E\u305F\u306F\u3054\u5229\u7528\u306B\u306A\u308B\u3053\u3068\u3067\u3001\u672C\u5229\u7528\u898F\u7D04\u306B\u540C\u610F\u3057\u305F\u3082\u306E\u3068\u307F\u306A\u3055\u308C\u307E\u3059\u3002",
+    "Change password": "\u30D1\u30B9\u30EF\u30FC\u30C9\u3092\u5909\u66F4",
+    "Commission rate": "\u5831\u916C\u7387",
+    "Completing sign in": "\u30ED\u30B0\u30A4\u30F3\u3092\u5B8C\u4E86\u3057\u3066\u3044\u307E\u3059",
+    Confirm: "\u78BA\u8A8D",
+    "Continue to your orders, profiles, and activation workspace.": "\u6CE8\u6587\u3001\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3001\u30A2\u30AF\u30C6\u30A3\u30D9\u30FC\u30B7\u30E7\u30F3\u306E\u7BA1\u7406\u753B\u9762\u3078\u9032\u307F\u307E\u3059\u3002",
+    Copied: "\u30B3\u30D4\u30FC\u3057\u307E\u3057\u305F",
+    "Copy link": "\u30EA\u30F3\u30AF\u3092\u30B3\u30D4\u30FC",
+    "Create account": "\u30A2\u30AB\u30A6\u30F3\u30C8\u3092\u4F5C\u6210",
+    "Create affiliate account": "\u30A2\u30D5\u30A3\u30EA\u30A8\u30A4\u30C8\u30A2\u30AB\u30A6\u30F3\u30C8\u3092\u4F5C\u6210",
+    "Create organization": "\u7D44\u7E54\u3092\u4F5C\u6210",
+    "Create the account your eSIMs follow.": "eSIM \u304C\u3059\u3079\u3066\u7D10\u3065\u304F\u3001\u3042\u306A\u305F\u3060\u3051\u306E\u30A2\u30AB\u30A6\u30F3\u30C8\u3092\u4F5C\u6210\u3057\u307E\u3057\u3087\u3046\u3002",
+    Creating: "\u4F5C\u6210\u4E2D\u2026",
+    "Creator network.": "\u30AF\u30EA\u30A8\u30A4\u30BF\u30FC\u30CD\u30C3\u30C8\u30EF\u30FC\u30AF\u3002",
+    "Current password": "\u73FE\u5728\u306E\u30D1\u30B9\u30EF\u30FC\u30C9",
+    "Data Protection": "\u30C7\u30FC\u30BF\u4FDD\u8B77",
+    "Default option": "\u6A19\u6E96\u30AA\u30D7\u30B7\u30E7\u30F3",
+    "Deselect item": "\u9078\u629E\u3092\u89E3\u9664",
+    "Display name": "\u8868\u793A\u540D",
+    Earned: "\u7372\u5F97\u984D",
+    Email: "\u30E1\u30FC\u30EB\u30A2\u30C9\u30EC\u30B9",
+    Expired: "\u6709\u52B9\u671F\u9650\u5207\u308C",
+    "Explore destination eSIMs": "\u76EE\u7684\u5730\u5225 eSIM \u3092\u898B\u308B",
+    "Forgot password": "\u30D1\u30B9\u30EF\u30FC\u30C9\u3092\u304A\u5FD8\u308C\u3067\u3059\u304B",
+    "Get help fast": "\u3059\u3050\u306B\u30B5\u30DD\u30FC\u30C8\u3092\u53D7\u3051\u3089\u308C\u307E\u3059",
+    "Hide password": "\u30D1\u30B9\u30EF\u30FC\u30C9\u3092\u96A0\u3059",
+    "Hover a store button (or scan the card QR) to download.": "\u30B9\u30C8\u30A2\u30DC\u30BF\u30F3\u306B\u30AB\u30FC\u30BD\u30EB\u3092\u5408\u308F\u305B\u308B\uFF08\u307E\u305F\u306F\u30AB\u30FC\u30C9\u306E QR \u30B3\u30FC\u30C9\u3092\u30B9\u30AD\u30E3\u30F3\u3059\u308B\uFF09\u3068\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u3067\u304D\u307E\u3059\u3002",
+    "How We Use Information": "\u60C5\u5831\u306E\u5229\u7528\u65B9\u6CD5",
+    "How it works": "\u3054\u5229\u7528\u306E\u6D41\u308C",
+    Inactive: "\u672A\u30A2\u30AF\u30C6\u30A3\u30D6",
+    Influencer: "\u30A4\u30F3\u30D5\u30EB\u30A8\u30F3\u30B5\u30FC",
+    "Information We Collect": "\u53CE\u96C6\u3059\u308B\u60C5\u5831",
+    "Instant QR delivery after payment": "\u652F\u6255\u3044\u5F8C\u306B QR \u30B3\u30FC\u30C9\u3092\u3059\u3050\u306B\u304A\u5C4A\u3051",
+    "Keep access secure between trips.": "\u65C5\u884C\u3068\u65C5\u884C\u306E\u3042\u3044\u3060\u3082\u3001\u30A2\u30AB\u30A6\u30F3\u30C8\u306E\u5B89\u5168\u3092\u4FDD\u3061\u307E\u3057\u3087\u3046\u3002",
+    "Keep orders, activation codes, profile history, and support cases attached to one BOKMOO identity.": "\u6CE8\u6587\u3001\u30A2\u30AF\u30C6\u30A3\u30D9\u30FC\u30B7\u30E7\u30F3\u30B3\u30FC\u30C9\u3001\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u5C65\u6B74\u3001\u30B5\u30DD\u30FC\u30C8\u6848\u4EF6\u3092\u3001\u3072\u3068\u3064\u306E BOKMOO ID \u306B\u307E\u3068\u3081\u3066\u7BA1\u7406\u3067\u304D\u307E\u3059\u3002",
+    "Keep your BOKMOO account ready for the next trip.": "\u6B21\u306E\u65C5\u884C\u306B\u5411\u3051\u3066\u3001BOKMOO \u30A2\u30AB\u30A6\u30F3\u30C8\u3092\u6574\u3048\u3066\u304A\u304D\u307E\u3057\u3087\u3046\u3002",
+    "Last updated: April 15, 2024": "\u6700\u7D42\u66F4\u65B0\u65E5\uFF1A2024 \u5E74 4 \u6708 15 \u65E5",
+    "Limitation of Liability": "\u8CAC\u4EFB\u306E\u5236\u9650",
+    "Manage BOKMOO eSIM profiles, orders, and activation details from the same black-and-gold travel control surface.": "\u9ED2\u3068\u91D1\u306E\u30C8\u30E9\u30D9\u30EB\u30B3\u30F3\u30C8\u30ED\u30FC\u30EB\u753B\u9762\u304B\u3089\u3001BOKMOO \u306E eSIM \u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3001\u6CE8\u6587\u3001\u30A2\u30AF\u30C6\u30A3\u30D9\u30FC\u30B7\u30E7\u30F3\u60C5\u5831\u3092\u307E\u3068\u3081\u3066\u7BA1\u7406\u3067\u304D\u307E\u3059\u3002",
+    "Manage eSIMs": "eSIM \u3092\u7BA1\u7406",
+    Manager: "\u30DE\u30CD\u30FC\u30B8\u30E3\u30FC",
+    "Member could not be added": "\u30E1\u30F3\u30D0\u30FC\u3092\u8FFD\u52A0\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F",
+    "Member email": "\u30E1\u30F3\u30D0\u30FC\u306E\u30E1\u30FC\u30EB\u30A2\u30C9\u30EC\u30B9",
+    "New password": "\u65B0\u3057\u3044\u30D1\u30B9\u30EF\u30FC\u30C9",
+    "No commissions yet": "\u5831\u916C\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093",
+    "No region collections are available yet.": "\u5730\u57DF\u30B3\u30EC\u30AF\u30B7\u30E7\u30F3\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002",
+    "One Card.\nGlobal Connection.": "1\u679A\u306E\u30AB\u30FC\u30C9\u3067\u3002\n\u4E16\u754C\u306B\u3064\u306A\u304C\u308B\u3002",
+    "One eSIM for the whole trip \u2014 pick your destinations and go.": "\u65C5\u5168\u4F53\u3092 1 \u679A\u306E eSIM \u3067\u3002\u76EE\u7684\u5730\u3092\u9078\u3093\u3060\u3089\u3001\u3042\u3068\u306F\u51FA\u304B\u3051\u308B\u3060\u3051\u3002",
+    Organization: "\u7D44\u7E54",
+    "Organization affiliate": "\u7D44\u7E54\u306E\u30A2\u30D5\u30A3\u30EA\u30A8\u30A4\u30C8",
+    "Organization code (optional)": "\u7D44\u7E54\u30B3\u30FC\u30C9\uFF08\u4EFB\u610F\uFF09",
+    "Organization commissions": "\u7D44\u7E54\u306E\u5831\u916C",
+    "Organization could not be created": "\u7D44\u7E54\u3092\u4F5C\u6210\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F",
+    "Organization data could not be loaded": "\u7D44\u7E54\u30C7\u30FC\u30BF\u3092\u8AAD\u307F\u8FBC\u3081\u307E\u305B\u3093\u3067\u3057\u305F",
+    "Organization name": "\u7D44\u7E54\u540D",
+    Partner: "\u30D1\u30FC\u30C8\u30CA\u30FC",
+    "Partner commissions": "\u30D1\u30FC\u30C8\u30CA\u30FC\u5831\u916C",
+    Password: "\u30D1\u30B9\u30EF\u30FC\u30C9",
+    "Passwords do not match": "\u30D1\u30B9\u30EF\u30FC\u30C9\u304C\u4E00\u81F4\u3057\u307E\u305B\u3093",
+    "Personal affiliate": "\u500B\u4EBA\u30A2\u30D5\u30A3\u30EA\u30A8\u30A4\u30C8",
+    "Powered by": "Powered by",
+    Profiles: "\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB",
+    "Protected traveler identity": "\u5B88\u3089\u308C\u305F\u30C8\u30E9\u30D9\u30E9\u30FC\u30A2\u30A4\u30C7\u30F3\u30C6\u30A3\u30C6\u30A3",
+    "Purchases and Payments": "\u8CFC\u5165\u3068\u652F\u6255\u3044",
+    "Questions about setup? Contact": "\u30BB\u30C3\u30C8\u30A2\u30C3\u30D7\u306B\u3064\u3044\u3066\u306E\u3054\u8CEA\u554F\u306F\u3001\u3053\u3061\u3089\u307E\u3067\u304A\u554F\u3044\u5408\u308F\u305B\u304F\u3060\u3055\u3044\uFF1A",
+    Rate: "\u7387",
+    Refresh: "\u66F4\u65B0",
+    "Region Collections": "\u5730\u57DF\u30B3\u30EC\u30AF\u30B7\u30E7\u30F3",
+    "Registration failed": "\u767B\u9332\u306B\u5931\u6557\u3057\u307E\u3057\u305F",
+    SAMPLE: "\u30B5\u30F3\u30D7\u30EB",
+    "Save profile": "\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3092\u4FDD\u5B58",
+    "Saving...": "\u4FDD\u5B58\u4E2D\u2026",
+    "Secure account access": "\u5B89\u5168\u306A\u30A2\u30AB\u30A6\u30F3\u30C8\u30A2\u30AF\u30BB\u30B9",
+    "Securing your session and returning you to the BOKMOO storefront.": "\u30BB\u30C3\u30B7\u30E7\u30F3\u3092\u4FDD\u8B77\u3057\u3001BOKMOO \u30B9\u30C8\u30A2\u306B\u623B\u308A\u307E\u3059\u3002",
+    "Select item": "\u9078\u629E",
+    "Shop eSIM Plans": "eSIM \u30D7\u30E9\u30F3\u3092\u898B\u308B",
+    "Show password": "\u30D1\u30B9\u30EF\u30FC\u30C9\u3092\u8868\u793A",
+    "Sign in": "\u30ED\u30B0\u30A4\u30F3",
+    "Sign in before your next border.": "\u6B21\u306E\u56FD\u5883\u3092\u8D8A\u3048\u308B\u524D\u306B\u3001\u30ED\u30B0\u30A4\u30F3\u3057\u3066\u304A\u304D\u307E\u3057\u3087\u3046\u3002",
+    "Sign in to manage your account": "\u30A2\u30AB\u30A6\u30F3\u30C8\u3092\u7BA1\u7406\u3059\u308B\u306B\u306F\u30ED\u30B0\u30A4\u30F3\u3057\u3066\u304F\u3060\u3055\u3044",
+    "Signing in": "\u30ED\u30B0\u30A4\u30F3\u4E2D\u2026",
+    "Start with a secure profile for purchases and global activation support.": "\u8CFC\u5165\u3068\u4E16\u754C\u306E\u30A2\u30AF\u30C6\u30A3\u30D9\u30FC\u30B7\u30E7\u30F3\u30B5\u30DD\u30FC\u30C8\u306B\u5BFE\u5FDC\u3057\u305F\u3001\u5B89\u5168\u306A\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u304B\u3089\u59CB\u3081\u307E\u3057\u3087\u3046\u3002",
+    Suspended: "\u5229\u7528\u505C\u6B62\u4E2D",
+    "Track purchases": "\u8CFC\u5165\u3092\u7BA1\u7406",
+    "Traveler profile": "\u30C8\u30E9\u30D9\u30E9\u30FC\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB",
+    "Unable to load Bokmoo plans.": "Bokmoo \u306E\u30D7\u30E9\u30F3\u3092\u8AAD\u307F\u8FBC\u3081\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
+    "Updating...": "\u66F4\u65B0\u4E2D\u2026",
+    "Use of Services": "\u30B5\u30FC\u30D3\u30B9\u306E\u5229\u7528",
+    Used: "\u4F7F\u7528\u6E08\u307F",
+    "View category": "\u30AB\u30C6\u30B4\u30EA\u3092\u898B\u308B",
+    "We collect information you provide directly to us, such as when you create an account or make a purchase.": "\u30A2\u30AB\u30A6\u30F3\u30C8\u306E\u4F5C\u6210\u3084\u8CFC\u5165\u306E\u969B\u306A\u3069\u3001\u304A\u5BA2\u69D8\u304C\u76F4\u63A5\u3054\u63D0\u4F9B\u3044\u305F\u3060\u304F\u60C5\u5831\u3092\u53CE\u96C6\u3057\u307E\u3059\u3002",
+    "We implement appropriate security measures to protect your data.": "\u304A\u5BA2\u69D8\u306E\u30C7\u30FC\u30BF\u3092\u5B88\u308B\u305F\u3081\u3001\u9069\u5207\u306A\u30BB\u30AD\u30E5\u30EA\u30C6\u30A3\u5BFE\u7B56\u3092\u5B9F\u65BD\u3057\u3066\u3044\u307E\u3059\u3002",
+    "We use the information to provide, maintain, and improve our services.": "\u53CE\u96C6\u3057\u305F\u60C5\u5831\u306F\u3001\u30B5\u30FC\u30D3\u30B9\u306E\u63D0\u4F9B\u30FB\u7DAD\u6301\u30FB\u6539\u5584\u306E\u305F\u3081\u306B\u5229\u7528\u3057\u307E\u3059\u3002",
+    "Welcome back": "\u304A\u304B\u3048\u308A\u306A\u3055\u3044",
+    "You agree to use our services only for lawful purposes and in accordance with these Terms.": "\u5F53\u793E\u306E\u30B5\u30FC\u30D3\u30B9\u3092\u3001\u9069\u6CD5\u306A\u76EE\u7684\u306B\u306E\u307F\u3001\u307E\u305F\u672C\u898F\u7D04\u306B\u5F93\u3063\u3066\u3054\u5229\u7528\u3044\u305F\u3060\u304F\u3053\u3068\u306B\u3054\u540C\u610F\u3044\u305F\u3060\u304D\u307E\u3059\u3002",
+    "You have the right to access, update, or delete your personal information.": "\u3054\u81EA\u8EAB\u306E\u500B\u4EBA\u60C5\u5831\u306E\u95B2\u89A7\u30FB\u66F4\u65B0\u30FB\u524A\u9664\u3092\u6C42\u3081\u308B\u6A29\u5229\u3092\u6709\u3057\u307E\u3059\u3002",
+    "Your Rights": "\u304A\u5BA2\u69D8\u306E\u6A29\u5229",
+    "Your referral ledger.": "\u3042\u306A\u305F\u306E\u7D39\u4ECB\u5C65\u6B74\u3002",
+    "already with us": "\u3059\u3067\u306B\u767B\u9332\u6E08\u307F\u306E\u65B9",
+    "or email": "\u307E\u305F\u306F\u30E1\u30FC\u30EB\u30A2\u30C9\u30EC\u30B9",
+    "organization rate": "\u7D44\u7E54\u306E\u5831\u916C\u7387",
+    "Group destination-ready plans into clearer regional entry points.": "\u76EE\u7684\u5730\u5225\u306E\u30D7\u30E9\u30F3\u3092\u3001\u308F\u304B\u308A\u3084\u3059\u3044\u5730\u57DF\u3054\u3068\u306E\u5165\u53E3\u306B\u307E\u3068\u3081\u307E\u3059\u3002",
+    "Page Not Found": "\u30DA\u30FC\u30B8\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093",
+    "Sorry, we couldn't find the page you're looking for.": "\u304A\u63A2\u3057\u306E\u30DA\u30FC\u30B8\u306F\u898B\u3064\u304B\u308A\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
+    "Back to Home": "\u30DB\u30FC\u30E0\u306B\u623B\u308B",
+    "If you believe this is an error, please contact our support team.": "\u8AA4\u308A\u3060\u3068\u601D\u308F\u308C\u308B\u5834\u5408\u306F\u3001\u30B5\u30DD\u30FC\u30C8\u30C1\u30FC\u30E0\u307E\u3067\u304A\u554F\u3044\u5408\u308F\u305B\u304F\u3060\u3055\u3044\u3002",
+    "Pick your destination": "\u884C\u304D\u5148\u3092\u9078\u3076",
+    "Choose a country or region, the data and the days you need.": "\u56FD\u307E\u305F\u306F\u5730\u57DF\u3001\u5FC5\u8981\u306A\u30C7\u30FC\u30BF\u91CF\u3068\u65E5\u6570\u3092\u9078\u3073\u307E\u3059\u3002",
+    "Check out": "\u304A\u652F\u6255\u3044",
+    "Pay securely. Your plan is issued right after payment.": "\u5B89\u5168\u306B\u304A\u652F\u6255\u3044\u3044\u305F\u3060\u3051\u307E\u3059\u3002\u30D7\u30E9\u30F3\u306F\u652F\u6255\u3044\u5F8C\u3059\u3050\u306B\u767A\u884C\u3055\u308C\u307E\u3059\u3002",
+    "Install and connect": "\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3057\u3066\u63A5\u7D9A",
+    "Scan the QR code or enter the activation code. Most plans start on first connection.": "QR\u30B3\u30FC\u30C9\u3092\u30B9\u30AD\u30E3\u30F3\u3059\u308B\u304B\u3001\u30A2\u30AF\u30C6\u30A3\u30D9\u30FC\u30B7\u30E7\u30F3\u30B3\u30FC\u30C9\u3092\u5165\u529B\u3057\u307E\u3059\u3002\u307B\u3068\u3093\u3069\u306E\u30D7\u30E9\u30F3\u306F\u521D\u56DE\u63A5\u7D9A\u6642\u306B\u958B\u59CB\u3055\u308C\u307E\u3059\u3002",
+    "Three steps from checkout to connected.": "\u304A\u6CE8\u6587\u304B\u3089\u63A5\u7D9A\u307E\u3067\u30013\u3064\u306E\u30B9\u30C6\u30C3\u30D7\u3002",
+    "Your eSIM plans for upcoming trips.": "\u4ECA\u5F8C\u306E\u65C5\u884C\u306B\u4F7F\u3046 eSIM \u30D7\u30E9\u30F3\u3002"
+  };
+
+  // src/i18n/ko.json
+  var ko_default = {
+    "/ full trip": "/ \uC804\uCCB4 \uC5EC\uD589",
+    "/day": "/\uC77C",
+    "200+ destinations": "200\uAC1C \uC774\uC0C1\uC758 \uBAA9\uC801\uC9C0",
+    "24/7 Global Team": "24\uC2DC\uAC04 365\uC77C \uAE00\uB85C\uBC8C \uD300",
+    "24/7 travel support": "24\uC2DC\uAC04 365\uC77C \uC5EC\uD589 \uACE0\uAC1D \uC9C0\uC6D0",
+    "4.9 average traveler satisfaction": "\uC5EC\uD589\uAC1D \uB9CC\uC871\uB3C4 \uD3C9\uADE0 4.9\uC810",
+    "About BOKMOO": "BOKMOO \uC18C\uAC1C",
+    "Access the world's best venues with BOKMOO.": "BOKMOO\uC640 \uD568\uAED8 \uC138\uACC4 \uCD5C\uACE0\uC758 \uBCA0\uB274\uB97C \uC774\uC6A9\uD574 \uBCF4\uC138\uC694.",
+    "Account Information": "\uACC4\uC815 \uC815\uBCF4",
+    "Account Preferences": "\uACC4\uC815 \uD658\uACBD\uC124\uC815",
+    "Account Status": "\uACC4\uC815 \uC0C1\uD0DC",
+    "Activate your BOKMOO card over Bluetooth, install and switch eSIM profiles, and track your data \u2014 right from your phone.": "Bluetooth\uB85C BOKMOO \uCE74\uB4DC\uB97C \uD65C\uC131\uD654\uD558\uACE0, eSIM \uD504\uB85C\uD544\uC744 \uC124\uCE58\uD558\uACE0 \uC804\uD658\uD558\uACE0, \uB370\uC774\uD130 \uC0AC\uC6A9\uB7C9\uAE4C\uC9C0 \uD734\uB300\uD3F0\uC5D0\uC11C \uBC14\uB85C \uD655\uC778\uD560 \uC218 \uC788\uC5B4\uC694.",
+    Activation: "\uD65C\uC131\uD654",
+    "Activation code": "\uD65C\uC131\uD654 \uCF54\uB4DC",
+    "Activation expired": "\uD65C\uC131\uD654 \uAE30\uD55C \uB9CC\uB8CC",
+    "Active Member": "\uD65C\uC131 \uBA64\uBC84",
+    "Add a destination or regional plan to prepare your connectivity before departure.": "\uCD9C\uBC1C \uC804 \uC5F0\uACB0\uC744 \uC900\uBE44\uD558\uB824\uBA74 \uBAA9\uC801\uC9C0\uB098 \uC9C0\uC5ED \uC694\uAE08\uC81C\uB97C \uCD94\uAC00\uD574 \uBCF4\uC138\uC694.",
+    "Add a new address": "\uC0C8 \uC8FC\uC18C \uCD94\uAC00",
+    "Add a stop": "\uACBD\uC720\uC9C0 \uCD94\uAC00",
+    "Add to cart": "\uC7A5\uBC14\uAD6C\uB2C8\uC5D0 \uCD94\uAC00",
+    "Adding\u2026": "\uCD94\uAC00\uD558\uB294 \uC911\u2026",
+    Address: "\uC8FC\uC18C",
+    "Address is required": "\uC8FC\uC18C\uB97C \uC785\uB825\uD574 \uC8FC\uC138\uC694",
+    "Adjust the route, or browse sellable destinations.": "\uB8E8\uD2B8\uB97C \uC870\uC815\uD558\uAC70\uB098 \uD310\uB9E4 \uC911\uC778 \uBAA9\uC801\uC9C0\uB97C \uB458\uB7EC\uBCF4\uC138\uC694.",
+    "Affiliate Program": "\uC81C\uD734 \uD504\uB85C\uADF8\uB7A8",
+    "After checkout the eSIM QR code is issued to your email and account instantly. Add it before boarding; it connects on arrival.": "\uACB0\uC81C \uD6C4 eSIM QR \uCF54\uB4DC\uAC00 \uC774\uBA54\uC77C\uACFC \uACC4\uC815\uC5D0 \uC989\uC2DC \uBC1C\uAE09\uB3FC\uC694. \uD0D1\uC2B9 \uC804\uC5D0 \uBBF8\uB9AC \uCD94\uAC00\uD574 \uB450\uBA74 \uB3C4\uCC29\uD588\uC744 \uB54C \uBC14\uB85C \uC5F0\uACB0\uB3FC\uC694.",
+    All: "\uC804\uCCB4",
+    "Asia-Pacific": "\uC544\uC2DC\uC544 \uD0DC\uD3C9\uC591",
+    Australia: "\uD638\uC8FC",
+    "Australia & NZ": "\uD638\uC8FC\xB7\uB274\uC9C8\uB79C\uB4DC",
+    "Awaiting payment": "\uACB0\uC81C \uB300\uAE30",
+    "BOKMOO Member Benefits": "BOKMOO \uBA64\uBC84 \uD61C\uD0DD",
+    "BOKMOO is built for global travelers.": "BOKMOO\uB294 \uC804 \uC138\uACC4 \uC5EC\uD589\uAC1D\uC744 \uC704\uD574 \uB9CC\uB4E4\uC5B4\uC84C\uC5B4\uC694.",
+    Back: "\uB4A4\uB85C",
+    "Back to Store": "\uC2A4\uD1A0\uC5B4\uB85C \uB3CC\uC544\uAC00\uAE30",
+    "Back to orders": "\uC8FC\uBB38 \uBAA9\uB85D\uC73C\uB85C \uB3CC\uC544\uAC00\uAE30",
+    "Back to store": "\uC2A4\uD1A0\uC5B4\uB85C \uB3CC\uC544\uAC00\uAE30",
+    "Best single eSIM": "\uCD5C\uC801\uC758 \uB2E8\uC77C eSIM",
+    "Bilingual support helps with APN setup, network preference and device compatibility around the clock.": "\uC774\uC911 \uC5B8\uC5B4 \uACE0\uAC1D \uC9C0\uC6D0\uD300\uC774 APN \uC124\uC815, \uB124\uD2B8\uC6CC\uD06C \uC6B0\uC120\uC21C\uC704, \uAE30\uAE30 \uD638\uD658\uC131 \uBB38\uC81C\uB97C 24\uC2DC\uAC04 365\uC77C \uB3C4\uC640\uB4DC\uB824\uC694.",
+    "Billing Details": "\uACB0\uC81C \uC815\uBCF4",
+    Bluetooth: "Bluetooth",
+    "Bokmoo eSIM": "Bokmoo eSIM",
+    "Browse Destinations": "\uBAA9\uC801\uC9C0 \uB458\uB7EC\uBCF4\uAE30",
+    "Buy Now": "\uC9C0\uAE08 \uAD6C\uB9E4",
+    "Buy the trip in segments \u2014 one eSIM per segment below.": "\uC5EC\uD589\uC744 \uAD6C\uAC04\uBCC4\uB85C \uAD6C\uB9E4\uD574 \uBCF4\uC138\uC694. \uC544\uB798\uC5D0\uC11C \uAD6C\uAC04\uB9C8\uB2E4 eSIM \uD558\uB098\uC529 \uC120\uD0DD\uD560 \uC218 \uC788\uC5B4\uC694.",
+    "Can I add a stop after buying?": "\uAD6C\uB9E4 \uD6C4\uC5D0 \uACBD\uC720\uC9C0\uB97C \uCD94\uAC00\uD560 \uC218 \uC788\uB098\uC694?",
+    Canada: "\uCE90\uB098\uB2E4",
+    Cancel: "\uCDE8\uC18C",
+    "Cancel order": "\uC8FC\uBB38 \uCDE8\uC18C",
+    "Cancel reason": "\uCDE8\uC18C \uC0AC\uC720",
+    Cancelled: "\uCDE8\uC18C\uB428",
+    Cart: "\uC7A5\uBC14\uAD6C\uB2C8",
+    "Chat with support": "\uACE0\uAC1D \uC9C0\uC6D0 \uCC44\uD305",
+    "Check compatibility": "\uD638\uD658\uC131 \uD655\uC778",
+    "Check compatibility before departure": "\uCD9C\uBC1C \uC804\uC5D0 \uD638\uD658\uC131\uC744 \uD655\uC778\uD558\uC138\uC694",
+    "Choose an option": "\uC635\uC158 \uC120\uD0DD",
+    "Choose destinations": "\uBAA9\uC801\uC9C0 \uC120\uD0DD",
+    City: "\uB3C4\uC2DC",
+    "City is required": "\uB3C4\uC2DC\uB97C \uC785\uB825\uD574 \uC8FC\uC138\uC694",
+    Close: "\uB2EB\uAE30",
+    "Close menu": "\uBA54\uB274 \uB2EB\uAE30",
+    "Close support chat": "\uACE0\uAC1D \uC9C0\uC6D0 \uCC44\uD305 \uB2EB\uAE30",
+    "Closing without confirming keeps your current route.": "\uD655\uC778 \uC5C6\uC774 \uB2EB\uC73C\uBA74 \uD604\uC7AC \uB8E8\uD2B8\uAC00 \uADF8\uB300\uB85C \uC720\uC9C0\uB3FC\uC694.",
+    Compatibility: "\uD638\uD658\uC131",
+    "Complete payment and we will start preparing your card for delivery.": "\uACB0\uC81C\uB97C \uC644\uB8CC\uD558\uBA74 \uCE74\uB4DC \uBC30\uC1A1 \uC900\uBE44\uB97C \uBC14\uB85C \uC2DC\uC791\uD560\uAC8C\uC694.",
+    "Complete payment to provision this eSIM.": "\uC774 eSIM\uC744 \uAC1C\uD1B5\uD558\uB824\uBA74 \uACB0\uC81C\uB97C \uC644\uB8CC\uD574 \uC8FC\uC138\uC694.",
+    "Complete payment to unlock your eSIM install details.": "eSIM \uC124\uCE58 \uC815\uBCF4\uB97C \uD655\uC778\uD558\uB824\uBA74 \uACB0\uC81C\uB97C \uC644\uB8CC\uD574 \uC8FC\uC138\uC694.",
+    Completed: "\uC644\uB8CC\uB428",
+    "Confirmation code": "\uD655\uC778 \uCF54\uB4DC",
+    Connection: "\uC5F0\uACB0",
+    "Connects to the BOKMOO app over Bluetooth": "Bluetooth\uB85C BOKMOO \uC571\uACFC \uC5F0\uACB0\uB3FC\uC694",
+    "Contact Information": "\uC5F0\uB77D\uCC98 \uC815\uBCF4",
+    "Contact Support": "\uACE0\uAC1D \uC9C0\uC6D0 \uBB38\uC758",
+    "Continue browsing": "\uACC4\uC18D \uB458\uB7EC\uBCF4\uAE30",
+    "Continue to Payment": "\uACB0\uC81C\uD558\uAE30",
+    Copy: "\uBCF5\uC0AC",
+    "Copy activation code": "\uD65C\uC131\uD654 \uCF54\uB4DC \uBCF5\uC0AC",
+    "Copy email": "\uC774\uBA54\uC77C \uBCF5\uC0AC",
+    "Copy order reference": "\uC8FC\uBB38 \uBC88\uD638 \uBCF5\uC0AC",
+    Countries: "\uAD6D\uAC00",
+    Country: "\uAD6D\uAC00",
+    "Country (e.g. CN)": "\uAD6D\uAC00 (\uC608: CN)",
+    "Country is required": "\uAD6D\uAC00\uB97C \uC785\uB825\uD574 \uC8FC\uC138\uC694",
+    Coverage: "\uCEE4\uBC84\uB9AC\uC9C0",
+    "Coverage detail by stop": "\uACBD\uC720\uC9C0\uBCC4 \uCEE4\uBC84\uB9AC\uC9C0 \uC0C1\uC138",
+    Covers: "\uCEE4\uBC84 \uBC94\uC704",
+    Currency: "\uD1B5\uD654",
+    Current: "\uD604\uC7AC",
+    Data: "\uB370\uC774\uD130",
+    "Date of Birth": "\uC0DD\uB144\uC6D4\uC77C",
+    Days: "\uC77C\uC218",
+    Default: "\uAE30\uBCF8",
+    Delete: "\uC0AD\uC81C",
+    Delivered: "\uBC30\uC1A1 \uC644\uB8CC",
+    Delivery: "\uBC30\uC1A1",
+    "Delivery tracking": "\uBC30\uC1A1 \uC870\uD68C",
+    "Deselect all": "\uC804\uCCB4 \uC120\uD0DD \uD574\uC81C",
+    "Destination eSIM": "\uBAA9\uC801\uC9C0 eSIM",
+    "Destination search": "\uBAA9\uC801\uC9C0 \uAC80\uC0C9",
+    Destinations: "\uBAA9\uC801\uC9C0",
+    Discount: "\uD560\uC778",
+    "Download APK directly": "APK \uBC14\uB85C \uB2E4\uC6B4\uB85C\uB4DC",
+    "Download on the App Store": "App Store\uC5D0\uC11C \uB2E4\uC6B4\uB85C\uB4DC",
+    Edit: "\uD3B8\uC9D1",
+    Editable: "\uD3B8\uC9D1 \uAC00\uB2A5",
+    "Email Address": "\uC774\uBA54\uC77C \uC8FC\uC18C",
+    "Email is required": "\uC774\uBA54\uC77C\uC744 \uC785\uB825\uD574 \uC8FC\uC138\uC694",
+    English: "\uC601\uC5B4",
+    "Enter Code": "\uCF54\uB4DC \uC785\uB825",
+    "Enter your email": "\uC774\uBA54\uC77C \uC785\uB825",
+    Europe: "\uC720\uB7FD",
+    "Every purchase stays readable after checkout.": "\uACB0\uC81C \uD6C4\uC5D0\uB3C4 \uBAA8\uB4E0 \uAD6C\uB9E4 \uB0B4\uC6A9\uC744 \uACC4\uC18D \uD655\uC778\uD560 \uC218 \uC788\uC5B4\uC694.",
+    "Example route shown \u2014 your route starts empty below.": "\uC608\uC2DC \uB8E8\uD2B8\uAC00 \uD45C\uC2DC\uB3FC\uC694. \uC544\uB798\uC5D0\uC11C \uB0B4 \uB8E8\uD2B8\uB294 \uBE48 \uC0C1\uD0DC\uB85C \uC2DC\uC791\uB3FC\uC694.",
+    Expires: "\uB9CC\uB8CC\uC77C",
+    "Explore Now": "\uC9C0\uAE08 \uB458\uB7EC\uBCF4\uAE30",
+    "Explore a Better Night": "\uB354 \uD2B9\uBCC4\uD55C \uBC24\uC744 \uACBD\uD5D8\uD574 \uBCF4\uC138\uC694",
+    "Explore destination-ready profiles, regional bundles, and premium data options with the clarity of a product catalog.": "\uBAA9\uC801\uC9C0\uBCC4 \uD504\uB85C\uD544, \uC9C0\uC5ED \uBC88\uB4E4, \uD504\uB9AC\uBBF8\uC5C4 \uB370\uC774\uD130 \uC635\uC158\uC744 \uCE74\uD0C8\uB85C\uADF8\uCC98\uB7FC \uD55C\uB208\uC5D0 \uBA85\uD655\uD558\uAC8C \uB458\uB7EC\uBCF4\uC138\uC694.",
+    Failed: "\uC2E4\uD328",
+    "Fewer days": "\uC77C\uC218 \uC904\uC774\uAE30",
+    "First name": "\uC774\uB984",
+    "First name is required": "\uC774\uB984\uC744 \uC785\uB825\uD574 \uC8FC\uC138\uC694",
+    "Flexible data": "\uC720\uC5F0\uD55C \uB370\uC774\uD130",
+    "Flexible validity": "\uC720\uC5F0\uD55C \uC720\uD6A8\uAE30\uAC04",
+    "Flexible validity & top-ups": "\uC720\uC5F0\uD55C \uC720\uD6A8\uAE30\uAC04 \uBC0F \uCDA9\uC804",
+    "For a new device \u2014 a fresh QR code is issued after payment.": "\uC0C8 \uAE30\uAE30\uC5D0 \uC124\uCE58\uD560 \uB54C \uC120\uD0DD\uD558\uC138\uC694. \uACB0\uC81C \uD6C4 \uC0C8 QR \uCF54\uB4DC\uAC00 \uBC1C\uAE09\uB3FC\uC694.",
+    France: "\uD504\uB791\uC2A4",
+    Fulfilled: "\uC900\uBE44 \uC644\uB8CC",
+    "Full name": "\uC804\uCCB4 \uC774\uB984",
+    "Full refund if not activated": "\uD65C\uC131\uD654 \uC804\uAE4C\uC9C0 \uC804\uC561 \uD658\uBD88",
+    "General Notes": "\uC77C\uBC18 \uC548\uB0B4",
+    Germany: "\uB3C5\uC77C",
+    "Get BOKMOO": "BOKMOO \uC774\uC6A9\uD558\uAE30",
+    "Get Started": "\uC2DC\uC791\uD558\uAE30",
+    "Get it on Google Play": "Google Play\uC5D0\uC11C \uB2E4\uC6B4\uB85C\uB4DC",
+    Global: "\uAE00\uB85C\uBC8C",
+    "Global plan": "\uAE00\uB85C\uBC8C \uC694\uAE08\uC81C",
+    "Greater China": "\uB300\uC911\uD654\uAD8C",
+    "Happy Users": "\uB9CC\uC871\uD55C \uC774\uC6A9\uC790",
+    "Have a redemption code? Enter it to add an eSIM plan or subscription to your account.": "\uAD50\uD658 \uCF54\uB4DC\uAC00 \uC788\uB098\uC694? \uCF54\uB4DC\uB97C \uC785\uB825\uD558\uBA74 eSIM \uC694\uAE08\uC81C\uB098 \uAD6C\uB3C5\uC744 \uACC4\uC815\uC5D0 \uCD94\uAC00\uD560 \uC218 \uC788\uC5B4\uC694.",
+    "Have a referral code from a creator? Enter it \u2014 your discount is applied to the order total at payment.": "\uD06C\uB9AC\uC5D0\uC774\uD130\uC5D0\uAC8C \uBC1B\uC740 \uCD94\uCC9C \uCF54\uB4DC\uAC00 \uC788\uB098\uC694? \uCF54\uB4DC\uB97C \uC785\uB825\uD558\uBA74 \uACB0\uC81C \uC2DC \uC8FC\uBB38 \uCD1D\uC561\uC5D0\uC11C \uD560\uC778\uC774 \uC801\uC6A9\uB3FC\uC694.",
+    Help: "\uB3C4\uC6C0\uB9D0",
+    "Help Center": "\uB3C4\uC6C0\uB9D0 \uC13C\uD130",
+    "Hide other plans": "\uB2E4\uB978 \uC694\uAE08\uC81C \uC228\uAE30\uAE30",
+    "High-speed 4G/5G data": "\uACE0\uC18D 4G/5G \uB370\uC774\uD130",
+    Home: "\uD648",
+    "Hong Kong": "\uD64D\uCF69",
+    "Hong Kong & Macao": "\uD64D\uCF69\xB7\uB9C8\uCE74\uC624",
+    "Hotspot sharing": "\uD56B\uC2A4\uD31F \uACF5\uC720",
+    "Hotspot supported": "\uD56B\uC2A4\uD31F \uC9C0\uC6D0",
+    "How eSIM works": "eSIM \uC791\uB3D9 \uBC29\uC2DD",
+    "How to install eSIM": "eSIM \uC124\uCE58 \uBC29\uBC95",
+    Indonesia: "\uC778\uB3C4\uB124\uC2DC\uC544",
+    "Install from Google Play, or download the APK directly if Play is unavailable on your device.": "Google Play\uC5D0\uC11C \uC124\uCE58\uD558\uAC70\uB098, \uAE30\uAE30\uC5D0\uC11C Play\uB97C \uC774\uC6A9\uD560 \uC218 \uC5C6\uB2E4\uBA74 APK\uB97C \uBC14\uB85C \uB2E4\uC6B4\uB85C\uB4DC\uD558\uC138\uC694.",
+    "Install in seconds via QR": "QR \uCF54\uB4DC\uB85C \uBA87 \uCD08 \uB9CC\uC5D0 \uC124\uCE58",
+    "Install this eSIM": "\uC774 eSIM \uC124\uCE58\uD558\uAE30",
+    "Install your eSIM": "eSIM \uC124\uCE58\uD558\uAE30",
+    "Instant QR delivery \xB7 Refundable before activation": "QR \uCF54\uB4DC \uC989\uC2DC \uBC1C\uAE09 \xB7 \uD65C\uC131\uD654 \uC804 \uD658\uBD88 \uAC00\uB2A5",
+    "Instant QR or eSIM profile delivery": "QR \uCF54\uB4DC \uB610\uB294 eSIM \uD504\uB85C\uD544 \uC989\uC2DC \uBC1C\uAE09",
+    "Instant delivery via eSIM": "eSIM\uC73C\uB85C \uC989\uC2DC \uBC1C\uAE09",
+    "Instant eSIM delivery": "eSIM \uC989\uC2DC \uBC1C\uAE09",
+    "Instant eSIM delivery after payment": "\uACB0\uC81C \uD6C4 eSIM \uC989\uC2DC \uBC1C\uAE09",
+    "Instant eSIM delivery with activation instructions included.": "\uD65C\uC131\uD654 \uC548\uB0B4\uC640 \uD568\uAED8 eSIM\uC744 \uC989\uC2DC \uBC1C\uAE09\uD574 \uB4DC\uB824\uC694.",
+    "Instant via QR": "QR \uCF54\uB4DC\uB85C \uC989\uC2DC \uBC1C\uAE09",
+    "Invalid email address": "\uC62C\uBC14\uB978 \uC774\uBA54\uC77C \uC8FC\uC18C\uB97C \uC785\uB825\uD574 \uC8FC\uC138\uC694",
+    "Is hotspot sharing supported?": "\uD56B\uC2A4\uD31F \uACF5\uC720\uAC00 \uC9C0\uC6D0\uB418\uB098\uC694?",
+    Italy: "\uC774\uD0C8\uB9AC\uC544",
+    "Item delivery": "\uC0C1\uD488 \uC81C\uACF5 \uBC29\uC2DD",
+    Itinerary: "\uC5EC\uC815",
+    Japan: "\uC77C\uBCF8",
+    "Japan & Korea": "\uC77C\uBCF8\xB7\uD55C\uAD6D",
+    "Keep a copy of any sensitive credentials in your own password manager or secure notes after claiming the order.": "\uC8FC\uBB38\uC744 \uC218\uB839\uD55C \uD6C4\uC5D0\uB294 \uBBFC\uAC10\uD55C \uC778\uC99D \uC815\uBCF4\uB97C \uBCF8\uC778\uC758 \uBE44\uBC00\uBC88\uD638 \uAD00\uB9AC\uC790\uB098 \uBCF4\uC548 \uBA54\uBAA8\uC5D0 \uBCC4\uB3C4\uB85C \uBCF4\uAD00\uD574 \uC8FC\uC138\uC694.",
+    "Keep it safe": "\uC548\uC804\uD558\uAC8C \uBCF4\uAD00\uD558\uC138\uC694",
+    "Keep status, delivery details, and activation notes visible after checkout.": "\uACB0\uC81C \uD6C4\uC5D0\uB3C4 \uC0C1\uD0DC, \uBC30\uC1A1 \uC815\uBCF4, \uD65C\uC131\uD654 \uC548\uB0B4\uB97C \uACC4\uC18D \uD655\uC778\uD560 \uC218 \uC788\uC5B4\uC694.",
+    "Keep your primary SIM in place": "\uAE30\uC874 SIM \uCE74\uB4DC\uB294 \uADF8\uB300\uB85C \uB450\uC138\uC694",
+    "LPA string": "LPA \uBB38\uC790\uC5F4",
+    Language: "\uC5B8\uC5B4",
+    "Last name": "\uC131",
+    "Learn the basics": "\uAE30\uBCF8 \uB0B4\uC6A9 \uC54C\uC544\uBCF4\uAE30",
+    "Loading profile...": "\uD504\uB85C\uD544 \uBD88\uB7EC\uC624\uB294 \uC911...",
+    "Loading\u2026": "\uBD88\uB7EC\uC624\uB294 \uC911\u2026",
+    Local: "\uB85C\uCEEC",
+    "Log In": "\uB85C\uADF8\uC778",
+    "Log Out": "\uB85C\uADF8\uC544\uC6C3",
+    Macao: "\uB9C8\uCE74\uC624",
+    "Mainland China": "\uC911\uAD6D \uBCF8\uD1A0",
+    Malaysia: "\uB9D0\uB808\uC774\uC2DC\uC544",
+    "Manage multiple eSIM profiles over Bluetooth": "Bluetooth\uB85C \uC5EC\uB7EC eSIM \uD504\uB85C\uD544 \uAD00\uB9AC",
+    "Manage your plan": "\uC694\uAE08\uC81C \uAD00\uB9AC",
+    Management: "\uAD00\uB9AC",
+    "Maps & chat": "\uC9C0\uB3C4 \uBC0F \uCC44\uD305",
+    "Matching ID": "\uB9E4\uCE6D ID",
+    Member: "\uBA64\uBC84",
+    "Member Since": "\uAC00\uC785\uC77C",
+    "Member since": "\uAC00\uC785\uC77C",
+    Menu: "\uBA54\uB274",
+    "Message could not be delivered. Please try again shortly.": "\uBA54\uC2DC\uC9C0\uB97C \uBCF4\uB0B4\uC9C0 \uBABB\uD588\uC5B4\uC694. \uC7A0\uC2DC \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD574 \uC8FC\uC138\uC694.",
+    "More days": "\uC77C\uC218 \uB298\uB9AC\uAE30",
+    "Most plans start on first connection. Plans that start at purchase or install say so explicitly, and the planner counts pre-trip time for them.": "\uB300\uBD80\uBD84\uC758 \uC694\uAE08\uC81C\uB294 \uCCAB \uC5F0\uACB0 \uC2DC\uC810\uC5D0 \uC720\uD6A8\uAE30\uAC04\uC774 \uC2DC\uC791\uB3FC\uC694. \uAD6C\uB9E4\uB098 \uC124\uCE58 \uC2DC\uC810\uC5D0 \uC2DC\uC791\uB418\uB294 \uC694\uAE08\uC81C\uB294 \uB530\uB85C \uC548\uB0B4\uB418\uBA70, \uC774\uB7F0 \uC694\uAE08\uC81C\uB294 \uD50C\uB798\uB108\uAC00 \uCD9C\uBC1C \uC804 \uC2DC\uAC04\uB3C4 \uACC4\uC0B0\uC5D0 \uD3EC\uD568\uD574\uC694.",
+    "Move down": "\uC544\uB798\uB85C \uC774\uB3D9",
+    "Move up": "\uC704\uB85C \uC774\uB3D9",
+    "Multi-country": "\uB2E4\uAD6D\uAC00",
+    "Multiple countries, one purchase, a simpler trip. Pick your route and we verify which single eSIM covers all of it.": "\uC5EC\uB7EC \uAD6D\uAC00\uB3C4 \uD55C \uBC88\uC758 \uAD6C\uB9E4\uB85C \uB354 \uAC04\uD3B8\uD55C \uC5EC\uD589\uC774 \uB3FC\uC694. \uB8E8\uD2B8\uB97C \uACE0\uB974\uBA74 \uC804\uCCB4\uB97C \uCEE4\uBC84\uD558\uB294 \uB2E8\uC77C eSIM\uC774 \uBB34\uC5C7\uC778\uC9C0 \uD655\uC778\uD574 \uB4DC\uB824\uC694.",
+    "My Account": "\uB0B4 \uACC4\uC815",
+    "My Addresses": "\uB0B4 \uC8FC\uC18C",
+    "My Trips": "\uB0B4 \uC5EC\uD589",
+    "My eSIMs": "\uB0B4 eSIM",
+    Name: "\uC774\uB984",
+    "Need Help?": "\uB3C4\uC6C0\uC774 \uD544\uC694\uD55C\uAC00\uC694?",
+    "Needed once per phone \u2014 the package is already on the eSIM and activates right after install.": "\uC124\uCE58\uB294 \uD734\uB300\uD3F0\uB2F9 \uD55C \uBC88\uC774\uBA74 \uB3FC\uC694. \uD328\uD0A4\uC9C0\uB294 \uC774\uBBF8 eSIM\uC5D0 \uB2F4\uACA8 \uC788\uC5B4 \uC124\uCE58 \uC9C1\uD6C4 \uBC14\uB85C \uD65C\uC131\uD654\uB3FC\uC694.",
+    Network: "\uB124\uD2B8\uC6CC\uD06C",
+    "New eSIM (new QR code)": "\uC0C8 eSIM (\uC0C8 QR \uCF54\uB4DC)",
+    Newest: "\uCD5C\uC2E0\uC21C",
+    Next: "\uB2E4\uC74C",
+    "No destination found. Clear the search to browse all.": "\uBAA9\uC801\uC9C0\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC5B4\uC694. \uAC80\uC0C9\uC5B4\uB97C \uC9C0\uC6B0\uBA74 \uC804\uCCB4\uB97C \uBCFC \uC218 \uC788\uC5B4\uC694.",
+    "No matching plan yet": "\uC544\uC9C1 \uC77C\uCE58\uD558\uB294 \uC694\uAE08\uC81C\uAC00 \uC5C6\uC5B4\uC694",
+    "No physical SIM swap": "\uBB3C\uB9AC\uC801 SIM \uCE74\uB4DC \uAD50\uCCB4 \uBD88\uD544\uC694",
+    "No plans matched the current search.": "\uD604\uC7AC \uAC80\uC0C9\uC5D0 \uC77C\uCE58\uD558\uB294 \uC694\uAE08\uC81C\uAC00 \uC5C6\uC5B4\uC694.",
+    "No plans yet": "\uC544\uC9C1 \uC694\uAE08\uC81C\uAC00 \uC5C6\uC5B4\uC694",
+    "No roaming charges": "\uB85C\uBC0D \uC694\uAE08 \uC5C6\uC74C",
+    "No saved addresses yet.": "\uC544\uC9C1 \uC800\uC7A5\uB41C \uC8FC\uC18C\uAC00 \uC5C6\uC5B4\uC694.",
+    "No shipping required": "\uBC30\uC1A1 \uBD88\uD544\uC694",
+    "No single plan covers the trip": "\uC5EC\uD589 \uC804\uCCB4\uB97C \uCEE4\uBC84\uD558\uB294 \uB2E8\uC77C \uC694\uAE08\uC81C\uAC00 \uC5C6\uC5B4\uC694",
+    "No stops yet \u2014 add your first destination.": "\uC544\uC9C1 \uACBD\uC720\uC9C0\uAC00 \uC5C6\uC5B4\uC694. \uCCAB \uBAA9\uC801\uC9C0\uB97C \uCD94\uAC00\uD574 \uBCF4\uC138\uC694.",
+    "No travel orders yet.": "\uC544\uC9C1 \uC5EC\uD589 \uC8FC\uBB38\uC774 \uC5C6\uC5B4\uC694.",
+    "Not set": "\uBBF8\uC124\uC815",
+    Notes: "\uBA54\uBAA8",
+    "Official BOKMOO product": "BOKMOO \uACF5\uC2DD \uC81C\uD488",
+    "On first connection": "\uCCAB \uC5F0\uACB0 \uC2DC",
+    "One code, seamless roaming": "\uCF54\uB4DC \uD558\uB098\uB85C \uB04A\uAE40 \uC5C6\uB294 \uB85C\uBC0D",
+    "One trip,": "\uC5EC\uD589 \uD558\uB098,",
+    "One-tap install (Android)": "\uC6D0\uD0ED \uC124\uCE58 (Android)",
+    Open: "\uC5F4\uAE30",
+    "Open menu": "\uBA54\uB274 \uC5F4\uAE30",
+    "Open order": "\uC8FC\uBB38 \uBCF4\uAE30",
+    Order: "\uC8FC\uBB38",
+    "Order History": "\uC8FC\uBB38 \uB0B4\uC5ED",
+    "Order Summary": "\uC8FC\uBB38 \uC694\uC57D",
+    "Order archive": "\uC9C0\uB09C \uC8FC\uBB38",
+    "Order not found": "\uC8FC\uBB38\uC744 \uCC3E\uC744 \uC218 \uC5C6\uC5B4\uC694",
+    "Order reference": "\uC8FC\uBB38 \uBC88\uD638",
+    "Order total": "\uC8FC\uBB38 \uCD1D\uC561",
+    Orders: "\uC8FC\uBB38",
+    "Our mission is to make connectivity simple, affordable, and reliable anywhere in the world.": "\uC5B4\uB514\uC5D0\uC11C\uB098 \uC5F0\uACB0\uC744 \uAC04\uD3B8\uD558\uACE0 \uD569\uB9AC\uC801\uC774\uBA70 \uC548\uC815\uC801\uC73C\uB85C \uB9CC\uB4DC\uB294 \uAC83\uC774 \uC800\uD76C\uC758 \uBBF8\uC158\uC774\uC5D0\uC694.",
+    "Our support team is here for you.": "\uACE0\uAC1D \uC9C0\uC6D0\uD300\uC774 \uC5B8\uC81C\uB098 \uACC1\uC5D0 \uC788\uC5B4\uC694.",
+    Page: "\uD398\uC774\uC9C0",
+    Paid: "\uACB0\uC81C \uC644\uB8CC",
+    Payment: "\uACB0\uC81C",
+    "Payment Method": "\uACB0\uC81C \uC218\uB2E8",
+    "Payment pending": "\uACB0\uC81C \uB300\uAE30 \uC911",
+    "Payment successful!": "\uACB0\uC81C\uAC00 \uC644\uB8CC\uB418\uC5C8\uC5B4\uC694!",
+    Pending: "\uB300\uAE30 \uC911",
+    "Pending payment": "\uACB0\uC81C \uB300\uAE30",
+    "Per plan terms": "\uC694\uAE08\uC81C \uC57D\uAD00\uC5D0 \uB530\uB984",
+    Philippines: "\uD544\uB9AC\uD540",
+    Phone: "\uC804\uD654\uBC88\uD638",
+    "Phone Number": "\uC804\uD654\uBC88\uD638",
+    "Phone number": "\uC804\uD654\uBC88\uD638",
+    "Phone number is required": "\uC804\uD654\uBC88\uD638\uB97C \uC785\uB825\uD574 \uC8FC\uC138\uC694",
+    "Physical Bluetooth card \u2014 manage multiple eSIM profiles with the BOKMOO app": "Bluetooth \uC2E4\uBB3C \uCE74\uB4DC \u2014 BOKMOO \uC571\uC73C\uB85C \uC5EC\uB7EC eSIM \uD504\uB85C\uD544\uC744 \uAD00\uB9AC\uD558\uC138\uC694",
+    "Physical card": "\uC2E4\uBB3C \uCE74\uB4DC",
+    "Physical card \u2014 works with the BOKMOO app": "\uC2E4\uBB3C \uCE74\uB4DC \u2014 BOKMOO \uC571\uACFC \uD568\uAED8 \uC0AC\uC6A9\uD560 \uC218 \uC788\uC5B4\uC694",
+    "Physical eSIM card": "eSIM \uC2E4\uBB3C \uCE74\uB4DC",
+    "Pick where you are going and for how long \u2014 we check which single eSIM covers the whole trip.": "\uC5EC\uD589\uC9C0\uC640 \uAE30\uAC04\uB9CC \uC815\uD558\uBA74 \uC804\uCCB4 \uC5EC\uD589\uC744 \uCEE4\uBC84\uD558\uB294 \uB2E8\uC77C eSIM\uC744 \uD655\uC778\uD574 \uB4DC\uB824\uC694.",
+    Placed: "\uC8FC\uBB38 \uC811\uC218",
+    "Plan collection": "\uC694\uAE08\uC81C \uBAA8\uC74C",
+    "Plan not found": "\uC694\uAE08\uC81C\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC5B4\uC694",
+    "Plan validity is shorter than the trip span.": "\uC694\uAE08\uC81C\uC758 \uC720\uD6A8\uAE30\uAC04\uC774 \uC5EC\uD589 \uAE30\uAC04\uBCF4\uB2E4 \uC9E7\uC544\uC694.",
+    "Plans are temporarily unavailable for quoting.": "\uC77C\uC2DC\uC801\uC73C\uB85C \uC694\uAE08\uC81C \uACAC\uC801\uC744 \uC81C\uACF5\uD560 \uC218 \uC5C6\uC5B4\uC694.",
+    "Plans are unavailable right now.": "\uD604\uC7AC \uC694\uAE08\uC81C\uB97C \uBD88\uB7EC\uC62C \uC218 \uC5C6\uC5B4\uC694.",
+    "Plans confirm hotspot support explicitly; require it in Usage settings and the planner only recommends plans that confirm it.": "\uC694\uAE08\uC81C\uB9C8\uB2E4 \uD56B\uC2A4\uD31F \uC9C0\uC6D0 \uC5EC\uBD80\uAC00 \uBA85\uC2DC\uB418\uC5B4 \uC788\uC5B4\uC694. \uC0AC\uC6A9 \uC124\uC815\uC5D0\uC11C \uD56B\uC2A4\uD31F \uACF5\uC720\uB97C \uD544\uC218\uB85C \uC9C0\uC815\uD558\uBA74 \uD50C\uB798\uB108\uAC00 \uC774\uB97C \uC9C0\uC6D0\uD55C\uB2E4\uACE0 \uBA85\uC2DC\uD55C \uC694\uAE08\uC81C\uB9CC \uCD94\uCC9C\uD574\uC694.",
+    "Plans unused before activation are refundable per the plan terms shown before checkout.": "\uD65C\uC131\uD654\uD558\uAE30 \uC804 \uC0AC\uC6A9\uD558\uC9C0 \uC54A\uC740 \uC694\uAE08\uC81C\uB294 \uACB0\uC81C \uC804\uC5D0 \uC548\uB0B4\uB41C \uC694\uAE08\uC81C \uC57D\uAD00\uC5D0 \uB530\uB77C \uD658\uBD88\uBC1B\uC744 \uC218 \uC788\uC5B4\uC694.",
+    "Plans you buy are added to these profiles \u2014 no new QR code, no reinstall.": "\uAD6C\uB9E4\uD55C \uC694\uAE08\uC81C\uB294 \uC774 \uD504\uB85C\uD544\uC5D0 \uCD94\uAC00\uB3FC\uC694. \uC0C8 QR \uCF54\uB4DC\uB3C4, \uC7AC\uC124\uCE58\uB3C4 \uD544\uC694 \uC5C6\uC5B4\uC694.",
+    "Please log in to check your BOKMOO account": "BOKMOO \uACC4\uC815\uC744 \uD655\uC778\uD558\uB824\uBA74 \uB85C\uADF8\uC778\uD574 \uC8FC\uC138\uC694",
+    Popular: "\uC778\uAE30",
+    "Popular Topics": "\uC778\uAE30 \uC8FC\uC81C",
+    "Popular destinations": "\uC778\uAE30 \uBAA9\uC801\uC9C0",
+    "Postal code": "\uC6B0\uD3B8\uBC88\uD638",
+    "Postal code is required": "\uC6B0\uD3B8\uBC88\uD638\uB97C \uC785\uB825\uD574 \uC8FC\uC138\uC694",
+    "Premium club experiences around the world.": "\uC804 \uC138\uACC4 \uD504\uB9AC\uBBF8\uC5C4 \uD074\uB7FD \uACBD\uD5D8\uC744 \uB9CC\uB098 \uBCF4\uC138\uC694.",
+    "Preparing your eSIM\u2026": "eSIM\uC744 \uC900\uBE44\uD558\uACE0 \uC788\uC5B4\uC694\u2026",
+    Previous: "\uC774\uC804",
+    Price: "\uAC00\uACA9",
+    "Priority local network": "\uC6B0\uC120\uC21C\uC704 \uB85C\uCEEC \uB124\uD2B8\uC6CC\uD06C",
+    Privacy: "\uAC1C\uC778\uC815\uBCF4",
+    "Privacy Policy": "\uAC1C\uC778\uC815\uBCF4 \uCC98\uB9AC\uBC29\uCE68",
+    Processing: "\uCC98\uB9AC \uC911",
+    "Processing\u2026": "\uCC98\uB9AC \uC911\u2026",
+    Products: "\uC0C1\uD488",
+    "Promo / referral code": "\uD504\uB85C\uBAA8 / \uCD94\uCC9C \uCF54\uB4DC",
+    "Provisioned automatically \u2014 your install details are shown above.": "\uC790\uB3D9\uC73C\uB85C \uAC1C\uD1B5\uB418\uC5C8\uC5B4\uC694. \uC124\uCE58 \uC815\uBCF4\uB294 \uC704\uC5D0 \uD45C\uC2DC\uB418\uC5B4 \uC788\uC5B4\uC694.",
+    Provisioning: "\uAC1C\uD1B5",
+    "Provisioning failed \u2014 our support team has been notified and will follow up.": "\uAC1C\uD1B5\uC5D0 \uC2E4\uD328\uD588\uC5B4\uC694. \uACE0\uAC1D \uC9C0\uC6D0\uD300\uC5D0 \uC54C\uB9BC\uC774 \uC804\uB2EC\uB418\uC5C8\uC73C\uBA70, \uACE7 \uC5F0\uB77D\uB4DC\uB9B4\uAC8C\uC694.",
+    "Provisioning in progress \u2014 this page updates when the package is ready.": "\uAC1C\uD1B5\uC744 \uC9C4\uD589\uD558\uACE0 \uC788\uC5B4\uC694. \uD328\uD0A4\uC9C0\uAC00 \uC900\uBE44\uB418\uBA74 \uC774 \uD398\uC774\uC9C0\uAC00 \uC790\uB3D9\uC73C\uB85C \uC5C5\uB370\uC774\uD2B8\uB3FC\uC694.",
+    "Provisioning needs attention": "\uAC1C\uD1B5 \uD655\uC778 \uD544\uC694",
+    "QR payload ready": "QR \uCF54\uB4DC \uB370\uC774\uD130 \uC900\uBE44 \uC644\uB8CC",
+    Qty: "\uC218\uB7C9",
+    Quantity: "\uC218\uB7C9",
+    "Questions, answered": "\uC9C8\uBB38\uACFC \uB2F5\uBCC0",
+    "Quick Facts": "\uD575\uC2EC \uC815\uBCF4",
+    "Ready to install": "\uC124\uCE58 \uC900\uBE44 \uC644\uB8CC",
+    Redeem: "\uAD50\uD658",
+    "Redeem a Code": "\uCF54\uB4DC \uAD50\uD658",
+    "Redeeming\u2026": "\uAD50\uD658\uD558\uB294 \uC911\u2026",
+    "Redemption failed. Please try again later.": "\uAD50\uD658\uC5D0 \uC2E4\uD328\uD588\uC5B4\uC694. \uC7A0\uC2DC \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD574 \uC8FC\uC138\uC694.",
+    "Redemption is temporarily unavailable. Please try again later.": "\uC77C\uC2DC\uC801\uC73C\uB85C \uCF54\uB4DC \uAD50\uD658\uC744 \uC774\uC6A9\uD560 \uC218 \uC5C6\uC5B4\uC694. \uC7A0\uC2DC \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD574 \uC8FC\uC138\uC694.",
+    "Refresh status": "\uC0C1\uD0DC \uC0C8\uB85C\uACE0\uCE68",
+    Refunded: "\uD658\uBD88\uB428",
+    Regional: "\uC9C0\uC5ED",
+    Remove: "\uC81C\uAC70",
+    "Remove stop": "\uACBD\uC720\uC9C0 \uC81C\uAC70",
+    "Reorder stop": "\uACBD\uC720\uC9C0 \uC21C\uC11C \uBCC0\uACBD",
+    "Replace destination": "\uBAA9\uC801\uC9C0 \uBCC0\uACBD",
+    "Replace this stop": "\uC774 \uACBD\uC720\uC9C0 \uBCC0\uACBD",
+    "Required hotspot sharing is not confirmed on current plans.": "\uD604\uC7AC \uC694\uAE08\uC81C \uC911 \uD544\uC218 \uD56B\uC2A4\uD31F \uACF5\uC720 \uC9C0\uC6D0\uC774 \uD655\uC778\uB41C \uC694\uAE08\uC81C\uAC00 \uC5C6\uC5B4\uC694.",
+    "Requires iOS 15 or later. Activates BOKMOO cards over Bluetooth.": "iOS 15 \uC774\uC0C1\uC774 \uD544\uC694\uD574\uC694. Bluetooth\uB85C BOKMOO \uCE74\uB4DC\uB97C \uD65C\uC131\uD654\uD574\uC694.",
+    Retry: "\uB2E4\uC2DC \uC2DC\uB3C4",
+    "Reusing your eSIM avoids a new QR code \u2014 the plan is added to the profile you already installed.": "\uAE30\uC874 eSIM\uC744 \uC7AC\uC0AC\uC6A9\uD558\uBA74 \uC0C8 QR \uCF54\uB4DC\uAC00 \uD544\uC694 \uC5C6\uC5B4\uC694. \uC694\uAE08\uC81C\uB294 \uC774\uBBF8 \uC124\uCE58\uD55C \uD504\uB85C\uD544\uC5D0 \uCD94\uAC00\uB3FC\uC694.",
+    "Review destinations": "\uBAA9\uC801\uC9C0 \uD655\uC778",
+    "Review your selected plans.": "\uC120\uD0DD\uD55C \uC694\uAE08\uC81C\uB97C \uD655\uC778\uD574 \uC8FC\uC138\uC694.",
+    "Route Planner": "\uB8E8\uD2B8 \uD50C\uB798\uB108",
+    "Route planner": "\uB8E8\uD2B8 \uD50C\uB798\uB108",
+    "SM-DP+ address": "SM-DP+ \uC8FC\uC18C",
+    "Save address": "\uC8FC\uC18C \uC800\uC7A5",
+    "Saved addresses": "\uC800\uC7A5\uB41C \uC8FC\uC18C",
+    "Saved shipping addresses for checkout": "\uACB0\uC81C \uC2DC \uC0AC\uC6A9\uD560 \uBC30\uC1A1 \uC8FC\uC18C \uBAA9\uB85D",
+    "Scan or install manually": "\uC2A4\uCE94 \uB610\uB294 \uC218\uB3D9 \uC124\uCE58",
+    "Scan with Android": "Android\uB85C \uC2A4\uCE94",
+    "Scan with iPhone": "iPhone\uC73C\uB85C \uC2A4\uCE94",
+    "Search country, region or city (e.g. Tokyo)": "\uAD6D\uAC00, \uC9C0\uC5ED \uB610\uB294 \uB3C4\uC2DC \uAC80\uC0C9 (\uC608: \uB3C4\uCFC4)",
+    "Search destinations or bundles...": "\uBAA9\uC801\uC9C0 \uB610\uB294 \uBC88\uB4E4 \uAC80\uC0C9...",
+    "Search for help...": "\uB3C4\uC6C0\uB9D0 \uAC80\uC0C9...",
+    "Secure Checkout": "\uC548\uC804\uD55C \uACB0\uC81C",
+    "See plan": "\uC694\uAE08\uC81C \uBCF4\uAE30",
+    "Select all": "\uC804\uCCB4 \uC120\uD0DD",
+    "Selected items": "\uC120\uD0DD\uD55C \uC0C1\uD488",
+    Send: "\uBCF4\uB0B4\uAE30",
+    "Set default": "\uAE30\uBCF8\uC73C\uB85C \uC124\uC815",
+    "Set up and switch profiles in the BOKMOO app": "BOKMOO \uC571\uC5D0\uC11C \uD504\uB85C\uD544\uC744 \uC124\uC815\uD558\uACE0 \uC804\uD658\uD574 \uBCF4\uC138\uC694",
+    Settings: "\uC124\uC815",
+    Setup: "\uC124\uC815 \uBC29\uBC95",
+    Shipped: "\uBC30\uC1A1 \uC911",
+    Shipping: "\uBC30\uC1A1",
+    "Shipping needs attention": "\uBC30\uC1A1 \uD655\uC778 \uD544\uC694",
+    "Shopping Cart": "\uC7A5\uBC14\uAD6C\uB2C8",
+    "Sign In": "\uB85C\uADF8\uC778",
+    "Sign In / Manage My Cards": "\uB85C\uADF8\uC778 / \uB0B4 \uCE74\uB4DC \uAD00\uB9AC",
+    "Sign in to view your profile": "\uD504\uB85C\uD544\uC744 \uBCF4\uB824\uBA74 \uB85C\uADF8\uC778\uD574 \uC8FC\uC138\uC694",
+    Singapore: "\uC2F1\uAC00\uD3EC\uB974",
+    "Smart multi-country top-ups": "\uC2A4\uB9C8\uD2B8 \uB2E4\uAD6D\uAC00 \uCDA9\uC804",
+    "South Korea": "\uD55C\uAD6D",
+    "Southeast Asia": "\uB3D9\uB0A8\uC544\uC2DC\uC544",
+    Spain: "\uC2A4\uD398\uC778",
+    "State / Province": "\uC8FC/\uB3C4",
+    "State is required": "\uC8FC/\uB3C4\uB97C \uC785\uB825\uD574 \uC8FC\uC138\uC694",
+    "Stay connected in major cities and more": "\uC8FC\uC694 \uB3C4\uC2DC\uB97C \uBE44\uB86F\uD55C \uB2E4\uC591\uD55C \uC9C0\uC5ED\uC5D0\uC11C \uC5F0\uACB0\uC744 \uC720\uC9C0\uD574 \uBCF4\uC138\uC694",
+    "Step-by-step guide": "\uB2E8\uACC4\uBCC4 \uC548\uB0B4",
+    Store: "\uC2A4\uD1A0\uC5B4",
+    Subtotal: "\uC18C\uACC4",
+    Summary: "\uC694\uC57D",
+    Support: "\uACE0\uAC1D \uC9C0\uC6D0",
+    "Support:": "\uACE0\uAC1D \uC9C0\uC6D0:",
+    "Supported devices": "\uC9C0\uC6D0 \uAE30\uAE30",
+    TBC: "\uCD94\uD6C4 \uC548\uB0B4",
+    Taiwan: "\uB300\uB9CC",
+    Tax: "\uC138\uAE08",
+    Terms: "\uC57D\uAD00",
+    "Terms of Service": "\uC11C\uBE44\uC2A4 \uC774\uC6A9\uC57D\uAD00",
+    Thailand: "\uD0DC\uAD6D",
+    "The product tied to this code is currently unavailable. Please contact support.": "\uC774 \uCF54\uB4DC\uC5D0 \uC5F0\uACB0\uB41C \uC0C1\uD488\uC740 \uD604\uC7AC \uC774\uC6A9\uD560 \uC218 \uC5C6\uC5B4\uC694. \uACE0\uAC1D \uC9C0\uC6D0\uC5D0 \uBB38\uC758\uD574 \uC8FC\uC138\uC694.",
+    "This code has already been redeemed.": "\uC774\uBBF8 \uAD50\uD658\uB41C \uCF54\uB4DC\uC608\uC694.",
+    "This code has reached its redemption limit.": "\uC774 \uCF54\uB4DC\uB294 \uAD50\uD658 \uAC00\uB2A5 \uD69F\uC218\uAC00 \uBAA8\uB450 \uC18C\uC9C4\uB418\uC5C8\uC5B4\uC694.",
+    "This code is assigned to a different account.": "\uC774 \uCF54\uB4DC\uB294 \uB2E4\uB978 \uACC4\uC815\uC5D0 \uD560\uB2F9\uB418\uC5B4 \uC788\uC5B4\uC694.",
+    "This code is invalid or expired. Please double-check and try again.": "\uC720\uD6A8\uD558\uC9C0 \uC54A\uAC70\uB098 \uB9CC\uB8CC\uB41C \uCF54\uB4DC\uC608\uC694. \uB2E4\uC2DC \uD655\uC778\uD55C \uD6C4 \uC2DC\uB3C4\uD574 \uC8FC\uC138\uC694.",
+    "This install code has expired \u2014 contact support to reissue it.": "\uC774 \uC124\uCE58 \uCF54\uB4DC\uB294 \uB9CC\uB8CC\uB418\uC5C8\uC5B4\uC694. \uC7AC\uBC1C\uAE09\uC744 \uC704\uD574 \uACE0\uAC1D \uC9C0\uC6D0\uC5D0 \uBB38\uC758\uD574 \uC8FC\uC138\uC694.",
+    "This order is still waiting for fulfillment details. Refresh later or reopen it from the order archive.": "\uC774 \uC8FC\uBB38\uC740 \uC544\uC9C1 \uC900\uBE44 \uC815\uBCF4\uAC00 \uB4F1\uB85D\uB418\uC9C0 \uC54A\uC558\uC5B4\uC694. \uC7A0\uC2DC \uD6C4 \uC0C8\uB85C\uACE0\uCE68\uD558\uAC70\uB098 \uC9C0\uB09C \uC8FC\uBB38\uC5D0\uC11C \uB2E4\uC2DC \uC5F4\uC5B4 \uC8FC\uC138\uC694.",
+    "This plan does not confirm hotspot sharing.": "\uC774 \uC694\uAE08\uC81C\uB294 \uD56B\uC2A4\uD31F \uACF5\uC720 \uC9C0\uC6D0\uC774 \uD655\uC778\uB418\uC9C0 \uC54A\uC558\uC5B4\uC694.",
+    Timezone: "\uC2DC\uAC04\uB300",
+    "Top up & Data plans": "\uCDA9\uC804 \uBC0F \uB370\uC774\uD130 \uC694\uAE08\uC81C",
+    Total: "\uD569\uACC4",
+    "Track package": "\uBC30\uC1A1 \uC870\uD68C",
+    "Track your order": "\uC8FC\uBB38 \uBC30\uC1A1 \uC870\uD68C",
+    "Travel Cart": "\uC5EC\uD589 \uC7A5\uBC14\uAD6C\uB2C8",
+    "Travel Credits": "\uD2B8\uB798\uBE14 \uD06C\uB808\uB527",
+    "Travel bundle": "\uC5EC\uD589 \uBC88\uB4E4",
+    "Trip changed or running low mid-journey? Add a data pack without reinstalling.": "\uC5EC\uD589 \uC77C\uC815\uC774 \uBC14\uB00C\uC5C8\uAC70\uB098 \uB3C4\uC911\uC5D0 \uB370\uC774\uD130\uAC00 \uBD80\uC871\uD55C\uAC00\uC694? \uB2E4\uC2DC \uC124\uCE58\uD558\uC9C0 \uC54A\uACE0\uB3C4 \uB370\uC774\uD130 \uD329\uC744 \uCD94\uAC00\uD560 \uC218 \uC788\uC5B4\uC694.",
+    "Try Again": "\uB2E4\uC2DC \uC2DC\uB3C4",
+    "Try the example trip": "\uC608\uC2DC \uC5EC\uD589 \uC801\uC6A9\uD574 \uBCF4\uAE30",
+    Type: "\uC720\uD615",
+    "Type your message\u2026": "\uBA54\uC2DC\uC9C0 \uC785\uB825\u2026",
+    "Typing\u2026": "\uC785\uB825 \uC911\u2026",
+    "Unable to load orders.": "\uC8FC\uBB38\uC744 \uBD88\uB7EC\uC62C \uC218 \uC5C6\uC5B4\uC694.",
+    "United Arab Emirates": "\uC544\uB78D\uC5D0\uBBF8\uB9AC\uD2B8",
+    "United Kingdom": "\uC601\uAD6D",
+    "United States": "\uBBF8\uAD6D",
+    Unlimited: "\uBB34\uC81C\uD55C",
+    "Unlocked iPhone and Android devices with eSIM support": "eSIM\uC744 \uC9C0\uC6D0\uD558\uB294 \uC790\uAE09\uC81C iPhone \uBC0F Android \uAE30\uAE30",
+    "Upcoming Trips": "\uC608\uC815\uB41C \uC5EC\uD589",
+    Uptime: "\uAC00\uB3D9 \uC2DC\uAC04",
+    Usage: "\uC0AC\uC6A9",
+    "Usage mode": "\uC0AC\uC6A9 \uBAA8\uB4DC",
+    "Use my existing eSIM": "\uAE30\uC874 eSIM \uC0AC\uC6A9\uD558\uAE30",
+    Validity: "\uC720\uD6A8\uAE30\uAC04",
+    "Validity covers the whole trip": "\uC720\uD6A8\uAE30\uAC04\uC774 \uC5EC\uD589 \uC804\uCCB4\uB97C \uCEE4\uBC84\uD574\uC694",
+    "Validity to be confirmed": "\uC720\uD6A8\uAE30\uAC04 \uCD94\uD6C4 \uC548\uB0B4",
+    "Video meetings": "\uD654\uC0C1 \uD68C\uC758",
+    Vietnam: "\uBCA0\uD2B8\uB0A8",
+    "View Details": "\uC0C1\uC138 \uBCF4\uAE30",
+    "View and manage your orders": "\uC8FC\uBB38\uC744 \uD655\uC778\uD558\uACE0 \uAD00\uB9AC\uD574 \uBCF4\uC138\uC694",
+    "View coverage & plans": "\uCEE4\uBC84\uB9AC\uC9C0 \uBC0F \uC694\uAE08\uC81C \uBCF4\uAE30",
+    "View eSIM details": "eSIM \uC0C1\uC138 \uBCF4\uAE30",
+    "Visit Help Center": "\uB3C4\uC6C0\uB9D0 \uC13C\uD130 \uBC14\uB85C\uAC00\uAE30",
+    "We could not prepare your install session yet.": "\uC544\uC9C1 \uC124\uCE58 \uC138\uC158\uC744 \uC900\uBE44\uD558\uC9C0 \uBABB\uD588\uC5B4\uC694.",
+    "We could not prepare your shipment yet.": "\uC544\uC9C1 \uBC30\uC1A1 \uC900\uBE44\uB97C \uD558\uC9C0 \uBABB\uD588\uC5B4\uC694.",
+    "What if I never activate the eSIM?": "eSIM\uC744 \uD65C\uC131\uD654\uD558\uC9C0 \uC54A\uC73C\uBA74 \uC5B4\uB5BB\uAC8C \uB418\uB098\uC694?",
+    "When does validity start counting?": "\uC720\uD6A8\uAE30\uAC04\uC740 \uC5B8\uC81C\uBD80\uD130 \uACC4\uC0B0\uB418\uB098\uC694?",
+    "Why Bokmoo eSIM": "Bokmoo eSIM\uC744 \uC120\uD0DD\uD558\uB294 \uC774\uC720",
+    "Works with the BOKMOO app": "BOKMOO \uC571\uC5D0\uC11C \uC0AC\uC6A9\uD560 \uC218 \uC788\uC5B4\uC694",
+    "Yes. Your existing order stays valid; the planner re-checks coverage and tells you exactly which new stop needs its own plan.": "\uB124, \uAC00\uB2A5\uD574\uC694. \uAE30\uC874 \uC8FC\uBB38\uC740 \uADF8\uB300\uB85C \uC720\uD6A8\uD558\uBA70, \uD50C\uB798\uB108\uAC00 \uCEE4\uBC84\uB9AC\uC9C0\uB97C \uB2E4\uC2DC \uD655\uC778\uD574 \uC0C8\uB85C \uCD94\uAC00\uD55C \uACBD\uC720\uC9C0 \uC911 \uC5B4\uB5A4 \uACF3\uC5D0 \uBCC4\uB3C4 \uC694\uAE08\uC81C\uAC00 \uD544\uC694\uD55C\uC9C0 \uC815\uD655\uD788 \uC54C\uB824 \uB4DC\uB824\uC694.",
+    "Your BOKMOO card, in your pocket.": "\uC8FC\uBA38\uB2C8 \uC18D BOKMOO \uCE74\uB4DC.",
+    "Your activation session expired before installation completed.": "\uC124\uCE58\uB97C \uC644\uB8CC\uD558\uAE30 \uC804\uC5D0 \uD65C\uC131\uD654 \uC138\uC158\uC774 \uB9CC\uB8CC\uB418\uC5C8\uC5B4\uC694.",
+    "Your booked experiences": "\uC608\uC57D\uD55C \uCCB4\uD5D8",
+    "Your card is being prepared for shipment": "\uCE74\uB4DC \uBC30\uC1A1 \uC900\uBE44 \uC911\uC774\uC5D0\uC694",
+    "Your carrier and tracking updates appear here after dispatch.": "\uD0DD\uBC30\uC0AC\uC640 \uBC30\uC1A1 \uCD94\uC801 \uC815\uBCF4\uB294 \uBC1C\uC1A1 \uD6C4 \uC5EC\uAE30\uC5D0 \uD45C\uC2DC\uB3FC\uC694.",
+    "Your cart is empty.": "\uC7A5\uBC14\uAD6C\uB2C8\uAC00 \uBE44\uC5B4 \uC788\uC5B4\uC694.",
+    "Your eSIM is ready to install.": "eSIM\uC744 \uC124\uCE58\uD560 \uC900\uBE44\uAC00 \uB418\uC5C8\uC5B4\uC694.",
+    "Your order is paid. We are packing your Bokmoo Card now \u2014 you will get a shipping confirmation with tracking, and it should arrive within a few business days.": "\uC8FC\uBB38 \uACB0\uC81C\uAC00 \uC644\uB8CC\uB418\uC5C8\uC5B4\uC694. \uC9C0\uAE08 Bokmoo \uCE74\uB4DC\uB97C \uD3EC\uC7A5\uD558\uACE0 \uC788\uC5B4\uC694. \uCD94\uC801 \uC815\uBCF4\uAC00 \uB2F4\uAE34 \uBC30\uC1A1 \uC548\uB0B4 \uBA54\uC77C\uC744 \uBCF4\uB0B4 \uB4DC\uB9AC\uBA70, \uC601\uC5C5\uC77C \uAE30\uC900 \uBA70\uCE60 \uB0B4\uC5D0 \uBC1B\uC544\uBCFC \uC218 \uC788\uC5B4\uC694.",
+    "Your order is paid. We are preparing the install session now.": "\uC8FC\uBB38 \uACB0\uC81C\uAC00 \uC644\uB8CC\uB418\uC5C8\uC5B4\uC694. \uC9C0\uAE08 \uC124\uCE58 \uC138\uC158\uC744 \uC900\uBE44\uD558\uACE0 \uC788\uC5B4\uC694.",
+    "Your package has been added to your eSIM.": "\uD328\uD0A4\uC9C0\uAC00 eSIM\uC5D0 \uCD94\uAC00\uB418\uC5C8\uC5B4\uC694.",
+    d: "\uC77C",
+    "daily average": "\uC77C\uC77C \uD3C9\uADE0",
+    "data included": "\uD3EC\uD568 \uB370\uC774\uD130",
+    "day(s)": "\uC77C",
+    days: "\uC77C",
+    destinations: "\uBAA9\uC801\uC9C0",
+    "e.g. BOKMOO10": "\uC608: BOKMOO10",
+    "e.g. ESIM-JP-7D": "\uC608: ESIM-JP-7D",
+    eSIM: "eSIM",
+    "eSIM ICCID": "eSIM ICCID",
+    "eSIM Plans": "eSIM \uC694\uAE08\uC81C",
+    "eSIM activation": "eSIM \uD65C\uC131\uD654",
+    "eSIM plans built for every journey.": "\uBAA8\uB4E0 \uC5EC\uC815\uC744 \uC704\uD55C eSIM \uC694\uAE08\uC81C.",
+    en: "en",
+    "iPhone and Android devices": "iPhone \uBC0F Android \uAE30\uAE30",
+    "iPhone and Android devices with eSIM support": "eSIM\uC744 \uC9C0\uC6D0\uD558\uB294 iPhone \uBC0F Android \uAE30\uAE30",
+    "iPhone: point the camera at the QR code. Other phones: Settings \u2192 Network \u2192 Add eSIM.": "iPhone: \uCE74\uBA54\uB77C\uB85C QR \uCF54\uB4DC\uB97C \uC2A4\uCE94\uD558\uC138\uC694. \uADF8 \uC678 \uD734\uB300\uD3F0: \uC124\uC815 \u2192 \uB124\uD2B8\uC6CC\uD06C \u2192 eSIM \uCD94\uAC00.",
+    "instant delivery": "\uC989\uC2DC \uBC1C\uAE09",
+    "local network": "\uB85C\uCEEC \uB124\uD2B8\uC6CC\uD06C",
+    months: "\uAC1C\uC6D4",
+    "one eSIM.": "eSIM \uD558\uB098.",
+    plans: "\uC694\uAE08\uC81C",
+    selected: "\uC120\uD0DD\uB428",
+    validity: "\uC720\uD6A8\uAE30\uAC04",
+    weeks: "\uC8FC",
+    ".": ".",
+    ". All rights reserved.": ". \uBAA8\uB4E0 \uAD8C\uB9AC \uBCF4\uC720.",
+    "Acceptance of Terms": "\uC57D\uAD00 \uB3D9\uC758",
+    Active: "\uD65C\uC131",
+    Add: "\uCD94\uAC00",
+    "Affiliate data could not be loaded": "\uC81C\uD734 \uB370\uC774\uD130\uB97C \uBD88\uB7EC\uC62C \uC218 \uC5C6\uC5B4\uC694",
+    "Affiliate view": "\uC81C\uD734 \uBCF4\uAE30",
+    "Affiliate workspace": "\uC81C\uD734 \uC6CC\uD06C\uC2A4\uD398\uC774\uC2A4",
+    "All payments are final and non-refundable unless required by law.": "\uBC95\uB839\uC73C\uB85C \uC815\uD55C \uACBD\uC6B0\uB97C \uC81C\uC678\uD558\uBA74 \uBAA8\uB4E0 \uACB0\uC81C\uB294 \uD658\uBD88\uB418\uC9C0 \uC54A\uC544\uC694.",
+    "Already have an account?": "\uC774\uBBF8 \uACC4\uC815\uC774 \uC788\uB098\uC694?",
+    Approved: "\uC2B9\uC778\uB428",
+    "Authentication failed": "\uC778\uC99D\uC5D0 \uC2E4\uD328\uD588\uC5B4\uC694",
+    "BOKMOO eSIM Card": "BOKMOO eSIM \uCE74\uB4DC",
+    "BOKMOO is not liable for any indirect, incidental, or consequential damages.": "BOKMOO\uB294 \uAC04\uC811\uC801\xB7\uC6B0\uBC1C\uC801\xB7\uACB0\uACFC\uC801 \uC190\uD574\uC5D0 \uB300\uD574 \uCC45\uC784\uC744 \uC9C0\uC9C0 \uC54A\uC544\uC694.",
+    "Back home": "\uD648\uC73C\uB85C",
+    "Back to sign in": "\uB85C\uADF8\uC778\uC73C\uB85C \uB3CC\uC544\uAC00\uAE30",
+    "Better Nights": "\uB354 \uB098\uC740 \uBC24",
+    "Brighter Journeys": "\uB354 \uBC1D\uC740 \uC5EC\uC815",
+    "Browse BOKMOO plans by destination and travel region.": "\uBAA9\uC801\uC9C0\uC640 \uC5EC\uD589 \uC9C0\uC5ED\uBCC4\uB85C BOKMOO \uC694\uAE08\uC81C\uB97C \uB458\uB7EC\uBCF4\uC138\uC694.",
+    "By accessing or using the BOKMOO website and services, you agree to be bound by these Terms of Service.": "BOKMOO \uC6F9\uC0AC\uC774\uD2B8\uC640 \uC11C\uBE44\uC2A4\uC5D0 \uC811\uADFC\uD558\uAC70\uB098 \uC774\uC6A9\uD558\uBA74 \uC774 \uC11C\uBE44\uC2A4 \uC774\uC6A9\uC57D\uAD00\uC5D0 \uB3D9\uC758\uD55C \uAC83\uC73C\uB85C \uAC04\uC8FC\uB3FC\uC694.",
+    "Change password": "\uBE44\uBC00\uBC88\uD638 \uBCC0\uACBD",
+    "Commission rate": "\uCEE4\uBBF8\uC158 \uBE44\uC728",
+    "Completing sign in": "\uB85C\uADF8\uC778\uC744 \uC644\uB8CC\uD558\uB294 \uC911",
+    Confirm: "\uD655\uC778",
+    "Continue to your orders, profiles, and activation workspace.": "\uC8FC\uBB38, \uD504\uB85C\uD544, \uD65C\uC131\uD654 \uAD00\uB9AC \uD398\uC774\uC9C0\uB85C \uACC4\uC18D \uC9C4\uD589\uD574\uC694.",
+    Copied: "\uBCF5\uC0AC\uB428",
+    "Copy link": "\uB9C1\uD06C \uBCF5\uC0AC",
+    "Create account": "\uACC4\uC815 \uB9CC\uB4E4\uAE30",
+    "Create affiliate account": "\uC81C\uD734 \uACC4\uC815 \uB9CC\uB4E4\uAE30",
+    "Create organization": "\uC870\uC9C1 \uB9CC\uB4E4\uAE30",
+    "Create the account your eSIMs follow.": "\uBAA8\uB4E0 eSIM\uC774 \uB530\uB77C\uC624\uB294 \uACC4\uC815\uC744 \uB9CC\uB4E4\uC5B4 \uBCF4\uC138\uC694.",
+    Creating: "\uC0DD\uC131 \uC911\u2026",
+    "Creator network.": "\uD06C\uB9AC\uC5D0\uC774\uD130 \uB124\uD2B8\uC6CC\uD06C.",
+    "Current password": "\uD604\uC7AC \uBE44\uBC00\uBC88\uD638",
+    "Data Protection": "\uB370\uC774\uD130 \uBCF4\uD638",
+    "Default option": "\uAE30\uBCF8 \uC635\uC158",
+    "Deselect item": "\uC120\uD0DD \uCDE8\uC18C",
+    "Display name": "\uD45C\uC2DC \uC774\uB984",
+    Earned: "\uD68D\uB4DD\uC561",
+    Email: "\uC774\uBA54\uC77C",
+    Expired: "\uB9CC\uB8CC\uB428",
+    "Explore destination eSIMs": "\uBAA9\uC801\uC9C0\uBCC4 eSIM \uB458\uB7EC\uBCF4\uAE30",
+    "Forgot password": "\uBE44\uBC00\uBC88\uD638\uB97C \uC78A\uC73C\uC168\uB098\uC694?",
+    "Get help fast": "\uBE60\uB974\uAC8C \uB3C4\uC6C0 \uBC1B\uAE30",
+    "Hide password": "\uBE44\uBC00\uBC88\uD638 \uC228\uAE30\uAE30",
+    "Hover a store button (or scan the card QR) to download.": "\uC2A4\uD1A0\uC5B4 \uBC84\uD2BC\uC5D0 \uB9C8\uC6B0\uC2A4\uB97C \uC62C\uB9AC\uAC70\uB098 \uCE74\uB4DC\uC758 QR \uCF54\uB4DC\uB97C \uC2A4\uCE94\uD558\uBA74 \uB2E4\uC6B4\uB85C\uB4DC\uD560 \uC218 \uC788\uC5B4\uC694.",
+    "How We Use Information": "\uC815\uBCF4 \uC774\uC6A9 \uC548\uB0B4",
+    "How it works": "\uC774\uC6A9 \uBC29\uBC95",
+    Inactive: "\uBE44\uD65C\uC131",
+    Influencer: "\uC778\uD50C\uB8E8\uC5B8\uC11C",
+    "Information We Collect": "\uC218\uC9D1\uD558\uB294 \uC815\uBCF4",
+    "Instant QR delivery after payment": "\uACB0\uC81C \uD6C4 QR \uCF54\uB4DC \uC989\uC2DC \uBC1C\uAE09",
+    "Keep access secure between trips.": "\uC5EC\uD589 \uC0AC\uC774\uC5D0\uB3C4 \uACC4\uC815 \uC811\uADFC\uC744 \uC548\uC804\uD558\uAC8C \uC720\uC9C0\uD558\uC138\uC694.",
+    "Keep orders, activation codes, profile history, and support cases attached to one BOKMOO identity.": "\uC8FC\uBB38, \uD65C\uC131\uD654 \uCF54\uB4DC, \uD504\uB85C\uD544 \uAE30\uB85D, \uBB38\uC758 \uB0B4\uC5ED\uC744 \uD558\uB098\uC758 BOKMOO \uACC4\uC815\uC73C\uB85C \uAD00\uB9AC\uD574\uC694.",
+    "Keep your BOKMOO account ready for the next trip.": "\uB2E4\uC74C \uC5EC\uD589\uC744 \uC704\uD574 BOKMOO \uACC4\uC815\uC744 \uC900\uBE44\uD574 \uB450\uC138\uC694.",
+    "Last updated: April 15, 2024": "\uCD5C\uC885 \uC5C5\uB370\uC774\uD2B8: 2024\uB144 4\uC6D4 15\uC77C",
+    "Limitation of Liability": "\uCC45\uC784 \uC81C\uD55C",
+    "Manage BOKMOO eSIM profiles, orders, and activation details from the same black-and-gold travel control surface.": "\uBE14\uB799 \uC564 \uACE8\uB4DC \uC5EC\uD589 \uC81C\uC5B4 \uD654\uBA74\uC5D0\uC11C BOKMOO eSIM \uD504\uB85C\uD544, \uC8FC\uBB38, \uD65C\uC131\uD654 \uC815\uBCF4\uB97C \uD55C\uACF3\uC5D0\uC11C \uAD00\uB9AC\uD574\uC694.",
+    "Manage eSIMs": "eSIM \uAD00\uB9AC",
+    Manager: "\uAD00\uB9AC\uC790",
+    "Member could not be added": "\uBA64\uBC84\uB97C \uCD94\uAC00\uD560 \uC218 \uC5C6\uC5B4\uC694",
+    "Member email": "\uBA64\uBC84 \uC774\uBA54\uC77C",
+    "New password": "\uC0C8 \uBE44\uBC00\uBC88\uD638",
+    "No commissions yet": "\uC544\uC9C1 \uCEE4\uBBF8\uC158\uC774 \uC5C6\uC5B4\uC694",
+    "No region collections are available yet.": "\uC544\uC9C1 \uC9C0\uC5ED \uBAA8\uC74C\uC774 \uC5C6\uC5B4\uC694.",
+    "One Card.\nGlobal Connection.": "\uCE74\uB4DC \uD55C \uC7A5\uC73C\uB85C.\n\uC804 \uC138\uACC4 \uC5B4\uB514\uC11C\uB098 \uC5F0\uACB0.",
+    "One eSIM for the whole trip \u2014 pick your destinations and go.": "\uC5EC\uD589 \uB0B4\uB0B4 \uB2E8 \uD558\uB098\uC758 eSIM. \uBAA9\uC801\uC9C0\uB97C \uACE0\uB974\uACE0 \uB5A0\uB098\uC138\uC694.",
+    Organization: "\uC870\uC9C1",
+    "Organization affiliate": "\uC870\uC9C1 \uC81C\uD734",
+    "Organization code (optional)": "\uC870\uC9C1 \uCF54\uB4DC (\uC120\uD0DD)",
+    "Organization commissions": "\uC870\uC9C1 \uCEE4\uBBF8\uC158",
+    "Organization could not be created": "\uC870\uC9C1\uC744 \uB9CC\uB4E4 \uC218 \uC5C6\uC5B4\uC694",
+    "Organization data could not be loaded": "\uC870\uC9C1 \uB370\uC774\uD130\uB97C \uBD88\uB7EC\uC62C \uC218 \uC5C6\uC5B4\uC694",
+    "Organization name": "\uC870\uC9C1 \uC774\uB984",
+    Partner: "\uD30C\uD2B8\uB108",
+    "Partner commissions": "\uD30C\uD2B8\uB108 \uCEE4\uBBF8\uC158",
+    Password: "\uBE44\uBC00\uBC88\uD638",
+    "Passwords do not match": "\uBE44\uBC00\uBC88\uD638\uAC00 \uC77C\uCE58\uD558\uC9C0 \uC54A\uC544\uC694",
+    "Personal affiliate": "\uAC1C\uC778 \uC81C\uD734",
+    "Powered by": "Powered by",
+    Profiles: "\uD504\uB85C\uD544",
+    "Protected traveler identity": "\uBCF4\uD638\uB418\uB294 \uC5EC\uD589\uC790 \uC2E0\uC6D0",
+    "Purchases and Payments": "\uAD6C\uB9E4 \uBC0F \uACB0\uC81C",
+    "Questions about setup? Contact": "\uC124\uC815\uC5D0 \uB300\uD574 \uAD81\uAE08\uD55C \uC810\uC774 \uC788\uB098\uC694? \uBB38\uC758:",
+    Rate: "\uBE44\uC728",
+    Refresh: "\uC0C8\uB85C\uACE0\uCE68",
+    "Region Collections": "\uC9C0\uC5ED \uBAA8\uC74C",
+    "Registration failed": "\uB4F1\uB85D\uC5D0 \uC2E4\uD328\uD588\uC5B4\uC694",
+    SAMPLE: "\uC0D8\uD50C",
+    "Save profile": "\uD504\uB85C\uD544 \uC800\uC7A5",
+    "Saving...": "\uC800\uC7A5 \uC911...",
+    "Secure account access": "\uC548\uC804\uD55C \uACC4\uC815 \uC811\uADFC",
+    "Securing your session and returning you to the BOKMOO storefront.": "\uC138\uC158\uC744 \uBCF4\uD638\uD55C \uB4A4 BOKMOO \uC2A4\uD1A0\uC5B4\uB85C \uB3CC\uC544\uAC00\uC694.",
+    "Select item": "\uC120\uD0DD",
+    "Shop eSIM Plans": "eSIM \uC694\uAE08\uC81C \uBCF4\uAE30",
+    "Show password": "\uBE44\uBC00\uBC88\uD638 \uD45C\uC2DC",
+    "Sign in": "\uB85C\uADF8\uC778",
+    "Sign in before your next border.": "\uB2E4\uC74C \uAD6D\uACBD\uC744 \uB118\uAE30 \uC804\uC5D0 \uB85C\uADF8\uC778\uD574 \uB450\uC138\uC694.",
+    "Sign in to manage your account": "\uACC4\uC815\uC744 \uAD00\uB9AC\uD558\uB824\uBA74 \uB85C\uADF8\uC778\uD574 \uC8FC\uC138\uC694",
+    "Signing in": "\uB85C\uADF8\uC778 \uC911\u2026",
+    "Start with a secure profile for purchases and global activation support.": "\uAD6C\uB9E4\uC640 \uAE00\uB85C\uBC8C \uD65C\uC131\uD654 \uC9C0\uC6D0\uC744 \uC704\uD55C \uC548\uC804\uD55C \uD504\uB85C\uD544\uBD80\uD130 \uC2DC\uC791\uD574\uC694.",
+    Suspended: "\uC77C\uC2DC \uC815\uC9C0",
+    "Track purchases": "\uAD6C\uB9E4 \uB0B4\uC5ED \uD655\uC778",
+    "Traveler profile": "\uC5EC\uD589\uC790 \uD504\uB85C\uD544",
+    "Unable to load Bokmoo plans.": "Bokmoo \uC694\uAE08\uC81C\uB97C \uBD88\uB7EC\uC62C \uC218 \uC5C6\uC5B4\uC694.",
+    "Updating...": "\uC5C5\uB370\uC774\uD2B8 \uC911...",
+    "Use of Services": "\uC11C\uBE44\uC2A4 \uC774\uC6A9",
+    Used: "\uC0AC\uC6A9\uB428",
+    "View category": "\uCE74\uD14C\uACE0\uB9AC \uBCF4\uAE30",
+    "We collect information you provide directly to us, such as when you create an account or make a purchase.": "\uACC4\uC815\uC744 \uB9CC\uB4E4\uAC70\uB098 \uAD6C\uB9E4\uD560 \uB54C\uCC98\uB7FC \uC774\uC6A9\uC790\uAC00 \uC9C1\uC811 \uC81C\uACF5\uD558\uB294 \uC815\uBCF4\uB97C \uC218\uC9D1\uD574\uC694.",
+    "We implement appropriate security measures to protect your data.": "\uC774\uC6A9\uC790\uC758 \uB370\uC774\uD130\uB97C \uBCF4\uD638\uD558\uAE30 \uC704\uD574 \uC801\uC808\uD55C \uBCF4\uC548 \uC870\uCE58\uB97C \uC2DC\uD589\uD574\uC694.",
+    "We use the information to provide, maintain, and improve our services.": "\uC218\uC9D1\uD55C \uC815\uBCF4\uB294 \uC11C\uBE44\uC2A4 \uC81C\uACF5\xB7\uC720\uC9C0\xB7\uAC1C\uC120\uC744 \uC704\uD574 \uC0AC\uC6A9\uD574\uC694.",
+    "Welcome back": "\uB2E4\uC2DC \uC624\uC2E0 \uAC83\uC744 \uD658\uC601\uD574\uC694",
+    "You agree to use our services only for lawful purposes and in accordance with these Terms.": "\uB2F9\uC0AC\uC758 \uC11C\uBE44\uC2A4\uB97C \uC801\uBC95\uD55C \uBAA9\uC801\uC73C\uB85C\uB9CC, \uADF8\uB9AC\uACE0 \uC774 \uC57D\uAD00\uC5D0 \uB530\uB77C\uC11C\uB9CC \uC774\uC6A9\uD558\uB294 \uB370 \uB3D9\uC758\uD574\uC694.",
+    "You have the right to access, update, or delete your personal information.": "\uC774\uC6A9\uC790\uB294 \uC790\uC2E0\uC758 \uAC1C\uC778\uC815\uBCF4\uC5D0 \uC811\uADFC\uD558\uAC70\uB098 \uC218\uC815\xB7\uC0AD\uC81C\uD560 \uAD8C\uB9AC\uAC00 \uC788\uC5B4\uC694.",
+    "Your Rights": "\uC774\uC6A9\uC790\uC758 \uAD8C\uB9AC",
+    "Your referral ledger.": "\uB098\uC758 \uCD94\uCC9C \uB0B4\uC5ED.",
+    "already with us": "\uC774\uBBF8 \uAC00\uC785\uD558\uC168\uB098\uC694",
+    "or email": "\uB610\uB294 \uC774\uBA54\uC77C\uB85C",
+    "organization rate": "\uC870\uC9C1 \uCEE4\uBBF8\uC158 \uBE44\uC728",
+    "Group destination-ready plans into clearer regional entry points.": "\uBAA9\uC801\uC9C0\uBCC4 \uC694\uAE08\uC81C\uB97C \uC9C0\uC5ED\uBCC4\uB85C \uD55C\uB208\uC5D0 \uBCFC \uC218 \uC788\uAC8C \uBB36\uC5B4\uC694.",
+    "Page Not Found": "\uD398\uC774\uC9C0\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC5B4\uC694",
+    "Sorry, we couldn't find the page you're looking for.": "\uCC3E\uC73C\uC2DC\uB294 \uD398\uC774\uC9C0\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC5B4\uC694.",
+    "Back to Home": "\uD648\uC73C\uB85C",
+    "If you believe this is an error, please contact our support team.": "\uC624\uB958\uB77C\uACE0 \uC0DD\uAC01\uB418\uC2DC\uBA74 \uC9C0\uC6D0\uD300\uC5D0 \uBB38\uC758\uD574 \uC8FC\uC138\uC694.",
+    "Pick your destination": "\uBAA9\uC801\uC9C0 \uC120\uD0DD",
+    "Choose a country or region, the data and the days you need.": "\uAD6D\uAC00 \uB610\uB294 \uC9C0\uC5ED, \uD544\uC694\uD55C \uB370\uC774\uD130\uC640 \uC77C\uC218\uB97C \uC120\uD0DD\uD574\uC694.",
+    "Check out": "\uACB0\uC81C\uD558\uAE30",
+    "Pay securely. Your plan is issued right after payment.": "\uC548\uC804\uD558\uAC8C \uACB0\uC81C\uD558\uC138\uC694. \uC694\uAE08\uC81C\uB294 \uACB0\uC81C \uD6C4 \uBC14\uB85C \uBC1C\uAE09\uB3FC\uC694.",
+    "Install and connect": "\uC124\uCE58\uD558\uACE0 \uC5F0\uACB0",
+    "Scan the QR code or enter the activation code. Most plans start on first connection.": "QR \uCF54\uB4DC\uB97C \uC2A4\uCE94\uD558\uAC70\uB098 \uD65C\uC131\uD654 \uCF54\uB4DC\uB97C \uC785\uB825\uD558\uC138\uC694. \uB300\uBD80\uBD84\uC758 \uC694\uAE08\uC81C\uB294 \uCCAB \uC5F0\uACB0 \uC2DC \uC2DC\uC791\uB3FC\uC694.",
+    "Three steps from checkout to connected.": "\uACB0\uC81C\uBD80\uD130 \uC5F0\uACB0\uAE4C\uC9C0 \uC138 \uB2E8\uACC4.",
+    "Your eSIM plans for upcoming trips.": "\uB2E4\uAC00\uC624\uB294 \uC5EC\uD589\uC744 \uC704\uD55C eSIM \uC694\uAE08\uC81C."
+  };
+
+  // src/i18n/index.ts
+  var THEME_MESSAGES = { ja: ja_default, ko: ko_default, fr: fr_default, de: de_default };
+  function isCatalogLocale(locale) {
+    return locale === "ja" || locale === "ko" || locale === "fr" || locale === "de";
+  }
+  function themeMessage(locale, english) {
+    if (!isCatalogLocale(locale)) return null;
+    const hit = THEME_MESSAGES[locale][english];
+    return typeof hit === "string" && hit ? hit : null;
+  }
+
+  // src/site.ts
+  function zhModeOf(locale) {
+    if (locale === "zh-Hant") return "zh-Hant";
+    if (locale === "zh-Hans") return "zh-Hans";
+    return null;
+  }
+  function pickCopy(locale, copy) {
+    const catalog = copy.en ? themeMessage(locale, copy.en) : null;
+    if (locale === "ja") return copy.ja ?? catalog ?? copy.en;
+    if (locale === "ko") return copy.ko ?? catalog ?? copy.en;
+    if (locale === "fr") return copy.fr ?? catalog ?? copy.en;
+    if (locale === "de") return copy.de ?? catalog ?? copy.en;
+    const mode = zhModeOf(locale);
+    if (mode === "zh-Hant") return copy.hant ?? copy.en;
+    if (mode === "zh-Hans") return copy.hans ?? copy.hant ?? copy.en;
+    return copy.en;
+  }
+  function pickLocalized(configured, englishDefault, zhHans, zhHant, locale) {
+    const value = configured?.trim();
+    if (value && value !== englishDefault) return value;
+    const mode = zhModeOf(locale);
+    if (mode === "zh-Hant") return zhHant;
+    if (mode === "zh-Hans") return zhHans;
+    return themeMessage(locale, englishDefault) ?? englishDefault;
+  }
+  function resolveEsimSiteConfig(config, locale) {
+    const brandName = config?.brand?.name?.trim() || "BOKMOO";
+    const siteConfig = config?.site || {};
+    const englishSubheadline = `Use multiple eSIM profiles on your ${brandName} card. Stay connected in 200+ countries.`;
+    const SUBHEADLINE_FRAMES = {
+      ja: (brand) => `${brand} \u30AB\u30FC\u30C9\u3067\u8907\u6570\u306E eSIM \u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3092\u5229\u7528\u3002200 \u4EE5\u4E0A\u306E\u56FD\u30FB\u5730\u57DF\u3067\u3064\u306A\u304C\u308A\u7D9A\u3051\u3089\u308C\u307E\u3059\u3002`,
+      ko: (brand) => `${brand} \uCE74\uB4DC\uC5D0\uC11C \uC5EC\uB7EC eSIM \uD504\uB85C\uD544\uC744 \uC0AC\uC6A9\uD558\uC138\uC694. 200\uAC1C \uC774\uC0C1\uC758 \uAD6D\uAC00\xB7\uC9C0\uC5ED\uC5D0\uC11C \uC5F0\uACB0\uC744 \uC720\uC9C0\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.`,
+      fr: (brand) => `Utilisez plusieurs profils eSIM sur votre carte ${brand}. Restez connect\xE9 dans plus de 200 pays.`,
+      de: (brand) => `Nutzen Sie mehrere eSIM-Profile auf Ihrer ${brand}-Karte. Bleiben Sie in \xFCber 200 L\xE4ndern verbunden.`
+    };
+    const subheadlineFrame = locale && locale in SUBHEADLINE_FRAMES ? SUBHEADLINE_FRAMES[locale](brandName) : null;
+    const zhMode = zhModeOf(locale);
+    const defaultSubheadline = subheadlineFrame ?? (zhMode === "zh-Hant" ? `\u5728\u60A8\u7684 ${brandName} \u5361\u4E0A\u4F7F\u7528\u591A\u500B eSIM \u8A2D\u5B9A\u6A94\uFF0C200+ \u500B\u570B\u5BB6/\u5730\u5340\u4FDD\u6301\u9023\u7DDA\u3002` : zhMode === "zh-Hans" ? `\u5728\u60A8\u7684 ${brandName} \u5361\u4E0A\u4F7F\u7528\u591A\u4E2A eSIM \u914D\u7F6E\u6587\u4EF6\uFF0C200+ \u4E2A\u56FD\u5BB6/\u5730\u533A\u4FDD\u6301\u8FDE\u63A5\u3002` : englishSubheadline);
+    const customizedSubheadline = siteConfig.subheadline?.trim();
+    const subheadline = customizedSubheadline && customizedSubheadline !== englishSubheadline ? customizedSubheadline : defaultSubheadline;
+    return {
+      brandName,
+      eyebrow: pickLocalized(siteConfig.eyebrow, "BOKMOO eSIM Card", "BOKMOO eSIM \u5361", "BOKMOO eSIM \u5361", locale),
+      headline: pickLocalized(siteConfig.headline, "One Card.\nGlobal Connection.", "\u4E00\u5F20\u5361\u3002\n\u5168\u7403\u8FDE\u63A5\u3002", "\u4E00\u5F35\u5361\u3002\n\u5168\u7403\u9023\u7DDA\u3002", locale),
+      subheadline,
+      supportEmail: siteConfig.supportEmail?.trim() || "support@bokmoo.com",
+      primaryCtaLabel: pickLocalized(siteConfig.primaryCtaLabel, "Shop eSIM Plans", "\u9009\u8D2D eSIM \u65B9\u6848", "\u9078\u8CFC eSIM \u65B9\u6848", locale),
+      primaryCtaHref: siteConfig.primaryCtaHref?.trim() || "/products",
+      secondaryCtaLabel: pickLocalized(siteConfig.secondaryCtaLabel, "How it works", "\u4E86\u89E3\u4F7F\u7528\u65B9\u5F0F", "\u77AD\u89E3\u4F7F\u7528\u65B9\u5F0F", locale),
+      secondaryCtaHref: siteConfig.secondaryCtaHref?.trim() || "/#how-it-works",
+      apiBaseUrl: siteConfig.apiBaseUrl?.trim() || "https://api.bokmoo.com"
+    };
+  }
+  function isEsimPlanProduct(product) {
+    const source = product;
+    if (source?.typeData?.esim) return true;
+    return typeof source?.id === "string" && source.id.startsWith("boss-");
+  }
+  function filterEsimPlans(products) {
+    return (products || []).filter((product) => isEsimPlanProduct(product));
+  }
+
+  // src/lib/esim/order-copy.ts
+  var DATE_TAGS = {
+    "zh-Hans": "zh-CN",
+    "zh-Hant": "zh-TW",
+    ja: "ja-JP",
+    ko: "ko-KR",
+    fr: "fr-FR",
+    de: "de-DE"
+  };
+  function localeTag(locale) {
+    return locale && DATE_TAGS[locale] || "en-US";
+  }
+  function formatOrderDate(value, locale, withTime = true) {
+    const date = typeof value === "string" ? new Date(value) : value;
+    if (Number.isNaN(date.getTime())) return "";
+    return withTime ? date.toLocaleString(localeTag(locale)) : date.toLocaleDateString(localeTag(locale));
+  }
+  var ORDER_STATUS = {
+    PENDING: { en: "Pending payment", hans: "\u5F85\u652F\u4ED8", hant: "\u5F85\u4ED8\u6B3E", ja: "\u652F\u6255\u3044\u5F85\u3061", ko: "\uACB0\uC81C \uB300\uAE30", fr: "En attente de paiement", de: "Zahlung ausstehend" },
+    PAID: { en: "Paid", hans: "\u5DF2\u652F\u4ED8", hant: "\u5DF2\u4ED8\u6B3E", ja: "\u652F\u6255\u3044\u6E08\u307F", ko: "\uACB0\uC81C \uC644\uB8CC", fr: "Pay\xE9", de: "Bezahlt" },
+    PROCESSING: { en: "Processing", hans: "\u5904\u7406\u4E2D", hant: "\u8655\u7406\u4E2D", ja: "\u51E6\u7406\u4E2D", ko: "\uCC98\uB9AC \uC911", fr: "En cours", de: "In Bearbeitung" },
+    SHIPPED: { en: "Shipped", hans: "\u5DF2\u53D1\u8D27", hant: "\u5DF2\u51FA\u8CA8", ja: "\u767A\u9001\u6E08\u307F", ko: "\uBC30\uC1A1\uB428", fr: "Exp\xE9di\xE9", de: "Versendet" },
+    DELIVERED: { en: "Delivered", hans: "\u5DF2\u4EA4\u4ED8", hant: "\u5DF2\u4EA4\u4ED8", ja: "\u5B8C\u4E86", ko: "\uC644\uB8CC", fr: "Livr\xE9", de: "Zugestellt" },
+    COMPLETED: { en: "Completed", hans: "\u5DF2\u5B8C\u6210", hant: "\u5DF2\u5B8C\u6210", ja: "\u5B8C\u4E86", ko: "\uC644\uB8CC", fr: "Termin\xE9", de: "Abgeschlossen" },
+    CANCELLED: { en: "Cancelled", hans: "\u5DF2\u53D6\u6D88", hant: "\u5DF2\u53D6\u6D88", ja: "\u30AD\u30E3\u30F3\u30BB\u30EB\u6E08\u307F", ko: "\uCDE8\uC18C\uB428", fr: "Annul\xE9", de: "Storniert" },
+    CANCELED: { en: "Cancelled", hans: "\u5DF2\u53D6\u6D88", hant: "\u5DF2\u53D6\u6D88", ja: "\u30AD\u30E3\u30F3\u30BB\u30EB\u6E08\u307F", ko: "\uCDE8\uC18C\uB428", fr: "Annul\xE9", de: "Storniert" },
+    REFUNDED: { en: "Refunded", hans: "\u5DF2\u9000\u6B3E", hant: "\u5DF2\u9000\u6B3E", ja: "\u8FD4\u91D1\u6E08\u307F", ko: "\uD658\uBD88\uB428", fr: "Rembours\xE9", de: "Erstattet" },
+    FAILED: { en: "Failed", hans: "\u5931\u8D25", hant: "\u5931\u6557", ja: "\u5931\u6557", ko: "\uC2E4\uD328", fr: "\xC9chec", de: "Fehlgeschlagen" }
+  };
+  var ITEM_STATUS = {
+    pending: { en: "Pending", hans: "\u5F85\u4EA4\u4ED8", hant: "\u5F85\u4EA4\u4ED8", ja: "\u767A\u884C\u5F85\u3061", ko: "\uBC1C\uAE09 \uB300\uAE30", fr: "En attente", de: "Ausstehend" },
+    processing: { en: "Processing", hans: "\u5904\u7406\u4E2D", hant: "\u8655\u7406\u4E2D", ja: "\u51E6\u7406\u4E2D", ko: "\uCC98\uB9AC \uC911", fr: "En cours", de: "In Bearbeitung" },
+    shipped: { en: "Shipped", hans: "\u5DF2\u53D1\u8D27", hant: "\u5DF2\u51FA\u8CA8", ja: "\u767A\u9001\u6E08\u307F", ko: "\uBC30\uC1A1\uB428", fr: "Exp\xE9di\xE9", de: "Versendet" },
+    delivered: { en: "Delivered", hans: "\u5DF2\u4EA4\u4ED8", hant: "\u5DF2\u4EA4\u4ED8", ja: "\u767A\u884C\u6E08\u307F", ko: "\uBC1C\uAE09\uB428", fr: "Livr\xE9", de: "Zugestellt" },
+    completed: { en: "Completed", hans: "\u5DF2\u5B8C\u6210", hant: "\u5DF2\u5B8C\u6210", ja: "\u5B8C\u4E86", ko: "\uC644\uB8CC", fr: "Termin\xE9", de: "Abgeschlossen" },
+    fulfilled: { en: "Fulfilled", hans: "\u5DF2\u5B8C\u6210", hant: "\u5DF2\u5B8C\u6210", ja: "\u63D0\u4F9B\u6E08\u307F", ko: "\uC81C\uACF5\uB428", fr: "R\xE9alis\xE9", de: "Erledigt" },
+    failed: { en: "Failed", hans: "\u4EA4\u4ED8\u5931\u8D25", hant: "\u4EA4\u4ED8\u5931\u6557", ja: "\u767A\u884C\u5931\u6557", ko: "\uBC1C\uAE09 \uC2E4\uD328", fr: "\xC9chec", de: "Fehlgeschlagen" },
+    cancelled: { en: "Cancelled", hans: "\u5DF2\u53D6\u6D88", hant: "\u5DF2\u53D6\u6D88", ja: "\u30AD\u30E3\u30F3\u30BB\u30EB\u6E08\u307F", ko: "\uCDE8\uC18C\uB428", fr: "Annul\xE9", de: "Storniert" }
+  };
+  function orderStatusLabel(status, locale) {
+    const raw = String(status);
+    const copy = ORDER_STATUS[raw.toUpperCase()];
+    return copy ? pickCopy(locale, copy) : raw.replace(/_/g, " ");
+  }
+  function itemStatusLabel(status, locale) {
+    const copy = ITEM_STATUS[String(status).toLowerCase()];
+    return copy ? pickCopy(locale, copy) : orderStatusLabel(status, locale);
+  }
+  function statusTone(status) {
+    const normalized = String(status).toUpperCase();
+    const base = "whitespace-nowrap ";
+    if (normalized === "DELIVERED" || normalized === "COMPLETED" || normalized === "FULFILLED") {
+      return base + "bg-[color:color-mix(in_oklab,var(--esim-success)_16%,transparent)] text-[var(--esim-success)]";
+    }
+    if (normalized === "PENDING" || normalized === "PAID" || normalized === "PROCESSING" || normalized === "SHIPPED") {
+      return base + "bg-[color:color-mix(in_oklab,var(--esim-warning)_16%,transparent)] text-[var(--esim-warning)]";
+    }
+    if (normalized === "CANCELLED" || normalized === "CANCELED" || normalized === "REFUNDED" || normalized === "FAILED") {
+      return base + "bg-[color:color-mix(in_oklab,var(--esim-danger)_18%,transparent)] text-[var(--esim-danger)]";
+    }
+    return base + "bg-[var(--esim-primary-soft)] text-[var(--esim-primary-strong)]";
+  }
+
+  // src/lib/api.ts
+  var EsimApiError = class extends Error {
+    constructor(status, code, message, requestId) {
+      super(message);
+      this.name = "EsimApiError";
+      this.status = status;
+      this.code = code;
+      this.requestId = requestId;
+    }
+  };
+  function getProductIdFromLocation() {
+    if (typeof window === "undefined") return null;
+    const params = new URLSearchParams(window.location.search);
+    const queryId = params.get("productId") || params.get("id");
+    if (queryId) return queryId;
+    const segments = window.location.pathname.split("/").filter(Boolean);
+    const productsIndex = segments.lastIndexOf("products");
+    if (productsIndex >= 0 && segments[productsIndex + 1]) {
+      return decodeURIComponent(segments[productsIndex + 1]);
+    }
+    return null;
+  }
+  function getOrderIdFromLocation() {
+    if (typeof window === "undefined") return null;
+    const params = new URLSearchParams(window.location.search);
+    const queryId = params.get("orderId") || params.get("id");
+    if (queryId) return queryId;
+    const segments = window.location.pathname.split("/").filter(Boolean);
+    const ordersIndex = segments.lastIndexOf("orders");
+    if (ordersIndex >= 0 && segments[ordersIndex + 1]) {
+      return decodeURIComponent(segments[ordersIndex + 1]);
+    }
+    return null;
+  }
+  function getClientToken() {
+    if (typeof window === "undefined") return null;
+    try {
+      const localStorageToken = window.localStorage.getItem("auth_token");
+      if (localStorageToken) return localStorageToken;
+    } catch {
+    }
+    const cookieValue = `; ${document.cookie}`;
+    const parts = cookieValue.split("; auth_token=");
+    if (parts.length === 2) {
+      const cookieToken = parts.pop()?.split(";").shift() || null;
+      if (cookieToken) {
+        try {
+          window.localStorage.setItem("auth_token", cookieToken);
+        } catch {
+        }
+      }
+      return cookieToken;
+    }
+    return null;
+  }
+  function normalizeResponse(payload) {
+    if (payload && typeof payload === "object" && "data" in payload && payload.data !== void 0) {
+      return payload.data;
+    }
+    return payload;
+  }
+  function asRecord(value) {
+    return value && typeof value === "object" ? value : {};
+  }
+  function readString(source, keys) {
+    for (const key of keys) {
+      const value = source[key];
+      if (typeof value === "string" && value.trim()) {
+        return value.trim();
+      }
+    }
+    return void 0;
+  }
+  function readNullableString(source, keys) {
+    for (const key of keys) {
+      const value = source[key];
+      if (value === null) return null;
+      if (typeof value === "string" && value.trim()) {
+        return value.trim();
+      }
+    }
+    return void 0;
+  }
+  function normalizeInstructions(value) {
+    if (!value) return {};
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (!trimmed) return {};
+      try {
+        return normalizeInstructions(JSON.parse(trimmed));
+      } catch {
+        return { general: [trimmed] };
+      }
+    }
+    if (Array.isArray(value)) {
+      return { general: value.filter((item) => typeof item === "string" && item.trim().length > 0) };
+    }
+    const source = asRecord(value);
+    return {
+      ios: Array.isArray(source.ios) ? source.ios.filter((item) => typeof item === "string" && item.trim().length > 0) : [],
+      android: Array.isArray(source.android) ? source.android.filter((item) => typeof item === "string" && item.trim().length > 0) : [],
+      general: Array.isArray(source.general) ? source.general.filter((item) => typeof item === "string" && item.trim().length > 0) : []
+    };
+  }
+  function normalizeSupport(value, source) {
+    const support = asRecord(value);
+    return {
+      email: readString(support, ["email"]) || readString(source, ["supportEmail", "support_email"]),
+      phone: readString(support, ["phone"]) || readString(source, ["supportPhone", "support_phone"])
+    };
+  }
+  function storefrontSameOriginBase(baseUrl) {
+    try {
+      if (typeof location !== "undefined" && !baseUrl.startsWith("/")) {
+        const target = new URL(baseUrl, location.origin);
+        if (target.origin !== location.origin) {
+          return "";
+        }
+      }
+    } catch {
+    }
+    return baseUrl;
+  }
+  async function requestEnvelope(config, endpoint, method = "GET", body) {
+    const headers = {
+      Accept: "application/json"
+    };
+    if (body !== void 0) {
+      headers["Content-Type"] = "application/json";
+    }
+    const resolvedToken = config.token === void 0 ? getClientToken() : config.token;
+    if (resolvedToken) {
+      headers.Authorization = `Bearer ${resolvedToken}`;
+    }
+    const url = `${storefrontSameOriginBase(config.baseUrl.replace(/\/$/, ""))}${endpoint}`;
+    const response = await fetch(url, {
+      method,
+      headers,
+      body: body !== void 0 ? JSON.stringify(body) : void 0,
+      cache: "no-store"
+    });
+    const json = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const error = json.error;
+      throw new EsimApiError(
+        response.status,
+        error?.code || "API_ERROR",
+        error?.message || `Request failed with status ${response.status}`,
+        error?.requestId
+      );
+    }
+    if (json && typeof json === "object" && "data" in json && json.data !== void 0) {
+      return json;
+    }
+    return { data: json };
+  }
+  async function request(config, endpoint, method = "GET", body) {
+    const envelope = await requestEnvelope(config, endpoint, method, body);
+    return normalizeResponse(envelope);
+  }
+  function buildEsimSummary(source) {
+    const data = source?.data?.gb ? `${source.data.gb}GB` : "Flexible data";
+    const validity = source?.validityDays ? `${source.validityDays} Days` : "Flexible validity";
+    return `${data} / ${validity}`;
+  }
+  function buildTechnologyLabel(source) {
+    const technology = source?.networks?.technology?.filter(Boolean) || [];
+    return technology.length ? `${technology.join("/")} High Speed` : "4G/5G High Speed";
+  }
+  function mapVariant(variant) {
+    const esim = variant.attributes?.esim;
+    return {
+      id: variant.id,
+      name: displayProductTitle(variant.name),
+      value: buildEsimSummary(esim),
+      type: "STYLE",
+      price: variant.salePrice,
+      inventory: variant.isActive === false ? 0 : 99
+    };
+  }
+  function displayProductTitle(name) {
+    const cleaned = String(name || "").replace(/^\[[^\]]*\]\s*/, "").replace(/\s+V\d+$/i, "").trim();
+    return cleaned || String(name || "");
+  }
+  function resolveEsimMediaUrl(url, apiBaseUrl) {
+    const value = String(url || "").trim();
+    if (!value) return null;
+    if (/^(https?:)?\/\//i.test(value) || value.startsWith("data:")) return value;
+    if (!apiBaseUrl) return value;
+    return `${apiBaseUrl.replace(/\/+$/, "")}${value.startsWith("/") ? "" : "/"}${value}`;
+  }
+  function mapEsimApiProductToThemeProduct(product) {
+    const esim = product.typeData?.esim;
+    const firstImage = product.images?.[0];
+    const imageUrl = (typeof firstImage === "string" ? firstImage : firstImage?.url) || product.image;
+    const regionTag = esim?.region || esim?.country || "Travel";
+    const technology = buildTechnologyLabel(esim);
+    const variantPrices = (product.variants || []).map((variant) => Number(variant.salePrice || 0)).filter((price) => price > 0);
+    const sellablePrice = variantPrices.length > 0 ? Math.min(...variantPrices) : Number(product.price || 0);
+    return {
+      id: product.id,
+      name: displayProductTitle(product.name),
+      description: product.description ?? "",
+      price: sellablePrice,
+      currency: product.currency,
+      typeData: product.typeData,
+      sku: product.slug || product.id,
+      productKind: product.productKind,
+      category: {
+        id: esim?.region || "esim",
+        name: esim?.region || "eSIM Plans",
+        slug: (esim?.region || "esim").toLowerCase().replace(/\s+/g, "-"),
+        level: 1,
+        isActive: true,
+        productCount: 0
+      },
+      tags: [regionTag, esim?.carrier || "Carrier", technology].filter(Boolean),
+      images: imageUrl ? [
+        {
+          id: `${product.id}-image`,
+          url: imageUrl,
+          alt: product.name,
+          order: 0,
+          isMain: true
+        }
+      ] : [],
+      variants: (product.variants || []).map(mapVariant),
+      inventory: {
+        quantity: 99,
+        reserved: 0,
+        available: 99,
+        lowStockThreshold: 5,
+        isInStock: true,
+        isLowStock: false,
+        trackInventory: false
+      },
+      specifications: [
+        { name: "Coverage", value: esim?.country || esim?.region || "Global" },
+        { name: "Data", value: esim?.data?.gb ? `${esim.data.gb}GB` : "Flexible" },
+        { name: "Validity", value: esim?.validityDays ? `${esim.validityDays} Days` : "Flexible" },
+        { name: "Carrier", value: esim?.carrier || "Local carrier" },
+        { name: "Network", value: technology }
+      ],
+      isActive: true,
+      isFeatured: true,
+      rating: 4.9,
+      reviewCount: 1200,
+      createdAt: (/* @__PURE__ */ new Date()).toISOString(),
+      updatedAt: (/* @__PURE__ */ new Date()).toISOString()
+    };
+  }
+  function mapEsimApiOrderToThemeOrder(order) {
+    return {
+      id: order.id,
+      userId: "",
+      status: order.status || order.fulfillmentStatus || order.paymentStatus || "PROCESSING",
+      paymentStatus: order.paymentStatus || "PAID",
+      totalAmount: Number(order.totalAmount || 0),
+      currency: order.currency || "USD",
+      shippingAddress: null,
+      shipments: (order.shipments || []).map((shipment) => ({ ...shipment, trackingUrl: shipment.trackingUrl || null, shippedAt: shipment.shippedAt || null, deliveredAt: shipment.deliveredAt || null, estimatedDeliveryAt: shipment.estimatedDeliveryAt || null, lastCheckedAt: shipment.lastCheckedAt || null })),
+      items: (order.items || []).map((item) => {
+        const quantity = Number(item.quantity || 1);
+        const unitPrice = Number(item.unitPrice ?? item.totalPrice ?? 0);
+        const totalPrice = Number(item.totalPrice ?? unitPrice * quantity);
+        return {
+          id: item.id,
+          productId: item.productId,
+          productName: item.productName,
+          variantId: item.variantId || "",
+          quantity,
+          unitPrice,
+          totalPrice,
+          fulfillmentStatus: item.fulfillmentStatus || null,
+          fulfillmentData: item.fulfillmentData || null
+        };
+      }),
+      createdAt: order.createdAt,
+      updatedAt: order.updatedAt || order.createdAt,
+      cancelReason: null,
+      cancelledAt: null
+    };
+  }
+  function readProductCurrency(product) {
+    const source = product;
+    return source?.currency || source?.typeData?.esim?.currency || null;
+  }
+  function normalizeProductForTheme(product) {
+    const candidate = product;
+    if (candidate && typeof candidate === "object" && Array.isArray(candidate.images) && Array.isArray(candidate.variants) && candidate.category && candidate.inventory) {
+      return candidate;
+    }
+    return mapEsimApiProductToThemeProduct(product);
+  }
+  function isLpaString(value) {
+    return typeof value === "string" && /^LPA:\s*1\s*\$/i.test(value.trim());
+  }
+  function normalizeInstallSession(session) {
+    const source = asRecord(session);
+    const smdpField = readString(source, ["smdpAddress", "smdp_address", "smdpServer", "smdp_server", "smdp"]) || "";
+    const matchingField = readString(source, ["matchingId", "matching_id"]) || "";
+    const rawActivationCode = readString(source, ["activationCode", "activation_code"]) || "";
+    const bareCode = isLpaString(rawActivationCode) ? "" : rawActivationCode;
+    const qrCodeField = readString(source, ["qrCode", "qr_code", "qrCodeUrl", "qr_code_url", "qrCodeContent", "qr_code_content"]) || "";
+    const lpaString = readString(source, ["lpaString", "lpa_string", "lpa"]) || [rawActivationCode, qrCodeField].find(isLpaString) || (smdpField && (matchingField || bareCode) ? `LPA:1$${smdpField}$${matchingField || bareCode}` : "");
+    const lpaParts = isLpaString(lpaString) ? lpaString.trim().split("$") : [];
+    const smdpAddress = smdpField || lpaParts[1] || "";
+    const matchingId = matchingField || lpaParts[2] || bareCode;
+    const activationCode = bareCode || matchingId;
+    const qrCode = qrCodeField || lpaString;
+    const instructions = normalizeInstructions(source.instructions);
+    return {
+      ...session,
+      orderId: readString(source, ["orderId", "order_id"]) || session.orderId || "",
+      orderNumber: readString(source, ["orderNumber", "order_number"]) || session.orderNumber || "",
+      status: readString(source, ["status"]) || session.status || "processing",
+      packageTitle: readString(source, ["packageTitle", "package_title"]) || session.packageTitle || "BOKMOO eSIM",
+      qrCode,
+      activationCode,
+      matchingId,
+      lpaString,
+      smdpAddress,
+      confirmationCode: readNullableString(source, ["confirmationCode", "confirmation_code", "confirmCode", "confirm_code"]) ?? null,
+      instructions: {
+        ios: instructions.ios || [],
+        android: instructions.android || [],
+        general: instructions.general || []
+      },
+      support: normalizeSupport(source.support, source)
+    };
+  }
+  async function getEsimProducts(config, params = {}) {
+    const search = new URLSearchParams();
+    search.set("page", String(params.page || 1));
+    search.set("limit", String(params.limit || 12));
+    search.set("locale", params.locale || "en");
+    search.set("type", params.type || "esim");
+    if (params.country) search.set("country", params.country);
+    const envelope = await requestEnvelope(config, `/api/products?${search.toString()}`);
+    const meta = envelope.meta || {};
+    const data = envelope.data;
+    const items = Array.isArray(data) ? data : data.items || [];
+    const page = Number(meta.page || (!Array.isArray(data) ? data.page : void 0) || params.page || 1);
+    const limit = Number(meta.limit || (!Array.isArray(data) ? data.limit : void 0) || params.limit || 12);
+    const total = Number(meta.total || (!Array.isArray(data) ? data.total : void 0) || items.length);
+    return {
+      ...Array.isArray(data) ? {} : data,
+      items,
+      page,
+      limit,
+      total
+    };
+  }
+  async function getEsimProduct(config, productId, locale = "en") {
+    return request(config, `/api/products/${productId}?locale=${locale}`);
+  }
+  async function getEsimOrder(config, orderId2) {
+    return request(config, `/api/orders/${orderId2}`);
+  }
+  async function getEsimAssets(config) {
+    try {
+      const envelope = await requestEnvelope(config, "/api/esims");
+      const data = envelope.data;
+      if (Array.isArray(data)) return data;
+      return data?.items || [];
+    } catch {
+      return [];
+    }
+  }
+  async function getEsimOrders(config, params = {}) {
+    const search = new URLSearchParams();
+    search.set("page", String(params.page || 1));
+    search.set("limit", String(params.limit || 10));
+    if (params.status) search.set("status", params.status);
+    const envelope = await requestEnvelope(config, `/api/orders?${search.toString()}`);
+    const meta = envelope.meta || {};
+    const data = envelope.data;
+    const items = Array.isArray(data) ? data : data.items || [];
+    const page = Number(meta.page || (!Array.isArray(data) ? data.page : void 0) || params.page || 1);
+    const limit = Number(meta.limit || (!Array.isArray(data) ? data.limit : void 0) || params.limit || 10);
+    const total = Number(meta.total || (!Array.isArray(data) ? data.total : void 0) || items.length);
+    return {
+      ...Array.isArray(data) ? {} : data,
+      items,
+      page,
+      limit,
+      total
+    };
+  }
+  async function getEsimInstallSession(config, orderId2) {
+    const session = await request(config, `/api/orders/${orderId2}/install-session`);
+    return normalizeInstallSession(session);
+  }
+  var affiliateBase = "/api/v1/plugins/affiliate/store";
+  async function getEsimAffiliatePartner(config) {
+    return request(config, `${affiliateBase}/partners/me`);
+  }
+  async function registerEsimAffiliatePartner(config, input) {
+    return request(config, `${affiliateBase}/partners/register`, "POST", input);
+  }
+  async function getEsimAffiliateCommissions(config) {
+    const result = await request(config, `${affiliateBase}/commissions`);
+    return result.items || [];
+  }
+  async function getEsimAffiliateOrganization(config) {
+    return request(config, `${affiliateBase}/organizations/me`);
+  }
+  async function createEsimAffiliateOrganization(config, input) {
+    return request(config, `${affiliateBase}/organizations`, "POST", input);
+  }
+  async function addEsimAffiliateMember(config, organizationId, input) {
+    return request(config, `${affiliateBase}/organizations/${encodeURIComponent(organizationId)}/members`, "POST", input);
+  }
+  async function getEsimOrganizationCommissions(config) {
+    const result = await request(config, `${affiliateBase}/organizations/commissions`);
+    return result.items || [];
+  }
+  var couponRedeemEndpoint = "/api/v1/plugins/coupon/api/redeem";
+  async function redeemEsimCode(config, code, idempotencyKey) {
+    return request(config, couponRedeemEndpoint, "POST", {
+      code,
+      ...idempotencyKey ? { idempotencyKey } : {}
+    });
+  }
+
+  // src/components/ProfilePage.tsx
+  var SCRIPT_FONT = '"Snell Roundhand", "Savoye LET", "Segoe Script", "Brush Script MT", cursive';
+  function svgBackgroundUri(svg) {
+    return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+  }
+  var CLUBS_SCENE = svgBackgroundUri(
+    `<svg xmlns='http://www.w3.org/2000/svg' width='640' height='380' viewBox='0 0 640 380'><defs><linearGradient id='sky' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='#0f1824'/><stop offset='0.42' stop-color='#1e2d3d'/><stop offset='0.68' stop-color='#5a4530'/><stop offset='1' stop-color='#0a0805'/></linearGradient><radialGradient id='glow' cx='0.64' cy='0.62' r='0.55'><stop offset='0' stop-color='#f2b552' stop-opacity='0.5'/><stop offset='1' stop-color='#f2b552' stop-opacity='0'/></radialGradient></defs><rect width='640' height='380' fill='url(#sky)'/><rect width='640' height='380' fill='url(#glow)'/><g fill='#f4c169'><circle cx='446' cy='232' r='2.4'/><circle cx='468' cy='240' r='1.6'/><circle cx='428' cy='243' r='1.4'/><circle cx='488' cy='230' r='1.2'/></g><g stroke='#060503' stroke-linecap='round' fill='none'><path d='M84 380C90 312 86 268 96 218' stroke-width='9'/><path d='M96 218C64 200 34 202 12 218M96 218C112 188 142 176 176 180M96 218C84 184 60 166 28 162M96 218C126 204 158 208 184 226M96 218C100 186 116 162 144 152' stroke-width='7'/><path d='M560 380C556 336 560 306 552 270' stroke-width='8'/><path d='M552 270C526 256 500 258 482 270M552 270C566 244 590 234 618 238M552 270C542 242 522 226 494 224M552 270C578 258 606 262 626 278M552 270C556 242 570 222 594 214' stroke-width='6'/></g><g fill='#f0b45c'><rect x='376' y='252' width='128' height='3' rx='1.5' opacity='0.4'/><rect x='296' y='274' width='208' height='3' rx='1.5' opacity='0.26'/><rect x='336' y='296' width='168' height='3' rx='1.5' opacity='0.18'/><rect x='260' y='318' width='230' height='3' rx='1.5' opacity='0.12'/></g></svg>`
+  );
+  var PROMO_SCENE = svgBackgroundUri(
+    `<svg xmlns='http://www.w3.org/2000/svg' width='420' height='320' viewBox='0 0 420 320'><defs><linearGradient id='dusk' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='#181231'/><stop offset='0.44' stop-color='#2c2044'/><stop offset='0.7' stop-color='#4b2d3d'/><stop offset='1' stop-color='#0d0a12'/></linearGradient><radialGradient id='duskglow' cx='0.72' cy='0.58' r='0.5'><stop offset='0' stop-color='#e8a45c' stop-opacity='0.34'/><stop offset='1' stop-color='#e8a45c' stop-opacity='0'/></radialGradient></defs><rect width='420' height='320' fill='url(#dusk)'/><rect width='420' height='320' fill='url(#duskglow)'/><g fill='#ffffff' opacity='0.55'><circle cx='60' cy='52' r='1.1'/><circle cx='150' cy='34' r='0.9'/><circle cx='236' cy='60' r='1.2'/><circle cx='318' cy='40' r='1'/><circle cx='374' cy='84' r='0.9'/><circle cx='104' cy='96' r='0.8'/><circle cx='286' cy='104' r='0.8'/></g><g stroke='#070509' stroke-linecap='round' fill='none'><path d='M64 320C70 264 66 228 76 184' stroke-width='9'/><path d='M76 184C46 168 20 170 2 184M76 184C90 156 118 146 148 150M76 184C66 154 44 138 16 136M76 184C104 170 132 174 156 190M76 184C80 156 94 134 120 126' stroke-width='7'/></g><g fill='#e8a45c'><rect x='150' y='212' width='150' height='2.6' rx='1.3' opacity='0.3'/><rect x='196' y='236' width='170' height='2.6' rx='1.3' opacity='0.2'/><rect x='120' y='262' width='210' height='2.6' rx='1.3' opacity='0.13'/></g></svg>`
+  );
+  var GOLD_GRADIENT_BG = "bg-[linear-gradient(145deg,color-mix(in_oklab,var(--esim-gold)_82%,white),color-mix(in_oklab,var(--esim-gold)_65%,black))]";
+  var ESIM_STATUS = {
+    ACTIVE: { en: "Active", hans: "\u5DF2\u6FC0\u6D3B", hant: "\u5DF2\u555F\u7528", ja: "\u30A2\u30AF\u30C6\u30A3\u30D6", ko: "\uD65C\uC131", fr: "Actif", de: "Aktiv" },
+    INACTIVE: { en: "Inactive", hans: "\u672A\u6FC0\u6D3B", hant: "\u672A\u555F\u7528", ja: "\u672A\u30A2\u30AF\u30C6\u30A3\u30D6", ko: "\uBE44\uD65C\uC131", fr: "Inactif", de: "Inaktiv" },
+    SUSPENDED: { en: "Suspended", hans: "\u5DF2\u6682\u505C", hant: "\u5DF2\u66AB\u505C", ja: "\u5229\u7528\u505C\u6B62\u4E2D", ko: "\uC77C\uC2DC \uC815\uC9C0", fr: "Suspendu", de: "Gesperrt" },
+    EXPIRED: { en: "Expired", hans: "\u5DF2\u8FC7\u671F", hant: "\u5DF2\u904E\u671F", ja: "\u6709\u52B9\u671F\u9650\u5207\u308C", ko: "\uB9CC\uB8CC\uB428", fr: "Expir\xE9", de: "Abgelaufen" },
+    USED: { en: "Used", hans: "\u5DF2\u4F7F\u7528", hant: "\u5DF2\u4F7F\u7528", ja: "\u4F7F\u7528\u6E08\u307F", ko: "\uC0AC\uC6A9\uB428", fr: "Utilis\xE9", de: "Verwendet" }
+  };
+  function esimStatusLabel(status, locale) {
+    const raw = String(status || "ACTIVE");
+    const copy = ESIM_STATUS[raw.toUpperCase()];
+    return copy ? pickCopy(locale, copy) : raw.replace(/_/g, " ");
+  }
+  function formatDate(iso, locale) {
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return "\u2014";
+    return date.toLocaleDateString(localeTag(locale), {
+      year: "numeric",
+      month: "short",
+      day: "numeric"
+    });
+  }
+  function timezoneLabel() {
+    try {
+      const zone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+      const offsetMinutes = -(/* @__PURE__ */ new Date()).getTimezoneOffset();
+      const sign = offsetMinutes < 0 ? "-" : "+";
+      const abs = Math.abs(offsetMinutes);
+      const hours = Math.floor(abs / 60);
+      const minutes = abs % 60;
+      return `(UTC${sign}${hours}${minutes ? `:${String(minutes).padStart(2, "0")}` : ""}) ${zone}`;
+    } catch {
+      return "UTC";
+    }
+  }
+  function MyEsimAssets({ apiBaseUrl, email, locale }) {
+    const [assets, setAssets] = react_default.useState(null);
+    react_default.useEffect(() => {
+      if (!email) return;
+      let mounted = true;
+      (async () => {
+        const list = await getEsimAssets({ baseUrl: apiBaseUrl });
+        if (mounted) setAssets(list);
+      })();
+      return () => {
+        mounted = false;
+      };
+    }, [apiBaseUrl, email]);
+    if (!email || !assets || assets.length === 0) return null;
+    return /* @__PURE__ */ jsxs("section", { className: "rounded-[var(--esim-radius-lg)] border border-[color:color-mix(in_oklab,var(--esim-gold)_18%,var(--esim-line))] bg-[color:color-mix(in_oklab,var(--esim-bg-elevated)_92%,black)] p-5 shadow-[var(--esim-shadow)] sm:p-6", children: [
+      /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between", children: [
+        /* @__PURE__ */ jsx("h2", { className: "text-lg font-medium tracking-[-0.02em] text-[var(--esim-ink)]", children: pickCopy(locale, { en: "My eSIMs", hans: "\u6211\u7684 eSIM", hant: "\u6211\u7684 eSIM" }) }),
+        /* @__PURE__ */ jsx("span", { className: "text-xs text-[var(--esim-copy-soft)]", children: assets.length })
+      ] }),
+      /* @__PURE__ */ jsx("p", { className: "mt-2 text-xs leading-5 text-[var(--esim-copy-soft)]", children: pickCopy(locale, {
+        en: "Plans you buy are added to these profiles \u2014 no new QR code, no reinstall.",
+        hans: "\u65B0\u8D2D\u5957\u9910\u4F1A\u76F4\u63A5\u52A0\u8FDB\u8FD9\u4E9B profile\u2014\u2014\u4E0D\u53D1\u65B0\u4E8C\u7EF4\u7801\u3001\u65E0\u9700\u91CD\u88C5\u3002",
+        hant: "\u65B0\u8CFC\u5957\u9910\u6703\u76F4\u63A5\u52A0\u9032\u9019\u4E9B profile\u2014\u2014\u4E0D\u767C\u65B0\u4E8C\u7DAD\u78BC\u3001\u7121\u9700\u91CD\u88DD\u3002"
+      }) }),
+      /* @__PURE__ */ jsx("div", { className: "mt-4 grid gap-3", children: assets.map((asset) => /* @__PURE__ */ jsxs("div", { className: "rounded-[0.95rem] border border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_86%,black)] px-4 py-3", children: [
+        /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between gap-3", children: [
+          /* @__PURE__ */ jsx("p", { className: "text-sm font-medium text-[var(--esim-ink)]", children: asset.label || pickCopy(locale, { en: "Bokmoo eSIM", hans: "Bokmoo eSIM", hant: "Bokmoo eSIM" }) }),
+          /* @__PURE__ */ jsx("span", { className: "rounded-full border border-[color:color-mix(in_oklab,var(--esim-gold)_34%,transparent)] px-2 py-0.5 text-[10px] tracking-[0.14em] text-[var(--esim-gold)]", children: esimStatusLabel(asset.status, locale) })
+        ] }),
+        /* @__PURE__ */ jsxs("p", { className: "mt-1.5 font-mono text-xs text-[var(--esim-copy-soft)]", children: [
+          "ICCID \xB7\xB7\xB7\xB7",
+          asset.iccid.slice(-6)
+        ] }),
+        asset.currentPackage ? /* @__PURE__ */ jsx("p", { className: "mt-1 text-xs text-[var(--esim-copy)]", children: asset.currentPackage }) : null
+      ] }, asset.iccid)) })
+    ] });
+  }
+  var ProfilePage = react_default.memo(function ProfilePage2({
+    user,
+    isLoading,
+    isAuthenticated,
+    config,
+    locale,
+    onNavigate,
+    onNavigateToSettings,
+    onNavigateToOrders,
+    onNavigateToLogin,
+    addresses,
+    isLoadingAddresses,
+    onAddAddress,
+    onDeleteAddress,
+    onSetDefaultAddress
+  }) {
+    const isZhHant = locale === "zh-Hant";
+    const [showAddressForm, setShowAddressForm] = react_default.useState(false);
+    const site = resolveEsimSiteConfig(config);
+    const go = react_default.useCallback(
+      (path) => {
+        if (onNavigate) {
+          onNavigate(path);
+          return;
+        }
+        const prefix = locale && locale !== "en" ? `/${locale}` : "/en";
+        window.location.assign(`${prefix}${path}`);
+      },
+      [onNavigate, isZhHant]
+    );
+    const [copied, setCopied] = react_default.useState(false);
+    const copyEmail = react_default.useCallback(async () => {
+      if (!user?.email) return;
+      try {
+        await navigator.clipboard.writeText(user.email);
+        setCopied(true);
+        window.setTimeout(() => setCopied(false), 2e3);
+      } catch {
+      }
+    }, [user?.email]);
+    const [redeemOpen, setRedeemOpen] = react_default.useState(false);
+    const [redeemValue, setRedeemValue] = react_default.useState("");
+    const [redeemBusy, setRedeemBusy] = react_default.useState(false);
+    const [redeemError, setRedeemError] = react_default.useState(null);
+    const redeemInputId = "esim-redeem-code-input";
+    const redeemErrorCopy = react_default.useCallback((code) => {
+      switch (code) {
+        case "REDEMPTION_CODE_INVALID":
+          return pickCopy(locale, {
+            en: "This code is invalid or expired. Please double-check and try again.",
+            hans: "\u5151\u6362\u7801\u65E0\u6548\u6216\u5DF2\u8FC7\u671F\uFF0C\u8BF7\u6838\u5BF9\u540E\u91CD\u8BD5\u3002",
+            hant: "\u514C\u63DB\u78BC\u7121\u6548\u6216\u5DF2\u904E\u671F\uFF0C\u8ACB\u6838\u5C0D\u5F8C\u91CD\u8A66\u3002"
+          });
+        case "REDEMPTION_CODE_ALREADY_CLAIMED":
+          return pickCopy(locale, {
+            en: "This code has already been redeemed.",
+            hans: "\u8BE5\u5151\u6362\u7801\u5DF2\u88AB\u4F7F\u7528\u3002",
+            hant: "\u8A72\u514C\u63DB\u78BC\u5DF2\u88AB\u4F7F\u7528\u3002"
+          });
+        case "REDEMPTION_CODE_EXHAUSTED":
+          return pickCopy(locale, {
+            en: "This code has reached its redemption limit.",
+            hans: "\u8BE5\u5151\u6362\u7801\u5DF2\u8FBE\u5151\u6362\u4E0A\u9650\u3002",
+            hant: "\u8A72\u514C\u63DB\u78BC\u5DF2\u9054\u514C\u63DB\u4E0A\u9650\u3002"
+          });
+        case "REDEMPTION_CODE_ASSIGNED":
+          return pickCopy(locale, {
+            en: "This code is assigned to a different account.",
+            hans: "\u8BE5\u5151\u6362\u7801\u7ED1\u5B9A\u5728\u5176\u4ED6\u5E10\u6237\u3002",
+            hant: "\u8A72\u514C\u63DB\u78BC\u7D81\u5B9A\u5728\u5176\u4ED6\u5E33\u6236\u3002"
+          });
+        case "REDEMPTION_PRODUCT_NOT_FOUND":
+        case "REDEMPTION_PRODUCT_NOT_CONFIGURED":
+          return pickCopy(locale, {
+            en: "The product tied to this code is currently unavailable. Please contact support.",
+            hans: "\u5151\u6362\u7801\u5BF9\u5E94\u7684\u5957\u9910\u6682\u65F6\u4E0D\u53EF\u7528\uFF0C\u8BF7\u8054\u7CFB\u5BA2\u670D\u3002",
+            hant: "\u514C\u63DB\u78BC\u5C0D\u61C9\u7684\u5957\u9910\u66AB\u6642\u4E0D\u53EF\u7528\uFF0C\u8ACB\u806F\u7D61\u5BA2\u670D\u3002"
+          });
+        case "REDEMPTION_CORE_UNSUPPORTED":
+          return pickCopy(locale, {
+            en: "Redemption is temporarily unavailable. Please try again later.",
+            hans: "\u5151\u6362\u529F\u80FD\u6682\u65F6\u4E0D\u53EF\u7528\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5\u3002",
+            hant: "\u514C\u63DB\u529F\u80FD\u66AB\u6642\u4E0D\u53EF\u7528\uFF0C\u8ACB\u7A0D\u5F8C\u91CD\u8A66\u3002"
+          });
+        default:
+          return pickCopy(locale, {
+            en: "Redemption failed. Please try again later.",
+            hans: "\u5151\u6362\u5931\u8D25\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5\u3002",
+            hant: "\u514C\u63DB\u5931\u6557\uFF0C\u8ACB\u7A0D\u5F8C\u91CD\u8A66\u3002"
+          });
+      }
+    }, [locale]);
+    const handleRedeem = react_default.useCallback(async () => {
+      const trimmed = redeemValue.trim();
+      if (!trimmed || redeemBusy) return;
+      setRedeemBusy(true);
+      setRedeemError(null);
+      try {
+        const result = await redeemEsimCode({ baseUrl: "" }, trimmed, `profile:${Date.now()}`);
+        if (result.orderId) {
+          go(`/orders/${encodeURIComponent(result.orderId)}`);
+          return;
+        }
+        window.location.reload();
+      } catch (error) {
+        setRedeemError(redeemErrorCopy(error instanceof EsimApiError ? error.code : void 0));
+      } finally {
+        setRedeemBusy(false);
+      }
+    }, [redeemValue, redeemBusy, redeemErrorCopy, go]);
+    if (!isAuthenticated || !user) {
+      return /* @__PURE__ */ jsx("div", { className: "flex min-h-screen items-center justify-center bg-[var(--esim-bg)] px-4", children: /* @__PURE__ */ jsx("div", { className: "w-full max-w-md", children: /* @__PURE__ */ jsxs("div", { className: "rounded-[var(--esim-radius-xl)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-10 text-center shadow-[var(--esim-shadow)]", children: [
+        /* @__PURE__ */ jsx("div", { className: "mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[color:color-mix(in_oklab,var(--esim-gold)_14%,transparent)] text-[var(--esim-gold)]", children: /* @__PURE__ */ jsx(UserRound, { className: "h-8 w-8" }) }),
+        /* @__PURE__ */ jsx("h2", { className: "mt-6 text-3xl leading-[1] tracking-[-0.04em] text-[var(--esim-ink)]", children: pickCopy(locale, { en: "Sign in to view your profile", hans: "\u767B\u5165\u4EE5\u67E5\u770B\u60A8\u7684\u4E2A\u4EBA\u6863\u6848", hant: "\u767B\u5165\u4EE5\u67E5\u770B\u60A8\u7684\u500B\u4EBA\u6A94\u6848" }) }),
+        /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: "Please log in to check your BOKMOO account", hans: "\u8BF7\u767B\u5165\u4EE5\u67E5\u770B\u60A8\u7684 BOKMOO \u5E10\u6237", hant: "\u8ACB\u767B\u5165\u4EE5\u67E5\u770B\u60A8\u7684 BOKMOO \u5E33\u6236" }) }),
+        /* @__PURE__ */ jsx(
+          "button",
+          {
+            onClick: onNavigateToLogin,
+            className: `mt-8 h-12 w-full rounded-full px-6 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--esim-bg)] ${GOLD_GRADIENT_BG}`,
+            type: "button",
+            children: pickCopy(locale, { en: "Log In", hans: "\u767B\u5165", hant: "\u767B\u5165" })
+          }
+        )
+      ] }) }) });
+    }
+    if (isLoading) {
+      return /* @__PURE__ */ jsx("div", { className: "flex min-h-screen items-center justify-center bg-[var(--esim-bg)]", children: /* @__PURE__ */ jsxs("div", { className: "text-center", children: [
+        /* @__PURE__ */ jsx("div", { className: "mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-[var(--esim-line)] border-t-[var(--esim-gold)]" }),
+        /* @__PURE__ */ jsx("p", { className: "text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: "Loading profile...", hans: "\u6B63\u5728\u8F7D\u5165\u4E2A\u4EBA\u8D44\u6599\u2026", hant: "\u6B63\u5728\u8F09\u5165\u500B\u4EBA\u8CC7\u6599\u2026" }) })
+      ] }) });
+    }
+    const displayName = (user.name || "").trim();
+    const firstName = displayName ? displayName.split(/\s+/)[0] : "";
+    const greeting = (() => {
+      if (locale === "ja") return firstName ? `${firstName} \u3055\u3093\u3001\u3053\u3093\u306B\u3061\u306F\u3002` : "\u3053\u3093\u306B\u3061\u306F\u3002";
+      if (locale === "ko") return firstName ? `${firstName}\uB2D8, \uC548\uB155\uD558\uC138\uC694!` : "\uC548\uB155\uD558\uC138\uC694!";
+      if (locale === "fr") return firstName ? `Bonjour ${firstName} !` : "Bonjour !";
+      if (locale === "de") return firstName ? `Hallo ${firstName}!` : "Hallo!";
+      const zh = locale === "zh-Hant" || locale === "zh-Hans";
+      return firstName ? zh ? `\u4F60\u597D\uFF0C${firstName}\uFF01` : `Hi ${firstName}!` : zh ? "\u4F60\u597D\uFF01" : "Hi there!";
+    })();
+    const accountInitial = (displayName || user.email).trim().charAt(0).toUpperCase();
+    const memberSince = user.createdAt ? formatDate(user.createdAt, locale) : "\u2014";
+    const navItems = [
+      {
+        label: pickCopy(locale, { en: "My Account", hans: "\u6211\u7684\u5E10\u6237", hant: "\u6211\u7684\u5E33\u6236" }),
+        icon: UserRound,
+        active: true,
+        onClick: () => window.scrollTo({ top: 0, behavior: "smooth" })
+      },
+      { label: pickCopy(locale, { en: "Order History", hans: "\u8BA2\u5355\u7EAA\u5F55", hant: "\u8A02\u55AE\u7D00\u9304" }), icon: ShoppingBag, onClick: onNavigateToOrders },
+      { label: pickCopy(locale, { en: "My Trips", hans: "\u6211\u7684\u884C\u7A0B", hant: "\u6211\u7684\u884C\u7A0B" }), icon: Plane, onClick: onNavigateToOrders },
+      { label: pickCopy(locale, { en: "Travel Credits", hans: "\u65C5\u6E38\u70B9\u6570", hant: "\u65C5\u904A\u9EDE\u6578" }), icon: Mail, onClick: () => go("/affiliate") },
+      { label: pickCopy(locale, { en: "Affiliate Program", hans: "\u63A8\u5E7F\u8BA1\u5212", hant: "\u63A8\u5EE3\u8A08\u5283" }), icon: Users, onClick: () => go("/affiliate") },
+      { label: pickCopy(locale, { en: "Settings", hans: "\u8BBE\u5B9A", hant: "\u8A2D\u5B9A" }), icon: Settings, onClick: onNavigateToSettings }
+    ];
+    const renderNavButton = (item, layout2) => {
+      const Icon2 = item.icon;
+      const base = layout2 === "sidebar" ? "flex w-full shrink-0 items-center gap-3 rounded-[0.9rem] px-4 py-3 text-[0.92rem] font-medium transition-colors" : "inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-2.5 text-[0.85rem] font-medium transition-colors";
+      const tone = item.active ? layout2 === "sidebar" ? "bg-[color:color-mix(in_oklab,var(--esim-gold)_13%,transparent)] text-[var(--esim-ink)] shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--esim-gold)_22%,transparent)]" : "border-[color:color-mix(in_oklab,var(--esim-gold)_36%,transparent)] bg-[color:color-mix(in_oklab,var(--esim-gold)_13%,transparent)] text-[var(--esim-ink)]" : "border-transparent text-[var(--esim-copy-soft)] hover:bg-[color:color-mix(in_oklab,var(--esim-gold)_8%,transparent)] hover:text-[var(--esim-ink)]";
+      return /* @__PURE__ */ jsxs("button", { onClick: item.onClick, className: `${base} ${tone}`, type: "button", children: [
+        /* @__PURE__ */ jsx(
+          Icon2,
+          {
+            className: `h-[1.05rem] w-[1.05rem] ${item.active ? "text-[var(--esim-gold)]" : "text-[color:color-mix(in_oklab,var(--esim-copy-soft)_80%,var(--esim-gold))]"}`
+          }
+        ),
+        item.label
+      ] }, item.label);
+    };
+    const infoRowIcon = "h-4 w-4 shrink-0 text-[var(--esim-copy-soft)]";
+    const editButtonClass = "inline-flex h-9 items-center gap-1.5 rounded-full border border-[var(--esim-line-strong)] bg-[color:color-mix(in_oklab,var(--esim-bg-soft)_60%,transparent)] px-4 text-[0.8rem] font-semibold text-[var(--esim-ink)] transition-colors hover:border-[var(--esim-gold)] hover:text-[var(--esim-gold)]";
+    return /* @__PURE__ */ jsxs("div", { className: "min-h-screen bg-[var(--esim-bg)] lg:flex", children: [
+      /* @__PURE__ */ jsxs("aside", { className: "hidden w-64 shrink-0 flex-col border-r border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_94%,black)] px-4 pb-10 pt-6 lg:flex", children: [
+        /* @__PURE__ */ jsx("nav", { className: "flex flex-col gap-1.5", children: navItems.map((item) => renderNavButton(item, "sidebar")) }),
+        /* @__PURE__ */ jsx("div", { className: "mt-auto pt-10", children: /* @__PURE__ */ jsxs(
+          "div",
+          {
+            onClick: () => go("/products"),
+            className: "group relative min-h-[13.5rem] cursor-pointer overflow-hidden rounded-[var(--esim-radius-md)] border border-[var(--esim-line)] shadow-[var(--esim-shadow)]",
+            style: { backgroundImage: PROMO_SCENE, backgroundSize: "cover", backgroundPosition: "center" },
+            children: [
+              /* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-[linear-gradient(180deg,rgba(9,7,14,0.1),rgba(9,7,14,0.78))]" }),
+              /* @__PURE__ */ jsxs("div", { className: "relative flex min-h-[13.5rem] flex-col p-5", children: [
+                /* @__PURE__ */ jsx("h3", { className: "max-w-[9.5rem] text-xl font-bold leading-snug text-white", children: pickCopy(locale, { en: "eSIM plans built for every journey.", hans: "\u4E3A\u6BCF\u6B21\u65C5\u7A0B\u51C6\u5907\u7684 eSIM \u65B9\u6848\u3002", hant: "\u70BA\u6BCF\u6B21\u65C5\u7A0B\u6E96\u5099\u7684 eSIM \u65B9\u6848\u3002" }) }),
+                /* @__PURE__ */ jsx("p", { className: "mt-2 text-xs leading-relaxed text-white/70", children: pickCopy(locale, { en: "Instant QR or eSIM profile delivery", hans: "\u5373\u65F6\u53D1\u653E\u4E8C\u7EF4\u7801\u6216 eSIM \u914D\u7F6E\u6587\u4EF6", hant: "\u5373\u6642\u767C\u653E QR \u78BC\u6216 eSIM \u8A2D\u5B9A\u6A94" }) }),
+                /* @__PURE__ */ jsxs("span", { className: "mt-auto inline-flex items-center gap-1.5 self-start rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--esim-gold)_86%,white),color-mix(in_oklab,var(--esim-gold)_70%,black))] px-4 py-2 text-xs font-bold text-[var(--esim-bg)] transition-transform duration-300 group-hover:-translate-y-0.5", children: [
+                  pickCopy(locale, { en: "Browse Destinations", hans: "\u6D4F\u89C8\u76EE\u7684\u5730", hant: "\u700F\u89BD\u76EE\u7684\u5730" }),
+                  /* @__PURE__ */ jsx(ArrowRight, { className: "h-3.5 w-3.5" })
+                ] })
+              ] })
+            ]
+          }
+        ) })
+      ] }),
+      /* @__PURE__ */ jsxs("div", { className: "min-w-0 flex-1 px-4 pb-16 pt-5 sm:px-6 lg:px-8", children: [
+        /* @__PURE__ */ jsx("div", { className: "-mx-4 mb-5 overflow-x-auto px-4 pb-1 lg:hidden", children: /* @__PURE__ */ jsx("div", { className: "flex w-max gap-2", children: navItems.map((item) => renderNavButton(item, "chip")) }) }),
+        /* @__PURE__ */ jsxs("div", { className: "mx-auto max-w-[1200px] space-y-6", children: [
+          /* @__PURE__ */ jsxs("section", { className: "relative overflow-hidden rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] bg-[linear-gradient(115deg,color-mix(in_oklab,var(--esim-bg-elevated)_96%,black),color-mix(in_oklab,var(--esim-bg-soft)_70%,var(--esim-bg-elevated)))] p-6 shadow-[var(--esim-shadow)] sm:p-8", children: [
+            /* @__PURE__ */ jsx(
+              "div",
+              {
+                "aria-hidden": "true",
+                className: "pointer-events-none absolute inset-y-0 right-0 hidden w-[56%] sm:block",
+                style: {
+                  backgroundImage: "radial-gradient(color-mix(in oklab, var(--esim-gold) 26%, transparent) 1.2px, transparent 1.4px)",
+                  backgroundSize: "13px 13px",
+                  maskImage: "radial-gradient(ellipse 85% 90% at 76% 48%, black 0%, transparent 74%)",
+                  WebkitMaskImage: "radial-gradient(ellipse 85% 90% at 76% 48%, black 0%, transparent 74%)"
+                }
+              }
+            ),
+            /* @__PURE__ */ jsxs(
+              "svg",
+              {
+                "aria-hidden": "true",
+                className: "pointer-events-none absolute -right-8 -top-10 hidden h-[150%] w-[44%] opacity-35 sm:block",
+                viewBox: "0 0 400 280",
+                fill: "none",
+                children: [
+                  /* @__PURE__ */ jsx("defs", { children: /* @__PURE__ */ jsxs("linearGradient", { id: "esim-hero-arc", x1: "0", y1: "280", x2: "400", y2: "40", gradientUnits: "userSpaceOnUse", children: [
+                    /* @__PURE__ */ jsx("stop", { stopColor: "var(--esim-gold)", stopOpacity: "0" }),
+                    /* @__PURE__ */ jsx("stop", { offset: "0.55", stopColor: "var(--esim-gold)", stopOpacity: "0.8" }),
+                    /* @__PURE__ */ jsx("stop", { offset: "1", stopColor: "#f6d78a", stopOpacity: "0.2" })
+                  ] }) }),
+                  /* @__PURE__ */ jsx("path", { d: "M12 262C86 138 252 66 400 84", stroke: "url(#esim-hero-arc)", strokeWidth: "1.5" }),
+                  /* @__PURE__ */ jsx("path", { d: "M52 280C124 168 276 100 400 116", stroke: "url(#esim-hero-arc)", strokeWidth: "1", opacity: "0.65" })
+                ]
+              }
+            ),
+            /* @__PURE__ */ jsxs("div", { className: "relative flex flex-col gap-6 sm:flex-row sm:items-center", children: [
+              /* @__PURE__ */ jsxs("div", { className: "relative shrink-0 self-center sm:self-start", children: [
+                /* @__PURE__ */ jsx(
+                  "div",
+                  {
+                    className: `flex h-24 w-24 items-center justify-center overflow-hidden rounded-full text-4xl font-bold text-[var(--esim-bg)] shadow-[0_18px_44px_color-mix(in_oklab,var(--esim-gold)_24%,transparent)] ${GOLD_GRADIENT_BG}`,
+                    children: user.avatar ? /* @__PURE__ */ jsx("img", { src: user.avatar, alt: user.name, className: "h-full w-full object-cover" }) : accountInitial
+                  }
+                ),
+                /* @__PURE__ */ jsx("span", { className: "absolute -bottom-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-[0.45rem] border border-[color:color-mix(in_oklab,var(--esim-gold)_34%,transparent)] bg-[color:oklch(0.09_0.01_75_/_0.96)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--esim-gold)]", children: pickCopy(locale, { en: "Member", hans: "\u4F1A\u5458", hant: "\u6703\u54E1" }) })
+              ] }),
+              /* @__PURE__ */ jsxs("div", { className: "min-w-0 text-center sm:text-left", children: [
+                /* @__PURE__ */ jsx("h1", { className: "text-[1.9rem] font-bold leading-tight tracking-[-0.02em] text-[var(--esim-ink)]", children: greeting }),
+                /* @__PURE__ */ jsxs("div", { className: "mt-2.5 flex items-center justify-center gap-2 sm:justify-start", children: [
+                  /* @__PURE__ */ jsx("p", { className: "truncate text-[0.95rem] text-[var(--esim-copy)]", children: user.email }),
+                  /* @__PURE__ */ jsx(
+                    "button",
+                    {
+                      onClick: copyEmail,
+                      className: "flex h-7 w-7 shrink-0 items-center justify-center rounded-[0.5rem] text-[var(--esim-copy-soft)] transition-colors hover:bg-[color:color-mix(in_oklab,var(--esim-gold)_10%,transparent)] hover:text-[var(--esim-gold)]",
+                      type: "button",
+                      "aria-label": pickCopy(locale, { en: "Copy email", hans: "\u590D\u5236\u7535\u5B50\u90AE\u4EF6", hant: "\u8907\u88FD\u96FB\u5B50\u90F5\u4EF6" }),
+                      children: copied ? /* @__PURE__ */ jsx(Check, { className: "h-4 w-4 text-[var(--esim-success)]" }) : /* @__PURE__ */ jsx(Copy, { className: "h-4 w-4" })
+                    }
+                  )
+                ] }),
+                /* @__PURE__ */ jsxs("p", { className: "mt-1.5 text-[0.82rem] text-[var(--esim-copy-soft)]", children: [
+                  pickCopy(locale, { en: "Member since", hans: "\u6CE8\u518C\u4E8E", hant: "\u8A3B\u518A\u65BC" }),
+                  " ",
+                  memberSince
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxs("div", { "aria-hidden": "true", className: "relative ml-auto hidden select-none flex-col items-end pr-2 lg:flex", children: [
+                /* @__PURE__ */ jsxs(
+                  "span",
+                  {
+                    className: "bg-[linear-gradient(120deg,#f6d78a,var(--esim-gold-strong)_55%,#c99b3e)] bg-clip-text text-right text-[1.65rem] italic leading-[1.2] text-transparent",
+                    style: { fontFamily: SCRIPT_FONT },
+                    children: [
+                      pickCopy(locale, { en: "Better Nights", hans: "\u591C\u66F4\u5B89\u7720", hant: "\u591C\u66F4\u5B89\u7720" }),
+                      /* @__PURE__ */ jsx("br", {}),
+                      pickCopy(locale, { en: "Brighter Journeys", hans: "\u65C5\u7A0B\u66F4\u7CBE\u5F69", hant: "\u65C5\u7A0B\u66F4\u7CBE\u5F69" })
+                    ]
+                  }
+                ),
+                /* @__PURE__ */ jsx(Plane, { className: "mt-1 h-5 w-5 -rotate-6 text-[color:color-mix(in_oklab,var(--esim-gold)_78%,white)]" })
+              ] })
+            ] })
+          ] }),
+          /* @__PURE__ */ jsx(MyEsimAssets, { apiBaseUrl: site.apiBaseUrl, email: user?.email, locale }),
+          /* @__PURE__ */ jsxs("section", { className: "rounded-[var(--esim-radius-lg)] border border-[color:color-mix(in_oklab,var(--esim-gold)_32%,var(--esim-line))] bg-[color:color-mix(in_oklab,var(--esim-gold)_6%,var(--esim-bg-elevated))] p-6 shadow-[var(--esim-shadow)]", children: [
+            /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between gap-3", children: [
+              /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2.5", children: [
+                /* @__PURE__ */ jsx(Gift, { className: "h-[1.1rem] w-[1.1rem] text-[var(--esim-gold)]" }),
+                /* @__PURE__ */ jsx("h3", { className: "text-[1.05rem] font-bold tracking-tight text-[var(--esim-ink)]", children: pickCopy(locale, { en: "Redeem a Code", hans: "\u5151\u6362\u7801", hant: "\u514C\u63DB\u78BC" }) })
+              ] }),
+              /* @__PURE__ */ jsx(
+                "button",
+                {
+                  onClick: () => setRedeemOpen((open) => !open),
+                  className: editButtonClass,
+                  type: "button",
+                  "aria-expanded": redeemOpen,
+                  "aria-controls": redeemInputId,
+                  children: redeemOpen ? pickCopy(locale, { en: "Close", hans: "\u6536\u8D77", hant: "\u6536\u8D77" }) : pickCopy(locale, { en: "Enter Code", hans: "\u8F93\u5165\u5151\u6362\u7801", hant: "\u8F38\u5165\u514C\u63DB\u78BC" })
+                }
+              )
+            ] }),
+            /* @__PURE__ */ jsx("p", { className: "mt-2 text-sm text-[var(--esim-copy-soft)]", children: pickCopy(locale, {
+              en: "Have a redemption code? Enter it to add an eSIM plan or subscription to your account.",
+              hans: "\u6301\u6709\u5151\u6362\u7801\uFF1F\u8F93\u5165\u5373\u53EF\u5C06 eSIM \u5957\u9910\u6216\u8BA2\u9605\u52A0\u5165\u60A8\u7684\u5E10\u6237\u3002",
+              hant: "\u6301\u6709\u514C\u63DB\u78BC\uFF1F\u8F38\u5165\u5373\u53EF\u5C07 eSIM \u5957\u9910\u6216\u8A02\u95B1\u52A0\u5165\u60A8\u7684\u5E33\u6236\u3002"
+            }) }),
+            redeemOpen && /* @__PURE__ */ jsxs("div", { className: "mt-4", children: [
+              /* @__PURE__ */ jsxs("div", { className: "flex flex-col gap-3 sm:flex-row", children: [
+                /* @__PURE__ */ jsx(
+                  "input",
+                  {
+                    id: redeemInputId,
+                    type: "text",
+                    value: redeemValue,
+                    onChange: (event) => setRedeemValue(event.target.value),
+                    onKeyDown: (event) => {
+                      if (event.key === "Enter") void handleRedeem();
+                    },
+                    placeholder: pickCopy(locale, {
+                      en: "e.g. ESIM-JP-7D",
+                      hans: "\u4F8B\u5982 ESIM-JP-7D",
+                      hant: "\u4F8B\u5982 ESIM-JP-7D"
+                    }),
+                    disabled: redeemBusy,
+                    className: "flex-1 rounded-[var(--esim-radius-md,0.75rem)] border border-[var(--esim-line)] bg-[var(--esim-bg)] px-4 py-2.5 uppercase tracking-wide text-[var(--esim-ink)] focus:outline-none focus:ring-2 focus:ring-[color:color-mix(in_oklab,var(--esim-gold)_55%,transparent)] disabled:opacity-60"
+                  }
+                ),
+                /* @__PURE__ */ jsx(
+                  "button",
+                  {
+                    onClick: () => void handleRedeem(),
+                    disabled: redeemBusy || !redeemValue.trim(),
+                    className: "inline-flex items-center justify-center gap-2 rounded-[var(--esim-radius-md,0.75rem)] bg-[var(--esim-gold)] px-6 py-2.5 font-semibold text-[color:color-mix(in_oklab,var(--esim-gold)_18%,black)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60",
+                    type: "button",
+                    children: redeemBusy ? pickCopy(locale, { en: "Redeeming\u2026", hans: "\u5151\u6362\u4E2D\u2026", hant: "\u514C\u63DB\u4E2D\u2026" }) : pickCopy(locale, { en: "Redeem", hans: "\u5151\u6362", hant: "\u514C\u63DB" })
+                  }
+                )
+              ] }),
+              redeemError && /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm text-red-500", children: redeemError })
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxs("section", { className: "grid gap-6 lg:grid-cols-2", children: [
+            /* @__PURE__ */ jsxs("div", { className: "rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-6 shadow-[var(--esim-shadow)]", children: [
+              /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between gap-3", children: [
+                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2.5", children: [
+                  /* @__PURE__ */ jsx(UserRound, { className: "h-[1.1rem] w-[1.1rem] text-[var(--esim-gold)]" }),
+                  /* @__PURE__ */ jsx("h3", { className: "text-[1.05rem] font-bold tracking-tight text-[var(--esim-ink)]", children: pickCopy(locale, { en: "Account Information", hans: "\u5E10\u6237\u8D44\u6599", hant: "\u5E33\u6236\u8CC7\u6599" }) })
+                ] }),
+                /* @__PURE__ */ jsxs("button", { onClick: onNavigateToSettings, className: editButtonClass, type: "button", children: [
+                  /* @__PURE__ */ jsx(PencilLine, { className: "h-3.5 w-3.5" }),
+                  pickCopy(locale, { en: "Edit", hans: "\u7F16\u8F91", hant: "\u7DE8\u8F2F" })
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxs("div", { className: "mt-3 divide-y divide-[color:color-mix(in_oklab,var(--esim-line)_55%,transparent)]", children: [
+                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 py-3.5", children: [
+                  /* @__PURE__ */ jsx(Mail, { className: infoRowIcon }),
+                  /* @__PURE__ */ jsx("span", { className: "w-28 shrink-0 text-sm text-[var(--esim-copy-soft)] sm:w-32", children: pickCopy(locale, { en: "Email Address", hans: "\u7535\u5B50\u90AE\u4EF6", hant: "\u96FB\u5B50\u90F5\u4EF6" }) }),
+                  /* @__PURE__ */ jsx(
+                    "span",
+                    {
+                      className: "min-w-0 flex-1 truncate text-right text-sm font-semibold text-[var(--esim-ink)] sm:text-left",
+                      title: user.email,
+                      children: user.email
+                    }
+                  )
+                ] }),
+                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 py-3.5", children: [
+                  /* @__PURE__ */ jsx(CalendarDays, { className: infoRowIcon }),
+                  /* @__PURE__ */ jsx("span", { className: "w-28 shrink-0 text-sm text-[var(--esim-copy-soft)] sm:w-32", children: pickCopy(locale, { en: "Member Since", hans: "\u6CE8\u518C\u65E5\u671F", hant: "\u8A3B\u518A\u65E5\u671F" }) }),
+                  /* @__PURE__ */ jsx("span", { className: "flex-1 text-sm font-semibold text-[var(--esim-ink)]", children: memberSince })
+                ] }),
+                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 py-3.5", children: [
+                  /* @__PURE__ */ jsx(UserRound, { className: infoRowIcon }),
+                  /* @__PURE__ */ jsx("span", { className: "w-28 shrink-0 text-sm text-[var(--esim-copy-soft)] sm:w-32", children: pickCopy(locale, { en: "Account Status", hans: "\u5E10\u6237\u72B6\u6001", hant: "\u5E33\u6236\u72C0\u614B" }) }),
+                  /* @__PURE__ */ jsx("span", { className: "inline-flex items-center rounded-[0.45rem] border border-[color:color-mix(in_oklab,var(--esim-success)_28%,transparent)] bg-[color:color-mix(in_oklab,var(--esim-success)_14%,transparent)] px-3 py-1 text-xs font-semibold text-[var(--esim-success)]", children: pickCopy(locale, { en: "Active Member", hans: "\u6709\u6548\u4F1A\u5458", hant: "\u6709\u6548\u6703\u54E1" }) })
+                ] })
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxs("div", { className: "rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-6 shadow-[var(--esim-shadow)]", children: [
+              /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between gap-3", children: [
+                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2.5", children: [
+                  /* @__PURE__ */ jsx(Settings, { className: "h-[1.1rem] w-[1.1rem] text-[var(--esim-gold)]" }),
+                  /* @__PURE__ */ jsx("h3", { className: "text-[1.05rem] font-bold tracking-tight text-[var(--esim-ink)]", children: pickCopy(locale, { en: "Account Preferences", hans: "\u504F\u597D\u8BBE\u5B9A", hant: "\u504F\u597D\u8A2D\u5B9A" }) })
+                ] }),
+                /* @__PURE__ */ jsxs("button", { onClick: onNavigateToSettings, className: editButtonClass, type: "button", children: [
+                  /* @__PURE__ */ jsx(PencilLine, { className: "h-3.5 w-3.5" }),
+                  pickCopy(locale, { en: "Edit", hans: "\u7F16\u8F91", hant: "\u7DE8\u8F2F" })
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxs("div", { className: "mt-3 divide-y divide-[color:color-mix(in_oklab,var(--esim-line)_55%,transparent)]", children: [
+                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 py-3.5", children: [
+                  /* @__PURE__ */ jsx(Earth, { className: infoRowIcon }),
+                  /* @__PURE__ */ jsx("span", { className: "w-28 shrink-0 text-sm text-[var(--esim-copy-soft)] sm:w-32", children: pickCopy(locale, { en: "Language", hans: "\u8BED\u8A00", hant: "\u8A9E\u8A00" }) }),
+                  /* @__PURE__ */ jsx("span", { className: "flex-1 text-sm font-semibold text-[var(--esim-ink)]", children: pickCopy(locale, { en: "English", hans: "\u7E41\u4F53\u4E2D\u6587", hant: "\u7E41\u9AD4\u4E2D\u6587" }) })
+                ] }),
+                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 py-3.5", children: [
+                  /* @__PURE__ */ jsx(Clock3, { className: infoRowIcon }),
+                  /* @__PURE__ */ jsx("span", { className: "w-28 shrink-0 text-sm text-[var(--esim-copy-soft)] sm:w-32", children: pickCopy(locale, { en: "Timezone", hans: "\u65F6\u533A", hant: "\u6642\u5340" }) }),
+                  /* @__PURE__ */ jsx("span", { className: "flex-1 text-sm font-semibold text-[var(--esim-ink)]", children: timezoneLabel() })
+                ] }),
+                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 py-3.5", children: [
+                  /* @__PURE__ */ jsx(CalendarDays, { className: infoRowIcon }),
+                  /* @__PURE__ */ jsx("span", { className: "w-28 shrink-0 text-sm text-[var(--esim-copy-soft)] sm:w-32", children: pickCopy(locale, { en: "Date of Birth", hans: "\u51FA\u751F\u65E5\u671F", hant: "\u51FA\u751F\u65E5\u671F" }) }),
+                  /* @__PURE__ */ jsx("span", { className: "flex-1 text-sm text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: "Not set", hans: "\u672A\u8BBE\u5B9A", hant: "\u672A\u8A2D\u5B9A" }) })
+                ] }),
+                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 py-3.5", children: [
+                  /* @__PURE__ */ jsx(Phone, { className: infoRowIcon }),
+                  /* @__PURE__ */ jsx("span", { className: "w-28 shrink-0 text-sm text-[var(--esim-copy-soft)] sm:w-32", children: pickCopy(locale, { en: "Phone Number", hans: "\u7535\u8BDD\u53F7\u7801", hant: "\u96FB\u8A71\u865F\u78BC" }) }),
+                  /* @__PURE__ */ jsx("span", { className: "flex-1 text-sm text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: "Not set", hans: "\u672A\u8BBE\u5B9A", hant: "\u672A\u8A2D\u5B9A" }) })
+                ] })
+              ] })
+            ] })
+          ] }),
+          onAddAddress ? /* @__PURE__ */ jsxs("section", { className: "rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-5 shadow-[var(--esim-shadow)] sm:p-6", children: [
+            /* @__PURE__ */ jsx("div", { className: "flex items-center justify-between gap-4", children: /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-4", children: [
+              /* @__PURE__ */ jsx("div", { className: "flex h-14 w-14 shrink-0 items-center justify-center rounded-[1rem] bg-[color:color-mix(in_oklab,var(--esim-gold)_15%,transparent)] text-[var(--esim-gold)]", children: /* @__PURE__ */ jsx(MapPin, { className: "h-6 w-6" }) }),
+              /* @__PURE__ */ jsxs("div", { children: [
+                /* @__PURE__ */ jsx("h3", { className: "text-lg font-bold tracking-tight text-[var(--esim-ink)]", children: pickCopy(locale, { en: "My Addresses", hans: "\u6211\u7684\u5730\u5740", hant: "\u6211\u7684\u5730\u5740" }) }),
+                /* @__PURE__ */ jsx("p", { className: "mt-1 text-sm text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: "Saved shipping addresses for checkout", hans: "\u7ED3\u7B97\u65F6\u4F7F\u7528\u7684\u6536\u8D27\u5730\u5740", hant: "\u7D50\u5E33\u6642\u4F7F\u7528\u7684\u6536\u8CA8\u5730\u5740" }) })
+              ] })
+            ] }) }),
+            isLoadingAddresses ? /* @__PURE__ */ jsx("p", { className: "mt-5 text-sm text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: "Loading\u2026", hans: "\u52A0\u8F7D\u4E2D\u2026", hant: "\u8F09\u5165\u4E2D\u2026" }) }) : /* @__PURE__ */ jsxs("div", { className: "mt-5 space-y-3", children: [
+              (addresses ?? []).length === 0 ? /* @__PURE__ */ jsx("p", { className: "text-sm text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: "No saved addresses yet.", hans: "\u8FD8\u6CA1\u6709\u4FDD\u5B58\u7684\u5730\u5740\u3002", hant: "\u9084\u6C92\u6709\u4FDD\u5B58\u7684\u5730\u5740\u3002" }) }) : (addresses ?? []).map((address) => /* @__PURE__ */ jsxs(
+                "div",
+                {
+                  className: "flex flex-col gap-3 rounded-[1rem] border border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_88%,black)] p-4 sm:flex-row sm:items-center sm:justify-between",
+                  children: [
+                    /* @__PURE__ */ jsxs("div", { className: "text-sm", children: [
+                      /* @__PURE__ */ jsxs("p", { className: "flex flex-wrap items-center gap-2 font-medium text-[var(--esim-ink)]", children: [
+                        address.name,
+                        address.isDefault ? /* @__PURE__ */ jsx("span", { className: "rounded-full bg-[color:color-mix(in_oklab,var(--esim-gold)_20%,transparent)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--esim-gold)]", children: pickCopy(locale, { en: "Default", hans: "\u9ED8\u8BA4", hant: "\u9810\u8A2D" }) }) : null
+                      ] }),
+                      /* @__PURE__ */ jsxs("p", { className: "mt-1 text-[var(--esim-copy)]", children: [
+                        address.phone,
+                        " \xB7 ",
+                        address.line1,
+                        address.city ? `, ${address.city}` : "",
+                        address.state ? `, ${address.state}` : "",
+                        address.country ? ` \xB7 ${address.country}` : ""
+                      ] })
+                    ] }),
+                    /* @__PURE__ */ jsxs("div", { className: "flex shrink-0 items-center gap-2", children: [
+                      !address.isDefault && onSetDefaultAddress ? /* @__PURE__ */ jsx(
+                        "button",
+                        {
+                          onClick: () => void onSetDefaultAddress(address.id),
+                          className: "rounded-full border border-[var(--esim-line)] px-3 py-1.5 text-xs text-[var(--esim-copy)] transition-colors hover:border-[var(--esim-gold)] hover:text-[var(--esim-gold)]",
+                          type: "button",
+                          children: pickCopy(locale, { en: "Set default", hans: "\u8BBE\u4E3A\u9ED8\u8BA4", hant: "\u8A2D\u70BA\u9810\u8A2D" })
+                        }
+                      ) : null,
+                      onDeleteAddress ? /* @__PURE__ */ jsx(
+                        "button",
+                        {
+                          onClick: () => void onDeleteAddress(address.id),
+                          className: "rounded-full border border-[var(--esim-line)] px-3 py-1.5 text-xs text-[var(--esim-copy)] transition-colors hover:border-[var(--esim-danger)] hover:text-[var(--esim-danger)]",
+                          type: "button",
+                          children: pickCopy(locale, { en: "Delete", hans: "\u5220\u9664", hant: "\u522A\u9664" })
+                        }
+                      ) : null
+                    ] })
+                  ]
+                },
+                address.id
+              )),
+              showAddressForm ? /* @__PURE__ */ jsxs(
+                "form",
+                {
+                  className: "grid gap-3 rounded-[1rem] border border-[color:color-mix(in_oklab,var(--esim-gold)_18%,var(--esim-line))] bg-[color:color-mix(in_oklab,var(--esim-bg)_88%,black)] p-4 sm:grid-cols-2",
+                  onSubmit: (event) => {
+                    event.preventDefault();
+                    const data = new FormData(event.currentTarget);
+                    const input = {
+                      name: String(data.get("name") || "").trim(),
+                      phone: String(data.get("phone") || "").trim(),
+                      line1: String(data.get("line1") || "").trim(),
+                      city: String(data.get("city") || "").trim(),
+                      state: String(data.get("state") || "").trim(),
+                      postalCode: String(data.get("postalCode") || "").trim(),
+                      country: String(data.get("country") || "").trim()
+                    };
+                    if (!input.name || !input.phone || !input.line1 || !input.city || !input.country) return;
+                    void onAddAddress(input).then(() => setShowAddressForm(false));
+                  },
+                  children: [
+                    /* @__PURE__ */ jsx("input", { name: "name", required: true, placeholder: pickCopy(locale, { en: "Full name", hans: "\u59D3\u540D", hant: "\u59D3\u540D" }), className: "rounded-[0.7rem] border border-[var(--esim-line)] bg-transparent px-3 py-2.5 text-sm text-[var(--esim-ink)] outline-none focus:border-[var(--esim-gold)]" }),
+                    /* @__PURE__ */ jsx("input", { name: "phone", required: true, placeholder: pickCopy(locale, { en: "Phone", hans: "\u624B\u673A\u53F7", hant: "\u624B\u6A5F\u865F" }), className: "rounded-[0.7rem] border border-[var(--esim-line)] bg-transparent px-3 py-2.5 text-sm text-[var(--esim-ink)] outline-none focus:border-[var(--esim-gold)]" }),
+                    /* @__PURE__ */ jsx("input", { name: "line1", required: true, placeholder: pickCopy(locale, { en: "Address", hans: "\u8BE6\u7EC6\u5730\u5740", hant: "\u8A73\u7D30\u5730\u5740" }), className: "sm:col-span-2 rounded-[0.7rem] border border-[var(--esim-line)] bg-transparent px-3 py-2.5 text-sm text-[var(--esim-ink)] outline-none focus:border-[var(--esim-gold)]" }),
+                    /* @__PURE__ */ jsx("input", { name: "city", required: true, placeholder: pickCopy(locale, { en: "City", hans: "\u57CE\u5E02", hant: "\u57CE\u5E02" }), className: "rounded-[0.7rem] border border-[var(--esim-line)] bg-transparent px-3 py-2.5 text-sm text-[var(--esim-ink)] outline-none focus:border-[var(--esim-gold)]" }),
+                    /* @__PURE__ */ jsx("input", { name: "state", placeholder: pickCopy(locale, { en: "State / Province", hans: "\u7701/\u5DDE", hant: "\u7701/\u5DDE" }), className: "rounded-[0.7rem] border border-[var(--esim-line)] bg-transparent px-3 py-2.5 text-sm text-[var(--esim-ink)] outline-none focus:border-[var(--esim-gold)]" }),
+                    /* @__PURE__ */ jsx("input", { name: "postalCode", placeholder: pickCopy(locale, { en: "Postal code", hans: "\u90AE\u7F16", hant: "\u90F5\u905E\u5340\u865F" }), className: "rounded-[0.7rem] border border-[var(--esim-line)] bg-transparent px-3 py-2.5 text-sm text-[var(--esim-ink)] outline-none focus:border-[var(--esim-gold)]" }),
+                    /* @__PURE__ */ jsx("input", { name: "country", required: true, placeholder: pickCopy(locale, { en: "Country (e.g. CN)", hans: "\u56FD\u5BB6\uFF08\u5982 CN\uFF09", hant: "\u570B\u5BB6\uFF08\u5982 CN\uFF09" }), className: "rounded-[0.7rem] border border-[var(--esim-line)] bg-transparent px-3 py-2.5 text-sm text-[var(--esim-ink)] outline-none focus:border-[var(--esim-gold)]" }),
+                    /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-end gap-2 sm:col-span-2", children: [
+                      /* @__PURE__ */ jsx("button", { onClick: () => setShowAddressForm(false), className: "rounded-full px-4 py-2 text-xs text-[var(--esim-copy)]", type: "button", children: pickCopy(locale, { en: "Cancel", hans: "\u53D6\u6D88", hant: "\u53D6\u6D88" }) }),
+                      /* @__PURE__ */ jsx("button", { className: "rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--esim-gold)_82%,white),color-mix(in_oklab,var(--esim-gold)_68%,black))] px-5 py-2 text-xs font-semibold text-[var(--esim-bg)]", type: "submit", children: pickCopy(locale, { en: "Save address", hans: "\u4FDD\u5B58\u5730\u5740", hant: "\u4FDD\u5B58\u5730\u5740" }) })
+                    ] })
+                  ]
+                }
+              ) : /* @__PURE__ */ jsxs(
+                "button",
+                {
+                  onClick: () => setShowAddressForm(true),
+                  className: "inline-flex min-h-10 items-center gap-2 rounded-full border border-dashed border-[color:color-mix(in_oklab,var(--esim-gold)_38%,transparent)] px-4 text-xs font-medium text-[var(--esim-gold)] transition-colors hover:bg-[color:color-mix(in_oklab,var(--esim-gold)_10%,transparent)]",
+                  type: "button",
+                  children: [
+                    "+ ",
+                    pickCopy(locale, { en: "Add a new address", hans: "\u6DFB\u52A0\u65B0\u5730\u5740", hant: "\u6DFB\u52A0\u65B0\u5730\u5740" })
+                  ]
+                }
+              )
+            ] })
+          ] }) : null,
+          /* @__PURE__ */ jsxs("section", { className: "grid gap-6 lg:grid-cols-2", children: [
+            /* @__PURE__ */ jsxs(
+              "div",
+              {
+                onClick: onNavigateToOrders,
+                className: "group flex cursor-pointer items-center justify-between gap-4 rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-5 shadow-[var(--esim-shadow)] transition-colors hover:border-[color:color-mix(in_oklab,var(--esim-gold)_38%,transparent)] sm:p-6",
+                children: [
+                  /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-4", children: [
+                    /* @__PURE__ */ jsx("div", { className: "flex h-14 w-14 shrink-0 items-center justify-center rounded-[1rem] bg-[color:color-mix(in_oklab,var(--esim-gold)_15%,transparent)] text-[var(--esim-gold)]", children: /* @__PURE__ */ jsx(ShoppingBag, { className: "h-6 w-6" }) }),
+                    /* @__PURE__ */ jsxs("div", { children: [
+                      /* @__PURE__ */ jsx("h3", { className: "text-lg font-bold tracking-tight text-[var(--esim-ink)]", children: pickCopy(locale, { en: "Order History", hans: "\u8BA2\u5355\u7EAA\u5F55", hant: "\u8A02\u55AE\u7D00\u9304" }) }),
+                      /* @__PURE__ */ jsx("p", { className: "mt-1 text-sm text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: "View and manage your orders", hans: "\u67E5\u770B\u53CA\u7BA1\u7406\u60A8\u7684\u8BA2\u5355", hant: "\u67E5\u770B\u53CA\u7BA1\u7406\u60A8\u7684\u8A02\u55AE" }) })
+                    ] })
+                  ] }),
+                  /* @__PURE__ */ jsx("span", { className: "flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--esim-line-strong)] text-[var(--esim-copy)] transition-colors group-hover:border-[var(--esim-gold)] group-hover:text-[var(--esim-gold)]", children: /* @__PURE__ */ jsx(ChevronRight, { className: "h-[1.1rem] w-[1.1rem]" }) })
+                ]
+              }
+            ),
+            /* @__PURE__ */ jsxs(
+              "div",
+              {
+                onClick: onNavigateToOrders,
+                className: "group flex cursor-pointer items-center justify-between gap-4 rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-5 shadow-[var(--esim-shadow)] transition-colors hover:border-[color:color-mix(in_oklab,var(--esim-gold)_38%,transparent)] sm:p-6",
+                children: [
+                  /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-4", children: [
+                    /* @__PURE__ */ jsx("div", { className: "flex h-14 w-14 shrink-0 items-center justify-center rounded-[1rem] bg-[color:color-mix(in_oklab,var(--esim-gold)_15%,transparent)] text-[var(--esim-gold)]", children: /* @__PURE__ */ jsx(Plane, { className: "h-6 w-6" }) }),
+                    /* @__PURE__ */ jsxs("div", { children: [
+                      /* @__PURE__ */ jsx("h3", { className: "text-lg font-bold tracking-tight text-[var(--esim-ink)]", children: pickCopy(locale, { en: "Upcoming Trips", hans: "\u5373\u5C06\u5230\u6765\u7684\u884C\u7A0B", hant: "\u5373\u5C07\u5230\u4F86\u7684\u884C\u7A0B" }) }),
+                      /* @__PURE__ */ jsx("p", { className: "mt-1 text-sm text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: "Your eSIM plans for upcoming trips.", hans: "\u60A8\u5373\u5C06\u5230\u6765\u7684\u884C\u7A0B\u7684 eSIM \u65B9\u6848\u3002", hant: "\u60A8\u5373\u5C07\u5230\u4F86\u7684\u884C\u7A0B\u7684 eSIM \u65B9\u6848\u3002" }) })
+                    ] })
+                  ] }),
+                  /* @__PURE__ */ jsx("span", { className: "flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--esim-line-strong)] text-[var(--esim-copy)] transition-colors group-hover:border-[var(--esim-gold)] group-hover:text-[var(--esim-gold)]", children: /* @__PURE__ */ jsx(ChevronRight, { className: "h-[1.1rem] w-[1.1rem]" }) })
+                ]
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxs("section", { className: "grid gap-6 lg:grid-cols-3", children: [
+            /* @__PURE__ */ jsxs(
+              "div",
+              {
+                onClick: () => go(site.primaryCtaHref || "/products"),
+                className: "group relative min-h-[15rem] cursor-pointer overflow-hidden rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] shadow-[var(--esim-shadow)]",
+                style: { backgroundImage: CLUBS_SCENE, backgroundSize: "cover", backgroundPosition: "center" },
+                children: [
+                  /* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-[linear-gradient(92deg,rgba(8,6,4,0.86)_8%,rgba(8,6,4,0.42)_58%,rgba(8,6,4,0.12))]" }),
+                  /* @__PURE__ */ jsxs("div", { className: "relative flex h-full flex-col p-6", children: [
+                    /* @__PURE__ */ jsx("h3", { className: "text-[1.55rem] font-bold leading-tight text-white", children: pickCopy(locale, { en: "Explore destination eSIMs", hans: "\u63A2\u7D22\u76EE\u7684\u5730 eSIM", hant: "\u63A2\u7D22\u76EE\u7684\u5730 eSIM" }) }),
+                    /* @__PURE__ */ jsx("p", { className: "mt-2.5 max-w-[15rem] text-sm leading-relaxed text-white/75", children: pickCopy(locale, { en: "One eSIM for the whole trip \u2014 pick your destinations and go.", hans: "\u4E00\u5F20 eSIM \u8D70\u5B8C\u884C\u7A0B\u2014\u2014\u9009\u597D\u76EE\u7684\u5730\uFF0C\u51FA\u53D1\u5373\u53EF\u3002", hant: "\u4E00\u5F35 eSIM \u8D70\u5B8C\u6574\u8D9F\u65C5\u7A0B\u2014\u2014\u9078\u597D\u76EE\u7684\u5730\uFF0C\u51FA\u767C\u5373\u53EF\u3002" }) }),
+                    /* @__PURE__ */ jsxs("span", { className: "mt-auto inline-flex items-center gap-1.5 self-start rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--esim-gold)_86%,white),color-mix(in_oklab,var(--esim-gold)_70%,black))] px-5 py-2.5 text-[0.8rem] font-bold text-[var(--esim-bg)] transition-transform duration-300 group-hover:-translate-y-0.5", children: [
+                      pickCopy(locale, { en: "Explore Now", hans: "\u7ACB\u5373\u63A2\u7D22", hant: "\u7ACB\u5373\u63A2\u7D22" }),
+                      /* @__PURE__ */ jsx(ArrowRight, { className: "h-4 w-4" })
+                    ] })
+                  ] })
+                ]
+              }
+            ),
+            /* @__PURE__ */ jsxs("div", { className: "rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-6 shadow-[var(--esim-shadow)]", children: [
+              /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2.5", children: [
+                /* @__PURE__ */ jsx(Crown, { className: "h-5 w-5 text-[var(--esim-gold)]" }),
+                /* @__PURE__ */ jsx("h3", { className: "text-[1.05rem] font-bold tracking-tight text-[var(--esim-ink)]", children: pickCopy(locale, { en: "BOKMOO Member Benefits", hans: "BOKMOO \u4F1A\u5458\u6743\u76CA", hant: "BOKMOO \u6703\u54E1\u6B0A\u76CA" }) })
+              ] }),
+              /* @__PURE__ */ jsx("ul", { className: "mt-5 space-y-3.5", children: [
+                { en: "Instant QR delivery after payment", hans: "\u4ED8\u6B3E\u540E\u5373\u65F6\u53D1\u653E", hant: "\u4ED8\u6B3E\u5F8C\u5373\u6642\u767C\u653E" },
+                { en: "No physical SIM swap", hans: "\u65E0\u9700\u66F4\u6362\u5B9E\u4F53 SIM \u5361", hant: "\u7121\u9700\u66F4\u63DB\u5BE6\u9AD4 SIM \u5361" },
+                { en: "24/7 travel support", hans: "24/7 \u65C5\u9014\u652F\u6301", hant: "24/7 \u65C5\u9014\u652F\u63F4" },
+                { en: "Full refund if not activated", hans: "\u672A\u6FC0\u6D3B\u53EF\u5168\u989D\u9000\u6B3E", hant: "\u672A\u555F\u7528\u53EF\u5168\u984D\u9000\u6B3E" }
+              ].map((benefit) => pickCopy(locale, benefit)).map((benefit) => /* @__PURE__ */ jsxs("li", { className: "flex items-start gap-3", children: [
+                /* @__PURE__ */ jsx(Check, { className: "mt-0.5 h-4 w-4 shrink-0 text-[var(--esim-gold)]" }),
+                /* @__PURE__ */ jsx("span", { className: "text-sm leading-relaxed text-[var(--esim-copy)]", children: benefit })
+              ] }, benefit)) })
+            ] }),
+            /* @__PURE__ */ jsxs("div", { className: "flex flex-col rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-6 shadow-[var(--esim-shadow)]", children: [
+              /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2.5", children: [
+                /* @__PURE__ */ jsx(Headphones, { className: "h-5 w-5 text-[var(--esim-gold)]" }),
+                /* @__PURE__ */ jsx("h3", { className: "text-[1.05rem] font-bold tracking-tight text-[var(--esim-ink)]", children: pickCopy(locale, { en: "Need Help?", hans: "\u9700\u8981\u534F\u52A9\uFF1F", hant: "\u9700\u8981\u5354\u52A9\uFF1F" }) })
+              ] }),
+              /* @__PURE__ */ jsx("p", { className: "mt-2.5 text-sm leading-relaxed text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: "Our support team is here for you.", hans: "\u6211\u4EEC\u7684\u652F\u63F4\u56E2\u961F\u968F\u65F6\u4E3A\u60A8\u670D\u52A1\u3002", hant: "\u6211\u5011\u7684\u652F\u63F4\u5718\u968A\u96A8\u6642\u70BA\u60A8\u670D\u52D9\u3002" }) }),
+              /* @__PURE__ */ jsxs(
+                "button",
+                {
+                  onClick: () => go("/contact"),
+                  className: "mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full border border-[color:color-mix(in_oklab,var(--esim-gold)_46%,transparent)] bg-[color:color-mix(in_oklab,var(--esim-gold)_10%,transparent)] text-sm font-semibold text-[var(--esim-gold)] transition-colors hover:bg-[color:color-mix(in_oklab,var(--esim-gold)_18%,transparent)]",
+                  type: "button",
+                  children: [
+                    pickCopy(locale, { en: "Contact Support", hans: "\u8054\u7EDC\u5BA2\u670D", hant: "\u806F\u7D61\u5BA2\u670D" }),
+                    /* @__PURE__ */ jsx(ArrowRight, { className: "h-4 w-4" })
+                  ]
+                }
+              ),
+              /* @__PURE__ */ jsxs(
+                "button",
+                {
+                  onClick: () => go("/help"),
+                  className: "mt-5 inline-flex items-center justify-center gap-2 text-sm text-[var(--esim-copy-soft)] transition-colors hover:text-[var(--esim-ink)]",
+                  type: "button",
+                  children: [
+                    /* @__PURE__ */ jsx(BookOpen, { className: "h-4 w-4" }),
+                    pickCopy(locale, { en: "Visit Help Center", hans: "\u524D\u5F80\u5E2E\u52A9\u4E2D\u5FC3", hant: "\u524D\u5F80\u5E6B\u52A9\u4E2D\u5FC3" })
+                  ]
+                }
+              )
+            ] })
+          ] })
+        ] })
+      ] })
+    ] });
+  });
+
+  // src/components/AuthCallbackPage.tsx
+  var FOCUS_VISIBLE_RING = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--esim-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--esim-bg)]";
+  function AuthCallbackPage({
+    isLoading,
+    error,
+    config,
+    locale,
+    onRetry,
+    onNavigateToHome
+  }) {
+    const site = resolveEsimSiteConfig(config, locale);
+    const t = (copy) => pickCopy(locale, copy);
+    const accountLabel = pickCopy(locale, {
+      en: `${site.brandName.toUpperCase()} account`,
+      hans: `${site.brandName.toUpperCase()} \u8D26\u6237`,
+      hant: `${site.brandName.toUpperCase()} \u5E33\u6236`,
+      ja: `${site.brandName.toUpperCase()} \u30A2\u30AB\u30A6\u30F3\u30C8`,
+      ko: `${site.brandName.toUpperCase()} \uACC4\uC815`,
+      fr: `Compte ${site.brandName.toUpperCase()}`,
+      de: `${site.brandName.toUpperCase()}-Konto`
+    });
+    return /* @__PURE__ */ jsxs("div", { className: "relative flex min-h-screen items-center justify-center overflow-hidden bg-[var(--esim-bg)] px-4 py-12 text-[var(--esim-ink)]", children: [
+      /* @__PURE__ */ jsxs("div", { className: "pointer-events-none absolute inset-0", children: [
+        /* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,color-mix(in_oklab,var(--esim-gold)_18%,transparent),transparent_26%),linear-gradient(180deg,var(--esim-bg),color-mix(in_oklab,var(--esim-bg)_84%,black))]" }),
+        /* @__PURE__ */ jsx("div", { className: "absolute inset-0 opacity-40 [background-image:var(--esim-grid)] [background-size:72px_72px]" })
+      ] }),
+      /* @__PURE__ */ jsx("section", { className: "relative w-full max-w-[30rem] rounded-[1.45rem] border border-[color:color-mix(in_oklab,var(--esim-gold)_22%,transparent)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--esim-bg-elevated)_94%,white),var(--esim-bg-elevated))] p-5 shadow-[var(--esim-shadow)] sm:p-7", children: /* @__PURE__ */ jsxs("div", { className: "rounded-[1.1rem] border border-[var(--esim-line)] bg-[color:oklch(0.055_0.006_75_/_0.78)] p-6 text-center", children: [
+        /* @__PURE__ */ jsx("div", { className: "mx-auto flex h-16 w-16 items-center justify-center rounded-[1rem] border border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-gold)_12%,transparent)] text-[var(--esim-gold)]", children: error ? /* @__PURE__ */ jsx(TriangleAlert, { className: "h-7 w-7" }) : isLoading ? /* @__PURE__ */ jsx(LoaderCircle, { className: "h-7 w-7 animate-spin" }) : /* @__PURE__ */ jsx(ShieldCheck, { className: "h-7 w-7" }) }),
+        /* @__PURE__ */ jsx("p", { className: "mt-6 text-[11px] font-bold uppercase tracking-[0.24em] text-[var(--esim-gold)]", children: accountLabel }),
+        /* @__PURE__ */ jsx("h1", { className: "mt-3 text-3xl font-semibold leading-none tracking-[-0.05em] text-[var(--esim-ink)]", children: error ? t({ en: "Authentication failed", hans: "\u8EAB\u4EFD\u9A8C\u8BC1\u5931\u8D25", hant: "\u8EAB\u5206\u9A57\u8B49\u5931\u6557" }) : t({ en: "Completing sign in", hans: "\u6B63\u5728\u5B8C\u6210\u767B\u5F55", hant: "\u6B63\u5728\u5B8C\u6210\u767B\u5165" }) }),
+        /* @__PURE__ */ jsx("p", { className: "mt-4 text-sm leading-6 text-[var(--esim-copy)]", children: error || t({ en: "Securing your session and returning you to the BOKMOO storefront.", hans: "\u6B63\u5728\u4FDD\u62A4\u60A8\u7684\u767B\u5F55\u4F1A\u8BDD\uFF0C\u5373\u5C06\u8FD4\u56DE BOKMOO \u5546\u57CE\u3002", hant: "\u6B63\u5728\u4FDD\u8B77\u60A8\u7684\u767B\u5165\u5DE5\u4F5C\u968E\u6BB5\uFF0C\u5373\u5C07\u8FD4\u56DE BOKMOO \u5546\u57CE\u3002" }) }),
+        /* @__PURE__ */ jsxs("div", { className: "mt-7 grid gap-3 sm:grid-cols-2", children: [
+          /* @__PURE__ */ jsx(
+            "button",
+            {
+              type: "button",
+              onClick: onRetry,
+              className: `inline-flex min-h-12 items-center justify-center rounded-[0.95rem] border border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_86%,black)] px-4 text-sm font-semibold text-[var(--esim-ink)] transition-colors hover:border-[var(--esim-gold)] hover:text-[var(--esim-gold)] ${FOCUS_VISIBLE_RING}`,
+              children: t({ en: "Back to sign in", hans: "\u8FD4\u56DE\u767B\u5F55", hant: "\u8FD4\u56DE\u767B\u5165" })
+            }
+          ),
+          /* @__PURE__ */ jsx(
+            "button",
+            {
+              type: "button",
+              onClick: onNavigateToHome,
+              className: `inline-flex min-h-12 items-center justify-center rounded-[0.95rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--esim-gold)_88%,white),color-mix(in_oklab,var(--esim-gold)_64%,black))] px-4 text-sm font-black uppercase tracking-[0.16em] text-[var(--esim-bg)] ${FOCUS_VISIBLE_RING}`,
+              children: t({ en: "Home", hans: "\u9996\u9875", hant: "\u9996\u9801" })
+            }
+          )
+        ] })
+      ] }) })
+    ] });
+  }
+
+  // src/components/AffiliatePage.tsx
+  function money(items) {
+    const total = items.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    return `${items[0]?.currency || "USD"} ${total.toFixed(2)}`;
+  }
+  function orderId(item) {
+    return item.orderId || item.order_id || "";
+  }
+  function createdAt(item) {
+    return item.createdAt || item.created_at || "";
+  }
+  var AffiliatePage = react_default.memo(function AffiliatePage2({
+    isLoading,
+    isAuthenticated,
+    config,
+    locale,
+    onNavigateBack,
+    onNavigateToLogin
+  }) {
+    const site = resolveEsimSiteConfig(config, locale);
+    const api = react_default.useMemo(() => ({ baseUrl: site.apiBaseUrl }), [site.apiBaseUrl]);
+    const [view2, setView] = react_default.useState("partner");
+    const [partner, setPartner] = react_default.useState(null);
+    const [commissions, setCommissions] = react_default.useState([]);
+    const [organization, setOrganization] = react_default.useState(null);
+    const [organizationCommissions, setOrganizationCommissions] = react_default.useState([]);
+    const [loading, setLoading] = react_default.useState(false);
+    const [error, setError] = react_default.useState("");
+    const [copied, setCopied] = react_default.useState(false);
+    const [displayName, setDisplayName] = react_default.useState("");
+    const [organizationCode, setOrganizationCode] = react_default.useState("");
+    const [organizationName, setOrganizationName] = react_default.useState("");
+    const [organizationRate, setOrganizationRate] = react_default.useState("2.5");
+    const [memberEmail, setMemberEmail] = react_default.useState("");
+    const [memberRole, setMemberRole] = react_default.useState("INFLUENCER");
+    const t = (copy) => pickCopy(locale, copy);
+    const refresh = react_default.useCallback(async () => {
+      if (!isAuthenticated) return;
+      setLoading(true);
+      setError("");
+      const [partnerResult, organizationResult] = await Promise.allSettled([
+        Promise.all([getEsimAffiliatePartner(api), getEsimAffiliateCommissions(api)]),
+        Promise.all([
+          getEsimAffiliateOrganization(api),
+          getEsimOrganizationCommissions(api).catch((cause) => {
+            if (cause instanceof EsimApiError && cause.status === 404) return [];
+            throw cause;
+          })
+        ])
+      ]);
+      if (partnerResult.status === "fulfilled") {
+        setPartner(partnerResult.value[0]);
+        setCommissions(partnerResult.value[1]);
+      } else if (!(partnerResult.reason instanceof EsimApiError && partnerResult.reason.status === 404)) {
+        setError(partnerResult.reason instanceof Error ? partnerResult.reason.message : pickCopy(locale, { en: "Affiliate data could not be loaded", hans: "\u8054\u76DF\u63A8\u5E7F\u6570\u636E\u52A0\u8F7D\u5931\u8D25", hant: "\u806F\u76DF\u63A8\u5EE3\u8CC7\u6599\u8F09\u5165\u5931\u6557" }));
+      }
+      if (organizationResult.status === "fulfilled") {
+        setOrganization(organizationResult.value[0]);
+        setOrganizationCommissions(organizationResult.value[1]);
+      } else if (!(organizationResult.reason instanceof EsimApiError && organizationResult.reason.status === 404)) {
+        setError(organizationResult.reason instanceof Error ? organizationResult.reason.message : pickCopy(locale, { en: "Organization data could not be loaded", hans: "\u7EC4\u7EC7\u6570\u636E\u52A0\u8F7D\u5931\u8D25", hant: "\u7D44\u7E54\u8CC7\u6599\u8F09\u5165\u5931\u6557" }));
+      }
+      setLoading(false);
+    }, [api, isAuthenticated, locale]);
+    react_default.useEffect(() => {
+      void refresh();
+    }, [refresh]);
+    if (isLoading) return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-[var(--esim-bg)]" });
+    if (!isAuthenticated) {
+      return /* @__PURE__ */ jsx("div", { className: "flex min-h-screen items-center justify-center bg-[var(--esim-bg)] px-5", children: /* @__PURE__ */ jsxs("div", { className: "max-w-md border-y border-[var(--esim-line)] py-10 text-center", children: [
+        /* @__PURE__ */ jsx(WalletCards, { className: "mx-auto h-7 w-7 text-[var(--esim-gold)]" }),
+        /* @__PURE__ */ jsx("h1", { className: "mt-5 text-3xl text-[var(--esim-ink)]", children: t({ en: "Affiliate workspace", hans: "\u8054\u76DF\u63A8\u5E7F\u5DE5\u4F5C\u53F0", hant: "\u806F\u76DF\u63A8\u5EE3\u5DE5\u4F5C\u53F0" }) }),
+        /* @__PURE__ */ jsx("button", { onClick: onNavigateToLogin, className: "mt-7 min-h-11 bg-[var(--esim-gold)] px-6 text-sm font-semibold text-[var(--esim-bg)]", type: "button", children: t({ en: "Sign In", hans: "\u767B\u5165", hant: "\u767B\u5165" }) })
+      ] }) });
+    }
+    const shareUrl = partner && typeof window !== "undefined" ? `${window.location.origin}/${locale || "en"}/r/${encodeURIComponent(partner.code)}` : "";
+    return /* @__PURE__ */ jsx("main", { className: "min-h-screen bg-[var(--esim-bg)] px-4 pb-20 pt-20 sm:px-6 lg:px-8", children: /* @__PURE__ */ jsxs("div", { className: "mx-auto max-w-6xl", children: [
+      /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap items-center justify-between gap-4 border-b border-[var(--esim-line)] pb-6", children: [
+        /* @__PURE__ */ jsx("button", { onClick: onNavigateBack, className: "inline-flex h-10 w-10 items-center justify-center border border-[var(--esim-line)] text-[var(--esim-copy)]", "aria-label": t({ en: "Back", hans: "\u8FD4\u56DE", hant: "\u8FD4\u56DE" }), type: "button", children: /* @__PURE__ */ jsx(ArrowLeft, { className: "h-4 w-4" }) }),
+        /* @__PURE__ */ jsxs("div", { className: "flex border border-[var(--esim-line)] p-1", role: "tablist", "aria-label": t({ en: "Affiliate view", hans: "\u8054\u76DF\u89C6\u56FE", hant: "\u806F\u76DF\u6AA2\u8996" }), children: [
+          /* @__PURE__ */ jsx("button", { onClick: () => setView("partner"), className: `min-h-9 px-4 text-xs font-semibold ${view2 === "partner" ? "bg-[var(--esim-gold)] text-[var(--esim-bg)]" : "text-[var(--esim-copy)]"}`, type: "button", children: t({ en: "Partner", hans: "\u4E2A\u4EBA\u63A8\u5E7F", hant: "\u500B\u4EBA\u63A8\u5EE3" }) }),
+          /* @__PURE__ */ jsx("button", { onClick: () => setView("organization"), className: `min-h-9 px-4 text-xs font-semibold ${view2 === "organization" ? "bg-[var(--esim-gold)] text-[var(--esim-bg)]" : "text-[var(--esim-copy)]"}`, type: "button", children: t({ en: "Organization", hans: "\u7EC4\u7EC7", hant: "\u7D44\u7E54" }) })
+        ] }),
+        /* @__PURE__ */ jsx("button", { onClick: () => void refresh(), className: "inline-flex h-10 w-10 items-center justify-center border border-[var(--esim-line)] text-[var(--esim-copy)]", "aria-label": t({ en: "Refresh", hans: "\u5237\u65B0", hant: "\u91CD\u65B0\u6574\u7406" }), type: "button", children: /* @__PURE__ */ jsx(RefreshCw, { className: `h-4 w-4 ${loading ? "animate-spin" : ""}` }) })
+      ] }),
+      error ? /* @__PURE__ */ jsx("div", { className: "mt-5 border border-[color:color-mix(in_oklab,var(--esim-danger)_55%,transparent)] bg-[color:color-mix(in_oklab,var(--esim-danger)_10%,transparent)] px-4 py-3 text-sm text-[var(--esim-ink)]", children: error }) : null,
+      view2 === "partner" ? /* @__PURE__ */ jsx("section", { className: "pt-10", children: /* @__PURE__ */ jsxs("div", { className: "grid gap-8 lg:grid-cols-[1.1fr_0.9fr]", children: [
+        /* @__PURE__ */ jsxs("div", { children: [
+          /* @__PURE__ */ jsx("p", { className: "text-xs font-semibold uppercase text-[var(--esim-copy-soft)]", children: t({ en: "Personal affiliate", hans: "\u4E2A\u4EBA\u63A8\u5E7F", hant: "\u500B\u4EBA\u63A8\u5EE3" }) }),
+          /* @__PURE__ */ jsx("h1", { className: "mt-3 max-w-2xl text-4xl text-[var(--esim-ink)] sm:text-5xl", children: t({ en: "Your referral ledger.", hans: "\u4F60\u7684\u63A8\u5E7F\u4F63\u91D1\u8D26\u672C\u3002", hant: "\u4F60\u7684\u63A8\u5EE3\u4F63\u91D1\u5E33\u672C\u3002" }) }),
+          partner ? /* @__PURE__ */ jsxs("div", { className: "mt-10 border-y border-[var(--esim-line)] py-6", children: [
+            /* @__PURE__ */ jsxs("div", { className: "flex flex-col gap-3 sm:flex-row", children: [
+              /* @__PURE__ */ jsx("div", { className: "min-w-0 flex-1 border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-4 py-3 text-sm text-[var(--esim-copy)]", children: /* @__PURE__ */ jsx("span", { className: "block truncate", children: shareUrl }) }),
+              /* @__PURE__ */ jsxs("button", { onClick: async () => {
+                await navigator.clipboard.writeText(shareUrl);
+                setCopied(true);
+                window.setTimeout(() => setCopied(false), 1600);
+              }, className: "inline-flex min-h-11 items-center justify-center gap-2 bg-[var(--esim-gold)] px-5 text-sm font-semibold text-[var(--esim-bg)]", type: "button", children: [
+                copied ? /* @__PURE__ */ jsx(Check, { className: "h-4 w-4" }) : /* @__PURE__ */ jsx(Copy, { className: "h-4 w-4" }),
+                copied ? t({ en: "Copied", hans: "\u5DF2\u590D\u5236", hant: "\u5DF2\u8907\u88FD" }) : t({ en: "Copy link", hans: "\u590D\u5236\u94FE\u63A5", hant: "\u8907\u88FD\u9023\u7D50" })
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxs("div", { className: "mt-5 flex flex-wrap gap-x-10 gap-y-4 text-sm", children: [
+              /* @__PURE__ */ jsxs("span", { children: [
+                /* @__PURE__ */ jsx("b", { className: "text-2xl text-[var(--esim-ink)]", children: money(commissions) }),
+                /* @__PURE__ */ jsx("small", { className: "ml-2 text-[var(--esim-copy-soft)]", children: t({ en: "Earned", hans: "\u7D2F\u8BA1\u6536\u76CA", hant: "\u7D2F\u8A08\u6536\u76CA" }) })
+              ] }),
+              /* @__PURE__ */ jsxs("span", { children: [
+                /* @__PURE__ */ jsxs("b", { className: "text-2xl text-[var(--esim-ink)]", children: [
+                  partner.commissionRate,
+                  "%"
+                ] }),
+                /* @__PURE__ */ jsx("small", { className: "ml-2 text-[var(--esim-copy-soft)]", children: t({ en: "Rate", hans: "\u4F63\u91D1\u6BD4\u4F8B", hant: "\u4F63\u91D1\u6BD4\u4F8B" }) })
+              ] }),
+              /* @__PURE__ */ jsxs("span", { children: [
+                /* @__PURE__ */ jsx("b", { className: "text-2xl text-[var(--esim-ink)]", children: commissions.length }),
+                /* @__PURE__ */ jsx("small", { className: "ml-2 text-[var(--esim-copy-soft)]", children: t({ en: "Orders", hans: "\u8BA2\u5355", hant: "\u8A02\u55AE" }) })
+              ] })
+            ] })
+          ] }) : /* @__PURE__ */ jsxs("form", { onSubmit: async (event) => {
+            event.preventDefault();
+            setLoading(true);
+            setError("");
+            try {
+              await registerEsimAffiliatePartner(api, { displayName, organizationCode: organizationCode || void 0 });
+              await refresh();
+            } catch (cause) {
+              setError(cause instanceof Error ? cause.message : t({ en: "Registration failed", hans: "\u6CE8\u518C\u5931\u8D25", hant: "\u8A3B\u518A\u5931\u6557" }));
+            } finally {
+              setLoading(false);
+            }
+          }, className: "mt-10 grid max-w-xl gap-4 border-y border-[var(--esim-line)] py-7", children: [
+            /* @__PURE__ */ jsx("input", { value: displayName, onChange: (event) => setDisplayName(event.target.value), placeholder: t({ en: "Display name", hans: "\u663E\u793A\u540D\u79F0", hant: "\u986F\u793A\u540D\u7A31" }), required: true, className: "h-12 border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-4 text-sm text-[var(--esim-ink)] outline-none" }),
+            /* @__PURE__ */ jsx("input", { value: organizationCode, onChange: (event) => setOrganizationCode(event.target.value.toUpperCase()), placeholder: t({ en: "Organization code (optional)", hans: "\u7EC4\u7EC7\u7F16\u7801\uFF08\u53EF\u9009\uFF09", hant: "\u7D44\u7E54\u7DE8\u78BC\uFF08\u9078\u586B\uFF09" }), className: "h-12 border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-4 text-sm text-[var(--esim-ink)] outline-none" }),
+            /* @__PURE__ */ jsx("button", { disabled: loading, className: "min-h-12 bg-[var(--esim-gold)] px-5 text-sm font-semibold text-[var(--esim-bg)] disabled:opacity-50", type: "submit", children: t({ en: "Create affiliate account", hans: "\u521B\u5EFA\u63A8\u5E7F\u8D26\u53F7", hant: "\u5EFA\u7ACB\u63A8\u5EE3\u5E33\u865F" }) })
+          ] })
+        ] }),
+        /* @__PURE__ */ jsx(CommissionList, { items: commissions, title: t({ en: "Partner commissions", hans: "\u4E2A\u4EBA\u63A8\u5E7F\u4F63\u91D1", hant: "\u500B\u4EBA\u63A8\u5EE3\u4F63\u91D1" }), locale })
+      ] }) }) : /* @__PURE__ */ jsx("section", { className: "pt-10", children: /* @__PURE__ */ jsxs("div", { className: "grid gap-8 lg:grid-cols-[1.1fr_0.9fr]", children: [
+        /* @__PURE__ */ jsxs("div", { children: [
+          /* @__PURE__ */ jsx("p", { className: "text-xs font-semibold uppercase text-[var(--esim-copy-soft)]", children: t({ en: "Organization affiliate", hans: "\u7EC4\u7EC7\u63A8\u5E7F", hant: "\u7D44\u7E54\u63A8\u5EE3" }) }),
+          /* @__PURE__ */ jsx("h1", { className: "mt-3 max-w-2xl text-4xl text-[var(--esim-ink)] sm:text-5xl", children: t({ en: "Creator network.", hans: "\u521B\u4F5C\u8005\u7F51\u7EDC\u3002", hant: "\u5275\u4F5C\u8005\u7DB2\u7D61\u3002" }) }),
+          organization ? /* @__PURE__ */ jsxs("div", { className: "mt-9", children: [
+            /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap items-end justify-between gap-5 border-y border-[var(--esim-line)] py-6", children: [
+              /* @__PURE__ */ jsxs("div", { children: [
+                /* @__PURE__ */ jsx("p", { className: "text-sm text-[var(--esim-copy-soft)]", children: organization.code }),
+                /* @__PURE__ */ jsx("h2", { className: "mt-2 text-2xl text-[var(--esim-ink)]", children: organization.name })
+              ] }),
+              /* @__PURE__ */ jsxs("div", { className: "text-right", children: [
+                /* @__PURE__ */ jsx("p", { className: "text-2xl font-semibold text-[var(--esim-ink)]", children: money(organizationCommissions) }),
+                /* @__PURE__ */ jsxs("p", { className: "text-xs text-[var(--esim-copy-soft)]", children: [
+                  organization.commissionRate,
+                  "% ",
+                  t({ en: "organization rate", hans: "\u7EC4\u7EC7\u4F63\u91D1\u6BD4\u4F8B", hant: "\u7D44\u7E54\u4F63\u91D1\u6BD4\u4F8B" })
+                ] })
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxs("form", { onSubmit: async (event) => {
+              event.preventDefault();
+              setLoading(true);
+              setError("");
+              try {
+                await addEsimAffiliateMember(api, organization.id, { email: memberEmail, role: memberRole });
+                setMemberEmail("");
+                await refresh();
+              } catch (cause) {
+                setError(cause instanceof Error ? cause.message : t({ en: "Member could not be added", hans: "\u6210\u5458\u6DFB\u52A0\u5931\u8D25", hant: "\u6210\u54E1\u65B0\u589E\u5931\u6557" }));
+              } finally {
+                setLoading(false);
+              }
+            }, className: "mt-7 flex flex-col gap-3 sm:flex-row", children: [
+              /* @__PURE__ */ jsx("input", { type: "email", value: memberEmail, onChange: (event) => setMemberEmail(event.target.value), placeholder: t({ en: "Member email", hans: "\u6210\u5458\u90AE\u7BB1", hant: "\u6210\u54E1\u4FE1\u7BB1" }), required: true, className: "h-11 min-w-0 flex-1 border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-4 text-sm text-[var(--esim-ink)] outline-none" }),
+              /* @__PURE__ */ jsxs("select", { value: memberRole, onChange: (event) => setMemberRole(event.target.value), className: "h-11 border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-3 text-sm text-[var(--esim-ink)]", children: [
+                /* @__PURE__ */ jsx("option", { value: "INFLUENCER", children: t({ en: "Influencer", hans: "\u8FBE\u4EBA", hant: "\u9054\u4EBA" }) }),
+                /* @__PURE__ */ jsx("option", { value: "MANAGER", children: t({ en: "Manager", hans: "\u7BA1\u7406\u5458", hant: "\u7BA1\u7406\u54E1" }) })
+              ] }),
+              /* @__PURE__ */ jsxs("button", { className: "inline-flex h-11 items-center justify-center gap-2 bg-[var(--esim-gold)] px-5 text-sm font-semibold text-[var(--esim-bg)]", type: "submit", children: [
+                /* @__PURE__ */ jsx(UserPlus, { className: "h-4 w-4" }),
+                t({ en: "Add", hans: "\u6DFB\u52A0", hant: "\u65B0\u589E" })
+              ] })
+            ] }),
+            /* @__PURE__ */ jsx("div", { className: "mt-7 divide-y divide-[var(--esim-line)] border-y border-[var(--esim-line)]", children: organization.members.map((member) => /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between gap-4 py-4", children: [
+              /* @__PURE__ */ jsxs("div", { className: "min-w-0", children: [
+                /* @__PURE__ */ jsx("p", { className: "truncate text-sm font-semibold text-[var(--esim-ink)]", children: member.username || member.email }),
+                /* @__PURE__ */ jsx("p", { className: "mt-1 truncate text-xs text-[var(--esim-copy-soft)]", children: member.email })
+              ] }),
+              /* @__PURE__ */ jsx("span", { className: "text-xs font-semibold text-[var(--esim-gold)]", children: member.role === "MANAGER" ? t({ en: "Manager", hans: "\u7BA1\u7406\u5458", hant: "\u7BA1\u7406\u54E1" }) : t({ en: "Influencer", hans: "\u8FBE\u4EBA", hant: "\u9054\u4EBA" }) })
+            ] }, member.id)) })
+          ] }) : /* @__PURE__ */ jsxs("form", { onSubmit: async (event) => {
+            event.preventDefault();
+            setLoading(true);
+            setError("");
+            try {
+              await createEsimAffiliateOrganization(api, { name: organizationName, commissionRate: Number(organizationRate) });
+              await refresh();
+            } catch (cause) {
+              setError(cause instanceof Error ? cause.message : t({ en: "Organization could not be created", hans: "\u7EC4\u7EC7\u521B\u5EFA\u5931\u8D25", hant: "\u7D44\u7E54\u5EFA\u7ACB\u5931\u6557" }));
+            } finally {
+              setLoading(false);
+            }
+          }, className: "mt-10 grid max-w-xl gap-4 border-y border-[var(--esim-line)] py-7", children: [
+            /* @__PURE__ */ jsx("input", { value: organizationName, onChange: (event) => setOrganizationName(event.target.value), placeholder: t({ en: "Organization name", hans: "\u7EC4\u7EC7\u540D\u79F0", hant: "\u7D44\u7E54\u540D\u7A31" }), required: true, className: "h-12 border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-4 text-sm text-[var(--esim-ink)] outline-none" }),
+            /* @__PURE__ */ jsxs("label", { className: "flex items-center gap-4", children: [
+              /* @__PURE__ */ jsx("span", { className: "text-sm text-[var(--esim-copy)]", children: t({ en: "Commission rate", hans: "\u4F63\u91D1\u6BD4\u4F8B", hant: "\u4F63\u91D1\u6BD4\u4F8B" }) }),
+              /* @__PURE__ */ jsx("input", { type: "number", min: "0", max: "90", step: "0.1", value: organizationRate, onChange: (event) => setOrganizationRate(event.target.value), className: "h-12 w-28 border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-4 text-sm text-[var(--esim-ink)] outline-none" })
+            ] }),
+            /* @__PURE__ */ jsxs("button", { disabled: loading, className: "inline-flex min-h-12 items-center justify-center gap-2 bg-[var(--esim-gold)] px-5 text-sm font-semibold text-[var(--esim-bg)] disabled:opacity-50", type: "submit", children: [
+              /* @__PURE__ */ jsx(Plus, { className: "h-4 w-4" }),
+              t({ en: "Create organization", hans: "\u521B\u5EFA\u7EC4\u7EC7", hant: "\u5EFA\u7ACB\u7D44\u7E54" })
+            ] })
+          ] })
+        ] }),
+        /* @__PURE__ */ jsx(CommissionList, { items: organizationCommissions, title: t({ en: "Organization commissions", hans: "\u7EC4\u7EC7\u4F63\u91D1", hant: "\u7D44\u7E54\u4F63\u91D1" }), locale })
+      ] }) })
+    ] }) });
+  });
+  function commissionStatus(status, locale) {
+    const copy = {
+      pending: { en: "Pending", hans: "\u5F85\u7ED3\u7B97", hant: "\u5F85\u7D50\u7B97" },
+      approved: { en: "Approved", hans: "\u5DF2\u6279\u51C6", hant: "\u5DF2\u6279\u51C6" },
+      paid: { en: "Paid", hans: "\u5DF2\u7ED3\u7B97", hant: "\u5DF2\u7D50\u7B97" },
+      cancelled: { en: "Cancelled", hans: "\u5DF2\u53D6\u6D88", hant: "\u5DF2\u53D6\u6D88" }
+    };
+    return copy[String(status).toLowerCase()] ? pickCopy(locale, copy[String(status).toLowerCase()]) : String(status);
+  }
+  function CommissionList({ items, title, locale }) {
+    const t = (copy) => pickCopy(locale, copy);
+    return /* @__PURE__ */ jsxs("aside", { className: "border-l border-[var(--esim-line)] pl-0 lg:pl-8", children: [
+      /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3", children: [
+        /* @__PURE__ */ jsx(Link2, { className: "h-4 w-4 text-[var(--esim-gold)]" }),
+        /* @__PURE__ */ jsx("h2", { className: "text-sm font-semibold text-[var(--esim-ink)]", children: title })
+      ] }),
+      /* @__PURE__ */ jsx("div", { className: "mt-5 divide-y divide-[var(--esim-line)] border-y border-[var(--esim-line)]", children: items.length ? items.map((item) => /* @__PURE__ */ jsxs("div", { className: "grid grid-cols-[1fr_auto] gap-4 py-4", children: [
+        /* @__PURE__ */ jsxs("div", { className: "min-w-0", children: [
+          /* @__PURE__ */ jsx("p", { className: "truncate text-sm text-[var(--esim-ink)]", children: orderId(item) }),
+          /* @__PURE__ */ jsx("p", { className: "mt-1 text-xs text-[var(--esim-copy-soft)]", children: createdAt(item) ? formatOrderDate(createdAt(item), locale, false) : commissionStatus(item.status, locale) })
+        ] }),
+        /* @__PURE__ */ jsxs("div", { className: "text-right", children: [
+          /* @__PURE__ */ jsxs("p", { className: "text-sm font-semibold text-[var(--esim-ink)]", children: [
+            item.currency,
+            " ",
+            Number(item.amount).toFixed(2)
+          ] }),
+          /* @__PURE__ */ jsx("p", { className: "mt-1 text-xs uppercase text-[var(--esim-copy-soft)]", children: commissionStatus(item.status, locale) })
+        ] })
+      ] }, item.id)) : /* @__PURE__ */ jsxs("div", { className: "py-10 text-center", children: [
+        /* @__PURE__ */ jsx(UsersRound, { className: "mx-auto h-5 w-5 text-[var(--esim-copy-soft)]" }),
+        /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm text-[var(--esim-copy-soft)]", children: t({ en: "No commissions yet", hans: "\u6682\u65E0\u4F63\u91D1", hant: "\u66AB\u7121\u4F63\u91D1" }) })
+      ] }) })
+    ] });
+  }
 
   // ../../../node_modules/framer-motion/dist/es/context/LayoutGroupContext.mjs
   var LayoutGroupContext = createContext({});
@@ -1925,12 +5959,12 @@
     offset: "strokeDashoffset",
     array: "strokeDasharray"
   };
-  function buildSVGPath(attrs, length, spacing3 = 1, offset = 0, useDashCase = true) {
+  function buildSVGPath(attrs, length, spacing2 = 1, offset = 0, useDashCase = true) {
     attrs.pathLength = 1;
     const keys = useDashCase ? dashKeys : camelKeys;
     attrs[keys.offset] = px.transform(-offset);
     const pathLength = px.transform(length);
-    const pathSpacing = px.transform(spacing3);
+    const pathSpacing = px.transform(spacing2);
     attrs[keys.array] = `${pathLength} ${pathSpacing}`;
   }
 
@@ -2261,7 +6295,7 @@
       this.animations = animations2.filter(Boolean);
     }
     get finished() {
-      return Promise.all(this.animations.map((animation3) => "finished" in animation3 ? animation3.finished : animation3));
+      return Promise.all(this.animations.map((animation2) => "finished" in animation2 ? animation2.finished : animation2));
     }
     /**
      * TODO: Filter out cancelled or stopped animations before returning
@@ -2275,11 +6309,11 @@
       }
     }
     attachTimeline(timeline, fallback) {
-      const subscriptions = this.animations.map((animation3) => {
-        if (supportsScrollTimeline() && animation3.attachTimeline) {
-          return animation3.attachTimeline(timeline);
+      const subscriptions = this.animations.map((animation2) => {
+        if (supportsScrollTimeline() && animation2.attachTimeline) {
+          return animation2.attachTimeline(timeline);
         } else if (typeof fallback === "function") {
-          return fallback(animation3);
+          return fallback(animation2);
         }
       });
       return () => {
@@ -2362,9 +6396,9 @@
   }
 
   // ../../../node_modules/motion-dom/dist/es/animation/waapi/utils/attach-timeline.mjs
-  function attachTimeline(animation3, timeline) {
-    animation3.timeline = timeline;
-    animation3.onfinish = null;
+  function attachTimeline(animation2, timeline) {
+    animation2.timeline = timeline;
+    animation2.onfinish = null;
   }
 
   // ../../../node_modules/motion-dom/dist/es/utils/is-bezier-definition.mjs
@@ -4742,13 +8776,13 @@
         ease2 = pregeneratedAnimation.ease;
         type = "keyframes";
       }
-      const animation3 = startWaapiAnimation(motionValue2.owner.current, name, keyframes2, { ...this.options, duration, times, ease: ease2 });
-      animation3.startTime = startTime !== null && startTime !== void 0 ? startTime : this.calcStartTime();
+      const animation2 = startWaapiAnimation(motionValue2.owner.current, name, keyframes2, { ...this.options, duration, times, ease: ease2 });
+      animation2.startTime = startTime !== null && startTime !== void 0 ? startTime : this.calcStartTime();
       if (this.pendingTimeline) {
-        attachTimeline(animation3, this.pendingTimeline);
+        attachTimeline(animation2, this.pendingTimeline);
         this.pendingTimeline = void 0;
       } else {
-        animation3.onfinish = () => {
+        animation2.onfinish = () => {
           const { onComplete } = this.options;
           motionValue2.set(getFinalKeyframe(keyframes2, this.options, finalKeyframe));
           onComplete && onComplete();
@@ -4757,7 +8791,7 @@
         };
       }
       return {
-        animation: animation3,
+        animation: animation2,
         duration,
         times,
         type,
@@ -4776,43 +8810,43 @@
       const { resolved } = this;
       if (!resolved)
         return 0;
-      const { animation: animation3 } = resolved;
-      return millisecondsToSeconds(animation3.currentTime || 0);
+      const { animation: animation2 } = resolved;
+      return millisecondsToSeconds(animation2.currentTime || 0);
     }
     set time(newTime) {
       const { resolved } = this;
       if (!resolved)
         return;
-      const { animation: animation3 } = resolved;
-      animation3.currentTime = secondsToMilliseconds(newTime);
+      const { animation: animation2 } = resolved;
+      animation2.currentTime = secondsToMilliseconds(newTime);
     }
     get speed() {
       const { resolved } = this;
       if (!resolved)
         return 1;
-      const { animation: animation3 } = resolved;
-      return animation3.playbackRate;
+      const { animation: animation2 } = resolved;
+      return animation2.playbackRate;
     }
     set speed(newSpeed) {
       const { resolved } = this;
       if (!resolved)
         return;
-      const { animation: animation3 } = resolved;
-      animation3.playbackRate = newSpeed;
+      const { animation: animation2 } = resolved;
+      animation2.playbackRate = newSpeed;
     }
     get state() {
       const { resolved } = this;
       if (!resolved)
         return "idle";
-      const { animation: animation3 } = resolved;
-      return animation3.playState;
+      const { animation: animation2 } = resolved;
+      return animation2.playState;
     }
     get startTime() {
       const { resolved } = this;
       if (!resolved)
         return null;
-      const { animation: animation3 } = resolved;
-      return animation3.startTime;
+      const { animation: animation2 } = resolved;
+      return animation2.startTime;
     }
     /**
      * Replace the default DocumentTimeline with another AnimationTimeline.
@@ -4825,8 +8859,8 @@
         const { resolved } = this;
         if (!resolved)
           return noop;
-        const { animation: animation3 } = resolved;
-        attachTimeline(animation3, timeline);
+        const { animation: animation2 } = resolved;
+        attachTimeline(animation2, timeline);
       }
       return noop;
     }
@@ -4836,18 +8870,18 @@
       const { resolved } = this;
       if (!resolved)
         return;
-      const { animation: animation3 } = resolved;
-      if (animation3.playState === "finished") {
+      const { animation: animation2 } = resolved;
+      if (animation2.playState === "finished") {
         this.updateFinishedPromise();
       }
-      animation3.play();
+      animation2.play();
     }
     pause() {
       const { resolved } = this;
       if (!resolved)
         return;
-      const { animation: animation3 } = resolved;
-      animation3.pause();
+      const { animation: animation2 } = resolved;
+      animation2.pause();
     }
     stop() {
       this.resolver.cancel();
@@ -4859,8 +8893,8 @@
       const { resolved } = this;
       if (!resolved)
         return;
-      const { animation: animation3, keyframes: keyframes2, duration, type, ease: ease2, times } = resolved;
-      if (animation3.playState === "idle" || animation3.playState === "finished") {
+      const { animation: animation2, keyframes: keyframes2, duration, type, ease: ease2, times } = resolved;
+      if (animation2.playState === "idle" || animation2.playState === "finished") {
         return;
       }
       if (this.time) {
@@ -5047,9 +9081,9 @@
       }
       addValueToWillChange(visualElement, key);
       value.start(animateMotionValue(key, value, valueTarget, visualElement.shouldReduceMotion && positionalKeys.has(key) ? { type: false } : valueTransition, visualElement, isHandoff));
-      const animation3 = value.animation;
-      if (animation3) {
-        animations2.push(animation3);
+      const animation2 = value.animation;
+      if (animation2) {
+        animations2.push(animation2);
       }
     }
     if (transitionEnd) {
@@ -5103,17 +9137,17 @@
   // ../../../node_modules/framer-motion/dist/es/animation/interfaces/visual-element.mjs
   function animateVisualElement(visualElement, definition, options = {}) {
     visualElement.notify("AnimationStart", definition);
-    let animation3;
+    let animation2;
     if (Array.isArray(definition)) {
       const animations2 = definition.map((variant) => animateVariant(visualElement, variant, options));
-      animation3 = Promise.all(animations2);
+      animation2 = Promise.all(animations2);
     } else if (typeof definition === "string") {
-      animation3 = animateVariant(visualElement, definition, options);
+      animation2 = animateVariant(visualElement, definition, options);
     } else {
       const resolvedDefinition = typeof definition === "function" ? resolveVariant(visualElement, definition, options.custom) : definition;
-      animation3 = Promise.all(animateTarget(visualElement, resolvedDefinition, options));
+      animation2 = Promise.all(animateTarget(visualElement, resolvedDefinition, options));
     }
-    return animation3.then(() => {
+    return animation2.then(() => {
       visualElement.notify("AnimationComplete", definition);
     });
   }
@@ -5145,7 +9179,7 @@
   var reversePriorityOrder = [...variantPriorityOrder].reverse();
   var numAnimationTypes = variantPriorityOrder.length;
   function animateList(visualElement) {
-    return (animations2) => Promise.all(animations2.map(({ animation: animation3, options }) => animateVisualElement(visualElement, animation3, options)));
+    return (animations2) => Promise.all(animations2.map(({ animation: animation2, options }) => animateVisualElement(visualElement, animation2, options)));
   }
   function createAnimationState(visualElement) {
     let animate = animateList(visualElement);
@@ -5250,8 +9284,8 @@
         const willAnimateViaParent = isInherited && variantDidChange;
         const needsAnimating = !willAnimateViaParent || handledRemovedValues;
         if (shouldAnimateType && needsAnimating) {
-          animations2.push(...definitionList.map((animation3) => ({
-            animation: animation3,
+          animations2.push(...definitionList.map((animation2) => ({
+            animation: animation2,
             options: { type }
           })));
         }
@@ -8959,12 +12993,12 @@
   var isShadow = (value) => shadowRegex.test(value);
   var isImage = (value) => imageRegex.test(value);
   var getDefaultConfig = () => {
-    const colors3 = fromTheme("colors");
-    const spacing3 = fromTheme("spacing");
+    const colors2 = fromTheme("colors");
+    const spacing2 = fromTheme("spacing");
     const blur = fromTheme("blur");
     const brightness = fromTheme("brightness");
     const borderColor = fromTheme("borderColor");
-    const borderRadius3 = fromTheme("borderRadius");
+    const borderRadius2 = fromTheme("borderRadius");
     const borderSpacing = fromTheme("borderSpacing");
     const borderWidth = fromTheme("borderWidth");
     const contrast = fromTheme("contrast");
@@ -8986,8 +13020,8 @@
     const translate = fromTheme("translate");
     const getOverscroll = () => ["auto", "contain", "none"];
     const getOverflow = () => ["auto", "hidden", "clip", "visible", "scroll"];
-    const getSpacingWithAutoAndArbitrary = () => ["auto", isArbitraryValue, spacing3];
-    const getSpacingWithArbitrary = () => [isArbitraryValue, spacing3];
+    const getSpacingWithAutoAndArbitrary = () => ["auto", isArbitraryValue, spacing2];
+    const getSpacingWithArbitrary = () => [isArbitraryValue, spacing2];
     const getLengthWithEmptyAndArbitrary = () => ["", isLength, isArbitraryLength];
     const getNumberWithAutoAndArbitrary = () => ["auto", isNumber, isArbitraryValue];
     const getPositions = () => ["bottom", "center", "left", "left-bottom", "left-top", "right", "right-bottom", "right-top", "top"];
@@ -9005,7 +13039,7 @@
         spacing: [isLength, isArbitraryLength],
         blur: ["none", "", isTshirtSize, isArbitraryValue],
         brightness: getNumberAndArbitrary(),
-        borderColor: [colors3],
+        borderColor: [colors2],
         borderRadius: ["none", "", "full", isTshirtSize, isArbitraryValue],
         borderSpacing: getSpacingWithArbitrary(),
         borderWidth: getLengthWithEmptyAndArbitrary(),
@@ -9014,7 +13048,7 @@
         hueRotate: getNumberAndArbitrary(),
         invert: getZeroAndEmpty(),
         gap: getSpacingWithArbitrary(),
-        gradientColorStops: [colors3],
+        gradientColorStops: [colors2],
         gradientColorStopPositions: [isPercent, isArbitraryLength],
         inset: getSpacingWithAutoAndArbitrary(),
         margin: getSpacingWithAutoAndArbitrary(),
@@ -9615,21 +13649,21 @@
          * @see https://tailwindcss.com/docs/width
          */
         w: [{
-          w: ["auto", "min", "max", "fit", "svw", "lvw", "dvw", isArbitraryValue, spacing3]
+          w: ["auto", "min", "max", "fit", "svw", "lvw", "dvw", isArbitraryValue, spacing2]
         }],
         /**
          * Min-Width
          * @see https://tailwindcss.com/docs/min-width
          */
         "min-w": [{
-          "min-w": [isArbitraryValue, spacing3, "min", "max", "fit"]
+          "min-w": [isArbitraryValue, spacing2, "min", "max", "fit"]
         }],
         /**
          * Max-Width
          * @see https://tailwindcss.com/docs/max-width
          */
         "max-w": [{
-          "max-w": [isArbitraryValue, spacing3, "none", "full", "min", "max", "fit", "prose", {
+          "max-w": [isArbitraryValue, spacing2, "none", "full", "min", "max", "fit", "prose", {
             screen: [isTshirtSize]
           }, isTshirtSize]
         }],
@@ -9638,28 +13672,28 @@
          * @see https://tailwindcss.com/docs/height
          */
         h: [{
-          h: [isArbitraryValue, spacing3, "auto", "min", "max", "fit", "svh", "lvh", "dvh"]
+          h: [isArbitraryValue, spacing2, "auto", "min", "max", "fit", "svh", "lvh", "dvh"]
         }],
         /**
          * Min-Height
          * @see https://tailwindcss.com/docs/min-height
          */
         "min-h": [{
-          "min-h": [isArbitraryValue, spacing3, "min", "max", "fit", "svh", "lvh", "dvh"]
+          "min-h": [isArbitraryValue, spacing2, "min", "max", "fit", "svh", "lvh", "dvh"]
         }],
         /**
          * Max-Height
          * @see https://tailwindcss.com/docs/max-height
          */
         "max-h": [{
-          "max-h": [isArbitraryValue, spacing3, "min", "max", "fit", "svh", "lvh", "dvh"]
+          "max-h": [isArbitraryValue, spacing2, "min", "max", "fit", "svh", "lvh", "dvh"]
         }],
         /**
          * Size
          * @see https://tailwindcss.com/docs/size
          */
         size: [{
-          size: [isArbitraryValue, spacing3, "auto", "min", "max", "fit"]
+          size: [isArbitraryValue, spacing2, "auto", "min", "max", "fit"]
         }],
         // Typography
         /**
@@ -9771,7 +13805,7 @@
          * @see https://tailwindcss.com/docs/placeholder-color
          */
         "placeholder-color": [{
-          placeholder: [colors3]
+          placeholder: [colors2]
         }],
         /**
          * Placeholder Opacity
@@ -9792,7 +13826,7 @@
          * @see https://tailwindcss.com/docs/text-color
          */
         "text-color": [{
-          text: [colors3]
+          text: [colors2]
         }],
         /**
          * Text Opacity
@@ -9832,7 +13866,7 @@
          * @see https://tailwindcss.com/docs/text-decoration-color
          */
         "text-decoration-color": [{
-          decoration: [colors3]
+          decoration: [colors2]
         }],
         /**
          * Text Transform
@@ -9960,7 +13994,7 @@
          * @see https://tailwindcss.com/docs/background-color
          */
         "bg-color": [{
-          bg: [colors3]
+          bg: [colors2]
         }],
         /**
          * Gradient Color Stops From Position
@@ -10010,105 +14044,105 @@
          * @see https://tailwindcss.com/docs/border-radius
          */
         rounded: [{
-          rounded: [borderRadius3]
+          rounded: [borderRadius2]
         }],
         /**
          * Border Radius Start
          * @see https://tailwindcss.com/docs/border-radius
          */
         "rounded-s": [{
-          "rounded-s": [borderRadius3]
+          "rounded-s": [borderRadius2]
         }],
         /**
          * Border Radius End
          * @see https://tailwindcss.com/docs/border-radius
          */
         "rounded-e": [{
-          "rounded-e": [borderRadius3]
+          "rounded-e": [borderRadius2]
         }],
         /**
          * Border Radius Top
          * @see https://tailwindcss.com/docs/border-radius
          */
         "rounded-t": [{
-          "rounded-t": [borderRadius3]
+          "rounded-t": [borderRadius2]
         }],
         /**
          * Border Radius Right
          * @see https://tailwindcss.com/docs/border-radius
          */
         "rounded-r": [{
-          "rounded-r": [borderRadius3]
+          "rounded-r": [borderRadius2]
         }],
         /**
          * Border Radius Bottom
          * @see https://tailwindcss.com/docs/border-radius
          */
         "rounded-b": [{
-          "rounded-b": [borderRadius3]
+          "rounded-b": [borderRadius2]
         }],
         /**
          * Border Radius Left
          * @see https://tailwindcss.com/docs/border-radius
          */
         "rounded-l": [{
-          "rounded-l": [borderRadius3]
+          "rounded-l": [borderRadius2]
         }],
         /**
          * Border Radius Start Start
          * @see https://tailwindcss.com/docs/border-radius
          */
         "rounded-ss": [{
-          "rounded-ss": [borderRadius3]
+          "rounded-ss": [borderRadius2]
         }],
         /**
          * Border Radius Start End
          * @see https://tailwindcss.com/docs/border-radius
          */
         "rounded-se": [{
-          "rounded-se": [borderRadius3]
+          "rounded-se": [borderRadius2]
         }],
         /**
          * Border Radius End End
          * @see https://tailwindcss.com/docs/border-radius
          */
         "rounded-ee": [{
-          "rounded-ee": [borderRadius3]
+          "rounded-ee": [borderRadius2]
         }],
         /**
          * Border Radius End Start
          * @see https://tailwindcss.com/docs/border-radius
          */
         "rounded-es": [{
-          "rounded-es": [borderRadius3]
+          "rounded-es": [borderRadius2]
         }],
         /**
          * Border Radius Top Left
          * @see https://tailwindcss.com/docs/border-radius
          */
         "rounded-tl": [{
-          "rounded-tl": [borderRadius3]
+          "rounded-tl": [borderRadius2]
         }],
         /**
          * Border Radius Top Right
          * @see https://tailwindcss.com/docs/border-radius
          */
         "rounded-tr": [{
-          "rounded-tr": [borderRadius3]
+          "rounded-tr": [borderRadius2]
         }],
         /**
          * Border Radius Bottom Right
          * @see https://tailwindcss.com/docs/border-radius
          */
         "rounded-br": [{
-          "rounded-br": [borderRadius3]
+          "rounded-br": [borderRadius2]
         }],
         /**
          * Border Radius Bottom Left
          * @see https://tailwindcss.com/docs/border-radius
          */
         "rounded-bl": [{
-          "rounded-bl": [borderRadius3]
+          "rounded-bl": [borderRadius2]
         }],
         /**
          * Border Width
@@ -10321,7 +14355,7 @@
          * @see https://tailwindcss.com/docs/outline-color
          */
         "outline-color": [{
-          outline: [colors3]
+          outline: [colors2]
         }],
         /**
          * Ring Width
@@ -10340,7 +14374,7 @@
          * @see https://tailwindcss.com/docs/ring-color
          */
         "ring-color": [{
-          ring: [colors3]
+          ring: [colors2]
         }],
         /**
          * Ring Opacity
@@ -10361,7 +14395,7 @@
          * @see https://tailwindcss.com/docs/ring-offset-color
          */
         "ring-offset-color": [{
-          "ring-offset": [colors3]
+          "ring-offset": [colors2]
         }],
         // Effects
         /**
@@ -10698,7 +14732,7 @@
          * @see https://tailwindcss.com/docs/accent-color
          */
         accent: [{
-          accent: ["auto", colors3]
+          accent: ["auto", colors2]
         }],
         /**
          * Appearance
@@ -10719,7 +14753,7 @@
          * @see https://tailwindcss.com/docs/just-in-time-mode#caret-color-utilities
          */
         "caret-color": [{
-          caret: [colors3]
+          caret: [colors2]
         }],
         /**
          * Pointer Events
@@ -10942,7 +14976,7 @@
          * @see https://tailwindcss.com/docs/fill
          */
         fill: [{
-          fill: [colors3, "none"]
+          fill: [colors2, "none"]
         }],
         /**
          * Stroke Width
@@ -10956,7 +14990,7 @@
          * @see https://tailwindcss.com/docs/stroke
          */
         stroke: [{
-          stroke: [colors3, "none"]
+          stroke: [colors2, "none"]
         }],
         // Accessibility
         /**
@@ -11027,14 +15061,18 @@
   };
   var twMerge = /* @__PURE__ */ createTailwindMerge(getDefaultConfig);
 
-  // ../../ui/dist/index.js
+  // ../../ui/src/utils/cn.ts
   function cn(...inputs) {
     return twMerge(clsx(inputs));
   }
+
+  // ../../ui/src/utils/a11y.ts
   function prefersReducedMotion2() {
     if (typeof window === "undefined") return false;
     return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   }
+
+  // ../../ui/src/components/Button/Button.tsx
   var variantStyles = {
     primary: "bg-blue-600 text-white hover:bg-blue-700 shadow-brand-sm hover:shadow-brand-md",
     secondary: "bg-slate-100 text-slate-900 hover:bg-slate-200",
@@ -11121,6 +15159,8 @@
     }
   );
   Button.displayName = "Button";
+
+  // ../../ui/src/components/Card/ProductCard.tsx
   var aspectRatioStyles = {
     square: "aspect-square",
     portrait: "aspect-[4/5]",
@@ -11231,6 +15271,8 @@
     }
   );
   ProductCard.displayName = "ProductCard";
+
+  // ../../ui/src/components/Input/Input.tsx
   var Input = forwardRef(
     ({
       label,
@@ -11312,6 +15354,8 @@
     }
   );
   Input.displayName = "Input";
+
+  // ../../ui/src/components/Navigation/Navigation.tsx
   function Navigation({ logo, items, actions, className }) {
     const [scrolled, setScrolled] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -11403,6 +15447,8 @@
     );
   }
   Navigation.displayName = "Navigation";
+
+  // ../../ui/src/components/Grid/ProductGrid.tsx
   var gapStyles = {
     sm: "gap-4",
     md: "gap-6",
@@ -11435,4422 +15481,6 @@
     );
   }
   ProductGrid.displayName = "ProductGrid";
-
-  // ../default/src/components/NotFound.tsx
-  function NotFound({ route, message, onGoHome }) {
-    return /* @__PURE__ */ jsx("div", { className: "min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900 px-4", children: /* @__PURE__ */ jsxs("div", { className: "text-center max-w-md w-full", children: [
-      /* @__PURE__ */ jsx("div", { className: "mb-8", children: /* @__PURE__ */ jsx("h1", { className: "text-7xl sm:text-9xl font-bold text-gray-200 dark:text-slate-700", children: "404" }) }),
-      /* @__PURE__ */ jsx("h2", { className: "text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-4", children: "Page Not Found" }),
-      /* @__PURE__ */ jsx("p", { className: "text-gray-500 dark:text-gray-400 mb-8 text-sm sm:text-base", children: message || `Sorry, we couldn't find the page${route ? ` "${route}"` : ""} you're looking for.` }),
-      /* @__PURE__ */ jsxs(Button, { onClick: onGoHome, size: "lg", className: "w-full sm:w-auto", children: [
-        /* @__PURE__ */ jsx(House, { className: "h-5 w-5 mr-2" }),
-        "Back to Home"
-      ] }),
-      /* @__PURE__ */ jsx("p", { className: "mt-8 text-sm text-gray-400 dark:text-gray-500", children: "If you believe this is an error, please contact our support team." })
-    ] }) });
-  }
-
-  // ../default/src/components/OrderCancelledPage.tsx
-  function OrderCancelledPage({
-    config,
-    onReturnToCart,
-    onContinueShopping,
-    onContactSupport
-  }) {
-    return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-gray-50 dark:bg-slate-900", children: /* @__PURE__ */ jsx("div", { className: "container mx-auto px-4 py-12 sm:py-16", children: /* @__PURE__ */ jsxs("div", { className: "max-w-3xl mx-auto text-center", children: [
-      /* @__PURE__ */ jsx("div", { className: "mb-8", children: /* @__PURE__ */ jsx("div", { className: "w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-100 dark:border-yellow-800 flex items-center justify-center mx-auto shadow-sm", children: /* @__PURE__ */ jsx(CircleX, { className: "h-12 w-12 sm:h-14 sm:w-14 text-yellow-600 dark:text-yellow-400" }) }) }),
-      /* @__PURE__ */ jsxs("div", { className: "mb-8 sm:mb-12", children: [
-        /* @__PURE__ */ jsxs("div", { className: "inline-flex items-center gap-2 px-4 py-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-full mb-4", children: [
-          /* @__PURE__ */ jsx("div", { className: "w-2 h-2 bg-yellow-600 dark:bg-yellow-400 rounded-full" }),
-          /* @__PURE__ */ jsx("span", { className: "text-[10px] font-bold text-yellow-600 dark:text-yellow-400 uppercase tracking-widest", children: "PAYMENT CANCELLED" })
-        ] }),
-        /* @__PURE__ */ jsx("h1", { className: "text-3xl sm:text-5xl font-bold text-gray-900 dark:text-white mb-4 tracking-tight", children: "Payment Cancelled" }),
-        /* @__PURE__ */ jsx("p", { className: "text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider", children: "NO CHARGES WERE MADE TO YOUR ACCOUNT" })
-      ] }),
-      /* @__PURE__ */ jsx("div", { className: "bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-700 p-6 sm:p-8 mb-6 sm:mb-8", children: /* @__PURE__ */ jsxs("div", { className: "space-y-4 text-left", children: [
-        /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800", children: [
-          /* @__PURE__ */ jsx("div", { className: "w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0", children: /* @__PURE__ */ jsx(ShoppingCart, { className: "h-5 w-5 text-blue-600 dark:text-blue-400" }) }),
-          /* @__PURE__ */ jsxs("div", { children: [
-            /* @__PURE__ */ jsx("p", { className: "font-bold text-sm text-gray-900 dark:text-white uppercase tracking-wider mb-1", children: "CART SAVED" }),
-            /* @__PURE__ */ jsx("p", { className: "text-xs text-gray-600 dark:text-gray-400", children: "All items remain in your cart and you can complete your purchase anytime" })
-          ] })
-        ] }),
-        /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-4 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-2xl border border-purple-100 dark:border-purple-800", children: [
-          /* @__PURE__ */ jsx("div", { className: "w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0", children: /* @__PURE__ */ jsx(CircleHelp, { className: "h-5 w-5 text-purple-600 dark:text-purple-400" }) }),
-          /* @__PURE__ */ jsxs("div", { children: [
-            /* @__PURE__ */ jsx("p", { className: "font-bold text-sm text-gray-900 dark:text-white uppercase tracking-wider mb-1", children: "NEED HELP?" }),
-            /* @__PURE__ */ jsx("p", { className: "text-xs text-gray-600 dark:text-gray-400", children: "If you encountered any issues during checkout, please contact our support team" })
-          ] })
-        ] })
-      ] }) }),
-      /* @__PURE__ */ jsxs("div", { className: "bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-700 p-6 sm:p-8 mb-6 sm:mb-8", children: [
-        /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 mb-6 justify-center", children: [
-          /* @__PURE__ */ jsx("div", { className: "h-4 w-1 bg-blue-600 rounded-full" }),
-          /* @__PURE__ */ jsx("h2", { className: "text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest", children: "WHAT HAPPENED" })
-        ] }),
-        /* @__PURE__ */ jsx("p", { className: "text-sm text-gray-600 dark:text-gray-400 text-left mb-4", children: "You cancelled the payment process before completing your order. This could happen if you:" }),
-        /* @__PURE__ */ jsxs("ul", { className: "text-left text-sm text-gray-600 dark:text-gray-400 space-y-2", children: [
-          /* @__PURE__ */ jsxs("li", { className: "flex items-start gap-2", children: [
-            /* @__PURE__ */ jsx("span", { className: "text-blue-600 dark:text-blue-400 mt-1", children: "\u2022" }),
-            /* @__PURE__ */ jsx("span", { children: "Clicked the back button during checkout" })
-          ] }),
-          /* @__PURE__ */ jsxs("li", { className: "flex items-start gap-2", children: [
-            /* @__PURE__ */ jsx("span", { className: "text-blue-600 dark:text-blue-400 mt-1", children: "\u2022" }),
-            /* @__PURE__ */ jsx("span", { children: "Closed the payment window" })
-          ] }),
-          /* @__PURE__ */ jsxs("li", { className: "flex items-start gap-2", children: [
-            /* @__PURE__ */ jsx("span", { className: "text-blue-600 dark:text-blue-400 mt-1", children: "\u2022" }),
-            /* @__PURE__ */ jsx("span", { children: "Decided to review your order again" })
-          ] }),
-          /* @__PURE__ */ jsxs("li", { className: "flex items-start gap-2", children: [
-            /* @__PURE__ */ jsx("span", { className: "text-blue-600 dark:text-blue-400 mt-1", children: "\u2022" }),
-            /* @__PURE__ */ jsx("span", { children: "Encountered a technical issue" })
-          ] })
-        ] })
-      ] }),
-      /* @__PURE__ */ jsxs("div", { className: "flex flex-col sm:flex-row gap-4 justify-center mb-6 sm:mb-8", children: [
-        /* @__PURE__ */ jsxs(
-          "button",
-          {
-            onClick: onReturnToCart,
-            className: "h-12 px-8 rounded-xl font-semibold text-sm shadow-md shadow-blue-100 dark:shadow-none bg-blue-600 hover:bg-blue-700 text-white transition-all flex items-center justify-center gap-2",
-            children: [
-              /* @__PURE__ */ jsx(ShoppingCart, { className: "h-4 w-4" }),
-              "RETURN TO CART"
-            ]
-          }
-        ),
-        /* @__PURE__ */ jsxs(
-          "button",
-          {
-            onClick: onContinueShopping,
-            className: "h-12 px-8 rounded-xl border border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700 font-semibold text-sm text-gray-700 dark:text-gray-300 transition-all flex items-center justify-center gap-2 uppercase tracking-wider",
-            children: [
-              /* @__PURE__ */ jsx(ArrowLeft, { className: "h-4 w-4" }),
-              "CONTINUE SHOPPING"
-            ]
-          }
-        )
-      ] }),
-      onContactSupport && /* @__PURE__ */ jsx("div", { className: "text-xs text-gray-500 dark:text-gray-400", children: /* @__PURE__ */ jsxs("p", { children: [
-        "NEED ASSISTANCE?",
-        " ",
-        /* @__PURE__ */ jsx(
-          "button",
-          {
-            onClick: onContactSupport,
-            className: "text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-bold uppercase tracking-wider",
-            children: "CONTACT SUPPORT"
-          }
-        )
-      ] }) })
-    ] }) }) });
-  }
-
-  // src/i18n/de.json
-  var de_default = {
-    "/ full trip": "/ ganze Reise",
-    "/day": "/Tag",
-    "200+ destinations": "\xDCber 200 Ziele",
-    "24/7 Global Team": "Globales 24/7-Team",
-    "24/7 travel support": "Reisesupport rund um die Uhr",
-    "4.9 average traveler satisfaction": "4,9 \u2013 durchschnittliche Zufriedenheit der Reisenden",
-    "About BOKMOO": "\xDCber BOKMOO",
-    "Access the world's best venues with BOKMOO.": "Mit BOKMOO erhalten Sie Zugang zu den besten Locations der Welt.",
-    "Account Information": "Kontoinformationen",
-    "Account Preferences": "Kontoeinstellungen",
-    "Account Status": "Kontostatus",
-    "Activate your BOKMOO card over Bluetooth, install and switch eSIM profiles, and track your data \u2014 right from your phone.": "Aktivieren Sie Ihre BOKMOO-Karte \xFCber Bluetooth, installieren und wechseln Sie eSIM-Profile und behalten Sie Ihr Datenvolumen im Blick \u2013 direkt von Ihrem Smartphone aus.",
-    Activation: "Aktivierung",
-    "Activation code": "Aktivierungscode",
-    "Activation expired": "Aktivierung abgelaufen",
-    "Active Member": "Aktives Mitglied",
-    "Add a destination or regional plan to prepare your connectivity before departure.": "F\xFCgen Sie vor der Abreise ein Ziel oder einen regionalen Tarif hinzu, um Ihre Verbindung rechtzeitig vorzubereiten.",
-    "Add a new address": "Neue Adresse hinzuf\xFCgen",
-    "Add a stop": "Station hinzuf\xFCgen",
-    "Add to cart": "In den Warenkorb",
-    "Adding\u2026": "Wird hinzugef\xFCgt\u2026",
-    Address: "Adresse",
-    "Address is required": "Adresse ist erforderlich",
-    "Adjust the route, or browse sellable destinations.": "Passen Sie die Route an oder st\xF6bern Sie in den verf\xFCgbaren Zielen.",
-    "Affiliate Program": "Partnerprogramm",
-    "After checkout the eSIM QR code is issued to your email and account instantly. Add it before boarding; it connects on arrival.": "Nach dem Kauf erhalten Sie den eSIM-QR-Code sofort per E-Mail und in Ihrem Konto. F\xFCgen Sie ihn vor dem Abflug hinzu \u2013 er verbindet sich bei der Ankunft.",
-    All: "Alle",
-    "Asia-Pacific": "Asien-Pazifik",
-    Australia: "Australien",
-    "Australia & NZ": "Australien & NZ",
-    "Awaiting payment": "Wartet auf Zahlung",
-    "BOKMOO Member Benefits": "Vorteile f\xFCr BOKMOO-Mitglieder",
-    "BOKMOO is built for global travelers.": "BOKMOO wurde f\xFCr Reisende rund um die Welt entwickelt.",
-    Back: "Zur\xFCck",
-    "Back to Store": "Zur\xFCck zum Shop",
-    "Back to orders": "Zur\xFCck zu den Bestellungen",
-    "Back to store": "Zur\xFCck zum Shop",
-    "Best single eSIM": "Beste einzelne eSIM",
-    "Bilingual support helps with APN setup, network preference and device compatibility around the clock.": "Unser zweisprachiger Support hilft Ihnen rund um die Uhr bei APN-Einrichtung, der Wahl des bevorzugten Netzes und der Ger\xE4tekompatibilit\xE4t.",
-    "Billing Details": "Rechnungsdaten",
-    Bluetooth: "Bluetooth",
-    "Bokmoo eSIM": "Bokmoo eSIM",
-    "Browse Destinations": "Ziele entdecken",
-    "Buy Now": "Jetzt kaufen",
-    "Buy the trip in segments \u2014 one eSIM per segment below.": "Kaufen Sie die Reise in Abschnitten \u2013 unten finden Sie eine eSIM pro Abschnitt.",
-    "Can I add a stop after buying?": "Kann ich nach dem Kauf eine Station hinzuf\xFCgen?",
-    Canada: "Kanada",
-    Cancel: "Abbrechen",
-    "Cancel order": "Bestellung stornieren",
-    "Cancel reason": "Stornogrund",
-    Cancelled: "Storniert",
-    Cart: "Warenkorb",
-    "Chat with support": "Mit dem Support chatten",
-    "Check compatibility": "Kompatibilit\xE4t pr\xFCfen",
-    "Check compatibility before departure": "Kompatibilit\xE4t vor der Abreise pr\xFCfen",
-    "Choose an option": "Option ausw\xE4hlen",
-    "Choose destinations": "Ziele ausw\xE4hlen",
-    City: "Stadt",
-    "City is required": "Stadt ist erforderlich",
-    Close: "Schlie\xDFen",
-    "Close menu": "Men\xFC schlie\xDFen",
-    "Close support chat": "Support-Chat schlie\xDFen",
-    "Closing without confirming keeps your current route.": "Wenn Sie schlie\xDFen, ohne zu best\xE4tigen, bleibt Ihre aktuelle Route erhalten.",
-    Compatibility: "Kompatibilit\xE4t",
-    "Complete payment and we will start preparing your card for delivery.": "Schlie\xDFen Sie die Zahlung ab, dann beginnen wir, Ihre Karte f\xFCr die Lieferung vorzubereiten.",
-    "Complete payment to provision this eSIM.": "Schlie\xDFen Sie die Zahlung ab, um diese eSIM bereitzustellen.",
-    "Complete payment to unlock your eSIM install details.": "Schlie\xDFen Sie die Zahlung ab, um Ihre Installationsdetails f\xFCr die eSIM freizuschalten.",
-    Completed: "Abgeschlossen",
-    "Confirmation code": "Best\xE4tigungscode",
-    Connection: "Verbindung",
-    "Connects to the BOKMOO app over Bluetooth": "Verbindet sich \xFCber Bluetooth mit der BOKMOO-App",
-    "Contact Information": "Kontaktinformationen",
-    "Contact Support": "Support kontaktieren",
-    "Continue browsing": "Weiter st\xF6bern",
-    "Continue to Payment": "Weiter zur Zahlung",
-    Copy: "Kopieren",
-    "Copy activation code": "Aktivierungscode kopieren",
-    "Copy email": "E-Mail-Adresse kopieren",
-    "Copy order reference": "Bestellnummer kopieren",
-    Countries: "L\xE4nder",
-    Country: "Land",
-    "Country (e.g. CN)": "Land (z. B. CN)",
-    "Country is required": "Land ist erforderlich",
-    Coverage: "Abdeckung",
-    "Coverage detail by stop": "Abdeckungsdetails je Station",
-    Covers: "Deckt ab",
-    Currency: "W\xE4hrung",
-    Current: "Aktuell",
-    Data: "Datenvolumen",
-    "Date of Birth": "Geburtsdatum",
-    Days: "Tage",
-    Default: "Standard",
-    Delete: "L\xF6schen",
-    Delivered: "Zugestellt",
-    Delivery: "Lieferung",
-    "Delivery tracking": "Sendungsverfolgung",
-    "Deselect all": "Auswahl aufheben",
-    "Destination eSIM": "Ziel-eSIM",
-    "Destination search": "Zielsuche",
-    Destinations: "Ziele",
-    Discount: "Rabatt",
-    "Download APK directly": "APK direkt herunterladen",
-    "Download on the App Store": "Laden im App Store",
-    Edit: "Bearbeiten",
-    Editable: "Bearbeitbar",
-    "Email Address": "E-Mail-Adresse",
-    "Email is required": "E-Mail-Adresse ist erforderlich",
-    English: "Englisch",
-    "Enter Code": "Code eingeben",
-    "Enter your email": "E-Mail-Adresse eingeben",
-    Europe: "Europa",
-    "Every purchase stays readable after checkout.": "Jeder Kauf bleibt auch nach der Bestellung einsehbar.",
-    "Example route shown \u2014 your route starts empty below.": "Das ist eine Beispielroute \u2013 Ihre eigene Route beginnt weiter unten leer.",
-    Expires: "L\xE4uft ab",
-    "Explore Now": "Jetzt entdecken",
-    "Explore a Better Night": "Bessere N\xE4chte entdecken",
-    "Explore destination-ready profiles, regional bundles, and premium data options with the clarity of a product catalog.": "Entdecken Sie einsatzbereite Profile f\xFCr Ihr Reiseziel, regionale Pakete und Premium-Datenvolumen \u2013 \xFCbersichtlich wie in einem Produktkatalog.",
-    Failed: "Fehlgeschlagen",
-    "Fewer days": "Weniger Tage",
-    "First name": "Vorname",
-    "First name is required": "Vorname ist erforderlich",
-    "Flexible data": "Flexibles Datenvolumen",
-    "Flexible validity": "Flexible G\xFCltigkeit",
-    "Flexible validity & top-ups": "Flexible G\xFCltigkeit & Aufladungen",
-    "For a new device \u2014 a fresh QR code is issued after payment.": "F\xFCr ein neues Ger\xE4t \u2013 nach der Zahlung erhalten Sie einen neuen QR-Code.",
-    France: "Frankreich",
-    Fulfilled: "Ausgeliefert",
-    "Full name": "Vollst\xE4ndiger Name",
-    "Full refund if not activated": "Volle R\xFCckerstattung, falls nicht aktiviert",
-    "General Notes": "Allgemeine Hinweise",
-    Germany: "Deutschland",
-    "Get BOKMOO": "Holen Sie sich BOKMOO",
-    "Get Started": "Jetzt starten",
-    "Get it on Google Play": "Jetzt bei Google Play",
-    Global: "Weltweit",
-    "Global plan": "Weltweiter Tarif",
-    "Greater China": "Gro\xDFchina",
-    "Happy Users": "Zufriedene Nutzer",
-    "Have a redemption code? Enter it to add an eSIM plan or subscription to your account.": "Sie haben einen Einl\xF6sungscode? Geben Sie ihn ein, um Ihrem Konto einen eSIM-Tarif oder ein Abo hinzuzuf\xFCgen.",
-    "Have a referral code from a creator? Enter it \u2014 your discount is applied to the order total at payment.": "Sie haben einen Empfehlungscode von einem Creator? Geben Sie ihn ein \u2013 Ihr Rabatt wird bei der Zahlung vom Bestellbetrag abgezogen.",
-    Help: "Hilfe",
-    "Help Center": "Hilfezentrum",
-    "Hide other plans": "Andere Tarife ausblenden",
-    "High-speed 4G/5G data": "Schnelles 4G/5G-Datenvolumen",
-    Home: "Startseite",
-    "Hong Kong": "Hongkong",
-    "Hong Kong & Macao": "Hongkong & Macau",
-    "Hotspot sharing": "Hotspot-Freigabe",
-    "Hotspot supported": "Hotspot-Freigabe m\xF6glich",
-    "How eSIM works": "So funktioniert die eSIM",
-    "How to install eSIM": "So installieren Sie die eSIM",
-    Indonesia: "Indonesien",
-    "Install from Google Play, or download the APK directly if Play is unavailable on your device.": "Installieren Sie die App \xFCber Google Play oder laden Sie die APK direkt herunter, falls Google Play auf Ihrem Ger\xE4t nicht verf\xFCgbar ist.",
-    "Install in seconds via QR": "In Sekunden per QR-Code installiert",
-    "Install this eSIM": "Diese eSIM installieren",
-    "Install your eSIM": "Ihre eSIM installieren",
-    "Instant QR delivery \xB7 Refundable before activation": "Sofortige Lieferung per QR-Code \xB7 Vor der Aktivierung erstattungsf\xE4hig",
-    "Instant QR or eSIM profile delivery": "Sofortige Lieferung per QR-Code oder als eSIM-Profil",
-    "Instant delivery via eSIM": "Sofortige Lieferung per eSIM",
-    "Instant eSIM delivery": "Sofortige eSIM-Lieferung",
-    "Instant eSIM delivery after payment": "Sofortige eSIM-Lieferung nach der Zahlung",
-    "Instant eSIM delivery with activation instructions included.": "Sofortige eSIM-Lieferung inklusive Aktivierungsanleitung.",
-    "Instant via QR": "Sofort per QR-Code",
-    "Invalid email address": "Ung\xFCltige E-Mail-Adresse",
-    "Is hotspot sharing supported?": "Wird die Hotspot-Freigabe unterst\xFCtzt?",
-    Italy: "Italien",
-    "Item delivery": "Lieferung des Artikels",
-    Itinerary: "Reiseroute",
-    Japan: "Japan",
-    "Japan & Korea": "Japan & Korea",
-    "Keep a copy of any sensitive credentials in your own password manager or secure notes after claiming the order.": "Bewahren Sie nach dem Abrufen der Bestellung eine Kopie aller vertraulichen Zugangsdaten in Ihrem eigenen Passwort-Manager oder in sicheren Notizen auf.",
-    "Keep it safe": "Sicher aufbewahren",
-    "Keep status, delivery details, and activation notes visible after checkout.": "Status, Lieferdetails und Aktivierungshinweise bleiben auch nach der Bestellung sichtbar.",
-    "Keep your primary SIM in place": "Lassen Sie Ihre Haupt-SIM im Ger\xE4t",
-    "LPA string": "LPA-String",
-    Language: "Sprache",
-    "Last name": "Nachname",
-    "Learn the basics": "Grundlagen lernen",
-    "Loading profile...": "Profil wird geladen\u2026",
-    "Loading\u2026": "Wird geladen\u2026",
-    Local: "Lokal",
-    "Log In": "Anmelden",
-    "Log Out": "Abmelden",
-    Macao: "Macau",
-    "Mainland China": "Festlandchina",
-    Malaysia: "Malaysia",
-    "Manage multiple eSIM profiles over Bluetooth": "Mehrere eSIM-Profile \xFCber Bluetooth verwalten",
-    "Manage your plan": "Tarif verwalten",
-    Management: "Verwaltung",
-    "Maps & chat": "Karten & Chat",
-    "Matching ID": "Matching-ID",
-    Member: "Mitglied",
-    "Member Since": "Mitglied seit",
-    "Member since": "Mitglied seit",
-    Menu: "Men\xFC",
-    "Message could not be delivered. Please try again shortly.": "Ihre Nachricht konnte nicht zugestellt werden. Bitte versuchen Sie es gleich noch einmal.",
-    "More days": "Mehr Tage",
-    "Most plans start on first connection. Plans that start at purchase or install say so explicitly, and the planner counts pre-trip time for them.": "Die meisten Tarife beginnen mit der ersten Verbindung. Tarife, die ab Kauf oder Installation starten, weisen ausdr\xFCcklich darauf hin \u2013 der Routenplaner rechnet bei ihnen die Zeit vor der Reise mit.",
-    "Move down": "Nach unten verschieben",
-    "Move up": "Nach oben verschieben",
-    "Multi-country": "L\xE4nder\xFCbergreifend",
-    "Multiple countries, one purchase, a simpler trip. Pick your route and we verify which single eSIM covers all of it.": "Mehrere L\xE4nder, ein Kauf, eine einfachere Reise. W\xE4hlen Sie Ihre Route \u2013 wir pr\xFCfen, welche einzelne eSIM alles abdeckt.",
-    "My Account": "Mein Konto",
-    "My Addresses": "Meine Adressen",
-    "My Trips": "Meine Reisen",
-    "My eSIMs": "Meine eSIMs",
-    Name: "Name",
-    "Need Help?": "Brauchen Sie Hilfe?",
-    "Needed once per phone \u2014 the package is already on the eSIM and activates right after install.": "Einmal pro Telefon n\xF6tig \u2013 das Datenpaket liegt bereits auf der eSIM und wird direkt nach der Installation aktiviert.",
-    Network: "Netz",
-    "New eSIM (new QR code)": "Neue eSIM (neuer QR-Code)",
-    Newest: "Neueste",
-    Next: "Weiter",
-    "No destination found. Clear the search to browse all.": "Kein Ziel gefunden. L\xF6schen Sie die Suche, um alle anzuzeigen.",
-    "No matching plan yet": "Noch kein passender Tarif",
-    "No physical SIM swap": "Kein Wechsel der physischen SIM-Karte",
-    "No plans matched the current search.": "Keine Tarife entsprechen der aktuellen Suche.",
-    "No plans yet": "Noch keine Tarife",
-    "No roaming charges": "Keine Roaminggeb\xFChren",
-    "No saved addresses yet.": "Noch keine gespeicherten Adressen.",
-    "No shipping required": "Kein Versand erforderlich",
-    "No single plan covers the trip": "Kein einzelner Tarif deckt die Reise ab",
-    "No stops yet \u2014 add your first destination.": "Noch keine Stationen \u2013 f\xFCgen Sie Ihr erstes Ziel hinzu.",
-    "No travel orders yet.": "Noch keine Reisebestellungen.",
-    "Not set": "Nicht festgelegt",
-    Notes: "Notizen",
-    "Official BOKMOO product": "Offizielles BOKMOO-Produkt",
-    "On first connection": "Bei der ersten Verbindung",
-    "One code, seamless roaming": "Ein Code, nahtloses Roaming",
-    "One trip,": "Eine Reise,",
-    "One-tap install (Android)": "Installation mit einem Tipp (Android)",
-    Open: "\xD6ffnen",
-    "Open menu": "Men\xFC \xF6ffnen",
-    "Open order": "Bestellung \xF6ffnen",
-    Order: "Bestellung",
-    "Order History": "Bestellverlauf",
-    "Order Summary": "Bestell\xFCbersicht",
-    "Order archive": "Bestellarchiv",
-    "Order not found": "Bestellung nicht gefunden",
-    "Order reference": "Bestellnummer",
-    "Order total": "Bestellsumme",
-    Orders: "Bestellungen",
-    "Our mission is to make connectivity simple, affordable, and reliable anywhere in the world.": "Unsere Mission: Konnektivit\xE4t \xFCberall auf der Welt einfach, bezahlbar und zuverl\xE4ssig zu machen.",
-    "Our support team is here for you.": "Unser Support-Team ist f\xFCr Sie da.",
-    Page: "Seite",
-    Paid: "Bezahlt",
-    Payment: "Zahlung",
-    "Payment Method": "Zahlungsart",
-    "Payment pending": "Zahlung ausstehend",
-    "Payment successful!": "Zahlung erfolgreich!",
-    Pending: "Ausstehend",
-    "Pending payment": "Zahlung ausstehend",
-    "Per plan terms": "Gem\xE4\xDF Tarifbedingungen",
-    Philippines: "Philippinen",
-    Phone: "Telefon",
-    "Phone Number": "Telefonnummer",
-    "Phone number": "Telefonnummer",
-    "Phone number is required": "Telefonnummer ist erforderlich",
-    "Physical Bluetooth card \u2014 manage multiple eSIM profiles with the BOKMOO app": "Physische Bluetooth-Karte \u2013 mehrere eSIM-Profile mit der BOKMOO-App verwalten",
-    "Physical card": "Physische Karte",
-    "Physical card \u2014 works with the BOKMOO app": "Physische Karte \u2013 funktioniert mit der BOKMOO-App",
-    "Physical eSIM card": "Physische eSIM-Karte",
-    "Pick where you are going and for how long \u2014 we check which single eSIM covers the whole trip.": "W\xE4hlen Sie, wohin und wie lange Sie reisen \u2013 wir pr\xFCfen, welche einzelne eSIM die ganze Reise abdeckt.",
-    Placed: "Eingegangen",
-    "Plan collection": "Tarif\xFCbersicht",
-    "Plan not found": "Tarif nicht gefunden",
-    "Plan validity is shorter than the trip span.": "Die G\xFCltigkeit des Tarifs ist k\xFCrzer als der Reisezeitraum.",
-    "Plans are temporarily unavailable for quoting.": "Tarife stehen derzeit nicht f\xFCr die Angebotsberechnung zur Verf\xFCgung.",
-    "Plans are unavailable right now.": "Tarife sind derzeit nicht verf\xFCgbar.",
-    "Plans confirm hotspot support explicitly; require it in Usage settings and the planner only recommends plans that confirm it.": "Tarife geben an, ob die Hotspot-Freigabe ausdr\xFCcklich unterst\xFCtzt wird. Legen Sie sie in den Nutzungseinstellungen als erforderlich fest, dann empfiehlt der Routenplaner nur Tarife mit dieser Best\xE4tigung.",
-    "Plans unused before activation are refundable per the plan terms shown before checkout.": "Tarife, die vor der Aktivierung nicht genutzt wurden, sind gem\xE4\xDF den vor der Kasse angezeigten Tarifbedingungen erstattungsf\xE4hig.",
-    "Plans you buy are added to these profiles \u2014 no new QR code, no reinstall.": "Gekaufte Tarife werden zu diesen Profilen hinzugef\xFCgt \u2013 kein neuer QR-Code, keine Neuinstallation.",
-    "Please log in to check your BOKMOO account": "Bitte melden Sie sich an, um Ihr BOKMOO-Konto zu pr\xFCfen",
-    Popular: "Beliebt",
-    "Popular Topics": "Beliebte Themen",
-    "Popular destinations": "Beliebte Ziele",
-    "Postal code": "Postleitzahl",
-    "Postal code is required": "Postleitzahl ist erforderlich",
-    "Premium club experiences around the world.": "Exklusive Club-Erlebnisse auf der ganzen Welt.",
-    "Preparing your eSIM\u2026": "Ihre eSIM wird vorbereitet\u2026",
-    Previous: "Zur\xFCck",
-    Price: "Preis",
-    "Priority local network": "Priorisiertes lokales Netz",
-    Privacy: "Datenschutz",
-    "Privacy Policy": "Datenschutzerkl\xE4rung",
-    Processing: "In Bearbeitung",
-    "Processing\u2026": "Wird verarbeitet\u2026",
-    Products: "Produkte",
-    "Promo / referral code": "Promocode / Empfehlungscode",
-    "Provisioned automatically \u2014 your install details are shown above.": "Automatisch bereitgestellt \u2013 Ihre Installationsdetails finden Sie oben.",
-    Provisioning: "Bereitstellung",
-    "Provisioning failed \u2014 our support team has been notified and will follow up.": "Bereitstellung fehlgeschlagen \u2013 unser Support-Team wurde benachrichtigt und meldet sich bei Ihnen.",
-    "Provisioning in progress \u2014 this page updates when the package is ready.": "Bereitstellung l\xE4uft \u2013 diese Seite aktualisiert sich, sobald das Paket bereit ist.",
-    "Provisioning needs attention": "Bereitstellung erfordert Aufmerksamkeit",
-    "QR payload ready": "QR-Inhalt bereit",
-    Qty: "Anz.",
-    Quantity: "Anzahl",
-    "Questions, answered": "Fragen & Antworten",
-    "Quick Facts": "Auf einen Blick",
-    "Ready to install": "Bereit zur Installation",
-    Redeem: "Einl\xF6sen",
-    "Redeem a Code": "Code einl\xF6sen",
-    "Redeeming\u2026": "Wird eingel\xF6st\u2026",
-    "Redemption failed. Please try again later.": "Einl\xF6sung fehlgeschlagen. Bitte versuchen Sie es sp\xE4ter noch einmal.",
-    "Redemption is temporarily unavailable. Please try again later.": "Die Einl\xF6sung ist vor\xFCbergehend nicht m\xF6glich. Bitte versuchen Sie es sp\xE4ter noch einmal.",
-    "Refresh status": "Status aktualisieren",
-    Refunded: "Erstattet",
-    Regional: "Regional",
-    Remove: "Entfernen",
-    "Remove stop": "Station entfernen",
-    "Reorder stop": "Station umordnen",
-    "Replace destination": "Ziel ersetzen",
-    "Replace this stop": "Diese Station ersetzen",
-    "Required hotspot sharing is not confirmed on current plans.": "Die erforderliche Hotspot-Freigabe wird von den aktuellen Tarifen nicht best\xE4tigt.",
-    "Requires iOS 15 or later. Activates BOKMOO cards over Bluetooth.": "Erfordert iOS 15 oder neuer. Aktiviert BOKMOO-Karten \xFCber Bluetooth.",
-    Retry: "Erneut versuchen",
-    "Reusing your eSIM avoids a new QR code \u2014 the plan is added to the profile you already installed.": "Wenn Sie Ihre eSIM wiederverwenden, brauchen Sie keinen neuen QR-Code \u2013 der Tarif wird zum bereits installierten Profil hinzugef\xFCgt.",
-    "Review destinations": "Ziele \xFCberpr\xFCfen",
-    "Review your selected plans.": "Pr\xFCfen Sie Ihre ausgew\xE4hlten Tarife.",
-    "Route Planner": "Routenplaner",
-    "Route planner": "Routenplaner",
-    "SM-DP+ address": "SM-DP+-Adresse",
-    "Save address": "Adresse speichern",
-    "Saved addresses": "Gespeicherte Adressen",
-    "Saved shipping addresses for checkout": "Gespeicherte Lieferadressen f\xFCr die Kasse",
-    "Scan or install manually": "Scannen oder manuell installieren",
-    "Scan with Android": "Mit Android scannen",
-    "Scan with iPhone": "Mit iPhone scannen",
-    "Search country, region or city (e.g. Tokyo)": "Land, Region oder Stadt suchen (z. B. Tokio)",
-    "Search destinations or bundles...": "Ziele oder Pakete suchen\u2026",
-    "Search for help...": "Hilfe suchen\u2026",
-    "Secure Checkout": "Sicher bezahlen",
-    "See plan": "Tarif ansehen",
-    "Select all": "Alle ausw\xE4hlen",
-    "Selected items": "Ausgew\xE4hlte Artikel",
-    Send: "Senden",
-    "Set default": "Als Standard festlegen",
-    "Set up and switch profiles in the BOKMOO app": "Profile in der BOKMOO-App einrichten und wechseln",
-    Settings: "Einstellungen",
-    Setup: "Einrichtung",
-    Shipped: "Versendet",
-    Shipping: "Versand",
-    "Shipping needs attention": "Versand erfordert Aufmerksamkeit",
-    "Shopping Cart": "Warenkorb",
-    "Sign In": "Anmelden",
-    "Sign In / Manage My Cards": "Anmelden / Meine Karten verwalten",
-    "Sign in to view your profile": "Melden Sie sich an, um Ihr Profil anzuzeigen",
-    Singapore: "Singapur",
-    "Smart multi-country top-ups": "Intelligente Aufladungen f\xFCr mehrere L\xE4nder",
-    "South Korea": "S\xFCdkorea",
-    "Southeast Asia": "S\xFCdostasien",
-    Spain: "Spanien",
-    "State / Province": "Bundesland / Provinz",
-    "State is required": "Bundesland / Provinz ist erforderlich",
-    "Stay connected in major cities and more": "Bleiben Sie verbunden \u2013 in Gro\xDFst\xE4dten und dar\xFCber hinaus",
-    "Step-by-step guide": "Schritt-f\xFCr-Schritt-Anleitung",
-    Store: "Shop",
-    Subtotal: "Zwischensumme",
-    Summary: "Zusammenfassung",
-    Support: "Support",
-    "Support:": "Support:",
-    "Supported devices": "Unterst\xFCtzte Ger\xE4te",
-    TBC: "Wird noch best\xE4tigt",
-    Taiwan: "Taiwan",
-    Tax: "Steuern",
-    Terms: "AGB",
-    "Terms of Service": "Nutzungsbedingungen",
-    Thailand: "Thailand",
-    "The product tied to this code is currently unavailable. Please contact support.": "Das mit diesem Code verkn\xFCpfte Produkt ist derzeit nicht verf\xFCgbar. Bitte wenden Sie sich an den Support.",
-    "This code has already been redeemed.": "Dieser Code wurde bereits eingel\xF6st.",
-    "This code has reached its redemption limit.": "Dieser Code hat sein Einl\xF6sungslimit erreicht.",
-    "This code is assigned to a different account.": "Dieser Code ist einem anderen Konto zugeordnet.",
-    "This code is invalid or expired. Please double-check and try again.": "Dieser Code ist ung\xFCltig oder abgelaufen. Bitte \xFCberpr\xFCfen Sie ihn und versuchen Sie es erneut.",
-    "This install code has expired \u2014 contact support to reissue it.": "Dieser Installationscode ist abgelaufen \u2013 wenden Sie sich an den Support, um einen neuen zu erhalten.",
-    "This order is still waiting for fulfillment details. Refresh later or reopen it from the order archive.": "F\xFCr diese Bestellung liegen noch keine Details zur Vorbereitung vor. Aktualisieren Sie die Seite sp\xE4ter oder \xF6ffnen Sie die Bestellung erneut aus dem Bestellarchiv.",
-    "This plan does not confirm hotspot sharing.": "Dieser Tarif best\xE4tigt die Hotspot-Freigabe nicht.",
-    Timezone: "Zeitzone",
-    "Top up & Data plans": "Aufladen & Datenpakete",
-    Total: "Gesamtsumme",
-    "Track package": "Sendung verfolgen",
-    "Track your order": "Bestellung verfolgen",
-    "Travel Cart": "Warenkorb",
-    "Travel Credits": "Reiseguthaben",
-    "Travel bundle": "Reisepaket",
-    "Trip changed or running low mid-journey? Add a data pack without reinstalling.": "Reise ge\xE4ndert oder unterwegs das Datenvolumen knapp? Laden Sie ein Datenpaket nach, ohne neu zu installieren.",
-    "Try Again": "Erneut versuchen",
-    "Try the example trip": "Beispielreise ausprobieren",
-    Type: "Typ",
-    "Type your message\u2026": "Nachricht schreiben\u2026",
-    "Typing\u2026": "Schreibt\u2026",
-    "Unable to load orders.": "Bestellungen konnten nicht geladen werden.",
-    "United Arab Emirates": "Vereinigte Arabische Emirate",
-    "United Kingdom": "Vereinigtes K\xF6nigreich",
-    "United States": "Vereinigte Staaten",
-    Unlimited: "Unbegrenzt",
-    "Unlocked iPhone and Android devices with eSIM support": "Simlock-freie iPhone- und Android-Ger\xE4te mit eSIM-Unterst\xFCtzung",
-    "Upcoming Trips": "Anstehende Reisen",
-    Uptime: "Verf\xFCgbarkeit",
-    Usage: "Nutzung",
-    "Usage mode": "Nutzungsmodus",
-    "Use my existing eSIM": "Meine bestehende eSIM verwenden",
-    Validity: "G\xFCltigkeit",
-    "Validity covers the whole trip": "Die G\xFCltigkeit deckt die ganze Reise ab",
-    "Validity to be confirmed": "G\xFCltigkeit wird noch best\xE4tigt",
-    "Video meetings": "Videomeetings",
-    Vietnam: "Vietnam",
-    "View Details": "Details ansehen",
-    "View and manage your orders": "Bestellungen ansehen und verwalten",
-    "View coverage & plans": "Abdeckung & Tarife ansehen",
-    "View eSIM details": "eSIM-Details ansehen",
-    "Visit Help Center": "Hilfezentrum besuchen",
-    "We could not prepare your install session yet.": "Wir konnten Ihre Installationssitzung noch nicht vorbereiten.",
-    "We could not prepare your shipment yet.": "Wir konnten Ihren Versand noch nicht vorbereiten.",
-    "What if I never activate the eSIM?": "Was ist, wenn ich die eSIM nie aktiviere?",
-    "When does validity start counting?": "Wann beginnt die G\xFCltigkeit?",
-    "Why Bokmoo eSIM": "Warum Bokmoo eSIM",
-    "Works with the BOKMOO app": "Funktioniert mit der BOKMOO-App",
-    "Yes. Your existing order stays valid; the planner re-checks coverage and tells you exactly which new stop needs its own plan.": "Ja. Ihre bestehende Bestellung bleibt g\xFCltig; der Routenplaner pr\xFCft die Abdeckung erneut und sagt Ihnen genau, welche neue Station einen eigenen Tarif ben\xF6tigt.",
-    "Your BOKMOO card, in your pocket.": "Ihre BOKMOO-Karte \u2013 immer dabei.",
-    "Your activation session expired before installation completed.": "Ihre Aktivierungssitzung ist abgelaufen, bevor die Installation abgeschlossen wurde.",
-    "Your booked experiences": "Ihre gebuchten Erlebnisse",
-    "Your card is being prepared for shipment": "Ihre Karte wird f\xFCr den Versand vorbereitet",
-    "Your carrier and tracking updates appear here after dispatch.": "Versanddienstleister und Sendungsverfolgung werden hier angezeigt, sobald Ihre Bestellung verschickt wurde.",
-    "Your cart is empty.": "Ihr Warenkorb ist leer.",
-    "Your eSIM is ready to install.": "Ihre eSIM ist bereit zur Installation.",
-    "Your order is paid. We are packing your Bokmoo Card now \u2014 you will get a shipping confirmation with tracking, and it should arrive within a few business days.": "Ihre Bestellung ist bezahlt. Wir verpacken Ihre Bokmoo-Karte gerade \u2013 Sie erhalten eine Versandbest\xE4tigung mit Sendungsverfolgung, und sie sollte innerhalb weniger Werktage bei Ihnen ankommen.",
-    "Your order is paid. We are preparing the install session now.": "Ihre Bestellung ist bezahlt. Wir bereiten jetzt die Installationssitzung vor.",
-    "Your package has been added to your eSIM.": "Ihr Datenpaket wurde zu Ihrer eSIM hinzugef\xFCgt.",
-    d: "T",
-    "daily average": "Tagesdurchschnitt",
-    "data included": "Datenvolumen inklusive",
-    "day(s)": "Tag(e)",
-    days: "Tage",
-    destinations: "Ziele",
-    "e.g. BOKMOO10": "z. B. BOKMOO10",
-    "e.g. ESIM-JP-7D": "z. B. ESIM-JP-7D",
-    eSIM: "eSIM",
-    "eSIM ICCID": "eSIM-ICCID",
-    "eSIM Plans": "eSIM-Tarife",
-    "eSIM activation": "eSIM-Aktivierung",
-    "eSIM plans built for every journey.": "eSIM-Tarife f\xFCr jede Reise.",
-    en: "en",
-    "iPhone and Android devices": "iPhone- und Android-Ger\xE4te",
-    "iPhone and Android devices with eSIM support": "iPhone- und Android-Ger\xE4te mit eSIM-Unterst\xFCtzung",
-    "iPhone: point the camera at the QR code. Other phones: Settings \u2192 Network \u2192 Add eSIM.": "iPhone: Scannen Sie den QR-Code mit der Kamera. Andere Smartphones: Einstellungen \u2192 Netzwerk \u2192 eSIM hinzuf\xFCgen.",
-    "instant delivery": "sofortige Lieferung",
-    "local network": "lokales Netz",
-    months: "Monate",
-    "one eSIM.": "eine eSIM.",
-    plans: "Tarife",
-    selected: "ausgew\xE4hlt",
-    validity: "G\xFCltigkeit",
-    weeks: "Wochen",
-    ".": ".",
-    ". All rights reserved.": ". Alle Rechte vorbehalten.",
-    "Acceptance of Terms": "Annahme der Bedingungen",
-    Active: "Aktiv",
-    Add: "Hinzuf\xFCgen",
-    "Affiliate data could not be loaded": "Partnerdaten konnten nicht geladen werden",
-    "Affiliate view": "Partneransicht",
-    "Affiliate workspace": "Partnerbereich",
-    "All payments are final and non-refundable unless required by law.": "Sofern gesetzlich nicht anders vorgeschrieben, sind alle Zahlungen endg\xFCltig und nicht erstattungsf\xE4hig.",
-    "Already have an account?": "Sie haben bereits ein Konto?",
-    Approved: "Genehmigt",
-    "Authentication failed": "Authentifizierung fehlgeschlagen",
-    "BOKMOO eSIM Card": "BOKMOO eSIM-Karte",
-    "BOKMOO is not liable for any indirect, incidental, or consequential damages.": "BOKMOO haftet nicht f\xFCr indirekte, Neben- oder Folgesch\xE4den.",
-    "Back home": "Zur\xFCck zur Startseite",
-    "Back to sign in": "Zur\xFCck zur Anmeldung",
-    "Better Nights": "Bessere N\xE4chte",
-    "Brighter Journeys": "Hellere Reisen",
-    "Browse BOKMOO plans by destination and travel region.": "Entdecken Sie BOKMOO-Tarife nach Reiseziel und Region.",
-    "By accessing or using the BOKMOO website and services, you agree to be bound by these Terms of Service.": "Mit dem Zugriff auf die BOKMOO-Website und die Dienste oder deren Nutzung erkl\xE4ren Sie sich mit diesen Nutzungsbedingungen einverstanden.",
-    "Change password": "Passwort \xE4ndern",
-    "Commission rate": "Provisionssatz",
-    "Completing sign in": "Anmeldung wird abgeschlossen",
-    Confirm: "Best\xE4tigen",
-    "Continue to your orders, profiles, and activation workspace.": "Weiter zu Ihren Bestellungen, Profilen und zur Aktivierungsverwaltung.",
-    Copied: "Kopiert",
-    "Copy link": "Link kopieren",
-    "Create account": "Konto erstellen",
-    "Create affiliate account": "Partnerkonto erstellen",
-    "Create organization": "Organisation erstellen",
-    "Create the account your eSIMs follow.": "Erstellen Sie das Konto, dem Ihre eSIMs folgen.",
-    Creating: "Wird erstellt\u2026",
-    "Creator network.": "Creator-Netzwerk.",
-    "Current password": "Aktuelles Passwort",
-    "Data Protection": "Datenschutz",
-    "Default option": "Standardoption",
-    "Deselect item": "Artikel abw\xE4hlen",
-    "Display name": "Anzeigename",
-    Earned: "Verdient",
-    Email: "E-Mail",
-    Expired: "Abgelaufen",
-    "Explore destination eSIMs": "eSIMs nach Reiseziel entdecken",
-    "Forgot password": "Passwort vergessen",
-    "Get help fast": "Schnelle Hilfe erhalten",
-    "Hide password": "Passwort ausblenden",
-    "Hover a store button (or scan the card QR) to download.": "Fahren Sie mit der Maus \xFCber eine Shop-Schaltfl\xE4che (oder scannen Sie den QR-Code der Karte), um herunterzuladen.",
-    "How We Use Information": "Nutzung Ihrer Daten",
-    "How it works": "So funktioniert es",
-    Inactive: "Inaktiv",
-    Influencer: "Influencer",
-    "Information We Collect": "Von uns erhobene Informationen",
-    "Instant QR delivery after payment": "QR-Code sofort nach der Zahlung",
-    "Keep access secure between trips.": "Halten Sie Ihren Zugang auch zwischen Reisen sicher.",
-    "Keep orders, activation codes, profile history, and support cases attached to one BOKMOO identity.": "Verkn\xFCpfen Sie Bestellungen, Aktivierungscodes, Profilverlauf und Supportf\xE4lle mit einer einzigen BOKMOO-Identit\xE4t.",
-    "Keep your BOKMOO account ready for the next trip.": "Halten Sie Ihr BOKMOO-Konto f\xFCr die n\xE4chste Reise bereit.",
-    "Last updated: April 15, 2024": "Zuletzt aktualisiert: 15. April 2024",
-    "Limitation of Liability": "Haftungsbeschr\xE4nkung",
-    "Manage BOKMOO eSIM profiles, orders, and activation details from the same black-and-gold travel control surface.": "Verwalten Sie BOKMOO-eSIM-Profile, Bestellungen und Aktivierungsdetails in derselben schwarz-goldenen Reiseoberfl\xE4che.",
-    "Manage eSIMs": "eSIMs verwalten",
-    Manager: "Manager",
-    "Member could not be added": "Mitglied konnte nicht hinzugef\xFCgt werden",
-    "Member email": "E-Mail des Mitglieds",
-    "New password": "Neues Passwort",
-    "No commissions yet": "Noch keine Provisionen",
-    "No region collections are available yet.": "Noch keine regionalen Sammlungen verf\xFCgbar.",
-    "One Card.\nGlobal Connection.": "Eine Karte.\nWeltweite Verbindung.",
-    "One eSIM for the whole trip \u2014 pick your destinations and go.": "Ein eSIM f\xFCr die ganze Reise \u2014 Ziele ausw\xE4hlen und losfahren.",
-    Organization: "Organisation",
-    "Organization affiliate": "Organisationspartner",
-    "Organization code (optional)": "Organisationscode (optional)",
-    "Organization commissions": "Provisionen der Organisation",
-    "Organization could not be created": "Organisation konnte nicht erstellt werden",
-    "Organization data could not be loaded": "Organisationsdaten konnten nicht geladen werden",
-    "Organization name": "Name der Organisation",
-    Partner: "Partner",
-    "Partner commissions": "Partnerprovisionen",
-    Password: "Passwort",
-    "Passwords do not match": "Passw\xF6rter stimmen nicht \xFCberein",
-    "Personal affiliate": "Pers\xF6nlicher Partner",
-    "Powered by": "Bereitgestellt von",
-    Profiles: "Profile",
-    "Protected traveler identity": "Gesch\xFCtzte Reisendenidentit\xE4t",
-    "Purchases and Payments": "K\xE4ufe und Zahlungen",
-    "Questions about setup? Contact": "Fragen zur Einrichtung? Kontakt",
-    Rate: "Satz",
-    Refresh: "Aktualisieren",
-    "Region Collections": "Regionale Sammlungen",
-    "Registration failed": "Registrierung fehlgeschlagen",
-    SAMPLE: "BEISPIEL",
-    "Save profile": "Profil speichern",
-    "Saving...": "Wird gespeichert\u2026",
-    "Secure account access": "Sicherer Kontozugriff",
-    "Securing your session and returning you to the BOKMOO storefront.": "Ihre Sitzung wird gesichert und Sie kehren zum BOKMOO-Shop zur\xFCck.",
-    "Select item": "Artikel ausw\xE4hlen",
-    "Shop eSIM Plans": "eSIM-Tarife entdecken",
-    "Show password": "Passwort anzeigen",
-    "Sign in": "Anmelden",
-    "Sign in before your next border.": "Melden Sie sich vor der n\xE4chsten Grenze an.",
-    "Sign in to manage your account": "Melden Sie sich an, um Ihr Konto zu verwalten",
-    "Signing in": "Anmeldung l\xE4uft\u2026",
-    "Start with a secure profile for purchases and global activation support.": "Beginnen Sie mit einem sicheren Profil f\xFCr K\xE4ufe und weltweite Aktivierungsunterst\xFCtzung.",
-    Suspended: "Gesperrt",
-    "Track purchases": "K\xE4ufe verfolgen",
-    "Traveler profile": "Reiseprofil",
-    "Unable to load Bokmoo plans.": "Bokmoo-Tarife konnten nicht geladen werden.",
-    "Updating...": "Wird aktualisiert\u2026",
-    "Use of Services": "Nutzung der Dienste",
-    Used: "Verwendet",
-    "View category": "Kategorie ansehen",
-    "We collect information you provide directly to us, such as when you create an account or make a purchase.": "Wir erheben Informationen, die Sie uns direkt bereitstellen, etwa beim Anlegen eines Kontos oder einem Kauf.",
-    "We implement appropriate security measures to protect your data.": "Wir setzen geeignete Sicherheitsma\xDFnahmen zum Schutz Ihrer Daten ein.",
-    "We use the information to provide, maintain, and improve our services.": "Wir verwenden diese Informationen, um unsere Dienste bereitzustellen, zu warten und zu verbessern.",
-    "Welcome back": "Willkommen zur\xFCck",
-    "You agree to use our services only for lawful purposes and in accordance with these Terms.": "Sie stimmen zu, unsere Dienste nur f\xFCr rechtm\xE4\xDFige Zwecke und gem\xE4\xDF diesen Bedingungen zu nutzen.",
-    "You have the right to access, update, or delete your personal information.": "Sie haben das Recht, auf Ihre pers\xF6nlichen Daten zuzugreifen, sie zu aktualisieren oder zu l\xF6schen.",
-    "Your Rights": "Ihre Rechte",
-    "Your referral ledger.": "Ihr Empfehlungsprotokoll.",
-    "already with us": "Bereits dabei?",
-    "or email": "oder per E-Mail",
-    "organization rate": "Organisationssatz",
-    "Group destination-ready plans into clearer regional entry points.": "B\xFCndelt die fertig konfigurierten Zieltarife zu \xFCbersichtlichen regionalen Einstiegen."
-  };
-
-  // src/i18n/fr.json
-  var fr_default = {
-    "/ full trip": "/ voyage entier",
-    "/day": "/ jour",
-    "200+ destinations": "Plus de 200 destinations",
-    "24/7 Global Team": "\xC9quipe mondiale 24h/24, 7j/7",
-    "24/7 travel support": "Assistance voyage 24h/24, 7j/7",
-    "4.9 average traveler satisfaction": "Satisfaction moyenne des voyageurs : 4,9",
-    "About BOKMOO": "\xC0 propos de BOKMOO",
-    "Access the world's best venues with BOKMOO.": "Acc\xE9dez aux meilleures adresses du monde avec BOKMOO.",
-    "Account Information": "Informations du compte",
-    "Account Preferences": "Pr\xE9f\xE9rences du compte",
-    "Account Status": "Statut du compte",
-    "Activate your BOKMOO card over Bluetooth, install and switch eSIM profiles, and track your data \u2014 right from your phone.": "Activez votre carte BOKMOO via Bluetooth, installez et changez de profil eSIM, et suivez votre consommation de donn\xE9es \u2014 directement depuis votre t\xE9l\xE9phone.",
-    Activation: "Activation",
-    "Activation code": "Code d'activation",
-    "Activation expired": "Activation expir\xE9e",
-    "Active Member": "Membre actif",
-    "Add a destination or regional plan to prepare your connectivity before departure.": "Ajoutez une destination ou un forfait r\xE9gional pour pr\xE9parer votre connexion avant le d\xE9part.",
-    "Add a new address": "Ajouter une nouvelle adresse",
-    "Add a stop": "Ajouter une \xE9tape",
-    "Add to cart": "Ajouter au panier",
-    "Adding\u2026": "Ajout\u2026",
-    Address: "Adresse",
-    "Address is required": "L'adresse est obligatoire",
-    "Adjust the route, or browse sellable destinations.": "Ajustez l'itin\xE9raire ou parcourez les destinations disponibles.",
-    "Affiliate Program": "Programme d'affiliation",
-    "After checkout the eSIM QR code is issued to your email and account instantly. Add it before boarding; it connects on arrival.": "Apr\xE8s le paiement, vous recevez imm\xE9diatement le code QR de votre eSIM par e-mail et dans votre compte. Installez-la avant d'embarquer ; elle se connecte d\xE8s votre arriv\xE9e.",
-    All: "Tous",
-    "Asia-Pacific": "Asie-Pacifique",
-    Australia: "Australie",
-    "Australia & NZ": "Australie & NZ",
-    "Awaiting payment": "En attente de paiement",
-    "BOKMOO Member Benefits": "Avantages membres BOKMOO",
-    "BOKMOO is built for global travelers.": "BOKMOO est con\xE7u pour les voyageurs du monde entier.",
-    Back: "Retour",
-    "Back to Store": "Retour \xE0 la boutique",
-    "Back to orders": "Retour aux commandes",
-    "Back to store": "Retour \xE0 la boutique",
-    "Best single eSIM": "Meilleure eSIM unique",
-    "Bilingual support helps with APN setup, network preference and device compatibility around the clock.": "Une assistance bilingue disponible 24h/24 vous aide \xE0 configurer l'APN, \xE0 d\xE9finir vos pr\xE9f\xE9rences de r\xE9seau et \xE0 v\xE9rifier la compatibilit\xE9 de votre appareil.",
-    "Billing Details": "Coordonn\xE9es de facturation",
-    Bluetooth: "Bluetooth",
-    "Bokmoo eSIM": "eSIM Bokmoo",
-    "Browse Destinations": "Parcourir les destinations",
-    "Buy Now": "Acheter maintenant",
-    "Buy the trip in segments \u2014 one eSIM per segment below.": "Achetez le voyage par segments \u2014 une eSIM par segment ci-dessous.",
-    "Can I add a stop after buying?": "Puis-je ajouter une \xE9tape apr\xE8s l'achat ?",
-    Canada: "Canada",
-    Cancel: "Annuler",
-    "Cancel order": "Annuler la commande",
-    "Cancel reason": "Motif d'annulation",
-    Cancelled: "Annul\xE9e",
-    Cart: "Panier",
-    "Chat with support": "Discuter avec l'assistance",
-    "Check compatibility": "V\xE9rifier la compatibilit\xE9",
-    "Check compatibility before departure": "V\xE9rifier la compatibilit\xE9 avant le d\xE9part",
-    "Choose an option": "S\xE9lectionner une option",
-    "Choose destinations": "Choisir les destinations",
-    City: "Ville",
-    "City is required": "La ville est obligatoire",
-    Close: "Fermer",
-    "Close menu": "Fermer le menu",
-    "Close support chat": "Fermer la discussion avec l'assistance",
-    "Closing without confirming keeps your current route.": "Fermer sans confirmer conserve votre itin\xE9raire actuel.",
-    Compatibility: "Compatibilit\xE9",
-    "Complete payment and we will start preparing your card for delivery.": "Finalisez le paiement et nous commencerons \xE0 pr\xE9parer votre carte pour la livraison.",
-    "Complete payment to provision this eSIM.": "Finalisez le paiement pour mettre cette eSIM en service.",
-    "Complete payment to unlock your eSIM install details.": "Finalisez le paiement pour d\xE9bloquer les informations d'installation de votre eSIM.",
-    Completed: "Termin\xE9e",
-    "Confirmation code": "Code de confirmation",
-    Connection: "Connexion",
-    "Connects to the BOKMOO app over Bluetooth": "Se connecte \xE0 l'application BOKMOO via Bluetooth",
-    "Contact Information": "Coordonn\xE9es",
-    "Contact Support": "Contacter l'assistance",
-    "Continue browsing": "Continuer la navigation",
-    "Continue to Payment": "Continuer vers le paiement",
-    Copy: "Copier",
-    "Copy activation code": "Copier le code d'activation",
-    "Copy email": "Copier l'adresse e-mail",
-    "Copy order reference": "Copier la r\xE9f\xE9rence de la commande",
-    Countries: "Pays",
-    Country: "Pays",
-    "Country (e.g. CN)": "Pays (ex. CN)",
-    "Country is required": "Le pays est obligatoire",
-    Coverage: "Couverture",
-    "Coverage detail by stop": "D\xE9tail de la couverture par \xE9tape",
-    Covers: "Couvre",
-    Currency: "Devise",
-    Current: "En cours",
-    Data: "Donn\xE9es",
-    "Date of Birth": "Date de naissance",
-    Days: "Jours",
-    Default: "Par d\xE9faut",
-    Delete: "Supprimer",
-    Delivered: "Livr\xE9e",
-    Delivery: "Livraison",
-    "Delivery tracking": "Suivi de livraison",
-    "Deselect all": "Tout d\xE9s\xE9lectionner",
-    "Destination eSIM": "eSIM de destination",
-    "Destination search": "Recherche de destinations",
-    Destinations: "Destinations",
-    Discount: "R\xE9duction",
-    "Download APK directly": "T\xE9l\xE9charger l'APK directement",
-    "Download on the App Store": "T\xE9l\xE9charger dans l'App Store",
-    Edit: "Modifier",
-    Editable: "Modifiable",
-    "Email Address": "Adresse e-mail",
-    "Email is required": "L'adresse e-mail est obligatoire",
-    English: "Anglais",
-    "Enter Code": "Saisir un code",
-    "Enter your email": "Saisissez votre adresse e-mail",
-    Europe: "Europe",
-    "Every purchase stays readable after checkout.": "Chaque achat reste consultable apr\xE8s le paiement.",
-    "Example route shown \u2014 your route starts empty below.": "Itin\xE9raire d'exemple \u2014 le v\xF4tre d\xE9marre vide ci-dessous.",
-    Expires: "Expire",
-    "Explore Now": "D\xE9couvrir maintenant",
-    "Explore a Better Night": "D\xE9couvrez des soir\xE9es d'exception",
-    "Explore destination-ready profiles, regional bundles, and premium data options with the clarity of a product catalog.": "Explorez des profils pr\xEAts pour votre destination, des packs r\xE9gionaux et des options de donn\xE9es premium, avec la clart\xE9 d'un catalogue de produits.",
-    Failed: "\xC9chec",
-    "Fewer days": "Moins de jours",
-    "First name": "Pr\xE9nom",
-    "First name is required": "Le pr\xE9nom est obligatoire",
-    "Flexible data": "Donn\xE9es flexibles",
-    "Flexible validity": "Validit\xE9 flexible",
-    "Flexible validity & top-ups": "Validit\xE9 flexible & rechargements",
-    "For a new device \u2014 a fresh QR code is issued after payment.": "Pour un nouvel appareil \u2014 un nouveau code QR est \xE9mis apr\xE8s le paiement.",
-    France: "France",
-    Fulfilled: "Pr\xE9par\xE9e",
-    "Full name": "Nom complet",
-    "Full refund if not activated": "Remboursement int\xE9gral en l'absence d'activation",
-    "General Notes": "Remarques g\xE9n\xE9rales",
-    Germany: "Allemagne",
-    "Get BOKMOO": "Obtenir BOKMOO",
-    "Get Started": "Commencer",
-    "Get it on Google Play": "Disponible sur Google Play",
-    Global: "Mondial",
-    "Global plan": "Forfait mondial",
-    "Greater China": "Grande Chine",
-    "Happy Users": "Utilisateurs satisfaits",
-    "Have a redemption code? Enter it to add an eSIM plan or subscription to your account.": "Vous avez un code d'\xE9change ? Saisissez-le pour ajouter un forfait eSIM ou un abonnement \xE0 votre compte.",
-    "Have a referral code from a creator? Enter it \u2014 your discount is applied to the order total at payment.": "Vous avez un code de parrainage transmis par un cr\xE9ateur ? Saisissez-le \u2014 votre r\xE9duction s'applique au total de la commande au moment du paiement.",
-    Help: "Aide",
-    "Help Center": "Centre d'aide",
-    "Hide other plans": "Masquer les autres forfaits",
-    "High-speed 4G/5G data": "Donn\xE9es 4G/5G \xE0 haut d\xE9bit",
-    Home: "Accueil",
-    "Hong Kong": "Hong Kong",
-    "Hong Kong & Macao": "Hong Kong & Macao",
-    "Hotspot sharing": "Partage de connexion",
-    "Hotspot supported": "Partage de connexion pris en charge",
-    "How eSIM works": "Comment fonctionne l'eSIM",
-    "How to install eSIM": "Comment installer une eSIM",
-    Indonesia: "Indon\xE9sie",
-    "Install from Google Play, or download the APK directly if Play is unavailable on your device.": "Installez l'application depuis Google Play, ou t\xE9l\xE9chargez directement l'APK si Google Play n'est pas disponible sur votre appareil.",
-    "Install in seconds via QR": "Installation en quelques secondes via un code QR",
-    "Install this eSIM": "Installer cette eSIM",
-    "Install your eSIM": "Installer votre eSIM",
-    "Instant QR delivery \xB7 Refundable before activation": "Livraison instantan\xE9e du code QR \xB7 Remboursable avant activation",
-    "Instant QR or eSIM profile delivery": "Livraison instantan\xE9e du code QR ou du profil eSIM",
-    "Instant delivery via eSIM": "Livraison instantan\xE9e par eSIM",
-    "Instant eSIM delivery": "Livraison instantan\xE9e de l'eSIM",
-    "Instant eSIM delivery after payment": "Livraison instantan\xE9e de l'eSIM apr\xE8s le paiement",
-    "Instant eSIM delivery with activation instructions included.": "Livraison instantan\xE9e de l'eSIM, instructions d'activation comprises.",
-    "Instant via QR": "Instantan\xE9 par code QR",
-    "Invalid email address": "Adresse e-mail invalide",
-    "Is hotspot sharing supported?": "Le partage de connexion est-il pris en charge ?",
-    Italy: "Italie",
-    "Item delivery": "Livraison de l'article",
-    Itinerary: "Itin\xE9raire",
-    Japan: "Japon",
-    "Japan & Korea": "Japon & Cor\xE9e",
-    "Keep a copy of any sensitive credentials in your own password manager or secure notes after claiming the order.": "Apr\xE8s avoir r\xE9cup\xE9r\xE9 votre commande, conservez une copie de vos identifiants sensibles dans votre gestionnaire de mots de passe ou dans des notes s\xE9curis\xE9es.",
-    "Keep it safe": "Conservez-le en lieu s\xFBr",
-    "Keep status, delivery details, and activation notes visible after checkout.": "Gardez le statut, les d\xE9tails de livraison et les notes d'activation visibles apr\xE8s le paiement.",
-    "Keep your primary SIM in place": "Gardez votre SIM principale en place",
-    "LPA string": "Cha\xEEne LPA",
-    Language: "Langue",
-    "Last name": "Nom",
-    "Learn the basics": "D\xE9couvrir les bases",
-    "Loading profile...": "Chargement du profil...",
-    "Loading\u2026": "Chargement\u2026",
-    Local: "Local",
-    "Log In": "Se connecter",
-    "Log Out": "Se d\xE9connecter",
-    Macao: "Macao",
-    "Mainland China": "Chine continentale",
-    Malaysia: "Malaisie",
-    "Manage multiple eSIM profiles over Bluetooth": "G\xE9rez plusieurs profils eSIM via Bluetooth",
-    "Manage your plan": "G\xE9rer votre forfait",
-    Management: "Gestion",
-    "Maps & chat": "Cartes & discussion",
-    "Matching ID": "Identifiant d'appairage (Matching ID)",
-    Member: "Membre",
-    "Member Since": "Membre depuis",
-    "Member since": "Membre depuis",
-    Menu: "Menu",
-    "Message could not be delivered. Please try again shortly.": "Le message n'a pas pu \xEAtre remis. Veuillez r\xE9essayer dans un instant.",
-    "More days": "Plus de jours",
-    "Most plans start on first connection. Plans that start at purchase or install say so explicitly, and the planner counts pre-trip time for them.": "La plupart des forfaits d\xE9marrent \xE0 la premi\xE8re connexion. Les forfaits qui d\xE9marrent \xE0 l'achat ou \xE0 l'installation l'indiquent explicitement, et le planificateur compte pour eux le temps \xE9coul\xE9 avant le d\xE9part.",
-    "Move down": "Descendre",
-    "Move up": "Monter",
-    "Multi-country": "Multi-pays",
-    "Multiple countries, one purchase, a simpler trip. Pick your route and we verify which single eSIM covers all of it.": "Plusieurs pays, un seul achat, un voyage plus simple. Choisissez votre itin\xE9raire et nous v\xE9rifions quelle eSIM unique couvre la totalit\xE9 du voyage.",
-    "My Account": "Mon compte",
-    "My Addresses": "Mes adresses",
-    "My Trips": "Mes voyages",
-    "My eSIMs": "Mes eSIM",
-    Name: "Nom",
-    "Need Help?": "Besoin d'aide ?",
-    "Needed once per phone \u2014 the package is already on the eSIM and activates right after install.": "\xC0 faire une seule fois par t\xE9l\xE9phone \u2014 le forfait est d\xE9j\xE0 sur l'eSIM et s'active juste apr\xE8s l'installation.",
-    Network: "R\xE9seau",
-    "New eSIM (new QR code)": "Nouvelle eSIM (nouveau code QR)",
-    Newest: "Plus r\xE9cents",
-    Next: "Suivant",
-    "No destination found. Clear the search to browse all.": "Aucune destination trouv\xE9e. Effacez la recherche pour tout parcourir.",
-    "No matching plan yet": "Aucun forfait correspondant pour le moment",
-    "No physical SIM swap": "Pas de changement de carte SIM physique",
-    "No plans matched the current search.": "Aucun forfait ne correspond \xE0 la recherche actuelle.",
-    "No plans yet": "Aucun forfait pour le moment",
-    "No roaming charges": "Aucun frais d'itin\xE9rance",
-    "No saved addresses yet.": "Aucune adresse enregistr\xE9e pour le moment.",
-    "No shipping required": "Aucune livraison requise",
-    "No single plan covers the trip": "Aucun forfait unique ne couvre le voyage",
-    "No stops yet \u2014 add your first destination.": "Aucune \xE9tape pour l'instant \u2014 ajoutez votre premi\xE8re destination.",
-    "No travel orders yet.": "Aucune commande voyage pour le moment.",
-    "Not set": "Non d\xE9fini",
-    Notes: "Notes",
-    "Official BOKMOO product": "Produit officiel BOKMOO",
-    "On first connection": "\xC0 la premi\xE8re connexion",
-    "One code, seamless roaming": "Un seul code, une itin\xE9rance sans interruption",
-    "One trip,": "Un voyage,",
-    "One-tap install (Android)": "Installation en un clic (Android)",
-    Open: "Ouvrir",
-    "Open menu": "Ouvrir le menu",
-    "Open order": "Ouvrir la commande",
-    Order: "Commande",
-    "Order History": "Historique des commandes",
-    "Order Summary": "R\xE9capitulatif de la commande",
-    "Order archive": "Archive des commandes",
-    "Order not found": "Commande introuvable",
-    "Order reference": "R\xE9f\xE9rence de la commande",
-    "Order total": "Total de la commande",
-    Orders: "Commandes",
-    "Our mission is to make connectivity simple, affordable, and reliable anywhere in the world.": "Notre mission est de rendre la connectivit\xE9 simple, abordable et fiable, partout dans le monde.",
-    "Our support team is here for you.": "Notre \xE9quipe d'assistance est \xE0 votre disposition.",
-    Page: "Page",
-    Paid: "Pay\xE9e",
-    Payment: "Paiement",
-    "Payment Method": "Moyen de paiement",
-    "Payment pending": "Paiement en attente",
-    "Payment successful!": "Paiement r\xE9ussi !",
-    Pending: "En attente",
-    "Pending payment": "En attente de paiement",
-    "Per plan terms": "Selon les conditions du forfait",
-    Philippines: "Philippines",
-    Phone: "T\xE9l\xE9phone",
-    "Phone Number": "Num\xE9ro de t\xE9l\xE9phone",
-    "Phone number": "Num\xE9ro de t\xE9l\xE9phone",
-    "Phone number is required": "Le num\xE9ro de t\xE9l\xE9phone est obligatoire",
-    "Physical Bluetooth card \u2014 manage multiple eSIM profiles with the BOKMOO app": "Carte Bluetooth physique \u2014 pour g\xE9rer plusieurs profils eSIM avec l'application BOKMOO",
-    "Physical card": "Carte physique",
-    "Physical card \u2014 works with the BOKMOO app": "Carte physique \u2014 compatible avec l'application BOKMOO",
-    "Physical eSIM card": "Carte eSIM physique",
-    "Pick where you are going and for how long \u2014 we check which single eSIM covers the whole trip.": "Choisissez o\xF9 vous allez et pour combien de temps \u2014 nous v\xE9rifions quelle eSIM unique couvre l'ensemble du voyage.",
-    Placed: "Pass\xE9e",
-    "Plan collection": "Collection de forfaits",
-    "Plan not found": "Forfait introuvable",
-    "Plan validity is shorter than the trip span.": "La validit\xE9 du forfait est plus courte que la dur\xE9e du voyage.",
-    "Plans are temporarily unavailable for quoting.": "Les forfaits sont temporairement indisponibles pour l'estimation.",
-    "Plans are unavailable right now.": "Les forfaits sont indisponibles pour le moment.",
-    "Plans confirm hotspot support explicitly; require it in Usage settings and the planner only recommends plans that confirm it.": "Les forfaits indiquent explicitement s'ils prennent en charge le partage de connexion ; exigez-le dans les param\xE8tres d'utilisation et le planificateur ne recommandera que les forfaits qui le confirment.",
-    "Plans unused before activation are refundable per the plan terms shown before checkout.": "Les forfaits non utilis\xE9s avant activation sont remboursables selon les conditions du forfait affich\xE9es avant le paiement.",
-    "Plans you buy are added to these profiles \u2014 no new QR code, no reinstall.": "Les forfaits que vous achetez sont ajout\xE9s \xE0 ces profils \u2014 pas de nouveau code QR, pas de r\xE9installation.",
-    "Please log in to check your BOKMOO account": "Veuillez vous connecter pour consulter votre compte BOKMOO",
-    Popular: "Populaire",
-    "Popular Topics": "Sujets populaires",
-    "Popular destinations": "Destinations populaires",
-    "Postal code": "Code postal",
-    "Postal code is required": "Le code postal est obligatoire",
-    "Premium club experiences around the world.": "Des exp\xE9riences premium dans les clubs du monde entier.",
-    "Preparing your eSIM\u2026": "Pr\xE9paration de votre eSIM\u2026",
-    Previous: "Pr\xE9c\xE9dent",
-    Price: "Prix",
-    "Priority local network": "R\xE9seau local prioritaire",
-    Privacy: "Confidentialit\xE9",
-    "Privacy Policy": "Politique de confidentialit\xE9",
-    Processing: "En cours de traitement",
-    "Processing\u2026": "Traitement\u2026",
-    Products: "Produits",
-    "Promo / referral code": "Code promo / code de parrainage",
-    "Provisioned automatically \u2014 your install details are shown above.": "Mise en service automatique \u2014 vos informations d'installation sont affich\xE9es ci-dessus.",
-    Provisioning: "Mise en service",
-    "Provisioning failed \u2014 our support team has been notified and will follow up.": "\xC9chec de la mise en service \u2014 notre \xE9quipe d'assistance a \xE9t\xE9 pr\xE9venue et reviendra vers vous.",
-    "Provisioning in progress \u2014 this page updates when the package is ready.": "Mise en service en cours \u2014 cette page se met \xE0 jour d\xE8s que le forfait est pr\xEAt.",
-    "Provisioning needs attention": "Mise en service : action requise",
-    "QR payload ready": "Contenu du code QR pr\xEAt",
-    Qty: "Qt\xE9",
-    Quantity: "Quantit\xE9",
-    "Questions, answered": "Vos questions, nos r\xE9ponses",
-    "Quick Facts": "Points cl\xE9s",
-    "Ready to install": "Pr\xEAte \xE0 installer",
-    Redeem: "\xC9changer",
-    "Redeem a Code": "\xC9changer un code",
-    "Redeeming\u2026": "\xC9change\u2026",
-    "Redemption failed. Please try again later.": "\xC9chec de l'\xE9change. Veuillez r\xE9essayer plus tard.",
-    "Redemption is temporarily unavailable. Please try again later.": "L'\xE9change est temporairement indisponible. Veuillez r\xE9essayer plus tard.",
-    "Refresh status": "Actualiser le statut",
-    Refunded: "Rembours\xE9e",
-    Regional: "R\xE9gional",
-    Remove: "Retirer",
-    "Remove stop": "Retirer l'\xE9tape",
-    "Reorder stop": "R\xE9ordonner l'\xE9tape",
-    "Replace destination": "Remplacer la destination",
-    "Replace this stop": "Remplacer cette \xE9tape",
-    "Required hotspot sharing is not confirmed on current plans.": "Le partage de connexion exig\xE9 n'est pas confirm\xE9 sur les forfaits actuels.",
-    "Requires iOS 15 or later. Activates BOKMOO cards over Bluetooth.": "N\xE9cessite iOS 15 ou version ult\xE9rieure. Active les cartes BOKMOO via Bluetooth.",
-    Retry: "R\xE9essayer",
-    "Reusing your eSIM avoids a new QR code \u2014 the plan is added to the profile you already installed.": "R\xE9utiliser votre eSIM \xE9vite un nouveau code QR \u2014 le forfait est ajout\xE9 au profil d\xE9j\xE0 install\xE9.",
-    "Review destinations": "V\xE9rifier les destinations",
-    "Review your selected plans.": "V\xE9rifiez les forfaits s\xE9lectionn\xE9s.",
-    "Route Planner": "Planificateur d'itin\xE9raire",
-    "Route planner": "Planificateur d'itin\xE9raire",
-    "SM-DP+ address": "Adresse SM-DP+",
-    "Save address": "Enregistrer l'adresse",
-    "Saved addresses": "Adresses enregistr\xE9es",
-    "Saved shipping addresses for checkout": "Adresses de livraison enregistr\xE9es pour le paiement",
-    "Scan or install manually": "Scanner ou installer manuellement",
-    "Scan with Android": "Scanner avec Android",
-    "Scan with iPhone": "Scanner avec un iPhone",
-    "Search country, region or city (e.g. Tokyo)": "Rechercher un pays, une r\xE9gion ou une ville (ex. Tokyo)",
-    "Search destinations or bundles...": "Rechercher une destination ou un pack...",
-    "Search for help...": "Rechercher dans l'aide...",
-    "Secure Checkout": "Paiement s\xE9curis\xE9",
-    "See plan": "Voir le forfait",
-    "Select all": "Tout s\xE9lectionner",
-    "Selected items": "Articles s\xE9lectionn\xE9s",
-    Send: "Envoyer",
-    "Set default": "D\xE9finir par d\xE9faut",
-    "Set up and switch profiles in the BOKMOO app": "Configurez et changez de profil dans l'application BOKMOO",
-    Settings: "Param\xE8tres",
-    Setup: "Configuration",
-    Shipped: "Exp\xE9di\xE9e",
-    Shipping: "Livraison",
-    "Shipping needs attention": "Exp\xE9dition : action requise",
-    "Shopping Cart": "Panier",
-    "Sign In": "Se connecter",
-    "Sign In / Manage My Cards": "Se connecter / G\xE9rer mes cartes",
-    "Sign in to view your profile": "Connectez-vous pour voir votre profil",
-    Singapore: "Singapour",
-    "Smart multi-country top-ups": "Rechargements multi-pays intelligents",
-    "South Korea": "Cor\xE9e du Sud",
-    "Southeast Asia": "Asie du Sud-Est",
-    Spain: "Espagne",
-    "State / Province": "\xC9tat / Province",
-    "State is required": "L'\xE9tat ou la province est obligatoire",
-    "Stay connected in major cities and more": "Restez connect\xE9 dans les grandes villes et bien plus encore",
-    "Step-by-step guide": "Guide pas \xE0 pas",
-    Store: "Boutique",
-    Subtotal: "Sous-total",
-    Summary: "R\xE9capitulatif",
-    Support: "Assistance",
-    "Support:": "Assistance :",
-    "Supported devices": "Appareils compatibles",
-    TBC: "\xC0 confirmer",
-    Taiwan: "Ta\xEFwan",
-    Tax: "Taxe",
-    Terms: "Conditions",
-    "Terms of Service": "Conditions d'utilisation",
-    Thailand: "Tha\xEFlande",
-    "The product tied to this code is currently unavailable. Please contact support.": "Le produit associ\xE9 \xE0 ce code est actuellement indisponible. Veuillez contacter l'assistance.",
-    "This code has already been redeemed.": "Ce code a d\xE9j\xE0 \xE9t\xE9 \xE9chang\xE9.",
-    "This code has reached its redemption limit.": "Ce code a atteint son nombre maximal d'utilisations.",
-    "This code is assigned to a different account.": "Ce code est associ\xE9 \xE0 un autre compte.",
-    "This code is invalid or expired. Please double-check and try again.": "Ce code est invalide ou a expir\xE9. V\xE9rifiez-le et r\xE9essayez.",
-    "This install code has expired \u2014 contact support to reissue it.": "Ce code d'installation a expir\xE9 \u2014 contactez l'assistance pour en obtenir un nouveau.",
-    "This order is still waiting for fulfillment details. Refresh later or reopen it from the order archive.": "Cette commande attend toujours les informations de pr\xE9paration. Actualisez plus tard ou rouvrez-la depuis l'archive des commandes.",
-    "This plan does not confirm hotspot sharing.": "Ce forfait ne confirme pas la prise en charge du partage de connexion.",
-    Timezone: "Fuseau horaire",
-    "Top up & Data plans": "Rechargement & forfaits data",
-    Total: "Total",
-    "Track package": "Suivre le colis",
-    "Track your order": "Suivre votre commande",
-    "Travel Cart": "Panier voyage",
-    "Travel Credits": "Cr\xE9dits voyage",
-    "Travel bundle": "Pack voyage",
-    "Trip changed or running low mid-journey? Add a data pack without reinstalling.": "Voyage modifi\xE9 ou donn\xE9es bient\xF4t \xE9puis\xE9es en route ? Ajoutez un pack de donn\xE9es sans r\xE9installer.",
-    "Try Again": "R\xE9essayer",
-    "Try the example trip": "Essayer le voyage d'exemple",
-    Type: "Type",
-    "Type your message\u2026": "Saisissez votre message\u2026",
-    "Typing\u2026": "En train d'\xE9crire\u2026",
-    "Unable to load orders.": "Impossible de charger les commandes.",
-    "United Arab Emirates": "\xC9mirats arabes unis",
-    "United Kingdom": "Royaume-Uni",
-    "United States": "\xC9tats-Unis",
-    Unlimited: "Illimit\xE9",
-    "Unlocked iPhone and Android devices with eSIM support": "iPhone et appareils Android d\xE9bloqu\xE9s et compatibles eSIM",
-    "Upcoming Trips": "Voyages \xE0 venir",
-    Uptime: "Disponibilit\xE9",
-    Usage: "Utilisation",
-    "Usage mode": "Mode d'utilisation",
-    "Use my existing eSIM": "Utiliser mon eSIM existante",
-    Validity: "Validit\xE9",
-    "Validity covers the whole trip": "La validit\xE9 couvre tout le voyage",
-    "Validity to be confirmed": "Validit\xE9 \xE0 confirmer",
-    "Video meetings": "Rendez-vous vid\xE9o",
-    Vietnam: "Vietnam",
-    "View Details": "Voir les d\xE9tails",
-    "View and manage your orders": "Consultez et g\xE9rez vos commandes",
-    "View coverage & plans": "Voir la couverture & les forfaits",
-    "View eSIM details": "Voir les d\xE9tails de l'eSIM",
-    "Visit Help Center": "Consulter le Centre d'aide",
-    "We could not prepare your install session yet.": "Nous n'avons pas encore pu pr\xE9parer votre session d'installation.",
-    "We could not prepare your shipment yet.": "Nous n'avons pas encore pu pr\xE9parer votre exp\xE9dition.",
-    "What if I never activate the eSIM?": "Que se passe-t-il si je n'active jamais l'eSIM ?",
-    "When does validity start counting?": "Quand la validit\xE9 commence-t-elle \xE0 courir ?",
-    "Why Bokmoo eSIM": "Pourquoi l'eSIM Bokmoo",
-    "Works with the BOKMOO app": "Compatible avec l'application BOKMOO",
-    "Yes. Your existing order stays valid; the planner re-checks coverage and tells you exactly which new stop needs its own plan.": "Oui. Votre commande existante reste valable ; le planificateur v\xE9rifie \xE0 nouveau la couverture et vous indique pr\xE9cis\xE9ment quelle nouvelle \xE9tape n\xE9cessite son propre forfait.",
-    "Your BOKMOO card, in your pocket.": "Votre carte BOKMOO, dans votre poche.",
-    "Your activation session expired before installation completed.": "Votre session d'activation a expir\xE9 avant la fin de l'installation.",
-    "Your booked experiences": "Vos exp\xE9riences r\xE9serv\xE9es",
-    "Your card is being prepared for shipment": "Votre carte est en cours de pr\xE9paration pour l'exp\xE9dition",
-    "Your carrier and tracking updates appear here after dispatch.": "Votre transporteur et les mises \xE0 jour du suivi s'afficheront ici apr\xE8s l'exp\xE9dition.",
-    "Your cart is empty.": "Votre panier est vide.",
-    "Your eSIM is ready to install.": "Votre eSIM est pr\xEAte \xE0 installer.",
-    "Your order is paid. We are packing your Bokmoo Card now \u2014 you will get a shipping confirmation with tracking, and it should arrive within a few business days.": "Votre commande est pay\xE9e. Nous pr\xE9parons actuellement votre carte Bokmoo \u2014 vous recevrez une confirmation d'exp\xE9dition avec un num\xE9ro de suivi, et elle devrait arriver d'ici quelques jours ouvr\xE9s.",
-    "Your order is paid. We are preparing the install session now.": "Votre commande est pay\xE9e. Nous pr\xE9parons votre session d'installation.",
-    "Your package has been added to your eSIM.": "Votre forfait a \xE9t\xE9 ajout\xE9 \xE0 votre eSIM.",
-    d: "j",
-    "daily average": "moyenne quotidienne",
-    "data included": "donn\xE9es incluses",
-    "day(s)": "jour(s)",
-    days: "jours",
-    destinations: "destinations",
-    "e.g. BOKMOO10": "ex. BOKMOO10",
-    "e.g. ESIM-JP-7D": "ex. ESIM-JP-7D",
-    eSIM: "eSIM",
-    "eSIM ICCID": "ICCID de l'eSIM",
-    "eSIM Plans": "Forfaits eSIM",
-    "eSIM activation": "Activation de l'eSIM",
-    "eSIM plans built for every journey.": "Des forfaits eSIM con\xE7us pour chaque voyage.",
-    en: "en",
-    "iPhone and Android devices": "iPhone et appareils Android",
-    "iPhone and Android devices with eSIM support": "iPhone et appareils Android compatibles eSIM",
-    "iPhone: point the camera at the QR code. Other phones: Settings \u2192 Network \u2192 Add eSIM.": "iPhone : pointez l'appareil photo vers le code QR. Autres t\xE9l\xE9phones : Param\xE8tres \u2192 R\xE9seau \u2192 Ajouter une eSIM.",
-    "instant delivery": "livraison instantan\xE9e",
-    "local network": "r\xE9seau local",
-    months: "mois",
-    "one eSIM.": "une eSIM.",
-    plans: "forfaits",
-    selected: "s\xE9lectionn\xE9s",
-    validity: "validit\xE9",
-    weeks: "semaines",
-    ".": ".",
-    ". All rights reserved.": ". Tous droits r\xE9serv\xE9s.",
-    "Acceptance of Terms": "Acceptation des conditions",
-    Active: "Actif",
-    Add: "Ajouter",
-    "Affiliate data could not be loaded": "Impossible de charger les donn\xE9es des partenaires",
-    "Affiliate view": "Vue partenaire",
-    "Affiliate workspace": "Espace partenaire",
-    "All payments are final and non-refundable unless required by law.": "Sauf obligation l\xE9gale, tous les paiements sont d\xE9finitifs et non remboursables.",
-    "Already have an account?": "Vous avez d\xE9j\xE0 un compte ?",
-    Approved: "Approuv\xE9",
-    "Authentication failed": "\xC9chec de l\u2019authentification",
-    "BOKMOO eSIM Card": "Carte eSIM BOKMOO",
-    "BOKMOO is not liable for any indirect, incidental, or consequential damages.": "BOKMOO n\u2019est responsable d\u2019aucun dommage indirect, accessoire ou cons\xE9cutif.",
-    "Back home": "Retour \xE0 l\u2019accueil",
-    "Back to sign in": "Retour \xE0 la connexion",
-    "Better Nights": "De meilleures nuits",
-    "Brighter Journeys": "Des voyages plus lumineux",
-    "Browse BOKMOO plans by destination and travel region.": "Parcourez les forfaits BOKMOO par destination et r\xE9gion de voyage.",
-    "By accessing or using the BOKMOO website and services, you agree to be bound by these Terms of Service.": "En acc\xE9dant au site web et aux services BOKMOO ou en les utilisant, vous acceptez d\u2019\xEAtre li\xE9 par les pr\xE9sentes conditions d\u2019utilisation.",
-    "Change password": "Changer le mot de passe",
-    "Commission rate": "Taux de commission",
-    "Completing sign in": "Finalisation de la connexion",
-    Confirm: "Confirmer",
-    "Continue to your orders, profiles, and activation workspace.": "Acc\xE9dez \xE0 votre espace commandes, profils et activation.",
-    Copied: "Copi\xE9",
-    "Copy link": "Copier le lien",
-    "Create account": "Cr\xE9er un compte",
-    "Create affiliate account": "Cr\xE9er un compte partenaire",
-    "Create organization": "Cr\xE9er l\u2019organisation",
-    "Create the account your eSIMs follow.": "Cr\xE9ez le compte que vos eSIM suivront partout.",
-    Creating: "Cr\xE9ation\u2026",
-    "Creator network.": "R\xE9seau de cr\xE9ateurs.",
-    "Current password": "Mot de passe actuel",
-    "Data Protection": "Protection des donn\xE9es",
-    "Default option": "Option par d\xE9faut",
-    "Deselect item": "D\xE9s\xE9lectionner l\u2019article",
-    "Display name": "Nom d\u2019affichage",
-    Earned: "Gains",
-    Email: "E-mail",
-    Expired: "Expir\xE9",
-    "Explore destination eSIMs": "Explorez les eSIM par destination",
-    "Forgot password": "Mot de passe oubli\xE9",
-    "Get help fast": "Obtenez de l\u2019aide rapidement",
-    "Hide password": "Masquer le mot de passe",
-    "Hover a store button (or scan the card QR) to download.": "Survolez un bouton de boutique (ou scannez le QR code de la carte) pour t\xE9l\xE9charger.",
-    "How We Use Information": "Utilisation des informations",
-    "How it works": "Comment \xE7a marche",
-    Inactive: "Inactif",
-    Influencer: "Influenceur",
-    "Information We Collect": "Informations que nous collectons",
-    "Instant QR delivery after payment": "Code QR remis instantan\xE9ment apr\xE8s paiement",
-    "Keep access secure between trips.": "S\xE9curisez votre acc\xE8s entre deux voyages.",
-    "Keep orders, activation codes, profile history, and support cases attached to one BOKMOO identity.": "Rattachez commandes, codes d\u2019activation, historique des profils et demandes d\u2019assistance \xE0 une seule identit\xE9 BOKMOO.",
-    "Keep your BOKMOO account ready for the next trip.": "Gardez votre compte BOKMOO pr\xEAt pour le prochain voyage.",
-    "Last updated: April 15, 2024": "Derni\xE8re mise \xE0 jour : 15 avril 2024",
-    "Limitation of Liability": "Limitation de responsabilit\xE9",
-    "Manage BOKMOO eSIM profiles, orders, and activation details from the same black-and-gold travel control surface.": "G\xE9rez vos profils eSIM, commandes BOKMOO et d\xE9tails d\u2019activation depuis la m\xEAme interface de voyage noir et or.",
-    "Manage eSIMs": "G\xE9rer les eSIM",
-    Manager: "Gestionnaire",
-    "Member could not be added": "Le membre n\u2019a pas pu \xEAtre ajout\xE9",
-    "Member email": "E-mail du membre",
-    "New password": "Nouveau mot de passe",
-    "No commissions yet": "Aucune commission pour le moment",
-    "No region collections are available yet.": "Aucune collection r\xE9gionale n\u2019est disponible pour le moment.",
-    "One Card.\nGlobal Connection.": "Une seule carte.\nUne connexion mondiale.",
-    "One eSIM for the whole trip \u2014 pick your destinations and go.": "Un seul eSIM pour tout le voyage \u2014 choisissez vos destinations et partez.",
-    Organization: "Organisation",
-    "Organization affiliate": "Partenaire de l\u2019organisation",
-    "Organization code (optional)": "Code de l\u2019organisation (facultatif)",
-    "Organization commissions": "Commissions de l\u2019organisation",
-    "Organization could not be created": "L\u2019organisation n\u2019a pas pu \xEAtre cr\xE9\xE9e",
-    "Organization data could not be loaded": "Impossible de charger les donn\xE9es de l\u2019organisation",
-    "Organization name": "Nom de l\u2019organisation",
-    Partner: "Partenaire",
-    "Partner commissions": "Commissions du partenaire",
-    Password: "Mot de passe",
-    "Passwords do not match": "Les mots de passe ne correspondent pas",
-    "Personal affiliate": "Partenaire individuel",
-    "Powered by": "Propuls\xE9 par",
-    Profiles: "Profils",
-    "Protected traveler identity": "Identit\xE9 de voyageur prot\xE9g\xE9e",
-    "Purchases and Payments": "Achats et paiements",
-    "Questions about setup? Contact": "Des questions sur la configuration ? Contactez",
-    Rate: "Taux",
-    Refresh: "Actualiser",
-    "Region Collections": "Collections r\xE9gionales",
-    "Registration failed": "L\u2019inscription a \xE9chou\xE9",
-    SAMPLE: "EXEMPLE",
-    "Save profile": "Enregistrer le profil",
-    "Saving...": "Enregistrement...",
-    "Secure account access": "Acc\xE8s s\xE9curis\xE9 au compte",
-    "Securing your session and returning you to the BOKMOO storefront.": "S\xE9curisation de votre session et retour vers la boutique BOKMOO.",
-    "Select item": "S\xE9lectionner l\u2019article",
-    "Shop eSIM Plans": "Voir les forfaits eSIM",
-    "Show password": "Afficher le mot de passe",
-    "Sign in": "Se connecter",
-    "Sign in before your next border.": "Connectez-vous avant votre prochaine fronti\xE8re.",
-    "Sign in to manage your account": "Connectez-vous pour g\xE9rer votre compte",
-    "Signing in": "Connexion\u2026",
-    "Start with a secure profile for purchases and global activation support.": "Commencez par un profil s\xE9curis\xE9 pour vos achats et l\u2019assistance \xE0 l\u2019activation dans le monde.",
-    Suspended: "Suspendu",
-    "Track purchases": "Suivre vos achats",
-    "Traveler profile": "Profil du voyageur",
-    "Unable to load Bokmoo plans.": "Impossible de charger les forfaits Bokmoo.",
-    "Updating...": "Mise \xE0 jour...",
-    "Use of Services": "Utilisation des services",
-    Used: "Utilis\xE9",
-    "View category": "Voir la cat\xE9gorie",
-    "We collect information you provide directly to us, such as when you create an account or make a purchase.": "Nous collectons les informations que vous nous fournissez directement, par exemple lorsque vous cr\xE9ez un compte ou effectuez un achat.",
-    "We implement appropriate security measures to protect your data.": "Nous mettons en \u0153uvre des mesures de s\xE9curit\xE9 appropri\xE9es pour prot\xE9ger vos donn\xE9es.",
-    "We use the information to provide, maintain, and improve our services.": "Nous utilisons ces informations pour fournir, maintenir et am\xE9liorer nos services.",
-    "Welcome back": "Bon retour",
-    "You agree to use our services only for lawful purposes and in accordance with these Terms.": "Vous acceptez d\u2019utiliser nos services uniquement \xE0 des fins licites et conform\xE9ment aux pr\xE9sentes conditions.",
-    "You have the right to access, update, or delete your personal information.": "Vous avez le droit d\u2019acc\xE9der \xE0 vos informations personnelles, de les mettre \xE0 jour ou de les supprimer.",
-    "Your Rights": "Vos droits",
-    "Your referral ledger.": "Votre registre de parrainage.",
-    "already with us": "D\xE9j\xE0 client ?",
-    "or email": "ou par e-mail",
-    "organization rate": "Taux de l\u2019organisation",
-    "Group destination-ready plans into clearer regional entry points.": "Regroupez les forfaits par destination dans des acc\xE8s r\xE9gionaux plus clairs."
-  };
-
-  // src/i18n/ja.json
-  var ja_default = {
-    "/ full trip": "/ \u65C5\u884C\u5168\u4F53",
-    "/day": "/\u65E5",
-    "200+ destinations": "200\u4EE5\u4E0A\u306E\u76EE\u7684\u5730",
-    "24/7 Global Team": "24\u6642\u9593365\u65E5\u5BFE\u5FDC\u306E\u30B0\u30ED\u30FC\u30D0\u30EB\u30C1\u30FC\u30E0",
-    "24/7 travel support": "24\u6642\u9593365\u65E5\u306E\u30C8\u30E9\u30D9\u30EB\u30B5\u30DD\u30FC\u30C8",
-    "4.9 average traveler satisfaction": "\u65C5\u884C\u8005\u306E\u5E73\u5747\u6E80\u8DB3\u5EA64.9",
-    "About BOKMOO": "BOKMOO \u306B\u3064\u3044\u3066",
-    "Access the world's best venues with BOKMOO.": "BOKMOO \u3067\u3001\u4E16\u754C\u306E\u4E00\u6D41\u65BD\u8A2D\u3092\u3054\u5229\u7528\u3044\u305F\u3060\u3051\u307E\u3059\u3002",
-    "Account Information": "\u30A2\u30AB\u30A6\u30F3\u30C8\u60C5\u5831",
-    "Account Preferences": "\u30A2\u30AB\u30A6\u30F3\u30C8\u8A2D\u5B9A",
-    "Account Status": "\u30A2\u30AB\u30A6\u30F3\u30C8\u30B9\u30C6\u30FC\u30BF\u30B9",
-    "Activate your BOKMOO card over Bluetooth, install and switch eSIM profiles, and track your data \u2014 right from your phone.": "BOKMOO\u30AB\u30FC\u30C9\u3092 Bluetooth \u3067\u6709\u52B9\u5316\u3057\u3001eSIM\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u306E\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3084\u5207\u308A\u66FF\u3048\u3001\u30C7\u30FC\u30BF\u4F7F\u7528\u91CF\u306E\u78BA\u8A8D\u307E\u3067\u3001\u3059\u3079\u3066\u30B9\u30DE\u30FC\u30C8\u30D5\u30A9\u30F3\u3072\u3068\u3064\u3067\u884C\u3048\u307E\u3059\u3002",
-    Activation: "\u6709\u52B9\u5316",
-    "Activation code": "\u30A2\u30AF\u30C6\u30A3\u30D9\u30FC\u30B7\u30E7\u30F3\u30B3\u30FC\u30C9",
-    "Activation expired": "\u6709\u52B9\u5316\u671F\u9650\u5207\u308C",
-    "Active Member": "\u30A2\u30AF\u30C6\u30A3\u30D6\u30E1\u30F3\u30D0\u30FC",
-    "Add a destination or regional plan to prepare your connectivity before departure.": "\u51FA\u767A\u524D\u306E\u901A\u4FE1\u74B0\u5883\u3092\u6574\u3048\u308B\u306B\u306F\u3001\u76EE\u7684\u5730\u5225\u30D7\u30E9\u30F3\u307E\u305F\u306F\u30EA\u30FC\u30B8\u30E7\u30CA\u30EB\u30D7\u30E9\u30F3\u3092\u8FFD\u52A0\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
-    "Add a new address": "\u65B0\u3057\u3044\u4F4F\u6240\u3092\u8FFD\u52A0",
-    "Add a stop": "\u7D4C\u7531\u5730\u3092\u8FFD\u52A0",
-    "Add to cart": "\u30AB\u30FC\u30C8\u306B\u8FFD\u52A0",
-    "Adding\u2026": "\u8FFD\u52A0\u4E2D\u2026",
-    Address: "\u4F4F\u6240",
-    "Address is required": "\u4F4F\u6240\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044",
-    "Adjust the route, or browse sellable destinations.": "\u30EB\u30FC\u30C8\u3092\u8ABF\u6574\u3059\u308B\u304B\u3001\u8CFC\u5165\u53EF\u80FD\u306A\u76EE\u7684\u5730\u3092\u53C2\u7167\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
-    "Affiliate Program": "\u30A2\u30D5\u30A3\u30EA\u30A8\u30A4\u30C8\u30D7\u30ED\u30B0\u30E9\u30E0",
-    "After checkout the eSIM QR code is issued to your email and account instantly. Add it before boarding; it connects on arrival.": "\u3054\u6CE8\u6587\u624B\u7D9A\u304D\u306E\u5F8C\u3001eSIM \u306E QR\u30B3\u30FC\u30C9\u304C\u3059\u3050\u306B\u30E1\u30FC\u30EB\u3068\u30A2\u30AB\u30A6\u30F3\u30C8\u3078\u767A\u884C\u3055\u308C\u307E\u3059\u3002\u642D\u4E57\u524D\u306B\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3057\u3066\u304A\u3051\u3070\u3001\u73FE\u5730\u5230\u7740\u5F8C\u3059\u3050\u306B\u63A5\u7D9A\u3067\u304D\u307E\u3059\u3002",
-    All: "\u3059\u3079\u3066",
-    "Asia-Pacific": "\u30A2\u30B8\u30A2\u592A\u5E73\u6D0B",
-    Australia: "\u30AA\u30FC\u30B9\u30C8\u30E9\u30EA\u30A2",
-    "Australia & NZ": "\u30AA\u30FC\u30B9\u30C8\u30E9\u30EA\u30A2\u30FB\u30CB\u30E5\u30FC\u30B8\u30FC\u30E9\u30F3\u30C9",
-    "Awaiting payment": "\u304A\u652F\u6255\u3044\u5F85\u3061",
-    "BOKMOO Member Benefits": "BOKMOO\u30E1\u30F3\u30D0\u30FC\u7279\u5178",
-    "BOKMOO is built for global travelers.": "BOKMOO \u306F\u3001\u4E16\u754C\u4E2D\u3092\u65C5\u3059\u308B\u65B9\u306E\u305F\u3081\u306B\u4F5C\u3089\u308C\u307E\u3057\u305F\u3002",
-    Back: "\u623B\u308B",
-    "Back to Store": "\u30B9\u30C8\u30A2\u306B\u623B\u308B",
-    "Back to orders": "\u6CE8\u6587\u4E00\u89A7\u306B\u623B\u308B",
-    "Back to store": "\u30B9\u30C8\u30A2\u306B\u623B\u308B",
-    "Best single eSIM": "\u6700\u9069\u306A eSIM 1\u679A",
-    "Bilingual support helps with APN setup, network preference and device compatibility around the clock.": "2\u8A00\u8A9E\u5BFE\u5FDC\u306E\u30B5\u30DD\u30FC\u30C8\u304C\u3001APN\u8A2D\u5B9A\u3001\u30CD\u30C3\u30C8\u30EF\u30FC\u30AF\u306E\u512A\u5148\u8A2D\u5B9A\u3001\u30C7\u30D0\u30A4\u30B9\u306E\u4E92\u63DB\u6027\u306B\u3064\u3044\u306624\u6642\u9593365\u65E5\u3054\u6848\u5185\u3057\u307E\u3059\u3002",
-    "Billing Details": "\u8ACB\u6C42\u5148\u60C5\u5831",
-    Bluetooth: "Bluetooth",
-    "Bokmoo eSIM": "BOKMOO eSIM",
-    "Browse Destinations": "\u76EE\u7684\u5730\u3092\u898B\u308B",
-    "Buy Now": "\u4ECA\u3059\u3050\u8CFC\u5165",
-    "Buy the trip in segments \u2014 one eSIM per segment below.": "\u65C5\u884C\u3092\u533A\u9593\u3054\u3068\u306B\u8CFC\u5165\u3067\u304D\u307E\u3059\u3002\u4EE5\u4E0B\u306E\u5404\u533A\u9593\u306B\u306F\u3001eSIM \u304C1\u679A\u305A\u3064\u5BFE\u5FDC\u3057\u307E\u3059\u3002",
-    "Can I add a stop after buying?": "\u8CFC\u5165\u5F8C\u306B\u7D4C\u7531\u5730\u3092\u8FFD\u52A0\u3067\u304D\u307E\u3059\u304B\uFF1F",
-    Canada: "\u30AB\u30CA\u30C0",
-    Cancel: "\u30AD\u30E3\u30F3\u30BB\u30EB",
-    "Cancel order": "\u6CE8\u6587\u3092\u30AD\u30E3\u30F3\u30BB\u30EB",
-    "Cancel reason": "\u30AD\u30E3\u30F3\u30BB\u30EB\u7406\u7531",
-    Cancelled: "\u30AD\u30E3\u30F3\u30BB\u30EB\u6E08\u307F",
-    Cart: "\u30AB\u30FC\u30C8",
-    "Chat with support": "\u30B5\u30DD\u30FC\u30C8\u3068\u30C1\u30E3\u30C3\u30C8",
-    "Check compatibility": "\u5BFE\u5FDC\u72B6\u6CC1\u3092\u78BA\u8A8D",
-    "Check compatibility before departure": "\u51FA\u767A\u524D\u306B\u5BFE\u5FDC\u72B6\u6CC1\u3092\u78BA\u8A8D",
-    "Choose an option": "\u30AA\u30D7\u30B7\u30E7\u30F3\u3092\u9078\u629E",
-    "Choose destinations": "\u76EE\u7684\u5730\u3092\u9078\u629E",
-    City: "\u5E02\u533A\u753A\u6751",
-    "City is required": "\u5E02\u533A\u753A\u6751\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044",
-    Close: "\u9589\u3058\u308B",
-    "Close menu": "\u30E1\u30CB\u30E5\u30FC\u3092\u9589\u3058\u308B",
-    "Close support chat": "\u30B5\u30DD\u30FC\u30C8\u30C1\u30E3\u30C3\u30C8\u3092\u9589\u3058\u308B",
-    "Closing without confirming keeps your current route.": "\u78BA\u8A8D\u305B\u305A\u306B\u9589\u3058\u305F\u5834\u5408\u3001\u73FE\u5728\u306E\u30EB\u30FC\u30C8\u306F\u305D\u306E\u307E\u307E\u4FDD\u6301\u3055\u308C\u307E\u3059\u3002",
-    Compatibility: "\u5BFE\u5FDC\u72B6\u6CC1",
-    "Complete payment and we will start preparing your card for delivery.": "\u304A\u652F\u6255\u3044\u304C\u5B8C\u4E86\u3059\u308B\u3068\u3001\u30AB\u30FC\u30C9\u306E\u767A\u9001\u6E96\u5099\u3092\u958B\u59CB\u3057\u307E\u3059\u3002",
-    "Complete payment to provision this eSIM.": "\u304A\u652F\u6255\u3044\u304C\u5B8C\u4E86\u3059\u308B\u3068\u3001\u3053\u306E eSIM \u306E\u958B\u901A\u51E6\u7406\u3092\u958B\u59CB\u3057\u307E\u3059\u3002",
-    "Complete payment to unlock your eSIM install details.": "\u304A\u652F\u6255\u3044\u304C\u5B8C\u4E86\u3059\u308B\u3068\u3001eSIM \u306E\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u60C5\u5831\u304C\u3054\u89A7\u3044\u305F\u3060\u3051\u307E\u3059\u3002",
-    Completed: "\u5B8C\u4E86",
-    "Confirmation code": "\u78BA\u8A8D\u30B3\u30FC\u30C9",
-    Connection: "\u63A5\u7D9A",
-    "Connects to the BOKMOO app over Bluetooth": "Bluetooth \u3067 BOKMOO\u30A2\u30D7\u30EA\u306B\u63A5\u7D9A",
-    "Contact Information": "\u9023\u7D61\u5148\u60C5\u5831",
-    "Contact Support": "\u30B5\u30DD\u30FC\u30C8\u306B\u554F\u3044\u5408\u308F\u305B\u308B",
-    "Continue browsing": "\u95B2\u89A7\u3092\u7D9A\u3051\u308B",
-    "Continue to Payment": "\u3054\u6CE8\u6587\u624B\u7D9A\u304D\u3078",
-    Copy: "\u30B3\u30D4\u30FC",
-    "Copy activation code": "\u30A2\u30AF\u30C6\u30A3\u30D9\u30FC\u30B7\u30E7\u30F3\u30B3\u30FC\u30C9\u3092\u30B3\u30D4\u30FC",
-    "Copy email": "\u30E1\u30FC\u30EB\u30A2\u30C9\u30EC\u30B9\u3092\u30B3\u30D4\u30FC",
-    "Copy order reference": "\u6CE8\u6587\u756A\u53F7\u3092\u30B3\u30D4\u30FC",
-    Countries: "\u56FD\u30FB\u5730\u57DF",
-    Country: "\u56FD",
-    "Country (e.g. CN)": "\u56FD\uFF08\u4F8B\uFF1ACN\uFF09",
-    "Country is required": "\u56FD\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044",
-    Coverage: "\u30AB\u30D0\u30FC\u7BC4\u56F2",
-    "Coverage detail by stop": "\u7D4C\u7531\u5730\u3054\u3068\u306E\u30AB\u30D0\u30FC\u7BC4\u56F2",
-    Covers: "\u30AB\u30D0\u30FC\u7BC4\u56F2",
-    Currency: "\u901A\u8CA8",
-    Current: "\u73FE\u5728",
-    Data: "\u30C7\u30FC\u30BF",
-    "Date of Birth": "\u751F\u5E74\u6708\u65E5",
-    Days: "\u65E5\u6570",
-    Default: "\u30C7\u30D5\u30A9\u30EB\u30C8",
-    Delete: "\u524A\u9664",
-    Delivered: "\u304A\u5C4A\u3051\u6E08\u307F",
-    Delivery: "\u304A\u5C4A\u3051",
-    "Delivery tracking": "\u304A\u5C4A\u3051\u72B6\u6CC1",
-    "Deselect all": "\u9078\u629E\u3092\u3059\u3079\u3066\u89E3\u9664",
-    "Destination eSIM": "\u76EE\u7684\u5730\u5225eSIM",
-    "Destination search": "\u76EE\u7684\u5730\u3092\u691C\u7D22",
-    Destinations: "\u76EE\u7684\u5730",
-    Discount: "\u5272\u5F15",
-    "Download APK directly": "APK \u3092\u76F4\u63A5\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9",
-    "Download on the App Store": "App Store \u304B\u3089\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9",
-    Edit: "\u7DE8\u96C6",
-    Editable: "\u7DE8\u96C6\u53EF\u80FD",
-    "Email Address": "\u30E1\u30FC\u30EB\u30A2\u30C9\u30EC\u30B9",
-    "Email is required": "\u30E1\u30FC\u30EB\u30A2\u30C9\u30EC\u30B9\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044",
-    English: "\u82F1\u8A9E",
-    "Enter Code": "\u30B3\u30FC\u30C9\u3092\u5165\u529B",
-    "Enter your email": "\u30E1\u30FC\u30EB\u30A2\u30C9\u30EC\u30B9\u3092\u5165\u529B",
-    Europe: "\u30E8\u30FC\u30ED\u30C3\u30D1",
-    "Every purchase stays readable after checkout.": "\u8CFC\u5165\u5185\u5BB9\u306F\u3001\u3054\u6CE8\u6587\u624B\u7D9A\u304D\u306E\u5F8C\u3082\u3044\u3064\u3067\u3082\u78BA\u8A8D\u3067\u304D\u307E\u3059\u3002",
-    "Example route shown \u2014 your route starts empty below.": "\u8868\u793A\u3055\u308C\u3066\u3044\u308B\u30EB\u30FC\u30C8\u306F\u30B5\u30F3\u30D7\u30EB\u3067\u3059\u3002\u3054\u81EA\u8EAB\u306E\u30EB\u30FC\u30C8\u306F\u3001\u4E0B\u304B\u3089\u7A7A\u306E\u72B6\u614B\u3067\u59CB\u307E\u308A\u307E\u3059\u3002",
-    Expires: "\u6709\u52B9\u671F\u9650",
-    "Explore Now": "\u4ECA\u3059\u3050\u898B\u308B",
-    "Explore a Better Night": "\u3082\u3063\u3068\u4E0A\u8CEA\u306A\u591C\u3092",
-    "Explore destination-ready profiles, regional bundles, and premium data options with the clarity of a product catalog.": "\u76EE\u7684\u5730\u3067\u3059\u3050\u306B\u4F7F\u3048\u308B\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3001\u30EA\u30FC\u30B8\u30E7\u30CA\u30EB\u30D0\u30F3\u30C9\u30EB\u3001\u30D7\u30EC\u30DF\u30A2\u30E0\u30C7\u30FC\u30BF\u30AA\u30D7\u30B7\u30E7\u30F3\u3092\u3001\u30AB\u30BF\u30ED\u30B0\u306E\u3088\u3046\u306B\u308F\u304B\u308A\u3084\u3059\u304F\u3054\u89A7\u3044\u305F\u3060\u3051\u307E\u3059\u3002",
-    Failed: "\u5931\u6557",
-    "Fewer days": "\u65E5\u6570\u3092\u6E1B\u3089\u3059",
-    "First name": "\u540D",
-    "First name is required": "\u540D\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044",
-    "Flexible data": "\u67D4\u8EDF\u306A\u30C7\u30FC\u30BF\u91CF",
-    "Flexible validity": "\u67D4\u8EDF\u306A\u6709\u52B9\u671F\u9650",
-    "Flexible validity & top-ups": "\u67D4\u8EDF\u306A\u6709\u52B9\u671F\u9650\u30FB\u8FFD\u52A0\u30C1\u30E3\u30FC\u30B8\u5BFE\u5FDC",
-    "For a new device \u2014 a fresh QR code is issued after payment.": "\u65B0\u3057\u3044\u30C7\u30D0\u30A4\u30B9\u3067\u4F7F\u3046\u5834\u5408\u3067\u3059\u3002\u304A\u652F\u6255\u3044\u5F8C\u306B\u65B0\u3057\u3044 QR\u30B3\u30FC\u30C9\u304C\u767A\u884C\u3055\u308C\u307E\u3059\u3002",
-    France: "\u30D5\u30E9\u30F3\u30B9",
-    Fulfilled: "\u6E96\u5099\u5B8C\u4E86",
-    "Full name": "\u6C0F\u540D",
-    "Full refund if not activated": "\u6709\u52B9\u5316\u524D\u306F\u5168\u984D\u8FD4\u91D1",
-    "General Notes": "\u4E00\u822C\u7684\u306A\u6CE8\u610F\u4E8B\u9805",
-    Germany: "\u30C9\u30A4\u30C4",
-    "Get BOKMOO": "BOKMOO \u3092\u5165\u624B",
-    "Get Started": "\u306F\u3058\u3081\u308B",
-    "Get it on Google Play": "Google Play \u3067\u5165\u624B",
-    Global: "\u30B0\u30ED\u30FC\u30D0\u30EB",
-    "Global plan": "\u30B0\u30ED\u30FC\u30D0\u30EB\u30D7\u30E9\u30F3",
-    "Greater China": "\u5927\u4E2D\u83EF\u570F",
-    "Happy Users": "\u6E80\u8DB3\u30E6\u30FC\u30B6\u30FC",
-    "Have a redemption code? Enter it to add an eSIM plan or subscription to your account.": "\u5F15\u304D\u63DB\u3048\u30B3\u30FC\u30C9\u3092\u304A\u6301\u3061\u3067\u3059\u304B\uFF1F\u5165\u529B\u3059\u308B\u3068\u3001eSIM\u30D7\u30E9\u30F3\u307E\u305F\u306F\u30B5\u30D6\u30B9\u30AF\u30EA\u30D7\u30B7\u30E7\u30F3\u3092\u30A2\u30AB\u30A6\u30F3\u30C8\u306B\u8FFD\u52A0\u3067\u304D\u307E\u3059\u3002",
-    "Have a referral code from a creator? Enter it \u2014 your discount is applied to the order total at payment.": "\u30AF\u30EA\u30A8\u30A4\u30BF\u30FC\u304B\u3089\u306E\u7D39\u4ECB\u30B3\u30FC\u30C9\u3092\u304A\u6301\u3061\u3067\u3059\u304B\uFF1F\u5165\u529B\u3059\u308B\u3068\u3001\u304A\u652F\u6255\u3044\u6642\u306B\u6CE8\u6587\u5408\u8A08\u304B\u3089\u5272\u5F15\u304C\u9069\u7528\u3055\u308C\u307E\u3059\u3002",
-    Help: "\u30D8\u30EB\u30D7",
-    "Help Center": "\u30D8\u30EB\u30D7\u30BB\u30F3\u30BF\u30FC",
-    "Hide other plans": "\u4ED6\u306E\u30D7\u30E9\u30F3\u3092\u975E\u8868\u793A",
-    "High-speed 4G/5G data": "\u9AD8\u901F4G/5G\u30C7\u30FC\u30BF",
-    Home: "\u30DB\u30FC\u30E0",
-    "Hong Kong": "\u9999\u6E2F",
-    "Hong Kong & Macao": "\u9999\u6E2F\u30FB\u30DE\u30AB\u30AA",
-    "Hotspot sharing": "\u30C6\u30B6\u30EA\u30F3\u30B0",
-    "Hotspot supported": "\u30C6\u30B6\u30EA\u30F3\u30B0\u5BFE\u5FDC",
-    "How eSIM works": "eSIM \u306E\u4ED5\u7D44\u307F",
-    "How to install eSIM": "eSIM \u306E\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u65B9\u6CD5",
-    Indonesia: "\u30A4\u30F3\u30C9\u30CD\u30B7\u30A2",
-    "Install from Google Play, or download the APK directly if Play is unavailable on your device.": "Google Play \u304B\u3089\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3067\u304D\u307E\u3059\u3002\u304A\u4F7F\u3044\u306E\u30C7\u30D0\u30A4\u30B9\u3067 Play \u3092\u3054\u5229\u7528\u3044\u305F\u3060\u3051\u306A\u3044\u5834\u5408\u306F\u3001APK \u3092\u76F4\u63A5\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
-    "Install in seconds via QR": "QR\u30B3\u30FC\u30C9\u3067\u6570\u79D2\u3067\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB",
-    "Install this eSIM": "\u3053\u306E eSIM \u3092\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB",
-    "Install your eSIM": "eSIM \u3092\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB",
-    "Instant QR delivery \xB7 Refundable before activation": "QR\u30B3\u30FC\u30C9\u3067\u3059\u3050\u304A\u5C4A\u3051 \xB7 \u6709\u52B9\u5316\u524D\u306F\u8FD4\u91D1\u53EF",
-    "Instant QR or eSIM profile delivery": "QR\u30B3\u30FC\u30C9\u307E\u305F\u306F eSIM\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3067\u3059\u3050\u306B\u304A\u5C4A\u3051",
-    "Instant delivery via eSIM": "eSIM \u3067\u3059\u3050\u306B\u304A\u5C4A\u3051",
-    "Instant eSIM delivery": "eSIM \u3092\u3059\u3050\u306B\u304A\u5C4A\u3051",
-    "Instant eSIM delivery after payment": "\u304A\u652F\u6255\u3044\u5F8C\u3059\u3050\u306B eSIM \u3092\u304A\u5C4A\u3051",
-    "Instant eSIM delivery with activation instructions included.": "\u6709\u52B9\u5316\u306E\u624B\u9806\u4ED8\u304D\u3067\u3001eSIM \u3092\u3059\u3050\u306B\u304A\u5C4A\u3051\u3057\u307E\u3059\u3002",
-    "Instant via QR": "QR\u30B3\u30FC\u30C9\u3067\u5373\u6642\u304A\u5C4A\u3051",
-    "Invalid email address": "\u30E1\u30FC\u30EB\u30A2\u30C9\u30EC\u30B9\u306E\u5F62\u5F0F\u304C\u6B63\u3057\u304F\u3042\u308A\u307E\u305B\u3093",
-    "Is hotspot sharing supported?": "\u30C6\u30B6\u30EA\u30F3\u30B0\u306B\u5BFE\u5FDC\u3057\u3066\u3044\u307E\u3059\u304B\uFF1F",
-    Italy: "\u30A4\u30BF\u30EA\u30A2",
-    "Item delivery": "\u5546\u54C1\u306E\u304A\u5C4A\u3051",
-    Itinerary: "\u65C5\u7A0B",
-    Japan: "\u65E5\u672C",
-    "Japan & Korea": "\u65E5\u672C\u30FB\u97D3\u56FD",
-    "Keep a copy of any sensitive credentials in your own password manager or secure notes after claiming the order.": "\u3054\u6CE8\u6587\u306E\u53D7\u3051\u53D6\u308A\u5F8C\u306F\u3001\u6A5F\u5BC6\u6027\u306E\u9AD8\u3044\u8A8D\u8A3C\u60C5\u5831\u3092\u3054\u81EA\u8EAB\u306E\u30D1\u30B9\u30EF\u30FC\u30C9\u30DE\u30CD\u30FC\u30B8\u30E3\u30FC\u3084\u5B89\u5168\u306A\u30E1\u30E2\u306B\u63A7\u3048\u3066\u304A\u3044\u3066\u304F\u3060\u3055\u3044\u3002",
-    "Keep it safe": "\u5B89\u5168\u306B\u4FDD\u7BA1\u3057\u3066\u304F\u3060\u3055\u3044",
-    "Keep status, delivery details, and activation notes visible after checkout.": "\u3054\u6CE8\u6587\u624B\u7D9A\u304D\u306E\u5F8C\u3082\u3001\u30B9\u30C6\u30FC\u30BF\u30B9\u30FB\u304A\u5C4A\u3051\u8A73\u7D30\u30FB\u6709\u52B9\u5316\u30E1\u30E2\u3092\u5F15\u304D\u7D9A\u304D\u78BA\u8A8D\u3067\u304D\u307E\u3059\u3002",
-    "Keep your primary SIM in place": "\u30E1\u30A4\u30F3\u306E SIM \u306F\u305D\u306E\u307E\u307E\u306B",
-    "LPA string": "LPA\u6587\u5B57\u5217",
-    Language: "\u8A00\u8A9E",
-    "Last name": "\u59D3",
-    "Learn the basics": "\u57FA\u672C\u3092\u77E5\u308B",
-    "Loading profile...": "\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3092\u8AAD\u307F\u8FBC\u307F\u4E2D\u2026",
-    "Loading\u2026": "\u8AAD\u307F\u8FBC\u307F\u4E2D\u2026",
-    Local: "\u30ED\u30FC\u30AB\u30EB",
-    "Log In": "\u30ED\u30B0\u30A4\u30F3",
-    "Log Out": "\u30ED\u30B0\u30A2\u30A6\u30C8",
-    Macao: "\u30DE\u30AB\u30AA",
-    "Mainland China": "\u4E2D\u56FD\u672C\u571F",
-    Malaysia: "\u30DE\u30EC\u30FC\u30B7\u30A2",
-    "Manage multiple eSIM profiles over Bluetooth": "Bluetooth \u3067\u8907\u6570\u306E eSIM\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3092\u7BA1\u7406",
-    "Manage your plan": "\u30D7\u30E9\u30F3\u3092\u7BA1\u7406",
-    Management: "\u7BA1\u7406",
-    "Maps & chat": "\u5730\u56F3\u3068\u30C1\u30E3\u30C3\u30C8",
-    "Matching ID": "\u30DE\u30C3\u30C1\u30F3\u30B0ID",
-    Member: "\u30E1\u30F3\u30D0\u30FC",
-    "Member Since": "\u30E1\u30F3\u30D0\u30FC\u767B\u9332\u65E5",
-    "Member since": "\u30E1\u30F3\u30D0\u30FC\u767B\u9332\u65E5",
-    Menu: "\u30E1\u30CB\u30E5\u30FC",
-    "Message could not be delivered. Please try again shortly.": "\u30E1\u30C3\u30BB\u30FC\u30B8\u3092\u9001\u4FE1\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u3057\u3070\u3089\u304F\u3057\u3066\u304B\u3089\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
-    "More days": "\u65E5\u6570\u3092\u5897\u3084\u3059",
-    "Most plans start on first connection. Plans that start at purchase or install say so explicitly, and the planner counts pre-trip time for them.": "\u307B\u3068\u3093\u3069\u306E\u30D7\u30E9\u30F3\u306F\u521D\u56DE\u63A5\u7D9A\u6642\u306B\u958B\u59CB\u3055\u308C\u307E\u3059\u3002\u8CFC\u5165\u6642\u3084\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u6642\u306B\u958B\u59CB\u3055\u308C\u308B\u30D7\u30E9\u30F3\u306B\u306F\u305D\u306E\u65E8\u304C\u660E\u8A18\u3055\u308C\u3001\u30D7\u30E9\u30F3\u30CA\u30FC\u306F\u305D\u308C\u3089\u306E\u30D7\u30E9\u30F3\u306E\u51FA\u767A\u524D\u306E\u6642\u9593\u3082\u542B\u3081\u3066\u8A08\u7B97\u3057\u307E\u3059\u3002",
-    "Move down": "\u4E0B\u3078\u79FB\u52D5",
-    "Move up": "\u4E0A\u3078\u79FB\u52D5",
-    "Multi-country": "\u8907\u6570\u56FD\u5BFE\u5FDC",
-    "Multiple countries, one purchase, a simpler trip. Pick your route and we verify which single eSIM covers all of it.": "\u8907\u6570\u306E\u56FD\u3082\u30011\u56DE\u306E\u8CFC\u5165\u3067\u3001\u3082\u3063\u3068\u30B7\u30F3\u30D7\u30EB\u306A\u65C5\u884C\u306B\u3002\u30EB\u30FC\u30C8\u3092\u9078\u3076\u3068\u3001\u305D\u306E\u3059\u3079\u3066\u3092\u30AB\u30D0\u30FC\u3067\u304D\u308B eSIM 1\u679A\u3092\u78BA\u8A8D\u3057\u307E\u3059\u3002",
-    "My Account": "\u30DE\u30A4\u30A2\u30AB\u30A6\u30F3\u30C8",
-    "My Addresses": "\u4F4F\u6240\u4E00\u89A7",
-    "My Trips": "\u65C5\u884C\u4E00\u89A7",
-    "My eSIMs": "eSIM\u4E00\u89A7",
-    Name: "\u6C0F\u540D",
-    "Need Help?": "\u304A\u56F0\u308A\u3067\u3059\u304B\uFF1F",
-    "Needed once per phone \u2014 the package is already on the eSIM and activates right after install.": "\u30B9\u30DE\u30FC\u30C8\u30D5\u30A9\u30F31\u53F0\u306B\u3064\u304D1\u56DE\u3060\u3051\u5FC5\u8981\u3067\u3059\u3002\u30D1\u30C3\u30B1\u30FC\u30B8\u306F\u3059\u3067\u306B eSIM \u306B\u7D44\u307F\u8FBC\u307E\u308C\u3066\u304A\u308A\u3001\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u5F8C\u3059\u3050\u306B\u6709\u52B9\u5316\u3055\u308C\u307E\u3059\u3002",
-    Network: "\u30CD\u30C3\u30C8\u30EF\u30FC\u30AF",
-    "New eSIM (new QR code)": "\u65B0\u3057\u3044 eSIM\uFF08\u65B0\u3057\u3044 QR\u30B3\u30FC\u30C9\uFF09",
-    Newest: "\u65B0\u7740\u9806",
-    Next: "\u6B21\u3078",
-    "No destination found. Clear the search to browse all.": "\u76EE\u7684\u5730\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093\u3002\u691C\u7D22\u3092\u30AF\u30EA\u30A2\u3059\u308B\u3068\u3001\u3059\u3079\u3066\u306E\u76EE\u7684\u5730\u3092\u53C2\u7167\u3067\u304D\u307E\u3059\u3002",
-    "No matching plan yet": "\u4E00\u81F4\u3059\u308B\u30D7\u30E9\u30F3\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093",
-    "No physical SIM swap": "\u7269\u7406SIM \u306E\u4EA4\u63DB\u4E0D\u8981",
-    "No plans matched the current search.": "\u73FE\u5728\u306E\u691C\u7D22\u306B\u4E00\u81F4\u3059\u308B\u30D7\u30E9\u30F3\u306F\u3042\u308A\u307E\u305B\u3093\u3002",
-    "No plans yet": "\u30D7\u30E9\u30F3\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093",
-    "No roaming charges": "\u30ED\u30FC\u30DF\u30F3\u30B0\u6599\u91D1\u306A\u3057",
-    "No saved addresses yet.": "\u4FDD\u5B58\u3057\u305F\u4F4F\u6240\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002",
-    "No shipping required": "\u767A\u9001\u4E0D\u8981",
-    "No single plan covers the trip": "1\u3064\u306E\u30D7\u30E9\u30F3\u3067\u306F\u65C5\u884C\u5168\u4F53\u3092\u30AB\u30D0\u30FC\u3067\u304D\u307E\u305B\u3093",
-    "No stops yet \u2014 add your first destination.": "\u7D4C\u7531\u5730\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002\u6700\u521D\u306E\u76EE\u7684\u5730\u3092\u8FFD\u52A0\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
-    "No travel orders yet.": "\u65C5\u884C\u306E\u6CE8\u6587\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002",
-    "Not set": "\u672A\u8A2D\u5B9A",
-    Notes: "\u30E1\u30E2",
-    "Official BOKMOO product": "BOKMOO\u516C\u5F0F\u88FD\u54C1",
-    "On first connection": "\u521D\u56DE\u63A5\u7D9A\u6642\u304B\u3089",
-    "One code, seamless roaming": "1\u3064\u306E\u30B3\u30FC\u30C9\u3067\u3001\u30B7\u30FC\u30E0\u30EC\u30B9\u306A\u30ED\u30FC\u30DF\u30F3\u30B0",
-    "One trip,": "1\u56DE\u306E\u65C5\u884C\u3001",
-    "One-tap install (Android)": "\u30EF\u30F3\u30BF\u30C3\u30D7\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\uFF08Android\uFF09",
-    Open: "\u958B\u304F",
-    "Open menu": "\u30E1\u30CB\u30E5\u30FC\u3092\u958B\u304F",
-    "Open order": "\u6CE8\u6587\u3092\u958B\u304F",
-    Order: "\u6CE8\u6587",
-    "Order History": "\u6CE8\u6587\u5C65\u6B74",
-    "Order Summary": "\u3054\u6CE8\u6587\u5185\u5BB9",
-    "Order archive": "\u6CE8\u6587\u30A2\u30FC\u30AB\u30A4\u30D6",
-    "Order not found": "\u6CE8\u6587\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093",
-    "Order reference": "\u6CE8\u6587\u756A\u53F7",
-    "Order total": "\u3054\u6CE8\u6587\u5408\u8A08",
-    Orders: "\u6CE8\u6587\u4E00\u89A7",
-    "Our mission is to make connectivity simple, affordable, and reliable anywhere in the world.": "\u79C1\u305F\u3061\u306E\u30DF\u30C3\u30B7\u30E7\u30F3\u306F\u3001\u4E16\u754C\u4E2D\u306E\u3069\u3053\u3067\u3082\u30B7\u30F3\u30D7\u30EB\u3067\u624B\u9803\u3001\u305D\u3057\u3066\u4FE1\u983C\u3067\u304D\u308B\u901A\u4FE1\u3092\u5C4A\u3051\u308B\u3053\u3068\u3067\u3059\u3002",
-    "Our support team is here for you.": "\u30B5\u30DD\u30FC\u30C8\u30C1\u30FC\u30E0\u306B\u304A\u6C17\u8EFD\u306B\u3054\u76F8\u8AC7\u304F\u3060\u3055\u3044\u3002",
-    Page: "\u30DA\u30FC\u30B8",
-    Paid: "\u652F\u6255\u3044\u6E08\u307F",
-    Payment: "\u304A\u652F\u6255\u3044",
-    "Payment Method": "\u304A\u652F\u6255\u3044\u65B9\u6CD5",
-    "Payment pending": "\u304A\u652F\u6255\u3044\u5F85\u3061",
-    "Payment successful!": "\u304A\u652F\u6255\u3044\u304C\u5B8C\u4E86\u3057\u307E\u3057\u305F\uFF01",
-    Pending: "\u4FDD\u7559\u4E2D",
-    "Pending payment": "\u304A\u652F\u6255\u3044\u5F85\u3061",
-    "Per plan terms": "\u30D7\u30E9\u30F3\u898F\u7D04\u306B\u6E96\u62E0",
-    Philippines: "\u30D5\u30A3\u30EA\u30D4\u30F3",
-    Phone: "\u96FB\u8A71\u756A\u53F7",
-    "Phone Number": "\u96FB\u8A71\u756A\u53F7",
-    "Phone number": "\u96FB\u8A71\u756A\u53F7",
-    "Phone number is required": "\u96FB\u8A71\u756A\u53F7\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044",
-    "Physical Bluetooth card \u2014 manage multiple eSIM profiles with the BOKMOO app": "Bluetooth\u5BFE\u5FDC\u306E\u7269\u7406\u30AB\u30FC\u30C9 \u2014 BOKMOO\u30A2\u30D7\u30EA\u3067\u8907\u6570\u306E eSIM\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3092\u7BA1\u7406",
-    "Physical card": "\u7269\u7406\u30AB\u30FC\u30C9",
-    "Physical card \u2014 works with the BOKMOO app": "\u7269\u7406\u30AB\u30FC\u30C9 \u2014 BOKMOO\u30A2\u30D7\u30EA\u306B\u5BFE\u5FDC",
-    "Physical eSIM card": "\u7269\u7406eSIM\u30AB\u30FC\u30C9",
-    "Pick where you are going and for how long \u2014 we check which single eSIM covers the whole trip.": "\u884C\u304D\u5148\u3068\u6EDE\u5728\u65E5\u6570\u3092\u9078\u3076\u3060\u3051\u3067\u3001\u65C5\u884C\u5168\u4F53\u3092\u30AB\u30D0\u30FC\u3067\u304D\u308B eSIM 1\u679A\u3092\u78BA\u8A8D\u3057\u307E\u3059\u3002",
-    Placed: "\u6CE8\u6587\u6E08\u307F",
-    "Plan collection": "\u30D7\u30E9\u30F3\u4E00\u89A7",
-    "Plan not found": "\u30D7\u30E9\u30F3\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093",
-    "Plan validity is shorter than the trip span.": "\u30D7\u30E9\u30F3\u306E\u6709\u52B9\u671F\u9650\u304C\u65C5\u884C\u671F\u9593\u306B\u6E80\u305F\u307E\u305B\u3093\u3002",
-    "Plans are temporarily unavailable for quoting.": "\u30D7\u30E9\u30F3\u306E\u898B\u7A4D\u3082\u308A\u306F\u4E00\u6642\u7684\u306B\u3054\u5229\u7528\u3044\u305F\u3060\u3051\u307E\u305B\u3093\u3002",
-    "Plans are unavailable right now.": "\u73FE\u5728\u3001\u30D7\u30E9\u30F3\u3092\u3054\u5229\u7528\u3044\u305F\u3060\u3051\u307E\u305B\u3093\u3002",
-    "Plans confirm hotspot support explicitly; require it in Usage settings and the planner only recommends plans that confirm it.": "\u30D7\u30E9\u30F3\u306E\u30C6\u30B6\u30EA\u30F3\u30B0\u5BFE\u5FDC\u53EF\u5426\u306F\u5404\u30D7\u30E9\u30F3\u306B\u660E\u8A18\u3055\u308C\u3066\u3044\u307E\u3059\u3002\u5229\u7528\u8A2D\u5B9A\u3067\u30C6\u30B6\u30EA\u30F3\u30B0\u3092\u5FC5\u9808\u306B\u3059\u308B\u3068\u3001\u5BFE\u5FDC\u304C\u78BA\u8A8D\u3067\u304D\u308B\u30D7\u30E9\u30F3\u3060\u3051\u304C\u304A\u3059\u3059\u3081\u306B\u8868\u793A\u3055\u308C\u307E\u3059\u3002",
-    "Plans unused before activation are refundable per the plan terms shown before checkout.": "\u6709\u52B9\u5316\u524D\u3067\u672A\u4F7F\u7528\u306E\u30D7\u30E9\u30F3\u306F\u3001\u3054\u6CE8\u6587\u624B\u7D9A\u304D\u306E\u524D\u306B\u8868\u793A\u3055\u308C\u308B\u30D7\u30E9\u30F3\u898F\u7D04\u306B\u5F93\u3063\u3066\u8FD4\u91D1\u306E\u5BFE\u8C61\u3068\u306A\u308A\u307E\u3059\u3002",
-    "Plans you buy are added to these profiles \u2014 no new QR code, no reinstall.": "\u3054\u8CFC\u5165\u306E\u30D7\u30E9\u30F3\u306F\u3053\u308C\u3089\u306E\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u306B\u8FFD\u52A0\u3055\u308C\u307E\u3059\u3002\u65B0\u3057\u3044 QR\u30B3\u30FC\u30C9\u3082\u3001\u518D\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3082\u4E0D\u8981\u3067\u3059\u3002",
-    "Please log in to check your BOKMOO account": "BOKMOO\u30A2\u30AB\u30A6\u30F3\u30C8\u3092\u78BA\u8A8D\u3059\u308B\u306B\u306F\u3001\u30ED\u30B0\u30A4\u30F3\u3057\u3066\u304F\u3060\u3055\u3044",
-    Popular: "\u4EBA\u6C17\u9806",
-    "Popular Topics": "\u4EBA\u6C17\u306E\u30C8\u30D4\u30C3\u30AF",
-    "Popular destinations": "\u4EBA\u6C17\u306E\u76EE\u7684\u5730",
-    "Postal code": "\u90F5\u4FBF\u756A\u53F7",
-    "Postal code is required": "\u90F5\u4FBF\u756A\u53F7\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044",
-    "Premium club experiences around the world.": "\u4E16\u754C\u5404\u5730\u3067\u3001\u30D7\u30EC\u30DF\u30A2\u30E0\u306A\u30AF\u30E9\u30D6\u4F53\u9A13\u3092\u3002",
-    "Preparing your eSIM\u2026": "eSIM \u3092\u6E96\u5099\u3057\u3066\u3044\u307E\u3059\u2026",
-    Previous: "\u524D\u3078",
-    Price: "\u4FA1\u683C",
-    "Priority local network": "\u73FE\u5730\u30CD\u30C3\u30C8\u30EF\u30FC\u30AF\u512A\u5148",
-    Privacy: "\u30D7\u30E9\u30A4\u30D0\u30B7\u30FC",
-    "Privacy Policy": "\u30D7\u30E9\u30A4\u30D0\u30B7\u30FC\u30DD\u30EA\u30B7\u30FC",
-    Processing: "\u51E6\u7406\u4E2D",
-    "Processing\u2026": "\u51E6\u7406\u4E2D\u2026",
-    Products: "\u5546\u54C1",
-    "Promo / referral code": "\u30D7\u30ED\u30E2\u30B3\u30FC\u30C9 / \u7D39\u4ECB\u30B3\u30FC\u30C9",
-    "Provisioned automatically \u2014 your install details are shown above.": "\u81EA\u52D5\u7684\u306B\u958B\u901A\u3055\u308C\u307E\u3057\u305F\u3002\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u60C5\u5831\u306F\u4E0A\u306B\u8868\u793A\u3055\u308C\u3066\u3044\u307E\u3059\u3002",
-    Provisioning: "\u958B\u901A\u4E2D",
-    "Provisioning failed \u2014 our support team has been notified and will follow up.": "\u958B\u901A\u51E6\u7406\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002\u30B5\u30DD\u30FC\u30C8\u30C1\u30FC\u30E0\u306B\u901A\u77E5\u6E08\u307F\u3067\u3001\u5F8C\u307B\u3069\u3054\u9023\u7D61\u3044\u305F\u3057\u307E\u3059\u3002",
-    "Provisioning in progress \u2014 this page updates when the package is ready.": "\u958B\u901A\u51E6\u7406\u4E2D\u3067\u3059\u3002\u30D1\u30C3\u30B1\u30FC\u30B8\u306E\u6E96\u5099\u304C\u3067\u304D\u6B21\u7B2C\u3001\u3053\u306E\u30DA\u30FC\u30B8\u304C\u66F4\u65B0\u3055\u308C\u307E\u3059\u3002",
-    "Provisioning needs attention": "\u958B\u901A\u51E6\u7406\u306B\u8981\u5BFE\u5FDC",
-    "QR payload ready": "QR\u30C7\u30FC\u30BF\u6E96\u5099\u6E08\u307F",
-    Qty: "\u6570\u91CF",
-    Quantity: "\u6570\u91CF",
-    "Questions, answered": "\u7591\u554F\u306B\u304A\u7B54\u3048\u3057\u307E\u3059",
-    "Quick Facts": "\u57FA\u672C\u60C5\u5831",
-    "Ready to install": "\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u53EF\u80FD",
-    Redeem: "\u5F15\u304D\u63DB\u3048\u308B",
-    "Redeem a Code": "\u30B3\u30FC\u30C9\u3092\u5F15\u304D\u63DB\u3048\u308B",
-    "Redeeming\u2026": "\u5F15\u304D\u63DB\u3048\u4E2D\u2026",
-    "Redemption failed. Please try again later.": "\u5F15\u304D\u63DB\u3048\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002\u3057\u3070\u3089\u304F\u3057\u3066\u304B\u3089\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
-    "Redemption is temporarily unavailable. Please try again later.": "\u5F15\u304D\u63DB\u3048\u306F\u4E00\u6642\u7684\u306B\u3054\u5229\u7528\u3044\u305F\u3060\u3051\u307E\u305B\u3093\u3002\u3057\u3070\u3089\u304F\u3057\u3066\u304B\u3089\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
-    "Refresh status": "\u30B9\u30C6\u30FC\u30BF\u30B9\u3092\u66F4\u65B0",
-    Refunded: "\u8FD4\u91D1\u6E08\u307F",
-    Regional: "\u30EA\u30FC\u30B8\u30E7\u30CA\u30EB",
-    Remove: "\u524A\u9664",
-    "Remove stop": "\u7D4C\u7531\u5730\u3092\u524A\u9664",
-    "Reorder stop": "\u7D4C\u7531\u5730\u306E\u9806\u5E8F\u3092\u5909\u66F4",
-    "Replace destination": "\u76EE\u7684\u5730\u3092\u5909\u66F4",
-    "Replace this stop": "\u3053\u306E\u7D4C\u7531\u5730\u3092\u5909\u66F4",
-    "Required hotspot sharing is not confirmed on current plans.": "\u73FE\u5728\u306E\u30D7\u30E9\u30F3\u3067\u306F\u3001\u5FC5\u9808\u3068\u3057\u3066\u8A2D\u5B9A\u3057\u305F\u30C6\u30B6\u30EA\u30F3\u30B0\u3078\u306E\u5BFE\u5FDC\u304C\u78BA\u8A8D\u3055\u308C\u3066\u3044\u307E\u305B\u3093\u3002",
-    "Requires iOS 15 or later. Activates BOKMOO cards over Bluetooth.": "iOS 15\u4EE5\u964D\u304C\u5FC5\u8981\u3067\u3059\u3002Bluetooth \u3067 BOKMOO\u30AB\u30FC\u30C9\u3092\u6709\u52B9\u5316\u3057\u307E\u3059\u3002",
-    Retry: "\u518D\u8A66\u884C",
-    "Reusing your eSIM avoids a new QR code \u2014 the plan is added to the profile you already installed.": "\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u6E08\u307F\u306E eSIM \u3092\u518D\u5229\u7528\u3059\u308C\u3070\u3001\u65B0\u3057\u3044 QR\u30B3\u30FC\u30C9\u306F\u4E0D\u8981\u3067\u3059\u3002\u30D7\u30E9\u30F3\u306F\u3059\u3067\u306B\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u6E08\u307F\u306E\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u306B\u8FFD\u52A0\u3055\u308C\u307E\u3059\u3002",
-    "Review destinations": "\u76EE\u7684\u5730\u306E\u78BA\u8A8D",
-    "Review your selected plans.": "\u9078\u629E\u3057\u305F\u30D7\u30E9\u30F3\u3092\u78BA\u8A8D\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
-    "Route Planner": "\u30EB\u30FC\u30C8\u30D7\u30E9\u30F3\u30CA\u30FC",
-    "Route planner": "\u30EB\u30FC\u30C8\u30D7\u30E9\u30F3\u30CA\u30FC",
-    "SM-DP+ address": "SM-DP+\u30A2\u30C9\u30EC\u30B9",
-    "Save address": "\u4F4F\u6240\u3092\u4FDD\u5B58",
-    "Saved addresses": "\u4FDD\u5B58\u3057\u305F\u4F4F\u6240",
-    "Saved shipping addresses for checkout": "\u3054\u6CE8\u6587\u624B\u7D9A\u304D\u3067\u4F7F\u3046\u4FDD\u5B58\u6E08\u307F\u306E\u304A\u5C4A\u3051\u5148",
-    "Scan or install manually": "\u30B9\u30AD\u30E3\u30F3\u307E\u305F\u306F\u624B\u52D5\u3067\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB",
-    "Scan with Android": "Android \u3067\u30B9\u30AD\u30E3\u30F3",
-    "Scan with iPhone": "iPhone \u3067\u30B9\u30AD\u30E3\u30F3",
-    "Search country, region or city (e.g. Tokyo)": "\u56FD\u30FB\u5730\u57DF\u30FB\u90FD\u5E02\u3092\u691C\u7D22\uFF08\u4F8B\uFF1A\u6771\u4EAC\uFF09",
-    "Search destinations or bundles...": "\u76EE\u7684\u5730\u3084\u30D0\u30F3\u30C9\u30EB\u3092\u691C\u7D22\u2026",
-    "Search for help...": "\u30D8\u30EB\u30D7\u3092\u691C\u7D22\u2026",
-    "Secure Checkout": "\u5B89\u5168\u306A\u3054\u6CE8\u6587\u624B\u7D9A\u304D",
-    "See plan": "\u30D7\u30E9\u30F3\u3092\u898B\u308B",
-    "Select all": "\u3059\u3079\u3066\u9078\u629E",
-    "Selected items": "\u9078\u629E\u4E2D\u306E\u9805\u76EE",
-    Send: "\u9001\u4FE1",
-    "Set default": "\u30C7\u30D5\u30A9\u30EB\u30C8\u306B\u8A2D\u5B9A",
-    "Set up and switch profiles in the BOKMOO app": "BOKMOO\u30A2\u30D7\u30EA\u3067\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u306E\u8A2D\u5B9A\u30FB\u5207\u308A\u66FF\u3048",
-    Settings: "\u8A2D\u5B9A",
-    Setup: "\u30BB\u30C3\u30C8\u30A2\u30C3\u30D7",
-    Shipped: "\u767A\u9001\u6E08\u307F",
-    Shipping: "\u914D\u9001",
-    "Shipping needs attention": "\u914D\u9001\u306B\u8981\u5BFE\u5FDC",
-    "Shopping Cart": "\u30B7\u30E7\u30C3\u30D4\u30F3\u30B0\u30AB\u30FC\u30C8",
-    "Sign In": "\u30ED\u30B0\u30A4\u30F3",
-    "Sign In / Manage My Cards": "\u30ED\u30B0\u30A4\u30F3 / \u30DE\u30A4\u30AB\u30FC\u30C9\u306E\u7BA1\u7406",
-    "Sign in to view your profile": "\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3092\u8868\u793A\u3059\u308B\u306B\u306F\u30ED\u30B0\u30A4\u30F3\u3057\u3066\u304F\u3060\u3055\u3044",
-    Singapore: "\u30B7\u30F3\u30AC\u30DD\u30FC\u30EB",
-    "Smart multi-country top-ups": "\u30B9\u30DE\u30FC\u30C8\u306A\u8907\u6570\u56FD\u8FFD\u52A0\u30C1\u30E3\u30FC\u30B8",
-    "South Korea": "\u97D3\u56FD",
-    "Southeast Asia": "\u6771\u5357\u30A2\u30B8\u30A2",
-    Spain: "\u30B9\u30DA\u30A4\u30F3",
-    "State / Province": "\u90FD\u9053\u5E9C\u770C / \u5DDE",
-    "State is required": "\u90FD\u9053\u5E9C\u770C / \u5DDE\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044",
-    "Stay connected in major cities and more": "\u4E3B\u8981\u90FD\u5E02\u3092\u306F\u3058\u3081\u3001\u3069\u3053\u3067\u3082\u3064\u306A\u304C\u308B",
-    "Step-by-step guide": "\u624B\u9806\u30AC\u30A4\u30C9",
-    Store: "\u30B9\u30C8\u30A2",
-    Subtotal: "\u5C0F\u8A08",
-    Summary: "\u6982\u8981",
-    Support: "\u30B5\u30DD\u30FC\u30C8",
-    "Support:": "\u30B5\u30DD\u30FC\u30C8\uFF1A",
-    "Supported devices": "\u5BFE\u5FDC\u30C7\u30D0\u30A4\u30B9",
-    TBC: "\u672A\u5B9A",
-    Taiwan: "\u53F0\u6E7E",
-    Tax: "\u7A0E\u984D",
-    Terms: "\u898F\u7D04",
-    "Terms of Service": "\u5229\u7528\u898F\u7D04",
-    Thailand: "\u30BF\u30A4",
-    "The product tied to this code is currently unavailable. Please contact support.": "\u3053\u306E\u30B3\u30FC\u30C9\u306B\u7D10\u3065\u304F\u5546\u54C1\u306F\u73FE\u5728\u3054\u5229\u7528\u3044\u305F\u3060\u3051\u307E\u305B\u3093\u3002\u30B5\u30DD\u30FC\u30C8\u307E\u3067\u304A\u554F\u3044\u5408\u308F\u305B\u304F\u3060\u3055\u3044\u3002",
-    "This code has already been redeemed.": "\u3053\u306E\u30B3\u30FC\u30C9\u306F\u3059\u3067\u306B\u5F15\u304D\u63DB\u3048\u6E08\u307F\u3067\u3059\u3002",
-    "This code has reached its redemption limit.": "\u3053\u306E\u30B3\u30FC\u30C9\u306F\u5F15\u304D\u63DB\u3048\u56DE\u6570\u306E\u4E0A\u9650\u306B\u9054\u3057\u307E\u3057\u305F\u3002",
-    "This code is assigned to a different account.": "\u3053\u306E\u30B3\u30FC\u30C9\u306F\u5225\u306E\u30A2\u30AB\u30A6\u30F3\u30C8\u306B\u5272\u308A\u5F53\u3066\u3089\u308C\u3066\u3044\u307E\u3059\u3002",
-    "This code is invalid or expired. Please double-check and try again.": "\u3053\u306E\u30B3\u30FC\u30C9\u306F\u7121\u52B9\u304B\u3001\u6709\u52B9\u671F\u9650\u304C\u5207\u308C\u3066\u3044\u307E\u3059\u3002\u3054\u78BA\u8A8D\u306E\u3046\u3048\u3001\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
-    "This install code has expired \u2014 contact support to reissue it.": "\u3053\u306E\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u30B3\u30FC\u30C9\u306F\u6709\u52B9\u671F\u9650\u304C\u5207\u308C\u3066\u3044\u307E\u3059\u3002\u518D\u767A\u884C\u306B\u3064\u3044\u3066\u306F\u30B5\u30DD\u30FC\u30C8\u307E\u3067\u304A\u554F\u3044\u5408\u308F\u305B\u304F\u3060\u3055\u3044\u3002",
-    "This order is still waiting for fulfillment details. Refresh later or reopen it from the order archive.": "\u3053\u306E\u6CE8\u6587\u306F\u307E\u3060\u6E96\u5099\u72B6\u6CC1\u306E\u8A73\u7D30\u3092\u5F85\u3063\u3066\u3044\u308B\u72B6\u614B\u3067\u3059\u3002\u3057\u3070\u3089\u304F\u3057\u3066\u304B\u3089\u66F4\u65B0\u3059\u308B\u304B\u3001\u6CE8\u6587\u30A2\u30FC\u30AB\u30A4\u30D6\u304B\u3089\u518D\u5EA6\u958B\u3044\u3066\u304F\u3060\u3055\u3044\u3002",
-    "This plan does not confirm hotspot sharing.": "\u3053\u306E\u30D7\u30E9\u30F3\u306F\u30C6\u30B6\u30EA\u30F3\u30B0\u3078\u306E\u5BFE\u5FDC\u304C\u78BA\u8A8D\u3055\u308C\u3066\u3044\u307E\u305B\u3093\u3002",
-    Timezone: "\u30BF\u30A4\u30E0\u30BE\u30FC\u30F3",
-    "Top up & Data plans": "\u8FFD\u52A0\u30C1\u30E3\u30FC\u30B8\u3068\u30C7\u30FC\u30BF\u30D7\u30E9\u30F3",
-    Total: "\u5408\u8A08",
-    "Track package": "\u8377\u7269\u3092\u8FFD\u8DE1",
-    "Track your order": "\u6CE8\u6587\u3092\u8FFD\u8DE1",
-    "Travel Cart": "\u30C8\u30E9\u30D9\u30EB\u30AB\u30FC\u30C8",
-    "Travel Credits": "\u30C8\u30E9\u30D9\u30EB\u30AF\u30EC\u30B8\u30C3\u30C8",
-    "Travel bundle": "\u30C8\u30E9\u30D9\u30EB\u30D0\u30F3\u30C9\u30EB",
-    "Trip changed or running low mid-journey? Add a data pack without reinstalling.": "\u65C5\u306E\u9014\u4E2D\u3067\u30D7\u30E9\u30F3\u304C\u5909\u308F\u3063\u305F\u308A\u30C7\u30FC\u30BF\u304C\u8DB3\u308A\u306A\u304F\u306A\u3063\u305F\u308A\u3057\u305F\u3089\uFF1F\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3057\u76F4\u3055\u305A\u306B\u30C7\u30FC\u30BF\u30D1\u30C3\u30AF\u3092\u8FFD\u52A0\u3067\u304D\u307E\u3059\u3002",
-    "Try Again": "\u3082\u3046\u4E00\u5EA6\u8A66\u3059",
-    "Try the example trip": "\u30B5\u30F3\u30D7\u30EB\u306E\u65C5\u884C\u3092\u8A66\u3059",
-    Type: "\u7A2E\u985E",
-    "Type your message\u2026": "\u30E1\u30C3\u30BB\u30FC\u30B8\u3092\u5165\u529B\u2026",
-    "Typing\u2026": "\u5165\u529B\u4E2D\u2026",
-    "Unable to load orders.": "\u6CE8\u6587\u3092\u8AAD\u307F\u8FBC\u3081\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
-    "United Arab Emirates": "\u30A2\u30E9\u30D6\u9996\u9577\u56FD\u9023\u90A6",
-    "United Kingdom": "\u30A4\u30AE\u30EA\u30B9",
-    "United States": "\u30A2\u30E1\u30EA\u30AB",
-    Unlimited: "\u7121\u5236\u9650",
-    "Unlocked iPhone and Android devices with eSIM support": "eSIM\u5BFE\u5FDC\u306E SIM\u30D5\u30EA\u30FCiPhone \u304A\u3088\u3073 Android\u30C7\u30D0\u30A4\u30B9",
-    "Upcoming Trips": "\u4ECA\u5F8C\u306E\u65C5\u884C",
-    Uptime: "\u7A3C\u50CD\u7387",
-    Usage: "\u5229\u7528\u8A2D\u5B9A",
-    "Usage mode": "\u5229\u7528\u30E2\u30FC\u30C9",
-    "Use my existing eSIM": "\u65E2\u5B58\u306E eSIM \u3092\u4F7F\u3046",
-    Validity: "\u6709\u52B9\u671F\u9650",
-    "Validity covers the whole trip": "\u6709\u52B9\u671F\u9650\u304C\u65C5\u884C\u5168\u4F53\u3092\u30AB\u30D0\u30FC",
-    "Validity to be confirmed": "\u6709\u52B9\u671F\u9650\u306F\u5F8C\u65E5\u78BA\u8A8D",
-    "Video meetings": "\u30D3\u30C7\u30AA\u4F1A\u8B70",
-    Vietnam: "\u30D9\u30C8\u30CA\u30E0",
-    "View Details": "\u8A73\u7D30\u3092\u898B\u308B",
-    "View and manage your orders": "\u6CE8\u6587\u306E\u78BA\u8A8D\u30FB\u7BA1\u7406",
-    "View coverage & plans": "\u30AB\u30D0\u30FC\u7BC4\u56F2\u3068\u30D7\u30E9\u30F3\u3092\u898B\u308B",
-    "View eSIM details": "eSIM \u306E\u8A73\u7D30\u3092\u898B\u308B",
-    "Visit Help Center": "\u30D8\u30EB\u30D7\u30BB\u30F3\u30BF\u30FC\u3092\u898B\u308B",
-    "We could not prepare your install session yet.": "\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u30BB\u30C3\u30B7\u30E7\u30F3\u3092\u6E96\u5099\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
-    "We could not prepare your shipment yet.": "\u767A\u9001\u306E\u6E96\u5099\u304C\u307E\u3060\u3067\u304D\u3066\u3044\u307E\u305B\u3093\u3002",
-    "What if I never activate the eSIM?": "eSIM \u3092\u6709\u52B9\u5316\u3057\u306A\u304B\u3063\u305F\u5834\u5408\u306F\u3069\u3046\u306A\u308A\u307E\u3059\u304B\uFF1F",
-    "When does validity start counting?": "\u6709\u52B9\u671F\u9650\u306F\u3044\u3064\u304B\u3089\u30AB\u30A6\u30F3\u30C8\u3055\u308C\u307E\u3059\u304B\uFF1F",
-    "Why Bokmoo eSIM": "BOKMOO eSIM \u304C\u9078\u3070\u308C\u308B\u7406\u7531",
-    "Works with the BOKMOO app": "BOKMOO\u30A2\u30D7\u30EA\u306B\u5BFE\u5FDC",
-    "Yes. Your existing order stays valid; the planner re-checks coverage and tells you exactly which new stop needs its own plan.": "\u306F\u3044\u3002\u65E2\u5B58\u306E\u3054\u6CE8\u6587\u306F\u305D\u306E\u307E\u307E\u6709\u52B9\u3067\u3059\u3002\u30D7\u30E9\u30F3\u30CA\u30FC\u304C\u30AB\u30D0\u30FC\u7BC4\u56F2\u3092\u518D\u30C1\u30A7\u30C3\u30AF\u3057\u3001\u3069\u306E\u65B0\u3057\u3044\u7D4C\u7531\u5730\u306B\u5C02\u7528\u306E\u30D7\u30E9\u30F3\u304C\u5FC5\u8981\u304B\u3092\u6B63\u78BA\u306B\u304A\u77E5\u3089\u305B\u3057\u307E\u3059\u3002",
-    "Your BOKMOO card, in your pocket.": "BOKMOO\u30AB\u30FC\u30C9\u3092\u3001\u30DD\u30B1\u30C3\u30C8\u306B\u3002",
-    "Your activation session expired before installation completed.": "\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u304C\u5B8C\u4E86\u3059\u308B\u524D\u306B\u3001\u6709\u52B9\u5316\u30BB\u30C3\u30B7\u30E7\u30F3\u306E\u6709\u52B9\u671F\u9650\u304C\u5207\u308C\u307E\u3057\u305F\u3002",
-    "Your booked experiences": "\u3054\u4E88\u7D04\u6E08\u307F\u306E\u4F53\u9A13",
-    "Your card is being prepared for shipment": "\u30AB\u30FC\u30C9\u306F\u767A\u9001\u306E\u6E96\u5099\u4E2D\u3067\u3059",
-    "Your carrier and tracking updates appear here after dispatch.": "\u767A\u9001\u5F8C\u3001\u904B\u9001\u4F1A\u793E\u60C5\u5831\u3068\u8FFD\u8DE1\u72B6\u6CC1\u304C\u3053\u3053\u306B\u8868\u793A\u3055\u308C\u307E\u3059\u3002",
-    "Your cart is empty.": "\u30AB\u30FC\u30C8\u306F\u7A7A\u3067\u3059\u3002",
-    "Your eSIM is ready to install.": "eSIM \u306E\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u6E96\u5099\u304C\u3067\u304D\u307E\u3057\u305F\u3002",
-    "Your order is paid. We are packing your Bokmoo Card now \u2014 you will get a shipping confirmation with tracking, and it should arrive within a few business days.": "\u304A\u652F\u6255\u3044\u304C\u5B8C\u4E86\u3057\u307E\u3057\u305F\u3002\u305F\u3060\u3044\u307E BOKMOO\u30AB\u30FC\u30C9\u3092\u68B1\u5305\u4E2D\u3067\u3059\u3002\u8FFD\u8DE1\u756A\u53F7\u4ED8\u304D\u306E\u767A\u9001\u78BA\u8A8D\u30E1\u30FC\u30EB\u3092\u304A\u9001\u308A\u3057\u307E\u3059\u306E\u3067\u3001\u6570\u55B6\u696D\u65E5\u4EE5\u5185\u306E\u304A\u5C4A\u3051\u4E88\u5B9A\u3067\u3059\u3002",
-    "Your order is paid. We are preparing the install session now.": "\u304A\u652F\u6255\u3044\u304C\u5B8C\u4E86\u3057\u307E\u3057\u305F\u3002\u305F\u3060\u3044\u307E\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u306E\u6E96\u5099\u3092\u9032\u3081\u3066\u3044\u307E\u3059\u3002",
-    "Your package has been added to your eSIM.": "\u30D1\u30C3\u30B1\u30FC\u30B8\u304C eSIM \u306B\u8FFD\u52A0\u3055\u308C\u307E\u3057\u305F\u3002",
-    d: "\u65E5",
-    "daily average": "1\u65E5\u5E73\u5747",
-    "data included": "\u30C7\u30FC\u30BF\u91CF",
-    "day(s)": "\u65E5",
-    days: "\u65E5",
-    destinations: "\u76EE\u7684\u5730",
-    "e.g. BOKMOO10": "\u4F8B\uFF1ABOKMOO10",
-    "e.g. ESIM-JP-7D": "\u4F8B\uFF1AESIM-JP-7D",
-    eSIM: "eSIM",
-    "eSIM ICCID": "eSIM ICCID",
-    "eSIM Plans": "eSIM\u30D7\u30E9\u30F3",
-    "eSIM activation": "eSIM \u306E\u6709\u52B9\u5316",
-    "eSIM plans built for every journey.": "\u3042\u3089\u3086\u308B\u65C5\u306E\u305F\u3081\u306B\u4F5C\u3089\u308C\u305F eSIM\u30D7\u30E9\u30F3\u3002",
-    en: "en",
-    "iPhone and Android devices": "iPhone \u304A\u3088\u3073 Android\u30C7\u30D0\u30A4\u30B9",
-    "iPhone and Android devices with eSIM support": "eSIM\u5BFE\u5FDC\u306E iPhone \u304A\u3088\u3073 Android\u30C7\u30D0\u30A4\u30B9",
-    "iPhone: point the camera at the QR code. Other phones: Settings \u2192 Network \u2192 Add eSIM.": "iPhone\uFF1A\u30AB\u30E1\u30E9\u3067 QR\u30B3\u30FC\u30C9\u3092\u8AAD\u307F\u53D6\u308A\u307E\u3059\u3002\u305D\u306E\u4ED6\u306E\u30B9\u30DE\u30FC\u30C8\u30D5\u30A9\u30F3\uFF1A\u8A2D\u5B9A \u2192 \u30CD\u30C3\u30C8\u30EF\u30FC\u30AF \u2192 eSIM \u3092\u8FFD\u52A0\u3002",
-    "instant delivery": "\u5373\u6642\u304A\u5C4A\u3051",
-    "local network": "\u73FE\u5730\u30CD\u30C3\u30C8\u30EF\u30FC\u30AF",
-    months: "\u304B\u6708",
-    "one eSIM.": "1\u679A\u306E eSIM\u3002",
-    plans: "\u30D7\u30E9\u30F3",
-    selected: "\u9078\u629E\u4E2D",
-    validity: "\u6709\u52B9\u671F\u9650",
-    weeks: "\u9031",
-    ".": "\u3002",
-    ". All rights reserved.": "\u3002\u7121\u65AD\u8EE2\u8F09\u3092\u7981\u3058\u307E\u3059\u3002",
-    "Acceptance of Terms": "\u898F\u7D04\u3078\u306E\u540C\u610F",
-    Active: "\u30A2\u30AF\u30C6\u30A3\u30D6",
-    Add: "\u8FFD\u52A0",
-    "Affiliate data could not be loaded": "\u30A2\u30D5\u30A3\u30EA\u30A8\u30A4\u30C8\u30C7\u30FC\u30BF\u3092\u8AAD\u307F\u8FBC\u3081\u307E\u305B\u3093\u3067\u3057\u305F",
-    "Affiliate view": "\u30A2\u30D5\u30A3\u30EA\u30A8\u30A4\u30C8\u8868\u793A",
-    "Affiliate workspace": "\u30A2\u30D5\u30A3\u30EA\u30A8\u30A4\u30C8\u7BA1\u7406\u753B\u9762",
-    "All payments are final and non-refundable unless required by law.": "\u6CD5\u4EE4\u3067\u5B9A\u3081\u3089\u308C\u305F\u5834\u5408\u3092\u9664\u304D\u3001\u3059\u3079\u3066\u306E\u304A\u652F\u6255\u3044\u306F\u8FD4\u91D1\u4E0D\u53EF\u3067\u3059\u3002",
-    "Already have an account?": "\u3059\u3067\u306B\u30A2\u30AB\u30A6\u30F3\u30C8\u3092\u304A\u6301\u3061\u3067\u3059\u304B\uFF1F",
-    Approved: "\u627F\u8A8D\u6E08\u307F",
-    "Authentication failed": "\u8A8D\u8A3C\u306B\u5931\u6557\u3057\u307E\u3057\u305F",
-    "BOKMOO eSIM Card": "BOKMOO eSIM \u30AB\u30FC\u30C9",
-    "BOKMOO is not liable for any indirect, incidental, or consequential damages.": "BOKMOO \u306F\u3001\u9593\u63A5\u7684\u30FB\u5076\u767A\u7684\u30FB\u7D50\u679C\u7684\u306A\u640D\u5BB3\u306B\u3064\u3044\u3066\u4E00\u5207\u306E\u8CAC\u4EFB\u3092\u8CA0\u3044\u307E\u305B\u3093\u3002",
-    "Back home": "\u30DB\u30FC\u30E0\u306B\u623B\u308B",
-    "Back to sign in": "\u30ED\u30B0\u30A4\u30F3\u306B\u623B\u308B",
-    "Better Nights": "\u3088\u308A\u826F\u3044\u591C\u3092",
-    "Brighter Journeys": "\u3088\u308A\u660E\u308B\u3044\u65C5\u3092",
-    "Browse BOKMOO plans by destination and travel region.": "\u76EE\u7684\u5730\u3084\u65C5\u884C\u5730\u57DF\u304B\u3089 BOKMOO \u306E\u30D7\u30E9\u30F3\u3092\u63A2\u305B\u307E\u3059\u3002",
-    "By accessing or using the BOKMOO website and services, you agree to be bound by these Terms of Service.": "BOKMOO \u306E\u30A6\u30A7\u30D6\u30B5\u30A4\u30C8\u304A\u3088\u3073\u30B5\u30FC\u30D3\u30B9\u306B\u30A2\u30AF\u30BB\u30B9\u307E\u305F\u306F\u3054\u5229\u7528\u306B\u306A\u308B\u3053\u3068\u3067\u3001\u672C\u5229\u7528\u898F\u7D04\u306B\u540C\u610F\u3057\u305F\u3082\u306E\u3068\u307F\u306A\u3055\u308C\u307E\u3059\u3002",
-    "Change password": "\u30D1\u30B9\u30EF\u30FC\u30C9\u3092\u5909\u66F4",
-    "Commission rate": "\u5831\u916C\u7387",
-    "Completing sign in": "\u30ED\u30B0\u30A4\u30F3\u3092\u5B8C\u4E86\u3057\u3066\u3044\u307E\u3059",
-    Confirm: "\u78BA\u8A8D",
-    "Continue to your orders, profiles, and activation workspace.": "\u6CE8\u6587\u3001\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3001\u30A2\u30AF\u30C6\u30A3\u30D9\u30FC\u30B7\u30E7\u30F3\u306E\u7BA1\u7406\u753B\u9762\u3078\u9032\u307F\u307E\u3059\u3002",
-    Copied: "\u30B3\u30D4\u30FC\u3057\u307E\u3057\u305F",
-    "Copy link": "\u30EA\u30F3\u30AF\u3092\u30B3\u30D4\u30FC",
-    "Create account": "\u30A2\u30AB\u30A6\u30F3\u30C8\u3092\u4F5C\u6210",
-    "Create affiliate account": "\u30A2\u30D5\u30A3\u30EA\u30A8\u30A4\u30C8\u30A2\u30AB\u30A6\u30F3\u30C8\u3092\u4F5C\u6210",
-    "Create organization": "\u7D44\u7E54\u3092\u4F5C\u6210",
-    "Create the account your eSIMs follow.": "eSIM \u304C\u3059\u3079\u3066\u7D10\u3065\u304F\u3001\u3042\u306A\u305F\u3060\u3051\u306E\u30A2\u30AB\u30A6\u30F3\u30C8\u3092\u4F5C\u6210\u3057\u307E\u3057\u3087\u3046\u3002",
-    Creating: "\u4F5C\u6210\u4E2D\u2026",
-    "Creator network.": "\u30AF\u30EA\u30A8\u30A4\u30BF\u30FC\u30CD\u30C3\u30C8\u30EF\u30FC\u30AF\u3002",
-    "Current password": "\u73FE\u5728\u306E\u30D1\u30B9\u30EF\u30FC\u30C9",
-    "Data Protection": "\u30C7\u30FC\u30BF\u4FDD\u8B77",
-    "Default option": "\u6A19\u6E96\u30AA\u30D7\u30B7\u30E7\u30F3",
-    "Deselect item": "\u9078\u629E\u3092\u89E3\u9664",
-    "Display name": "\u8868\u793A\u540D",
-    Earned: "\u7372\u5F97\u984D",
-    Email: "\u30E1\u30FC\u30EB\u30A2\u30C9\u30EC\u30B9",
-    Expired: "\u6709\u52B9\u671F\u9650\u5207\u308C",
-    "Explore destination eSIMs": "\u76EE\u7684\u5730\u5225 eSIM \u3092\u898B\u308B",
-    "Forgot password": "\u30D1\u30B9\u30EF\u30FC\u30C9\u3092\u304A\u5FD8\u308C\u3067\u3059\u304B",
-    "Get help fast": "\u3059\u3050\u306B\u30B5\u30DD\u30FC\u30C8\u3092\u53D7\u3051\u3089\u308C\u307E\u3059",
-    "Hide password": "\u30D1\u30B9\u30EF\u30FC\u30C9\u3092\u96A0\u3059",
-    "Hover a store button (or scan the card QR) to download.": "\u30B9\u30C8\u30A2\u30DC\u30BF\u30F3\u306B\u30AB\u30FC\u30BD\u30EB\u3092\u5408\u308F\u305B\u308B\uFF08\u307E\u305F\u306F\u30AB\u30FC\u30C9\u306E QR \u30B3\u30FC\u30C9\u3092\u30B9\u30AD\u30E3\u30F3\u3059\u308B\uFF09\u3068\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9\u3067\u304D\u307E\u3059\u3002",
-    "How We Use Information": "\u60C5\u5831\u306E\u5229\u7528\u65B9\u6CD5",
-    "How it works": "\u3054\u5229\u7528\u306E\u6D41\u308C",
-    Inactive: "\u672A\u30A2\u30AF\u30C6\u30A3\u30D6",
-    Influencer: "\u30A4\u30F3\u30D5\u30EB\u30A8\u30F3\u30B5\u30FC",
-    "Information We Collect": "\u53CE\u96C6\u3059\u308B\u60C5\u5831",
-    "Instant QR delivery after payment": "\u652F\u6255\u3044\u5F8C\u306B QR \u30B3\u30FC\u30C9\u3092\u3059\u3050\u306B\u304A\u5C4A\u3051",
-    "Keep access secure between trips.": "\u65C5\u884C\u3068\u65C5\u884C\u306E\u3042\u3044\u3060\u3082\u3001\u30A2\u30AB\u30A6\u30F3\u30C8\u306E\u5B89\u5168\u3092\u4FDD\u3061\u307E\u3057\u3087\u3046\u3002",
-    "Keep orders, activation codes, profile history, and support cases attached to one BOKMOO identity.": "\u6CE8\u6587\u3001\u30A2\u30AF\u30C6\u30A3\u30D9\u30FC\u30B7\u30E7\u30F3\u30B3\u30FC\u30C9\u3001\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u5C65\u6B74\u3001\u30B5\u30DD\u30FC\u30C8\u6848\u4EF6\u3092\u3001\u3072\u3068\u3064\u306E BOKMOO ID \u306B\u307E\u3068\u3081\u3066\u7BA1\u7406\u3067\u304D\u307E\u3059\u3002",
-    "Keep your BOKMOO account ready for the next trip.": "\u6B21\u306E\u65C5\u884C\u306B\u5411\u3051\u3066\u3001BOKMOO \u30A2\u30AB\u30A6\u30F3\u30C8\u3092\u6574\u3048\u3066\u304A\u304D\u307E\u3057\u3087\u3046\u3002",
-    "Last updated: April 15, 2024": "\u6700\u7D42\u66F4\u65B0\u65E5\uFF1A2024 \u5E74 4 \u6708 15 \u65E5",
-    "Limitation of Liability": "\u8CAC\u4EFB\u306E\u5236\u9650",
-    "Manage BOKMOO eSIM profiles, orders, and activation details from the same black-and-gold travel control surface.": "\u9ED2\u3068\u91D1\u306E\u30C8\u30E9\u30D9\u30EB\u30B3\u30F3\u30C8\u30ED\u30FC\u30EB\u753B\u9762\u304B\u3089\u3001BOKMOO \u306E eSIM \u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3001\u6CE8\u6587\u3001\u30A2\u30AF\u30C6\u30A3\u30D9\u30FC\u30B7\u30E7\u30F3\u60C5\u5831\u3092\u307E\u3068\u3081\u3066\u7BA1\u7406\u3067\u304D\u307E\u3059\u3002",
-    "Manage eSIMs": "eSIM \u3092\u7BA1\u7406",
-    Manager: "\u30DE\u30CD\u30FC\u30B8\u30E3\u30FC",
-    "Member could not be added": "\u30E1\u30F3\u30D0\u30FC\u3092\u8FFD\u52A0\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F",
-    "Member email": "\u30E1\u30F3\u30D0\u30FC\u306E\u30E1\u30FC\u30EB\u30A2\u30C9\u30EC\u30B9",
-    "New password": "\u65B0\u3057\u3044\u30D1\u30B9\u30EF\u30FC\u30C9",
-    "No commissions yet": "\u5831\u916C\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093",
-    "No region collections are available yet.": "\u5730\u57DF\u30B3\u30EC\u30AF\u30B7\u30E7\u30F3\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002",
-    "One Card.\nGlobal Connection.": "1\u679A\u306E\u30AB\u30FC\u30C9\u3067\u3002\n\u4E16\u754C\u306B\u3064\u306A\u304C\u308B\u3002",
-    "One eSIM for the whole trip \u2014 pick your destinations and go.": "\u65C5\u5168\u4F53\u3092 1 \u679A\u306E eSIM \u3067\u3002\u76EE\u7684\u5730\u3092\u9078\u3093\u3060\u3089\u3001\u3042\u3068\u306F\u51FA\u304B\u3051\u308B\u3060\u3051\u3002",
-    Organization: "\u7D44\u7E54",
-    "Organization affiliate": "\u7D44\u7E54\u306E\u30A2\u30D5\u30A3\u30EA\u30A8\u30A4\u30C8",
-    "Organization code (optional)": "\u7D44\u7E54\u30B3\u30FC\u30C9\uFF08\u4EFB\u610F\uFF09",
-    "Organization commissions": "\u7D44\u7E54\u306E\u5831\u916C",
-    "Organization could not be created": "\u7D44\u7E54\u3092\u4F5C\u6210\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F",
-    "Organization data could not be loaded": "\u7D44\u7E54\u30C7\u30FC\u30BF\u3092\u8AAD\u307F\u8FBC\u3081\u307E\u305B\u3093\u3067\u3057\u305F",
-    "Organization name": "\u7D44\u7E54\u540D",
-    Partner: "\u30D1\u30FC\u30C8\u30CA\u30FC",
-    "Partner commissions": "\u30D1\u30FC\u30C8\u30CA\u30FC\u5831\u916C",
-    Password: "\u30D1\u30B9\u30EF\u30FC\u30C9",
-    "Passwords do not match": "\u30D1\u30B9\u30EF\u30FC\u30C9\u304C\u4E00\u81F4\u3057\u307E\u305B\u3093",
-    "Personal affiliate": "\u500B\u4EBA\u30A2\u30D5\u30A3\u30EA\u30A8\u30A4\u30C8",
-    "Powered by": "Powered by",
-    Profiles: "\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB",
-    "Protected traveler identity": "\u5B88\u3089\u308C\u305F\u30C8\u30E9\u30D9\u30E9\u30FC\u30A2\u30A4\u30C7\u30F3\u30C6\u30A3\u30C6\u30A3",
-    "Purchases and Payments": "\u8CFC\u5165\u3068\u652F\u6255\u3044",
-    "Questions about setup? Contact": "\u30BB\u30C3\u30C8\u30A2\u30C3\u30D7\u306B\u3064\u3044\u3066\u306E\u3054\u8CEA\u554F\u306F\u3001\u3053\u3061\u3089\u307E\u3067\u304A\u554F\u3044\u5408\u308F\u305B\u304F\u3060\u3055\u3044\uFF1A",
-    Rate: "\u7387",
-    Refresh: "\u66F4\u65B0",
-    "Region Collections": "\u5730\u57DF\u30B3\u30EC\u30AF\u30B7\u30E7\u30F3",
-    "Registration failed": "\u767B\u9332\u306B\u5931\u6557\u3057\u307E\u3057\u305F",
-    SAMPLE: "\u30B5\u30F3\u30D7\u30EB",
-    "Save profile": "\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3092\u4FDD\u5B58",
-    "Saving...": "\u4FDD\u5B58\u4E2D\u2026",
-    "Secure account access": "\u5B89\u5168\u306A\u30A2\u30AB\u30A6\u30F3\u30C8\u30A2\u30AF\u30BB\u30B9",
-    "Securing your session and returning you to the BOKMOO storefront.": "\u30BB\u30C3\u30B7\u30E7\u30F3\u3092\u4FDD\u8B77\u3057\u3001BOKMOO \u30B9\u30C8\u30A2\u306B\u623B\u308A\u307E\u3059\u3002",
-    "Select item": "\u9078\u629E",
-    "Shop eSIM Plans": "eSIM \u30D7\u30E9\u30F3\u3092\u898B\u308B",
-    "Show password": "\u30D1\u30B9\u30EF\u30FC\u30C9\u3092\u8868\u793A",
-    "Sign in": "\u30ED\u30B0\u30A4\u30F3",
-    "Sign in before your next border.": "\u6B21\u306E\u56FD\u5883\u3092\u8D8A\u3048\u308B\u524D\u306B\u3001\u30ED\u30B0\u30A4\u30F3\u3057\u3066\u304A\u304D\u307E\u3057\u3087\u3046\u3002",
-    "Sign in to manage your account": "\u30A2\u30AB\u30A6\u30F3\u30C8\u3092\u7BA1\u7406\u3059\u308B\u306B\u306F\u30ED\u30B0\u30A4\u30F3\u3057\u3066\u304F\u3060\u3055\u3044",
-    "Signing in": "\u30ED\u30B0\u30A4\u30F3\u4E2D\u2026",
-    "Start with a secure profile for purchases and global activation support.": "\u8CFC\u5165\u3068\u4E16\u754C\u306E\u30A2\u30AF\u30C6\u30A3\u30D9\u30FC\u30B7\u30E7\u30F3\u30B5\u30DD\u30FC\u30C8\u306B\u5BFE\u5FDC\u3057\u305F\u3001\u5B89\u5168\u306A\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u304B\u3089\u59CB\u3081\u307E\u3057\u3087\u3046\u3002",
-    Suspended: "\u5229\u7528\u505C\u6B62\u4E2D",
-    "Track purchases": "\u8CFC\u5165\u3092\u7BA1\u7406",
-    "Traveler profile": "\u30C8\u30E9\u30D9\u30E9\u30FC\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB",
-    "Unable to load Bokmoo plans.": "Bokmoo \u306E\u30D7\u30E9\u30F3\u3092\u8AAD\u307F\u8FBC\u3081\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
-    "Updating...": "\u66F4\u65B0\u4E2D\u2026",
-    "Use of Services": "\u30B5\u30FC\u30D3\u30B9\u306E\u5229\u7528",
-    Used: "\u4F7F\u7528\u6E08\u307F",
-    "View category": "\u30AB\u30C6\u30B4\u30EA\u3092\u898B\u308B",
-    "We collect information you provide directly to us, such as when you create an account or make a purchase.": "\u30A2\u30AB\u30A6\u30F3\u30C8\u306E\u4F5C\u6210\u3084\u8CFC\u5165\u306E\u969B\u306A\u3069\u3001\u304A\u5BA2\u69D8\u304C\u76F4\u63A5\u3054\u63D0\u4F9B\u3044\u305F\u3060\u304F\u60C5\u5831\u3092\u53CE\u96C6\u3057\u307E\u3059\u3002",
-    "We implement appropriate security measures to protect your data.": "\u304A\u5BA2\u69D8\u306E\u30C7\u30FC\u30BF\u3092\u5B88\u308B\u305F\u3081\u3001\u9069\u5207\u306A\u30BB\u30AD\u30E5\u30EA\u30C6\u30A3\u5BFE\u7B56\u3092\u5B9F\u65BD\u3057\u3066\u3044\u307E\u3059\u3002",
-    "We use the information to provide, maintain, and improve our services.": "\u53CE\u96C6\u3057\u305F\u60C5\u5831\u306F\u3001\u30B5\u30FC\u30D3\u30B9\u306E\u63D0\u4F9B\u30FB\u7DAD\u6301\u30FB\u6539\u5584\u306E\u305F\u3081\u306B\u5229\u7528\u3057\u307E\u3059\u3002",
-    "Welcome back": "\u304A\u304B\u3048\u308A\u306A\u3055\u3044",
-    "You agree to use our services only for lawful purposes and in accordance with these Terms.": "\u5F53\u793E\u306E\u30B5\u30FC\u30D3\u30B9\u3092\u3001\u9069\u6CD5\u306A\u76EE\u7684\u306B\u306E\u307F\u3001\u307E\u305F\u672C\u898F\u7D04\u306B\u5F93\u3063\u3066\u3054\u5229\u7528\u3044\u305F\u3060\u304F\u3053\u3068\u306B\u3054\u540C\u610F\u3044\u305F\u3060\u304D\u307E\u3059\u3002",
-    "You have the right to access, update, or delete your personal information.": "\u3054\u81EA\u8EAB\u306E\u500B\u4EBA\u60C5\u5831\u306E\u95B2\u89A7\u30FB\u66F4\u65B0\u30FB\u524A\u9664\u3092\u6C42\u3081\u308B\u6A29\u5229\u3092\u6709\u3057\u307E\u3059\u3002",
-    "Your Rights": "\u304A\u5BA2\u69D8\u306E\u6A29\u5229",
-    "Your referral ledger.": "\u3042\u306A\u305F\u306E\u7D39\u4ECB\u5C65\u6B74\u3002",
-    "already with us": "\u3059\u3067\u306B\u767B\u9332\u6E08\u307F\u306E\u65B9",
-    "or email": "\u307E\u305F\u306F\u30E1\u30FC\u30EB\u30A2\u30C9\u30EC\u30B9",
-    "organization rate": "\u7D44\u7E54\u306E\u5831\u916C\u7387",
-    "Group destination-ready plans into clearer regional entry points.": "\u76EE\u7684\u5730\u5225\u306E\u30D7\u30E9\u30F3\u3092\u3001\u308F\u304B\u308A\u3084\u3059\u3044\u5730\u57DF\u3054\u3068\u306E\u5165\u53E3\u306B\u307E\u3068\u3081\u307E\u3059\u3002"
-  };
-
-  // src/i18n/ko.json
-  var ko_default = {
-    "/ full trip": "/ \uC804\uCCB4 \uC5EC\uD589",
-    "/day": "/\uC77C",
-    "200+ destinations": "200\uAC1C \uC774\uC0C1\uC758 \uBAA9\uC801\uC9C0",
-    "24/7 Global Team": "24\uC2DC\uAC04 365\uC77C \uAE00\uB85C\uBC8C \uD300",
-    "24/7 travel support": "24\uC2DC\uAC04 365\uC77C \uC5EC\uD589 \uACE0\uAC1D \uC9C0\uC6D0",
-    "4.9 average traveler satisfaction": "\uC5EC\uD589\uAC1D \uB9CC\uC871\uB3C4 \uD3C9\uADE0 4.9\uC810",
-    "About BOKMOO": "BOKMOO \uC18C\uAC1C",
-    "Access the world's best venues with BOKMOO.": "BOKMOO\uC640 \uD568\uAED8 \uC138\uACC4 \uCD5C\uACE0\uC758 \uBCA0\uB274\uB97C \uC774\uC6A9\uD574 \uBCF4\uC138\uC694.",
-    "Account Information": "\uACC4\uC815 \uC815\uBCF4",
-    "Account Preferences": "\uACC4\uC815 \uD658\uACBD\uC124\uC815",
-    "Account Status": "\uACC4\uC815 \uC0C1\uD0DC",
-    "Activate your BOKMOO card over Bluetooth, install and switch eSIM profiles, and track your data \u2014 right from your phone.": "Bluetooth\uB85C BOKMOO \uCE74\uB4DC\uB97C \uD65C\uC131\uD654\uD558\uACE0, eSIM \uD504\uB85C\uD544\uC744 \uC124\uCE58\uD558\uACE0 \uC804\uD658\uD558\uACE0, \uB370\uC774\uD130 \uC0AC\uC6A9\uB7C9\uAE4C\uC9C0 \uD734\uB300\uD3F0\uC5D0\uC11C \uBC14\uB85C \uD655\uC778\uD560 \uC218 \uC788\uC5B4\uC694.",
-    Activation: "\uD65C\uC131\uD654",
-    "Activation code": "\uD65C\uC131\uD654 \uCF54\uB4DC",
-    "Activation expired": "\uD65C\uC131\uD654 \uAE30\uD55C \uB9CC\uB8CC",
-    "Active Member": "\uD65C\uC131 \uBA64\uBC84",
-    "Add a destination or regional plan to prepare your connectivity before departure.": "\uCD9C\uBC1C \uC804 \uC5F0\uACB0\uC744 \uC900\uBE44\uD558\uB824\uBA74 \uBAA9\uC801\uC9C0\uB098 \uC9C0\uC5ED \uC694\uAE08\uC81C\uB97C \uCD94\uAC00\uD574 \uBCF4\uC138\uC694.",
-    "Add a new address": "\uC0C8 \uC8FC\uC18C \uCD94\uAC00",
-    "Add a stop": "\uACBD\uC720\uC9C0 \uCD94\uAC00",
-    "Add to cart": "\uC7A5\uBC14\uAD6C\uB2C8\uC5D0 \uCD94\uAC00",
-    "Adding\u2026": "\uCD94\uAC00\uD558\uB294 \uC911\u2026",
-    Address: "\uC8FC\uC18C",
-    "Address is required": "\uC8FC\uC18C\uB97C \uC785\uB825\uD574 \uC8FC\uC138\uC694",
-    "Adjust the route, or browse sellable destinations.": "\uB8E8\uD2B8\uB97C \uC870\uC815\uD558\uAC70\uB098 \uD310\uB9E4 \uC911\uC778 \uBAA9\uC801\uC9C0\uB97C \uB458\uB7EC\uBCF4\uC138\uC694.",
-    "Affiliate Program": "\uC81C\uD734 \uD504\uB85C\uADF8\uB7A8",
-    "After checkout the eSIM QR code is issued to your email and account instantly. Add it before boarding; it connects on arrival.": "\uACB0\uC81C \uD6C4 eSIM QR \uCF54\uB4DC\uAC00 \uC774\uBA54\uC77C\uACFC \uACC4\uC815\uC5D0 \uC989\uC2DC \uBC1C\uAE09\uB3FC\uC694. \uD0D1\uC2B9 \uC804\uC5D0 \uBBF8\uB9AC \uCD94\uAC00\uD574 \uB450\uBA74 \uB3C4\uCC29\uD588\uC744 \uB54C \uBC14\uB85C \uC5F0\uACB0\uB3FC\uC694.",
-    All: "\uC804\uCCB4",
-    "Asia-Pacific": "\uC544\uC2DC\uC544 \uD0DC\uD3C9\uC591",
-    Australia: "\uD638\uC8FC",
-    "Australia & NZ": "\uD638\uC8FC\xB7\uB274\uC9C8\uB79C\uB4DC",
-    "Awaiting payment": "\uACB0\uC81C \uB300\uAE30",
-    "BOKMOO Member Benefits": "BOKMOO \uBA64\uBC84 \uD61C\uD0DD",
-    "BOKMOO is built for global travelers.": "BOKMOO\uB294 \uC804 \uC138\uACC4 \uC5EC\uD589\uAC1D\uC744 \uC704\uD574 \uB9CC\uB4E4\uC5B4\uC84C\uC5B4\uC694.",
-    Back: "\uB4A4\uB85C",
-    "Back to Store": "\uC2A4\uD1A0\uC5B4\uB85C \uB3CC\uC544\uAC00\uAE30",
-    "Back to orders": "\uC8FC\uBB38 \uBAA9\uB85D\uC73C\uB85C \uB3CC\uC544\uAC00\uAE30",
-    "Back to store": "\uC2A4\uD1A0\uC5B4\uB85C \uB3CC\uC544\uAC00\uAE30",
-    "Best single eSIM": "\uCD5C\uC801\uC758 \uB2E8\uC77C eSIM",
-    "Bilingual support helps with APN setup, network preference and device compatibility around the clock.": "\uC774\uC911 \uC5B8\uC5B4 \uACE0\uAC1D \uC9C0\uC6D0\uD300\uC774 APN \uC124\uC815, \uB124\uD2B8\uC6CC\uD06C \uC6B0\uC120\uC21C\uC704, \uAE30\uAE30 \uD638\uD658\uC131 \uBB38\uC81C\uB97C 24\uC2DC\uAC04 365\uC77C \uB3C4\uC640\uB4DC\uB824\uC694.",
-    "Billing Details": "\uACB0\uC81C \uC815\uBCF4",
-    Bluetooth: "Bluetooth",
-    "Bokmoo eSIM": "Bokmoo eSIM",
-    "Browse Destinations": "\uBAA9\uC801\uC9C0 \uB458\uB7EC\uBCF4\uAE30",
-    "Buy Now": "\uC9C0\uAE08 \uAD6C\uB9E4",
-    "Buy the trip in segments \u2014 one eSIM per segment below.": "\uC5EC\uD589\uC744 \uAD6C\uAC04\uBCC4\uB85C \uAD6C\uB9E4\uD574 \uBCF4\uC138\uC694. \uC544\uB798\uC5D0\uC11C \uAD6C\uAC04\uB9C8\uB2E4 eSIM \uD558\uB098\uC529 \uC120\uD0DD\uD560 \uC218 \uC788\uC5B4\uC694.",
-    "Can I add a stop after buying?": "\uAD6C\uB9E4 \uD6C4\uC5D0 \uACBD\uC720\uC9C0\uB97C \uCD94\uAC00\uD560 \uC218 \uC788\uB098\uC694?",
-    Canada: "\uCE90\uB098\uB2E4",
-    Cancel: "\uCDE8\uC18C",
-    "Cancel order": "\uC8FC\uBB38 \uCDE8\uC18C",
-    "Cancel reason": "\uCDE8\uC18C \uC0AC\uC720",
-    Cancelled: "\uCDE8\uC18C\uB428",
-    Cart: "\uC7A5\uBC14\uAD6C\uB2C8",
-    "Chat with support": "\uACE0\uAC1D \uC9C0\uC6D0 \uCC44\uD305",
-    "Check compatibility": "\uD638\uD658\uC131 \uD655\uC778",
-    "Check compatibility before departure": "\uCD9C\uBC1C \uC804\uC5D0 \uD638\uD658\uC131\uC744 \uD655\uC778\uD558\uC138\uC694",
-    "Choose an option": "\uC635\uC158 \uC120\uD0DD",
-    "Choose destinations": "\uBAA9\uC801\uC9C0 \uC120\uD0DD",
-    City: "\uB3C4\uC2DC",
-    "City is required": "\uB3C4\uC2DC\uB97C \uC785\uB825\uD574 \uC8FC\uC138\uC694",
-    Close: "\uB2EB\uAE30",
-    "Close menu": "\uBA54\uB274 \uB2EB\uAE30",
-    "Close support chat": "\uACE0\uAC1D \uC9C0\uC6D0 \uCC44\uD305 \uB2EB\uAE30",
-    "Closing without confirming keeps your current route.": "\uD655\uC778 \uC5C6\uC774 \uB2EB\uC73C\uBA74 \uD604\uC7AC \uB8E8\uD2B8\uAC00 \uADF8\uB300\uB85C \uC720\uC9C0\uB3FC\uC694.",
-    Compatibility: "\uD638\uD658\uC131",
-    "Complete payment and we will start preparing your card for delivery.": "\uACB0\uC81C\uB97C \uC644\uB8CC\uD558\uBA74 \uCE74\uB4DC \uBC30\uC1A1 \uC900\uBE44\uB97C \uBC14\uB85C \uC2DC\uC791\uD560\uAC8C\uC694.",
-    "Complete payment to provision this eSIM.": "\uC774 eSIM\uC744 \uAC1C\uD1B5\uD558\uB824\uBA74 \uACB0\uC81C\uB97C \uC644\uB8CC\uD574 \uC8FC\uC138\uC694.",
-    "Complete payment to unlock your eSIM install details.": "eSIM \uC124\uCE58 \uC815\uBCF4\uB97C \uD655\uC778\uD558\uB824\uBA74 \uACB0\uC81C\uB97C \uC644\uB8CC\uD574 \uC8FC\uC138\uC694.",
-    Completed: "\uC644\uB8CC\uB428",
-    "Confirmation code": "\uD655\uC778 \uCF54\uB4DC",
-    Connection: "\uC5F0\uACB0",
-    "Connects to the BOKMOO app over Bluetooth": "Bluetooth\uB85C BOKMOO \uC571\uACFC \uC5F0\uACB0\uB3FC\uC694",
-    "Contact Information": "\uC5F0\uB77D\uCC98 \uC815\uBCF4",
-    "Contact Support": "\uACE0\uAC1D \uC9C0\uC6D0 \uBB38\uC758",
-    "Continue browsing": "\uACC4\uC18D \uB458\uB7EC\uBCF4\uAE30",
-    "Continue to Payment": "\uACB0\uC81C\uD558\uAE30",
-    Copy: "\uBCF5\uC0AC",
-    "Copy activation code": "\uD65C\uC131\uD654 \uCF54\uB4DC \uBCF5\uC0AC",
-    "Copy email": "\uC774\uBA54\uC77C \uBCF5\uC0AC",
-    "Copy order reference": "\uC8FC\uBB38 \uBC88\uD638 \uBCF5\uC0AC",
-    Countries: "\uAD6D\uAC00",
-    Country: "\uAD6D\uAC00",
-    "Country (e.g. CN)": "\uAD6D\uAC00 (\uC608: CN)",
-    "Country is required": "\uAD6D\uAC00\uB97C \uC785\uB825\uD574 \uC8FC\uC138\uC694",
-    Coverage: "\uCEE4\uBC84\uB9AC\uC9C0",
-    "Coverage detail by stop": "\uACBD\uC720\uC9C0\uBCC4 \uCEE4\uBC84\uB9AC\uC9C0 \uC0C1\uC138",
-    Covers: "\uCEE4\uBC84 \uBC94\uC704",
-    Currency: "\uD1B5\uD654",
-    Current: "\uD604\uC7AC",
-    Data: "\uB370\uC774\uD130",
-    "Date of Birth": "\uC0DD\uB144\uC6D4\uC77C",
-    Days: "\uC77C\uC218",
-    Default: "\uAE30\uBCF8",
-    Delete: "\uC0AD\uC81C",
-    Delivered: "\uBC30\uC1A1 \uC644\uB8CC",
-    Delivery: "\uBC30\uC1A1",
-    "Delivery tracking": "\uBC30\uC1A1 \uC870\uD68C",
-    "Deselect all": "\uC804\uCCB4 \uC120\uD0DD \uD574\uC81C",
-    "Destination eSIM": "\uBAA9\uC801\uC9C0 eSIM",
-    "Destination search": "\uBAA9\uC801\uC9C0 \uAC80\uC0C9",
-    Destinations: "\uBAA9\uC801\uC9C0",
-    Discount: "\uD560\uC778",
-    "Download APK directly": "APK \uBC14\uB85C \uB2E4\uC6B4\uB85C\uB4DC",
-    "Download on the App Store": "App Store\uC5D0\uC11C \uB2E4\uC6B4\uB85C\uB4DC",
-    Edit: "\uD3B8\uC9D1",
-    Editable: "\uD3B8\uC9D1 \uAC00\uB2A5",
-    "Email Address": "\uC774\uBA54\uC77C \uC8FC\uC18C",
-    "Email is required": "\uC774\uBA54\uC77C\uC744 \uC785\uB825\uD574 \uC8FC\uC138\uC694",
-    English: "\uC601\uC5B4",
-    "Enter Code": "\uCF54\uB4DC \uC785\uB825",
-    "Enter your email": "\uC774\uBA54\uC77C \uC785\uB825",
-    Europe: "\uC720\uB7FD",
-    "Every purchase stays readable after checkout.": "\uACB0\uC81C \uD6C4\uC5D0\uB3C4 \uBAA8\uB4E0 \uAD6C\uB9E4 \uB0B4\uC6A9\uC744 \uACC4\uC18D \uD655\uC778\uD560 \uC218 \uC788\uC5B4\uC694.",
-    "Example route shown \u2014 your route starts empty below.": "\uC608\uC2DC \uB8E8\uD2B8\uAC00 \uD45C\uC2DC\uB3FC\uC694. \uC544\uB798\uC5D0\uC11C \uB0B4 \uB8E8\uD2B8\uB294 \uBE48 \uC0C1\uD0DC\uB85C \uC2DC\uC791\uB3FC\uC694.",
-    Expires: "\uB9CC\uB8CC\uC77C",
-    "Explore Now": "\uC9C0\uAE08 \uB458\uB7EC\uBCF4\uAE30",
-    "Explore a Better Night": "\uB354 \uD2B9\uBCC4\uD55C \uBC24\uC744 \uACBD\uD5D8\uD574 \uBCF4\uC138\uC694",
-    "Explore destination-ready profiles, regional bundles, and premium data options with the clarity of a product catalog.": "\uBAA9\uC801\uC9C0\uBCC4 \uD504\uB85C\uD544, \uC9C0\uC5ED \uBC88\uB4E4, \uD504\uB9AC\uBBF8\uC5C4 \uB370\uC774\uD130 \uC635\uC158\uC744 \uCE74\uD0C8\uB85C\uADF8\uCC98\uB7FC \uD55C\uB208\uC5D0 \uBA85\uD655\uD558\uAC8C \uB458\uB7EC\uBCF4\uC138\uC694.",
-    Failed: "\uC2E4\uD328",
-    "Fewer days": "\uC77C\uC218 \uC904\uC774\uAE30",
-    "First name": "\uC774\uB984",
-    "First name is required": "\uC774\uB984\uC744 \uC785\uB825\uD574 \uC8FC\uC138\uC694",
-    "Flexible data": "\uC720\uC5F0\uD55C \uB370\uC774\uD130",
-    "Flexible validity": "\uC720\uC5F0\uD55C \uC720\uD6A8\uAE30\uAC04",
-    "Flexible validity & top-ups": "\uC720\uC5F0\uD55C \uC720\uD6A8\uAE30\uAC04 \uBC0F \uCDA9\uC804",
-    "For a new device \u2014 a fresh QR code is issued after payment.": "\uC0C8 \uAE30\uAE30\uC5D0 \uC124\uCE58\uD560 \uB54C \uC120\uD0DD\uD558\uC138\uC694. \uACB0\uC81C \uD6C4 \uC0C8 QR \uCF54\uB4DC\uAC00 \uBC1C\uAE09\uB3FC\uC694.",
-    France: "\uD504\uB791\uC2A4",
-    Fulfilled: "\uC900\uBE44 \uC644\uB8CC",
-    "Full name": "\uC804\uCCB4 \uC774\uB984",
-    "Full refund if not activated": "\uD65C\uC131\uD654 \uC804\uAE4C\uC9C0 \uC804\uC561 \uD658\uBD88",
-    "General Notes": "\uC77C\uBC18 \uC548\uB0B4",
-    Germany: "\uB3C5\uC77C",
-    "Get BOKMOO": "BOKMOO \uC774\uC6A9\uD558\uAE30",
-    "Get Started": "\uC2DC\uC791\uD558\uAE30",
-    "Get it on Google Play": "Google Play\uC5D0\uC11C \uB2E4\uC6B4\uB85C\uB4DC",
-    Global: "\uAE00\uB85C\uBC8C",
-    "Global plan": "\uAE00\uB85C\uBC8C \uC694\uAE08\uC81C",
-    "Greater China": "\uB300\uC911\uD654\uAD8C",
-    "Happy Users": "\uB9CC\uC871\uD55C \uC774\uC6A9\uC790",
-    "Have a redemption code? Enter it to add an eSIM plan or subscription to your account.": "\uAD50\uD658 \uCF54\uB4DC\uAC00 \uC788\uB098\uC694? \uCF54\uB4DC\uB97C \uC785\uB825\uD558\uBA74 eSIM \uC694\uAE08\uC81C\uB098 \uAD6C\uB3C5\uC744 \uACC4\uC815\uC5D0 \uCD94\uAC00\uD560 \uC218 \uC788\uC5B4\uC694.",
-    "Have a referral code from a creator? Enter it \u2014 your discount is applied to the order total at payment.": "\uD06C\uB9AC\uC5D0\uC774\uD130\uC5D0\uAC8C \uBC1B\uC740 \uCD94\uCC9C \uCF54\uB4DC\uAC00 \uC788\uB098\uC694? \uCF54\uB4DC\uB97C \uC785\uB825\uD558\uBA74 \uACB0\uC81C \uC2DC \uC8FC\uBB38 \uCD1D\uC561\uC5D0\uC11C \uD560\uC778\uC774 \uC801\uC6A9\uB3FC\uC694.",
-    Help: "\uB3C4\uC6C0\uB9D0",
-    "Help Center": "\uB3C4\uC6C0\uB9D0 \uC13C\uD130",
-    "Hide other plans": "\uB2E4\uB978 \uC694\uAE08\uC81C \uC228\uAE30\uAE30",
-    "High-speed 4G/5G data": "\uACE0\uC18D 4G/5G \uB370\uC774\uD130",
-    Home: "\uD648",
-    "Hong Kong": "\uD64D\uCF69",
-    "Hong Kong & Macao": "\uD64D\uCF69\xB7\uB9C8\uCE74\uC624",
-    "Hotspot sharing": "\uD56B\uC2A4\uD31F \uACF5\uC720",
-    "Hotspot supported": "\uD56B\uC2A4\uD31F \uC9C0\uC6D0",
-    "How eSIM works": "eSIM \uC791\uB3D9 \uBC29\uC2DD",
-    "How to install eSIM": "eSIM \uC124\uCE58 \uBC29\uBC95",
-    Indonesia: "\uC778\uB3C4\uB124\uC2DC\uC544",
-    "Install from Google Play, or download the APK directly if Play is unavailable on your device.": "Google Play\uC5D0\uC11C \uC124\uCE58\uD558\uAC70\uB098, \uAE30\uAE30\uC5D0\uC11C Play\uB97C \uC774\uC6A9\uD560 \uC218 \uC5C6\uB2E4\uBA74 APK\uB97C \uBC14\uB85C \uB2E4\uC6B4\uB85C\uB4DC\uD558\uC138\uC694.",
-    "Install in seconds via QR": "QR \uCF54\uB4DC\uB85C \uBA87 \uCD08 \uB9CC\uC5D0 \uC124\uCE58",
-    "Install this eSIM": "\uC774 eSIM \uC124\uCE58\uD558\uAE30",
-    "Install your eSIM": "eSIM \uC124\uCE58\uD558\uAE30",
-    "Instant QR delivery \xB7 Refundable before activation": "QR \uCF54\uB4DC \uC989\uC2DC \uBC1C\uAE09 \xB7 \uD65C\uC131\uD654 \uC804 \uD658\uBD88 \uAC00\uB2A5",
-    "Instant QR or eSIM profile delivery": "QR \uCF54\uB4DC \uB610\uB294 eSIM \uD504\uB85C\uD544 \uC989\uC2DC \uBC1C\uAE09",
-    "Instant delivery via eSIM": "eSIM\uC73C\uB85C \uC989\uC2DC \uBC1C\uAE09",
-    "Instant eSIM delivery": "eSIM \uC989\uC2DC \uBC1C\uAE09",
-    "Instant eSIM delivery after payment": "\uACB0\uC81C \uD6C4 eSIM \uC989\uC2DC \uBC1C\uAE09",
-    "Instant eSIM delivery with activation instructions included.": "\uD65C\uC131\uD654 \uC548\uB0B4\uC640 \uD568\uAED8 eSIM\uC744 \uC989\uC2DC \uBC1C\uAE09\uD574 \uB4DC\uB824\uC694.",
-    "Instant via QR": "QR \uCF54\uB4DC\uB85C \uC989\uC2DC \uBC1C\uAE09",
-    "Invalid email address": "\uC62C\uBC14\uB978 \uC774\uBA54\uC77C \uC8FC\uC18C\uB97C \uC785\uB825\uD574 \uC8FC\uC138\uC694",
-    "Is hotspot sharing supported?": "\uD56B\uC2A4\uD31F \uACF5\uC720\uAC00 \uC9C0\uC6D0\uB418\uB098\uC694?",
-    Italy: "\uC774\uD0C8\uB9AC\uC544",
-    "Item delivery": "\uC0C1\uD488 \uC81C\uACF5 \uBC29\uC2DD",
-    Itinerary: "\uC5EC\uC815",
-    Japan: "\uC77C\uBCF8",
-    "Japan & Korea": "\uC77C\uBCF8\xB7\uD55C\uAD6D",
-    "Keep a copy of any sensitive credentials in your own password manager or secure notes after claiming the order.": "\uC8FC\uBB38\uC744 \uC218\uB839\uD55C \uD6C4\uC5D0\uB294 \uBBFC\uAC10\uD55C \uC778\uC99D \uC815\uBCF4\uB97C \uBCF8\uC778\uC758 \uBE44\uBC00\uBC88\uD638 \uAD00\uB9AC\uC790\uB098 \uBCF4\uC548 \uBA54\uBAA8\uC5D0 \uBCC4\uB3C4\uB85C \uBCF4\uAD00\uD574 \uC8FC\uC138\uC694.",
-    "Keep it safe": "\uC548\uC804\uD558\uAC8C \uBCF4\uAD00\uD558\uC138\uC694",
-    "Keep status, delivery details, and activation notes visible after checkout.": "\uACB0\uC81C \uD6C4\uC5D0\uB3C4 \uC0C1\uD0DC, \uBC30\uC1A1 \uC815\uBCF4, \uD65C\uC131\uD654 \uC548\uB0B4\uB97C \uACC4\uC18D \uD655\uC778\uD560 \uC218 \uC788\uC5B4\uC694.",
-    "Keep your primary SIM in place": "\uAE30\uC874 SIM \uCE74\uB4DC\uB294 \uADF8\uB300\uB85C \uB450\uC138\uC694",
-    "LPA string": "LPA \uBB38\uC790\uC5F4",
-    Language: "\uC5B8\uC5B4",
-    "Last name": "\uC131",
-    "Learn the basics": "\uAE30\uBCF8 \uB0B4\uC6A9 \uC54C\uC544\uBCF4\uAE30",
-    "Loading profile...": "\uD504\uB85C\uD544 \uBD88\uB7EC\uC624\uB294 \uC911...",
-    "Loading\u2026": "\uBD88\uB7EC\uC624\uB294 \uC911\u2026",
-    Local: "\uB85C\uCEEC",
-    "Log In": "\uB85C\uADF8\uC778",
-    "Log Out": "\uB85C\uADF8\uC544\uC6C3",
-    Macao: "\uB9C8\uCE74\uC624",
-    "Mainland China": "\uC911\uAD6D \uBCF8\uD1A0",
-    Malaysia: "\uB9D0\uB808\uC774\uC2DC\uC544",
-    "Manage multiple eSIM profiles over Bluetooth": "Bluetooth\uB85C \uC5EC\uB7EC eSIM \uD504\uB85C\uD544 \uAD00\uB9AC",
-    "Manage your plan": "\uC694\uAE08\uC81C \uAD00\uB9AC",
-    Management: "\uAD00\uB9AC",
-    "Maps & chat": "\uC9C0\uB3C4 \uBC0F \uCC44\uD305",
-    "Matching ID": "\uB9E4\uCE6D ID",
-    Member: "\uBA64\uBC84",
-    "Member Since": "\uAC00\uC785\uC77C",
-    "Member since": "\uAC00\uC785\uC77C",
-    Menu: "\uBA54\uB274",
-    "Message could not be delivered. Please try again shortly.": "\uBA54\uC2DC\uC9C0\uB97C \uBCF4\uB0B4\uC9C0 \uBABB\uD588\uC5B4\uC694. \uC7A0\uC2DC \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD574 \uC8FC\uC138\uC694.",
-    "More days": "\uC77C\uC218 \uB298\uB9AC\uAE30",
-    "Most plans start on first connection. Plans that start at purchase or install say so explicitly, and the planner counts pre-trip time for them.": "\uB300\uBD80\uBD84\uC758 \uC694\uAE08\uC81C\uB294 \uCCAB \uC5F0\uACB0 \uC2DC\uC810\uC5D0 \uC720\uD6A8\uAE30\uAC04\uC774 \uC2DC\uC791\uB3FC\uC694. \uAD6C\uB9E4\uB098 \uC124\uCE58 \uC2DC\uC810\uC5D0 \uC2DC\uC791\uB418\uB294 \uC694\uAE08\uC81C\uB294 \uB530\uB85C \uC548\uB0B4\uB418\uBA70, \uC774\uB7F0 \uC694\uAE08\uC81C\uB294 \uD50C\uB798\uB108\uAC00 \uCD9C\uBC1C \uC804 \uC2DC\uAC04\uB3C4 \uACC4\uC0B0\uC5D0 \uD3EC\uD568\uD574\uC694.",
-    "Move down": "\uC544\uB798\uB85C \uC774\uB3D9",
-    "Move up": "\uC704\uB85C \uC774\uB3D9",
-    "Multi-country": "\uB2E4\uAD6D\uAC00",
-    "Multiple countries, one purchase, a simpler trip. Pick your route and we verify which single eSIM covers all of it.": "\uC5EC\uB7EC \uAD6D\uAC00\uB3C4 \uD55C \uBC88\uC758 \uAD6C\uB9E4\uB85C \uB354 \uAC04\uD3B8\uD55C \uC5EC\uD589\uC774 \uB3FC\uC694. \uB8E8\uD2B8\uB97C \uACE0\uB974\uBA74 \uC804\uCCB4\uB97C \uCEE4\uBC84\uD558\uB294 \uB2E8\uC77C eSIM\uC774 \uBB34\uC5C7\uC778\uC9C0 \uD655\uC778\uD574 \uB4DC\uB824\uC694.",
-    "My Account": "\uB0B4 \uACC4\uC815",
-    "My Addresses": "\uB0B4 \uC8FC\uC18C",
-    "My Trips": "\uB0B4 \uC5EC\uD589",
-    "My eSIMs": "\uB0B4 eSIM",
-    Name: "\uC774\uB984",
-    "Need Help?": "\uB3C4\uC6C0\uC774 \uD544\uC694\uD55C\uAC00\uC694?",
-    "Needed once per phone \u2014 the package is already on the eSIM and activates right after install.": "\uC124\uCE58\uB294 \uD734\uB300\uD3F0\uB2F9 \uD55C \uBC88\uC774\uBA74 \uB3FC\uC694. \uD328\uD0A4\uC9C0\uB294 \uC774\uBBF8 eSIM\uC5D0 \uB2F4\uACA8 \uC788\uC5B4 \uC124\uCE58 \uC9C1\uD6C4 \uBC14\uB85C \uD65C\uC131\uD654\uB3FC\uC694.",
-    Network: "\uB124\uD2B8\uC6CC\uD06C",
-    "New eSIM (new QR code)": "\uC0C8 eSIM (\uC0C8 QR \uCF54\uB4DC)",
-    Newest: "\uCD5C\uC2E0\uC21C",
-    Next: "\uB2E4\uC74C",
-    "No destination found. Clear the search to browse all.": "\uBAA9\uC801\uC9C0\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC5B4\uC694. \uAC80\uC0C9\uC5B4\uB97C \uC9C0\uC6B0\uBA74 \uC804\uCCB4\uB97C \uBCFC \uC218 \uC788\uC5B4\uC694.",
-    "No matching plan yet": "\uC544\uC9C1 \uC77C\uCE58\uD558\uB294 \uC694\uAE08\uC81C\uAC00 \uC5C6\uC5B4\uC694",
-    "No physical SIM swap": "\uBB3C\uB9AC\uC801 SIM \uCE74\uB4DC \uAD50\uCCB4 \uBD88\uD544\uC694",
-    "No plans matched the current search.": "\uD604\uC7AC \uAC80\uC0C9\uC5D0 \uC77C\uCE58\uD558\uB294 \uC694\uAE08\uC81C\uAC00 \uC5C6\uC5B4\uC694.",
-    "No plans yet": "\uC544\uC9C1 \uC694\uAE08\uC81C\uAC00 \uC5C6\uC5B4\uC694",
-    "No roaming charges": "\uB85C\uBC0D \uC694\uAE08 \uC5C6\uC74C",
-    "No saved addresses yet.": "\uC544\uC9C1 \uC800\uC7A5\uB41C \uC8FC\uC18C\uAC00 \uC5C6\uC5B4\uC694.",
-    "No shipping required": "\uBC30\uC1A1 \uBD88\uD544\uC694",
-    "No single plan covers the trip": "\uC5EC\uD589 \uC804\uCCB4\uB97C \uCEE4\uBC84\uD558\uB294 \uB2E8\uC77C \uC694\uAE08\uC81C\uAC00 \uC5C6\uC5B4\uC694",
-    "No stops yet \u2014 add your first destination.": "\uC544\uC9C1 \uACBD\uC720\uC9C0\uAC00 \uC5C6\uC5B4\uC694. \uCCAB \uBAA9\uC801\uC9C0\uB97C \uCD94\uAC00\uD574 \uBCF4\uC138\uC694.",
-    "No travel orders yet.": "\uC544\uC9C1 \uC5EC\uD589 \uC8FC\uBB38\uC774 \uC5C6\uC5B4\uC694.",
-    "Not set": "\uBBF8\uC124\uC815",
-    Notes: "\uBA54\uBAA8",
-    "Official BOKMOO product": "BOKMOO \uACF5\uC2DD \uC81C\uD488",
-    "On first connection": "\uCCAB \uC5F0\uACB0 \uC2DC",
-    "One code, seamless roaming": "\uCF54\uB4DC \uD558\uB098\uB85C \uB04A\uAE40 \uC5C6\uB294 \uB85C\uBC0D",
-    "One trip,": "\uC5EC\uD589 \uD558\uB098,",
-    "One-tap install (Android)": "\uC6D0\uD0ED \uC124\uCE58 (Android)",
-    Open: "\uC5F4\uAE30",
-    "Open menu": "\uBA54\uB274 \uC5F4\uAE30",
-    "Open order": "\uC8FC\uBB38 \uBCF4\uAE30",
-    Order: "\uC8FC\uBB38",
-    "Order History": "\uC8FC\uBB38 \uB0B4\uC5ED",
-    "Order Summary": "\uC8FC\uBB38 \uC694\uC57D",
-    "Order archive": "\uC9C0\uB09C \uC8FC\uBB38",
-    "Order not found": "\uC8FC\uBB38\uC744 \uCC3E\uC744 \uC218 \uC5C6\uC5B4\uC694",
-    "Order reference": "\uC8FC\uBB38 \uBC88\uD638",
-    "Order total": "\uC8FC\uBB38 \uCD1D\uC561",
-    Orders: "\uC8FC\uBB38",
-    "Our mission is to make connectivity simple, affordable, and reliable anywhere in the world.": "\uC5B4\uB514\uC5D0\uC11C\uB098 \uC5F0\uACB0\uC744 \uAC04\uD3B8\uD558\uACE0 \uD569\uB9AC\uC801\uC774\uBA70 \uC548\uC815\uC801\uC73C\uB85C \uB9CC\uB4DC\uB294 \uAC83\uC774 \uC800\uD76C\uC758 \uBBF8\uC158\uC774\uC5D0\uC694.",
-    "Our support team is here for you.": "\uACE0\uAC1D \uC9C0\uC6D0\uD300\uC774 \uC5B8\uC81C\uB098 \uACC1\uC5D0 \uC788\uC5B4\uC694.",
-    Page: "\uD398\uC774\uC9C0",
-    Paid: "\uACB0\uC81C \uC644\uB8CC",
-    Payment: "\uACB0\uC81C",
-    "Payment Method": "\uACB0\uC81C \uC218\uB2E8",
-    "Payment pending": "\uACB0\uC81C \uB300\uAE30 \uC911",
-    "Payment successful!": "\uACB0\uC81C\uAC00 \uC644\uB8CC\uB418\uC5C8\uC5B4\uC694!",
-    Pending: "\uB300\uAE30 \uC911",
-    "Pending payment": "\uACB0\uC81C \uB300\uAE30",
-    "Per plan terms": "\uC694\uAE08\uC81C \uC57D\uAD00\uC5D0 \uB530\uB984",
-    Philippines: "\uD544\uB9AC\uD540",
-    Phone: "\uC804\uD654\uBC88\uD638",
-    "Phone Number": "\uC804\uD654\uBC88\uD638",
-    "Phone number": "\uC804\uD654\uBC88\uD638",
-    "Phone number is required": "\uC804\uD654\uBC88\uD638\uB97C \uC785\uB825\uD574 \uC8FC\uC138\uC694",
-    "Physical Bluetooth card \u2014 manage multiple eSIM profiles with the BOKMOO app": "Bluetooth \uC2E4\uBB3C \uCE74\uB4DC \u2014 BOKMOO \uC571\uC73C\uB85C \uC5EC\uB7EC eSIM \uD504\uB85C\uD544\uC744 \uAD00\uB9AC\uD558\uC138\uC694",
-    "Physical card": "\uC2E4\uBB3C \uCE74\uB4DC",
-    "Physical card \u2014 works with the BOKMOO app": "\uC2E4\uBB3C \uCE74\uB4DC \u2014 BOKMOO \uC571\uACFC \uD568\uAED8 \uC0AC\uC6A9\uD560 \uC218 \uC788\uC5B4\uC694",
-    "Physical eSIM card": "eSIM \uC2E4\uBB3C \uCE74\uB4DC",
-    "Pick where you are going and for how long \u2014 we check which single eSIM covers the whole trip.": "\uC5EC\uD589\uC9C0\uC640 \uAE30\uAC04\uB9CC \uC815\uD558\uBA74 \uC804\uCCB4 \uC5EC\uD589\uC744 \uCEE4\uBC84\uD558\uB294 \uB2E8\uC77C eSIM\uC744 \uD655\uC778\uD574 \uB4DC\uB824\uC694.",
-    Placed: "\uC8FC\uBB38 \uC811\uC218",
-    "Plan collection": "\uC694\uAE08\uC81C \uBAA8\uC74C",
-    "Plan not found": "\uC694\uAE08\uC81C\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC5B4\uC694",
-    "Plan validity is shorter than the trip span.": "\uC694\uAE08\uC81C\uC758 \uC720\uD6A8\uAE30\uAC04\uC774 \uC5EC\uD589 \uAE30\uAC04\uBCF4\uB2E4 \uC9E7\uC544\uC694.",
-    "Plans are temporarily unavailable for quoting.": "\uC77C\uC2DC\uC801\uC73C\uB85C \uC694\uAE08\uC81C \uACAC\uC801\uC744 \uC81C\uACF5\uD560 \uC218 \uC5C6\uC5B4\uC694.",
-    "Plans are unavailable right now.": "\uD604\uC7AC \uC694\uAE08\uC81C\uB97C \uBD88\uB7EC\uC62C \uC218 \uC5C6\uC5B4\uC694.",
-    "Plans confirm hotspot support explicitly; require it in Usage settings and the planner only recommends plans that confirm it.": "\uC694\uAE08\uC81C\uB9C8\uB2E4 \uD56B\uC2A4\uD31F \uC9C0\uC6D0 \uC5EC\uBD80\uAC00 \uBA85\uC2DC\uB418\uC5B4 \uC788\uC5B4\uC694. \uC0AC\uC6A9 \uC124\uC815\uC5D0\uC11C \uD56B\uC2A4\uD31F \uACF5\uC720\uB97C \uD544\uC218\uB85C \uC9C0\uC815\uD558\uBA74 \uD50C\uB798\uB108\uAC00 \uC774\uB97C \uC9C0\uC6D0\uD55C\uB2E4\uACE0 \uBA85\uC2DC\uD55C \uC694\uAE08\uC81C\uB9CC \uCD94\uCC9C\uD574\uC694.",
-    "Plans unused before activation are refundable per the plan terms shown before checkout.": "\uD65C\uC131\uD654\uD558\uAE30 \uC804 \uC0AC\uC6A9\uD558\uC9C0 \uC54A\uC740 \uC694\uAE08\uC81C\uB294 \uACB0\uC81C \uC804\uC5D0 \uC548\uB0B4\uB41C \uC694\uAE08\uC81C \uC57D\uAD00\uC5D0 \uB530\uB77C \uD658\uBD88\uBC1B\uC744 \uC218 \uC788\uC5B4\uC694.",
-    "Plans you buy are added to these profiles \u2014 no new QR code, no reinstall.": "\uAD6C\uB9E4\uD55C \uC694\uAE08\uC81C\uB294 \uC774 \uD504\uB85C\uD544\uC5D0 \uCD94\uAC00\uB3FC\uC694. \uC0C8 QR \uCF54\uB4DC\uB3C4, \uC7AC\uC124\uCE58\uB3C4 \uD544\uC694 \uC5C6\uC5B4\uC694.",
-    "Please log in to check your BOKMOO account": "BOKMOO \uACC4\uC815\uC744 \uD655\uC778\uD558\uB824\uBA74 \uB85C\uADF8\uC778\uD574 \uC8FC\uC138\uC694",
-    Popular: "\uC778\uAE30",
-    "Popular Topics": "\uC778\uAE30 \uC8FC\uC81C",
-    "Popular destinations": "\uC778\uAE30 \uBAA9\uC801\uC9C0",
-    "Postal code": "\uC6B0\uD3B8\uBC88\uD638",
-    "Postal code is required": "\uC6B0\uD3B8\uBC88\uD638\uB97C \uC785\uB825\uD574 \uC8FC\uC138\uC694",
-    "Premium club experiences around the world.": "\uC804 \uC138\uACC4 \uD504\uB9AC\uBBF8\uC5C4 \uD074\uB7FD \uACBD\uD5D8\uC744 \uB9CC\uB098 \uBCF4\uC138\uC694.",
-    "Preparing your eSIM\u2026": "eSIM\uC744 \uC900\uBE44\uD558\uACE0 \uC788\uC5B4\uC694\u2026",
-    Previous: "\uC774\uC804",
-    Price: "\uAC00\uACA9",
-    "Priority local network": "\uC6B0\uC120\uC21C\uC704 \uB85C\uCEEC \uB124\uD2B8\uC6CC\uD06C",
-    Privacy: "\uAC1C\uC778\uC815\uBCF4",
-    "Privacy Policy": "\uAC1C\uC778\uC815\uBCF4 \uCC98\uB9AC\uBC29\uCE68",
-    Processing: "\uCC98\uB9AC \uC911",
-    "Processing\u2026": "\uCC98\uB9AC \uC911\u2026",
-    Products: "\uC0C1\uD488",
-    "Promo / referral code": "\uD504\uB85C\uBAA8 / \uCD94\uCC9C \uCF54\uB4DC",
-    "Provisioned automatically \u2014 your install details are shown above.": "\uC790\uB3D9\uC73C\uB85C \uAC1C\uD1B5\uB418\uC5C8\uC5B4\uC694. \uC124\uCE58 \uC815\uBCF4\uB294 \uC704\uC5D0 \uD45C\uC2DC\uB418\uC5B4 \uC788\uC5B4\uC694.",
-    Provisioning: "\uAC1C\uD1B5",
-    "Provisioning failed \u2014 our support team has been notified and will follow up.": "\uAC1C\uD1B5\uC5D0 \uC2E4\uD328\uD588\uC5B4\uC694. \uACE0\uAC1D \uC9C0\uC6D0\uD300\uC5D0 \uC54C\uB9BC\uC774 \uC804\uB2EC\uB418\uC5C8\uC73C\uBA70, \uACE7 \uC5F0\uB77D\uB4DC\uB9B4\uAC8C\uC694.",
-    "Provisioning in progress \u2014 this page updates when the package is ready.": "\uAC1C\uD1B5\uC744 \uC9C4\uD589\uD558\uACE0 \uC788\uC5B4\uC694. \uD328\uD0A4\uC9C0\uAC00 \uC900\uBE44\uB418\uBA74 \uC774 \uD398\uC774\uC9C0\uAC00 \uC790\uB3D9\uC73C\uB85C \uC5C5\uB370\uC774\uD2B8\uB3FC\uC694.",
-    "Provisioning needs attention": "\uAC1C\uD1B5 \uD655\uC778 \uD544\uC694",
-    "QR payload ready": "QR \uCF54\uB4DC \uB370\uC774\uD130 \uC900\uBE44 \uC644\uB8CC",
-    Qty: "\uC218\uB7C9",
-    Quantity: "\uC218\uB7C9",
-    "Questions, answered": "\uC9C8\uBB38\uACFC \uB2F5\uBCC0",
-    "Quick Facts": "\uD575\uC2EC \uC815\uBCF4",
-    "Ready to install": "\uC124\uCE58 \uC900\uBE44 \uC644\uB8CC",
-    Redeem: "\uAD50\uD658",
-    "Redeem a Code": "\uCF54\uB4DC \uAD50\uD658",
-    "Redeeming\u2026": "\uAD50\uD658\uD558\uB294 \uC911\u2026",
-    "Redemption failed. Please try again later.": "\uAD50\uD658\uC5D0 \uC2E4\uD328\uD588\uC5B4\uC694. \uC7A0\uC2DC \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD574 \uC8FC\uC138\uC694.",
-    "Redemption is temporarily unavailable. Please try again later.": "\uC77C\uC2DC\uC801\uC73C\uB85C \uCF54\uB4DC \uAD50\uD658\uC744 \uC774\uC6A9\uD560 \uC218 \uC5C6\uC5B4\uC694. \uC7A0\uC2DC \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD574 \uC8FC\uC138\uC694.",
-    "Refresh status": "\uC0C1\uD0DC \uC0C8\uB85C\uACE0\uCE68",
-    Refunded: "\uD658\uBD88\uB428",
-    Regional: "\uC9C0\uC5ED",
-    Remove: "\uC81C\uAC70",
-    "Remove stop": "\uACBD\uC720\uC9C0 \uC81C\uAC70",
-    "Reorder stop": "\uACBD\uC720\uC9C0 \uC21C\uC11C \uBCC0\uACBD",
-    "Replace destination": "\uBAA9\uC801\uC9C0 \uBCC0\uACBD",
-    "Replace this stop": "\uC774 \uACBD\uC720\uC9C0 \uBCC0\uACBD",
-    "Required hotspot sharing is not confirmed on current plans.": "\uD604\uC7AC \uC694\uAE08\uC81C \uC911 \uD544\uC218 \uD56B\uC2A4\uD31F \uACF5\uC720 \uC9C0\uC6D0\uC774 \uD655\uC778\uB41C \uC694\uAE08\uC81C\uAC00 \uC5C6\uC5B4\uC694.",
-    "Requires iOS 15 or later. Activates BOKMOO cards over Bluetooth.": "iOS 15 \uC774\uC0C1\uC774 \uD544\uC694\uD574\uC694. Bluetooth\uB85C BOKMOO \uCE74\uB4DC\uB97C \uD65C\uC131\uD654\uD574\uC694.",
-    Retry: "\uB2E4\uC2DC \uC2DC\uB3C4",
-    "Reusing your eSIM avoids a new QR code \u2014 the plan is added to the profile you already installed.": "\uAE30\uC874 eSIM\uC744 \uC7AC\uC0AC\uC6A9\uD558\uBA74 \uC0C8 QR \uCF54\uB4DC\uAC00 \uD544\uC694 \uC5C6\uC5B4\uC694. \uC694\uAE08\uC81C\uB294 \uC774\uBBF8 \uC124\uCE58\uD55C \uD504\uB85C\uD544\uC5D0 \uCD94\uAC00\uB3FC\uC694.",
-    "Review destinations": "\uBAA9\uC801\uC9C0 \uD655\uC778",
-    "Review your selected plans.": "\uC120\uD0DD\uD55C \uC694\uAE08\uC81C\uB97C \uD655\uC778\uD574 \uC8FC\uC138\uC694.",
-    "Route Planner": "\uB8E8\uD2B8 \uD50C\uB798\uB108",
-    "Route planner": "\uB8E8\uD2B8 \uD50C\uB798\uB108",
-    "SM-DP+ address": "SM-DP+ \uC8FC\uC18C",
-    "Save address": "\uC8FC\uC18C \uC800\uC7A5",
-    "Saved addresses": "\uC800\uC7A5\uB41C \uC8FC\uC18C",
-    "Saved shipping addresses for checkout": "\uACB0\uC81C \uC2DC \uC0AC\uC6A9\uD560 \uBC30\uC1A1 \uC8FC\uC18C \uBAA9\uB85D",
-    "Scan or install manually": "\uC2A4\uCE94 \uB610\uB294 \uC218\uB3D9 \uC124\uCE58",
-    "Scan with Android": "Android\uB85C \uC2A4\uCE94",
-    "Scan with iPhone": "iPhone\uC73C\uB85C \uC2A4\uCE94",
-    "Search country, region or city (e.g. Tokyo)": "\uAD6D\uAC00, \uC9C0\uC5ED \uB610\uB294 \uB3C4\uC2DC \uAC80\uC0C9 (\uC608: \uB3C4\uCFC4)",
-    "Search destinations or bundles...": "\uBAA9\uC801\uC9C0 \uB610\uB294 \uBC88\uB4E4 \uAC80\uC0C9...",
-    "Search for help...": "\uB3C4\uC6C0\uB9D0 \uAC80\uC0C9...",
-    "Secure Checkout": "\uC548\uC804\uD55C \uACB0\uC81C",
-    "See plan": "\uC694\uAE08\uC81C \uBCF4\uAE30",
-    "Select all": "\uC804\uCCB4 \uC120\uD0DD",
-    "Selected items": "\uC120\uD0DD\uD55C \uC0C1\uD488",
-    Send: "\uBCF4\uB0B4\uAE30",
-    "Set default": "\uAE30\uBCF8\uC73C\uB85C \uC124\uC815",
-    "Set up and switch profiles in the BOKMOO app": "BOKMOO \uC571\uC5D0\uC11C \uD504\uB85C\uD544\uC744 \uC124\uC815\uD558\uACE0 \uC804\uD658\uD574 \uBCF4\uC138\uC694",
-    Settings: "\uC124\uC815",
-    Setup: "\uC124\uC815 \uBC29\uBC95",
-    Shipped: "\uBC30\uC1A1 \uC911",
-    Shipping: "\uBC30\uC1A1",
-    "Shipping needs attention": "\uBC30\uC1A1 \uD655\uC778 \uD544\uC694",
-    "Shopping Cart": "\uC7A5\uBC14\uAD6C\uB2C8",
-    "Sign In": "\uB85C\uADF8\uC778",
-    "Sign In / Manage My Cards": "\uB85C\uADF8\uC778 / \uB0B4 \uCE74\uB4DC \uAD00\uB9AC",
-    "Sign in to view your profile": "\uD504\uB85C\uD544\uC744 \uBCF4\uB824\uBA74 \uB85C\uADF8\uC778\uD574 \uC8FC\uC138\uC694",
-    Singapore: "\uC2F1\uAC00\uD3EC\uB974",
-    "Smart multi-country top-ups": "\uC2A4\uB9C8\uD2B8 \uB2E4\uAD6D\uAC00 \uCDA9\uC804",
-    "South Korea": "\uD55C\uAD6D",
-    "Southeast Asia": "\uB3D9\uB0A8\uC544\uC2DC\uC544",
-    Spain: "\uC2A4\uD398\uC778",
-    "State / Province": "\uC8FC/\uB3C4",
-    "State is required": "\uC8FC/\uB3C4\uB97C \uC785\uB825\uD574 \uC8FC\uC138\uC694",
-    "Stay connected in major cities and more": "\uC8FC\uC694 \uB3C4\uC2DC\uB97C \uBE44\uB86F\uD55C \uB2E4\uC591\uD55C \uC9C0\uC5ED\uC5D0\uC11C \uC5F0\uACB0\uC744 \uC720\uC9C0\uD574 \uBCF4\uC138\uC694",
-    "Step-by-step guide": "\uB2E8\uACC4\uBCC4 \uC548\uB0B4",
-    Store: "\uC2A4\uD1A0\uC5B4",
-    Subtotal: "\uC18C\uACC4",
-    Summary: "\uC694\uC57D",
-    Support: "\uACE0\uAC1D \uC9C0\uC6D0",
-    "Support:": "\uACE0\uAC1D \uC9C0\uC6D0:",
-    "Supported devices": "\uC9C0\uC6D0 \uAE30\uAE30",
-    TBC: "\uCD94\uD6C4 \uC548\uB0B4",
-    Taiwan: "\uB300\uB9CC",
-    Tax: "\uC138\uAE08",
-    Terms: "\uC57D\uAD00",
-    "Terms of Service": "\uC11C\uBE44\uC2A4 \uC774\uC6A9\uC57D\uAD00",
-    Thailand: "\uD0DC\uAD6D",
-    "The product tied to this code is currently unavailable. Please contact support.": "\uC774 \uCF54\uB4DC\uC5D0 \uC5F0\uACB0\uB41C \uC0C1\uD488\uC740 \uD604\uC7AC \uC774\uC6A9\uD560 \uC218 \uC5C6\uC5B4\uC694. \uACE0\uAC1D \uC9C0\uC6D0\uC5D0 \uBB38\uC758\uD574 \uC8FC\uC138\uC694.",
-    "This code has already been redeemed.": "\uC774\uBBF8 \uAD50\uD658\uB41C \uCF54\uB4DC\uC608\uC694.",
-    "This code has reached its redemption limit.": "\uC774 \uCF54\uB4DC\uB294 \uAD50\uD658 \uAC00\uB2A5 \uD69F\uC218\uAC00 \uBAA8\uB450 \uC18C\uC9C4\uB418\uC5C8\uC5B4\uC694.",
-    "This code is assigned to a different account.": "\uC774 \uCF54\uB4DC\uB294 \uB2E4\uB978 \uACC4\uC815\uC5D0 \uD560\uB2F9\uB418\uC5B4 \uC788\uC5B4\uC694.",
-    "This code is invalid or expired. Please double-check and try again.": "\uC720\uD6A8\uD558\uC9C0 \uC54A\uAC70\uB098 \uB9CC\uB8CC\uB41C \uCF54\uB4DC\uC608\uC694. \uB2E4\uC2DC \uD655\uC778\uD55C \uD6C4 \uC2DC\uB3C4\uD574 \uC8FC\uC138\uC694.",
-    "This install code has expired \u2014 contact support to reissue it.": "\uC774 \uC124\uCE58 \uCF54\uB4DC\uB294 \uB9CC\uB8CC\uB418\uC5C8\uC5B4\uC694. \uC7AC\uBC1C\uAE09\uC744 \uC704\uD574 \uACE0\uAC1D \uC9C0\uC6D0\uC5D0 \uBB38\uC758\uD574 \uC8FC\uC138\uC694.",
-    "This order is still waiting for fulfillment details. Refresh later or reopen it from the order archive.": "\uC774 \uC8FC\uBB38\uC740 \uC544\uC9C1 \uC900\uBE44 \uC815\uBCF4\uAC00 \uB4F1\uB85D\uB418\uC9C0 \uC54A\uC558\uC5B4\uC694. \uC7A0\uC2DC \uD6C4 \uC0C8\uB85C\uACE0\uCE68\uD558\uAC70\uB098 \uC9C0\uB09C \uC8FC\uBB38\uC5D0\uC11C \uB2E4\uC2DC \uC5F4\uC5B4 \uC8FC\uC138\uC694.",
-    "This plan does not confirm hotspot sharing.": "\uC774 \uC694\uAE08\uC81C\uB294 \uD56B\uC2A4\uD31F \uACF5\uC720 \uC9C0\uC6D0\uC774 \uD655\uC778\uB418\uC9C0 \uC54A\uC558\uC5B4\uC694.",
-    Timezone: "\uC2DC\uAC04\uB300",
-    "Top up & Data plans": "\uCDA9\uC804 \uBC0F \uB370\uC774\uD130 \uC694\uAE08\uC81C",
-    Total: "\uD569\uACC4",
-    "Track package": "\uBC30\uC1A1 \uC870\uD68C",
-    "Track your order": "\uC8FC\uBB38 \uBC30\uC1A1 \uC870\uD68C",
-    "Travel Cart": "\uC5EC\uD589 \uC7A5\uBC14\uAD6C\uB2C8",
-    "Travel Credits": "\uD2B8\uB798\uBE14 \uD06C\uB808\uB527",
-    "Travel bundle": "\uC5EC\uD589 \uBC88\uB4E4",
-    "Trip changed or running low mid-journey? Add a data pack without reinstalling.": "\uC5EC\uD589 \uC77C\uC815\uC774 \uBC14\uB00C\uC5C8\uAC70\uB098 \uB3C4\uC911\uC5D0 \uB370\uC774\uD130\uAC00 \uBD80\uC871\uD55C\uAC00\uC694? \uB2E4\uC2DC \uC124\uCE58\uD558\uC9C0 \uC54A\uACE0\uB3C4 \uB370\uC774\uD130 \uD329\uC744 \uCD94\uAC00\uD560 \uC218 \uC788\uC5B4\uC694.",
-    "Try Again": "\uB2E4\uC2DC \uC2DC\uB3C4",
-    "Try the example trip": "\uC608\uC2DC \uC5EC\uD589 \uC801\uC6A9\uD574 \uBCF4\uAE30",
-    Type: "\uC720\uD615",
-    "Type your message\u2026": "\uBA54\uC2DC\uC9C0 \uC785\uB825\u2026",
-    "Typing\u2026": "\uC785\uB825 \uC911\u2026",
-    "Unable to load orders.": "\uC8FC\uBB38\uC744 \uBD88\uB7EC\uC62C \uC218 \uC5C6\uC5B4\uC694.",
-    "United Arab Emirates": "\uC544\uB78D\uC5D0\uBBF8\uB9AC\uD2B8",
-    "United Kingdom": "\uC601\uAD6D",
-    "United States": "\uBBF8\uAD6D",
-    Unlimited: "\uBB34\uC81C\uD55C",
-    "Unlocked iPhone and Android devices with eSIM support": "eSIM\uC744 \uC9C0\uC6D0\uD558\uB294 \uC790\uAE09\uC81C iPhone \uBC0F Android \uAE30\uAE30",
-    "Upcoming Trips": "\uC608\uC815\uB41C \uC5EC\uD589",
-    Uptime: "\uAC00\uB3D9 \uC2DC\uAC04",
-    Usage: "\uC0AC\uC6A9",
-    "Usage mode": "\uC0AC\uC6A9 \uBAA8\uB4DC",
-    "Use my existing eSIM": "\uAE30\uC874 eSIM \uC0AC\uC6A9\uD558\uAE30",
-    Validity: "\uC720\uD6A8\uAE30\uAC04",
-    "Validity covers the whole trip": "\uC720\uD6A8\uAE30\uAC04\uC774 \uC5EC\uD589 \uC804\uCCB4\uB97C \uCEE4\uBC84\uD574\uC694",
-    "Validity to be confirmed": "\uC720\uD6A8\uAE30\uAC04 \uCD94\uD6C4 \uC548\uB0B4",
-    "Video meetings": "\uD654\uC0C1 \uD68C\uC758",
-    Vietnam: "\uBCA0\uD2B8\uB0A8",
-    "View Details": "\uC0C1\uC138 \uBCF4\uAE30",
-    "View and manage your orders": "\uC8FC\uBB38\uC744 \uD655\uC778\uD558\uACE0 \uAD00\uB9AC\uD574 \uBCF4\uC138\uC694",
-    "View coverage & plans": "\uCEE4\uBC84\uB9AC\uC9C0 \uBC0F \uC694\uAE08\uC81C \uBCF4\uAE30",
-    "View eSIM details": "eSIM \uC0C1\uC138 \uBCF4\uAE30",
-    "Visit Help Center": "\uB3C4\uC6C0\uB9D0 \uC13C\uD130 \uBC14\uB85C\uAC00\uAE30",
-    "We could not prepare your install session yet.": "\uC544\uC9C1 \uC124\uCE58 \uC138\uC158\uC744 \uC900\uBE44\uD558\uC9C0 \uBABB\uD588\uC5B4\uC694.",
-    "We could not prepare your shipment yet.": "\uC544\uC9C1 \uBC30\uC1A1 \uC900\uBE44\uB97C \uD558\uC9C0 \uBABB\uD588\uC5B4\uC694.",
-    "What if I never activate the eSIM?": "eSIM\uC744 \uD65C\uC131\uD654\uD558\uC9C0 \uC54A\uC73C\uBA74 \uC5B4\uB5BB\uAC8C \uB418\uB098\uC694?",
-    "When does validity start counting?": "\uC720\uD6A8\uAE30\uAC04\uC740 \uC5B8\uC81C\uBD80\uD130 \uACC4\uC0B0\uB418\uB098\uC694?",
-    "Why Bokmoo eSIM": "Bokmoo eSIM\uC744 \uC120\uD0DD\uD558\uB294 \uC774\uC720",
-    "Works with the BOKMOO app": "BOKMOO \uC571\uC5D0\uC11C \uC0AC\uC6A9\uD560 \uC218 \uC788\uC5B4\uC694",
-    "Yes. Your existing order stays valid; the planner re-checks coverage and tells you exactly which new stop needs its own plan.": "\uB124, \uAC00\uB2A5\uD574\uC694. \uAE30\uC874 \uC8FC\uBB38\uC740 \uADF8\uB300\uB85C \uC720\uD6A8\uD558\uBA70, \uD50C\uB798\uB108\uAC00 \uCEE4\uBC84\uB9AC\uC9C0\uB97C \uB2E4\uC2DC \uD655\uC778\uD574 \uC0C8\uB85C \uCD94\uAC00\uD55C \uACBD\uC720\uC9C0 \uC911 \uC5B4\uB5A4 \uACF3\uC5D0 \uBCC4\uB3C4 \uC694\uAE08\uC81C\uAC00 \uD544\uC694\uD55C\uC9C0 \uC815\uD655\uD788 \uC54C\uB824 \uB4DC\uB824\uC694.",
-    "Your BOKMOO card, in your pocket.": "\uC8FC\uBA38\uB2C8 \uC18D BOKMOO \uCE74\uB4DC.",
-    "Your activation session expired before installation completed.": "\uC124\uCE58\uB97C \uC644\uB8CC\uD558\uAE30 \uC804\uC5D0 \uD65C\uC131\uD654 \uC138\uC158\uC774 \uB9CC\uB8CC\uB418\uC5C8\uC5B4\uC694.",
-    "Your booked experiences": "\uC608\uC57D\uD55C \uCCB4\uD5D8",
-    "Your card is being prepared for shipment": "\uCE74\uB4DC \uBC30\uC1A1 \uC900\uBE44 \uC911\uC774\uC5D0\uC694",
-    "Your carrier and tracking updates appear here after dispatch.": "\uD0DD\uBC30\uC0AC\uC640 \uBC30\uC1A1 \uCD94\uC801 \uC815\uBCF4\uB294 \uBC1C\uC1A1 \uD6C4 \uC5EC\uAE30\uC5D0 \uD45C\uC2DC\uB3FC\uC694.",
-    "Your cart is empty.": "\uC7A5\uBC14\uAD6C\uB2C8\uAC00 \uBE44\uC5B4 \uC788\uC5B4\uC694.",
-    "Your eSIM is ready to install.": "eSIM\uC744 \uC124\uCE58\uD560 \uC900\uBE44\uAC00 \uB418\uC5C8\uC5B4\uC694.",
-    "Your order is paid. We are packing your Bokmoo Card now \u2014 you will get a shipping confirmation with tracking, and it should arrive within a few business days.": "\uC8FC\uBB38 \uACB0\uC81C\uAC00 \uC644\uB8CC\uB418\uC5C8\uC5B4\uC694. \uC9C0\uAE08 Bokmoo \uCE74\uB4DC\uB97C \uD3EC\uC7A5\uD558\uACE0 \uC788\uC5B4\uC694. \uCD94\uC801 \uC815\uBCF4\uAC00 \uB2F4\uAE34 \uBC30\uC1A1 \uC548\uB0B4 \uBA54\uC77C\uC744 \uBCF4\uB0B4 \uB4DC\uB9AC\uBA70, \uC601\uC5C5\uC77C \uAE30\uC900 \uBA70\uCE60 \uB0B4\uC5D0 \uBC1B\uC544\uBCFC \uC218 \uC788\uC5B4\uC694.",
-    "Your order is paid. We are preparing the install session now.": "\uC8FC\uBB38 \uACB0\uC81C\uAC00 \uC644\uB8CC\uB418\uC5C8\uC5B4\uC694. \uC9C0\uAE08 \uC124\uCE58 \uC138\uC158\uC744 \uC900\uBE44\uD558\uACE0 \uC788\uC5B4\uC694.",
-    "Your package has been added to your eSIM.": "\uD328\uD0A4\uC9C0\uAC00 eSIM\uC5D0 \uCD94\uAC00\uB418\uC5C8\uC5B4\uC694.",
-    d: "\uC77C",
-    "daily average": "\uC77C\uC77C \uD3C9\uADE0",
-    "data included": "\uD3EC\uD568 \uB370\uC774\uD130",
-    "day(s)": "\uC77C",
-    days: "\uC77C",
-    destinations: "\uBAA9\uC801\uC9C0",
-    "e.g. BOKMOO10": "\uC608: BOKMOO10",
-    "e.g. ESIM-JP-7D": "\uC608: ESIM-JP-7D",
-    eSIM: "eSIM",
-    "eSIM ICCID": "eSIM ICCID",
-    "eSIM Plans": "eSIM \uC694\uAE08\uC81C",
-    "eSIM activation": "eSIM \uD65C\uC131\uD654",
-    "eSIM plans built for every journey.": "\uBAA8\uB4E0 \uC5EC\uC815\uC744 \uC704\uD55C eSIM \uC694\uAE08\uC81C.",
-    en: "en",
-    "iPhone and Android devices": "iPhone \uBC0F Android \uAE30\uAE30",
-    "iPhone and Android devices with eSIM support": "eSIM\uC744 \uC9C0\uC6D0\uD558\uB294 iPhone \uBC0F Android \uAE30\uAE30",
-    "iPhone: point the camera at the QR code. Other phones: Settings \u2192 Network \u2192 Add eSIM.": "iPhone: \uCE74\uBA54\uB77C\uB85C QR \uCF54\uB4DC\uB97C \uC2A4\uCE94\uD558\uC138\uC694. \uADF8 \uC678 \uD734\uB300\uD3F0: \uC124\uC815 \u2192 \uB124\uD2B8\uC6CC\uD06C \u2192 eSIM \uCD94\uAC00.",
-    "instant delivery": "\uC989\uC2DC \uBC1C\uAE09",
-    "local network": "\uB85C\uCEEC \uB124\uD2B8\uC6CC\uD06C",
-    months: "\uAC1C\uC6D4",
-    "one eSIM.": "eSIM \uD558\uB098.",
-    plans: "\uC694\uAE08\uC81C",
-    selected: "\uC120\uD0DD\uB428",
-    validity: "\uC720\uD6A8\uAE30\uAC04",
-    weeks: "\uC8FC",
-    ".": ".",
-    ". All rights reserved.": ". \uBAA8\uB4E0 \uAD8C\uB9AC \uBCF4\uC720.",
-    "Acceptance of Terms": "\uC57D\uAD00 \uB3D9\uC758",
-    Active: "\uD65C\uC131",
-    Add: "\uCD94\uAC00",
-    "Affiliate data could not be loaded": "\uC81C\uD734 \uB370\uC774\uD130\uB97C \uBD88\uB7EC\uC62C \uC218 \uC5C6\uC5B4\uC694",
-    "Affiliate view": "\uC81C\uD734 \uBCF4\uAE30",
-    "Affiliate workspace": "\uC81C\uD734 \uC6CC\uD06C\uC2A4\uD398\uC774\uC2A4",
-    "All payments are final and non-refundable unless required by law.": "\uBC95\uB839\uC73C\uB85C \uC815\uD55C \uACBD\uC6B0\uB97C \uC81C\uC678\uD558\uBA74 \uBAA8\uB4E0 \uACB0\uC81C\uB294 \uD658\uBD88\uB418\uC9C0 \uC54A\uC544\uC694.",
-    "Already have an account?": "\uC774\uBBF8 \uACC4\uC815\uC774 \uC788\uB098\uC694?",
-    Approved: "\uC2B9\uC778\uB428",
-    "Authentication failed": "\uC778\uC99D\uC5D0 \uC2E4\uD328\uD588\uC5B4\uC694",
-    "BOKMOO eSIM Card": "BOKMOO eSIM \uCE74\uB4DC",
-    "BOKMOO is not liable for any indirect, incidental, or consequential damages.": "BOKMOO\uB294 \uAC04\uC811\uC801\xB7\uC6B0\uBC1C\uC801\xB7\uACB0\uACFC\uC801 \uC190\uD574\uC5D0 \uB300\uD574 \uCC45\uC784\uC744 \uC9C0\uC9C0 \uC54A\uC544\uC694.",
-    "Back home": "\uD648\uC73C\uB85C",
-    "Back to sign in": "\uB85C\uADF8\uC778\uC73C\uB85C \uB3CC\uC544\uAC00\uAE30",
-    "Better Nights": "\uB354 \uB098\uC740 \uBC24",
-    "Brighter Journeys": "\uB354 \uBC1D\uC740 \uC5EC\uC815",
-    "Browse BOKMOO plans by destination and travel region.": "\uBAA9\uC801\uC9C0\uC640 \uC5EC\uD589 \uC9C0\uC5ED\uBCC4\uB85C BOKMOO \uC694\uAE08\uC81C\uB97C \uB458\uB7EC\uBCF4\uC138\uC694.",
-    "By accessing or using the BOKMOO website and services, you agree to be bound by these Terms of Service.": "BOKMOO \uC6F9\uC0AC\uC774\uD2B8\uC640 \uC11C\uBE44\uC2A4\uC5D0 \uC811\uADFC\uD558\uAC70\uB098 \uC774\uC6A9\uD558\uBA74 \uC774 \uC11C\uBE44\uC2A4 \uC774\uC6A9\uC57D\uAD00\uC5D0 \uB3D9\uC758\uD55C \uAC83\uC73C\uB85C \uAC04\uC8FC\uB3FC\uC694.",
-    "Change password": "\uBE44\uBC00\uBC88\uD638 \uBCC0\uACBD",
-    "Commission rate": "\uCEE4\uBBF8\uC158 \uBE44\uC728",
-    "Completing sign in": "\uB85C\uADF8\uC778\uC744 \uC644\uB8CC\uD558\uB294 \uC911",
-    Confirm: "\uD655\uC778",
-    "Continue to your orders, profiles, and activation workspace.": "\uC8FC\uBB38, \uD504\uB85C\uD544, \uD65C\uC131\uD654 \uAD00\uB9AC \uD398\uC774\uC9C0\uB85C \uACC4\uC18D \uC9C4\uD589\uD574\uC694.",
-    Copied: "\uBCF5\uC0AC\uB428",
-    "Copy link": "\uB9C1\uD06C \uBCF5\uC0AC",
-    "Create account": "\uACC4\uC815 \uB9CC\uB4E4\uAE30",
-    "Create affiliate account": "\uC81C\uD734 \uACC4\uC815 \uB9CC\uB4E4\uAE30",
-    "Create organization": "\uC870\uC9C1 \uB9CC\uB4E4\uAE30",
-    "Create the account your eSIMs follow.": "\uBAA8\uB4E0 eSIM\uC774 \uB530\uB77C\uC624\uB294 \uACC4\uC815\uC744 \uB9CC\uB4E4\uC5B4 \uBCF4\uC138\uC694.",
-    Creating: "\uC0DD\uC131 \uC911\u2026",
-    "Creator network.": "\uD06C\uB9AC\uC5D0\uC774\uD130 \uB124\uD2B8\uC6CC\uD06C.",
-    "Current password": "\uD604\uC7AC \uBE44\uBC00\uBC88\uD638",
-    "Data Protection": "\uB370\uC774\uD130 \uBCF4\uD638",
-    "Default option": "\uAE30\uBCF8 \uC635\uC158",
-    "Deselect item": "\uC120\uD0DD \uCDE8\uC18C",
-    "Display name": "\uD45C\uC2DC \uC774\uB984",
-    Earned: "\uD68D\uB4DD\uC561",
-    Email: "\uC774\uBA54\uC77C",
-    Expired: "\uB9CC\uB8CC\uB428",
-    "Explore destination eSIMs": "\uBAA9\uC801\uC9C0\uBCC4 eSIM \uB458\uB7EC\uBCF4\uAE30",
-    "Forgot password": "\uBE44\uBC00\uBC88\uD638\uB97C \uC78A\uC73C\uC168\uB098\uC694?",
-    "Get help fast": "\uBE60\uB974\uAC8C \uB3C4\uC6C0 \uBC1B\uAE30",
-    "Hide password": "\uBE44\uBC00\uBC88\uD638 \uC228\uAE30\uAE30",
-    "Hover a store button (or scan the card QR) to download.": "\uC2A4\uD1A0\uC5B4 \uBC84\uD2BC\uC5D0 \uB9C8\uC6B0\uC2A4\uB97C \uC62C\uB9AC\uAC70\uB098 \uCE74\uB4DC\uC758 QR \uCF54\uB4DC\uB97C \uC2A4\uCE94\uD558\uBA74 \uB2E4\uC6B4\uB85C\uB4DC\uD560 \uC218 \uC788\uC5B4\uC694.",
-    "How We Use Information": "\uC815\uBCF4 \uC774\uC6A9 \uC548\uB0B4",
-    "How it works": "\uC774\uC6A9 \uBC29\uBC95",
-    Inactive: "\uBE44\uD65C\uC131",
-    Influencer: "\uC778\uD50C\uB8E8\uC5B8\uC11C",
-    "Information We Collect": "\uC218\uC9D1\uD558\uB294 \uC815\uBCF4",
-    "Instant QR delivery after payment": "\uACB0\uC81C \uD6C4 QR \uCF54\uB4DC \uC989\uC2DC \uBC1C\uAE09",
-    "Keep access secure between trips.": "\uC5EC\uD589 \uC0AC\uC774\uC5D0\uB3C4 \uACC4\uC815 \uC811\uADFC\uC744 \uC548\uC804\uD558\uAC8C \uC720\uC9C0\uD558\uC138\uC694.",
-    "Keep orders, activation codes, profile history, and support cases attached to one BOKMOO identity.": "\uC8FC\uBB38, \uD65C\uC131\uD654 \uCF54\uB4DC, \uD504\uB85C\uD544 \uAE30\uB85D, \uBB38\uC758 \uB0B4\uC5ED\uC744 \uD558\uB098\uC758 BOKMOO \uACC4\uC815\uC73C\uB85C \uAD00\uB9AC\uD574\uC694.",
-    "Keep your BOKMOO account ready for the next trip.": "\uB2E4\uC74C \uC5EC\uD589\uC744 \uC704\uD574 BOKMOO \uACC4\uC815\uC744 \uC900\uBE44\uD574 \uB450\uC138\uC694.",
-    "Last updated: April 15, 2024": "\uCD5C\uC885 \uC5C5\uB370\uC774\uD2B8: 2024\uB144 4\uC6D4 15\uC77C",
-    "Limitation of Liability": "\uCC45\uC784 \uC81C\uD55C",
-    "Manage BOKMOO eSIM profiles, orders, and activation details from the same black-and-gold travel control surface.": "\uBE14\uB799 \uC564 \uACE8\uB4DC \uC5EC\uD589 \uC81C\uC5B4 \uD654\uBA74\uC5D0\uC11C BOKMOO eSIM \uD504\uB85C\uD544, \uC8FC\uBB38, \uD65C\uC131\uD654 \uC815\uBCF4\uB97C \uD55C\uACF3\uC5D0\uC11C \uAD00\uB9AC\uD574\uC694.",
-    "Manage eSIMs": "eSIM \uAD00\uB9AC",
-    Manager: "\uAD00\uB9AC\uC790",
-    "Member could not be added": "\uBA64\uBC84\uB97C \uCD94\uAC00\uD560 \uC218 \uC5C6\uC5B4\uC694",
-    "Member email": "\uBA64\uBC84 \uC774\uBA54\uC77C",
-    "New password": "\uC0C8 \uBE44\uBC00\uBC88\uD638",
-    "No commissions yet": "\uC544\uC9C1 \uCEE4\uBBF8\uC158\uC774 \uC5C6\uC5B4\uC694",
-    "No region collections are available yet.": "\uC544\uC9C1 \uC9C0\uC5ED \uBAA8\uC74C\uC774 \uC5C6\uC5B4\uC694.",
-    "One Card.\nGlobal Connection.": "\uCE74\uB4DC \uD55C \uC7A5\uC73C\uB85C.\n\uC804 \uC138\uACC4 \uC5B4\uB514\uC11C\uB098 \uC5F0\uACB0.",
-    "One eSIM for the whole trip \u2014 pick your destinations and go.": "\uC5EC\uD589 \uB0B4\uB0B4 \uB2E8 \uD558\uB098\uC758 eSIM. \uBAA9\uC801\uC9C0\uB97C \uACE0\uB974\uACE0 \uB5A0\uB098\uC138\uC694.",
-    Organization: "\uC870\uC9C1",
-    "Organization affiliate": "\uC870\uC9C1 \uC81C\uD734",
-    "Organization code (optional)": "\uC870\uC9C1 \uCF54\uB4DC (\uC120\uD0DD)",
-    "Organization commissions": "\uC870\uC9C1 \uCEE4\uBBF8\uC158",
-    "Organization could not be created": "\uC870\uC9C1\uC744 \uB9CC\uB4E4 \uC218 \uC5C6\uC5B4\uC694",
-    "Organization data could not be loaded": "\uC870\uC9C1 \uB370\uC774\uD130\uB97C \uBD88\uB7EC\uC62C \uC218 \uC5C6\uC5B4\uC694",
-    "Organization name": "\uC870\uC9C1 \uC774\uB984",
-    Partner: "\uD30C\uD2B8\uB108",
-    "Partner commissions": "\uD30C\uD2B8\uB108 \uCEE4\uBBF8\uC158",
-    Password: "\uBE44\uBC00\uBC88\uD638",
-    "Passwords do not match": "\uBE44\uBC00\uBC88\uD638\uAC00 \uC77C\uCE58\uD558\uC9C0 \uC54A\uC544\uC694",
-    "Personal affiliate": "\uAC1C\uC778 \uC81C\uD734",
-    "Powered by": "Powered by",
-    Profiles: "\uD504\uB85C\uD544",
-    "Protected traveler identity": "\uBCF4\uD638\uB418\uB294 \uC5EC\uD589\uC790 \uC2E0\uC6D0",
-    "Purchases and Payments": "\uAD6C\uB9E4 \uBC0F \uACB0\uC81C",
-    "Questions about setup? Contact": "\uC124\uC815\uC5D0 \uB300\uD574 \uAD81\uAE08\uD55C \uC810\uC774 \uC788\uB098\uC694? \uBB38\uC758:",
-    Rate: "\uBE44\uC728",
-    Refresh: "\uC0C8\uB85C\uACE0\uCE68",
-    "Region Collections": "\uC9C0\uC5ED \uBAA8\uC74C",
-    "Registration failed": "\uB4F1\uB85D\uC5D0 \uC2E4\uD328\uD588\uC5B4\uC694",
-    SAMPLE: "\uC0D8\uD50C",
-    "Save profile": "\uD504\uB85C\uD544 \uC800\uC7A5",
-    "Saving...": "\uC800\uC7A5 \uC911...",
-    "Secure account access": "\uC548\uC804\uD55C \uACC4\uC815 \uC811\uADFC",
-    "Securing your session and returning you to the BOKMOO storefront.": "\uC138\uC158\uC744 \uBCF4\uD638\uD55C \uB4A4 BOKMOO \uC2A4\uD1A0\uC5B4\uB85C \uB3CC\uC544\uAC00\uC694.",
-    "Select item": "\uC120\uD0DD",
-    "Shop eSIM Plans": "eSIM \uC694\uAE08\uC81C \uBCF4\uAE30",
-    "Show password": "\uBE44\uBC00\uBC88\uD638 \uD45C\uC2DC",
-    "Sign in": "\uB85C\uADF8\uC778",
-    "Sign in before your next border.": "\uB2E4\uC74C \uAD6D\uACBD\uC744 \uB118\uAE30 \uC804\uC5D0 \uB85C\uADF8\uC778\uD574 \uB450\uC138\uC694.",
-    "Sign in to manage your account": "\uACC4\uC815\uC744 \uAD00\uB9AC\uD558\uB824\uBA74 \uB85C\uADF8\uC778\uD574 \uC8FC\uC138\uC694",
-    "Signing in": "\uB85C\uADF8\uC778 \uC911\u2026",
-    "Start with a secure profile for purchases and global activation support.": "\uAD6C\uB9E4\uC640 \uAE00\uB85C\uBC8C \uD65C\uC131\uD654 \uC9C0\uC6D0\uC744 \uC704\uD55C \uC548\uC804\uD55C \uD504\uB85C\uD544\uBD80\uD130 \uC2DC\uC791\uD574\uC694.",
-    Suspended: "\uC77C\uC2DC \uC815\uC9C0",
-    "Track purchases": "\uAD6C\uB9E4 \uB0B4\uC5ED \uD655\uC778",
-    "Traveler profile": "\uC5EC\uD589\uC790 \uD504\uB85C\uD544",
-    "Unable to load Bokmoo plans.": "Bokmoo \uC694\uAE08\uC81C\uB97C \uBD88\uB7EC\uC62C \uC218 \uC5C6\uC5B4\uC694.",
-    "Updating...": "\uC5C5\uB370\uC774\uD2B8 \uC911...",
-    "Use of Services": "\uC11C\uBE44\uC2A4 \uC774\uC6A9",
-    Used: "\uC0AC\uC6A9\uB428",
-    "View category": "\uCE74\uD14C\uACE0\uB9AC \uBCF4\uAE30",
-    "We collect information you provide directly to us, such as when you create an account or make a purchase.": "\uACC4\uC815\uC744 \uB9CC\uB4E4\uAC70\uB098 \uAD6C\uB9E4\uD560 \uB54C\uCC98\uB7FC \uC774\uC6A9\uC790\uAC00 \uC9C1\uC811 \uC81C\uACF5\uD558\uB294 \uC815\uBCF4\uB97C \uC218\uC9D1\uD574\uC694.",
-    "We implement appropriate security measures to protect your data.": "\uC774\uC6A9\uC790\uC758 \uB370\uC774\uD130\uB97C \uBCF4\uD638\uD558\uAE30 \uC704\uD574 \uC801\uC808\uD55C \uBCF4\uC548 \uC870\uCE58\uB97C \uC2DC\uD589\uD574\uC694.",
-    "We use the information to provide, maintain, and improve our services.": "\uC218\uC9D1\uD55C \uC815\uBCF4\uB294 \uC11C\uBE44\uC2A4 \uC81C\uACF5\xB7\uC720\uC9C0\xB7\uAC1C\uC120\uC744 \uC704\uD574 \uC0AC\uC6A9\uD574\uC694.",
-    "Welcome back": "\uB2E4\uC2DC \uC624\uC2E0 \uAC83\uC744 \uD658\uC601\uD574\uC694",
-    "You agree to use our services only for lawful purposes and in accordance with these Terms.": "\uB2F9\uC0AC\uC758 \uC11C\uBE44\uC2A4\uB97C \uC801\uBC95\uD55C \uBAA9\uC801\uC73C\uB85C\uB9CC, \uADF8\uB9AC\uACE0 \uC774 \uC57D\uAD00\uC5D0 \uB530\uB77C\uC11C\uB9CC \uC774\uC6A9\uD558\uB294 \uB370 \uB3D9\uC758\uD574\uC694.",
-    "You have the right to access, update, or delete your personal information.": "\uC774\uC6A9\uC790\uB294 \uC790\uC2E0\uC758 \uAC1C\uC778\uC815\uBCF4\uC5D0 \uC811\uADFC\uD558\uAC70\uB098 \uC218\uC815\xB7\uC0AD\uC81C\uD560 \uAD8C\uB9AC\uAC00 \uC788\uC5B4\uC694.",
-    "Your Rights": "\uC774\uC6A9\uC790\uC758 \uAD8C\uB9AC",
-    "Your referral ledger.": "\uB098\uC758 \uCD94\uCC9C \uB0B4\uC5ED.",
-    "already with us": "\uC774\uBBF8 \uAC00\uC785\uD558\uC168\uB098\uC694",
-    "or email": "\uB610\uB294 \uC774\uBA54\uC77C\uB85C",
-    "organization rate": "\uC870\uC9C1 \uCEE4\uBBF8\uC158 \uBE44\uC728",
-    "Group destination-ready plans into clearer regional entry points.": "\uBAA9\uC801\uC9C0\uBCC4 \uC694\uAE08\uC81C\uB97C \uC9C0\uC5ED\uBCC4\uB85C \uD55C\uB208\uC5D0 \uBCFC \uC218 \uC788\uAC8C \uBB36\uC5B4\uC694."
-  };
-
-  // src/i18n/index.ts
-  var THEME_MESSAGES = { ja: ja_default, ko: ko_default, fr: fr_default, de: de_default };
-  function isCatalogLocale(locale) {
-    return locale === "ja" || locale === "ko" || locale === "fr" || locale === "de";
-  }
-  function themeMessage(locale, english) {
-    if (!isCatalogLocale(locale)) return null;
-    const hit = THEME_MESSAGES[locale][english];
-    return typeof hit === "string" && hit ? hit : null;
-  }
-
-  // src/site.ts
-  function zhModeOf(locale) {
-    if (locale === "zh-Hant") return "zh-Hant";
-    if (locale === "zh-Hans") return "zh-Hans";
-    return null;
-  }
-  function pickCopy(locale, copy) {
-    const catalog = copy.en ? themeMessage(locale, copy.en) : null;
-    if (locale === "ja") return copy.ja ?? catalog ?? copy.en;
-    if (locale === "ko") return copy.ko ?? catalog ?? copy.en;
-    if (locale === "fr") return copy.fr ?? catalog ?? copy.en;
-    if (locale === "de") return copy.de ?? catalog ?? copy.en;
-    const mode = zhModeOf(locale);
-    if (mode === "zh-Hant") return copy.hant ?? copy.en;
-    if (mode === "zh-Hans") return copy.hans ?? copy.hant ?? copy.en;
-    return copy.en;
-  }
-  function catalogCopy(locale, english) {
-    return themeMessage(locale, english) ?? english;
-  }
-  function pickLocalized(configured, englishDefault, zhHans, zhHant, locale) {
-    const value = configured?.trim();
-    if (value && value !== englishDefault) return value;
-    const mode = zhModeOf(locale);
-    if (mode === "zh-Hant") return zhHant;
-    if (mode === "zh-Hans") return zhHans;
-    return themeMessage(locale, englishDefault) ?? englishDefault;
-  }
-  function resolveEsimSiteConfig(config, locale) {
-    const brandName = config?.brand?.name?.trim() || "BOKMOO";
-    const siteConfig = config?.site || {};
-    const englishSubheadline = `Use multiple eSIM profiles on your ${brandName} card. Stay connected in 200+ countries.`;
-    const SUBHEADLINE_FRAMES = {
-      ja: (brand) => `${brand} \u30AB\u30FC\u30C9\u3067\u8907\u6570\u306E eSIM \u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3092\u5229\u7528\u3002200 \u4EE5\u4E0A\u306E\u56FD\u30FB\u5730\u57DF\u3067\u3064\u306A\u304C\u308A\u7D9A\u3051\u3089\u308C\u307E\u3059\u3002`,
-      ko: (brand) => `${brand} \uCE74\uB4DC\uC5D0\uC11C \uC5EC\uB7EC eSIM \uD504\uB85C\uD544\uC744 \uC0AC\uC6A9\uD558\uC138\uC694. 200\uAC1C \uC774\uC0C1\uC758 \uAD6D\uAC00\xB7\uC9C0\uC5ED\uC5D0\uC11C \uC5F0\uACB0\uC744 \uC720\uC9C0\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.`,
-      fr: (brand) => `Utilisez plusieurs profils eSIM sur votre carte ${brand}. Restez connect\xE9 dans plus de 200 pays.`,
-      de: (brand) => `Nutzen Sie mehrere eSIM-Profile auf Ihrer ${brand}-Karte. Bleiben Sie in \xFCber 200 L\xE4ndern verbunden.`
-    };
-    const subheadlineFrame = locale && locale in SUBHEADLINE_FRAMES ? SUBHEADLINE_FRAMES[locale](brandName) : null;
-    const zhMode = zhModeOf(locale);
-    const defaultSubheadline = subheadlineFrame ?? (zhMode === "zh-Hant" ? `\u5728\u60A8\u7684 ${brandName} \u5361\u4E0A\u4F7F\u7528\u591A\u500B eSIM \u8A2D\u5B9A\u6A94\uFF0C200+ \u500B\u570B\u5BB6/\u5730\u5340\u4FDD\u6301\u9023\u7DDA\u3002` : zhMode === "zh-Hans" ? `\u5728\u60A8\u7684 ${brandName} \u5361\u4E0A\u4F7F\u7528\u591A\u4E2A eSIM \u914D\u7F6E\u6587\u4EF6\uFF0C200+ \u4E2A\u56FD\u5BB6/\u5730\u533A\u4FDD\u6301\u8FDE\u63A5\u3002` : englishSubheadline);
-    const customizedSubheadline = siteConfig.subheadline?.trim();
-    const subheadline = customizedSubheadline && customizedSubheadline !== englishSubheadline ? customizedSubheadline : defaultSubheadline;
-    return {
-      brandName,
-      eyebrow: pickLocalized(siteConfig.eyebrow, "BOKMOO eSIM Card", "BOKMOO eSIM \u5361", "BOKMOO eSIM \u5361", locale),
-      headline: pickLocalized(siteConfig.headline, "One Card.\nGlobal Connection.", "\u4E00\u5F20\u5361\u3002\n\u5168\u7403\u8FDE\u63A5\u3002", "\u4E00\u5F35\u5361\u3002\n\u5168\u7403\u9023\u7DDA\u3002", locale),
-      subheadline,
-      supportEmail: siteConfig.supportEmail?.trim() || "support@bokmoo.com",
-      primaryCtaLabel: pickLocalized(siteConfig.primaryCtaLabel, "Shop eSIM Plans", "\u9009\u8D2D eSIM \u65B9\u6848", "\u9078\u8CFC eSIM \u65B9\u6848", locale),
-      primaryCtaHref: siteConfig.primaryCtaHref?.trim() || "/products",
-      secondaryCtaLabel: pickLocalized(siteConfig.secondaryCtaLabel, "How it works", "\u4E86\u89E3\u4F7F\u7528\u65B9\u5F0F", "\u77AD\u89E3\u4F7F\u7528\u65B9\u5F0F", locale),
-      secondaryCtaHref: siteConfig.secondaryCtaHref?.trim() || "/#how-it-works",
-      apiBaseUrl: siteConfig.apiBaseUrl?.trim() || "https://api.bokmoo.com"
-    };
-  }
-  function isEsimPlanProduct(product) {
-    const source = product;
-    if (source?.typeData?.esim) return true;
-    return typeof source?.id === "string" && source.id.startsWith("boss-");
-  }
-  function filterEsimPlans(products) {
-    return (products || []).filter((product) => isEsimPlanProduct(product));
-  }
-
-  // src/lib/esim/order-copy.ts
-  var DATE_TAGS = {
-    "zh-Hans": "zh-CN",
-    "zh-Hant": "zh-TW",
-    ja: "ja-JP",
-    ko: "ko-KR",
-    fr: "fr-FR",
-    de: "de-DE"
-  };
-  function localeTag(locale) {
-    return locale && DATE_TAGS[locale] || "en-US";
-  }
-  function formatOrderDate(value, locale, withTime = true) {
-    const date = typeof value === "string" ? new Date(value) : value;
-    if (Number.isNaN(date.getTime())) return "";
-    return withTime ? date.toLocaleString(localeTag(locale)) : date.toLocaleDateString(localeTag(locale));
-  }
-  var ORDER_STATUS = {
-    PENDING: { en: "Pending payment", hans: "\u5F85\u652F\u4ED8", hant: "\u5F85\u4ED8\u6B3E", ja: "\u652F\u6255\u3044\u5F85\u3061", ko: "\uACB0\uC81C \uB300\uAE30", fr: "En attente de paiement", de: "Zahlung ausstehend" },
-    PAID: { en: "Paid", hans: "\u5DF2\u652F\u4ED8", hant: "\u5DF2\u4ED8\u6B3E", ja: "\u652F\u6255\u3044\u6E08\u307F", ko: "\uACB0\uC81C \uC644\uB8CC", fr: "Pay\xE9", de: "Bezahlt" },
-    PROCESSING: { en: "Processing", hans: "\u5904\u7406\u4E2D", hant: "\u8655\u7406\u4E2D", ja: "\u51E6\u7406\u4E2D", ko: "\uCC98\uB9AC \uC911", fr: "En cours", de: "In Bearbeitung" },
-    SHIPPED: { en: "Shipped", hans: "\u5DF2\u53D1\u8D27", hant: "\u5DF2\u51FA\u8CA8", ja: "\u767A\u9001\u6E08\u307F", ko: "\uBC30\uC1A1\uB428", fr: "Exp\xE9di\xE9", de: "Versendet" },
-    DELIVERED: { en: "Delivered", hans: "\u5DF2\u4EA4\u4ED8", hant: "\u5DF2\u4EA4\u4ED8", ja: "\u5B8C\u4E86", ko: "\uC644\uB8CC", fr: "Livr\xE9", de: "Zugestellt" },
-    COMPLETED: { en: "Completed", hans: "\u5DF2\u5B8C\u6210", hant: "\u5DF2\u5B8C\u6210", ja: "\u5B8C\u4E86", ko: "\uC644\uB8CC", fr: "Termin\xE9", de: "Abgeschlossen" },
-    CANCELLED: { en: "Cancelled", hans: "\u5DF2\u53D6\u6D88", hant: "\u5DF2\u53D6\u6D88", ja: "\u30AD\u30E3\u30F3\u30BB\u30EB\u6E08\u307F", ko: "\uCDE8\uC18C\uB428", fr: "Annul\xE9", de: "Storniert" },
-    CANCELED: { en: "Cancelled", hans: "\u5DF2\u53D6\u6D88", hant: "\u5DF2\u53D6\u6D88", ja: "\u30AD\u30E3\u30F3\u30BB\u30EB\u6E08\u307F", ko: "\uCDE8\uC18C\uB428", fr: "Annul\xE9", de: "Storniert" },
-    REFUNDED: { en: "Refunded", hans: "\u5DF2\u9000\u6B3E", hant: "\u5DF2\u9000\u6B3E", ja: "\u8FD4\u91D1\u6E08\u307F", ko: "\uD658\uBD88\uB428", fr: "Rembours\xE9", de: "Erstattet" },
-    FAILED: { en: "Failed", hans: "\u5931\u8D25", hant: "\u5931\u6557", ja: "\u5931\u6557", ko: "\uC2E4\uD328", fr: "\xC9chec", de: "Fehlgeschlagen" }
-  };
-  var ITEM_STATUS = {
-    pending: { en: "Pending", hans: "\u5F85\u4EA4\u4ED8", hant: "\u5F85\u4EA4\u4ED8", ja: "\u767A\u884C\u5F85\u3061", ko: "\uBC1C\uAE09 \uB300\uAE30", fr: "En attente", de: "Ausstehend" },
-    processing: { en: "Processing", hans: "\u5904\u7406\u4E2D", hant: "\u8655\u7406\u4E2D", ja: "\u51E6\u7406\u4E2D", ko: "\uCC98\uB9AC \uC911", fr: "En cours", de: "In Bearbeitung" },
-    shipped: { en: "Shipped", hans: "\u5DF2\u53D1\u8D27", hant: "\u5DF2\u51FA\u8CA8", ja: "\u767A\u9001\u6E08\u307F", ko: "\uBC30\uC1A1\uB428", fr: "Exp\xE9di\xE9", de: "Versendet" },
-    delivered: { en: "Delivered", hans: "\u5DF2\u4EA4\u4ED8", hant: "\u5DF2\u4EA4\u4ED8", ja: "\u767A\u884C\u6E08\u307F", ko: "\uBC1C\uAE09\uB428", fr: "Livr\xE9", de: "Zugestellt" },
-    completed: { en: "Completed", hans: "\u5DF2\u5B8C\u6210", hant: "\u5DF2\u5B8C\u6210", ja: "\u5B8C\u4E86", ko: "\uC644\uB8CC", fr: "Termin\xE9", de: "Abgeschlossen" },
-    fulfilled: { en: "Fulfilled", hans: "\u5DF2\u5B8C\u6210", hant: "\u5DF2\u5B8C\u6210", ja: "\u63D0\u4F9B\u6E08\u307F", ko: "\uC81C\uACF5\uB428", fr: "R\xE9alis\xE9", de: "Erledigt" },
-    failed: { en: "Failed", hans: "\u4EA4\u4ED8\u5931\u8D25", hant: "\u4EA4\u4ED8\u5931\u6557", ja: "\u767A\u884C\u5931\u6557", ko: "\uBC1C\uAE09 \uC2E4\uD328", fr: "\xC9chec", de: "Fehlgeschlagen" },
-    cancelled: { en: "Cancelled", hans: "\u5DF2\u53D6\u6D88", hant: "\u5DF2\u53D6\u6D88", ja: "\u30AD\u30E3\u30F3\u30BB\u30EB\u6E08\u307F", ko: "\uCDE8\uC18C\uB428", fr: "Annul\xE9", de: "Storniert" }
-  };
-  function orderStatusLabel(status, locale) {
-    const raw = String(status);
-    const copy = ORDER_STATUS[raw.toUpperCase()];
-    return copy ? pickCopy(locale, copy) : raw.replace(/_/g, " ");
-  }
-  function itemStatusLabel(status, locale) {
-    const copy = ITEM_STATUS[String(status).toLowerCase()];
-    return copy ? pickCopy(locale, copy) : orderStatusLabel(status, locale);
-  }
-  function statusTone(status) {
-    const normalized = String(status).toUpperCase();
-    const base = "whitespace-nowrap ";
-    if (normalized === "DELIVERED" || normalized === "COMPLETED" || normalized === "FULFILLED") {
-      return base + "bg-[color:color-mix(in_oklab,var(--esim-success)_16%,transparent)] text-[var(--esim-success)]";
-    }
-    if (normalized === "PENDING" || normalized === "PAID" || normalized === "PROCESSING" || normalized === "SHIPPED") {
-      return base + "bg-[color:color-mix(in_oklab,var(--esim-warning)_16%,transparent)] text-[var(--esim-warning)]";
-    }
-    if (normalized === "CANCELLED" || normalized === "CANCELED" || normalized === "REFUNDED" || normalized === "FAILED") {
-      return base + "bg-[color:color-mix(in_oklab,var(--esim-danger)_18%,transparent)] text-[var(--esim-danger)]";
-    }
-    return base + "bg-[var(--esim-primary-soft)] text-[var(--esim-primary-strong)]";
-  }
-
-  // src/lib/api.ts
-  var EsimApiError = class extends Error {
-    constructor(status, code, message, requestId) {
-      super(message);
-      this.name = "EsimApiError";
-      this.status = status;
-      this.code = code;
-      this.requestId = requestId;
-    }
-  };
-  function getProductIdFromLocation() {
-    if (typeof window === "undefined") return null;
-    const params = new URLSearchParams(window.location.search);
-    const queryId = params.get("productId") || params.get("id");
-    if (queryId) return queryId;
-    const segments = window.location.pathname.split("/").filter(Boolean);
-    const productsIndex = segments.lastIndexOf("products");
-    if (productsIndex >= 0 && segments[productsIndex + 1]) {
-      return decodeURIComponent(segments[productsIndex + 1]);
-    }
-    return null;
-  }
-  function getOrderIdFromLocation() {
-    if (typeof window === "undefined") return null;
-    const params = new URLSearchParams(window.location.search);
-    const queryId = params.get("orderId") || params.get("id");
-    if (queryId) return queryId;
-    const segments = window.location.pathname.split("/").filter(Boolean);
-    const ordersIndex = segments.lastIndexOf("orders");
-    if (ordersIndex >= 0 && segments[ordersIndex + 1]) {
-      return decodeURIComponent(segments[ordersIndex + 1]);
-    }
-    return null;
-  }
-  function getClientToken() {
-    if (typeof window === "undefined") return null;
-    try {
-      const localStorageToken = window.localStorage.getItem("auth_token");
-      if (localStorageToken) return localStorageToken;
-    } catch {
-    }
-    const cookieValue = `; ${document.cookie}`;
-    const parts = cookieValue.split("; auth_token=");
-    if (parts.length === 2) {
-      const cookieToken = parts.pop()?.split(";").shift() || null;
-      if (cookieToken) {
-        try {
-          window.localStorage.setItem("auth_token", cookieToken);
-        } catch {
-        }
-      }
-      return cookieToken;
-    }
-    return null;
-  }
-  function normalizeResponse(payload) {
-    if (payload && typeof payload === "object" && "data" in payload && payload.data !== void 0) {
-      return payload.data;
-    }
-    return payload;
-  }
-  function asRecord(value) {
-    return value && typeof value === "object" ? value : {};
-  }
-  function readString(source, keys) {
-    for (const key of keys) {
-      const value = source[key];
-      if (typeof value === "string" && value.trim()) {
-        return value.trim();
-      }
-    }
-    return void 0;
-  }
-  function readNullableString(source, keys) {
-    for (const key of keys) {
-      const value = source[key];
-      if (value === null) return null;
-      if (typeof value === "string" && value.trim()) {
-        return value.trim();
-      }
-    }
-    return void 0;
-  }
-  function normalizeInstructions(value) {
-    if (!value) return {};
-    if (typeof value === "string") {
-      const trimmed = value.trim();
-      if (!trimmed) return {};
-      try {
-        return normalizeInstructions(JSON.parse(trimmed));
-      } catch {
-        return { general: [trimmed] };
-      }
-    }
-    if (Array.isArray(value)) {
-      return { general: value.filter((item) => typeof item === "string" && item.trim().length > 0) };
-    }
-    const source = asRecord(value);
-    return {
-      ios: Array.isArray(source.ios) ? source.ios.filter((item) => typeof item === "string" && item.trim().length > 0) : [],
-      android: Array.isArray(source.android) ? source.android.filter((item) => typeof item === "string" && item.trim().length > 0) : [],
-      general: Array.isArray(source.general) ? source.general.filter((item) => typeof item === "string" && item.trim().length > 0) : []
-    };
-  }
-  function normalizeSupport(value, source) {
-    const support = asRecord(value);
-    return {
-      email: readString(support, ["email"]) || readString(source, ["supportEmail", "support_email"]),
-      phone: readString(support, ["phone"]) || readString(source, ["supportPhone", "support_phone"])
-    };
-  }
-  function storefrontSameOriginBase(baseUrl) {
-    try {
-      if (typeof location !== "undefined" && !baseUrl.startsWith("/")) {
-        const target = new URL(baseUrl, location.origin);
-        if (target.origin !== location.origin) {
-          return "";
-        }
-      }
-    } catch {
-    }
-    return baseUrl;
-  }
-  async function requestEnvelope(config, endpoint, method = "GET", body) {
-    const headers = {
-      Accept: "application/json"
-    };
-    if (body !== void 0) {
-      headers["Content-Type"] = "application/json";
-    }
-    const resolvedToken = config.token === void 0 ? getClientToken() : config.token;
-    if (resolvedToken) {
-      headers.Authorization = `Bearer ${resolvedToken}`;
-    }
-    const url = `${storefrontSameOriginBase(config.baseUrl.replace(/\/$/, ""))}${endpoint}`;
-    const response = await fetch(url, {
-      method,
-      headers,
-      body: body !== void 0 ? JSON.stringify(body) : void 0,
-      cache: "no-store"
-    });
-    const json = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      const error = json.error;
-      throw new EsimApiError(
-        response.status,
-        error?.code || "API_ERROR",
-        error?.message || `Request failed with status ${response.status}`,
-        error?.requestId
-      );
-    }
-    if (json && typeof json === "object" && "data" in json && json.data !== void 0) {
-      return json;
-    }
-    return { data: json };
-  }
-  async function request(config, endpoint, method = "GET", body) {
-    const envelope = await requestEnvelope(config, endpoint, method, body);
-    return normalizeResponse(envelope);
-  }
-  function buildEsimSummary(source) {
-    const data = source?.data?.gb ? `${source.data.gb}GB` : "Flexible data";
-    const validity = source?.validityDays ? `${source.validityDays} Days` : "Flexible validity";
-    return `${data} / ${validity}`;
-  }
-  function buildTechnologyLabel(source) {
-    const technology = source?.networks?.technology?.filter(Boolean) || [];
-    return technology.length ? `${technology.join("/")} High Speed` : "4G/5G High Speed";
-  }
-  function mapVariant(variant) {
-    const esim = variant.attributes?.esim;
-    return {
-      id: variant.id,
-      name: displayProductTitle(variant.name),
-      value: buildEsimSummary(esim),
-      type: "STYLE",
-      price: variant.salePrice,
-      inventory: variant.isActive === false ? 0 : 99
-    };
-  }
-  function displayProductTitle(name) {
-    const cleaned = String(name || "").replace(/^\[[^\]]*\]\s*/, "").replace(/\s+V\d+$/i, "").trim();
-    return cleaned || String(name || "");
-  }
-  function resolveEsimMediaUrl(url, apiBaseUrl) {
-    const value = String(url || "").trim();
-    if (!value) return null;
-    if (/^(https?:)?\/\//i.test(value) || value.startsWith("data:")) return value;
-    if (!apiBaseUrl) return value;
-    return `${apiBaseUrl.replace(/\/+$/, "")}${value.startsWith("/") ? "" : "/"}${value}`;
-  }
-  function mapEsimApiProductToThemeProduct(product) {
-    const esim = product.typeData?.esim;
-    const firstImage = product.images?.[0];
-    const imageUrl = (typeof firstImage === "string" ? firstImage : firstImage?.url) || product.image;
-    const regionTag = esim?.region || esim?.country || "Travel";
-    const technology = buildTechnologyLabel(esim);
-    const variantPrices = (product.variants || []).map((variant) => Number(variant.salePrice || 0)).filter((price) => price > 0);
-    const sellablePrice = variantPrices.length > 0 ? Math.min(...variantPrices) : Number(product.price || 0);
-    return {
-      id: product.id,
-      name: displayProductTitle(product.name),
-      description: product.description ?? "",
-      price: sellablePrice,
-      currency: product.currency,
-      typeData: product.typeData,
-      sku: product.slug || product.id,
-      productKind: product.productKind,
-      category: {
-        id: esim?.region || "esim",
-        name: esim?.region || "eSIM Plans",
-        slug: (esim?.region || "esim").toLowerCase().replace(/\s+/g, "-"),
-        level: 1,
-        isActive: true,
-        productCount: 0
-      },
-      tags: [regionTag, esim?.carrier || "Carrier", technology].filter(Boolean),
-      images: imageUrl ? [
-        {
-          id: `${product.id}-image`,
-          url: imageUrl,
-          alt: product.name,
-          order: 0,
-          isMain: true
-        }
-      ] : [],
-      variants: (product.variants || []).map(mapVariant),
-      inventory: {
-        quantity: 99,
-        reserved: 0,
-        available: 99,
-        lowStockThreshold: 5,
-        isInStock: true,
-        isLowStock: false,
-        trackInventory: false
-      },
-      specifications: [
-        { name: "Coverage", value: esim?.country || esim?.region || "Global" },
-        { name: "Data", value: esim?.data?.gb ? `${esim.data.gb}GB` : "Flexible" },
-        { name: "Validity", value: esim?.validityDays ? `${esim.validityDays} Days` : "Flexible" },
-        { name: "Carrier", value: esim?.carrier || "Local carrier" },
-        { name: "Network", value: technology }
-      ],
-      isActive: true,
-      isFeatured: true,
-      rating: 4.9,
-      reviewCount: 1200,
-      createdAt: (/* @__PURE__ */ new Date()).toISOString(),
-      updatedAt: (/* @__PURE__ */ new Date()).toISOString()
-    };
-  }
-  function mapEsimApiOrderToThemeOrder(order) {
-    return {
-      id: order.id,
-      userId: "",
-      status: order.status || order.fulfillmentStatus || order.paymentStatus || "PROCESSING",
-      paymentStatus: order.paymentStatus || "PAID",
-      totalAmount: Number(order.totalAmount || 0),
-      currency: order.currency || "USD",
-      shippingAddress: null,
-      shipments: (order.shipments || []).map((shipment) => ({ ...shipment, trackingUrl: shipment.trackingUrl || null, shippedAt: shipment.shippedAt || null, deliveredAt: shipment.deliveredAt || null, estimatedDeliveryAt: shipment.estimatedDeliveryAt || null, lastCheckedAt: shipment.lastCheckedAt || null })),
-      items: (order.items || []).map((item) => {
-        const quantity = Number(item.quantity || 1);
-        const unitPrice = Number(item.unitPrice ?? item.totalPrice ?? 0);
-        const totalPrice = Number(item.totalPrice ?? unitPrice * quantity);
-        return {
-          id: item.id,
-          productId: item.productId,
-          productName: item.productName,
-          variantId: item.variantId || "",
-          quantity,
-          unitPrice,
-          totalPrice,
-          fulfillmentStatus: item.fulfillmentStatus || null,
-          fulfillmentData: item.fulfillmentData || null
-        };
-      }),
-      createdAt: order.createdAt,
-      updatedAt: order.updatedAt || order.createdAt,
-      cancelReason: null,
-      cancelledAt: null
-    };
-  }
-  function readProductCurrency(product) {
-    const source = product;
-    return source?.currency || source?.typeData?.esim?.currency || null;
-  }
-  function normalizeProductForTheme(product) {
-    const candidate = product;
-    if (candidate && typeof candidate === "object" && Array.isArray(candidate.images) && Array.isArray(candidate.variants) && candidate.category && candidate.inventory) {
-      return candidate;
-    }
-    return mapEsimApiProductToThemeProduct(product);
-  }
-  function isLpaString(value) {
-    return typeof value === "string" && /^LPA:\s*1\s*\$/i.test(value.trim());
-  }
-  function normalizeInstallSession(session) {
-    const source = asRecord(session);
-    const smdpField = readString(source, ["smdpAddress", "smdp_address", "smdpServer", "smdp_server", "smdp"]) || "";
-    const matchingField = readString(source, ["matchingId", "matching_id"]) || "";
-    const rawActivationCode = readString(source, ["activationCode", "activation_code"]) || "";
-    const bareCode = isLpaString(rawActivationCode) ? "" : rawActivationCode;
-    const qrCodeField = readString(source, ["qrCode", "qr_code", "qrCodeUrl", "qr_code_url", "qrCodeContent", "qr_code_content"]) || "";
-    const lpaString = readString(source, ["lpaString", "lpa_string", "lpa"]) || [rawActivationCode, qrCodeField].find(isLpaString) || (smdpField && (matchingField || bareCode) ? `LPA:1$${smdpField}$${matchingField || bareCode}` : "");
-    const lpaParts = isLpaString(lpaString) ? lpaString.trim().split("$") : [];
-    const smdpAddress = smdpField || lpaParts[1] || "";
-    const matchingId = matchingField || lpaParts[2] || bareCode;
-    const activationCode = bareCode || matchingId;
-    const qrCode = qrCodeField || lpaString;
-    const instructions = normalizeInstructions(source.instructions);
-    return {
-      ...session,
-      orderId: readString(source, ["orderId", "order_id"]) || session.orderId || "",
-      orderNumber: readString(source, ["orderNumber", "order_number"]) || session.orderNumber || "",
-      status: readString(source, ["status"]) || session.status || "processing",
-      packageTitle: readString(source, ["packageTitle", "package_title"]) || session.packageTitle || "BOKMOO eSIM",
-      qrCode,
-      activationCode,
-      matchingId,
-      lpaString,
-      smdpAddress,
-      confirmationCode: readNullableString(source, ["confirmationCode", "confirmation_code", "confirmCode", "confirm_code"]) ?? null,
-      instructions: {
-        ios: instructions.ios || [],
-        android: instructions.android || [],
-        general: instructions.general || []
-      },
-      support: normalizeSupport(source.support, source)
-    };
-  }
-  async function getEsimProducts(config, params = {}) {
-    const search = new URLSearchParams();
-    search.set("page", String(params.page || 1));
-    search.set("limit", String(params.limit || 12));
-    search.set("locale", params.locale || "en");
-    search.set("type", params.type || "esim");
-    if (params.country) search.set("country", params.country);
-    const envelope = await requestEnvelope(config, `/api/products?${search.toString()}`);
-    const meta = envelope.meta || {};
-    const data = envelope.data;
-    const items = Array.isArray(data) ? data : data.items || [];
-    const page = Number(meta.page || (!Array.isArray(data) ? data.page : void 0) || params.page || 1);
-    const limit = Number(meta.limit || (!Array.isArray(data) ? data.limit : void 0) || params.limit || 12);
-    const total = Number(meta.total || (!Array.isArray(data) ? data.total : void 0) || items.length);
-    return {
-      ...Array.isArray(data) ? {} : data,
-      items,
-      page,
-      limit,
-      total
-    };
-  }
-  async function getEsimProduct(config, productId, locale = "en") {
-    return request(config, `/api/products/${productId}?locale=${locale}`);
-  }
-  async function getEsimOrder(config, orderId2) {
-    return request(config, `/api/orders/${orderId2}`);
-  }
-  async function getEsimAssets(config) {
-    try {
-      const envelope = await requestEnvelope(config, "/api/esims");
-      const data = envelope.data;
-      if (Array.isArray(data)) return data;
-      return data?.items || [];
-    } catch {
-      return [];
-    }
-  }
-  async function getEsimOrders(config, params = {}) {
-    const search = new URLSearchParams();
-    search.set("page", String(params.page || 1));
-    search.set("limit", String(params.limit || 10));
-    if (params.status) search.set("status", params.status);
-    const envelope = await requestEnvelope(config, `/api/orders?${search.toString()}`);
-    const meta = envelope.meta || {};
-    const data = envelope.data;
-    const items = Array.isArray(data) ? data : data.items || [];
-    const page = Number(meta.page || (!Array.isArray(data) ? data.page : void 0) || params.page || 1);
-    const limit = Number(meta.limit || (!Array.isArray(data) ? data.limit : void 0) || params.limit || 10);
-    const total = Number(meta.total || (!Array.isArray(data) ? data.total : void 0) || items.length);
-    return {
-      ...Array.isArray(data) ? {} : data,
-      items,
-      page,
-      limit,
-      total
-    };
-  }
-  async function getEsimInstallSession(config, orderId2) {
-    const session = await request(config, `/api/orders/${orderId2}/install-session`);
-    return normalizeInstallSession(session);
-  }
-  var affiliateBase = "/api/v1/plugins/affiliate/store";
-  async function getEsimAffiliatePartner(config) {
-    return request(config, `${affiliateBase}/partners/me`);
-  }
-  async function registerEsimAffiliatePartner(config, input) {
-    return request(config, `${affiliateBase}/partners/register`, "POST", input);
-  }
-  async function getEsimAffiliateCommissions(config) {
-    const result = await request(config, `${affiliateBase}/commissions`);
-    return result.items || [];
-  }
-  async function getEsimAffiliateOrganization(config) {
-    return request(config, `${affiliateBase}/organizations/me`);
-  }
-  async function createEsimAffiliateOrganization(config, input) {
-    return request(config, `${affiliateBase}/organizations`, "POST", input);
-  }
-  async function addEsimAffiliateMember(config, organizationId, input) {
-    return request(config, `${affiliateBase}/organizations/${encodeURIComponent(organizationId)}/members`, "POST", input);
-  }
-  async function getEsimOrganizationCommissions(config) {
-    const result = await request(config, `${affiliateBase}/organizations/commissions`);
-    return result.items || [];
-  }
-  var couponRedeemEndpoint = "/api/v1/plugins/coupon/api/redeem";
-  async function redeemEsimCode(config, code, idempotencyKey) {
-    return request(config, couponRedeemEndpoint, "POST", {
-      code,
-      ...idempotencyKey ? { idempotencyKey } : {}
-    });
-  }
-
-  // src/components/ProfilePage.tsx
-  var SCRIPT_FONT = '"Snell Roundhand", "Savoye LET", "Segoe Script", "Brush Script MT", cursive';
-  function svgBackgroundUri(svg) {
-    return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
-  }
-  var CLUBS_SCENE = svgBackgroundUri(
-    `<svg xmlns='http://www.w3.org/2000/svg' width='640' height='380' viewBox='0 0 640 380'><defs><linearGradient id='sky' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='#0f1824'/><stop offset='0.42' stop-color='#1e2d3d'/><stop offset='0.68' stop-color='#5a4530'/><stop offset='1' stop-color='#0a0805'/></linearGradient><radialGradient id='glow' cx='0.64' cy='0.62' r='0.55'><stop offset='0' stop-color='#f2b552' stop-opacity='0.5'/><stop offset='1' stop-color='#f2b552' stop-opacity='0'/></radialGradient></defs><rect width='640' height='380' fill='url(#sky)'/><rect width='640' height='380' fill='url(#glow)'/><g fill='#f4c169'><circle cx='446' cy='232' r='2.4'/><circle cx='468' cy='240' r='1.6'/><circle cx='428' cy='243' r='1.4'/><circle cx='488' cy='230' r='1.2'/></g><g stroke='#060503' stroke-linecap='round' fill='none'><path d='M84 380C90 312 86 268 96 218' stroke-width='9'/><path d='M96 218C64 200 34 202 12 218M96 218C112 188 142 176 176 180M96 218C84 184 60 166 28 162M96 218C126 204 158 208 184 226M96 218C100 186 116 162 144 152' stroke-width='7'/><path d='M560 380C556 336 560 306 552 270' stroke-width='8'/><path d='M552 270C526 256 500 258 482 270M552 270C566 244 590 234 618 238M552 270C542 242 522 226 494 224M552 270C578 258 606 262 626 278M552 270C556 242 570 222 594 214' stroke-width='6'/></g><g fill='#f0b45c'><rect x='376' y='252' width='128' height='3' rx='1.5' opacity='0.4'/><rect x='296' y='274' width='208' height='3' rx='1.5' opacity='0.26'/><rect x='336' y='296' width='168' height='3' rx='1.5' opacity='0.18'/><rect x='260' y='318' width='230' height='3' rx='1.5' opacity='0.12'/></g></svg>`
-  );
-  var PROMO_SCENE = svgBackgroundUri(
-    `<svg xmlns='http://www.w3.org/2000/svg' width='420' height='320' viewBox='0 0 420 320'><defs><linearGradient id='dusk' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='#181231'/><stop offset='0.44' stop-color='#2c2044'/><stop offset='0.7' stop-color='#4b2d3d'/><stop offset='1' stop-color='#0d0a12'/></linearGradient><radialGradient id='duskglow' cx='0.72' cy='0.58' r='0.5'><stop offset='0' stop-color='#e8a45c' stop-opacity='0.34'/><stop offset='1' stop-color='#e8a45c' stop-opacity='0'/></radialGradient></defs><rect width='420' height='320' fill='url(#dusk)'/><rect width='420' height='320' fill='url(#duskglow)'/><g fill='#ffffff' opacity='0.55'><circle cx='60' cy='52' r='1.1'/><circle cx='150' cy='34' r='0.9'/><circle cx='236' cy='60' r='1.2'/><circle cx='318' cy='40' r='1'/><circle cx='374' cy='84' r='0.9'/><circle cx='104' cy='96' r='0.8'/><circle cx='286' cy='104' r='0.8'/></g><g stroke='#070509' stroke-linecap='round' fill='none'><path d='M64 320C70 264 66 228 76 184' stroke-width='9'/><path d='M76 184C46 168 20 170 2 184M76 184C90 156 118 146 148 150M76 184C66 154 44 138 16 136M76 184C104 170 132 174 156 190M76 184C80 156 94 134 120 126' stroke-width='7'/></g><g fill='#e8a45c'><rect x='150' y='212' width='150' height='2.6' rx='1.3' opacity='0.3'/><rect x='196' y='236' width='170' height='2.6' rx='1.3' opacity='0.2'/><rect x='120' y='262' width='210' height='2.6' rx='1.3' opacity='0.13'/></g></svg>`
-  );
-  var GOLD_GRADIENT_BG = "bg-[linear-gradient(145deg,color-mix(in_oklab,var(--esim-gold)_82%,white),color-mix(in_oklab,var(--esim-gold)_65%,black))]";
-  var ESIM_STATUS = {
-    ACTIVE: { en: "Active", hans: "\u5DF2\u6FC0\u6D3B", hant: "\u5DF2\u555F\u7528", ja: "\u30A2\u30AF\u30C6\u30A3\u30D6", ko: "\uD65C\uC131", fr: "Actif", de: "Aktiv" },
-    INACTIVE: { en: "Inactive", hans: "\u672A\u6FC0\u6D3B", hant: "\u672A\u555F\u7528", ja: "\u672A\u30A2\u30AF\u30C6\u30A3\u30D6", ko: "\uBE44\uD65C\uC131", fr: "Inactif", de: "Inaktiv" },
-    SUSPENDED: { en: "Suspended", hans: "\u5DF2\u6682\u505C", hant: "\u5DF2\u66AB\u505C", ja: "\u5229\u7528\u505C\u6B62\u4E2D", ko: "\uC77C\uC2DC \uC815\uC9C0", fr: "Suspendu", de: "Gesperrt" },
-    EXPIRED: { en: "Expired", hans: "\u5DF2\u8FC7\u671F", hant: "\u5DF2\u904E\u671F", ja: "\u6709\u52B9\u671F\u9650\u5207\u308C", ko: "\uB9CC\uB8CC\uB428", fr: "Expir\xE9", de: "Abgelaufen" },
-    USED: { en: "Used", hans: "\u5DF2\u4F7F\u7528", hant: "\u5DF2\u4F7F\u7528", ja: "\u4F7F\u7528\u6E08\u307F", ko: "\uC0AC\uC6A9\uB428", fr: "Utilis\xE9", de: "Verwendet" }
-  };
-  function esimStatusLabel(status, locale) {
-    const raw = String(status || "ACTIVE");
-    const copy = ESIM_STATUS[raw.toUpperCase()];
-    return copy ? pickCopy(locale, copy) : raw.replace(/_/g, " ");
-  }
-  function formatDate(iso, locale) {
-    const date = new Date(iso);
-    if (Number.isNaN(date.getTime())) return "\u2014";
-    return date.toLocaleDateString(localeTag(locale), {
-      year: "numeric",
-      month: "short",
-      day: "numeric"
-    });
-  }
-  function timezoneLabel() {
-    try {
-      const zone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
-      const offsetMinutes = -(/* @__PURE__ */ new Date()).getTimezoneOffset();
-      const sign = offsetMinutes < 0 ? "-" : "+";
-      const abs = Math.abs(offsetMinutes);
-      const hours = Math.floor(abs / 60);
-      const minutes = abs % 60;
-      return `(UTC${sign}${hours}${minutes ? `:${String(minutes).padStart(2, "0")}` : ""}) ${zone}`;
-    } catch {
-      return "UTC";
-    }
-  }
-  function MyEsimAssets({ apiBaseUrl, email, locale }) {
-    const [assets, setAssets] = react_default.useState(null);
-    react_default.useEffect(() => {
-      if (!email) return;
-      let mounted = true;
-      (async () => {
-        const list = await getEsimAssets({ baseUrl: apiBaseUrl });
-        if (mounted) setAssets(list);
-      })();
-      return () => {
-        mounted = false;
-      };
-    }, [apiBaseUrl, email]);
-    if (!email || !assets || assets.length === 0) return null;
-    return /* @__PURE__ */ jsxs("section", { className: "rounded-[var(--esim-radius-lg)] border border-[color:color-mix(in_oklab,var(--esim-gold)_18%,var(--esim-line))] bg-[color:color-mix(in_oklab,var(--esim-bg-elevated)_92%,black)] p-5 shadow-[var(--esim-shadow)] sm:p-6", children: [
-      /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between", children: [
-        /* @__PURE__ */ jsx("h2", { className: "text-lg font-medium tracking-[-0.02em] text-[var(--esim-ink)]", children: pickCopy(locale, { en: "My eSIMs", hans: "\u6211\u7684 eSIM", hant: "\u6211\u7684 eSIM" }) }),
-        /* @__PURE__ */ jsx("span", { className: "text-xs text-[var(--esim-copy-soft)]", children: assets.length })
-      ] }),
-      /* @__PURE__ */ jsx("p", { className: "mt-2 text-xs leading-5 text-[var(--esim-copy-soft)]", children: pickCopy(locale, {
-        en: "Plans you buy are added to these profiles \u2014 no new QR code, no reinstall.",
-        hans: "\u65B0\u8D2D\u5957\u9910\u4F1A\u76F4\u63A5\u52A0\u8FDB\u8FD9\u4E9B profile\u2014\u2014\u4E0D\u53D1\u65B0\u4E8C\u7EF4\u7801\u3001\u65E0\u9700\u91CD\u88C5\u3002",
-        hant: "\u65B0\u8CFC\u5957\u9910\u6703\u76F4\u63A5\u52A0\u9032\u9019\u4E9B profile\u2014\u2014\u4E0D\u767C\u65B0\u4E8C\u7DAD\u78BC\u3001\u7121\u9700\u91CD\u88DD\u3002"
-      }) }),
-      /* @__PURE__ */ jsx("div", { className: "mt-4 grid gap-3", children: assets.map((asset) => /* @__PURE__ */ jsxs("div", { className: "rounded-[0.95rem] border border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_86%,black)] px-4 py-3", children: [
-        /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between gap-3", children: [
-          /* @__PURE__ */ jsx("p", { className: "text-sm font-medium text-[var(--esim-ink)]", children: asset.label || pickCopy(locale, { en: "Bokmoo eSIM", hans: "Bokmoo eSIM", hant: "Bokmoo eSIM" }) }),
-          /* @__PURE__ */ jsx("span", { className: "rounded-full border border-[color:color-mix(in_oklab,var(--esim-gold)_34%,transparent)] px-2 py-0.5 text-[10px] tracking-[0.14em] text-[var(--esim-gold)]", children: esimStatusLabel(asset.status, locale) })
-        ] }),
-        /* @__PURE__ */ jsxs("p", { className: "mt-1.5 font-mono text-xs text-[var(--esim-copy-soft)]", children: [
-          "ICCID \xB7\xB7\xB7\xB7",
-          asset.iccid.slice(-6)
-        ] }),
-        asset.currentPackage ? /* @__PURE__ */ jsx("p", { className: "mt-1 text-xs text-[var(--esim-copy)]", children: asset.currentPackage }) : null
-      ] }, asset.iccid)) })
-    ] });
-  }
-  var ProfilePage = react_default.memo(function ProfilePage2({
-    user,
-    isLoading,
-    isAuthenticated,
-    config,
-    locale,
-    onNavigate,
-    onNavigateToSettings,
-    onNavigateToOrders,
-    onNavigateToLogin,
-    addresses,
-    isLoadingAddresses,
-    onAddAddress,
-    onDeleteAddress,
-    onSetDefaultAddress
-  }) {
-    const isZhHant = locale === "zh-Hant";
-    const [showAddressForm, setShowAddressForm] = react_default.useState(false);
-    const site = resolveEsimSiteConfig(config);
-    const go = react_default.useCallback(
-      (path) => {
-        if (onNavigate) {
-          onNavigate(path);
-          return;
-        }
-        const prefix = locale && locale !== "en" ? `/${locale}` : "/en";
-        window.location.assign(`${prefix}${path}`);
-      },
-      [onNavigate, isZhHant]
-    );
-    const [copied, setCopied] = react_default.useState(false);
-    const copyEmail = react_default.useCallback(async () => {
-      if (!user?.email) return;
-      try {
-        await navigator.clipboard.writeText(user.email);
-        setCopied(true);
-        window.setTimeout(() => setCopied(false), 2e3);
-      } catch {
-      }
-    }, [user?.email]);
-    const [redeemOpen, setRedeemOpen] = react_default.useState(false);
-    const [redeemValue, setRedeemValue] = react_default.useState("");
-    const [redeemBusy, setRedeemBusy] = react_default.useState(false);
-    const [redeemError, setRedeemError] = react_default.useState(null);
-    const redeemInputId = "esim-redeem-code-input";
-    const redeemErrorCopy = react_default.useCallback((code) => {
-      switch (code) {
-        case "REDEMPTION_CODE_INVALID":
-          return pickCopy(locale, {
-            en: "This code is invalid or expired. Please double-check and try again.",
-            hans: "\u5151\u6362\u7801\u65E0\u6548\u6216\u5DF2\u8FC7\u671F\uFF0C\u8BF7\u6838\u5BF9\u540E\u91CD\u8BD5\u3002",
-            hant: "\u514C\u63DB\u78BC\u7121\u6548\u6216\u5DF2\u904E\u671F\uFF0C\u8ACB\u6838\u5C0D\u5F8C\u91CD\u8A66\u3002"
-          });
-        case "REDEMPTION_CODE_ALREADY_CLAIMED":
-          return pickCopy(locale, {
-            en: "This code has already been redeemed.",
-            hans: "\u8BE5\u5151\u6362\u7801\u5DF2\u88AB\u4F7F\u7528\u3002",
-            hant: "\u8A72\u514C\u63DB\u78BC\u5DF2\u88AB\u4F7F\u7528\u3002"
-          });
-        case "REDEMPTION_CODE_EXHAUSTED":
-          return pickCopy(locale, {
-            en: "This code has reached its redemption limit.",
-            hans: "\u8BE5\u5151\u6362\u7801\u5DF2\u8FBE\u5151\u6362\u4E0A\u9650\u3002",
-            hant: "\u8A72\u514C\u63DB\u78BC\u5DF2\u9054\u514C\u63DB\u4E0A\u9650\u3002"
-          });
-        case "REDEMPTION_CODE_ASSIGNED":
-          return pickCopy(locale, {
-            en: "This code is assigned to a different account.",
-            hans: "\u8BE5\u5151\u6362\u7801\u7ED1\u5B9A\u5728\u5176\u4ED6\u5E10\u6237\u3002",
-            hant: "\u8A72\u514C\u63DB\u78BC\u7D81\u5B9A\u5728\u5176\u4ED6\u5E33\u6236\u3002"
-          });
-        case "REDEMPTION_PRODUCT_NOT_FOUND":
-        case "REDEMPTION_PRODUCT_NOT_CONFIGURED":
-          return pickCopy(locale, {
-            en: "The product tied to this code is currently unavailable. Please contact support.",
-            hans: "\u5151\u6362\u7801\u5BF9\u5E94\u7684\u5957\u9910\u6682\u65F6\u4E0D\u53EF\u7528\uFF0C\u8BF7\u8054\u7CFB\u5BA2\u670D\u3002",
-            hant: "\u514C\u63DB\u78BC\u5C0D\u61C9\u7684\u5957\u9910\u66AB\u6642\u4E0D\u53EF\u7528\uFF0C\u8ACB\u806F\u7D61\u5BA2\u670D\u3002"
-          });
-        case "REDEMPTION_CORE_UNSUPPORTED":
-          return pickCopy(locale, {
-            en: "Redemption is temporarily unavailable. Please try again later.",
-            hans: "\u5151\u6362\u529F\u80FD\u6682\u65F6\u4E0D\u53EF\u7528\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5\u3002",
-            hant: "\u514C\u63DB\u529F\u80FD\u66AB\u6642\u4E0D\u53EF\u7528\uFF0C\u8ACB\u7A0D\u5F8C\u91CD\u8A66\u3002"
-          });
-        default:
-          return pickCopy(locale, {
-            en: "Redemption failed. Please try again later.",
-            hans: "\u5151\u6362\u5931\u8D25\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5\u3002",
-            hant: "\u514C\u63DB\u5931\u6557\uFF0C\u8ACB\u7A0D\u5F8C\u91CD\u8A66\u3002"
-          });
-      }
-    }, [locale]);
-    const handleRedeem = react_default.useCallback(async () => {
-      const trimmed = redeemValue.trim();
-      if (!trimmed || redeemBusy) return;
-      setRedeemBusy(true);
-      setRedeemError(null);
-      try {
-        const result = await redeemEsimCode({ baseUrl: "" }, trimmed, `profile:${Date.now()}`);
-        if (result.orderId) {
-          go(`/orders/${encodeURIComponent(result.orderId)}`);
-          return;
-        }
-        window.location.reload();
-      } catch (error) {
-        setRedeemError(redeemErrorCopy(error instanceof EsimApiError ? error.code : void 0));
-      } finally {
-        setRedeemBusy(false);
-      }
-    }, [redeemValue, redeemBusy, redeemErrorCopy, go]);
-    if (!isAuthenticated || !user) {
-      return /* @__PURE__ */ jsx("div", { className: "flex min-h-screen items-center justify-center bg-[var(--esim-bg)] px-4", children: /* @__PURE__ */ jsx("div", { className: "w-full max-w-md", children: /* @__PURE__ */ jsxs("div", { className: "rounded-[var(--esim-radius-xl)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-10 text-center shadow-[var(--esim-shadow)]", children: [
-        /* @__PURE__ */ jsx("div", { className: "mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[color:color-mix(in_oklab,var(--esim-gold)_14%,transparent)] text-[var(--esim-gold)]", children: /* @__PURE__ */ jsx(UserRound, { className: "h-8 w-8" }) }),
-        /* @__PURE__ */ jsx("h2", { className: "mt-6 text-3xl leading-[1] tracking-[-0.04em] text-[var(--esim-ink)]", children: pickCopy(locale, { en: "Sign in to view your profile", hans: "\u767B\u5165\u4EE5\u67E5\u770B\u60A8\u7684\u4E2A\u4EBA\u6863\u6848", hant: "\u767B\u5165\u4EE5\u67E5\u770B\u60A8\u7684\u500B\u4EBA\u6A94\u6848" }) }),
-        /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: "Please log in to check your BOKMOO account", hans: "\u8BF7\u767B\u5165\u4EE5\u67E5\u770B\u60A8\u7684 BOKMOO \u5E10\u6237", hant: "\u8ACB\u767B\u5165\u4EE5\u67E5\u770B\u60A8\u7684 BOKMOO \u5E33\u6236" }) }),
-        /* @__PURE__ */ jsx(
-          "button",
-          {
-            onClick: onNavigateToLogin,
-            className: `mt-8 h-12 w-full rounded-full px-6 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--esim-bg)] ${GOLD_GRADIENT_BG}`,
-            type: "button",
-            children: pickCopy(locale, { en: "Log In", hans: "\u767B\u5165", hant: "\u767B\u5165" })
-          }
-        )
-      ] }) }) });
-    }
-    if (isLoading) {
-      return /* @__PURE__ */ jsx("div", { className: "flex min-h-screen items-center justify-center bg-[var(--esim-bg)]", children: /* @__PURE__ */ jsxs("div", { className: "text-center", children: [
-        /* @__PURE__ */ jsx("div", { className: "mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-[var(--esim-line)] border-t-[var(--esim-gold)]" }),
-        /* @__PURE__ */ jsx("p", { className: "text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: "Loading profile...", hans: "\u6B63\u5728\u8F7D\u5165\u4E2A\u4EBA\u8D44\u6599\u2026", hant: "\u6B63\u5728\u8F09\u5165\u500B\u4EBA\u8CC7\u6599\u2026" }) })
-      ] }) });
-    }
-    const displayName = (user.name || "").trim();
-    const firstName = displayName ? displayName.split(/\s+/)[0] : "";
-    const greeting = (() => {
-      if (locale === "ja") return firstName ? `${firstName} \u3055\u3093\u3001\u3053\u3093\u306B\u3061\u306F\u3002` : "\u3053\u3093\u306B\u3061\u306F\u3002";
-      if (locale === "ko") return firstName ? `${firstName}\uB2D8, \uC548\uB155\uD558\uC138\uC694!` : "\uC548\uB155\uD558\uC138\uC694!";
-      if (locale === "fr") return firstName ? `Bonjour ${firstName} !` : "Bonjour !";
-      if (locale === "de") return firstName ? `Hallo ${firstName}!` : "Hallo!";
-      const zh = locale === "zh-Hant" || locale === "zh-Hans";
-      return firstName ? zh ? `\u4F60\u597D\uFF0C${firstName}\uFF01` : `Hi ${firstName}!` : zh ? "\u4F60\u597D\uFF01" : "Hi there!";
-    })();
-    const accountInitial = (displayName || user.email).trim().charAt(0).toUpperCase();
-    const memberSince = user.createdAt ? formatDate(user.createdAt, locale) : "\u2014";
-    const navItems = [
-      {
-        label: pickCopy(locale, { en: "My Account", hans: "\u6211\u7684\u5E10\u6237", hant: "\u6211\u7684\u5E33\u6236" }),
-        icon: UserRound,
-        active: true,
-        onClick: () => window.scrollTo({ top: 0, behavior: "smooth" })
-      },
-      { label: pickCopy(locale, { en: "Order History", hans: "\u8BA2\u5355\u7EAA\u5F55", hant: "\u8A02\u55AE\u7D00\u9304" }), icon: ShoppingBag, onClick: onNavigateToOrders },
-      { label: pickCopy(locale, { en: "My Trips", hans: "\u6211\u7684\u884C\u7A0B", hant: "\u6211\u7684\u884C\u7A0B" }), icon: Plane, onClick: onNavigateToOrders },
-      { label: pickCopy(locale, { en: "Travel Credits", hans: "\u65C5\u6E38\u70B9\u6570", hant: "\u65C5\u904A\u9EDE\u6578" }), icon: Mail, onClick: () => go("/affiliate") },
-      { label: pickCopy(locale, { en: "Affiliate Program", hans: "\u63A8\u5E7F\u8BA1\u5212", hant: "\u63A8\u5EE3\u8A08\u5283" }), icon: Users, onClick: () => go("/affiliate") },
-      { label: pickCopy(locale, { en: "Settings", hans: "\u8BBE\u5B9A", hant: "\u8A2D\u5B9A" }), icon: Settings, onClick: onNavigateToSettings }
-    ];
-    const renderNavButton = (item, layout2) => {
-      const Icon2 = item.icon;
-      const base = layout2 === "sidebar" ? "flex w-full shrink-0 items-center gap-3 rounded-[0.9rem] px-4 py-3 text-[0.92rem] font-medium transition-colors" : "inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-2.5 text-[0.85rem] font-medium transition-colors";
-      const tone = item.active ? layout2 === "sidebar" ? "bg-[color:color-mix(in_oklab,var(--esim-gold)_13%,transparent)] text-[var(--esim-ink)] shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--esim-gold)_22%,transparent)]" : "border-[color:color-mix(in_oklab,var(--esim-gold)_36%,transparent)] bg-[color:color-mix(in_oklab,var(--esim-gold)_13%,transparent)] text-[var(--esim-ink)]" : "border-transparent text-[var(--esim-copy-soft)] hover:bg-[color:color-mix(in_oklab,var(--esim-gold)_8%,transparent)] hover:text-[var(--esim-ink)]";
-      return /* @__PURE__ */ jsxs("button", { onClick: item.onClick, className: `${base} ${tone}`, type: "button", children: [
-        /* @__PURE__ */ jsx(
-          Icon2,
-          {
-            className: `h-[1.05rem] w-[1.05rem] ${item.active ? "text-[var(--esim-gold)]" : "text-[color:color-mix(in_oklab,var(--esim-copy-soft)_80%,var(--esim-gold))]"}`
-          }
-        ),
-        item.label
-      ] }, item.label);
-    };
-    const infoRowIcon = "h-4 w-4 shrink-0 text-[var(--esim-copy-soft)]";
-    const editButtonClass = "inline-flex h-9 items-center gap-1.5 rounded-full border border-[var(--esim-line-strong)] bg-[color:color-mix(in_oklab,var(--esim-bg-soft)_60%,transparent)] px-4 text-[0.8rem] font-semibold text-[var(--esim-ink)] transition-colors hover:border-[var(--esim-gold)] hover:text-[var(--esim-gold)]";
-    return /* @__PURE__ */ jsxs("div", { className: "min-h-screen bg-[var(--esim-bg)] lg:flex", children: [
-      /* @__PURE__ */ jsxs("aside", { className: "hidden w-64 shrink-0 flex-col border-r border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_94%,black)] px-4 pb-10 pt-6 lg:flex", children: [
-        /* @__PURE__ */ jsx("nav", { className: "flex flex-col gap-1.5", children: navItems.map((item) => renderNavButton(item, "sidebar")) }),
-        /* @__PURE__ */ jsx("div", { className: "mt-auto pt-10", children: /* @__PURE__ */ jsxs(
-          "div",
-          {
-            onClick: () => go("/products"),
-            className: "group relative min-h-[13.5rem] cursor-pointer overflow-hidden rounded-[var(--esim-radius-md)] border border-[var(--esim-line)] shadow-[var(--esim-shadow)]",
-            style: { backgroundImage: PROMO_SCENE, backgroundSize: "cover", backgroundPosition: "center" },
-            children: [
-              /* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-[linear-gradient(180deg,rgba(9,7,14,0.1),rgba(9,7,14,0.78))]" }),
-              /* @__PURE__ */ jsxs("div", { className: "relative flex min-h-[13.5rem] flex-col p-5", children: [
-                /* @__PURE__ */ jsx("h3", { className: "max-w-[9.5rem] text-xl font-bold leading-snug text-white", children: pickCopy(locale, { en: "Explore a Better Night", hans: "\u63A2\u7D22\u66F4\u7F8E\u597D\u7684\u591C\u665A", hant: "\u63A2\u7D22\u66F4\u7F8E\u597D\u7684\u591C\u665A" }) }),
-                /* @__PURE__ */ jsx("p", { className: "mt-2 text-xs leading-relaxed text-white/70", children: pickCopy(locale, { en: "Premium club experiences around the world.", hans: "\u5168\u7403\u9AD8\u7EA7\u4F1A\u6240\u4F53\u9A8C\uFF0C\u5C3D\u5728\u638C\u63E1\u3002", hant: "\u5168\u7403\u9AD8\u7D1A\u6703\u6240\u9AD4\u9A57\uFF0C\u76E1\u5728\u638C\u63E1\u3002" }) }),
-                /* @__PURE__ */ jsxs("span", { className: "mt-auto inline-flex items-center gap-1.5 self-start rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--esim-gold)_86%,white),color-mix(in_oklab,var(--esim-gold)_70%,black))] px-4 py-2 text-xs font-bold text-[var(--esim-bg)] transition-transform duration-300 group-hover:-translate-y-0.5", children: [
-                  pickCopy(locale, { en: "Browse Destinations", hans: "\u6D4F\u89C8\u76EE\u7684\u5730", hant: "\u700F\u89BD\u76EE\u7684\u5730" }),
-                  /* @__PURE__ */ jsx(ArrowRight, { className: "h-3.5 w-3.5" })
-                ] })
-              ] })
-            ]
-          }
-        ) })
-      ] }),
-      /* @__PURE__ */ jsxs("div", { className: "min-w-0 flex-1 px-4 pb-16 pt-5 sm:px-6 lg:px-8", children: [
-        /* @__PURE__ */ jsx("div", { className: "-mx-4 mb-5 overflow-x-auto px-4 pb-1 lg:hidden", children: /* @__PURE__ */ jsx("div", { className: "flex w-max gap-2", children: navItems.map((item) => renderNavButton(item, "chip")) }) }),
-        /* @__PURE__ */ jsxs("div", { className: "mx-auto max-w-[1200px] space-y-6", children: [
-          /* @__PURE__ */ jsxs("section", { className: "relative overflow-hidden rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] bg-[linear-gradient(115deg,color-mix(in_oklab,var(--esim-bg-elevated)_96%,black),color-mix(in_oklab,var(--esim-bg-soft)_70%,var(--esim-bg-elevated)))] p-6 shadow-[var(--esim-shadow)] sm:p-8", children: [
-            /* @__PURE__ */ jsx(
-              "div",
-              {
-                "aria-hidden": "true",
-                className: "pointer-events-none absolute inset-y-0 right-0 hidden w-[56%] sm:block",
-                style: {
-                  backgroundImage: "radial-gradient(color-mix(in oklab, var(--esim-gold) 26%, transparent) 1.2px, transparent 1.4px)",
-                  backgroundSize: "13px 13px",
-                  maskImage: "radial-gradient(ellipse 85% 90% at 76% 48%, black 0%, transparent 74%)",
-                  WebkitMaskImage: "radial-gradient(ellipse 85% 90% at 76% 48%, black 0%, transparent 74%)"
-                }
-              }
-            ),
-            /* @__PURE__ */ jsxs(
-              "svg",
-              {
-                "aria-hidden": "true",
-                className: "pointer-events-none absolute -right-8 -top-10 hidden h-[150%] w-[44%] opacity-35 sm:block",
-                viewBox: "0 0 400 280",
-                fill: "none",
-                children: [
-                  /* @__PURE__ */ jsx("defs", { children: /* @__PURE__ */ jsxs("linearGradient", { id: "esim-hero-arc", x1: "0", y1: "280", x2: "400", y2: "40", gradientUnits: "userSpaceOnUse", children: [
-                    /* @__PURE__ */ jsx("stop", { stopColor: "var(--esim-gold)", stopOpacity: "0" }),
-                    /* @__PURE__ */ jsx("stop", { offset: "0.55", stopColor: "var(--esim-gold)", stopOpacity: "0.8" }),
-                    /* @__PURE__ */ jsx("stop", { offset: "1", stopColor: "#f6d78a", stopOpacity: "0.2" })
-                  ] }) }),
-                  /* @__PURE__ */ jsx("path", { d: "M12 262C86 138 252 66 400 84", stroke: "url(#esim-hero-arc)", strokeWidth: "1.5" }),
-                  /* @__PURE__ */ jsx("path", { d: "M52 280C124 168 276 100 400 116", stroke: "url(#esim-hero-arc)", strokeWidth: "1", opacity: "0.65" })
-                ]
-              }
-            ),
-            /* @__PURE__ */ jsxs("div", { className: "relative flex flex-col gap-6 sm:flex-row sm:items-center", children: [
-              /* @__PURE__ */ jsxs("div", { className: "relative shrink-0 self-center sm:self-start", children: [
-                /* @__PURE__ */ jsx(
-                  "div",
-                  {
-                    className: `flex h-24 w-24 items-center justify-center overflow-hidden rounded-full text-4xl font-bold text-[var(--esim-bg)] shadow-[0_18px_44px_color-mix(in_oklab,var(--esim-gold)_24%,transparent)] ${GOLD_GRADIENT_BG}`,
-                    children: user.avatar ? /* @__PURE__ */ jsx("img", { src: user.avatar, alt: user.name, className: "h-full w-full object-cover" }) : accountInitial
-                  }
-                ),
-                /* @__PURE__ */ jsx("span", { className: "absolute -bottom-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-[0.45rem] border border-[color:color-mix(in_oklab,var(--esim-gold)_34%,transparent)] bg-[color:oklch(0.09_0.01_75_/_0.96)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--esim-gold)]", children: pickCopy(locale, { en: "Member", hans: "\u4F1A\u5458", hant: "\u6703\u54E1" }) })
-              ] }),
-              /* @__PURE__ */ jsxs("div", { className: "min-w-0 text-center sm:text-left", children: [
-                /* @__PURE__ */ jsx("h1", { className: "text-[1.9rem] font-bold leading-tight tracking-[-0.02em] text-[var(--esim-ink)]", children: greeting }),
-                /* @__PURE__ */ jsxs("div", { className: "mt-2.5 flex items-center justify-center gap-2 sm:justify-start", children: [
-                  /* @__PURE__ */ jsx("p", { className: "truncate text-[0.95rem] text-[var(--esim-copy)]", children: user.email }),
-                  /* @__PURE__ */ jsx(
-                    "button",
-                    {
-                      onClick: copyEmail,
-                      className: "flex h-7 w-7 shrink-0 items-center justify-center rounded-[0.5rem] text-[var(--esim-copy-soft)] transition-colors hover:bg-[color:color-mix(in_oklab,var(--esim-gold)_10%,transparent)] hover:text-[var(--esim-gold)]",
-                      type: "button",
-                      "aria-label": pickCopy(locale, { en: "Copy email", hans: "\u590D\u5236\u7535\u5B50\u90AE\u4EF6", hant: "\u8907\u88FD\u96FB\u5B50\u90F5\u4EF6" }),
-                      children: copied ? /* @__PURE__ */ jsx(Check, { className: "h-4 w-4 text-[var(--esim-success)]" }) : /* @__PURE__ */ jsx(Copy, { className: "h-4 w-4" })
-                    }
-                  )
-                ] }),
-                /* @__PURE__ */ jsxs("p", { className: "mt-1.5 text-[0.82rem] text-[var(--esim-copy-soft)]", children: [
-                  pickCopy(locale, { en: "Member since", hans: "\u6CE8\u518C\u4E8E", hant: "\u8A3B\u518A\u65BC" }),
-                  " ",
-                  memberSince
-                ] })
-              ] }),
-              /* @__PURE__ */ jsxs("div", { "aria-hidden": "true", className: "relative ml-auto hidden select-none flex-col items-end pr-2 lg:flex", children: [
-                /* @__PURE__ */ jsxs(
-                  "span",
-                  {
-                    className: "bg-[linear-gradient(120deg,#f6d78a,var(--esim-gold-strong)_55%,#c99b3e)] bg-clip-text text-right text-[1.65rem] italic leading-[1.2] text-transparent",
-                    style: { fontFamily: SCRIPT_FONT },
-                    children: [
-                      pickCopy(locale, { en: "Better Nights", hans: "\u591C\u66F4\u5B89\u7720", hant: "\u591C\u66F4\u5B89\u7720" }),
-                      /* @__PURE__ */ jsx("br", {}),
-                      pickCopy(locale, { en: "Brighter Journeys", hans: "\u65C5\u7A0B\u66F4\u7CBE\u5F69", hant: "\u65C5\u7A0B\u66F4\u7CBE\u5F69" })
-                    ]
-                  }
-                ),
-                /* @__PURE__ */ jsx(Plane, { className: "mt-1 h-5 w-5 -rotate-6 text-[color:color-mix(in_oklab,var(--esim-gold)_78%,white)]" })
-              ] })
-            ] })
-          ] }),
-          /* @__PURE__ */ jsx(MyEsimAssets, { apiBaseUrl: site.apiBaseUrl, email: user?.email, locale }),
-          /* @__PURE__ */ jsxs("section", { className: "rounded-[var(--esim-radius-lg)] border border-[color:color-mix(in_oklab,var(--esim-gold)_32%,var(--esim-line))] bg-[color:color-mix(in_oklab,var(--esim-gold)_6%,var(--esim-bg-elevated))] p-6 shadow-[var(--esim-shadow)]", children: [
-            /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between gap-3", children: [
-              /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2.5", children: [
-                /* @__PURE__ */ jsx(Gift, { className: "h-[1.1rem] w-[1.1rem] text-[var(--esim-gold)]" }),
-                /* @__PURE__ */ jsx("h3", { className: "text-[1.05rem] font-bold tracking-tight text-[var(--esim-ink)]", children: pickCopy(locale, { en: "Redeem a Code", hans: "\u5151\u6362\u7801", hant: "\u514C\u63DB\u78BC" }) })
-              ] }),
-              /* @__PURE__ */ jsx(
-                "button",
-                {
-                  onClick: () => setRedeemOpen((open) => !open),
-                  className: editButtonClass,
-                  type: "button",
-                  "aria-expanded": redeemOpen,
-                  "aria-controls": redeemInputId,
-                  children: redeemOpen ? pickCopy(locale, { en: "Close", hans: "\u6536\u8D77", hant: "\u6536\u8D77" }) : pickCopy(locale, { en: "Enter Code", hans: "\u8F93\u5165\u5151\u6362\u7801", hant: "\u8F38\u5165\u514C\u63DB\u78BC" })
-                }
-              )
-            ] }),
-            /* @__PURE__ */ jsx("p", { className: "mt-2 text-sm text-[var(--esim-copy-soft)]", children: pickCopy(locale, {
-              en: "Have a redemption code? Enter it to add an eSIM plan or subscription to your account.",
-              hans: "\u6301\u6709\u5151\u6362\u7801\uFF1F\u8F93\u5165\u5373\u53EF\u5C06 eSIM \u5957\u9910\u6216\u8BA2\u9605\u52A0\u5165\u60A8\u7684\u5E10\u6237\u3002",
-              hant: "\u6301\u6709\u514C\u63DB\u78BC\uFF1F\u8F38\u5165\u5373\u53EF\u5C07 eSIM \u5957\u9910\u6216\u8A02\u95B1\u52A0\u5165\u60A8\u7684\u5E33\u6236\u3002"
-            }) }),
-            redeemOpen && /* @__PURE__ */ jsxs("div", { className: "mt-4", children: [
-              /* @__PURE__ */ jsxs("div", { className: "flex flex-col gap-3 sm:flex-row", children: [
-                /* @__PURE__ */ jsx(
-                  "input",
-                  {
-                    id: redeemInputId,
-                    type: "text",
-                    value: redeemValue,
-                    onChange: (event) => setRedeemValue(event.target.value),
-                    onKeyDown: (event) => {
-                      if (event.key === "Enter") void handleRedeem();
-                    },
-                    placeholder: pickCopy(locale, {
-                      en: "e.g. ESIM-JP-7D",
-                      hans: "\u4F8B\u5982 ESIM-JP-7D",
-                      hant: "\u4F8B\u5982 ESIM-JP-7D"
-                    }),
-                    disabled: redeemBusy,
-                    className: "flex-1 rounded-[var(--esim-radius-md,0.75rem)] border border-[var(--esim-line)] bg-[var(--esim-bg)] px-4 py-2.5 uppercase tracking-wide text-[var(--esim-ink)] focus:outline-none focus:ring-2 focus:ring-[color:color-mix(in_oklab,var(--esim-gold)_55%,transparent)] disabled:opacity-60"
-                  }
-                ),
-                /* @__PURE__ */ jsx(
-                  "button",
-                  {
-                    onClick: () => void handleRedeem(),
-                    disabled: redeemBusy || !redeemValue.trim(),
-                    className: "inline-flex items-center justify-center gap-2 rounded-[var(--esim-radius-md,0.75rem)] bg-[var(--esim-gold)] px-6 py-2.5 font-semibold text-[color:color-mix(in_oklab,var(--esim-gold)_18%,black)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60",
-                    type: "button",
-                    children: redeemBusy ? pickCopy(locale, { en: "Redeeming\u2026", hans: "\u5151\u6362\u4E2D\u2026", hant: "\u514C\u63DB\u4E2D\u2026" }) : pickCopy(locale, { en: "Redeem", hans: "\u5151\u6362", hant: "\u514C\u63DB" })
-                  }
-                )
-              ] }),
-              redeemError && /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm text-red-500", children: redeemError })
-            ] })
-          ] }),
-          /* @__PURE__ */ jsxs("section", { className: "grid gap-6 lg:grid-cols-2", children: [
-            /* @__PURE__ */ jsxs("div", { className: "rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-6 shadow-[var(--esim-shadow)]", children: [
-              /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between gap-3", children: [
-                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2.5", children: [
-                  /* @__PURE__ */ jsx(UserRound, { className: "h-[1.1rem] w-[1.1rem] text-[var(--esim-gold)]" }),
-                  /* @__PURE__ */ jsx("h3", { className: "text-[1.05rem] font-bold tracking-tight text-[var(--esim-ink)]", children: pickCopy(locale, { en: "Account Information", hans: "\u5E10\u6237\u8D44\u6599", hant: "\u5E33\u6236\u8CC7\u6599" }) })
-                ] }),
-                /* @__PURE__ */ jsxs("button", { onClick: onNavigateToSettings, className: editButtonClass, type: "button", children: [
-                  /* @__PURE__ */ jsx(PencilLine, { className: "h-3.5 w-3.5" }),
-                  pickCopy(locale, { en: "Edit", hans: "\u7F16\u8F91", hant: "\u7DE8\u8F2F" })
-                ] })
-              ] }),
-              /* @__PURE__ */ jsxs("div", { className: "mt-3 divide-y divide-[color:color-mix(in_oklab,var(--esim-line)_55%,transparent)]", children: [
-                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 py-3.5", children: [
-                  /* @__PURE__ */ jsx(Mail, { className: infoRowIcon }),
-                  /* @__PURE__ */ jsx("span", { className: "w-28 shrink-0 text-sm text-[var(--esim-copy-soft)] sm:w-32", children: pickCopy(locale, { en: "Email Address", hans: "\u7535\u5B50\u90AE\u4EF6", hant: "\u96FB\u5B50\u90F5\u4EF6" }) }),
-                  /* @__PURE__ */ jsx(
-                    "span",
-                    {
-                      className: "min-w-0 flex-1 truncate text-right text-sm font-semibold text-[var(--esim-ink)] sm:text-left",
-                      title: user.email,
-                      children: user.email
-                    }
-                  )
-                ] }),
-                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 py-3.5", children: [
-                  /* @__PURE__ */ jsx(CalendarDays, { className: infoRowIcon }),
-                  /* @__PURE__ */ jsx("span", { className: "w-28 shrink-0 text-sm text-[var(--esim-copy-soft)] sm:w-32", children: pickCopy(locale, { en: "Member Since", hans: "\u6CE8\u518C\u65E5\u671F", hant: "\u8A3B\u518A\u65E5\u671F" }) }),
-                  /* @__PURE__ */ jsx("span", { className: "flex-1 text-sm font-semibold text-[var(--esim-ink)]", children: memberSince })
-                ] }),
-                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 py-3.5", children: [
-                  /* @__PURE__ */ jsx(UserRound, { className: infoRowIcon }),
-                  /* @__PURE__ */ jsx("span", { className: "w-28 shrink-0 text-sm text-[var(--esim-copy-soft)] sm:w-32", children: pickCopy(locale, { en: "Account Status", hans: "\u5E10\u6237\u72B6\u6001", hant: "\u5E33\u6236\u72C0\u614B" }) }),
-                  /* @__PURE__ */ jsx("span", { className: "inline-flex items-center rounded-[0.45rem] border border-[color:color-mix(in_oklab,var(--esim-success)_28%,transparent)] bg-[color:color-mix(in_oklab,var(--esim-success)_14%,transparent)] px-3 py-1 text-xs font-semibold text-[var(--esim-success)]", children: pickCopy(locale, { en: "Active Member", hans: "\u6709\u6548\u4F1A\u5458", hant: "\u6709\u6548\u6703\u54E1" }) })
-                ] })
-              ] })
-            ] }),
-            /* @__PURE__ */ jsxs("div", { className: "rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-6 shadow-[var(--esim-shadow)]", children: [
-              /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between gap-3", children: [
-                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2.5", children: [
-                  /* @__PURE__ */ jsx(Settings, { className: "h-[1.1rem] w-[1.1rem] text-[var(--esim-gold)]" }),
-                  /* @__PURE__ */ jsx("h3", { className: "text-[1.05rem] font-bold tracking-tight text-[var(--esim-ink)]", children: pickCopy(locale, { en: "Account Preferences", hans: "\u504F\u597D\u8BBE\u5B9A", hant: "\u504F\u597D\u8A2D\u5B9A" }) })
-                ] }),
-                /* @__PURE__ */ jsxs("button", { onClick: onNavigateToSettings, className: editButtonClass, type: "button", children: [
-                  /* @__PURE__ */ jsx(PencilLine, { className: "h-3.5 w-3.5" }),
-                  pickCopy(locale, { en: "Edit", hans: "\u7F16\u8F91", hant: "\u7DE8\u8F2F" })
-                ] })
-              ] }),
-              /* @__PURE__ */ jsxs("div", { className: "mt-3 divide-y divide-[color:color-mix(in_oklab,var(--esim-line)_55%,transparent)]", children: [
-                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 py-3.5", children: [
-                  /* @__PURE__ */ jsx(Earth, { className: infoRowIcon }),
-                  /* @__PURE__ */ jsx("span", { className: "w-28 shrink-0 text-sm text-[var(--esim-copy-soft)] sm:w-32", children: pickCopy(locale, { en: "Language", hans: "\u8BED\u8A00", hant: "\u8A9E\u8A00" }) }),
-                  /* @__PURE__ */ jsx("span", { className: "flex-1 text-sm font-semibold text-[var(--esim-ink)]", children: pickCopy(locale, { en: "English", hans: "\u7E41\u4F53\u4E2D\u6587", hant: "\u7E41\u9AD4\u4E2D\u6587" }) })
-                ] }),
-                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 py-3.5", children: [
-                  /* @__PURE__ */ jsx(Clock3, { className: infoRowIcon }),
-                  /* @__PURE__ */ jsx("span", { className: "w-28 shrink-0 text-sm text-[var(--esim-copy-soft)] sm:w-32", children: pickCopy(locale, { en: "Timezone", hans: "\u65F6\u533A", hant: "\u6642\u5340" }) }),
-                  /* @__PURE__ */ jsx("span", { className: "flex-1 text-sm font-semibold text-[var(--esim-ink)]", children: timezoneLabel() })
-                ] }),
-                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 py-3.5", children: [
-                  /* @__PURE__ */ jsx(CalendarDays, { className: infoRowIcon }),
-                  /* @__PURE__ */ jsx("span", { className: "w-28 shrink-0 text-sm text-[var(--esim-copy-soft)] sm:w-32", children: pickCopy(locale, { en: "Date of Birth", hans: "\u51FA\u751F\u65E5\u671F", hant: "\u51FA\u751F\u65E5\u671F" }) }),
-                  /* @__PURE__ */ jsx("span", { className: "flex-1 text-sm text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: "Not set", hans: "\u672A\u8BBE\u5B9A", hant: "\u672A\u8A2D\u5B9A" }) })
-                ] }),
-                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 py-3.5", children: [
-                  /* @__PURE__ */ jsx(Phone, { className: infoRowIcon }),
-                  /* @__PURE__ */ jsx("span", { className: "w-28 shrink-0 text-sm text-[var(--esim-copy-soft)] sm:w-32", children: pickCopy(locale, { en: "Phone Number", hans: "\u7535\u8BDD\u53F7\u7801", hant: "\u96FB\u8A71\u865F\u78BC" }) }),
-                  /* @__PURE__ */ jsx("span", { className: "flex-1 text-sm text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: "Not set", hans: "\u672A\u8BBE\u5B9A", hant: "\u672A\u8A2D\u5B9A" }) })
-                ] })
-              ] })
-            ] })
-          ] }),
-          onAddAddress ? /* @__PURE__ */ jsxs("section", { className: "rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-5 shadow-[var(--esim-shadow)] sm:p-6", children: [
-            /* @__PURE__ */ jsx("div", { className: "flex items-center justify-between gap-4", children: /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-4", children: [
-              /* @__PURE__ */ jsx("div", { className: "flex h-14 w-14 shrink-0 items-center justify-center rounded-[1rem] bg-[color:color-mix(in_oklab,var(--esim-gold)_15%,transparent)] text-[var(--esim-gold)]", children: /* @__PURE__ */ jsx(MapPin, { className: "h-6 w-6" }) }),
-              /* @__PURE__ */ jsxs("div", { children: [
-                /* @__PURE__ */ jsx("h3", { className: "text-lg font-bold tracking-tight text-[var(--esim-ink)]", children: pickCopy(locale, { en: "My Addresses", hans: "\u6211\u7684\u5730\u5740", hant: "\u6211\u7684\u5730\u5740" }) }),
-                /* @__PURE__ */ jsx("p", { className: "mt-1 text-sm text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: "Saved shipping addresses for checkout", hans: "\u7ED3\u7B97\u65F6\u4F7F\u7528\u7684\u6536\u8D27\u5730\u5740", hant: "\u7D50\u5E33\u6642\u4F7F\u7528\u7684\u6536\u8CA8\u5730\u5740" }) })
-              ] })
-            ] }) }),
-            isLoadingAddresses ? /* @__PURE__ */ jsx("p", { className: "mt-5 text-sm text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: "Loading\u2026", hans: "\u52A0\u8F7D\u4E2D\u2026", hant: "\u8F09\u5165\u4E2D\u2026" }) }) : /* @__PURE__ */ jsxs("div", { className: "mt-5 space-y-3", children: [
-              (addresses ?? []).length === 0 ? /* @__PURE__ */ jsx("p", { className: "text-sm text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: "No saved addresses yet.", hans: "\u8FD8\u6CA1\u6709\u4FDD\u5B58\u7684\u5730\u5740\u3002", hant: "\u9084\u6C92\u6709\u4FDD\u5B58\u7684\u5730\u5740\u3002" }) }) : (addresses ?? []).map((address) => /* @__PURE__ */ jsxs(
-                "div",
-                {
-                  className: "flex flex-col gap-3 rounded-[1rem] border border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_88%,black)] p-4 sm:flex-row sm:items-center sm:justify-between",
-                  children: [
-                    /* @__PURE__ */ jsxs("div", { className: "text-sm", children: [
-                      /* @__PURE__ */ jsxs("p", { className: "flex flex-wrap items-center gap-2 font-medium text-[var(--esim-ink)]", children: [
-                        address.name,
-                        address.isDefault ? /* @__PURE__ */ jsx("span", { className: "rounded-full bg-[color:color-mix(in_oklab,var(--esim-gold)_20%,transparent)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--esim-gold)]", children: pickCopy(locale, { en: "Default", hans: "\u9ED8\u8BA4", hant: "\u9810\u8A2D" }) }) : null
-                      ] }),
-                      /* @__PURE__ */ jsxs("p", { className: "mt-1 text-[var(--esim-copy)]", children: [
-                        address.phone,
-                        " \xB7 ",
-                        address.line1,
-                        address.city ? `, ${address.city}` : "",
-                        address.state ? `, ${address.state}` : "",
-                        address.country ? ` \xB7 ${address.country}` : ""
-                      ] })
-                    ] }),
-                    /* @__PURE__ */ jsxs("div", { className: "flex shrink-0 items-center gap-2", children: [
-                      !address.isDefault && onSetDefaultAddress ? /* @__PURE__ */ jsx(
-                        "button",
-                        {
-                          onClick: () => void onSetDefaultAddress(address.id),
-                          className: "rounded-full border border-[var(--esim-line)] px-3 py-1.5 text-xs text-[var(--esim-copy)] transition-colors hover:border-[var(--esim-gold)] hover:text-[var(--esim-gold)]",
-                          type: "button",
-                          children: pickCopy(locale, { en: "Set default", hans: "\u8BBE\u4E3A\u9ED8\u8BA4", hant: "\u8A2D\u70BA\u9810\u8A2D" })
-                        }
-                      ) : null,
-                      onDeleteAddress ? /* @__PURE__ */ jsx(
-                        "button",
-                        {
-                          onClick: () => void onDeleteAddress(address.id),
-                          className: "rounded-full border border-[var(--esim-line)] px-3 py-1.5 text-xs text-[var(--esim-copy)] transition-colors hover:border-[var(--esim-danger)] hover:text-[var(--esim-danger)]",
-                          type: "button",
-                          children: pickCopy(locale, { en: "Delete", hans: "\u5220\u9664", hant: "\u522A\u9664" })
-                        }
-                      ) : null
-                    ] })
-                  ]
-                },
-                address.id
-              )),
-              showAddressForm ? /* @__PURE__ */ jsxs(
-                "form",
-                {
-                  className: "grid gap-3 rounded-[1rem] border border-[color:color-mix(in_oklab,var(--esim-gold)_18%,var(--esim-line))] bg-[color:color-mix(in_oklab,var(--esim-bg)_88%,black)] p-4 sm:grid-cols-2",
-                  onSubmit: (event) => {
-                    event.preventDefault();
-                    const data = new FormData(event.currentTarget);
-                    const input = {
-                      name: String(data.get("name") || "").trim(),
-                      phone: String(data.get("phone") || "").trim(),
-                      line1: String(data.get("line1") || "").trim(),
-                      city: String(data.get("city") || "").trim(),
-                      state: String(data.get("state") || "").trim(),
-                      postalCode: String(data.get("postalCode") || "").trim(),
-                      country: String(data.get("country") || "").trim()
-                    };
-                    if (!input.name || !input.phone || !input.line1 || !input.city || !input.country) return;
-                    void onAddAddress(input).then(() => setShowAddressForm(false));
-                  },
-                  children: [
-                    /* @__PURE__ */ jsx("input", { name: "name", required: true, placeholder: pickCopy(locale, { en: "Full name", hans: "\u59D3\u540D", hant: "\u59D3\u540D" }), className: "rounded-[0.7rem] border border-[var(--esim-line)] bg-transparent px-3 py-2.5 text-sm text-[var(--esim-ink)] outline-none focus:border-[var(--esim-gold)]" }),
-                    /* @__PURE__ */ jsx("input", { name: "phone", required: true, placeholder: pickCopy(locale, { en: "Phone", hans: "\u624B\u673A\u53F7", hant: "\u624B\u6A5F\u865F" }), className: "rounded-[0.7rem] border border-[var(--esim-line)] bg-transparent px-3 py-2.5 text-sm text-[var(--esim-ink)] outline-none focus:border-[var(--esim-gold)]" }),
-                    /* @__PURE__ */ jsx("input", { name: "line1", required: true, placeholder: pickCopy(locale, { en: "Address", hans: "\u8BE6\u7EC6\u5730\u5740", hant: "\u8A73\u7D30\u5730\u5740" }), className: "sm:col-span-2 rounded-[0.7rem] border border-[var(--esim-line)] bg-transparent px-3 py-2.5 text-sm text-[var(--esim-ink)] outline-none focus:border-[var(--esim-gold)]" }),
-                    /* @__PURE__ */ jsx("input", { name: "city", required: true, placeholder: pickCopy(locale, { en: "City", hans: "\u57CE\u5E02", hant: "\u57CE\u5E02" }), className: "rounded-[0.7rem] border border-[var(--esim-line)] bg-transparent px-3 py-2.5 text-sm text-[var(--esim-ink)] outline-none focus:border-[var(--esim-gold)]" }),
-                    /* @__PURE__ */ jsx("input", { name: "state", placeholder: pickCopy(locale, { en: "State / Province", hans: "\u7701/\u5DDE", hant: "\u7701/\u5DDE" }), className: "rounded-[0.7rem] border border-[var(--esim-line)] bg-transparent px-3 py-2.5 text-sm text-[var(--esim-ink)] outline-none focus:border-[var(--esim-gold)]" }),
-                    /* @__PURE__ */ jsx("input", { name: "postalCode", placeholder: pickCopy(locale, { en: "Postal code", hans: "\u90AE\u7F16", hant: "\u90F5\u905E\u5340\u865F" }), className: "rounded-[0.7rem] border border-[var(--esim-line)] bg-transparent px-3 py-2.5 text-sm text-[var(--esim-ink)] outline-none focus:border-[var(--esim-gold)]" }),
-                    /* @__PURE__ */ jsx("input", { name: "country", required: true, placeholder: pickCopy(locale, { en: "Country (e.g. CN)", hans: "\u56FD\u5BB6\uFF08\u5982 CN\uFF09", hant: "\u570B\u5BB6\uFF08\u5982 CN\uFF09" }), className: "rounded-[0.7rem] border border-[var(--esim-line)] bg-transparent px-3 py-2.5 text-sm text-[var(--esim-ink)] outline-none focus:border-[var(--esim-gold)]" }),
-                    /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-end gap-2 sm:col-span-2", children: [
-                      /* @__PURE__ */ jsx("button", { onClick: () => setShowAddressForm(false), className: "rounded-full px-4 py-2 text-xs text-[var(--esim-copy)]", type: "button", children: pickCopy(locale, { en: "Cancel", hans: "\u53D6\u6D88", hant: "\u53D6\u6D88" }) }),
-                      /* @__PURE__ */ jsx("button", { className: "rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--esim-gold)_82%,white),color-mix(in_oklab,var(--esim-gold)_68%,black))] px-5 py-2 text-xs font-semibold text-[var(--esim-bg)]", type: "submit", children: pickCopy(locale, { en: "Save address", hans: "\u4FDD\u5B58\u5730\u5740", hant: "\u4FDD\u5B58\u5730\u5740" }) })
-                    ] })
-                  ]
-                }
-              ) : /* @__PURE__ */ jsxs(
-                "button",
-                {
-                  onClick: () => setShowAddressForm(true),
-                  className: "inline-flex min-h-10 items-center gap-2 rounded-full border border-dashed border-[color:color-mix(in_oklab,var(--esim-gold)_38%,transparent)] px-4 text-xs font-medium text-[var(--esim-gold)] transition-colors hover:bg-[color:color-mix(in_oklab,var(--esim-gold)_10%,transparent)]",
-                  type: "button",
-                  children: [
-                    "+ ",
-                    pickCopy(locale, { en: "Add a new address", hans: "\u6DFB\u52A0\u65B0\u5730\u5740", hant: "\u6DFB\u52A0\u65B0\u5730\u5740" })
-                  ]
-                }
-              )
-            ] })
-          ] }) : null,
-          /* @__PURE__ */ jsxs("section", { className: "grid gap-6 lg:grid-cols-2", children: [
-            /* @__PURE__ */ jsxs(
-              "div",
-              {
-                onClick: onNavigateToOrders,
-                className: "group flex cursor-pointer items-center justify-between gap-4 rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-5 shadow-[var(--esim-shadow)] transition-colors hover:border-[color:color-mix(in_oklab,var(--esim-gold)_38%,transparent)] sm:p-6",
-                children: [
-                  /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-4", children: [
-                    /* @__PURE__ */ jsx("div", { className: "flex h-14 w-14 shrink-0 items-center justify-center rounded-[1rem] bg-[color:color-mix(in_oklab,var(--esim-gold)_15%,transparent)] text-[var(--esim-gold)]", children: /* @__PURE__ */ jsx(ShoppingBag, { className: "h-6 w-6" }) }),
-                    /* @__PURE__ */ jsxs("div", { children: [
-                      /* @__PURE__ */ jsx("h3", { className: "text-lg font-bold tracking-tight text-[var(--esim-ink)]", children: pickCopy(locale, { en: "Order History", hans: "\u8BA2\u5355\u7EAA\u5F55", hant: "\u8A02\u55AE\u7D00\u9304" }) }),
-                      /* @__PURE__ */ jsx("p", { className: "mt-1 text-sm text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: "View and manage your orders", hans: "\u67E5\u770B\u53CA\u7BA1\u7406\u60A8\u7684\u8BA2\u5355", hant: "\u67E5\u770B\u53CA\u7BA1\u7406\u60A8\u7684\u8A02\u55AE" }) })
-                    ] })
-                  ] }),
-                  /* @__PURE__ */ jsx("span", { className: "flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--esim-line-strong)] text-[var(--esim-copy)] transition-colors group-hover:border-[var(--esim-gold)] group-hover:text-[var(--esim-gold)]", children: /* @__PURE__ */ jsx(ChevronRight, { className: "h-[1.1rem] w-[1.1rem]" }) })
-                ]
-              }
-            ),
-            /* @__PURE__ */ jsxs(
-              "div",
-              {
-                onClick: onNavigateToOrders,
-                className: "group flex cursor-pointer items-center justify-between gap-4 rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-5 shadow-[var(--esim-shadow)] transition-colors hover:border-[color:color-mix(in_oklab,var(--esim-gold)_38%,transparent)] sm:p-6",
-                children: [
-                  /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-4", children: [
-                    /* @__PURE__ */ jsx("div", { className: "flex h-14 w-14 shrink-0 items-center justify-center rounded-[1rem] bg-[color:color-mix(in_oklab,var(--esim-gold)_15%,transparent)] text-[var(--esim-gold)]", children: /* @__PURE__ */ jsx(Plane, { className: "h-6 w-6" }) }),
-                    /* @__PURE__ */ jsxs("div", { children: [
-                      /* @__PURE__ */ jsx("h3", { className: "text-lg font-bold tracking-tight text-[var(--esim-ink)]", children: pickCopy(locale, { en: "Upcoming Trips", hans: "\u5373\u5C06\u5230\u6765\u7684\u884C\u7A0B", hant: "\u5373\u5C07\u5230\u4F86\u7684\u884C\u7A0B" }) }),
-                      /* @__PURE__ */ jsx("p", { className: "mt-1 text-sm text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: "Your booked experiences", hans: "\u60A8\u5DF2\u9884\u8BA2\u7684\u4F53\u9A8C", hant: "\u60A8\u5DF2\u9810\u8A02\u7684\u9AD4\u9A57" }) })
-                    ] })
-                  ] }),
-                  /* @__PURE__ */ jsx("span", { className: "flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--esim-line-strong)] text-[var(--esim-copy)] transition-colors group-hover:border-[var(--esim-gold)] group-hover:text-[var(--esim-gold)]", children: /* @__PURE__ */ jsx(ChevronRight, { className: "h-[1.1rem] w-[1.1rem]" }) })
-                ]
-              }
-            )
-          ] }),
-          /* @__PURE__ */ jsxs("section", { className: "grid gap-6 lg:grid-cols-3", children: [
-            /* @__PURE__ */ jsxs(
-              "div",
-              {
-                onClick: () => go(site.primaryCtaHref || "/products"),
-                className: "group relative min-h-[15rem] cursor-pointer overflow-hidden rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] shadow-[var(--esim-shadow)]",
-                style: { backgroundImage: CLUBS_SCENE, backgroundSize: "cover", backgroundPosition: "center" },
-                children: [
-                  /* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-[linear-gradient(92deg,rgba(8,6,4,0.86)_8%,rgba(8,6,4,0.42)_58%,rgba(8,6,4,0.12))]" }),
-                  /* @__PURE__ */ jsxs("div", { className: "relative flex h-full flex-col p-6", children: [
-                    /* @__PURE__ */ jsx("h3", { className: "text-[1.55rem] font-bold leading-tight text-white", children: pickCopy(locale, { en: "Explore destination eSIMs", hans: "\u63A2\u7D22\u76EE\u7684\u5730 eSIM", hant: "\u63A2\u7D22\u76EE\u7684\u5730 eSIM" }) }),
-                    /* @__PURE__ */ jsx("p", { className: "mt-2.5 max-w-[15rem] text-sm leading-relaxed text-white/75", children: pickCopy(locale, { en: "One eSIM for the whole trip \u2014 pick your destinations and go.", hans: "\u4E00\u5F20 eSIM \u8D70\u5B8C\u884C\u7A0B\u2014\u2014\u9009\u597D\u76EE\u7684\u5730\uFF0C\u51FA\u53D1\u5373\u53EF\u3002", hant: "\u4E00\u5F35 eSIM \u8D70\u5B8C\u6574\u8D9F\u65C5\u7A0B\u2014\u2014\u9078\u597D\u76EE\u7684\u5730\uFF0C\u51FA\u767C\u5373\u53EF\u3002" }) }),
-                    /* @__PURE__ */ jsxs("span", { className: "mt-auto inline-flex items-center gap-1.5 self-start rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--esim-gold)_86%,white),color-mix(in_oklab,var(--esim-gold)_70%,black))] px-5 py-2.5 text-[0.8rem] font-bold text-[var(--esim-bg)] transition-transform duration-300 group-hover:-translate-y-0.5", children: [
-                      pickCopy(locale, { en: "Explore Now", hans: "\u7ACB\u5373\u63A2\u7D22", hant: "\u7ACB\u5373\u63A2\u7D22" }),
-                      /* @__PURE__ */ jsx(ArrowRight, { className: "h-4 w-4" })
-                    ] })
-                  ] })
-                ]
-              }
-            ),
-            /* @__PURE__ */ jsxs("div", { className: "rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-6 shadow-[var(--esim-shadow)]", children: [
-              /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2.5", children: [
-                /* @__PURE__ */ jsx(Crown, { className: "h-5 w-5 text-[var(--esim-gold)]" }),
-                /* @__PURE__ */ jsx("h3", { className: "text-[1.05rem] font-bold tracking-tight text-[var(--esim-ink)]", children: pickCopy(locale, { en: "BOKMOO Member Benefits", hans: "BOKMOO \u4F1A\u5458\u6743\u76CA", hant: "BOKMOO \u6703\u54E1\u6B0A\u76CA" }) })
-              ] }),
-              /* @__PURE__ */ jsx("ul", { className: "mt-5 space-y-3.5", children: [
-                { en: "Instant QR delivery after payment", hans: "\u4ED8\u6B3E\u540E\u5373\u65F6\u53D1\u653E", hant: "\u4ED8\u6B3E\u5F8C\u5373\u6642\u767C\u653E" },
-                { en: "No physical SIM swap", hans: "\u65E0\u9700\u66F4\u6362\u5B9E\u4F53 SIM \u5361", hant: "\u7121\u9700\u66F4\u63DB\u5BE6\u9AD4 SIM \u5361" },
-                { en: "24/7 travel support", hans: "24/7 \u65C5\u9014\u652F\u6301", hant: "24/7 \u65C5\u9014\u652F\u63F4" },
-                { en: "Full refund if not activated", hans: "\u672A\u6FC0\u6D3B\u53EF\u5168\u989D\u9000\u6B3E", hant: "\u672A\u555F\u7528\u53EF\u5168\u984D\u9000\u6B3E" }
-              ].map((benefit) => pickCopy(locale, benefit)).map((benefit) => /* @__PURE__ */ jsxs("li", { className: "flex items-start gap-3", children: [
-                /* @__PURE__ */ jsx(Check, { className: "mt-0.5 h-4 w-4 shrink-0 text-[var(--esim-gold)]" }),
-                /* @__PURE__ */ jsx("span", { className: "text-sm leading-relaxed text-[var(--esim-copy)]", children: benefit })
-              ] }, benefit)) })
-            ] }),
-            /* @__PURE__ */ jsxs("div", { className: "flex flex-col rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-6 shadow-[var(--esim-shadow)]", children: [
-              /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2.5", children: [
-                /* @__PURE__ */ jsx(Headphones, { className: "h-5 w-5 text-[var(--esim-gold)]" }),
-                /* @__PURE__ */ jsx("h3", { className: "text-[1.05rem] font-bold tracking-tight text-[var(--esim-ink)]", children: pickCopy(locale, { en: "Need Help?", hans: "\u9700\u8981\u534F\u52A9\uFF1F", hant: "\u9700\u8981\u5354\u52A9\uFF1F" }) })
-              ] }),
-              /* @__PURE__ */ jsx("p", { className: "mt-2.5 text-sm leading-relaxed text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: "Our support team is here for you.", hans: "\u6211\u4EEC\u7684\u652F\u63F4\u56E2\u961F\u968F\u65F6\u4E3A\u60A8\u670D\u52A1\u3002", hant: "\u6211\u5011\u7684\u652F\u63F4\u5718\u968A\u96A8\u6642\u70BA\u60A8\u670D\u52D9\u3002" }) }),
-              /* @__PURE__ */ jsxs(
-                "button",
-                {
-                  onClick: () => go("/contact"),
-                  className: "mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full border border-[color:color-mix(in_oklab,var(--esim-gold)_46%,transparent)] bg-[color:color-mix(in_oklab,var(--esim-gold)_10%,transparent)] text-sm font-semibold text-[var(--esim-gold)] transition-colors hover:bg-[color:color-mix(in_oklab,var(--esim-gold)_18%,transparent)]",
-                  type: "button",
-                  children: [
-                    pickCopy(locale, { en: "Contact Support", hans: "\u8054\u7EDC\u5BA2\u670D", hant: "\u806F\u7D61\u5BA2\u670D" }),
-                    /* @__PURE__ */ jsx(ArrowRight, { className: "h-4 w-4" })
-                  ]
-                }
-              ),
-              /* @__PURE__ */ jsxs(
-                "button",
-                {
-                  onClick: () => go("/help"),
-                  className: "mt-5 inline-flex items-center justify-center gap-2 text-sm text-[var(--esim-copy-soft)] transition-colors hover:text-[var(--esim-ink)]",
-                  type: "button",
-                  children: [
-                    /* @__PURE__ */ jsx(BookOpen, { className: "h-4 w-4" }),
-                    pickCopy(locale, { en: "Visit Help Center", hans: "\u524D\u5F80\u5E2E\u52A9\u4E2D\u5FC3", hant: "\u524D\u5F80\u5E6B\u52A9\u4E2D\u5FC3" })
-                  ]
-                }
-              )
-            ] })
-          ] })
-        ] })
-      ] })
-    ] });
-  });
-
-  // src/components/AuthCallbackPage.tsx
-  var FOCUS_VISIBLE_RING = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--esim-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--esim-bg)]";
-  function AuthCallbackPage({
-    isLoading,
-    error,
-    config,
-    locale,
-    onRetry,
-    onNavigateToHome
-  }) {
-    const site = resolveEsimSiteConfig(config, locale);
-    const t = (copy) => pickCopy(locale, copy);
-    const accountLabel = pickCopy(locale, {
-      en: `${site.brandName.toUpperCase()} account`,
-      hans: `${site.brandName.toUpperCase()} \u8D26\u6237`,
-      hant: `${site.brandName.toUpperCase()} \u5E33\u6236`,
-      ja: `${site.brandName.toUpperCase()} \u30A2\u30AB\u30A6\u30F3\u30C8`,
-      ko: `${site.brandName.toUpperCase()} \uACC4\uC815`,
-      fr: `Compte ${site.brandName.toUpperCase()}`,
-      de: `${site.brandName.toUpperCase()}-Konto`
-    });
-    return /* @__PURE__ */ jsxs("div", { className: "relative flex min-h-screen items-center justify-center overflow-hidden bg-[var(--esim-bg)] px-4 py-12 text-[var(--esim-ink)]", children: [
-      /* @__PURE__ */ jsxs("div", { className: "pointer-events-none absolute inset-0", children: [
-        /* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,color-mix(in_oklab,var(--esim-gold)_18%,transparent),transparent_26%),linear-gradient(180deg,var(--esim-bg),color-mix(in_oklab,var(--esim-bg)_84%,black))]" }),
-        /* @__PURE__ */ jsx("div", { className: "absolute inset-0 opacity-40 [background-image:var(--esim-grid)] [background-size:72px_72px]" })
-      ] }),
-      /* @__PURE__ */ jsx("section", { className: "relative w-full max-w-[30rem] rounded-[1.45rem] border border-[color:color-mix(in_oklab,var(--esim-gold)_22%,transparent)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--esim-bg-elevated)_94%,white),var(--esim-bg-elevated))] p-5 shadow-[var(--esim-shadow)] sm:p-7", children: /* @__PURE__ */ jsxs("div", { className: "rounded-[1.1rem] border border-[var(--esim-line)] bg-[color:oklch(0.055_0.006_75_/_0.78)] p-6 text-center", children: [
-        /* @__PURE__ */ jsx("div", { className: "mx-auto flex h-16 w-16 items-center justify-center rounded-[1rem] border border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-gold)_12%,transparent)] text-[var(--esim-gold)]", children: error ? /* @__PURE__ */ jsx(TriangleAlert, { className: "h-7 w-7" }) : isLoading ? /* @__PURE__ */ jsx(LoaderCircle, { className: "h-7 w-7 animate-spin" }) : /* @__PURE__ */ jsx(ShieldCheck, { className: "h-7 w-7" }) }),
-        /* @__PURE__ */ jsx("p", { className: "mt-6 text-[11px] font-bold uppercase tracking-[0.24em] text-[var(--esim-gold)]", children: accountLabel }),
-        /* @__PURE__ */ jsx("h1", { className: "mt-3 text-3xl font-semibold leading-none tracking-[-0.05em] text-[var(--esim-ink)]", children: error ? t({ en: "Authentication failed", hans: "\u8EAB\u4EFD\u9A8C\u8BC1\u5931\u8D25", hant: "\u8EAB\u5206\u9A57\u8B49\u5931\u6557" }) : t({ en: "Completing sign in", hans: "\u6B63\u5728\u5B8C\u6210\u767B\u5F55", hant: "\u6B63\u5728\u5B8C\u6210\u767B\u5165" }) }),
-        /* @__PURE__ */ jsx("p", { className: "mt-4 text-sm leading-6 text-[var(--esim-copy)]", children: error || t({ en: "Securing your session and returning you to the BOKMOO storefront.", hans: "\u6B63\u5728\u4FDD\u62A4\u60A8\u7684\u767B\u5F55\u4F1A\u8BDD\uFF0C\u5373\u5C06\u8FD4\u56DE BOKMOO \u5546\u57CE\u3002", hant: "\u6B63\u5728\u4FDD\u8B77\u60A8\u7684\u767B\u5165\u5DE5\u4F5C\u968E\u6BB5\uFF0C\u5373\u5C07\u8FD4\u56DE BOKMOO \u5546\u57CE\u3002" }) }),
-        /* @__PURE__ */ jsxs("div", { className: "mt-7 grid gap-3 sm:grid-cols-2", children: [
-          /* @__PURE__ */ jsx(
-            "button",
-            {
-              type: "button",
-              onClick: onRetry,
-              className: `inline-flex min-h-12 items-center justify-center rounded-[0.95rem] border border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_86%,black)] px-4 text-sm font-semibold text-[var(--esim-ink)] transition-colors hover:border-[var(--esim-gold)] hover:text-[var(--esim-gold)] ${FOCUS_VISIBLE_RING}`,
-              children: t({ en: "Back to sign in", hans: "\u8FD4\u56DE\u767B\u5F55", hant: "\u8FD4\u56DE\u767B\u5165" })
-            }
-          ),
-          /* @__PURE__ */ jsx(
-            "button",
-            {
-              type: "button",
-              onClick: onNavigateToHome,
-              className: `inline-flex min-h-12 items-center justify-center rounded-[0.95rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--esim-gold)_88%,white),color-mix(in_oklab,var(--esim-gold)_64%,black))] px-4 text-sm font-black uppercase tracking-[0.16em] text-[var(--esim-bg)] ${FOCUS_VISIBLE_RING}`,
-              children: t({ en: "Home", hans: "\u9996\u9875", hant: "\u9996\u9801" })
-            }
-          )
-        ] })
-      ] }) })
-    ] });
-  }
-
-  // src/components/AffiliatePage.tsx
-  function money(items) {
-    const total = items.reduce((sum, item) => sum + Number(item.amount || 0), 0);
-    return `${items[0]?.currency || "USD"} ${total.toFixed(2)}`;
-  }
-  function orderId(item) {
-    return item.orderId || item.order_id || "";
-  }
-  function createdAt(item) {
-    return item.createdAt || item.created_at || "";
-  }
-  var AffiliatePage = react_default.memo(function AffiliatePage2({
-    isLoading,
-    isAuthenticated,
-    config,
-    locale,
-    onNavigateBack,
-    onNavigateToLogin
-  }) {
-    const site = resolveEsimSiteConfig(config, locale);
-    const api = react_default.useMemo(() => ({ baseUrl: site.apiBaseUrl }), [site.apiBaseUrl]);
-    const [view2, setView] = react_default.useState("partner");
-    const [partner, setPartner] = react_default.useState(null);
-    const [commissions, setCommissions] = react_default.useState([]);
-    const [organization, setOrganization] = react_default.useState(null);
-    const [organizationCommissions, setOrganizationCommissions] = react_default.useState([]);
-    const [loading, setLoading] = react_default.useState(false);
-    const [error, setError] = react_default.useState("");
-    const [copied, setCopied] = react_default.useState(false);
-    const [displayName, setDisplayName] = react_default.useState("");
-    const [organizationCode, setOrganizationCode] = react_default.useState("");
-    const [organizationName, setOrganizationName] = react_default.useState("");
-    const [organizationRate, setOrganizationRate] = react_default.useState("2.5");
-    const [memberEmail, setMemberEmail] = react_default.useState("");
-    const [memberRole, setMemberRole] = react_default.useState("INFLUENCER");
-    const t = (copy) => pickCopy(locale, copy);
-    const refresh = react_default.useCallback(async () => {
-      if (!isAuthenticated) return;
-      setLoading(true);
-      setError("");
-      const [partnerResult, organizationResult] = await Promise.allSettled([
-        Promise.all([getEsimAffiliatePartner(api), getEsimAffiliateCommissions(api)]),
-        Promise.all([
-          getEsimAffiliateOrganization(api),
-          getEsimOrganizationCommissions(api).catch((cause) => {
-            if (cause instanceof EsimApiError && cause.status === 404) return [];
-            throw cause;
-          })
-        ])
-      ]);
-      if (partnerResult.status === "fulfilled") {
-        setPartner(partnerResult.value[0]);
-        setCommissions(partnerResult.value[1]);
-      } else if (!(partnerResult.reason instanceof EsimApiError && partnerResult.reason.status === 404)) {
-        setError(partnerResult.reason instanceof Error ? partnerResult.reason.message : pickCopy(locale, { en: "Affiliate data could not be loaded", hans: "\u8054\u76DF\u63A8\u5E7F\u6570\u636E\u52A0\u8F7D\u5931\u8D25", hant: "\u806F\u76DF\u63A8\u5EE3\u8CC7\u6599\u8F09\u5165\u5931\u6557" }));
-      }
-      if (organizationResult.status === "fulfilled") {
-        setOrganization(organizationResult.value[0]);
-        setOrganizationCommissions(organizationResult.value[1]);
-      } else if (!(organizationResult.reason instanceof EsimApiError && organizationResult.reason.status === 404)) {
-        setError(organizationResult.reason instanceof Error ? organizationResult.reason.message : pickCopy(locale, { en: "Organization data could not be loaded", hans: "\u7EC4\u7EC7\u6570\u636E\u52A0\u8F7D\u5931\u8D25", hant: "\u7D44\u7E54\u8CC7\u6599\u8F09\u5165\u5931\u6557" }));
-      }
-      setLoading(false);
-    }, [api, isAuthenticated, locale]);
-    react_default.useEffect(() => {
-      void refresh();
-    }, [refresh]);
-    if (isLoading) return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-[var(--esim-bg)]" });
-    if (!isAuthenticated) {
-      return /* @__PURE__ */ jsx("div", { className: "flex min-h-screen items-center justify-center bg-[var(--esim-bg)] px-5", children: /* @__PURE__ */ jsxs("div", { className: "max-w-md border-y border-[var(--esim-line)] py-10 text-center", children: [
-        /* @__PURE__ */ jsx(WalletCards, { className: "mx-auto h-7 w-7 text-[var(--esim-gold)]" }),
-        /* @__PURE__ */ jsx("h1", { className: "mt-5 text-3xl text-[var(--esim-ink)]", children: t({ en: "Affiliate workspace", hans: "\u8054\u76DF\u63A8\u5E7F\u5DE5\u4F5C\u53F0", hant: "\u806F\u76DF\u63A8\u5EE3\u5DE5\u4F5C\u53F0" }) }),
-        /* @__PURE__ */ jsx("button", { onClick: onNavigateToLogin, className: "mt-7 min-h-11 bg-[var(--esim-gold)] px-6 text-sm font-semibold text-[var(--esim-bg)]", type: "button", children: t({ en: "Sign In", hans: "\u767B\u5165", hant: "\u767B\u5165" }) })
-      ] }) });
-    }
-    const shareUrl = partner && typeof window !== "undefined" ? `${window.location.origin}/${locale || "en"}/r/${encodeURIComponent(partner.code)}` : "";
-    return /* @__PURE__ */ jsx("main", { className: "min-h-screen bg-[var(--esim-bg)] px-4 pb-20 pt-20 sm:px-6 lg:px-8", children: /* @__PURE__ */ jsxs("div", { className: "mx-auto max-w-6xl", children: [
-      /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap items-center justify-between gap-4 border-b border-[var(--esim-line)] pb-6", children: [
-        /* @__PURE__ */ jsx("button", { onClick: onNavigateBack, className: "inline-flex h-10 w-10 items-center justify-center border border-[var(--esim-line)] text-[var(--esim-copy)]", "aria-label": t({ en: "Back", hans: "\u8FD4\u56DE", hant: "\u8FD4\u56DE" }), type: "button", children: /* @__PURE__ */ jsx(ArrowLeft, { className: "h-4 w-4" }) }),
-        /* @__PURE__ */ jsxs("div", { className: "flex border border-[var(--esim-line)] p-1", role: "tablist", "aria-label": t({ en: "Affiliate view", hans: "\u8054\u76DF\u89C6\u56FE", hant: "\u806F\u76DF\u6AA2\u8996" }), children: [
-          /* @__PURE__ */ jsx("button", { onClick: () => setView("partner"), className: `min-h-9 px-4 text-xs font-semibold ${view2 === "partner" ? "bg-[var(--esim-gold)] text-[var(--esim-bg)]" : "text-[var(--esim-copy)]"}`, type: "button", children: t({ en: "Partner", hans: "\u4E2A\u4EBA\u63A8\u5E7F", hant: "\u500B\u4EBA\u63A8\u5EE3" }) }),
-          /* @__PURE__ */ jsx("button", { onClick: () => setView("organization"), className: `min-h-9 px-4 text-xs font-semibold ${view2 === "organization" ? "bg-[var(--esim-gold)] text-[var(--esim-bg)]" : "text-[var(--esim-copy)]"}`, type: "button", children: t({ en: "Organization", hans: "\u7EC4\u7EC7", hant: "\u7D44\u7E54" }) })
-        ] }),
-        /* @__PURE__ */ jsx("button", { onClick: () => void refresh(), className: "inline-flex h-10 w-10 items-center justify-center border border-[var(--esim-line)] text-[var(--esim-copy)]", "aria-label": t({ en: "Refresh", hans: "\u5237\u65B0", hant: "\u91CD\u65B0\u6574\u7406" }), type: "button", children: /* @__PURE__ */ jsx(RefreshCw, { className: `h-4 w-4 ${loading ? "animate-spin" : ""}` }) })
-      ] }),
-      error ? /* @__PURE__ */ jsx("div", { className: "mt-5 border border-[color:color-mix(in_oklab,var(--esim-danger)_55%,transparent)] bg-[color:color-mix(in_oklab,var(--esim-danger)_10%,transparent)] px-4 py-3 text-sm text-[var(--esim-ink)]", children: error }) : null,
-      view2 === "partner" ? /* @__PURE__ */ jsx("section", { className: "pt-10", children: /* @__PURE__ */ jsxs("div", { className: "grid gap-8 lg:grid-cols-[1.1fr_0.9fr]", children: [
-        /* @__PURE__ */ jsxs("div", { children: [
-          /* @__PURE__ */ jsx("p", { className: "text-xs font-semibold uppercase text-[var(--esim-copy-soft)]", children: t({ en: "Personal affiliate", hans: "\u4E2A\u4EBA\u63A8\u5E7F", hant: "\u500B\u4EBA\u63A8\u5EE3" }) }),
-          /* @__PURE__ */ jsx("h1", { className: "mt-3 max-w-2xl text-4xl text-[var(--esim-ink)] sm:text-5xl", children: t({ en: "Your referral ledger.", hans: "\u4F60\u7684\u63A8\u5E7F\u4F63\u91D1\u8D26\u672C\u3002", hant: "\u4F60\u7684\u63A8\u5EE3\u4F63\u91D1\u5E33\u672C\u3002" }) }),
-          partner ? /* @__PURE__ */ jsxs("div", { className: "mt-10 border-y border-[var(--esim-line)] py-6", children: [
-            /* @__PURE__ */ jsxs("div", { className: "flex flex-col gap-3 sm:flex-row", children: [
-              /* @__PURE__ */ jsx("div", { className: "min-w-0 flex-1 border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-4 py-3 text-sm text-[var(--esim-copy)]", children: /* @__PURE__ */ jsx("span", { className: "block truncate", children: shareUrl }) }),
-              /* @__PURE__ */ jsxs("button", { onClick: async () => {
-                await navigator.clipboard.writeText(shareUrl);
-                setCopied(true);
-                window.setTimeout(() => setCopied(false), 1600);
-              }, className: "inline-flex min-h-11 items-center justify-center gap-2 bg-[var(--esim-gold)] px-5 text-sm font-semibold text-[var(--esim-bg)]", type: "button", children: [
-                copied ? /* @__PURE__ */ jsx(Check, { className: "h-4 w-4" }) : /* @__PURE__ */ jsx(Copy, { className: "h-4 w-4" }),
-                copied ? t({ en: "Copied", hans: "\u5DF2\u590D\u5236", hant: "\u5DF2\u8907\u88FD" }) : t({ en: "Copy link", hans: "\u590D\u5236\u94FE\u63A5", hant: "\u8907\u88FD\u9023\u7D50" })
-              ] })
-            ] }),
-            /* @__PURE__ */ jsxs("div", { className: "mt-5 flex flex-wrap gap-x-10 gap-y-4 text-sm", children: [
-              /* @__PURE__ */ jsxs("span", { children: [
-                /* @__PURE__ */ jsx("b", { className: "text-2xl text-[var(--esim-ink)]", children: money(commissions) }),
-                /* @__PURE__ */ jsx("small", { className: "ml-2 text-[var(--esim-copy-soft)]", children: t({ en: "Earned", hans: "\u7D2F\u8BA1\u6536\u76CA", hant: "\u7D2F\u8A08\u6536\u76CA" }) })
-              ] }),
-              /* @__PURE__ */ jsxs("span", { children: [
-                /* @__PURE__ */ jsxs("b", { className: "text-2xl text-[var(--esim-ink)]", children: [
-                  partner.commissionRate,
-                  "%"
-                ] }),
-                /* @__PURE__ */ jsx("small", { className: "ml-2 text-[var(--esim-copy-soft)]", children: t({ en: "Rate", hans: "\u4F63\u91D1\u6BD4\u4F8B", hant: "\u4F63\u91D1\u6BD4\u4F8B" }) })
-              ] }),
-              /* @__PURE__ */ jsxs("span", { children: [
-                /* @__PURE__ */ jsx("b", { className: "text-2xl text-[var(--esim-ink)]", children: commissions.length }),
-                /* @__PURE__ */ jsx("small", { className: "ml-2 text-[var(--esim-copy-soft)]", children: t({ en: "Orders", hans: "\u8BA2\u5355", hant: "\u8A02\u55AE" }) })
-              ] })
-            ] })
-          ] }) : /* @__PURE__ */ jsxs("form", { onSubmit: async (event) => {
-            event.preventDefault();
-            setLoading(true);
-            setError("");
-            try {
-              await registerEsimAffiliatePartner(api, { displayName, organizationCode: organizationCode || void 0 });
-              await refresh();
-            } catch (cause) {
-              setError(cause instanceof Error ? cause.message : t({ en: "Registration failed", hans: "\u6CE8\u518C\u5931\u8D25", hant: "\u8A3B\u518A\u5931\u6557" }));
-            } finally {
-              setLoading(false);
-            }
-          }, className: "mt-10 grid max-w-xl gap-4 border-y border-[var(--esim-line)] py-7", children: [
-            /* @__PURE__ */ jsx("input", { value: displayName, onChange: (event) => setDisplayName(event.target.value), placeholder: t({ en: "Display name", hans: "\u663E\u793A\u540D\u79F0", hant: "\u986F\u793A\u540D\u7A31" }), required: true, className: "h-12 border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-4 text-sm text-[var(--esim-ink)] outline-none" }),
-            /* @__PURE__ */ jsx("input", { value: organizationCode, onChange: (event) => setOrganizationCode(event.target.value.toUpperCase()), placeholder: t({ en: "Organization code (optional)", hans: "\u7EC4\u7EC7\u7F16\u7801\uFF08\u53EF\u9009\uFF09", hant: "\u7D44\u7E54\u7DE8\u78BC\uFF08\u9078\u586B\uFF09" }), className: "h-12 border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-4 text-sm text-[var(--esim-ink)] outline-none" }),
-            /* @__PURE__ */ jsx("button", { disabled: loading, className: "min-h-12 bg-[var(--esim-gold)] px-5 text-sm font-semibold text-[var(--esim-bg)] disabled:opacity-50", type: "submit", children: t({ en: "Create affiliate account", hans: "\u521B\u5EFA\u63A8\u5E7F\u8D26\u53F7", hant: "\u5EFA\u7ACB\u63A8\u5EE3\u5E33\u865F" }) })
-          ] })
-        ] }),
-        /* @__PURE__ */ jsx(CommissionList, { items: commissions, title: t({ en: "Partner commissions", hans: "\u4E2A\u4EBA\u63A8\u5E7F\u4F63\u91D1", hant: "\u500B\u4EBA\u63A8\u5EE3\u4F63\u91D1" }), locale })
-      ] }) }) : /* @__PURE__ */ jsx("section", { className: "pt-10", children: /* @__PURE__ */ jsxs("div", { className: "grid gap-8 lg:grid-cols-[1.1fr_0.9fr]", children: [
-        /* @__PURE__ */ jsxs("div", { children: [
-          /* @__PURE__ */ jsx("p", { className: "text-xs font-semibold uppercase text-[var(--esim-copy-soft)]", children: t({ en: "Organization affiliate", hans: "\u7EC4\u7EC7\u63A8\u5E7F", hant: "\u7D44\u7E54\u63A8\u5EE3" }) }),
-          /* @__PURE__ */ jsx("h1", { className: "mt-3 max-w-2xl text-4xl text-[var(--esim-ink)] sm:text-5xl", children: t({ en: "Creator network.", hans: "\u521B\u4F5C\u8005\u7F51\u7EDC\u3002", hant: "\u5275\u4F5C\u8005\u7DB2\u7D61\u3002" }) }),
-          organization ? /* @__PURE__ */ jsxs("div", { className: "mt-9", children: [
-            /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap items-end justify-between gap-5 border-y border-[var(--esim-line)] py-6", children: [
-              /* @__PURE__ */ jsxs("div", { children: [
-                /* @__PURE__ */ jsx("p", { className: "text-sm text-[var(--esim-copy-soft)]", children: organization.code }),
-                /* @__PURE__ */ jsx("h2", { className: "mt-2 text-2xl text-[var(--esim-ink)]", children: organization.name })
-              ] }),
-              /* @__PURE__ */ jsxs("div", { className: "text-right", children: [
-                /* @__PURE__ */ jsx("p", { className: "text-2xl font-semibold text-[var(--esim-ink)]", children: money(organizationCommissions) }),
-                /* @__PURE__ */ jsxs("p", { className: "text-xs text-[var(--esim-copy-soft)]", children: [
-                  organization.commissionRate,
-                  "% ",
-                  t({ en: "organization rate", hans: "\u7EC4\u7EC7\u4F63\u91D1\u6BD4\u4F8B", hant: "\u7D44\u7E54\u4F63\u91D1\u6BD4\u4F8B" })
-                ] })
-              ] })
-            ] }),
-            /* @__PURE__ */ jsxs("form", { onSubmit: async (event) => {
-              event.preventDefault();
-              setLoading(true);
-              setError("");
-              try {
-                await addEsimAffiliateMember(api, organization.id, { email: memberEmail, role: memberRole });
-                setMemberEmail("");
-                await refresh();
-              } catch (cause) {
-                setError(cause instanceof Error ? cause.message : t({ en: "Member could not be added", hans: "\u6210\u5458\u6DFB\u52A0\u5931\u8D25", hant: "\u6210\u54E1\u65B0\u589E\u5931\u6557" }));
-              } finally {
-                setLoading(false);
-              }
-            }, className: "mt-7 flex flex-col gap-3 sm:flex-row", children: [
-              /* @__PURE__ */ jsx("input", { type: "email", value: memberEmail, onChange: (event) => setMemberEmail(event.target.value), placeholder: t({ en: "Member email", hans: "\u6210\u5458\u90AE\u7BB1", hant: "\u6210\u54E1\u4FE1\u7BB1" }), required: true, className: "h-11 min-w-0 flex-1 border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-4 text-sm text-[var(--esim-ink)] outline-none" }),
-              /* @__PURE__ */ jsxs("select", { value: memberRole, onChange: (event) => setMemberRole(event.target.value), className: "h-11 border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-3 text-sm text-[var(--esim-ink)]", children: [
-                /* @__PURE__ */ jsx("option", { value: "INFLUENCER", children: t({ en: "Influencer", hans: "\u8FBE\u4EBA", hant: "\u9054\u4EBA" }) }),
-                /* @__PURE__ */ jsx("option", { value: "MANAGER", children: t({ en: "Manager", hans: "\u7BA1\u7406\u5458", hant: "\u7BA1\u7406\u54E1" }) })
-              ] }),
-              /* @__PURE__ */ jsxs("button", { className: "inline-flex h-11 items-center justify-center gap-2 bg-[var(--esim-gold)] px-5 text-sm font-semibold text-[var(--esim-bg)]", type: "submit", children: [
-                /* @__PURE__ */ jsx(UserPlus, { className: "h-4 w-4" }),
-                t({ en: "Add", hans: "\u6DFB\u52A0", hant: "\u65B0\u589E" })
-              ] })
-            ] }),
-            /* @__PURE__ */ jsx("div", { className: "mt-7 divide-y divide-[var(--esim-line)] border-y border-[var(--esim-line)]", children: organization.members.map((member) => /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between gap-4 py-4", children: [
-              /* @__PURE__ */ jsxs("div", { className: "min-w-0", children: [
-                /* @__PURE__ */ jsx("p", { className: "truncate text-sm font-semibold text-[var(--esim-ink)]", children: member.username || member.email }),
-                /* @__PURE__ */ jsx("p", { className: "mt-1 truncate text-xs text-[var(--esim-copy-soft)]", children: member.email })
-              ] }),
-              /* @__PURE__ */ jsx("span", { className: "text-xs font-semibold text-[var(--esim-gold)]", children: member.role === "MANAGER" ? t({ en: "Manager", hans: "\u7BA1\u7406\u5458", hant: "\u7BA1\u7406\u54E1" }) : t({ en: "Influencer", hans: "\u8FBE\u4EBA", hant: "\u9054\u4EBA" }) })
-            ] }, member.id)) })
-          ] }) : /* @__PURE__ */ jsxs("form", { onSubmit: async (event) => {
-            event.preventDefault();
-            setLoading(true);
-            setError("");
-            try {
-              await createEsimAffiliateOrganization(api, { name: organizationName, commissionRate: Number(organizationRate) });
-              await refresh();
-            } catch (cause) {
-              setError(cause instanceof Error ? cause.message : t({ en: "Organization could not be created", hans: "\u7EC4\u7EC7\u521B\u5EFA\u5931\u8D25", hant: "\u7D44\u7E54\u5EFA\u7ACB\u5931\u6557" }));
-            } finally {
-              setLoading(false);
-            }
-          }, className: "mt-10 grid max-w-xl gap-4 border-y border-[var(--esim-line)] py-7", children: [
-            /* @__PURE__ */ jsx("input", { value: organizationName, onChange: (event) => setOrganizationName(event.target.value), placeholder: t({ en: "Organization name", hans: "\u7EC4\u7EC7\u540D\u79F0", hant: "\u7D44\u7E54\u540D\u7A31" }), required: true, className: "h-12 border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-4 text-sm text-[var(--esim-ink)] outline-none" }),
-            /* @__PURE__ */ jsxs("label", { className: "flex items-center gap-4", children: [
-              /* @__PURE__ */ jsx("span", { className: "text-sm text-[var(--esim-copy)]", children: t({ en: "Commission rate", hans: "\u4F63\u91D1\u6BD4\u4F8B", hant: "\u4F63\u91D1\u6BD4\u4F8B" }) }),
-              /* @__PURE__ */ jsx("input", { type: "number", min: "0", max: "90", step: "0.1", value: organizationRate, onChange: (event) => setOrganizationRate(event.target.value), className: "h-12 w-28 border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-4 text-sm text-[var(--esim-ink)] outline-none" })
-            ] }),
-            /* @__PURE__ */ jsxs("button", { disabled: loading, className: "inline-flex min-h-12 items-center justify-center gap-2 bg-[var(--esim-gold)] px-5 text-sm font-semibold text-[var(--esim-bg)] disabled:opacity-50", type: "submit", children: [
-              /* @__PURE__ */ jsx(Plus, { className: "h-4 w-4" }),
-              t({ en: "Create organization", hans: "\u521B\u5EFA\u7EC4\u7EC7", hant: "\u5EFA\u7ACB\u7D44\u7E54" })
-            ] })
-          ] })
-        ] }),
-        /* @__PURE__ */ jsx(CommissionList, { items: organizationCommissions, title: t({ en: "Organization commissions", hans: "\u7EC4\u7EC7\u4F63\u91D1", hant: "\u7D44\u7E54\u4F63\u91D1" }), locale })
-      ] }) })
-    ] }) });
-  });
-  function commissionStatus(status, locale) {
-    const copy = {
-      pending: { en: "Pending", hans: "\u5F85\u7ED3\u7B97", hant: "\u5F85\u7D50\u7B97" },
-      approved: { en: "Approved", hans: "\u5DF2\u6279\u51C6", hant: "\u5DF2\u6279\u51C6" },
-      paid: { en: "Paid", hans: "\u5DF2\u7ED3\u7B97", hant: "\u5DF2\u7D50\u7B97" },
-      cancelled: { en: "Cancelled", hans: "\u5DF2\u53D6\u6D88", hant: "\u5DF2\u53D6\u6D88" }
-    };
-    return copy[String(status).toLowerCase()] ? pickCopy(locale, copy[String(status).toLowerCase()]) : String(status);
-  }
-  function CommissionList({ items, title, locale }) {
-    const t = (copy) => pickCopy(locale, copy);
-    return /* @__PURE__ */ jsxs("aside", { className: "border-l border-[var(--esim-line)] pl-0 lg:pl-8", children: [
-      /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3", children: [
-        /* @__PURE__ */ jsx(Link2, { className: "h-4 w-4 text-[var(--esim-gold)]" }),
-        /* @__PURE__ */ jsx("h2", { className: "text-sm font-semibold text-[var(--esim-ink)]", children: title })
-      ] }),
-      /* @__PURE__ */ jsx("div", { className: "mt-5 divide-y divide-[var(--esim-line)] border-y border-[var(--esim-line)]", children: items.length ? items.map((item) => /* @__PURE__ */ jsxs("div", { className: "grid grid-cols-[1fr_auto] gap-4 py-4", children: [
-        /* @__PURE__ */ jsxs("div", { className: "min-w-0", children: [
-          /* @__PURE__ */ jsx("p", { className: "truncate text-sm text-[var(--esim-ink)]", children: orderId(item) }),
-          /* @__PURE__ */ jsx("p", { className: "mt-1 text-xs text-[var(--esim-copy-soft)]", children: createdAt(item) ? formatOrderDate(createdAt(item), locale, false) : commissionStatus(item.status, locale) })
-        ] }),
-        /* @__PURE__ */ jsxs("div", { className: "text-right", children: [
-          /* @__PURE__ */ jsxs("p", { className: "text-sm font-semibold text-[var(--esim-ink)]", children: [
-            item.currency,
-            " ",
-            Number(item.amount).toFixed(2)
-          ] }),
-          /* @__PURE__ */ jsx("p", { className: "mt-1 text-xs uppercase text-[var(--esim-copy-soft)]", children: commissionStatus(item.status, locale) })
-        ] })
-      ] }, item.id)) : /* @__PURE__ */ jsxs("div", { className: "py-10 text-center", children: [
-        /* @__PURE__ */ jsx(UsersRound, { className: "mx-auto h-5 w-5 text-[var(--esim-copy-soft)]" }),
-        /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm text-[var(--esim-copy-soft)]", children: t({ en: "No commissions yet", hans: "\u6682\u65E0\u4F63\u91D1", hant: "\u66AB\u7121\u4F63\u91D1" }) })
-      ] }) })
-    ] });
-  }
-
-  // ../../ui/src/utils/cn.ts
-  function cn2(...inputs) {
-    return twMerge(clsx(inputs));
-  }
-
-  // ../../ui/src/utils/a11y.ts
-  function prefersReducedMotion3() {
-    if (typeof window === "undefined") return false;
-    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  }
-
-  // ../../ui/src/components/Button/Button.tsx
-  var variantStyles2 = {
-    primary: "bg-blue-600 text-white hover:bg-blue-700 shadow-brand-sm hover:shadow-brand-md",
-    secondary: "bg-slate-100 text-slate-900 hover:bg-slate-200",
-    outline: "border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-200 hover:text-blue-600",
-    ghost: "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
-    destructive: "bg-red-600 text-white hover:bg-red-700"
-  };
-  var sizeStyles2 = {
-    sm: "h-8 px-3 text-sm",
-    md: "h-10 px-4 text-base",
-    lg: "h-12 px-6 text-lg"
-  };
-  var Spinner2 = () => /* @__PURE__ */ jsxs(
-    "svg",
-    {
-      className: "animate-spin -ml-1 mr-2 h-4 w-4",
-      fill: "none",
-      viewBox: "0 0 24 24",
-      "aria-hidden": "true",
-      children: [
-        /* @__PURE__ */ jsx(
-          "circle",
-          {
-            className: "opacity-25",
-            cx: "12",
-            cy: "12",
-            r: "10",
-            stroke: "currentColor",
-            strokeWidth: "4"
-          }
-        ),
-        /* @__PURE__ */ jsx(
-          "path",
-          {
-            className: "opacity-75",
-            fill: "currentColor",
-            d: "M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-          }
-        )
-      ]
-    }
-  );
-  var Button2 = forwardRef(
-    ({
-      variant = "primary",
-      size = "md",
-      loading = false,
-      className,
-      children,
-      disabled,
-      ...props
-    }, ref) => {
-      const reducedMotion = prefersReducedMotion3();
-      return /* @__PURE__ */ jsxs(
-        motion.button,
-        {
-          ref,
-          whileHover: reducedMotion ? void 0 : { scale: 1.02 },
-          whileTap: reducedMotion ? void 0 : { scale: 0.98 },
-          transition: { duration: 0.15 },
-          className: cn2(
-            // Base styles
-            "inline-flex items-center justify-center font-medium rounded-full",
-            "transition-all duration-fast",
-            // Focus styles
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
-            // Disabled styles
-            "disabled:opacity-50 disabled:pointer-events-none",
-            // Variant styles
-            variantStyles2[variant],
-            // Size styles
-            sizeStyles2[size],
-            className
-          ),
-          disabled: disabled || loading,
-          "aria-busy": loading,
-          ...props,
-          children: [
-            loading && /* @__PURE__ */ jsx(Spinner2, {}),
-            children
-          ]
-        }
-      );
-    }
-  );
-  Button2.displayName = "Button";
-
-  // ../../ui/src/components/Card/ProductCard.tsx
-  var aspectRatioStyles2 = {
-    square: "aspect-square",
-    portrait: "aspect-[4/5]",
-    landscape: "aspect-video"
-  };
-  var badgeStyles2 = {
-    NEW: "bg-blue-50 text-blue-600",
-    SALE: "bg-red-50 text-red-600",
-    HOT: "bg-orange-50 text-orange-600"
-  };
-  var ProductCard2 = forwardRef(
-    ({
-      image,
-      title,
-      description,
-      price,
-      originalPrice,
-      badge,
-      aspectRatio: aspectRatio2 = "portrait",
-      currency = "\xA5",
-      onAddToCart,
-      className,
-      ...props
-    }, ref) => {
-      const reducedMotion = prefersReducedMotion3();
-      return /* @__PURE__ */ jsxs(
-        motion.div,
-        {
-          ref,
-          initial: reducedMotion ? void 0 : { opacity: 0, y: 20 },
-          whileInView: reducedMotion ? void 0 : { opacity: 1, y: 0 },
-          viewport: { once: true },
-          whileHover: reducedMotion ? void 0 : { y: -8 },
-          transition: { duration: 0.3, ease: [0, 0, 0.2, 1] },
-          className: cn2("group cursor-pointer", className),
-          ...props,
-          children: [
-            /* @__PURE__ */ jsxs(
-              "div",
-              {
-                className: cn2(
-                  "bg-slate-50 rounded-2xl mb-4 overflow-hidden relative",
-                  "shadow-sm transition-all duration-normal",
-                  "group-hover:shadow-card-hover",
-                  "border border-transparent group-hover:border-blue-100",
-                  aspectRatioStyles2[aspectRatio2]
-                ),
-                children: [
-                  image ? /* @__PURE__ */ jsx(
-                    "img",
-                    {
-                      src: image,
-                      alt: title,
-                      className: "w-full h-full object-cover transition-transform duration-slow group-hover:scale-105"
-                    }
-                  ) : /* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-gradient-to-tr from-slate-100 to-white" }),
-                  badge && /* @__PURE__ */ jsx(
-                    "div",
-                    {
-                      className: cn2(
-                        "absolute top-3 right-3",
-                        "bg-white/90 backdrop-blur px-2.5 py-1 rounded-full",
-                        "text-xs font-bold shadow-sm",
-                        badgeStyles2[badge]
-                      ),
-                      children: badge
-                    }
-                  ),
-                  /* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-blue-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-normal" })
-                ]
-              }
-            ),
-            /* @__PURE__ */ jsx("h3", { className: "text-base font-semibold text-slate-900 mb-1 group-hover:text-blue-600 transition-colors line-clamp-2", children: title }),
-            description && /* @__PURE__ */ jsx("p", { className: "text-slate-500 text-sm mb-2 line-clamp-2", children: description }),
-            /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between mt-2", children: [
-              /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2", children: [
-                /* @__PURE__ */ jsxs("span", { className: "text-lg font-bold text-slate-900", children: [
-                  currency,
-                  price.toLocaleString()
-                ] }),
-                originalPrice && /* @__PURE__ */ jsxs("span", { className: "text-sm text-slate-400 line-through", children: [
-                  currency,
-                  originalPrice.toLocaleString()
-                ] })
-              ] }),
-              onAddToCart && /* @__PURE__ */ jsx(
-                "button",
-                {
-                  onClick: (e) => {
-                    e.stopPropagation();
-                    onAddToCart();
-                  },
-                  className: cn2(
-                    "w-8 h-8 rounded-full flex items-center justify-center",
-                    "bg-blue-50 text-blue-600",
-                    "hover:bg-blue-600 hover:text-white",
-                    "transition-all duration-fast shadow-sm hover:shadow-brand-sm",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
-                  ),
-                  "aria-label": `Add ${title} to cart`,
-                  children: /* @__PURE__ */ jsx("svg", { className: "w-4 h-4", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", children: /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M12 4v16m8-8H4" }) })
-                }
-              )
-            ] })
-          ]
-        }
-      );
-    }
-  );
-  ProductCard2.displayName = "ProductCard";
-
-  // ../../ui/src/components/Input/Input.tsx
-  var Input2 = forwardRef(
-    ({
-      label,
-      error,
-      hint,
-      prefixIcon,
-      suffixIcon,
-      className,
-      id: id3,
-      disabled,
-      ...props
-    }, ref) => {
-      const generatedId = useId();
-      const inputId = id3 || generatedId;
-      const errorId = `${inputId}-error`;
-      const hintId = `${inputId}-hint`;
-      const hasError = !!error;
-      return /* @__PURE__ */ jsxs("div", { className: "w-full", children: [
-        label && /* @__PURE__ */ jsx(
-          "label",
-          {
-            htmlFor: inputId,
-            className: "block text-sm font-medium text-slate-700 mb-1.5",
-            children: label
-          }
-        ),
-        /* @__PURE__ */ jsxs("div", { className: "relative", children: [
-          prefixIcon && /* @__PURE__ */ jsx("div", { className: "absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none", children: prefixIcon }),
-          /* @__PURE__ */ jsx(
-            "input",
-            {
-              ref,
-              id: inputId,
-              className: cn2(
-                // Base styles
-                "w-full h-10 px-4 rounded-lg border bg-white",
-                "text-slate-900 placeholder:text-slate-400",
-                "transition-all duration-fast",
-                // Focus styles
-                "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent",
-                // Error styles
-                hasError ? "border-red-500 focus:ring-red-500" : "border-slate-200 hover:border-slate-300",
-                // Disabled styles
-                disabled && "bg-slate-50 text-slate-500 cursor-not-allowed",
-                // Icon padding
-                prefixIcon && "pl-10",
-                suffixIcon && "pr-10",
-                className
-              ),
-              disabled,
-              "aria-invalid": hasError ? "true" : void 0,
-              "aria-describedby": hasError ? errorId : hint ? hintId : void 0,
-              ...props
-            }
-          ),
-          suffixIcon && /* @__PURE__ */ jsx("div", { className: "absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none", children: suffixIcon })
-        ] }),
-        hasError && /* @__PURE__ */ jsxs(
-          "p",
-          {
-            id: errorId,
-            className: "mt-1.5 text-sm text-red-600 flex items-center gap-1",
-            role: "alert",
-            children: [
-              /* @__PURE__ */ jsx("svg", { className: "w-4 h-4 flex-shrink-0", fill: "currentColor", viewBox: "0 0 20 20", children: /* @__PURE__ */ jsx(
-                "path",
-                {
-                  fillRule: "evenodd",
-                  d: "M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z",
-                  clipRule: "evenodd"
-                }
-              ) }),
-              error
-            ]
-          }
-        ),
-        hint && !hasError && /* @__PURE__ */ jsx("p", { id: hintId, className: "mt-1.5 text-sm text-slate-500", children: hint })
-      ] });
-    }
-  );
-  Input2.displayName = "Input";
-
-  // ../../ui/src/components/Navigation/Navigation.tsx
-  function Navigation2({ logo, items, actions, className }) {
-    const [scrolled, setScrolled] = useState(false);
-    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-    const reducedMotion = prefersReducedMotion3();
-    useEffect(() => {
-      const handleScroll = () => setScrolled(window.scrollY > 0);
-      window.addEventListener("scroll", handleScroll, { passive: true });
-      return () => window.removeEventListener("scroll", handleScroll);
-    }, []);
-    useEffect(() => {
-      const handleResize = () => {
-        if (window.innerWidth >= 768) {
-          setMobileMenuOpen(false);
-        }
-      };
-      window.addEventListener("resize", handleResize);
-      return () => window.removeEventListener("resize", handleResize);
-    }, []);
-    return /* @__PURE__ */ jsxs(
-      "nav",
-      {
-        className: cn2(
-          "sticky top-0 z-50 h-16 bg-white/90 backdrop-blur-md transition-all duration-normal",
-          scrolled && "border-b border-slate-100 shadow-sm",
-          className
-        ),
-        children: [
-          /* @__PURE__ */ jsxs("div", { className: "max-w-7xl mx-auto px-4 sm:px-6 h-full flex items-center justify-between", children: [
-            /* @__PURE__ */ jsx("div", { className: "flex-shrink-0", children: logo }),
-            /* @__PURE__ */ jsx("div", { className: "hidden md:flex gap-8 text-sm font-medium", children: items.map((item) => /* @__PURE__ */ jsx(
-              "a",
-              {
-                href: item.href,
-                className: cn2(
-                  "transition-colors duration-fast",
-                  item.active ? "text-blue-600 font-semibold" : "text-slate-500 hover:text-blue-600"
-                ),
-                "aria-current": item.active ? "page" : void 0,
-                children: item.label
-              },
-              item.href
-            )) }),
-            /* @__PURE__ */ jsx("div", { className: "hidden md:flex items-center gap-4", children: actions }),
-            /* @__PURE__ */ jsx(
-              "button",
-              {
-                className: cn2(
-                  "md:hidden p-2 -mr-2 rounded-lg",
-                  "text-slate-600 hover:bg-slate-100",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                ),
-                onClick: () => setMobileMenuOpen(!mobileMenuOpen),
-                "aria-label": mobileMenuOpen ? "Close menu" : "Open menu",
-                "aria-expanded": mobileMenuOpen,
-                "aria-controls": "mobile-menu",
-                children: /* @__PURE__ */ jsx("svg", { className: "w-6 h-6", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", children: mobileMenuOpen ? /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "2", d: "M6 18L18 6M6 6l12 12" }) : /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "2", d: "M4 6h16M4 12h16M4 18h16" }) })
-              }
-            )
-          ] }),
-          /* @__PURE__ */ jsx(AnimatePresence, { children: mobileMenuOpen && /* @__PURE__ */ jsx(
-            motion.div,
-            {
-              id: "mobile-menu",
-              initial: reducedMotion ? { opacity: 1 } : { opacity: 0, height: 0 },
-              animate: reducedMotion ? { opacity: 1 } : { opacity: 1, height: "auto" },
-              exit: reducedMotion ? { opacity: 0 } : { opacity: 0, height: 0 },
-              transition: { duration: 0.2 },
-              className: "md:hidden bg-white border-t border-slate-100 overflow-hidden",
-              children: /* @__PURE__ */ jsxs("div", { className: "py-4 px-4 sm:px-6 space-y-1", children: [
-                items.map((item) => /* @__PURE__ */ jsx(
-                  "a",
-                  {
-                    href: item.href,
-                    className: cn2(
-                      "block py-2.5 px-3 rounded-lg text-base transition-colors",
-                      item.active ? "text-blue-600 font-semibold bg-blue-50" : "text-slate-600 hover:bg-slate-50"
-                    ),
-                    onClick: () => setMobileMenuOpen(false),
-                    children: item.label
-                  },
-                  item.href
-                )),
-                actions && /* @__PURE__ */ jsx("div", { className: "mt-4 pt-4 border-t border-slate-100", children: actions })
-              ] })
-            }
-          ) })
-        ]
-      }
-    );
-  }
-  Navigation2.displayName = "Navigation";
-
-  // ../../ui/src/components/Grid/ProductGrid.tsx
-  var gapStyles2 = {
-    sm: "gap-4",
-    md: "gap-6",
-    lg: "gap-8"
-  };
-  function ProductGrid2({
-    children,
-    columns = { sm: 2, md: 3, lg: 4 },
-    gap = "md",
-    className
-  }) {
-    const columnClasses = cn2(
-      "grid-cols-1",
-      columns.sm && `sm:grid-cols-${columns.sm}`,
-      columns.md && `md:grid-cols-${columns.md}`,
-      columns.lg && `lg:grid-cols-${columns.lg}`,
-      columns.xl && `xl:grid-cols-${columns.xl}`
-    );
-    return /* @__PURE__ */ jsx(
-      "div",
-      {
-        className: cn2(
-          "grid",
-          columnClasses,
-          gapStyles2[gap],
-          className
-        ),
-        children
-      }
-    );
-  }
-  ProductGrid2.displayName = "ProductGrid";
 
   // src/lib/esim/catalog.ts
   function destination(code, names, aliases, popular = false) {
@@ -15998,10 +15628,12 @@
   }
   function planTitle(source, fallback, locale) {
     const facts = planFacts(source);
-    if (!facts || locale && locale.startsWith("zh")) return fallback;
+    if (!facts || locale === "zh-Hans" || locale && locale.startsWith("zh") && locale !== "zh-Hant") return fallback;
     const region = pickCopy(locale, facts.region);
     const single = Number(facts.days) === 1;
     switch (locale) {
+      case "zh-Hant":
+        return `${region} ${facts.gb}GB / ${facts.days} \u5929`;
       case "ja":
         return `${region} ${facts.gb}GB / ${facts.days}\u65E5\u9593`;
       case "ko":
@@ -16099,7 +15731,7 @@
               /* @__PURE__ */ jsx(
                 "span",
                 {
-                  className: cn2(
+                  className: cn(
                     "flex h-5 w-5 items-center justify-center rounded-md border",
                     allSelected ? "border-[var(--esim-gold)] bg-[var(--esim-gold)] text-[var(--esim-bg)]" : "border-[var(--esim-line-strong)] bg-[var(--esim-bg)] text-transparent"
                   ),
@@ -16127,7 +15759,7 @@
                 {
                   type: "button",
                   onClick: () => onToggleItemSelection?.(item.id),
-                  className: cn2(
+                  className: cn(
                     "mt-1 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md border transition-colors",
                     selectedIdSet.has(item.id) ? "border-[var(--esim-gold)] bg-[var(--esim-gold)] text-[var(--esim-bg)]" : "border-[var(--esim-line-strong)] bg-[var(--esim-bg)] text-transparent"
                   ),
@@ -16406,7 +16038,7 @@
     const shouldCollectShipping = Boolean(requireShippingAddress || hasShippingInput);
     const normalizedCountry = formData.country.trim().toUpperCase() === "UK" ? "GB" : formData.country.trim().toUpperCase();
     const statePostalRequired = shouldCollectShipping && countriesRequireStatePostalSet.has(normalizedCountry);
-    const inputClassName = (field) => cn2(
+    const inputClassName = (field) => cn(
       "h-12 w-full rounded-[0.95rem] border bg-[color:color-mix(in_oklab,var(--esim-bg)_88%,black)] px-4 text-sm text-[var(--esim-ink)] outline-none placeholder:text-[var(--esim-copy-soft)]",
       errors[field] ? "border-[var(--esim-danger)]" : "border-[var(--esim-line)]"
     );
@@ -16565,7 +16197,7 @@
           esimAssets.length > 0 ? /* @__PURE__ */ jsxs("div", { className: "mb-4 rounded-[1.2rem] border border-[color:color-mix(in_oklab,var(--esim-gold)_16%,var(--esim-line))] bg-[color:color-mix(in_oklab,var(--esim-bg)_88%,black)] p-4", children: [
             /* @__PURE__ */ jsx("p", { className: "text-lg font-medium text-[var(--esim-ink)]", children: pickCopy(locale, { en: "eSIM", hans: "eSIM \u5B89\u88C5\u65B9\u5F0F", hant: "eSIM \u5B89\u88DD\u65B9\u5F0F" }) }),
             /* @__PURE__ */ jsxs("div", { className: "mt-4 grid gap-3", children: [
-              /* @__PURE__ */ jsx("label", { className: cn2(
+              /* @__PURE__ */ jsx("label", { className: cn(
                 "flex cursor-pointer items-center justify-between rounded-[0.95rem] border px-4 py-4 transition-colors",
                 esimChoice === "new" ? "border-[var(--esim-line-strong)] bg-[color:color-mix(in_oklab,var(--esim-gold)_14%,transparent)]" : "border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_86%,black)]"
               ), children: /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3", children: [
@@ -16584,7 +16216,7 @@
                   /* @__PURE__ */ jsx("p", { className: "mt-1 text-xs text-[var(--esim-copy-soft)]", children: pickCopy(locale, { en: "For a new device \u2014 a fresh QR code is issued after payment.", hans: "\u7528\u4E8E\u65B0\u8BBE\u5907\u2014\u2014\u4ED8\u6B3E\u540E\u53D1\u653E\u5168\u65B0\u4E8C\u7EF4\u7801\u3002", hant: "\u7528\u65BC\u65B0\u8A2D\u5099\u2014\u2014\u4ED8\u6B3E\u5F8C\u767C\u653E\u5168\u65B0\u4E8C\u7DAD\u78BC\u3002" }) })
                 ] })
               ] }) }),
-              esimAssets.map((asset) => /* @__PURE__ */ jsx("label", { className: cn2(
+              esimAssets.map((asset) => /* @__PURE__ */ jsx("label", { className: cn(
                 "flex cursor-pointer items-center justify-between rounded-[0.95rem] border px-4 py-4 transition-colors",
                 esimChoice === asset.iccid ? "border-[var(--esim-line-strong)] bg-[color:color-mix(in_oklab,var(--esim-gold)_14%,transparent)]" : "border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_86%,black)]"
               ), children: /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3", children: [
@@ -16625,7 +16257,7 @@
               return /* @__PURE__ */ jsxs(
                 "label",
                 {
-                  className: cn2(
+                  className: cn(
                     "flex cursor-pointer items-center justify-between rounded-[0.95rem] border px-4 py-4 transition-colors",
                     isSelected ? "border-[var(--esim-line-strong)] bg-[color:color-mix(in_oklab,var(--esim-gold)_14%,transparent)]" : "border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_86%,black)]"
                   ),
@@ -17147,7 +16779,7 @@
                 "button",
                 {
                   onClick: () => onViewModeChange("grid"),
-                  className: cn2(
+                  className: cn(
                     "flex h-10 w-10 items-center justify-center rounded-full transition-colors",
                     viewMode === "grid" ? "bg-[var(--esim-gold)] text-[var(--esim-bg)]" : "text-[var(--esim-copy)]"
                   ),
@@ -17159,7 +16791,7 @@
                 "button",
                 {
                   onClick: () => onViewModeChange("list"),
-                  className: cn2(
+                  className: cn(
                     "flex h-10 w-10 items-center justify-center rounded-full transition-colors",
                     viewMode === "list" ? "bg-[var(--esim-gold)] text-[var(--esim-bg)]" : "text-[var(--esim-copy)]"
                   ),
@@ -17175,7 +16807,7 @@
             "button",
             {
               onClick: () => setSelectedFilter(filter2),
-              className: cn2(
+              className: cn(
                 "rounded-[0.8rem] border px-4 py-2 text-[11px] font-semibold transition-colors",
                 selectedFilter === filter2 ? "border-[var(--esim-line-strong)] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--esim-gold)_88%,white),color-mix(in_oklab,var(--esim-gold)_68%,black))] text-[var(--esim-bg)]" : "border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_88%,black)] text-[var(--esim-copy)]"
               ),
@@ -17209,7 +16841,7 @@
       ] }) : normalizedProducts.length === 0 ? /* @__PURE__ */ jsx("div", { className: "rounded-[var(--esim-radius-xl)] border border-dashed border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-16 text-center text-[var(--esim-copy)]", children: t({ en: "No plans matched the current search.", hans: "\u6CA1\u6709\u7B26\u5408\u5F53\u524D\u641C\u7D22\u7684\u5957\u9910\u3002", hant: "\u6C92\u6709\u7B26\u5408\u7576\u524D\u641C\u5C0B\u7684\u5957\u9910\u3002" }) }) : /* @__PURE__ */ jsx(
         "div",
         {
-          className: cn2(
+          className: cn(
             "grid gap-3 sm:gap-4",
             viewMode === "grid" ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3" : "grid-cols-1"
           ),
@@ -17230,7 +16862,7 @@
             return /* @__PURE__ */ jsxs(
               "article",
               {
-                className: cn2(
+                className: cn(
                   "relative flex flex-col overflow-hidden rounded-2xl border-2 border-[color:color-mix(in_oklab,var(--esim-gold)_26%,transparent)] bg-[linear-gradient(160deg,#23262d_via_40%,#1a1c22_to_75%,#121418)] shadow-[0_16px_50px_rgba(0,0,0,0.65)] ring-1 ring-[color:color-mix(in_oklab,var(--esim-gold)_14%,transparent)] transition-transform duration-300 hover:-translate-y-1",
                   viewMode === "list" && "md:flex-row md:items-stretch md:gap-6 md:p-6"
                 ),
@@ -17283,7 +16915,7 @@
                       ]
                     }
                   ),
-                  /* @__PURE__ */ jsxs("div", { className: cn2("relative z-10 flex flex-col justify-end gap-2 px-6 pb-6", viewMode === "list" && "md:w-[14rem] md:justify-center md:px-0 md:pb-6"), children: [
+                  /* @__PURE__ */ jsxs("div", { className: cn("relative z-10 flex flex-col justify-end gap-2 px-6 pb-6", viewMode === "list" && "md:w-[14rem] md:justify-center md:px-0 md:pb-6"), children: [
                     /* @__PURE__ */ jsxs(
                       "button",
                       {
@@ -18350,7 +17982,7 @@
   var topics = [
     {
       title: { en: "How to install eSIM", hans: "\u5982\u4F55\u5B89\u88C5 eSIM", hant: "\u5982\u4F55\u5B89\u88DD eSIM" },
-      subtitle: { en: "Step-by-step guide", hans: "\u5206\u6B65\u6307\u5357", hant: "\u5206\u6B65\u6307\u5357" },
+      subtitle: { en: "Step-by-step guide", hans: "\u5206\u6B65\u6307\u5357", hant: "\u9010\u6B65\u6307\u5357" },
       icon: QrCode
     },
     {
@@ -18417,6 +18049,73 @@
           className: "mt-8 inline-flex min-h-12 items-center justify-center rounded-[0.9rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--esim-gold)_82%,white),color-mix(in_oklab,var(--esim-gold)_68%,black))] px-6 text-sm font-semibold text-[var(--esim-bg)]",
           type: "button",
           children: t({ en: "Contact Support", hans: "\u8054\u7CFB\u652F\u6301", hant: "\u806F\u7D61\u652F\u63F4" })
+        }
+      )
+    ] }) }) });
+  });
+
+  // src/components/HowItWorksPage.tsx
+  var STEPS = [
+    {
+      icon: MapPin,
+      title: { en: "Pick your destination", hans: "\u9009\u62E9\u76EE\u7684\u5730", hant: "\u9078\u64C7\u76EE\u7684\u5730" },
+      body: {
+        en: "Choose a country or region, the data and the days you need.",
+        hans: "\u9009\u62E9\u56FD\u5BB6\u6216\u5730\u533A\uFF0C\u4EE5\u53CA\u6240\u9700\u7684\u6D41\u91CF\u548C\u5929\u6570\u3002",
+        hant: "\u9078\u64C7\u570B\u5BB6\u6216\u5730\u5340\uFF0C\u4EE5\u53CA\u6240\u9700\u7684\u6D41\u91CF\u548C\u5929\u6578\u3002"
+      }
+    },
+    {
+      icon: CreditCard,
+      title: { en: "Check out", hans: "\u5B8C\u6210\u652F\u4ED8", hant: "\u5B8C\u6210\u4ED8\u6B3E" },
+      body: {
+        en: "Pay securely. Your plan is issued right after payment.",
+        hans: "\u5B89\u5168\u4ED8\u6B3E\uFF0C\u5957\u9910\u5728\u652F\u4ED8\u540E\u7ACB\u5373\u53D1\u653E\u3002",
+        hant: "\u5B89\u5168\u4ED8\u6B3E\uFF0C\u65B9\u6848\u5728\u4ED8\u6B3E\u5F8C\u7ACB\u5373\u767C\u653E\u3002"
+      }
+    },
+    {
+      icon: Wifi,
+      title: { en: "Install and connect", hans: "\u5B89\u88C5\u5E76\u8FDE\u63A5", hant: "\u5B89\u88DD\u4E26\u9023\u7DDA" },
+      body: {
+        en: "Scan the QR code or enter the activation code. Most plans start on first connection.",
+        hans: "\u626B\u63CF\u4E8C\u7EF4\u7801\u6216\u8F93\u5165\u6FC0\u6D3B\u7801\u3002\u591A\u6570\u5957\u9910\u5728\u9996\u6B21\u8054\u7F51\u65F6\u751F\u6548\u3002",
+        hant: "\u6383\u63CF QR \u78BC\u6216\u8F38\u5165\u555F\u7528\u78BC\u3002\u591A\u6578\u65B9\u6848\u5728\u9996\u6B21\u9023\u7DDA\u6642\u751F\u6548\u3002"
+      }
+    }
+  ];
+  var HowItWorksPage = react_default.memo(function HowItWorksPage2({ config, locale }) {
+    const t = (copy) => pickCopy(locale, copy);
+    const site = resolveEsimSiteConfig(config, locale);
+    const prefix = locale && locale !== "en" ? `/${locale}` : "/en";
+    return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-[var(--esim-bg)] px-4 pb-24 pt-10 sm:px-6 lg:px-8", children: /* @__PURE__ */ jsx("div", { className: "mx-auto max-w-[980px]", children: /* @__PURE__ */ jsxs("div", { className: "rounded-[1.6rem] border border-[var(--esim-line)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--esim-bg-elevated)_96%,white),var(--esim-bg-elevated))] p-6 shadow-[var(--esim-shadow)] sm:p-10", children: [
+      /* @__PURE__ */ jsx("p", { className: "text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--esim-gold)]", children: pickCopy(locale, { en: "eSIM Plans", hans: "eSIM \u65B9\u6848", hant: "eSIM \u65B9\u6848" }) }),
+      /* @__PURE__ */ jsx("h1", { className: "mt-3 text-[clamp(2.2rem,4vw,3.4rem)] font-semibold leading-[1.02] tracking-[-0.05em] text-[var(--esim-ink)]", children: t({ en: "How it works", hans: "\u4E86\u89E3\u4F7F\u7528\u65B9\u5F0F", hant: "\u77AD\u89E3\u4F7F\u7528\u65B9\u5F0F" }) }),
+      /* @__PURE__ */ jsx("p", { className: "mt-4 max-w-2xl text-base leading-8 text-[var(--esim-copy)]", children: t({ en: "Three steps from checkout to connected.", hans: "\u4ECE\u4E0B\u5355\u5230\u8054\u7F51\uFF0C\u53EA\u9700\u4E09\u6B65\u3002", hant: "\u5F9E\u4E0B\u55AE\u5230\u9023\u7DDA\uFF0C\u53EA\u9700\u4E09\u6B65\u3002" }) }),
+      /* @__PURE__ */ jsx("ol", { className: "mt-10 grid gap-5 md:grid-cols-3", children: STEPS.map((step, index) => /* @__PURE__ */ jsxs(
+        "li",
+        {
+          className: "rounded-[1.2rem] border border-[var(--esim-line)] bg-[var(--esim-bg)] p-6 shadow-[var(--esim-shadow)]",
+          children: [
+            /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3", children: [
+              /* @__PURE__ */ jsx("span", { className: "inline-flex h-11 w-11 items-center justify-center rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--esim-gold)_24%,transparent)] bg-[color:color-mix(in_oklab,var(--esim-gold)_14%,transparent)] text-[var(--esim-gold)]", children: /* @__PURE__ */ jsx(step.icon, { className: "h-5 w-5" }) }),
+              /* @__PURE__ */ jsxs("span", { className: "text-[11px] font-semibold tracking-[0.18em] text-[var(--esim-copy-soft)]", children: [
+                "0",
+                index + 1
+              ] })
+            ] }),
+            /* @__PURE__ */ jsx("h2", { className: "mt-5 text-xl font-semibold tracking-[-0.03em] text-[var(--esim-ink)]", children: t(step.title) }),
+            /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm leading-7 text-[var(--esim-copy)]", children: t(step.body) })
+          ]
+        },
+        step.title.en
+      )) }),
+      /* @__PURE__ */ jsx(
+        "a",
+        {
+          href: `${prefix}${site.primaryCtaHref}`,
+          className: "mt-10 inline-flex min-h-12 items-center justify-center rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--esim-gold)_88%,white),color-mix(in_oklab,var(--esim-gold)_70%,#8a6a1f))] px-7 text-sm font-semibold text-[#0b0c10] transition-opacity hover:opacity-95",
+          children: pickCopy(locale, { en: "Shop eSIM Plans", hans: "\u9009\u8D2D eSIM \u65B9\u6848", hant: "\u9078\u8CFC eSIM \u65B9\u6848" })
         }
       )
     ] }) }) });
@@ -20672,7 +20371,7 @@
           /* @__PURE__ */ jsx("div", { className: "rounded-[var(--esim-radius-lg)] border border-[var(--esim-line)] bg-[var(--esim-surface)] p-6 shadow-[var(--esim-shadow)] sm:p-8", children: /* @__PURE__ */ jsxs("div", { className: "flex flex-col gap-4 md:flex-row md:items-end md:justify-between", children: [
             /* @__PURE__ */ jsxs("div", { children: [
               /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap items-center gap-2", children: [
-                /* @__PURE__ */ jsx("span", { className: cn2("rounded-full px-3 py-1 text-[11px] font-semibold tracking-[0.16em]", statusTone(effectiveOrder.status)), children: orderStatusLabel(effectiveOrder.status, locale) }),
+                /* @__PURE__ */ jsx("span", { className: cn("rounded-full px-3 py-1 text-[11px] font-semibold tracking-[0.16em]", statusTone(effectiveOrder.status)), children: orderStatusLabel(effectiveOrder.status, locale) }),
                 artifactCount > 0 ? /* @__PURE__ */ jsx("span", { className: "rounded-full border border-[var(--esim-line)] px-3 py-1 text-[11px] font-semibold tracking-[0.16em] text-[var(--esim-copy)]", children: t({ en: `${artifactCount} delivered item${artifactCount === 1 ? "" : "s"}`, hans: `\u5DF2\u4EA4\u4ED8 ${artifactCount} \u9879\u5185\u5BB9`, hant: `\u5DF2\u4EA4\u4ED8 ${artifactCount} \u9805\u5167\u5BB9`, ja: `${artifactCount} \u4EF6\u306E\u30B3\u30F3\u30C6\u30F3\u30C4\u3092\u767A\u884C\u6E08\u307F`, ko: `${artifactCount}\uAC1C \uCF58\uD150\uCE20 \uBC1C\uAE09\uB428`, fr: `${artifactCount} contenu${artifactCount === 1 ? "" : "s"} livr\xE9${artifactCount === 1 ? "" : "s"}`, de: `${artifactCount} Inhalt${artifactCount === 1 ? "" : "e"} zugestellt` }) }) : null
               ] }),
               /* @__PURE__ */ jsxs("h1", { className: "mt-5 text-[clamp(2.2rem,4vw,4rem)] font-black tracking-[-0.05em] text-[var(--esim-ink)]", children: [
@@ -20727,7 +20426,7 @@
                   ] }),
                   /* @__PURE__ */ jsx("p", { className: "mt-2 break-all font-mono text-sm font-semibold text-[var(--esim-ink)]", children: shipment.trackingNumber })
                 ] }),
-                /* @__PURE__ */ jsx("span", { className: cn2("rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em]", statusTone(shipment.status)), children: orderStatusLabel(shipment.status, locale) })
+                /* @__PURE__ */ jsx("span", { className: cn("rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em]", statusTone(shipment.status)), children: orderStatusLabel(shipment.status, locale) })
               ] }),
               /* @__PURE__ */ jsxs("div", { className: "mt-4 flex flex-wrap items-center gap-3 text-xs text-[var(--esim-copy)]", children: [
                 shipment.shippedAt ? /* @__PURE__ */ jsxs("span", { children: [
@@ -20758,6 +20457,7 @@
           ] }) : null,
           effectiveOrder.items.map((item) => {
             const sections3 = extractDeliverySections(item.fulfillmentData);
+            const variantDetail = item.variantName && item.variantName.trim() !== String(item.productName || "").trim() ? item.variantName : null;
             const isEsimItem = typeof item.productId === "string" && item.productId.startsWith("boss-");
             const installLike = (() => {
               const data = item.fulfillmentData;
@@ -20787,10 +20487,10 @@
                         t({ en: "Qty", hans: "\u6570\u91CF", hant: "\u6578\u91CF" }),
                         " ",
                         item.quantity,
-                        item.variantName ? ` \xB7 ${item.variantName}` : ""
+                        variantDetail ? ` \xB7 ${variantDetail}` : ""
                       ] })
                     ] }),
-                    /* @__PURE__ */ jsx("span", { className: cn2("rounded-full px-3 py-1 text-[11px] font-semibold tracking-[0.16em]", statusTone(item.fulfillmentStatus || effectiveOrder.status)), children: itemStatusLabel(item.fulfillmentStatus || effectiveOrder.status, locale) })
+                    /* @__PURE__ */ jsx("span", { className: cn("rounded-full px-3 py-1 text-[11px] font-semibold tracking-[0.16em]", statusTone(item.fulfillmentStatus || effectiveOrder.status)), children: itemStatusLabel(item.fulfillmentStatus || effectiveOrder.status, locale) })
                   ] }),
                   isEsimItem ? installSession ? /* @__PURE__ */ jsx("p", { className: "mt-6 text-sm leading-6 text-[var(--esim-copy)]", children: t({
                     en: "Provisioned automatically \u2014 your install details are shown above.",
@@ -21007,7 +20707,7 @@
             children: /* @__PURE__ */ jsxs("div", { className: "flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between", children: [
               /* @__PURE__ */ jsxs("div", { className: "min-w-0", children: [
                 /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap items-center gap-2", children: [
-                  /* @__PURE__ */ jsx("span", { className: cn2("rounded-full px-3 py-1 text-[11px] font-semibold tracking-[0.16em]", statusTone(order.status)), children: orderStatusLabel(order.status, locale) }),
+                  /* @__PURE__ */ jsx("span", { className: cn("rounded-full px-3 py-1 text-[11px] font-semibold tracking-[0.16em]", statusTone(order.status)), children: orderStatusLabel(order.status, locale) }),
                   artifactCount > 0 ? /* @__PURE__ */ jsx("span", { className: "rounded-full border border-[var(--esim-line)] px-3 py-1 text-[11px] font-semibold tracking-[0.16em] text-[var(--esim-copy)]", children: t({ en: artifactCount === 1 ? "1 delivered item" : `${artifactCount} delivered items`, hans: `${artifactCount} \u9879\u5DF2\u4EA4\u4ED8\u5185\u5BB9`, hant: `${artifactCount} \u9805\u5DF2\u4EA4\u4ED8\u5167\u5BB9`, ja: `${artifactCount} \u4EF6\u306E\u30B3\u30F3\u30C6\u30F3\u30C4\u3092\u767A\u884C\u6E08\u307F`, ko: `${artifactCount}\uAC1C \uCF58\uD150\uCE20 \uBC1C\uAE09\uB428`, fr: `${artifactCount} contenu${artifactCount === 1 ? "" : "s"} livr\xE9${artifactCount === 1 ? "" : "s"}`, de: `${artifactCount} Inhalt${artifactCount === 1 ? "" : "e"} zugestellt` }) }) : null
                 ] }),
                 /* @__PURE__ */ jsxs("h2", { className: "mt-4 text-2xl font-black tracking-[-0.04em] text-[var(--esim-ink)]", children: [
@@ -21090,6 +20790,48 @@
       ] }) : null
     ] }) });
   });
+
+  // src/components/NotFound.tsx
+  function NotFound({ route, locale, onGoHome }) {
+    return /* @__PURE__ */ jsx("div", { className: "flex min-h-screen items-center justify-center bg-[var(--esim-bg)] px-4 py-24 text-center", children: /* @__PURE__ */ jsxs("div", { className: "max-w-md", children: [
+      /* @__PURE__ */ jsx("p", { className: "text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--esim-gold)]", children: "404" }),
+      /* @__PURE__ */ jsx("h1", { className: "mt-4 text-4xl font-semibold leading-tight tracking-[-0.04em] text-[var(--esim-ink)]", children: pickCopy(locale, { en: "Page Not Found", hans: "\u9875\u9762\u4E0D\u5B58\u5728", hant: "\u9801\u9762\u4E0D\u5B58\u5728" }) }),
+      /* @__PURE__ */ jsx("p", { className: "mt-4 text-sm leading-7 text-[var(--esim-copy)]", children: route ? pickCopy(locale, {
+        en: `Sorry, we couldn't find the page "${route}" you're looking for.`,
+        hans: `\u62B1\u6B49\uFF0C\u627E\u4E0D\u5230\u9875\u9762\u300C${route}\u300D\u3002`,
+        hant: `\u62B1\u6B49\uFF0C\u627E\u4E0D\u5230\u9801\u9762\u300C${route}\u300D\u3002`,
+        ja: `\u304A\u63A2\u3057\u306E\u30DA\u30FC\u30B8\u300C${route}\u300D\u306F\u898B\u3064\u304B\u308A\u307E\u305B\u3093\u3067\u3057\u305F\u3002`,
+        ko: `\uCC3E\uC73C\uC2DC\uB294 \uD398\uC774\uC9C0 "${route}"\uC744(\uB97C) \uCC3E\uC744 \uC218 \uC5C6\uC5B4\uC694.`,
+        fr: `D\xE9sol\xE9, la page \xAB ${route} \xBB est introuvable.`,
+        de: `Leider konnte die Seite \u201E${route}\u201C nicht gefunden werden.`
+      }) : pickCopy(locale, {
+        en: "Sorry, we couldn't find the page you're looking for.",
+        hans: "\u62B1\u6B49\uFF0C\u627E\u4E0D\u5230\u60A8\u8981\u8BBF\u95EE\u7684\u9875\u9762\u3002",
+        hant: "\u62B1\u6B49\uFF0C\u627E\u4E0D\u5230\u60A8\u8981\u5B58\u53D6\u7684\u9801\u9762\u3002",
+        ja: "\u304A\u63A2\u3057\u306E\u30DA\u30FC\u30B8\u306F\u898B\u3064\u304B\u308A\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
+        ko: "\uCC3E\uC73C\uC2DC\uB294 \uD398\uC774\uC9C0\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC5B4\uC694.",
+        fr: "D\xE9sol\xE9, la page est introuvable.",
+        de: "Leider konnte die Seite nicht gefunden werden."
+      }) }),
+      /* @__PURE__ */ jsxs(
+        "button",
+        {
+          type: "button",
+          onClick: onGoHome,
+          className: "mt-8 inline-flex items-center gap-2 rounded-full border border-[var(--esim-line-strong)] bg-[color:color-mix(in_oklab,var(--esim-bg-soft)_60%,transparent)] px-5 py-3 text-sm font-semibold text-[var(--esim-ink)] transition-colors hover:border-[var(--esim-gold)]",
+          children: [
+            /* @__PURE__ */ jsx(ArrowLeft, { className: "h-4 w-4" }),
+            pickCopy(locale, { en: "Back to Home", hans: "\u8FD4\u56DE\u9996\u9875", hant: "\u8FD4\u56DE\u9996\u9801" })
+          ]
+        }
+      ),
+      /* @__PURE__ */ jsx("p", { className: "mt-8 text-xs leading-6 text-[var(--esim-copy-soft)]", children: pickCopy(locale, {
+        en: "If you believe this is an error, please contact our support team.",
+        hans: "\u5982\u679C\u60A8\u8BA4\u4E3A\u8FD9\u662F\u9519\u8BEF\uFF0C\u8BF7\u8054\u7CFB\u5BA2\u670D\u56E2\u961F\u3002",
+        hant: "\u5982\u679C\u60A8\u8A8D\u70BA\u9019\u662F\u932F\u8AA4\uFF0C\u8ACB\u806F\u7D61\u5BA2\u670D\u5718\u968A\u3002"
+      }) })
+    ] }) });
+  }
 
   // src/components/OrderSuccessPage.tsx
   function copyToClipboard3(value) {
@@ -21281,8 +21023,8 @@
       /* @__PURE__ */ jsx("h1", { className: "text-[clamp(2.2rem,4vw,3.5rem)] font-semibold tracking-[-0.05em] text-[var(--esim-ink)]", children: t({ en: "Privacy Policy", hans: "\u9690\u79C1\u653F\u7B56", hant: "\u96B1\u79C1\u653F\u7B56" }) }),
       /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm text-[var(--esim-copy-soft)]", children: t({ en: "Last updated: April 15, 2024", hans: "\u6700\u540E\u66F4\u65B0\uFF1A2024 \u5E74 4 \u6708 15 \u65E5", hant: "\u6700\u5F8C\u66F4\u65B0\uFF1A2024 \u5E74 4 \u6708 15 \u65E5" }) }),
       /* @__PURE__ */ jsx("div", { className: "mt-8 space-y-5", children: sections.map((section, index) => {
-        const title = catalogCopy(locale, section.en.title);
-        const body = catalogCopy(locale, section.en.body);
+        const title = pickCopy(locale, { en: section.en.title, hans: section.hans.title, hant: section.hant.title });
+        const body = pickCopy(locale, { en: section.en.body, hans: section.hans.body, hant: section.hant.body });
         return /* @__PURE__ */ jsxs(
           "section",
           {
@@ -21937,7 +21679,7 @@
               ] })
             ] }, label)) })
           ] }),
-          normalizedProduct.variants?.length ? /* @__PURE__ */ jsxs("div", { className: "rounded-[1.2rem] border border-[color:color-mix(in_oklab,var(--esim-gold)_16%,var(--esim-line))] bg-[color:color-mix(in_oklab,var(--esim-bg)_88%,black)] p-4", children: [
+          normalizedProduct.variants?.length && !(isEsimPlanProduct(normalizedProduct) && normalizedProduct.variants.length === 1) ? /* @__PURE__ */ jsxs("div", { className: "rounded-[1.2rem] border border-[color:color-mix(in_oklab,var(--esim-gold)_16%,var(--esim-line))] bg-[color:color-mix(in_oklab,var(--esim-bg)_88%,black)] p-4", children: [
             /* @__PURE__ */ jsx("p", { className: "text-sm font-medium text-[var(--esim-ink)]", children: pickCopy(locale, { en: "Choose an option", hans: "\u9009\u62E9\u9009\u9879", hant: "\u9078\u64C7\u9078\u9805" }) }),
             /* @__PURE__ */ jsx("div", { className: "mt-4 flex flex-wrap gap-2", children: normalizedProduct.variants.map((variant) => {
               const isActive = effectiveSelectedVariant === variant.id;
@@ -21945,7 +21687,7 @@
                 "button",
                 {
                   onClick: () => onVariantChange(variant.id),
-                  className: cn2(
+                  className: cn(
                     "rounded-full border px-4 py-2 text-sm transition-colors",
                     isActive ? "border-[var(--esim-line-strong)] bg-[color:color-mix(in_oklab,var(--esim-gold)_14%,transparent)] text-[var(--esim-ink)]" : "border-[var(--esim-line)] text-[var(--esim-copy)]"
                   ),
@@ -22050,8 +21792,8 @@
       /* @__PURE__ */ jsx("h1", { className: "text-[clamp(2.2rem,4vw,3.5rem)] font-semibold tracking-[-0.05em] text-[var(--esim-ink)]", children: t({ en: "Terms of Service", hans: "\u670D\u52A1\u6761\u6B3E", hant: "\u670D\u52D9\u689D\u6B3E" }) }),
       /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm text-[var(--esim-copy-soft)]", children: t({ en: "Last updated: April 15, 2024", hans: "\u6700\u540E\u66F4\u65B0\uFF1A2024 \u5E74 4 \u6708 15 \u65E5", hant: "\u6700\u5F8C\u66F4\u65B0\uFF1A2024 \u5E74 4 \u6708 15 \u65E5" }) }),
       /* @__PURE__ */ jsx("div", { className: "mt-8 space-y-5", children: sections2.map((section, index) => {
-        const title = catalogCopy(locale, section.en.title);
-        const body = catalogCopy(locale, section.en.body);
+        const title = pickCopy(locale, { en: section.en.title, hans: section.hans.title, hant: section.hant.title });
+        const body = pickCopy(locale, { en: section.en.body, hans: section.hans.body, hant: section.hant.body });
         return /* @__PURE__ */ jsxs(
           "section",
           {
@@ -22093,6 +21835,7 @@
       AffiliatePage,
       ContactPage,
       HelpPage,
+      HowItWorksPage,
       PrivacyPage,
       TermsPage,
       DownloadAppPage,
@@ -22484,7 +22227,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "esim",
-      version: "0.0.22",
+      version: "0.0.23",
       target: "shop"
     }
   };

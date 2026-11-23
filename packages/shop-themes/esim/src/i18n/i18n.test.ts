@@ -98,9 +98,18 @@ test('no component resolves copy by hand (everything goes through pickCopy)', ()
     const rel = relative(SRC, file);
     if (dataModules.has(rel) || rel.endsWith('.test.ts')) continue;
     const source = ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true, file.endsWith('x') ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+    // `{ en: section.en.title, hans: section.hans.title }` handed to pickCopy is the supported way to lift nested copy.
+    const insideCopyArgument = (node: ts.Node): boolean => {
+      for (let current = node.parent; current; current = current.parent) {
+        if (ts.isCallExpression(current)) return current.arguments.some((argument) => argument.pos <= node.pos && argument.end >= node.end);
+        if (ts.isArrowFunction(current) || ts.isFunctionLike(current)) return false;
+      }
+      return false;
+    };
     const visit = (node: ts.Node) => {
       if (ts.isPropertyAccessExpression(node) && ts.isIdentifier(node.expression)
-        && ['hans', 'hant', 'ja', 'ko', 'fr', 'de'].includes(node.name.text)) {
+        && ['hans', 'hant', 'ja', 'ko', 'fr', 'de'].includes(node.name.text)
+        && !insideCopyArgument(node)) {
         offenders.push(`${rel}:${source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1} ${node.getText(source)}`);
       }
       ts.forEachChild(node, visit);
@@ -172,8 +181,10 @@ test('plan titles are built from the SKU in the storefront locale', () => {
   assert.equal(planTitle('boss-JK-5GB-10D', 'x', 'ko'), '일본·한국 5GB / 10일');
   assert.equal(planTitle('boss-JK-5GB-10D', 'x', 'en'), 'Japan & Korea 5GB / 10 days');
   assert.equal(planTitle('boss-JK-5GB-1D', 'x', 'en'), 'Japan & Korea 5GB / 1 day');
-  // Catalog names are already Chinese for the zh locales; unparseable SKUs keep the catalog name.
+  // zh-Hans keeps the richer Simplified catalog name; zh-Hant is titled from the SKU because the
+  // catalog name is Simplified. Unparseable SKUs keep the catalog name everywhere.
   assert.equal(planTitle('boss-JK-5GB-10D', '目录名', 'zh-Hans'), '目录名');
+  assert.equal(planTitle('boss-JK-5GB-10D', '目录名', 'zh-Hant'), '日韓 5GB / 10 天');
   assert.equal(planTitle('boss-WEIRD', '目录名', 'de'), '目录名');
   assert.equal(planTitle(undefined, '目录名', 'ja'), '目录名');
 });

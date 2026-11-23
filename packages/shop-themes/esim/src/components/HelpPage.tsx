@@ -6,7 +6,7 @@ import { type ThemeCopy, pickCopy } from '../site';
 const topics = [
   {
     title: { en: 'How to install eSIM', hans: '如何安装 eSIM', hant: '如何安裝 eSIM' },
-    subtitle: { en: 'Step-by-step guide', hans: '分步指南', hant: '分步指南' },
+    subtitle: { en: 'Step-by-step guide', hans: '分步指南', hant: '逐步指南' },
     icon: QrCode,
   },
   {

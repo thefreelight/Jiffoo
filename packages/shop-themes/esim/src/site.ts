@@ -50,14 +50,6 @@ export function pickCopy(locale: string | undefined, copy: ThemeCopy): string {
   return copy.en;
 }
 
-/**
- * Translate a bare English source string through the theme message catalog
- * (for copy held as plain strings instead of a `ThemeCopy` record).
- */
-export function catalogCopy(locale: string | undefined, english: string): string {
-  return themeMessage(locale, english) ?? english;
-}
-
 function pickLocalized(configured: string | undefined, englishDefault: string, zhHans: string, zhHant: string, locale?: string): string {
   const value = configured?.trim();
   if (value && value !== englishDefault) return value;

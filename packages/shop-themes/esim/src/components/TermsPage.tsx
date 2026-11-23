@@ -1,6 +1,6 @@
 import React from 'react';
 import type { TermsPageProps } from 'shared/src/types/theme';
-import { type ThemeCopy, catalogCopy, pickCopy } from '../site';
+import { type ThemeCopy, pickCopy } from '../site';
 
 const sections = [
   {
@@ -37,8 +37,9 @@ export const TermsPage = React.memo(function TermsPage({ locale }: TermsPageProp
 
         <div className="mt-8 space-y-5">
           {sections.map((section, index) => {
-            const title = catalogCopy(locale, section.en.title);
-            const body = catalogCopy(locale, section.en.body);
+            // zh reads the inline Chinese copy; ja/ko/fr/de come from the catalog by English source.
+            const title = pickCopy(locale, { en: section.en.title, hans: section.hans.title, hant: section.hant.title });
+            const body = pickCopy(locale, { en: section.en.body, hans: section.hans.body, hant: section.hant.body });
             return (
             <section
               key={section.en.title}

@@ -244,15 +244,18 @@ function planFacts(source: string | null | undefined): { region: PlaceNames; gb:
 /**
  * Plan title in the storefront locale, built from the SKU (region, data,
  * validity) — e.g. "Hongkong & Macau 1 GB / 7 Tage". Catalog names come
- * from Odoo in Chinese, so the zh locales keep the catalog name as is;
- * `fallback` is also used whenever the SKU does not parse.
+ * from Odoo in Simplified Chinese: zh-Hans keeps that richer catalog name,
+ * every other locale (zh-Hant included) is titled from the SKU. `fallback`
+ * is also used whenever the SKU does not parse.
  */
 export function planTitle(source: string | null | undefined, fallback: string, locale?: string): string {
   const facts = planFacts(source);
-  if (!facts || (locale && locale.startsWith('zh'))) return fallback;
+  if (!facts || locale === 'zh-Hans' || (locale && locale.startsWith('zh') && locale !== 'zh-Hant')) return fallback;
   const region = pickCopy(locale, facts.region);
   const single = Number(facts.days) === 1;
   switch (locale) {
+    case 'zh-Hant':
+      return `${region} ${facts.gb}GB / ${facts.days} 天`;
     case 'ja':
       return `${region} ${facts.gb}GB / ${facts.days}日間`;
     case 'ko':

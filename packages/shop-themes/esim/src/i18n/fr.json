@@ -572,5 +572,17 @@
   "already with us": "Déjà client ?",
   "or email": "ou par e-mail",
   "organization rate": "Taux de l’organisation",
-  "Group destination-ready plans into clearer regional entry points.": "Regroupez les forfaits par destination dans des accès régionaux plus clairs."
+  "Group destination-ready plans into clearer regional entry points.": "Regroupez les forfaits par destination dans des accès régionaux plus clairs.",
+  "Page Not Found": "Page introuvable",
+  "Sorry, we couldn't find the page you're looking for.": "Désolé, la page est introuvable.",
+  "Back to Home": "Retour à l’accueil",
+  "If you believe this is an error, please contact our support team.": "Si vous pensez qu’il s’agit d’une erreur, contactez notre équipe d’assistance.",
+  "Pick your destination": "Choisissez votre destination",
+  "Choose a country or region, the data and the days you need.": "Choisissez un pays ou une région, le volume de données et le nombre de jours dont vous avez besoin.",
+  "Check out": "Payer",
+  "Pay securely. Your plan is issued right after payment.": "Payez en toute sécurité. Votre forfait est émis dès le paiement.",
+  "Install and connect": "Installer et se connecter",
+  "Scan the QR code or enter the activation code. Most plans start on first connection.": "Scannez le code QR ou saisissez le code d’activation. La plupart des forfaits démarrent à la première connexion.",
+  "Three steps from checkout to connected.": "Trois étapes du paiement à la connexion.",
+  "Your eSIM plans for upcoming trips.": "Vos forfaits eSIM pour vos prochains voyages."
 }

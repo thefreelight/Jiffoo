@@ -1,7 +1,6 @@
 import './tokens.css';
 import type { ThemePackage } from 'shared/src/types/theme';
 
-import { NotFound } from '@shop-themes/default/src/components/NotFound';
 import { OrderCancelledPage } from '@shop-themes/default/src/components/OrderCancelledPage';
 import { ProfilePage } from './components/ProfilePage';
 
@@ -16,10 +15,12 @@ import { DownloadAppPage } from './components/DownloadAppPage';
 import { Footer } from './components/Footer';
 import { Header } from './components/Header';
 import { HelpPage } from './components/HelpPage';
+import { HowItWorksPage } from './components/HowItWorksPage';
 import { HomePage } from './components/HomePage';
 import { LoginPage } from './components/LoginPage';
 import { OrderDetailPage } from './components/OrderDetailPage';
 import { OrdersPage } from './components/OrdersPage';
+import { NotFound } from './components/NotFound';
 import { OrderSuccessPage } from './components/OrderSuccessPage';
 import { PrivacyPage } from './components/PrivacyPage';
 import { ProfileSettingsPage } from './components/ProfileSettingsPage';
@@ -49,6 +50,7 @@ export const theme: ThemePackage = {
     AffiliatePage,
     ContactPage,
     HelpPage,
+    HowItWorksPage,
     PrivacyPage,
     TermsPage,
     DownloadAppPage,
