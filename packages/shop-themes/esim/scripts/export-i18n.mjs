@@ -12,8 +12,8 @@
  * English copy can be overridden too. Strings with interpolated templates
  * are skipped: they carry their own inline translations and have no stable key.
  *
- * Page metadata (theme.json -> x-jiffoo-seo.pages) is exported the same way:
- * the English title / description of each route is the key, the declared
+ * Page metadata (theme.json -> x-jiffoo-seo: the default and each route) is
+ * exported the same way: the English title / description is the key, the declared
  * locales are its translations.
  */
 import fs from 'node:fs';
@@ -104,10 +104,11 @@ for (const locale of ['ja', 'ko', 'fr', 'de']) {
   if (fs.existsSync(file)) catalog[locale] = JSON.parse(fs.readFileSync(file, 'utf8'));
 }
 
-/** english source -> { hans, hant, ja, ko, fr, de } from theme.json -> x-jiffoo-seo.pages */
+/** english source -> { hans, hant, ja, ko, fr, de } from theme.json -> x-jiffoo-seo (default and pages) */
 const pageMetadata = new Map();
 const manifest = JSON.parse(fs.readFileSync(path.join(themeRoot, 'theme-pack', 'theme.json'), 'utf8'));
-for (const locales of Object.values(manifest['x-jiffoo-seo']?.pages ?? {})) {
+const declaredSeo = manifest['x-jiffoo-seo'] ?? {};
+for (const locales of [declaredSeo.default, ...Object.values(declaredSeo.pages ?? {})]) {
   if (!locales.en) continue;
   for (const field of ['title', 'description']) {
     const english = locales.en[field];

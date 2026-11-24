@@ -5,8 +5,10 @@
  * active theme, so their title and description have to come from the theme rather
  * than from one set of defaults. A theme declares them in its pack
  * (`theme.json` → `x-jiffoo-seo.pages`), read through lib/themes/theme-seo.ts.
+ * A theme may also declare a default (`x-jiffoo-seo.default`) that the locale
+ * layout applies to every page that sets no metadata of its own.
  *
- * Resolution for one route and locale, the same order the theme runtime's
+ * Resolution for one target and locale, the same order the theme runtime's
  * `pickCopy` applies to storefront copy:
  *   1. the Store Localization (i18n) plugin — namespace `theme.<slug>`, keyed by
  *      the theme's English source string (the operator's override);
@@ -18,9 +20,9 @@ import type { Metadata } from 'next';
 import type { ServerStoreContext } from '@/lib/server-store-context';
 // Server components import this module to generate metadata, so it must not reach the
 // theme registry and its client-side theme runtimes (lib/themes/theme-seo.ts is import-free).
-import { getDeclaredThemeSeo } from '@/lib/themes/theme-seo';
+import { DEFAULT_THEME_SEO_ROUTE, getDeclaredThemeSeo } from '@/lib/themes/theme-seo';
 import { getThemeMessages } from '@/lib/theme-i18n-server';
-import { generatePublicPageMetadata, type PageCopy, type PageRoute } from './public-page-metadata';
+import { generatePublicPageMetadata, ogLocale, type PageCopy, type PageRoute } from './public-page-metadata';
 
 type StoreContext = ServerStoreContext | null | undefined;
 
@@ -30,14 +32,17 @@ export function resolveBrandName(context: StoreContext): string | undefined {
   return (typeof themeBrand === 'string' ? themeBrand.trim() : '') || context?.storeName?.trim() || undefined;
 }
 
-/** The active theme's page copy for a route, or null when the theme declares nothing for it. */
+/** What the active theme declares for: a marketing route, or its default for pages without their own. */
+export type ThemeSeoTarget = PageRoute | typeof DEFAULT_THEME_SEO_ROUTE;
+
+/** The active theme's page copy for a target, or null when the theme declares nothing for it. */
 export async function resolveThemePageCopy({
   route,
   locale,
   brandName,
   themeSlug,
 }: {
-  route: PageRoute;
+  route: ThemeSeoTarget;
   locale: string;
   brandName?: string;
   themeSlug?: string | null;
@@ -80,4 +85,31 @@ export async function generateThemePageMetadata({
   const brandName = resolveBrandName(context);
   const copy = await resolveThemePageCopy({ route, locale, brandName, themeSlug: context?.theme?.slug });
   return generatePublicPageMetadata({ route, locale, origin, brandName, copy });
+}
+
+/**
+ * Metadata for the locale layout. Pages that set none of their own (the plans
+ * listing, destinations, search, …) would otherwise inherit the root layout's bare
+ * brand title. Returns an empty object when the theme declares no default, so the
+ * root layout's metadata stays in force for that storefront.
+ */
+export async function generateThemeDefaultMetadata({
+  locale,
+  context,
+}: {
+  locale: string;
+  context: StoreContext;
+}): Promise<Metadata> {
+  const brandName = resolveBrandName(context);
+  if (!brandName) return {};
+
+  const copy = await resolveThemePageCopy({ route: DEFAULT_THEME_SEO_ROUTE, locale, brandName, themeSlug: context?.theme?.slug });
+  if (!copy) return {};
+
+  return {
+    title: { default: copy.title, template: `%s | ${brandName}` },
+    description: copy.description,
+    openGraph: { title: copy.title, description: copy.description, locale: ogLocale(locale) },
+    twitter: { title: copy.title, description: copy.description },
+  };
 }

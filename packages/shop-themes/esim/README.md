@@ -52,9 +52,15 @@ and locale:
 }
 ```
 
-The host resolves a route's copy in the same order as `pickCopy`: the plugin
+`x-jiffoo-seo` may also carry a `default` block with the same shape. It is what
+pages that set no metadata of their own get (the plans listing, destinations,
+search, …) instead of a bare brand title.
+
+The host resolves a target's copy in the same order as `pickCopy`: the plugin
 translation keyed by the English source, then the entry declared for the
 locale, then the English source. `{brand}` becomes the storefront brand name.
-Routes the theme does not list keep the host defaults. `npm test` checks that
-every declared route covers all seven locales, and `scripts/export-i18n.mjs`
-exports these strings as well, so operators can override them in the plugin.
+Routes the theme does not list keep the host defaults. The host appends
+`| <brand>` to every page title, so a declared title must not repeat the brand
+that way. `npm test` checks that every target covers all seven locales, and
+`scripts/export-i18n.mjs` exports these strings as well, so operators can
+override them in the plugin.

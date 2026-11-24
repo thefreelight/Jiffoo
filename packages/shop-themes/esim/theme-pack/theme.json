@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "slug": "esim",
   "name": "eSIM Route Mall",
-  "version": "0.0.25",
+  "version": "0.0.26",
   "target": "shop",
   "description": "Route-first eSIM mall storefront (One trip, one eSIM) for esim.bokmoo.com.",
   "author": "Jiffoo",
@@ -40,6 +40,36 @@
   "x-jiffoo-renderer-mode": "embedded",
   "x-jiffoo-renderer-slug": "esim",
   "x-jiffoo-seo": {
+    "default": {
+      "en": {
+        "title": "{brand} eSIM — Travel eSIM Plans & Data",
+        "description": "Destination and regional eSIM plans from {brand}: check coverage for your route, order in minutes and connect with instant QR delivery."
+      },
+      "zh-Hans": {
+        "title": "{brand} eSIM — 旅行 eSIM 套餐与流量",
+        "description": "{brand} 的目的地与地区 eSIM 套餐：按行程查询覆盖范围，几分钟内下单，二维码即时送达，扫码即连。"
+      },
+      "zh-Hant": {
+        "title": "{brand} eSIM — 旅行 eSIM 方案與數據",
+        "description": "{brand} 的目的地與地區 eSIM 方案：依行程查詢涵蓋範圍，幾分鐘內下單，二維碼即時送達，掃碼即連。"
+      },
+      "ja": {
+        "title": "{brand} eSIM — 旅行用eSIMプランとデータ",
+        "description": "{brand}の目的地・地域別eSIMプラン。旅程のカバレッジを確認し、数分で注文、QRコードですぐに接続できます。"
+      },
+      "ko": {
+        "title": "{brand} eSIM — 여행 eSIM 요금제와 데이터",
+        "description": "{brand}의 목적지·지역별 eSIM 요금제. 여정의 커버리지를 확인하고 몇 분 만에 주문한 뒤 QR 코드로 바로 연결하세요."
+      },
+      "fr": {
+        "title": "eSIM {brand} — Forfaits eSIM et données pour voyager",
+        "description": "Forfaits eSIM par destination et par région avec {brand} : vérifiez la couverture de votre itinéraire, commandez en quelques minutes et connectez-vous avec un QR code."
+      },
+      "de": {
+        "title": "{brand} eSIM — eSIM-Tarife und Daten fürs Reisen",
+        "description": "eSIM-Tarife nach Ziel und Region von {brand}: Abdeckung für Ihre Route prüfen, in Minuten bestellen und per QR-Code verbinden."
+      }
+    },
     "pages": {
       "home": {
         "en": {
@@ -73,31 +103,31 @@
       },
       "help": {
         "en": {
-          "title": "eSIM Help Center | {brand}",
+          "title": "eSIM Help Center",
           "description": "How to buy, install and activate your {brand} eSIM, check data usage and top up — clear step-by-step guides."
         },
         "zh-Hans": {
-          "title": "{brand} eSIM 帮助中心",
+          "title": "eSIM 帮助中心",
           "description": "如何购买、安装并激活 {brand} eSIM，查看流量与续购——清晰的分步指南。"
         },
         "zh-Hant": {
-          "title": "{brand} eSIM 說明中心",
+          "title": "eSIM 說明中心",
           "description": "如何購買、安裝並啟用 {brand} eSIM，查看數據與續購——清晰的步驟指南。"
         },
         "ja": {
-          "title": "{brand} eSIM ヘルプセンター",
+          "title": "eSIM ヘルプセンター",
           "description": "{brand} eSIMの購入・インストール・アクティベート方法、データ使用量の確認と追加チャージを、わかりやすい手順で解説。"
         },
         "ko": {
-          "title": "{brand} eSIM 고객센터",
+          "title": "eSIM 고객센터",
           "description": "{brand} eSIM 구매, 설치, 활성화 방법과 데이터 사용량 확인·충전을 단계별 가이드로 안내합니다."
         },
         "fr": {
-          "title": "Centre d'aide eSIM {brand}",
+          "title": "Centre d'aide eSIM",
           "description": "Acheter, installer et activer votre eSIM {brand}, suivre votre consommation et recharger : des guides pas à pas."
         },
         "de": {
-          "title": "eSIM-Hilfezentrum | {brand}",
+          "title": "eSIM-Hilfezentrum",
           "description": "{brand}-eSIM kaufen, installieren und aktivieren, Datenvolumen prüfen und nachladen – Schritt-für-Schritt-Anleitungen."
         }
       },

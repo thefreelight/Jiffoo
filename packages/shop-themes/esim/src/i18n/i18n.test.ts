@@ -228,38 +228,52 @@ test('destination catalog is derived from product coverage and sorted for the lo
 });
 
 type PageSeo = { title?: string; description?: string };
+type DeclaredSeo = Record<string, Record<string, PageSeo | undefined>>;
 const SEO_LOCALES = ['en', 'zh-Hans', 'zh-Hant', ...CATALOG_LOCALES];
 
-function declaredPageSeo(): Record<string, Record<string, PageSeo | undefined>> {
+function declaredSeo(): { default?: DeclaredSeo[string]; pages: DeclaredSeo } {
   const manifest = JSON.parse(readFileSync(join(SRC, '..', 'theme-pack', 'theme.json'), 'utf8')) as {
-    'x-jiffoo-seo'?: { pages: Record<string, Record<string, PageSeo | undefined>> };
+    'x-jiffoo-seo'?: { default?: DeclaredSeo[string]; pages: DeclaredSeo };
   };
-  return manifest['x-jiffoo-seo']?.pages ?? {};
+  return { default: manifest['x-jiffoo-seo']?.default, pages: manifest['x-jiffoo-seo']?.pages ?? {} };
+}
+
+function assertCompleteSeo(target: string, locales: Record<string, PageSeo | undefined>): void {
+  const english = locales.en;
+  assert.ok(english?.title && english?.description, `${target}: the English source is required`);
+  for (const locale of SEO_LOCALES) {
+    const entry = locales[locale];
+    assert.ok(entry?.title?.trim(), `${target}: ${locale} title is missing`);
+    assert.ok(entry?.description?.trim(), `${target}: ${locale} description is missing`);
+    for (const field of ['title', 'description'] as const) {
+      // The host fills `{brand}` per storefront, so a translation keeps or drops it exactly like its source.
+      assert.equal(
+        entry[field]!.includes('{brand}'),
+        english[field]!.includes('{brand}'),
+        `${target} ${locale} ${field}: {brand} must match the English source`,
+      );
+      assert.equal(/\$\{/.test(entry[field]!), false, `${target} ${locale} ${field}: only {brand} may be interpolated`);
+    }
+    // The host appends "| <brand>" to every page title, so a declared title must not repeat the brand that way.
+    assert.equal(/\|\s*\{brand\}\s*$/.test(entry.title!), false, `${target} ${locale}: the title already ends with "| {brand}"`);
+    assert.ok(entry.title!.length <= 70, `${target} ${locale}: title is ${entry.title!.length} characters`);
+    assert.ok(entry.description!.length <= 170, `${target} ${locale}: description is ${entry.description!.length} characters`);
+  }
 }
 
 test('page metadata in theme.json is complete in all seven storefront locales', () => {
-  const pages = declaredPageSeo();
+  const { pages } = declaredSeo();
   assert.ok(Object.keys(pages).length > 0, 'theme.json declares no page metadata');
+  for (const [route, locales] of Object.entries(pages)) assertCompleteSeo(route, locales);
+});
 
-  for (const [route, locales] of Object.entries(pages)) {
-    const english = locales.en;
-    assert.ok(english?.title && english?.description, `${route}: the English source is required`);
-    for (const locale of SEO_LOCALES) {
-      const entry = locales[locale];
-      assert.ok(entry?.title?.trim(), `${route}: ${locale} title is missing`);
-      assert.ok(entry?.description?.trim(), `${route}: ${locale} description is missing`);
-      for (const field of ['title', 'description'] as const) {
-        // The host fills `{brand}` per storefront, so a translation keeps or drops it exactly like its source.
-        assert.equal(
-          entry[field]!.includes('{brand}'),
-          english[field]!.includes('{brand}'),
-          `${route} ${locale} ${field}: {brand} must match the English source`,
-        );
-        assert.equal(/\$\{/.test(entry[field]!), false, `${route} ${locale} ${field}: only {brand} may be interpolated`);
-      }
-      assert.ok(entry.title!.length <= 70, `${route} ${locale}: title is ${entry.title!.length} characters`);
-      assert.ok(entry.description!.length <= 170, `${route} ${locale}: description is ${entry.description!.length} characters`);
-    }
+test('the default page copy is complete too, and distinct from the home page copy', () => {
+  const { default: defaults, pages } = declaredSeo();
+  assert.ok(defaults, 'theme.json declares no default page copy');
+  assertCompleteSeo('default', defaults);
+  // Pages without metadata of their own (the plans listing, search, …) are not the home page.
+  for (const locale of SEO_LOCALES) {
+    assert.notEqual(defaults![locale]!.title, pages.home[locale]!.title, `default ${locale}: title repeats the home page`);
   }
 });
 
@@ -270,11 +284,16 @@ test('page metadata is exported for the Store Localization plugin like every oth
     { encoding: 'utf8' },
   )) as { translations: Record<string, Record<string, Record<string, string>>> };
 
-  for (const [route, locales] of Object.entries(declaredPageSeo())) {
+  const { default: defaults, pages } = declaredSeo();
+  const targets: Array<[string, Record<string, PageSeo | undefined>]> = [
+    ...Object.entries(pages),
+    ...(defaults ? [['default', defaults] as [string, Record<string, PageSeo | undefined>]] : []),
+  ];
+  for (const [target, locales] of targets) {
     for (const locale of SEO_LOCALES) {
       for (const field of ['title', 'description'] as const) {
         const english = locales.en![field]!;
-        assert.equal(exported.translations[locale]?.['theme.esim']?.[english], locales[locale]![field], `${route} ${locale} ${field}`);
+        assert.equal(exported.translations[locale]?.['theme.esim']?.[english], locales[locale]![field], `${target} ${locale} ${field}`);
       }
     }
   }
