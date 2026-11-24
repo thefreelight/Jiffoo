@@ -14685,6 +14685,12 @@
     ] }) });
   });
 
+  // src/lib/mobile-menu.ts
+  var OPEN_MOBILE_MENU_EVENT = "bokmoo:open-mobile-menu";
+  function requestOpenMobileMenu() {
+    window.dispatchEvent(new CustomEvent(OPEN_MOBILE_MENU_EVENT));
+  }
+
   // src/components/SupportChat.tsx
   var VISITOR_TOKEN_STORAGE_KEY = "bokmoo-support-visitor-token";
   var CONFIG_ENDPOINT = "/api/v1/plugins/support-hub/store/config";
@@ -14997,7 +15003,6 @@
     platformBranding,
     onNavigate,
     onNavigateToProducts,
-    onNavigateToCategories,
     onNavigateToHelp,
     onNavigateToContact,
     onNavigateToPrivacy,
@@ -15027,8 +15032,8 @@
     return /* @__PURE__ */ jsxs("footer", { className: "border-t border-neutral-900 bg-[#08080A] py-12 mt-12", "data-purpose": "site-footer", children: [
       /* @__PURE__ */ jsxs("div", { className: "mx-auto max-w-6xl px-6 flex flex-col md:flex-row items-center justify-between gap-6", children: [
         /* @__PURE__ */ jsx("div", { className: "flex flex-wrap items-center gap-4 text-xs sm:text-sm", children: /* @__PURE__ */ jsx("div", { className: "flex items-center gap-2.5", children: /* @__PURE__ */ jsx(BokmooLogoLockup, { className: "h-6 w-auto fill-[#e2c26a] drop-shadow-[0_1px_4px_rgba(212,175,55,0.35)] shrink-0" }) }) }),
-        /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-8 text-xs sm:text-sm text-neutral-400", children: [
-          /* @__PURE__ */ jsx("nav", { className: "flex items-center gap-6", children: footerLinks.map((link) => /* @__PURE__ */ jsx(
+        /* @__PURE__ */ jsxs("div", { className: "bokmoo-footer-links flex items-center text-xs sm:text-sm text-neutral-400", children: [
+          /* @__PURE__ */ jsx("nav", { className: "bokmoo-footer-nav flex items-center", children: footerLinks.map((link) => /* @__PURE__ */ jsx(
             "a",
             {
               className: "hover:text-[#E5C365] transition-colors cursor-pointer",
@@ -15041,7 +15046,7 @@
             },
             link.label
           )) }),
-          /* @__PURE__ */ jsxs("span", { className: "text-neutral-500", children: [
+          /* @__PURE__ */ jsxs("span", { className: "bokmoo-footer-copy text-neutral-500", children: [
             "\xA9 ",
             year,
             " ",
@@ -15073,7 +15078,7 @@
         { label: pickCopy(locale, { en: "Store", hans: "\u5546\u5E97", hant: "\u5546\u5E97", ja: "\u30B9\u30C8\u30A2", ko: "\uC2A4\uD1A0\uC5B4", fr: "Boutique", de: "Shop" }), icon: LayoutGrid, onClick: onNavigateToProducts },
         { label: pickCopy(locale, { en: "Orders", hans: "\u8BA2\u5355", hant: "\u8A02\u55AE", ja: "\u6CE8\u6587", ko: "\uC8FC\uBB38", fr: "Commandes", de: "Bestellungen" }), icon: ReceiptText, onClick: () => onNavigate?.("/orders") },
         { label: pickCopy(locale, { en: "Support", hans: "\u652F\u63F4", hant: "\u652F\u63F4", ja: "\u30B5\u30DD\u30FC\u30C8", ko: "\uC9C0\uC6D0", fr: "Assistance", de: "Support" }), icon: LifeBuoy, onClick: onNavigateToHelp },
-        { label: pickCopy(locale, { en: "Menu", hans: "\u9009\u5355", hant: "\u9078\u55AE", ja: "\u30E1\u30CB\u30E5\u30FC", ko: "\uBA54\uB274", fr: "Menu", de: "Men\xFC" }), icon: Smartphone, onClick: onNavigateToCategories }
+        { label: pickCopy(locale, { en: "Menu", hans: "\u9009\u5355", hant: "\u9078\u55AE", ja: "\u30E1\u30CB\u30E5\u30FC", ko: "\uBA54\uB274", fr: "Menu", de: "Men\xFC" }), icon: Smartphone, onClick: requestOpenMobileMenu }
       ].map(({ label, icon: Icon2, onClick }) => /* @__PURE__ */ jsxs(
         "button",
         {
@@ -15141,6 +15146,11 @@
   }) {
     const [isMenuOpen, setIsMenuOpen] = react_default.useState(false);
     const mobileMenuId = "bokmoo-mobile-menu";
+    react_default.useEffect(() => {
+      const openMenu = () => setIsMenuOpen(true);
+      window.addEventListener(OPEN_MOBILE_MENU_EVENT, openMenu);
+      return () => window.removeEventListener(OPEN_MOBILE_MENU_EVENT, openMenu);
+    }, []);
     const accountInitial = ((user?.firstName || user?.email || "B").trim().charAt(0) || "B").toUpperCase();
     const [accountMenuOpen, setAccountMenuOpen] = react_default.useState(false);
     const accountMenuRef = react_default.useRef(null);
@@ -15201,7 +15211,7 @@
       { label: pickCopy(locale, { en: "Affiliate Program", hans: "\u8054\u76DF\u8BA1\u5212", hant: "\u806F\u76DF\u8A08\u5283", ja: "\u30A2\u30D5\u30A3\u30EA\u30A8\u30A4\u30C8", ko: "\uC81C\uD734 \uD504\uB85C\uADF8\uB7A8", fr: "Affiliation", de: "Partnerprogramm" }), onClick: () => openHref("/affiliate") }
     ];
     return /* @__PURE__ */ jsxs("header", { className: "w-full border-b border-white/5 backdrop-blur-md sticky top-0 z-50 bg-[#0B0B0D]/80", children: [
-      /* @__PURE__ */ jsxs("div", { className: "w-full max-w-7xl mx-auto px-6 h-20 flex items-center justify-between gap-6 flex-nowrap overflow-visible", children: [
+      /* @__PURE__ */ jsxs("div", { className: "bokmoo-header-bar w-full max-w-7xl mx-auto h-20 flex items-center justify-between flex-nowrap overflow-visible", children: [
         /* @__PURE__ */ jsx(
           "a",
           {
@@ -15212,10 +15222,10 @@
               event.preventDefault();
               onNavigateToHome();
             },
-            children: /* @__PURE__ */ jsx(BokmooLogoLockup2, { className: "h-7 w-auto fill-[#e2c26a] drop-shadow-[0_1px_4px_rgba(212,175,55,0.35)] shrink-0" })
+            children: /* @__PURE__ */ jsx(BokmooLogoLockup2, { className: "bokmoo-header-logo w-auto fill-[#e2c26a] drop-shadow-[0_1px_4px_rgba(212,175,55,0.35)] shrink-0" })
           }
         ),
-        /* @__PURE__ */ jsx("nav", { className: "hidden md:flex items-center gap-6 lg:gap-8 flex-nowrap shrink-0 text-sm tracking-wide text-neutral-300 font-medium whitespace-nowrap", children: navItems.map((item) => /* @__PURE__ */ jsx(
+        /* @__PURE__ */ jsx("nav", { className: "bokmoo-header-nav items-center flex-nowrap shrink-0 text-sm tracking-wide text-neutral-300 font-medium whitespace-nowrap", children: navItems.map((item) => /* @__PURE__ */ jsx(
           "a",
           {
             className: `hover:text-[#E5C365] transition-colors whitespace-nowrap ${FOCUS_VISIBLE_RING2}`,
@@ -15229,20 +15239,21 @@
           },
           item.label
         )) }),
-        /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 md:gap-4 shrink-0 flex-nowrap", children: [
+        /* @__PURE__ */ jsxs("div", { className: "bokmoo-header-actions flex items-center shrink-0 flex-nowrap", children: [
           /* @__PURE__ */ jsxs("div", { className: "relative group", "data-purpose": "language-selector", children: [
             /* @__PURE__ */ jsxs(
               "button",
               {
                 "aria-expanded": isLocaleOpen,
                 "aria-haspopup": "true",
+                "aria-label": pickCopy(locale, { en: "Language", hans: "\u8BED\u8A00", hant: "\u8A9E\u8A00", ja: "\u8A00\u8A9E", ko: "\uC5B8\uC5B4", fr: "Langue", de: "Sprache" }),
                 className: `text-xs md:text-sm font-medium text-neutral-300 hover:text-[#E5C365] transition-all px-2.5 md:px-3 py-1.5 flex items-center gap-1.5 rounded-full border border-white/10 hover:border-[#E5C365]/40 bg-white/[0.03] hover:bg-white/[0.08] backdrop-blur-md cursor-pointer select-none whitespace-nowrap ${FOCUS_VISIBLE_RING2}`,
                 onClick: () => setIsLocaleOpen((open) => !open),
                 type: "button",
                 children: [
                   /* @__PURE__ */ jsx(Earth, { className: "w-3.5 h-3.5 md:w-4 md:h-4 text-[#E5C365] shrink-0" }),
-                  /* @__PURE__ */ jsx("span", { className: "tracking-wide", children: currentLocale.short }),
-                  /* @__PURE__ */ jsx(ChevronDown, { className: `w-3 h-3 text-neutral-400 group-hover:text-[#E5C365] transition-transform duration-200 ${isLocaleOpen ? "rotate-180" : ""}` })
+                  /* @__PURE__ */ jsx("span", { className: "bokmoo-header-locale-label tracking-wide", children: currentLocale.short }),
+                  /* @__PURE__ */ jsx(ChevronDown, { className: `bokmoo-header-locale-chevron w-3 h-3 text-neutral-400 group-hover:text-[#E5C365] transition-transform duration-200 ${isLocaleOpen ? "rotate-180" : ""}` })
                 ]
               }
             ),
@@ -15267,12 +15278,13 @@
                 onClick: () => setAccountMenuOpen((value) => !value),
                 "aria-haspopup": "menu",
                 "aria-expanded": accountMenuOpen,
-                className: `inline-flex items-center gap-2 rounded-full border border-[rgba(212,175,55,0.3)] bg-white/[0.03] pl-1 pr-3 py-1 text-sm font-medium text-[var(--bokmoo-ink)] transition-colors hover:border-[#E5C365]/50 ${FOCUS_VISIBLE_RING2}`,
+                "aria-label": pickCopy(locale, { en: "My Account", hans: "\u6211\u7684\u5E10\u6237", hant: "\u6211\u7684\u5E33\u6236", ja: "\u30DE\u30A4\u30A2\u30AB\u30A6\u30F3\u30C8", ko: "\uB0B4 \uACC4\uC815", fr: "Mon compte", de: "Mein Konto" }),
+                className: `bokmoo-header-signin items-center gap-2 rounded-full border border-[rgba(212,175,55,0.3)] bg-white/[0.03] pl-1 pr-3 py-1 text-sm font-medium text-[var(--bokmoo-ink)] transition-colors hover:border-[#E5C365]/50 ${FOCUS_VISIBLE_RING2}`,
                 type: "button",
                 children: [
                   /* @__PURE__ */ jsx("span", { className: "flex h-7 w-7 items-center justify-center rounded-full bg-[#E5C365] text-[0.72rem] font-bold text-[#0d0d0d]", children: accountInitial }),
-                  pickCopy(locale, { en: "My Account", hans: "\u6211\u7684\u5E10\u6237", hant: "\u6211\u7684\u5E33\u6236", ja: "\u30DE\u30A4\u30A2\u30AB\u30A6\u30F3\u30C8", ko: "\uB0B4 \uACC4\uC815", fr: "Mon compte", de: "Mein Konto" }),
-                  /* @__PURE__ */ jsx(ChevronDown, { className: `h-3.5 w-3.5 transition-transform ${accountMenuOpen ? "rotate-180" : ""}`, "aria-hidden": "true" })
+                  /* @__PURE__ */ jsx("span", { className: "bokmoo-header-signin-label", children: pickCopy(locale, { en: "My Account", hans: "\u6211\u7684\u5E10\u6237", hant: "\u6211\u7684\u5E33\u6236", ja: "\u30DE\u30A4\u30A2\u30AB\u30A6\u30F3\u30C8", ko: "\uB0B4 \uACC4\uC815", fr: "Mon compte", de: "Mein Konto" }) }),
+                  /* @__PURE__ */ jsx(ChevronDown, { className: `bokmoo-header-account-chevron h-3.5 w-3.5 transition-transform ${accountMenuOpen ? "rotate-180" : ""}`, "aria-hidden": "true" })
                 ]
               }
             ),
@@ -15315,7 +15327,7 @@
           ] }) : /* @__PURE__ */ jsxs(
             "a",
             {
-              className: `text-xs md:text-sm font-medium text-neutral-300 hover:text-[#E5C365] transition-colors px-2 md:px-3 py-1.5 flex items-center gap-1.5 rounded-full hover:bg-white/[0.04] whitespace-nowrap ${FOCUS_VISIBLE_RING2}`,
+              className: `bokmoo-header-signin text-xs md:text-sm font-medium text-neutral-300 hover:text-[#E5C365] transition-colors px-2 md:px-3 py-1.5 items-center gap-1.5 rounded-full hover:bg-white/[0.04] whitespace-nowrap ${FOCUS_VISIBLE_RING2}`,
               href: "#login",
               onClick: (event) => {
                 event.preventDefault();
@@ -15324,7 +15336,7 @@
               title: pickCopy(locale, { en: "Sign In / Manage My Cards", hans: "\u767B\u5165 / \u7BA1\u7406\u6211\u7684\u5361\u7247", hant: "\u767B\u5165 / \u7BA1\u7406\u6211\u7684\u5361\u7247", ja: "\u30B5\u30A4\u30F3\u30A4\u30F3\u30FB\u30AB\u30FC\u30C9\u7BA1\u7406", ko: "\uB85C\uADF8\uC778 \xB7 \uCE74\uB4DC \uAD00\uB9AC", fr: "Connexion / G\xE9rer mes cartes", de: "Anmelden / Karten verwalten" }),
               children: [
                 /* @__PURE__ */ jsx("svg", { className: "w-4 h-4 text-neutral-400 transition-colors shrink-0", fill: "none", stroke: "currentColor", strokeWidth: "1.8", viewBox: "0 0 24 24", "aria-hidden": "true", children: /* @__PURE__ */ jsx("path", { d: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z", strokeLinecap: "round", strokeLinejoin: "round" }) }),
-                /* @__PURE__ */ jsx("span", { children: pickCopy(locale, { en: "Sign In", hans: "\u767B\u5165", hant: "\u767B\u5165", ja: "\u30B5\u30A4\u30F3\u30A4\u30F3", ko: "\uB85C\uADF8\uC778", fr: "Connexion", de: "Anmelden" }) })
+                /* @__PURE__ */ jsx("span", { className: "bokmoo-header-signin-label", children: pickCopy(locale, { en: "Sign In", hans: "\u767B\u5165", hant: "\u767B\u5165", ja: "\u30B5\u30A4\u30F3\u30A4\u30F3", ko: "\uB85C\uADF8\uC778", fr: "Connexion", de: "Anmelden" }) })
               ]
             }
           ),
@@ -15344,7 +15356,7 @@
           /* @__PURE__ */ jsxs(
             "a",
             {
-              className: `px-4 md:px-5 py-2 rounded-full bg-[#E5C365] hover:bg-[#F3D482] text-[#111113] text-xs md:text-sm font-semibold transition-all shadow-[0_2px_12px_rgba(229,195,101,0.25)] hover:shadow-[0_4px_16px_rgba(229,195,101,0.4)] flex items-center gap-1.5 shrink-0 whitespace-nowrap ${FOCUS_VISIBLE_RING2}`,
+              className: `px-4 md:px-5 py-2 rounded-full bg-[#E5C365] hover:bg-[#F3D482] text-[#111113] text-xs md:text-sm font-semibold transition-all shadow-[0_2px_12px_rgba(229,195,101,0.25)] hover:shadow-[0_4px_16px_rgba(229,195,101,0.4)] bokmoo-header-cta items-center gap-1.5 shrink-0 whitespace-nowrap ${FOCUS_VISIBLE_RING2}`,
               href: "https://bokmoo.com/products",
               onClick: (event) => {
                 if (!window.location.host.includes("bokmoo.com")) {
@@ -15363,7 +15375,7 @@
           "button",
           {
             onClick: () => setIsMenuOpen((value) => !value),
-            className: `ml-auto md:ml-0 flex h-11 w-11 items-center justify-center rounded-[0.8rem] border border-white/10 text-[var(--bokmoo-ink)] md:hidden ${FOCUS_VISIBLE_RING2}`,
+            className: `bokmoo-header-burger h-11 items-center justify-center rounded-[0.8rem] border border-white/10 text-[var(--bokmoo-ink)] ${FOCUS_VISIBLE_RING2}`,
             "aria-controls": mobileMenuId,
             "aria-expanded": isMenuOpen,
             "aria-label": isMenuOpen ? pickCopy(locale, { en: "Close menu", hans: "\u5173\u95ED\u9009\u5355", hant: "\u95DC\u9589\u9078\u55AE", ja: "\u30E1\u30CB\u30E5\u30FC\u3092\u9589\u3058\u308B", ko: "\uBA54\uB274 \uB2EB\uAE30", fr: "Fermer le menu", de: "Men\xFC schlie\xDFen" }) : pickCopy(locale, { en: "Open menu", hans: "\u5F00\u542F\u9009\u5355", hant: "\u958B\u555F\u9078\u55AE", ja: "\u30E1\u30CB\u30E5\u30FC\u3092\u958B\u304F", ko: "\uBA54\uB274 \uC5F4\uAE30", fr: "Ouvrir le menu", de: "Men\xFC \xF6ffnen" }),
@@ -15372,7 +15384,7 @@
           }
         )
       ] }),
-      isMenuOpen ? /* @__PURE__ */ jsx("div", { id: mobileMenuId, className: "border-t border-white/5 bg-[#0B0B0D]/95 backdrop-blur-md px-4 py-4 md:hidden", children: /* @__PURE__ */ jsxs("div", { className: "grid gap-2", children: [
+      isMenuOpen ? /* @__PURE__ */ jsx("div", { id: mobileMenuId, className: "bokmoo-header-menu border-t border-white/5 bg-[#0B0B0D]/95 backdrop-blur-md px-4 py-4", children: /* @__PURE__ */ jsxs("div", { className: "grid gap-2", children: [
         navItems.map((item) => /* @__PURE__ */ jsx(
           "button",
           {
@@ -18429,6 +18441,251 @@ body[data-theme='bokmoo'] ::selection {
   }
 }
 
+/* >>> Responsive chrome (header + footer breakpoints). Keep this block byte-identical
+   in src/tokens.css (embedded renderer) and theme-pack/tokens.css (remote runtime). */
+/* Header breakpoints. The full desktop row (logo, five nav items, language,
+   sign-in, cart, CTA) needs 1255px in English and up to 1327px in German, and
+   it used to overflow the viewport on every width below that \u2014 on phones the
+   cart and menu button sat off-screen. Breakpoints live here for the same
+   reason as the PDP title: utilities only exist in the host app's compiled
+   CSS, and theme versions ship on their own. */
+.bokmoo-header-bar {
+  gap: 0.75rem;
+  padding-inline: 1rem;
+}
+
+.bokmoo-header-actions {
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.bokmoo-header-logo {
+  height: 1.25rem;
+}
+
+.bokmoo-header-burger {
+  display: flex;
+  width: 2.5rem;
+}
+
+.bokmoo-header-nav {
+  display: none;
+  column-gap: 1.5rem;
+}
+
+.bokmoo-header-signin,
+.bokmoo-header-cta,
+.bokmoo-header-signin-label,
+.bokmoo-header-locale-label,
+.bokmoo-header-locale-chevron,
+.bokmoo-header-account-chevron {
+  display: none;
+}
+
+@media (max-width: 359px) {
+  .bokmoo-header-logo {
+    height: 1rem;
+  }
+}
+
+/* 640\u20131279: logo, language, cart and the menu button; the nav, sign-in and
+   CTA stay available inside the menu panel. */
+@media (min-width: 640px) {
+  .bokmoo-header-bar {
+    gap: 1.5rem;
+    padding-inline: 1.5rem;
+  }
+
+  .bokmoo-header-logo {
+    height: 1.5rem;
+  }
+
+  .bokmoo-header-burger {
+    width: 2.75rem;
+  }
+
+  .bokmoo-header-locale-label {
+    display: inline;
+  }
+
+  .bokmoo-header-locale-chevron {
+    display: block;
+  }
+}
+
+@media (min-width: 768px) {
+  .bokmoo-header-actions {
+    gap: 1rem;
+  }
+
+  .bokmoo-header-signin {
+    display: inline-flex;
+  }
+}
+
+/* 1280\u20131359: full nav and CTA, with sign-in / account as an icon only and
+   the chevrons dropped \u2014 spelling that label out needs ~1330px in the
+   longest locales. */
+@media (min-width: 1280px) {
+  .bokmoo-header-bar {
+    gap: 1rem;
+    padding-inline: 1rem;
+  }
+
+  .bokmoo-header-actions {
+    gap: 0.75rem;
+    margin-left: 0;
+  }
+
+  .bokmoo-header-logo {
+    height: 1.75rem;
+  }
+
+  .bokmoo-header-nav,
+  .bokmoo-header-cta {
+    display: flex;
+  }
+
+  .bokmoo-header-burger,
+  .bokmoo-header-menu,
+  .bokmoo-header-locale-chevron,
+  .bokmoo-header-account-chevron {
+    display: none;
+  }
+}
+
+@media (min-width: 1360px) {
+  .bokmoo-header-signin-label {
+    display: inline;
+  }
+}
+
+/* 1536 up: the roomy spacing the header was designed with. Below that the
+   tight tier keeps the longest locales inside the 1280px container. */
+@media (min-width: 1536px) {
+  .bokmoo-header-bar {
+    gap: 1.5rem;
+    padding-inline: 1.5rem;
+  }
+
+  .bokmoo-header-actions {
+    gap: 1rem;
+  }
+
+  .bokmoo-header-nav {
+    column-gap: 2rem;
+  }
+
+  .bokmoo-header-locale-chevron,
+  .bokmoo-header-account-chevron {
+    display: block;
+  }
+}
+
+/* Footer links and copyright sit side by side on desktop (331px). On narrow
+   phones, and in the longer locales, they overflowed the viewport, so they
+   wrap and centre below 768px. */
+.bokmoo-footer-links {
+  flex-wrap: wrap;
+  justify-content: center;
+  column-gap: 2rem;
+  row-gap: 0.75rem;
+}
+
+.bokmoo-footer-copy {
+  flex-basis: 100%;
+  text-align: center;
+}
+
+.bokmoo-footer-nav {
+  flex-wrap: wrap;
+  justify-content: center;
+  column-gap: 1.5rem;
+  row-gap: 0.25rem;
+}
+
+@media (min-width: 768px) {
+  .bokmoo-footer-links {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    row-gap: 0;
+  }
+
+  .bokmoo-footer-copy {
+    flex-basis: auto;
+    text-align: left;
+  }
+
+  .bokmoo-footer-nav {
+    flex-wrap: nowrap;
+  }
+}
+
+@media (max-width: 359px) {
+  .bokmoo-header-logo {
+    height: 1rem;
+  }
+}
+
+@media (min-width: 640px) {
+  .bokmoo-header-bar {
+    gap: 1.5rem;
+    padding-inline: 1.5rem;
+  }
+
+  .bokmoo-header-logo {
+    height: 1.5rem;
+  }
+
+  .bokmoo-header-burger {
+    width: 2.75rem;
+  }
+
+  .bokmoo-header-locale-label {
+    display: inline;
+  }
+
+  .bokmoo-header-locale-chevron {
+    display: block;
+  }
+}
+
+@media (min-width: 768px) {
+  .bokmoo-header-actions {
+    gap: 1rem;
+  }
+
+  .bokmoo-header-signin {
+    display: inline-flex;
+  }
+}
+
+@media (min-width: 1280px) {
+  .bokmoo-header-bar {
+    gap: 1.5rem;
+    padding-inline: 1.5rem;
+  }
+
+  .bokmoo-header-actions {
+    margin-left: 0;
+  }
+
+  .bokmoo-header-logo {
+    height: 1.75rem;
+  }
+
+  .bokmoo-header-nav,
+  .bokmoo-header-cta {
+    display: flex;
+  }
+
+  .bokmoo-header-burger,
+  .bokmoo-header-menu {
+    display: none;
+  }
+}
+/* <<< Responsive chrome end */
+
 /* \u2500\u2500 Landing stage: CSS-rendered SIM card pedestal (Obsidian Aurum hero) \u2500\u2500 */
 .bg-pedestal-top {
   background: radial-gradient(ellipse at center, #26262b 0%, #151518 70%, #0d0d0f 100%);
@@ -18471,7 +18728,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.59",
+      version: "1.1.60",
       target: "shop"
     }
   };
