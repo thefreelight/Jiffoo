@@ -578,6 +578,26 @@ export const merchant = {
 
   // Customers
   customers: {
+    // Deleting a customer account (server refuses while the account still has records)
+    customerDelete: {
+      title: '删除客户',
+      description: '永久删除该客户账号，此操作无法撤销。',
+      rule: '只有名下没有任何订单、支付、钱包等记录的客户才能删除；有记录的客户请改用「停用」。',
+      notAllowed: '该账号不能删除。员工和管理员账号请在「员工管理」中处理。',
+      hasData: '该客户名下仍有订单、支付、钱包等记录，无法删除。可以改为停用账号。',
+      guardUnavailable: '无法检查该账号名下的记录，因此没有执行删除。请稍后重试。',
+      failed: '删除客户失败。',
+      deactivate: '停用账号',
+      activate: '启用账号',
+      submit: '删除客户',
+      deleting: '删除中…',
+      target: '账号',
+      success: '客户已删除。',
+      activated: '账号已启用。',
+      deactivated: '账号已停用，该客户将无法登录。',
+      toggleFailed: '更新账号状态失败。',
+      disabledBadge: '已停用',
+    },
     title: '顾客',
     subtitle: '管理您的顾客关系',
     allCustomers: '所有顾客',

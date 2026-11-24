@@ -424,6 +424,26 @@ export const merchant = {
 
   // Customers
   customers: {
+    // Deleting a customer account (server refuses while the account still has records)
+    customerDelete: {
+      title: 'Supprimer le client',
+      description: 'Supprimer définitivement ce compte client. Cette action est irréversible.',
+      rule: 'Seuls les comptes sans commandes, paiements, porte-monnaie ni autres enregistrements peuvent être supprimés. Pour les autres, désactivez le compte.',
+      notAllowed: 'Ce compte ne peut pas être supprimé. Les comptes du personnel et des administrateurs se gèrent sur la page Staff.',
+      hasData: "Ce client a encore des commandes, des paiements, un porte-monnaie ou d'autres enregistrements et ne peut pas être supprimé. Désactivez le compte à la place.",
+      guardUnavailable: "Les enregistrements liés à ce compte n'ont pas pu être vérifiés : la suppression n'a pas été effectuée. Réessayez plus tard.",
+      failed: 'Impossible de supprimer le client.',
+      deactivate: 'Désactiver le compte',
+      activate: 'Activer le compte',
+      submit: 'Supprimer le client',
+      deleting: 'Suppression...',
+      target: 'Compte',
+      success: 'Client supprimé.',
+      activated: 'Compte activé.',
+      deactivated: 'Compte désactivé. Le client ne peut plus se connecter.',
+      toggleFailed: 'Impossible de mettre à jour le compte.',
+      disabledBadge: 'Désactivé',
+    },
     title: 'Customers',
     subtitle: 'Manage your customer relationships',
     allCustomers: 'All Customers',

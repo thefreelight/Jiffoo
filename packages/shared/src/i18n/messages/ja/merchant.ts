@@ -424,6 +424,26 @@ export const merchant = {
 
   // Customers
   customers: {
+    // Deleting a customer account (server refuses while the account still has records)
+    customerDelete: {
+      title: '顧客を削除',
+      description: 'この顧客アカウントを完全に削除します。この操作は元に戻せません。',
+      rule: '注文・決済・ウォレットなどの記録がないアカウントのみ削除できます。記録がある顧客はアカウントを無効化してください。',
+      notAllowed: 'このアカウントは削除できません。スタッフと管理者のアカウントは「スタッフ管理」で管理してください。',
+      hasData: 'この顧客には注文・決済・ウォレットなどの記録があるため削除できません。代わりにアカウントを無効化してください。',
+      guardUnavailable: '関連する記録を確認できなかったため、削除は実行されませんでした。後でもう一度お試しください。',
+      failed: '顧客を削除できませんでした。',
+      deactivate: 'アカウントを無効化',
+      activate: 'アカウントを有効化',
+      submit: '顧客を削除',
+      deleting: '削除中...',
+      target: 'アカウント',
+      success: '顧客を削除しました。',
+      activated: 'アカウントを有効にしました。',
+      deactivated: 'アカウントを無効化しました。この顧客はログインできなくなります。',
+      toggleFailed: 'アカウントを更新できませんでした。',
+      disabledBadge: '無効',
+    },
     title: 'Customers',
     subtitle: 'Manage your customer relationships',
     allCustomers: 'All Customers',

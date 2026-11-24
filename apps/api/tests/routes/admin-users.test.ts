@@ -19,6 +19,8 @@ import {
   createAdminWithToken,
   deleteAllTestUsers,
 } from '../helpers/auth';
+import { createTestOrder } from '../helpers/fixtures';
+import { getTestPrisma } from '../helpers/db';
 import { v4 as uuidv4 } from 'uuid';
 
 describe('Admin Users Endpoints', () => {
@@ -352,6 +354,36 @@ describe('Admin Users Endpoints', () => {
       });
 
       expect(response.statusCode).toBe(200);
+    });
+
+    it('should refuse to delete a customer who has orders and keep the sales history', async () => {
+      const { user } = await createUserWithToken({
+        email: `test-delete-with-order-${uuidv4().substring(0, 8)}@test.com`,
+      });
+      const order = await createTestOrder({ userId: user.id });
+
+      const response = await app.inject({
+        method: 'DELETE',
+        url: `/api/admin/users/${user.id}`,
+        headers: { authorization: `Bearer ${adminToken}` },
+      });
+
+      expect(response.statusCode).toBe(409);
+      expect(response.json().error.code).toBe('USER_HAS_DATA');
+      const prisma = getTestPrisma();
+      expect(await prisma.order.findUnique({ where: { id: order.id } })).not.toBeNull();
+      expect(await prisma.user.findUnique({ where: { id: user.id } })).not.toBeNull();
+    });
+
+    it('should refuse to delete the calling admin', async () => {
+      const response = await app.inject({
+        method: 'DELETE',
+        url: `/api/admin/users/${adminUserId}`,
+        headers: { authorization: `Bearer ${adminToken}` },
+      });
+
+      expect(response.statusCode).toBe(403);
+      expect(response.json().error.code).toBe('CUSTOMER_DELETE_NOT_ALLOWED');
     });
 
     it('should return 404 for non-existent user', async () => {

@@ -7,11 +7,12 @@
 'use client'
 
 import { useState } from 'react'
-import { Crown, Download, Eye, MoreHorizontal, Plus, Search, Users, UserPlus, UserCheck, UserX } from 'lucide-react'
+import { Crown, Download, Eye, MoreHorizontal, Plus, Search, Trash2, Users, UserPlus, UserCheck, UserX } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
@@ -24,8 +25,16 @@ import {
 import { useT, useLocale } from 'shared/src/i18n/react'
 import { PageShell } from '@/components/layout/page-shell'
 import { PageHero, MiniStatCard, TablePagination, SortableTh } from '@/components/list/list-kit'
-import { useUsers, useUserStats, type User } from '@/lib/hooks/use-api'
+import { queryKeys, useUsers, useUserStats, type User } from '@/lib/hooks/use-api'
 import { formatCurrency, cn } from '@/lib/utils'
+import { ADMIN_PERMISSIONS } from 'shared'
+import { useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import { unwrapApiResponse, usersApi } from '@/lib/api'
+import { getUserPermissions } from '@/lib/admin-access'
+import { useAuthStore } from '@/lib/store'
+import { resolveApiErrorMessage } from '@/lib/error-utils'
+import { DeleteCustomerDialog } from '@/components/customers/delete-customer-dialog'
 
 const AVATAR_TONES = [
   'bg-violet-100 text-violet-600',
@@ -78,6 +87,39 @@ export default function CustomersPage() {
     search: searchTerm,
   })
   const { data: userStats } = useUserStats()
+
+  // Deleting or deactivating needs customers.write; read-only roles only see the detail link.
+  const currentUser = useAuthStore((state) => state.user)
+  const canWrite = getUserPermissions(currentUser).includes(ADMIN_PERMISSIONS.CUSTOMERS_WRITE)
+  const queryClient = useQueryClient()
+  const [deleteTarget, setDeleteTarget] = useState<User | null>(null)
+  const [togglingId, setTogglingId] = useState<string | null>(null)
+
+  const refreshCustomers = (removedId?: string) => {
+    void queryClient.invalidateQueries({ queryKey: queryKeys.users, exact: false })
+    void queryClient.invalidateQueries({ queryKey: queryKeys.userStats })
+    void queryClient.invalidateQueries({ queryKey: queryKeys.adminDashboard })
+    if (removedId) queryClient.removeQueries({ queryKey: queryKeys.user(removedId) })
+  }
+
+  const toggleActive = async (user: User) => {
+    const nextActive = user.isActive === false
+    setTogglingId(user.id)
+    try {
+      const response = await usersApi.update(user.id, { isActive: nextActive })
+      unwrapApiResponse(response)
+      refreshCustomers(user.id)
+      toast.success(
+        nextActive
+          ? getText('merchant.customers.customerDelete.activated', 'Account enabled.')
+          : getText('merchant.customers.customerDelete.deactivated', 'Account deactivated. The customer can no longer sign in.')
+      )
+    } catch (err: unknown) {
+      toast.error(resolveApiErrorMessage(err, t, 'merchant.customers.customerDelete.toggleFailed', 'Failed to update the account.'))
+    } finally {
+      setTogglingId(null)
+    }
+  }
 
   const users: User[] = usersResponse?.data || []
   const pagination = usersResponse?.pagination
@@ -300,16 +342,22 @@ export default function CustomersPage() {
                         )}
                       </td>
                       <td className="px-3 py-3">
-                        <span
-                          className={cn(
-                            'text-sm font-medium',
-                            active ? 'text-emerald-600' : 'text-slate-400',
-                          )}
-                        >
-                          {active
-                            ? getText('merchant.pages.stateActive', '活跃')
-                            : getText('merchant.pages.stateSleeping', '沉睡')}
-                        </span>
+                        {user.isActive === false ? (
+                          <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-500">
+                            {getText('merchant.customers.customerDelete.disabledBadge', 'Disabled')}
+                          </span>
+                        ) : (
+                          <span
+                            className={cn(
+                              'text-sm font-medium',
+                              active ? 'text-emerald-600' : 'text-slate-400',
+                            )}
+                          >
+                            {active
+                              ? getText('merchant.pages.stateActive', '活跃')
+                              : getText('merchant.pages.stateSleeping', '沉睡')}
+                          </span>
+                        )}
                       </td>
                       <td className="px-3 py-3 text-xs text-slate-400">{registered}</td>
                       <td className="px-3 py-3 text-right">
@@ -331,6 +379,28 @@ export default function CustomersPage() {
                               <Eye className="mr-2 h-3.5 w-3.5" />
                               {getText('merchant.pages.viewDetail', '查看详情')}
                             </DropdownMenuItem>
+                            {!usingDemoRows && canWrite && user.id ? (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  className="cursor-pointer text-sm"
+                                  disabled={togglingId === user.id}
+                                  onClick={() => void toggleActive(user)}
+                                >
+                                  {user.isActive === false ? <UserCheck className="mr-2 h-3.5 w-3.5" /> : <UserX className="mr-2 h-3.5 w-3.5" />}
+                                  {user.isActive === false
+                                    ? getText('merchant.customers.customerDelete.activate', 'Enable account')
+                                    : getText('merchant.customers.customerDelete.deactivate', 'Deactivate account')}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="cursor-pointer text-sm text-red-600 focus:text-red-600"
+                                  onClick={() => setDeleteTarget(user)}
+                                >
+                                  <Trash2 className="mr-2 h-3.5 w-3.5" />
+                                  {getText('merchant.customers.customerDelete.title', 'Delete Customer')}
+                                </DropdownMenuItem>
+                              </>
+                            ) : null}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </td>
@@ -362,6 +432,20 @@ export default function CustomersPage() {
           />
         </div>
       </div>
+
+      <DeleteCustomerDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => { if (!open) setDeleteTarget(null) }}
+        user={deleteTarget}
+        onDeleted={(deletedId) => {
+          refreshCustomers(deletedId)
+          toast.success(getText('merchant.customers.customerDelete.success', 'Customer deleted.'))
+        }}
+        onDeactivated={() => {
+          refreshCustomers()
+          toast.success(getText('merchant.customers.customerDelete.deactivated', 'Account deactivated. The customer can no longer sign in.'))
+        }}
+      />
     </PageShell>
   )
 }
