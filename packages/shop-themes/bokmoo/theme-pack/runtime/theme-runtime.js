@@ -16152,6 +16152,41 @@
     ] });
   });
 
+  // src/components/SocialAuthButtons.tsx
+  var PROVIDERS = ["google", "apple", "facebook"];
+  function readySocialProviders(status, handlers) {
+    if (status?.isLoading) return [];
+    return PROVIDERS.filter(
+      (provider) => Boolean(handlers[provider]) && (status ? status[provider] === true : true)
+    );
+  }
+  var BUTTON_CLASS = "inline-flex min-h-12 items-center justify-center gap-2 rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_86%,black)] px-4 text-sm font-semibold text-[var(--bokmoo-ink)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bokmoo-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bokmoo-bg)]";
+  var GRID_COLUMNS = { 2: "sm:grid-cols-2", 3: "sm:grid-cols-3" };
+  function SocialAuthButtons({
+    providers,
+    isLoading,
+    onGoogle,
+    onApple,
+    onFacebook,
+    className = ""
+  }) {
+    if (providers.length === 0) return null;
+    return /* @__PURE__ */ jsxs("div", { className: `grid gap-3 ${GRID_COLUMNS[providers.length] ?? ""} ${className}`, children: [
+      providers.includes("google") ? /* @__PURE__ */ jsxs("button", { type: "button", onClick: onGoogle, className: BUTTON_CLASS, disabled: isLoading, children: [
+        /* @__PURE__ */ jsx(Chrome, { className: "h-4 w-4" }),
+        "Google"
+      ] }) : null,
+      providers.includes("apple") && onApple ? /* @__PURE__ */ jsxs("button", { type: "button", onClick: onApple, className: BUTTON_CLASS, disabled: isLoading, children: [
+        /* @__PURE__ */ jsx(Apple, { className: "h-4 w-4" }),
+        "Apple"
+      ] }) : null,
+      providers.includes("facebook") && onFacebook ? /* @__PURE__ */ jsxs("button", { type: "button", onClick: onFacebook, className: BUTTON_CLASS, disabled: isLoading, children: [
+        /* @__PURE__ */ jsx(Facebook, { className: "h-4 w-4" }),
+        "Facebook"
+      ] }) : null
+    ] });
+  }
+
   // src/components/LoginPage.tsx
   var FOCUS_VISIBLE_RING3 = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bokmoo-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bokmoo-bg)]";
   function LoginPage({
@@ -16162,10 +16197,16 @@
     onOAuthClick,
     onAppleOAuthClick,
     onFacebookOAuthClick,
+    socialAuthStatus,
     onNavigateToRegister,
     onNavigateToForgotPassword
   }) {
     const site = resolveBokmooSiteConfig(config);
+    const socialProviders = readySocialProviders(socialAuthStatus, {
+      google: onOAuthClick,
+      apple: onAppleOAuthClick,
+      facebook: onFacebookOAuthClick
+    });
     const [email, setEmail] = react_default.useState("");
     const [password, setPassword] = react_default.useState("");
     const [showPassword, setShowPassword] = react_default.useState(false);
@@ -16221,52 +16262,24 @@
             /* @__PURE__ */ jsx("h2", { className: "mt-3 text-3xl font-semibold leading-none tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: "Welcome back" }),
             /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm leading-6 text-[var(--bokmoo-copy)]", children: "Continue to your orders, profiles, and activation workspace." })
           ] }),
-          /* @__PURE__ */ jsxs("div", { className: "mt-7 grid gap-3 sm:grid-cols-3", children: [
-            /* @__PURE__ */ jsxs(
-              "button",
+          socialProviders.length > 0 ? /* @__PURE__ */ jsxs(Fragment2, { children: [
+            /* @__PURE__ */ jsx(
+              SocialAuthButtons,
               {
-                type: "button",
-                onClick: () => onOAuthClick("google"),
-                className: `inline-flex min-h-12 items-center justify-center gap-2 rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_86%,black)] px-4 text-sm font-semibold text-[var(--bokmoo-ink)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)] disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING3}`,
-                disabled: isLoading,
-                children: [
-                  /* @__PURE__ */ jsx(Chrome, { className: "h-4 w-4" }),
-                  "Google"
-                ]
+                className: "mt-7",
+                providers: socialProviders,
+                isLoading,
+                onGoogle: () => onOAuthClick("google"),
+                onApple: onAppleOAuthClick,
+                onFacebook: onFacebookOAuthClick
               }
             ),
-            /* @__PURE__ */ jsxs(
-              "button",
-              {
-                type: "button",
-                onClick: () => onAppleOAuthClick?.(),
-                className: `inline-flex min-h-12 items-center justify-center gap-2 rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_86%,black)] px-4 text-sm font-semibold text-[var(--bokmoo-ink)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)] disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING3}`,
-                disabled: isLoading || !onAppleOAuthClick,
-                children: [
-                  /* @__PURE__ */ jsx(Apple, { className: "h-4 w-4" }),
-                  "Apple"
-                ]
-              }
-            ),
-            /* @__PURE__ */ jsxs(
-              "button",
-              {
-                type: "button",
-                onClick: () => onFacebookOAuthClick?.(),
-                className: `inline-flex min-h-12 items-center justify-center gap-2 rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_86%,black)] px-4 text-sm font-semibold text-[var(--bokmoo-ink)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)] disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING3}`,
-                disabled: isLoading || !onFacebookOAuthClick,
-                children: [
-                  /* @__PURE__ */ jsx(Facebook, { className: "h-4 w-4" }),
-                  "Facebook"
-                ]
-              }
-            )
-          ] }),
-          /* @__PURE__ */ jsxs("div", { className: "mt-6 flex items-center gap-3", children: [
-            /* @__PURE__ */ jsx("div", { className: "h-px flex-1 bg-[var(--bokmoo-line)]" }),
-            /* @__PURE__ */ jsx("span", { className: "text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--bokmoo-copy-soft)]", children: "or email" }),
-            /* @__PURE__ */ jsx("div", { className: "h-px flex-1 bg-[var(--bokmoo-line)]" })
-          ] }),
+            /* @__PURE__ */ jsxs("div", { className: "mt-6 flex items-center gap-3", children: [
+              /* @__PURE__ */ jsx("div", { className: "h-px flex-1 bg-[var(--bokmoo-line)]" }),
+              /* @__PURE__ */ jsx("span", { className: "text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--bokmoo-copy-soft)]", children: "or email" }),
+              /* @__PURE__ */ jsx("div", { className: "h-px flex-1 bg-[var(--bokmoo-line)]" })
+            ] })
+          ] }) : null,
           /* @__PURE__ */ jsxs("form", { onSubmit: handleSubmit, className: "mt-7 space-y-5", children: [
             error ? /* @__PURE__ */ jsx("div", { className: "rounded-[0.95rem] border border-[color:color-mix(in_oklab,var(--bokmoo-danger)_48%,transparent)] bg-[color:color-mix(in_oklab,var(--bokmoo-danger)_12%,transparent)] p-4 text-sm leading-6 text-[var(--bokmoo-ink)]", children: error }) : null,
             /* @__PURE__ */ jsxs("label", { className: "block", children: [
@@ -17491,9 +17504,15 @@
     onOAuthClick,
     onAppleOAuthClick,
     onFacebookOAuthClick,
+    socialAuthStatus,
     onNavigateToLogin
   }) {
     const site = resolveBokmooSiteConfig(config);
+    const socialProviders = readySocialProviders(socialAuthStatus, {
+      google: onOAuthClick,
+      apple: onAppleOAuthClick,
+      facebook: onFacebookOAuthClick
+    });
     const [formData, setFormData] = react_default.useState({
       firstName: "",
       lastName: "",
@@ -17533,52 +17552,24 @@
           ] }),
           /* @__PURE__ */ jsx("h2", { className: "mt-3 text-3xl font-semibold leading-none tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: "Create account" }),
           /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm leading-6 text-[var(--bokmoo-copy)]", children: "Start with a secure profile for purchases and global activation support." }),
-          /* @__PURE__ */ jsxs("div", { className: "mt-7 grid gap-3 sm:grid-cols-3", children: [
-            /* @__PURE__ */ jsxs(
-              "button",
+          socialProviders.length > 0 ? /* @__PURE__ */ jsxs(Fragment2, { children: [
+            /* @__PURE__ */ jsx(
+              SocialAuthButtons,
               {
-                type: "button",
-                onClick: () => onOAuthClick("google"),
-                className: `inline-flex min-h-12 items-center justify-center gap-2 rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_86%,black)] px-4 text-sm font-semibold text-[var(--bokmoo-ink)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)] disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING5}`,
-                disabled: isLoading,
-                children: [
-                  /* @__PURE__ */ jsx(Chrome, { className: "h-4 w-4" }),
-                  "Google"
-                ]
+                className: "mt-7",
+                providers: socialProviders,
+                isLoading,
+                onGoogle: () => onOAuthClick("google"),
+                onApple: onAppleOAuthClick,
+                onFacebook: onFacebookOAuthClick
               }
             ),
-            /* @__PURE__ */ jsxs(
-              "button",
-              {
-                type: "button",
-                onClick: () => onAppleOAuthClick?.(),
-                className: `inline-flex min-h-12 items-center justify-center gap-2 rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_86%,black)] px-4 text-sm font-semibold text-[var(--bokmoo-ink)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)] disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING5}`,
-                disabled: isLoading || !onAppleOAuthClick,
-                children: [
-                  /* @__PURE__ */ jsx(Apple, { className: "h-4 w-4" }),
-                  "Apple"
-                ]
-              }
-            ),
-            /* @__PURE__ */ jsxs(
-              "button",
-              {
-                type: "button",
-                onClick: () => onFacebookOAuthClick?.(),
-                className: `inline-flex min-h-12 items-center justify-center gap-2 rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_86%,black)] px-4 text-sm font-semibold text-[var(--bokmoo-ink)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)] disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING5}`,
-                disabled: isLoading || !onFacebookOAuthClick,
-                children: [
-                  /* @__PURE__ */ jsx(Facebook, { className: "h-4 w-4" }),
-                  "Facebook"
-                ]
-              }
-            )
-          ] }),
-          /* @__PURE__ */ jsxs("div", { className: "mt-6 flex items-center gap-3", children: [
-            /* @__PURE__ */ jsx("div", { className: "h-px flex-1 bg-[var(--bokmoo-line)]" }),
-            /* @__PURE__ */ jsx("span", { className: "text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--bokmoo-copy-soft)]", children: "or email" }),
-            /* @__PURE__ */ jsx("div", { className: "h-px flex-1 bg-[var(--bokmoo-line)]" })
-          ] }),
+            /* @__PURE__ */ jsxs("div", { className: "mt-6 flex items-center gap-3", children: [
+              /* @__PURE__ */ jsx("div", { className: "h-px flex-1 bg-[var(--bokmoo-line)]" }),
+              /* @__PURE__ */ jsx("span", { className: "text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--bokmoo-copy-soft)]", children: "or email" }),
+              /* @__PURE__ */ jsx("div", { className: "h-px flex-1 bg-[var(--bokmoo-line)]" })
+            ] })
+          ] }) : null,
           /* @__PURE__ */ jsxs("form", { onSubmit: handleSubmit, className: "mt-7 space-y-5", children: [
             error ? /* @__PURE__ */ jsx("div", { className: "rounded-[0.95rem] border border-[color:color-mix(in_oklab,var(--bokmoo-danger)_48%,transparent)] bg-[color:color-mix(in_oklab,var(--bokmoo-danger)_12%,transparent)] p-4 text-sm leading-6 text-[var(--bokmoo-ink)]", children: error }) : null,
             /* @__PURE__ */ jsx("div", { className: "grid gap-4 sm:grid-cols-2", children: ["firstName", "lastName"].map((field) => /* @__PURE__ */ jsxs("label", { className: "block", children: [
@@ -18480,7 +18471,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.57",
+      version: "1.1.58",
       target: "shop"
     }
   };
