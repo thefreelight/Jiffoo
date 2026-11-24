@@ -1,8 +1,9 @@
 import { authenticateNativeAdmin, authenticateNativeUser, type NativeAuthEnv } from './auth';
 import { isNativePluginEnabled } from './plugin-enabled';
 import { applyNativeSubscriptionRedemption } from './native-subscription';
+import { allocateOrderNumber, type OrderNumberEnv } from './order-numbers';
 
-type CouponEnv = NativeAuthEnv & { DB: D1Database };
+type CouponEnv = NativeAuthEnv & OrderNumberEnv;
 
 // Checkout resolves catalog products through a D1-authoritative loader
 // (index.ts loadProduct); redemption uses the same source so a code can only
@@ -127,7 +128,9 @@ async function redeemSubscription(env: CouponEnv, user: NonNullable<Awaited<Retu
   return reply({ code: redemption.code, planSlug: redemption.plan_slug, planName: redemption.plan_name, currentPeriodEnd: claim.subscriptionPeriodEnd, active: true });
 }
 
-function orderNumber(): string {
+// Internal order id. The customer-facing number is the separate
+// human-readable orderNumber issued by allocateOrderNumber.
+function internalOrderId(): string {
   return `ord_${Date.now().toString(36)}_${crypto.randomUUID().replaceAll('-', '').slice(0, 12)}`;
 }
 
@@ -192,7 +195,7 @@ async function redeemProductCode(
     currency: 'USD',
   };
   const now = new Date().toISOString();
-  const orderId = orderNumber();
+  const orderId = internalOrderId();
   const order: Record<string, unknown> = {
     id: orderId,
     userId: user.id,
@@ -232,6 +235,12 @@ async function redeemProductCode(
     }
   }
 
+  // Reserved once the order will be written, so a redemption lost to the
+  // claim race never consumes a number. Null keeps redemption available; the
+  // order is numbered on its first read instead.
+  const orderNumber = await allocateOrderNumber(env, now);
+  if (orderNumber) order.orderNumber = orderNumber;
+
   // Mirror the checkout pipeline: inventory snapshot, guarded stock
   // reservation, order item, order metadata, and the paid snapshot — plus
   // the payment.succeeded outbox event that drives fulfillment. Digital
@@ -249,9 +258,9 @@ async function redeemProductCode(
       ).bind(product.id, variant.id, sourceStock, now),
       env.DB.prepare(
         `INSERT INTO native_order_snapshots
-         (id, user_id, status, searchable_text, payload, source_updated_at, imported_at)
-         VALUES (?1, ?2, 'PAID', ?3, ?4, ?5, ?5)`,
-      ).bind(orderId, user.id, searchable(order), JSON.stringify(order), now),
+         (id, user_id, status, searchable_text, payload, source_updated_at, imported_at, order_number)
+         VALUES (?1, ?2, 'PAID', ?3, ?4, ?5, ?5, ?6)`,
+      ).bind(orderId, user.id, searchable(order), JSON.stringify(order), now, orderNumber),
       // The reservation and item rows carry FKs into native_order_metadata —
       // that row must exist before they are inserted.
       env.DB.prepare(

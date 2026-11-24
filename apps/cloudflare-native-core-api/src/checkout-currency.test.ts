@@ -86,7 +86,8 @@ describe('native checkout currency handling', () => {
           const insertOrder = sql.includes('INSERT INTO native_order_snapshots');
           const insertItems = sql.includes('INSERT INTO native_order_items');
           return {
-            first: async () => null,
+            // The per-day sequence answers its atomic reservation.
+            first: async () => (sql.includes('native_order_number_sequences') ? { seq: 1 } : null),
             run: async () => {
               if (insertOrder || insertItems) captured.push({ sql, values });
               return { success: true };

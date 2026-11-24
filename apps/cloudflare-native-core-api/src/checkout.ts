@@ -2,9 +2,10 @@ import { authenticateNativeUser, type NativeAuthEnv, type NativeSessionUser } fr
 import { resolveActivePromotion } from './bokmoo-promotions';
 import { getNativePluginConfig, getNativePluginSecret, getNativeStripeSecret } from './plugin-settings';
 import { settleNativeWalletCheckout } from './native-wallet';
+import { allocateOrderNumber, type OrderNumberEnv } from './order-numbers';
 
 type CheckoutEnv = Pick<Cloudflare.Env,
-  'DB' | 'JWT_SECRET' | 'STRIPE_SECRET_KEY' | 'STRIPE_WEBHOOK_SECRET' | 'NATIVE_CHECKOUT_ENABLED'> & {
+  'DB' | 'JWT_SECRET' | 'STRIPE_SECRET_KEY' | 'STRIPE_WEBHOOK_SECRET' | 'NATIVE_CHECKOUT_ENABLED'> & OrderNumberEnv & {
   // chfastpay easy-pay channel (owner-provided aggregate Alipay/WeChat gateway).
   // Configured as plain vars/secret on the deployed instance, not present in
   // the generated worker types.
@@ -89,7 +90,9 @@ function isOrderItem(value: unknown): value is OrderItemInput {
     && (item.expectedUnitPrice === undefined || (typeof item.expectedUnitPrice === 'number' && item.expectedUnitPrice >= 0));
 }
 
-function orderNumber(): string {
+// Internal order id (primary/foreign key). The customer-facing number is the
+// separate human-readable orderNumber issued by allocateOrderNumber.
+function internalOrderId(): string {
   return `ord_${Date.now().toString(36)}_${crypto.randomUUID().replaceAll('-', '').slice(0, 12)}`;
 }
 
@@ -192,7 +195,7 @@ async function createOrder(
   }
 
   const now = new Date().toISOString();
-  const orderId = orderNumber();
+  const orderId = internalOrderId();
   // Campaign promotion: the single best active promotion replaces the
   // affiliate discount (no stacking) and lands on the covered items' unit
   // price, keeping the Stripe charge, the order record and the apps equal.
@@ -284,8 +287,13 @@ async function createOrder(
   if (requiresShipping && !shippingAddress) {
     return failure(400, 'SHIPPING_ADDRESS_REQUIRED', 'A complete shipping address is required for physical products');
   }
+  // Reserved after every validation, so a rejected checkout never consumes a
+  // number. Null keeps checkout available; the order is numbered on its first
+  // read instead.
+  const orderNumber = await allocateOrderNumber(env, now);
   const order: Record<string, unknown> = {
     id: orderId,
+    ...(orderNumber ? { orderNumber } : {}),
     userId: user.id,
     status: 'PENDING',
     paymentStatus: 'PENDING',
@@ -322,9 +330,9 @@ async function createOrder(
   const statements: D1PreparedStatement[] = [
     env.DB.prepare(
       `INSERT INTO native_order_snapshots
-       (id, user_id, status, searchable_text, payload, source_updated_at, imported_at)
-       VALUES (?1, ?2, 'PENDING', ?3, ?4, ?5, ?5)`,
-    ).bind(orderId, user.id, searchable(order), JSON.stringify(order), now),
+       (id, user_id, status, searchable_text, payload, source_updated_at, imported_at, order_number)
+       VALUES (?1, ?2, 'PENDING', ?3, ?4, ?5, ?5, ?6)`,
+    ).bind(orderId, user.id, searchable(order), JSON.stringify(order), now, orderNumber),
     env.DB.prepare(
       `INSERT INTO native_order_metadata
        (order_id, user_id, idempotency_key, payment_status, currency, total_amount, affiliate_partner_id, promotion_id)

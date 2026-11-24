@@ -3,9 +3,10 @@ import { ADMIN_PERMISSIONS } from './native-rbac';
 import { requireAdminPermission } from './admin-access';
 import { attachShipments, upsertSupplierShipment } from './shipments';
 import { processBossPaidOrder } from './boss-orders';
+import { attachOrderNumbers, type OrderNumberEnv } from './order-numbers';
 
-interface AdminOrderEnv extends NativeAuthEnv { DB: D1Database }
-interface AdminOrderRow { id: string; status: string; payload: string; source_updated_at: string }
+type AdminOrderEnv = NativeAuthEnv & OrderNumberEnv
+interface AdminOrderRow { id: string; status: string; payload: string; source_updated_at: string; order_number: string | null; imported_at: string }
 interface AdminCustomerRow { id: string; email: string; username: string | null; avatar: string | null }
 type ProxyRequest = (request: Request) => Promise<Response>;
 type AdminOrder = Record<string, unknown>;
@@ -184,12 +185,13 @@ export async function tryNativeAdminOrders(request: Request, env: AdminOrderEnv,
   const admin = gate.admin;
   const detail = url.pathname.match(/^\/api\/v1\/admin\/orders\/([^/]+)$/);
   if (detail) {
-    const row = await env.DB.prepare('SELECT payload FROM native_order_snapshots WHERE id = ?1')
-      .bind(detail[1]).first<{ payload: string }>();
+    const row = await env.DB.prepare('SELECT id, payload, order_number, imported_at FROM native_order_snapshots WHERE id = ?1')
+      .bind(detail[1]).first<AdminOrderRow>();
     if (!row) {
       return Response.json({ success: false, error: { code: 'NOT_FOUND', message: 'Order not found' } }, { status: 404, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-admin-orders' } });
     }
     const order = await attachCustomer(env.DB, await attachShipments(env.DB, JSON.parse(row.payload) as AdminOrder));
+    await attachOrderNumbers(env, [row], [order]);
     applyShippingAddressDisplay(order);
     applyItemsSummary(order);
     applyFulfillmentKind(order);
@@ -327,10 +329,11 @@ export async function tryNativeAdminOrders(request: Request, env: AdminOrderEnv,
   const totalRow = await env.DB.prepare(`SELECT COUNT(*) AS total FROM native_order_snapshots WHERE ${where}`).bind(...bindings).first<{ total: number }>();
   const total = totalRow?.total ?? 0;
   const rows = await env.DB.prepare(
-    `SELECT id, status, payload, source_updated_at FROM native_order_snapshots
+    `SELECT id, status, payload, source_updated_at, order_number, imported_at FROM native_order_snapshots
      WHERE ${where} ORDER BY json_extract(payload, '$.createdAt') DESC LIMIT ?${bindings.length + 1} OFFSET ?${bindings.length + 2}`,
   ).bind(...bindings, limit, (page - 1) * limit).all<AdminOrderRow>();
   const items = await Promise.all(rows.results.map((row) => attachShipments(env.DB, JSON.parse(row.payload) as AdminOrder)));
+  await attachOrderNumbers(env, rows.results, items);
   items.forEach(applyItemsSummary);
   await attachCustomers(env.DB, items);
   for (const order of items) {

@@ -77,6 +77,7 @@ type WorkerEnv = Cloudflare.Env & NativeAuthEnv & NativeJobsProxyEnv & {
   EXPECTED_D1_SCHEMA_VERSION?: string;
   BOSS_API_KEY?: string;
   BOSS_BASE_URL?: string;
+  ORDER_NUMBER_PREFIX?: string;
 };
 
 interface ProductDetail {
