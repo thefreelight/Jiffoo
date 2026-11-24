@@ -579,6 +579,26 @@ export const merchant = {
 
   // Customers
   customers: {
+    // Deleting a customer account (server refuses while the account still has records)
+    customerDelete: {
+      title: 'Delete customer',
+      description: 'Permanently remove this customer account. This cannot be undone.',
+      rule: 'Only accounts with no orders, payments, wallet, or other records can be deleted. For customers with records, deactivate the account instead.',
+      notAllowed: 'This account cannot be deleted. Staff and administrator accounts must be managed on the Staff page.',
+      hasData: 'This customer still has orders, payments, wallet, or other records and cannot be deleted. Deactivate the account instead.',
+      guardUnavailable: 'The account could not be checked for related records, so it was not deleted. Try again later.',
+      failed: 'Failed to delete the customer.',
+      deactivate: 'Deactivate account',
+      activate: 'Enable account',
+      submit: 'Delete customer',
+      deleting: 'Deleting...',
+      target: 'Account',
+      success: 'Customer deleted.',
+      activated: 'Account enabled.',
+      deactivated: 'Account deactivated. The customer can no longer sign in.',
+      toggleFailed: 'Failed to update the account.',
+      disabledBadge: 'Disabled',
+    },
     title: 'Customers',
     subtitle: 'Manage your customer relationships',
     allCustomers: 'All Customers',

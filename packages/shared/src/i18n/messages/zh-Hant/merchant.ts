@@ -578,6 +578,26 @@ export const merchant = {
 
   // Customers
   customers: {
+    // Deleting a customer account (server refuses while the account still has records)
+    customerDelete: {
+      title: '刪除客戶',
+      description: '永久刪除該客戶帳號，此操作無法復原。',
+      rule: '只有名下沒有任何訂單、付款、錢包等紀錄的客戶才能刪除；有紀錄的客戶請改用「停用」。',
+      notAllowed: '該帳號不能刪除。員工和管理員帳號請在「員工管理」中處理。',
+      hasData: '該客戶名下仍有訂單、付款、錢包等紀錄，無法刪除。可以改為停用帳號。',
+      guardUnavailable: '無法檢查該帳號名下的紀錄，因此沒有執行刪除。請稍後重試。',
+      failed: '刪除客戶失敗。',
+      deactivate: '停用帳號',
+      activate: '啟用帳號',
+      submit: '刪除客戶',
+      deleting: '刪除中…',
+      target: '帳號',
+      success: '客戶已刪除。',
+      activated: '帳號已啟用。',
+      deactivated: '帳號已停用，該客戶將無法登入。',
+      toggleFailed: '更新帳號狀態失敗。',
+      disabledBadge: '已停用',
+    },
     title: '顧客',
     subtitle: '管理您的顧客關係',
     allCustomers: '所有顧客',

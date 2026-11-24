@@ -251,38 +251,37 @@ export class AdminUserService {
     };
   }
 
-  static async deleteUser(userId: string) {
+  /**
+   * Deletes a customer account. Only bare customer accounts are removable:
+   * orders carry the payments, refunds, and shipments of a sale, so an account
+   * that has any must be deactivated instead to keep the sales history intact.
+   */
+  static async deleteUser(
+    userId: string,
+    options: { actorId?: string } = {},
+  ): Promise<{ userId: string; deleted: boolean }> {
     await prisma.$transaction(async (tx) => {
       const existingUser = await tx.user.findUnique({
         where: { id: userId },
-        select: { id: true },
+        select: { id: true, role: true, adminMembership: { select: { id: true } } },
       });
 
       if (!existingUser) {
         throw new Error('User not found');
       }
 
-      const userOrders = await tx.order.findMany({
-        where: { userId },
-        select: { id: true },
-      });
-      const orderIds = userOrders.map((order) => order.id);
-
-      if (orderIds.length > 0) {
-        await tx.refund.deleteMany({
-          where: { orderId: { in: orderIds } },
+      // Staff and other admins are not removable, and nobody deletes themselves.
+      if (existingUser.role !== 'USER' || existingUser.adminMembership || options.actorId === userId) {
+        throw Object.assign(new Error('Only customer accounts can be deleted'), {
+          code: 'CUSTOMER_DELETE_NOT_ALLOWED',
         });
+      }
 
-        await tx.shipment.deleteMany({
-          where: { orderId: { in: orderIds } },
-        });
-
-        await tx.payment.deleteMany({
-          where: { orderId: { in: orderIds } },
-        });
-
-        await tx.order.deleteMany({
-          where: { id: { in: orderIds } },
+      const orderCount = await tx.order.count({ where: { userId } });
+      if (orderCount > 0) {
+        throw Object.assign(new Error('Customer has orders and cannot be deleted'), {
+          code: 'USER_HAS_DATA',
+          details: { orders: orderCount },
         });
       }
 

@@ -109,26 +109,35 @@ export async function adminUserRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // Delete user
+  // Delete customer
   fastify.delete('/:id', {
     schema: {
       tags: ['admin-users'],
       summary: 'Delete user',
-      description: 'Delete a user account (admin only)',
+      description: 'Delete a customer account that has no orders (admin only). An account with orders must be deactivated instead so its sales history is kept.',
       security: [{ bearerAuth: [] }],
       ...adminUserSchemas.deleteUser,
     }
   }, async (request, reply) => {
     try {
       const { id } = request.params as any;
-      const result = await AdminUserService.deleteUser(id);
+      const result = await AdminUserService.deleteUser(id, { actorId: request.user?.id });
       return sendSuccess(reply, {
         userId: id,
         deleted: result.deleted,
-      }, 'User permanently deleted');
+      }, 'Customer deleted');
     } catch (error: any) {
       if (error.code === 'P2025' || error.message === 'User not found') {
         return sendError(reply, 404, 'NOT_FOUND', 'User not found');
+      }
+      if (error.code === 'CUSTOMER_DELETE_NOT_ALLOWED') {
+        return sendError(reply, 403, 'CUSTOMER_DELETE_NOT_ALLOWED', error.message);
+      }
+      // USER_HAS_DATA is the explicit guard; P2003/P2014 mean the database itself
+      // refused because a related record still exists.
+      if (error.code === 'USER_HAS_DATA' || error.code === 'P2003' || error.code === 'P2014') {
+        return sendError(reply, 409, 'USER_HAS_DATA',
+          'Customer has orders and cannot be deleted. Deactivate the account instead.', error.details);
       }
       return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
     }

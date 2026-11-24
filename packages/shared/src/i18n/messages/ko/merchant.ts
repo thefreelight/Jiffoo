@@ -424,6 +424,26 @@ export const merchant = {
 
   // Customers
   customers: {
+    // Deleting a customer account (server refuses while the account still has records)
+    customerDelete: {
+      title: '고객 삭제',
+      description: '이 고객 계정을 영구적으로 삭제합니다. 되돌릴 수 없습니다.',
+      rule: '주문, 결제, 지갑 등 기록이 없는 계정만 삭제할 수 있습니다. 기록이 있는 고객은 계정을 비활성화하세요.',
+      notAllowed: '이 계정은 삭제할 수 없습니다. 직원 및 관리자 계정은 "직원 관리"에서 관리하세요.',
+      hasData: '이 고객에게는 주문, 결제, 지갑 등 기록이 있어 삭제할 수 없습니다. 대신 계정을 비활성화하세요.',
+      guardUnavailable: '관련 기록을 확인할 수 없어 삭제하지 않았습니다. 나중에 다시 시도하세요.',
+      failed: '고객을 삭제하지 못했습니다.',
+      deactivate: '계정 비활성화',
+      activate: '계정 활성화',
+      submit: '고객 삭제',
+      deleting: '삭제 중...',
+      target: '계정',
+      success: '고객이 삭제되었습니다.',
+      activated: '계정이 활성화되었습니다.',
+      deactivated: '계정이 비활성화되었습니다. 해당 고객은 로그인할 수 없습니다.',
+      toggleFailed: '계정을 업데이트하지 못했습니다.',
+      disabledBadge: '비활성화됨',
+    },
     title: 'Customers',
     subtitle: 'Manage your customer relationships',
     allCustomers: 'All Customers',

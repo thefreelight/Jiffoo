@@ -5,7 +5,7 @@
  */
 'use client'
 
-import { AlertTriangle, ArrowLeft, Calendar, Mail, ShieldCheck, User, Save, X, Activity, DollarSign, Package, Clock, ExternalLink, Key } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, Calendar, Mail, ShieldCheck, User, Save, X, Activity, DollarSign, Package, Clock, ExternalLink, Key, Trash2 } from 'lucide-react'
 import { formatCurrency, cn } from '@/lib/utils'
 import { useParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -15,13 +15,18 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { useAdminDashboard, useUser, useUpdateUser } from '@/lib/hooks/use-api'
-import { useT } from 'shared/src/i18n/react'
+import { queryKeys, useAdminDashboard, useUser, useUpdateUser } from '@/lib/hooks/use-api'
+import { useLocale, useT } from 'shared/src/i18n/react'
+import { ADMIN_PERMISSIONS } from 'shared'
+import { useQueryClient } from '@tanstack/react-query'
+import { getUserPermissions } from '@/lib/admin-access'
+import { useAuthStore } from '@/lib/store'
 import { PageShell } from '@/components/layout/page-shell'
 import { useState, useEffect } from 'react'
 import { useToast } from '@/hooks/use-toast'
 import { UserRole } from '@/lib/types'
 import { ResetPasswordDialog } from '@/components/customers/reset-password-dialog'
+import { DeleteCustomerDialog } from '@/components/customers/delete-customer-dialog'
 import { resolveApiErrorMessage } from '@/lib/error-utils'
 import { UserAvatar } from '@/components/ui/user-avatar'
 
@@ -31,9 +36,13 @@ export default function CustomerDetailPage() {
   const router = useRouter()
   const userId = params.id as string
   const t = useT()
+  const locale = useLocale()
   const { toast } = useToast()
   const { data: dashboardData } = useAdminDashboard()
   const currency = dashboardData?.metrics?.currency
+  const queryClient = useQueryClient()
+  const currentUser = useAuthStore((state) => state.user)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -53,6 +62,10 @@ export default function CustomerDetailPage() {
 
   const { data: user, isLoading, error, refetch } = useUser(userId)
   const updateUserMutation = useUpdateUser()
+  // Deleting needs customers.write, and an administrator never deletes their own account from here.
+  const canDelete = Boolean(user)
+    && getUserPermissions(currentUser).includes(ADMIN_PERMISSIONS.CUSTOMERS_WRITE)
+    && currentUser?.id !== user?.id
 
   // Initialize form data when user data loads
   useEffect(() => {
@@ -178,6 +191,16 @@ export default function CustomerDetailPage() {
             </>
           ) : (
             <>
+              {canDelete ? (
+                <Button
+                  variant="outline"
+                  className="h-9 rounded-lg border border-red-200 text-sm font-semibold text-red-600 hover:bg-red-50"
+                  onClick={() => setDeleteDialogOpen(true)}
+                >
+                  <Trash2 className="w-4 h-4" />
+                  {getText('merchant.customers.customerDelete.title', 'Delete Customer')}
+                </Button>
+              ) : null}
               <Button
                 variant="outline"
                 className="h-9 rounded-lg border border-gray-200 text-sm font-semibold hover:bg-gray-50"
@@ -492,6 +515,23 @@ export default function CustomerDetailPage() {
             description: getText('merchant.customers.resetPassword.success', 'Password reset'),
           })
         }}
+      />
+
+      <DeleteCustomerDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        user={user}
+        onDeleted={(deletedId) => {
+          void queryClient.invalidateQueries({ queryKey: queryKeys.users, exact: false })
+          void queryClient.invalidateQueries({ queryKey: queryKeys.userStats })
+          queryClient.removeQueries({ queryKey: queryKeys.user(deletedId) })
+          toast({
+            title: getText('merchant.customers.success', 'Success'),
+            description: getText('merchant.customers.customerDelete.success', 'Customer deleted.'),
+          })
+          router.push(`/${locale}/customers`)
+        }}
+        onDeactivated={() => refetch()}
       />
     </PageShell>
   )
