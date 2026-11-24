@@ -18621,69 +18621,6 @@ body[data-theme='bokmoo'] ::selection {
   }
 }
 
-@media (max-width: 359px) {
-  .bokmoo-header-logo {
-    height: 1rem;
-  }
-}
-
-@media (min-width: 640px) {
-  .bokmoo-header-bar {
-    gap: 1.5rem;
-    padding-inline: 1.5rem;
-  }
-
-  .bokmoo-header-logo {
-    height: 1.5rem;
-  }
-
-  .bokmoo-header-burger {
-    width: 2.75rem;
-  }
-
-  .bokmoo-header-locale-label {
-    display: inline;
-  }
-
-  .bokmoo-header-locale-chevron {
-    display: block;
-  }
-}
-
-@media (min-width: 768px) {
-  .bokmoo-header-actions {
-    gap: 1rem;
-  }
-
-  .bokmoo-header-signin {
-    display: inline-flex;
-  }
-}
-
-@media (min-width: 1280px) {
-  .bokmoo-header-bar {
-    gap: 1.5rem;
-    padding-inline: 1.5rem;
-  }
-
-  .bokmoo-header-actions {
-    margin-left: 0;
-  }
-
-  .bokmoo-header-logo {
-    height: 1.75rem;
-  }
-
-  .bokmoo-header-nav,
-  .bokmoo-header-cta {
-    display: flex;
-  }
-
-  .bokmoo-header-burger,
-  .bokmoo-header-menu {
-    display: none;
-  }
-}
 /* <<< Responsive chrome end */
 
 /* \u2500\u2500 Landing stage: CSS-rendered SIM card pedestal (Obsidian Aurum hero) \u2500\u2500 */
@@ -18728,7 +18665,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.60",
+      version: "1.1.61",
       target: "shop"
     }
   };

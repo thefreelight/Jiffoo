@@ -144,4 +144,107 @@ describe('bokmoo responsive header and footer', () => {
       expect(blocks[0], `${name} is styled`).toMatch(new RegExp(`\\.${name}[\\s.{,]`));
     }
   });
+
+  it('declares each selector once per breakpoint', () => {
+    // An earlier draft of the breakpoints was left in the file after the real
+    // ones, and its `display: block` on the language chevron won the cascade.
+    const seen = new Set<string>();
+    const duplicates: string[] = [];
+    for (const rule of parseChromeRules(readThemeFile('theme-pack/tokens.css'))) {
+      for (const selector of rule.selectors) {
+        const key = `${rule.media} => ${selector}`;
+        if (seen.has(key)) duplicates.push(key);
+        seen.add(key);
+      }
+    }
+    expect(duplicates).toEqual([]);
+  });
+
+  it.each([
+    // [class, width, expected display]
+    ['bokmoo-header-burger', 1279, 'flex'],
+    ['bokmoo-header-burger', 1280, 'none'],
+    ['bokmoo-header-nav', 1279, 'none'],
+    ['bokmoo-header-nav', 1280, 'flex'],
+    ['bokmoo-header-cta', 1359, 'flex'],
+    ['bokmoo-header-signin', 767, 'none'],
+    ['bokmoo-header-signin', 768, 'inline-flex'],
+    ['bokmoo-header-signin-label', 1359, 'none'],
+    ['bokmoo-header-signin-label', 1360, 'inline'],
+    ['bokmoo-header-locale-label', 639, 'none'],
+    ['bokmoo-header-locale-label', 640, 'inline'],
+    // the tight tier runs to 1535: the chevron stays out of the row until then
+    ['bokmoo-header-locale-chevron', 639, 'none'],
+    ['bokmoo-header-locale-chevron', 640, 'block'],
+    ['bokmoo-header-locale-chevron', 1279, 'block'],
+    ['bokmoo-header-locale-chevron', 1280, 'none'],
+    ['bokmoo-header-locale-chevron', 1535, 'none'],
+    ['bokmoo-header-locale-chevron', 1536, 'block'],
+    ['bokmoo-header-account-chevron', 1400, 'none'],
+    ['bokmoo-header-account-chevron', 1536, 'block'],
+    ['bokmoo-header-menu', 1400, 'none'],
+  ])('styles .%s at %ipx as %s', (name, width, expected) => {
+    expect(propertyAt(readThemeFile('theme-pack/tokens.css'), name, width, 'display')).toBe(expected);
+  });
+
+  it('keeps the tight spacing between 1280 and 1535 and the roomy one above', () => {
+    const css = readThemeFile('theme-pack/tokens.css');
+    expect(propertyAt(css, 'bokmoo-header-bar', 1300, 'gap')).toBe('1rem');
+    expect(propertyAt(css, 'bokmoo-header-bar', 1600, 'gap')).toBe('1.5rem');
+    expect(propertyAt(css, 'bokmoo-footer-links', 390, 'flex-wrap')).toBe('wrap');
+    expect(propertyAt(css, 'bokmoo-footer-links', 800, 'flex-wrap')).toBe('nowrap');
+  });
 });
+
+type ChromeRule = { media: string; selectors: string[]; declarations: Record<string, string> };
+
+/** Minimal reader for the chrome block: indented rule sets inside `@media`, whose closing brace sits at column 0. */
+function parseChromeRules(css: string): ChromeRule[] {
+  const block = CHROME_BLOCK.exec(css)?.[0]?.replace(/\/\*[\s\S]*?\*\//g, '') ?? '';
+  const rules: ChromeRule[] = [];
+  let media = '';
+  let selectors: string[] = [];
+  let current: ChromeRule | null = null;
+  for (const raw of block.split('\n')) {
+    const line = raw.trim();
+    if (!line) continue;
+    if (current) {
+      if (line === '}') {
+        rules.push(current);
+        current = null;
+      } else if (line.includes(':')) {
+        const [property, ...rest] = line.replace(/;$/, '').split(':');
+        current.declarations[property.trim()] = rest.join(':').trim();
+      }
+    } else if (line.startsWith('@media')) {
+      media = line.replace(/^@media\s+/, '').replace(/\s*\{$/, '').trim();
+      selectors = [];
+    } else if (line === '}') {
+      media = '';
+      selectors = [];
+    } else if (line.endsWith('{')) {
+      current = { media, selectors: [...selectors, line.slice(0, -1).trim()], declarations: {} };
+      selectors = [];
+    } else if (line.endsWith(',')) {
+      selectors.push(line.slice(0, -1).trim());
+    }
+  }
+  return rules;
+}
+
+function mediaApplies(media: string, width: number): boolean {
+  const min = /min-width:\s*(\d+)px/.exec(media);
+  const max = /max-width:\s*(\d+)px/.exec(media);
+  return (!min || width >= Number(min[1])) && (!max || width <= Number(max[1]));
+}
+
+/** Value a single-class rule ends up with at `width`, following source order. */
+function propertyAt(css: string, className: string, width: number, property: string): string | undefined {
+  let value: string | undefined;
+  for (const rule of parseChromeRules(css)) {
+    if (rule.selectors.includes(`.${className}`) && mediaApplies(rule.media, width) && rule.declarations[property] !== undefined) {
+      value = rule.declarations[property];
+    }
+  }
+  return value;
+}
