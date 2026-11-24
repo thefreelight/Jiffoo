@@ -3,7 +3,7 @@ import { Loader2, Radar, RefreshCw } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { WorkspaceCard, workspaceOutlineButtonClass } from '@/components/plugins/plugin-workspace-ui';
 import { toast } from 'sonner';
 
 interface ConnectorDefinition {
@@ -93,23 +93,18 @@ export function RemoteRadarJobsNativeWorkspace(props: { installationId: string; 
 
   return (
     <div className="space-y-6">
-      <Card className="rounded-lg border-gray-100 shadow-sm">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0">
-          <div className="space-y-1.5">
-            <CardTitle className="flex items-center gap-2 text-xl tracking-tight">
-              <Radar className="h-5 w-5 text-blue-600" />
-              RemoteRadar job sources
-            </CardTitle>
-            <CardDescription>
-              Connector health, authorized sources, and sync status read from the RemoteRadar jobs plugin through the protected admin proxy.
-            </CardDescription>
-          </div>
-          <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading || disabled}>
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+      <WorkspaceCard
+        icon={<Radar className="h-6 w-6" />}
+        title="RemoteRadar job sources"
+        description="Connector health, authorized sources, and sync status read from the RemoteRadar jobs plugin through the protected admin proxy."
+        actions={
+          <Button variant="outline" className={workspaceOutlineButtonClass} onClick={() => void load()} disabled={loading || disabled}>
+            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
             Refresh
           </Button>
-        </CardHeader>
-        <CardContent className="space-y-6">
+        }
+      >
+        <div className="space-y-6">
           {stats ? (
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="rounded-lg border border-slate-200 p-4">
@@ -189,8 +184,8 @@ export function RemoteRadarJobsNativeWorkspace(props: { installationId: string; 
               </table>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </WorkspaceCard>
     </div>
   );
 }

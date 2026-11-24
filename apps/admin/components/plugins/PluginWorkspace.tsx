@@ -1,10 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertCircle, AlertTriangle, CheckCircle2, Cloud, Loader2, RefreshCw, Send, Settings2, ShieldCheck, Truck, Workflow } from 'lucide-react';
+import { useEffect, useMemo, useReducer, useState, type ReactNode } from 'react';
+import { CheckCircle2, Inbox, Loader2, Save, Search } from 'lucide-react';
+import { ADMIN_PERMISSIONS } from 'shared';
 import { useLocale, useT } from 'shared/src/i18n/react';
-import { apiClient, unwrapApiResponse } from '@/lib/api';
 import type { PluginInstance } from '@/lib/api';
 import type { PluginConfigMeta } from '@/lib/types';
 import {
@@ -14,1305 +14,160 @@ import {
   useOfficialCatalog,
   usePluginConfig,
   usePluginInstances,
-  useUpdateAffiliateCommissionStatus,
-  useUpdateAffiliateOrganization,
-  useUpdateAffiliatePartner,
   useUpdatePluginInstance,
-  type AffiliateNativeOverviewData,
 } from '@/lib/hooks/use-api';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
+import { useJobsAdminCapability } from '@/hooks/use-jobs-admin-capability';
+import { canAccessAnyPermission } from '@/lib/admin-access';
+import { useAuthStore } from '@/lib/store';
+import { localizeExtensionDescription, localizeExtensionName } from '@/lib/extension-catalog-zh';
+import { toast } from 'sonner';
+import { PageShell } from '@/components/layout/page-shell';
+import { OfficialBadge } from '@/components/extensions/ExtensionVisuals';
+import { InstalledPluginsRail } from '@/components/extensions/InstalledPluginsRail';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
-import { InstalledPluginsRail } from '@/components/extensions/InstalledPluginsRail';
-import { OfficialBadge } from '@/components/extensions/ExtensionVisuals';
-import { PluginInstanceManager } from '@/components/plugins/PluginInstanceManager';
-import { RemoteRadarJobsNativeWorkspace } from '@/components/plugins/RemoteRadarJobsNativeWorkspace';
+import { AffiliateNativeWorkspace } from '@/components/plugins/AffiliateNativeWorkspace';
+import {
+  I18nNativeWorkspace,
+  NativeConnectionTest,
+  OdooNativeWorkspace,
+  ShippingNativeWorkspace,
+} from '@/components/plugins/PluginNativeWorkspaces';
 import { I18nTranslationsPanel } from '@/components/plugins/I18nTranslationsPanel';
-import { SupportHubInboxWorkspace } from '@/components/plugins/SupportHubInboxWorkspace';
+import { PluginConfigSection } from '@/components/plugins/PluginConfigSection';
+import { PluginInstanceCard } from '@/components/plugins/PluginInstanceCard';
+import { RemoteRadarJobsNativeWorkspace } from '@/components/plugins/RemoteRadarJobsNativeWorkspace';
 import { SupportHubAiPanel } from '@/components/plugins/SupportHubAiPanel';
-import { useJobsAdminCapability } from '@/hooks/use-jobs-admin-capability';
-import { toast } from 'sonner';
+import { SUPPORT_HUB_CHANNEL_FIELDS, SupportHubChannelsSection } from '@/components/plugins/SupportHubChannelsSection';
+import {
+  buildJsonFieldDrafts,
+  evaluateConfigReadiness,
+  getConfigFieldLabel,
+  isPlainObject,
+  isSameConfigValue,
+  type PluginConfigSchema,
+} from '@/components/plugins/plugin-config-utils';
+import { PluginSaveProvider, usePluginSaveContribution, usePluginSaveRegistry } from '@/components/plugins/plugin-save-registry';
+import {
+  WorkspaceCard,
+  WorkspaceNotice,
+  workspaceOutlineButtonClass,
+  workspacePrimaryButtonClass,
+} from '@/components/plugins/plugin-workspace-ui';
+import { useWorkspaceText } from '@/components/plugins/use-workspace-text';
 
-type PluginConfigDescriptor = {
-  type?: string;
-  label?: string;
-  description?: string;
-  required?: boolean;
-  enum?: string[];
+// Support Hub renders its AI/chat controls and contact channels in dedicated
+// sections; keep those fields out of the generic schema form.
+const SUPPORT_HUB_AI_FIELDS = new Set([
+  'chatEnabled', 'aiEnabled', 'aiProvider', 'aiBaseUrl', 'aiApiKey', 'aiModel',
+  'aiSystemPrompt', 'aiWelcomeMessage', 'aiHandoffMessage',
+]);
+const SUPPORT_HUB_CHANNEL_FIELD_SET = new Set(SUPPORT_HUB_CHANNEL_FIELDS);
+
+const EMPTY_CONFIG: Record<string, unknown> = {};
+
+/**
+ * The config draft and the state it is compared against. Keeping both in one
+ * reducer lets a server refresh be judged against the latest edits atomically,
+ * so a background refetch never silently discards what the merchant is typing.
+ */
+type ConfigDraftState = {
+  /** The installation the draft belongs to; switching installations always re-seeds. */
+  installationId: string | null;
+  /** What the merchant sees and edits. */
+  draft: Record<string, unknown>;
+  /** The server's last confirmed config, or the last successful save. */
+  persisted: Record<string, unknown>;
+  /** The config sent by the last successful save, until its own echo arrives. */
+  lastSaved: Record<string, unknown> | null;
+  jsonDrafts: Record<string, string>;
+  jsonErrors: Record<string, string>;
 };
 
-type PluginConfigSchema = Record<string, PluginConfigDescriptor>;
+type ConfigDraftAction =
+  | { type: 'sync'; installationId: string | null; config: Record<string, unknown>; schema?: PluginConfigSchema }
+  | { type: 'field'; field: string; value: unknown }
+  | { type: 'json'; field: string; raw: string; expectedType: 'object' | 'array' }
+  | { type: 'saved'; config: Record<string, unknown> };
 
-type PluginConfigReadiness = {
-  configRequired: boolean;
-  configReady: boolean;
-  missingConfigFields: string[];
-};
+function configDraftReducer(state: ConfigDraftState, action: ConfigDraftAction): ConfigDraftState {
+  switch (action.type) {
+    case 'sync': {
+      // A refresh of the same installation returning the same data must not clobber edits in progress.
+      if (action.installationId === state.installationId && isSameConfigValue(action.config, state.persisted)) {
+        // The schema can arrive after the instance: seed the JSON editors once there are no edits to protect.
+        const needsJsonDrafts = Object.keys(state.jsonDrafts).length === 0
+          && isSameConfigValue(state.draft, state.persisted)
+          && Object.values(state.jsonErrors).every((message) => !message);
+        if (!state.lastSaved && !needsJsonDrafts) return state;
+        return {
+          ...state,
+          lastSaved: null,
+          ...(needsJsonDrafts ? { jsonDrafts: buildJsonFieldDrafts(action.schema, state.draft) } : {}),
+        };
+      }
 
-type OdooConfig = {
-  mode?: 'test' | 'production';
-  test?: {
-    channelId?: string;
-    authSecret?: string;
-  };
-  production?: {
-    channelId?: string;
-    authSecret?: string;
-  };
-};
+      if (state.lastSaved && isSameConfigValue(action.config, state.lastSaved)) {
+        // Our own save landing: keep any newer edits the merchant made on top of it and move the baseline.
+        return { ...state, installationId: action.installationId, persisted: action.config, lastSaved: null };
+      }
 
-type I18nLocalizationState = {
-  availableLocales: Array<{ code: string; name: string }>;
-  store: {
-    defaultLocale?: string;
-    supportedLocales?: string[];
-  };
-};
+      // A different installation, or a change made elsewhere: start from the server state.
+      return {
+        installationId: action.installationId,
+        draft: action.config,
+        persisted: action.config,
+        lastSaved: null,
+        jsonDrafts: buildJsonFieldDrafts(action.schema, action.config),
+        jsonErrors: {},
+      };
+    }
+    case 'field':
+      return { ...state, draft: { ...state.draft, [action.field]: action.value } };
+    case 'json': {
+      const next = { ...state, jsonDrafts: { ...state.jsonDrafts, [action.field]: action.raw } };
+      if (!action.raw.trim()) {
+        return {
+          ...next,
+          draft: { ...state.draft, [action.field]: action.expectedType === 'array' ? [] : {} },
+          jsonErrors: { ...state.jsonErrors, [action.field]: '' },
+        };
+      }
 
-type OdooHealthPayload = {
-  status?: string;
-  plugin?: string;
-  version?: string;
-  timestamp?: string;
-};
-
-type OdooJobPayload = {
-  jobId: string;
-  status?: string;
-  progressDone?: number | null;
-  progressTotal?: number | null;
-  productType?: string | null;
-  lastError?: string | null;
-};
-
-type ShippingProvider = 'kuaidi100' | 'fourpx';
-
-type ShippingProviderAction = {
-  value: string;
-  label: string;
-  endpoint: string;
-  needsMerchantReference?: boolean;
-};
-
-const shippingProviderActions: Record<ShippingProvider, ShippingProviderAction[]> = {
-  kuaidi100: [
-    { value: 'label-order', label: 'Create label order', endpoint: 'kuaidi100/label-orders', needsMerchantReference: true },
-    { value: 'pickup-order', label: 'Create pickup order', endpoint: 'kuaidi100/pickup-orders', needsMerchantReference: true },
-    { value: 'tracking-query', label: 'Query tracking', endpoint: 'kuaidi100/tracking/query' },
-    { value: 'tracking-subscribe', label: 'Subscribe to tracking', endpoint: 'kuaidi100/tracking/subscribe' },
-  ],
-  fourpx: [
-    { value: 'create-order', label: 'Create shipment order', endpoint: 'fourpx/orders', needsMerchantReference: true },
-    { value: 'get-order', label: 'Get shipment order', endpoint: 'fourpx/orders/get' },
-    { value: 'cancel-order', label: 'Cancel shipment order', endpoint: 'fourpx/orders/cancel' },
-    { value: 'get-label', label: 'Get shipping label', endpoint: 'fourpx/labels' },
-    { value: 'get-tracking', label: 'Query tracking', endpoint: 'fourpx/tracking' },
-  ],
-};
-
-function isPlainObject(value: unknown): value is Record<string, any> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function getDescriptorType(descriptor: PluginConfigDescriptor | undefined): string {
-  return typeof descriptor?.type === 'string' ? descriptor.type : 'string';
-}
-
-function getConfigFieldLabel(field: string, descriptor: PluginConfigDescriptor | undefined): string {
-  return descriptor?.label || field;
-}
-
-function buildJsonFieldDrafts(
-  schema: PluginConfigSchema | undefined,
-  config: Record<string, unknown>
-): Record<string, string> {
-  if (!schema) return {};
-
-  return Object.fromEntries(
-    Object.entries(schema)
-      .filter(([, descriptor]) => {
-        const type = getDescriptorType(descriptor);
-        return type === 'object' || type === 'array';
-      })
-      .map(([key, descriptor]) => {
-        const type = getDescriptorType(descriptor);
-        const fallback = type === 'array' ? [] : {};
-        return [key, JSON.stringify(config[key] ?? fallback, null, 2)];
-      })
-  );
-}
-
-function evaluateConfigReadiness(
-  configSchema: PluginConfigSchema | undefined,
-  config: Record<string, unknown>,
-  configMeta?: PluginConfigMeta
-): PluginConfigReadiness {
-  if (!configSchema || Object.keys(configSchema).length === 0) {
-    return {
-      configRequired: false,
-      configReady: true,
-      missingConfigFields: [],
-    };
+      try {
+        const parsed = JSON.parse(action.raw);
+        const valid = action.expectedType === 'array' ? Array.isArray(parsed) : isPlainObject(parsed);
+        if (!valid) {
+          throw new Error(`Value must be a JSON ${action.expectedType}`);
+        }
+        return { ...next, draft: { ...state.draft, [action.field]: parsed }, jsonErrors: { ...state.jsonErrors, [action.field]: '' } };
+      } catch (error) {
+        return {
+          ...next,
+          jsonErrors: { ...state.jsonErrors, [action.field]: error instanceof Error ? error.message : 'Invalid JSON' },
+        };
+      }
+    }
+    case 'saved':
+      return { ...state, persisted: action.config, lastSaved: action.config };
   }
-
-  const missingConfigFields: string[] = [];
-  let configRequired = false;
-
-  for (const [key, descriptor] of Object.entries(configSchema)) {
-    if (!descriptor?.required) {
-      continue;
-    }
-
-    configRequired = true;
-    const value = config[key];
-    const type = getDescriptorType(descriptor);
-    const secretConfigured = Boolean(configMeta?.secretFields?.[key]?.configured);
-
-    if (value === undefined || value === null) {
-      if (type === 'secret' && secretConfigured) {
-        continue;
-      }
-      missingConfigFields.push(key);
-      continue;
-    }
-
-    if (type === 'string' && (typeof value !== 'string' || value.trim().length === 0)) {
-      missingConfigFields.push(key);
-      continue;
-    }
-
-    if (type === 'secret' && ((typeof value !== 'string' || value.trim().length === 0) && !secretConfigured)) {
-      missingConfigFields.push(key);
-      continue;
-    }
-
-    if (type === 'object' && (!isPlainObject(value) || Object.keys(value).length === 0)) {
-      missingConfigFields.push(key);
-      continue;
-    }
-
-    if (type === 'array' && (!Array.isArray(value) || value.length === 0)) {
-      missingConfigFields.push(key);
-      continue;
-    }
-  }
-
-  return {
-    configRequired,
-    configReady: !configRequired || missingConfigFields.length === 0,
-    missingConfigFields,
-  };
-}
-
-function formatDate(value?: string): string {
-  if (!value) return 'n/a';
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return date.toLocaleString();
-}
-
-function buildOdooConfig(input: {
-  mode: 'test' | 'production';
-  testChannelId: string;
-  testAuthSecret: string;
-  productionChannelId: string;
-  productionAuthSecret: string;
-}): OdooConfig {
-  const test = {
-    ...(input.testChannelId.trim() ? { channelId: input.testChannelId.trim() } : {}),
-    ...(input.testAuthSecret.trim() ? { authSecret: input.testAuthSecret.trim() } : {}),
-  };
-  const production = {
-    ...(input.productionChannelId.trim() ? { channelId: input.productionChannelId.trim() } : {}),
-    ...(input.productionAuthSecret.trim() ? { authSecret: input.productionAuthSecret.trim() } : {}),
-  };
-
-  return {
-    mode: input.mode,
-    test,
-    production,
-  };
-}
-
-function GenericConfigEditor(props: {
-  configSchema: PluginConfigSchema;
-  configDraft: Record<string, unknown>;
-  configMeta?: PluginConfigMeta;
-  jsonFieldDrafts: Record<string, string>;
-  jsonFieldErrors: Record<string, string>;
-  onUpdateField: (field: string, value: unknown) => void;
-  onUpdateJsonField: (field: string, rawValue: string, expectedType: 'object' | 'array') => void;
-  onSave: () => void;
-  saving: boolean;
-}) {
-  const {
-    configSchema,
-    configDraft,
-    configMeta,
-    jsonFieldDrafts,
-    jsonFieldErrors,
-    onUpdateField,
-    onUpdateJsonField,
-    onSave,
-    saving,
-  } = props;
-
-  return (
-    <Card className="rounded-2xl border-slate-200/80 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
-      <CardHeader className="flex flex-row items-start justify-between space-y-0 px-7 pt-7">
-        <div className="space-y-1.5">
-          <CardTitle className="text-2xl tracking-tight">Configuration</CardTitle>
-          <CardDescription>
-            Update plugin settings from a native Merchant Admin form. iframe-based plugin pages are no longer used here.
-          </CardDescription>
-        </div>
-        <Button onClick={onSave} disabled={saving} className="shrink-0 rounded-xl px-5">
-          {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-          Save configuration
-        </Button>
-      </CardHeader>
-      <CardContent className="px-7 pb-7">
-        <div className="grid gap-4 md:grid-cols-2">
-        {Object.entries(configSchema).map(([field, descriptor]) => {
-          const type = getDescriptorType(descriptor);
-          const label = getConfigFieldLabel(field, descriptor);
-          const description = descriptor?.description;
-          const required = Boolean(descriptor?.required);
-          const value = configDraft[field];
-          const secretConfigured = Boolean(configMeta?.secretFields?.[field]?.configured);
-
-          if (Array.isArray(descriptor?.enum) && descriptor.enum.length > 0) {
-            const normalizedValue =
-              typeof value === 'string' && descriptor.enum.includes(value)
-                ? value
-                : descriptor.enum[0];
-
-            return (
-              <div key={field} className="rounded-xl border border-slate-200/80 bg-slate-50/60 p-4">
-                <Label className="text-sm font-medium">
-                  {label}
-                  {required ? ' *' : ''}
-                </Label>
-                <Select value={normalizedValue} onValueChange={(nextValue) => onUpdateField(field, nextValue)}>
-                  <SelectTrigger className="mt-3 h-11 rounded-xl border-slate-200 bg-white">
-                    <SelectValue placeholder={label} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {descriptor.enum.map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {description ? <p className="mt-2 text-xs leading-5 text-muted-foreground">{description}</p> : null}
-              </div>
-            );
-          }
-
-          if (type === 'boolean') {
-            return (
-              <div key={field} className="flex items-center justify-between gap-4 rounded-xl border border-slate-200/80 bg-slate-50/60 p-4">
-                <div className="min-w-0 space-y-1">
-                  <Label className="text-sm font-medium">
-                    {label}
-                    {required ? ' *' : ''}
-                  </Label>
-                  {description ? <p className="text-xs leading-5 text-muted-foreground">{description}</p> : null}
-                </div>
-                <Switch checked={Boolean(value)} onCheckedChange={(checked) => onUpdateField(field, checked)} />
-              </div>
-            );
-          }
-
-          if (type === 'object' || type === 'array') {
-            const error = jsonFieldErrors[field];
-
-            return (
-              <div key={field} className="rounded-xl border border-slate-200/80 bg-slate-50/60 p-4 md:col-span-2">
-                <Label className="text-sm font-medium">
-                  {label}
-                  {required ? ' *' : ''}
-                </Label>
-                <Textarea
-                  value={jsonFieldDrafts[field] ?? JSON.stringify(value ?? (type === 'array' ? [] : {}), null, 2)}
-                  onChange={(event) => onUpdateJsonField(field, event.target.value, type)}
-                  className="mt-3 min-h-[180px] rounded-xl border-slate-200 bg-white font-mono"
-                />
-                {description ? <p className="mt-2 text-xs leading-5 text-muted-foreground">{description}</p> : null}
-                {error ? <p className="mt-2 text-xs text-red-600">{error}</p> : null}
-              </div>
-            );
-          }
-
-          if (type === 'number' || type === 'integer') {
-            return (
-              <div key={field} className="rounded-xl border border-slate-200/80 bg-slate-50/60 p-4">
-                <Label className="text-sm font-medium">
-                  {label}
-                  {required ? ' *' : ''}
-                </Label>
-                  <Input
-                    type="number"
-                    value={typeof value === 'number' || value === '' ? value : ''}
-                    onChange={(event) =>
-                      onUpdateField(field, event.target.value === '' ? '' : Number(event.target.value))
-                    }
-                    className="mt-3 h-11 rounded-xl border-slate-200 bg-white"
-                  />
-                {description ? <p className="mt-2 text-xs leading-5 text-muted-foreground">{description}</p> : null}
-              </div>
-            );
-          }
-
-          const inputType = type === 'secret' ? 'password' : 'text';
-
-          return (
-            <div key={field} className="rounded-xl border border-slate-200/80 bg-slate-50/60 p-4">
-              <Label className="text-sm font-medium">
-                {label}
-                {required ? ' *' : ''}
-              </Label>
-              <Input
-                type={inputType}
-                value={value == null ? '' : String(value)}
-                onChange={(event) => onUpdateField(field, event.target.value)}
-                placeholder={
-                  type === 'secret' && secretConfigured
-                    ? 'Stored securely. Leave blank to keep the current value.'
-                    : undefined
-                }
-                className="mt-3 h-11 rounded-xl border-slate-200 bg-white"
-              />
-              {description ? <p className="mt-2 text-xs leading-5 text-muted-foreground">{description}</p> : null}
-              {type === 'secret' && secretConfigured ? (
-                <p className="mt-2 text-xs text-muted-foreground">
-                  A secure value is already stored. Enter a new value only if you want to replace it.
-                </p>
-              ) : null}
-            </div>
-          );
-        })}
-        </div>
-
-        <div className="mt-6 flex justify-end">
-          <Button onClick={onSave} disabled={saving} className="rounded-xl px-6">
-            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Save configuration
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function NativeConnectionTest({ slug, disabled, onEnable }: { slug: string; disabled: boolean; onEnable: () => Promise<void> }) {
-  const [recipient, setRecipient] = useState('');
-  const [testing, setTesting] = useState(false);
-  const [message, setMessage] = useState('Save configuration, then enable this plugin to run a live test.');
-  const [tone, setTone] = useState<'default' | 'success' | 'error'>('default');
-  const [enabling, setEnabling] = useState(false);
-
-  const enablePlugin = async () => {
-    setEnabling(true);
-    setTone('default');
-    setMessage('Enabling plugin...');
-    try {
-      await onEnable();
-      setMessage('Plugin enabled. Enter a recipient and run the test.');
-    } catch (error) {
-      setTone('error');
-      setMessage(error instanceof Error ? error.message : 'Could not enable plugin.');
-    } finally {
-      setEnabling(false);
-    }
-  };
-
-  const testConnection = async () => {
-    if (slug === 'smtp-email' && !recipient.trim()) {
-      setTone('error');
-      setMessage('Enter a recipient for the SMTP delivery test.');
-      return;
-    }
-    setTesting(true);
-    setTone('default');
-    setMessage('Testing connection...');
-    try {
-      const response = await apiClient.post(`/extensions/plugin/${slug}/api/admin/test`, slug === 'smtp-email' ? { to: recipient.trim() } : {});
-      const data = unwrapApiResponse<Record<string, unknown>>(response);
-      const detail = slug === 'stripe' && typeof data.accountId === 'string'
-        ? ` Stripe account ${data.accountId}.`
-        : slug === 'odoo' && typeof data.database === 'string'
-          ? ` Odoo database ${data.database}.`
-          : slug === 'smtp-email'
-            ? ` Test email accepted for ${recipient.trim()}.`
-            : '';
-      setTone('success');
-      setMessage(`Connection successful.${detail}`);
-    } catch (error) {
-      setTone('error');
-      setMessage(error instanceof Error ? error.message : 'Connection test failed.');
-    } finally {
-      setTesting(false);
-    }
-  };
-
-  return (
-    <Card className="rounded-lg border-gray-100 shadow-sm">
-      <CardHeader>
-        <CardTitle className="text-xl tracking-tight">Connection test</CardTitle>
-        <CardDescription>Validate the saved production configuration without exposing stored credentials.</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {slug === 'smtp-email' ? (
-          <div className="space-y-2">
-            <Label htmlFor="smtp-test-recipient">Test recipient</Label>
-            <Input
-              id="smtp-test-recipient"
-              type="email"
-              value={recipient}
-              onChange={(event) => setRecipient(event.target.value)}
-              placeholder="you@example.com"
-              disabled={disabled || testing || enabling}
-              className="rounded-lg"
-            />
-          </div>
-        ) : null}
-        <div className="flex items-center justify-between gap-4">
-          <p className={tone === 'error' ? 'text-sm text-red-600' : tone === 'success' ? 'text-sm text-emerald-700' : 'text-sm text-slate-600'}>
-            {message}
-          </p>
-          {disabled ? (
-            <Button type="button" onClick={() => void enablePlugin()} disabled={enabling} className="shrink-0 rounded-lg">
-              {enabling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Save and enable
-            </Button>
-          ) : (
-            <Button type="button" variant="outline" onClick={() => void testConnection()} disabled={testing} className="shrink-0 rounded-lg">
-            {testing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Test connection
-            </Button>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function I18nNativeWorkspace(props: {
-  installationId: string;
-  disabled: boolean;
-}) {
-  const { installationId, disabled } = props;
-  const [state, setState] = useState<I18nLocalizationState | null>(null);
-  const [defaultLocale, setDefaultLocale] = useState('');
-  const [supportedLocales, setSupportedLocales] = useState<string[]>([]);
-  const [statusMessage, setStatusMessage] = useState('Loading storefront localization...');
-  const [statusTone, setStatusTone] = useState<'default' | 'error' | 'success'>('default');
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-
-  const loadLocalizationState = useCallback(async () => {
-    setIsLoading(true);
-    setStatusMessage('Loading storefront localization...');
-    setStatusTone('default');
-
-    try {
-      const response = await apiClient.get('/extensions/plugin/i18n/api/localization', {
-        params: { installationId },
-      });
-      const data = unwrapApiResponse<I18nLocalizationState>(response);
-      const nextDefaultLocale = data.store.defaultLocale || data.availableLocales[0]?.code || '';
-      const nextSupportedLocales = Array.isArray(data.store.supportedLocales)
-        ? data.store.supportedLocales
-        : nextDefaultLocale
-          ? [nextDefaultLocale]
-          : [];
-
-      setState(data);
-      setDefaultLocale(nextDefaultLocale);
-      setSupportedLocales(nextSupportedLocales);
-      setStatusMessage('Localization settings loaded.');
-      setStatusTone('success');
-    } catch (error) {
-      setStatusMessage(error instanceof Error ? error.message : 'Failed to load storefront localization.');
-      setStatusTone('error');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [installationId]);
-
-  useEffect(() => {
-    if (disabled) {
-      setState(null);
-      setStatusMessage('Create or select a plugin instance to manage storefront localization.');
-      setStatusTone('default');
-      setIsLoading(false);
-      return;
-    }
-
-    void loadLocalizationState();
-  }, [disabled, loadLocalizationState]);
-
-  const toggleLocale = (code: string, enabled: boolean) => {
-    setSupportedLocales((current) => {
-      if (enabled) {
-        return current.includes(code) ? current : [...current, code];
-      }
-
-      if (code === defaultLocale) {
-        return current;
-      }
-
-      return current.filter((entry) => entry !== code);
-    });
-  };
-
-  const saveLocalization = async () => {
-    if (!defaultLocale) {
-      toast.error('Choose a default locale before saving.');
-      return;
-    }
-
-    setIsSaving(true);
-    setStatusMessage('Saving storefront localization...');
-    setStatusTone('default');
-
-    try {
-      const nextSupportedLocales = supportedLocales.includes(defaultLocale)
-        ? supportedLocales
-        : [...supportedLocales, defaultLocale];
-      const response = await apiClient.put('/extensions/plugin/i18n/api/localization', {
-        defaultLocale,
-        supportedLocales: nextSupportedLocales,
-      }, {
-        params: { installationId },
-      });
-      unwrapApiResponse(response);
-      setSupportedLocales(nextSupportedLocales);
-      setStatusMessage('Localization updated successfully.');
-      setStatusTone('success');
-      toast.success('Localization updated successfully');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to update storefront localization.';
-      setStatusMessage(message);
-      setStatusTone('error');
-      toast.error(message);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  return (
-    <Card className="rounded-lg border-gray-100 shadow-sm">
-      <CardHeader>
-        <CardTitle className="text-xl tracking-tight">Localization workspace</CardTitle>
-        <CardDescription>
-          Manage storefront default language and shopper-visible locales directly inside Merchant Admin.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-5">
-        <div className="space-y-2">
-          <Label htmlFor="i18n-default-locale">Default locale</Label>
-          <Select value={defaultLocale} onValueChange={setDefaultLocale} disabled={disabled || isLoading}>
-            <SelectTrigger id="i18n-default-locale" className="rounded-lg">
-              <SelectValue placeholder="Select default locale" />
-            </SelectTrigger>
-            <SelectContent>
-              {(state?.availableLocales || []).map((locale) => (
-                <SelectItem key={locale.code} value={locale.code}>
-                  {locale.name} ({locale.code})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-3">
-          <Label>Supported locales</Label>
-          <div className="grid gap-3 md:grid-cols-2">
-            {(state?.availableLocales || []).map((locale) => {
-              const checked = supportedLocales.includes(locale.code) || locale.code === defaultLocale;
-              return (
-                <div
-                  key={locale.code}
-                  className="flex items-center justify-between rounded-lg border border-slate-200 px-4 py-3"
-                >
-                  <div>
-                    <p className="text-sm font-medium text-slate-900">{locale.name}</p>
-                    <p className="text-xs text-slate-500">{locale.code}</p>
-                  </div>
-                  <Switch
-                    checked={checked}
-                    disabled={disabled || isLoading || locale.code === defaultLocale}
-                    onCheckedChange={(nextValue) => toggleLocale(locale.code, nextValue)}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
-          <p className="font-medium text-slate-900">Status</p>
-          <p
-            className={
-              statusTone === 'error'
-                ? 'mt-1 text-red-600'
-                : statusTone === 'success'
-                  ? 'mt-1 text-emerald-700'
-                  : 'mt-1 text-slate-600'
-            }
-          >
-            {statusMessage}
-          </p>
-        </div>
-
-        <div className="flex flex-wrap gap-3">
-          <Button onClick={() => void saveLocalization()} disabled={disabled || isSaving || isLoading} className="rounded-lg">
-            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Save localization
-          </Button>
-          <Button variant="outline" onClick={() => void loadLocalizationState()} disabled={isSaving || isLoading} className="rounded-lg">
-            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-            Reload
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function OdooNativeWorkspace(props: {
-  installationId: string;
-  selectedInstance: PluginInstance | null;
-  onSaveConfig: (config: Record<string, unknown>) => Promise<void>;
-}) {
-  const { installationId, selectedInstance, onSaveConfig } = props;
-  const persistedConfig = useMemo(
-    () => (
-      isPlainObject(selectedInstance?.config)
-        ? (selectedInstance.config as OdooConfig)
-        : {}
-    ),
-    [selectedInstance?.config]
-  );
-  const [mode, setMode] = useState<'test' | 'production'>('test');
-  const [testChannelId, setTestChannelId] = useState('');
-  const [testAuthSecret, setTestAuthSecret] = useState('');
-  const [productionChannelId, setProductionChannelId] = useState('');
-  const [productionAuthSecret, setProductionAuthSecret] = useState('');
-  const [configMessage, setConfigMessage] = useState('Save Odoo credentials to enable native sync actions.');
-  const [configTone, setConfigTone] = useState<'default' | 'error' | 'success'>('default');
-  const [healthMessage, setHealthMessage] = useState('Health has not been checked yet.');
-  const [healthTone, setHealthTone] = useState<'default' | 'error' | 'success'>('default');
-  const [healthPayload, setHealthPayload] = useState<OdooHealthPayload | null>(null);
-  const [productType, setProductType] = useState('all');
-  const [jobId, setJobId] = useState('');
-  const [syncMessage, setSyncMessage] = useState('Ready to submit a product sync job.');
-  const [syncTone, setSyncTone] = useState<'default' | 'error' | 'success'>('default');
-  const [jobPayload, setJobPayload] = useState<OdooJobPayload | null>(null);
-  const [isSavingConfig, setIsSavingConfig] = useState(false);
-  const [isLoadingHealth, setIsLoadingHealth] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [isLoadingJob, setIsLoadingJob] = useState(false);
-
-  useEffect(() => {
-    setMode(persistedConfig.mode === 'production' ? 'production' : 'test');
-    setTestChannelId(typeof persistedConfig.test?.channelId === 'string' ? persistedConfig.test.channelId : '');
-    setTestAuthSecret(typeof persistedConfig.test?.authSecret === 'string' ? persistedConfig.test.authSecret : '');
-    setProductionChannelId(
-      typeof persistedConfig.production?.channelId === 'string' ? persistedConfig.production.channelId : ''
-    );
-    setProductionAuthSecret(
-      typeof persistedConfig.production?.authSecret === 'string' ? persistedConfig.production.authSecret : ''
-    );
-    setConfigMessage('Save Odoo credentials to enable native sync actions.');
-    setConfigTone('default');
-  }, [selectedInstance?.installationId, persistedConfig]);
-
-  const saveConfiguration = async () => {
-    const nextConfig = buildOdooConfig({
-      mode,
-      testChannelId,
-      testAuthSecret,
-      productionChannelId,
-      productionAuthSecret,
-    });
-    const activeConfig = nextConfig.mode === 'production' ? nextConfig.production : nextConfig.test;
-
-    if (!activeConfig?.channelId || !activeConfig?.authSecret) {
-      const message = 'Channel ID and Auth Secret are required for the selected environment.';
-      setConfigMessage(message);
-      setConfigTone('error');
-      toast.error(message);
-      return;
-    }
-
-    setIsSavingConfig(true);
-    setConfigMessage('Saving Odoo configuration...');
-    setConfigTone('default');
-
-    try {
-      await onSaveConfig(nextConfig as Record<string, unknown>);
-      setConfigMessage('Odoo configuration saved successfully.');
-      setConfigTone('success');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to save Odoo configuration.';
-      setConfigMessage(message);
-      setConfigTone('error');
-    } finally {
-      setIsSavingConfig(false);
-    }
-  };
-
-  const checkHealth = async () => {
-    setIsLoadingHealth(true);
-    setHealthMessage('Checking Odoo plugin health...');
-    setHealthTone('default');
-
-    try {
-      const response = await apiClient.get('/extensions/plugin/odoo/health', {
-        params: { installationId },
-      });
-      const data = unwrapApiResponse<OdooHealthPayload>(response);
-      setHealthPayload(data);
-      setHealthMessage(`Health check passed${data.status ? `: ${data.status}` : '.'}`);
-      setHealthTone('success');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to load Odoo health.';
-      setHealthMessage(message);
-      setHealthTone('error');
-    } finally {
-      setIsLoadingHealth(false);
-    }
-  };
-
-  const startSync = async () => {
-    if (!selectedInstance?.enabled) {
-      const message = 'Enable the selected Odoo instance before starting a sync.';
-      setSyncMessage(message);
-      setSyncTone('error');
-      toast.error(message);
-      return;
-    }
-
-    setIsSyncing(true);
-    setSyncMessage('Submitting sync job...');
-    setSyncTone('default');
-
-    try {
-      const response = await apiClient.post('/extensions/plugin/odoo/api/sync/products', {
-        productType,
-      }, {
-        params: { installationId },
-      });
-      const data = unwrapApiResponse<{ jobId?: string }>(response);
-      if (data.jobId) {
-        setJobId(data.jobId);
-      }
-      setSyncMessage(data.jobId ? `Sync accepted. Job: ${data.jobId}` : 'Sync accepted.');
-      setSyncTone('success');
-      toast.success('Odoo sync job started');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to submit Odoo sync job.';
-      setSyncMessage(message);
-      setSyncTone('error');
-      toast.error(message);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
-  const loadJob = async () => {
-    if (!jobId.trim()) {
-      const message = 'Enter a sync job id first.';
-      setSyncMessage(message);
-      setSyncTone('error');
-      toast.error(message);
-      return;
-    }
-
-    setIsLoadingJob(true);
-    setSyncMessage('Loading sync job status...');
-    setSyncTone('default');
-
-    try {
-      const response = await apiClient.get(`/extensions/plugin/odoo/api/sync/jobs/${encodeURIComponent(jobId.trim())}`, {
-        params: { installationId },
-      });
-      const data = unwrapApiResponse<OdooJobPayload>(response);
-      const progress =
-        typeof data.progressDone === 'number' && typeof data.progressTotal === 'number'
-          ? ` (${data.progressDone}/${data.progressTotal})`
-          : '';
-      setJobPayload(data);
-      setSyncMessage(`Job ${data.jobId} is ${String(data.status || 'unknown').toLowerCase()}${progress}.`);
-      setSyncTone(String(data.status || '').toUpperCase() === 'FAILED' ? 'error' : 'success');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to load sync job status.';
-      setSyncMessage(message);
-      setSyncTone('error');
-      toast.error(message);
-    } finally {
-      setIsLoadingJob(false);
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      <Card className="rounded-lg border-gray-100 shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-xl tracking-tight">Odoo configuration</CardTitle>
-          <CardDescription>
-            Manage Odoo credentials and mode from a native Merchant Admin form instead of a plugin iframe.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          <div className="space-y-2">
-            <Label htmlFor="odoo-mode">Environment mode</Label>
-            <Select value={mode} onValueChange={(value) => setMode(value === 'production' ? 'production' : 'test')}>
-              <SelectTrigger id="odoo-mode" className="rounded-lg">
-                <SelectValue placeholder="Select environment mode" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="test">test</SelectItem>
-                <SelectItem value="production">production</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2 rounded-lg border border-slate-200 p-4">
-              <p className="text-sm font-semibold text-slate-900">Test credentials</p>
-              <div className="space-y-2">
-                <Label htmlFor="odoo-test-channel-id">Channel ID</Label>
-                <Input
-                  id="odoo-test-channel-id"
-                  value={testChannelId}
-                  onChange={(event) => setTestChannelId(event.target.value)}
-                  className="rounded-lg"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="odoo-test-auth-secret">Auth Secret</Label>
-                <Input
-                  id="odoo-test-auth-secret"
-                  type="password"
-                  value={testAuthSecret}
-                  onChange={(event) => setTestAuthSecret(event.target.value)}
-                  className="rounded-lg"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2 rounded-lg border border-slate-200 p-4">
-              <p className="text-sm font-semibold text-slate-900">Production credentials</p>
-              <div className="space-y-2">
-                <Label htmlFor="odoo-production-channel-id">Channel ID</Label>
-                <Input
-                  id="odoo-production-channel-id"
-                  value={productionChannelId}
-                  onChange={(event) => setProductionChannelId(event.target.value)}
-                  className="rounded-lg"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="odoo-production-auth-secret">Auth Secret</Label>
-                <Input
-                  id="odoo-production-auth-secret"
-                  type="password"
-                  value={productionAuthSecret}
-                  onChange={(event) => setProductionAuthSecret(event.target.value)}
-                  className="rounded-lg"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
-            <p className="font-medium text-slate-900">Configuration</p>
-            <p
-              className={
-                configTone === 'error'
-                  ? 'mt-1 text-red-600'
-                  : configTone === 'success'
-                    ? 'mt-1 text-emerald-700'
-                    : 'mt-1 text-slate-600'
-              }
-            >
-              {configMessage}
-            </p>
-          </div>
-
-          <div className="flex justify-end">
-            <Button onClick={() => void saveConfiguration()} disabled={isSavingConfig} className="rounded-lg">
-              {isSavingConfig ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Save Odoo configuration
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-6 xl:grid-cols-2">
-        <Card className="rounded-lg border-gray-100 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-lg tracking-tight">Health</CardTitle>
-            <CardDescription>Check whether the Odoo plugin runtime is reachable through the extension gateway.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
-              <p className="font-medium text-slate-900">Status</p>
-              <p
-                className={
-                  healthTone === 'error'
-                    ? 'mt-1 text-red-600'
-                    : healthTone === 'success'
-                      ? 'mt-1 text-emerald-700'
-                      : 'mt-1 text-slate-600'
-                }
-              >
-                {healthMessage}
-              </p>
-            </div>
-
-            {healthPayload ? (
-              <div className="grid gap-3 rounded-lg border border-slate-200 p-4 text-sm text-slate-600">
-                <div className="flex justify-between gap-4">
-                  <span className="text-slate-500">Plugin</span>
-                  <span className="font-medium text-slate-900">{healthPayload.plugin || 'odoo'}</span>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <span className="text-slate-500">Version</span>
-                  <span className="font-medium text-slate-900">{healthPayload.version || 'n/a'}</span>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <span className="text-slate-500">Reported at</span>
-                  <span className="font-medium text-slate-900">{formatDate(healthPayload.timestamp)}</span>
-                </div>
-              </div>
-            ) : null}
-
-            <Button variant="outline" onClick={() => void checkHealth()} disabled={isLoadingHealth} className="rounded-lg">
-              {isLoadingHealth ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
-              Check health
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="rounded-lg border-gray-100 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-lg tracking-tight">Product sync</CardTitle>
-            <CardDescription>Trigger sync jobs and inspect their runtime status from Merchant Admin.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="odoo-product-type">Product type</Label>
-              <Select value={productType} onValueChange={setProductType}>
-                <SelectTrigger id="odoo-product-type" className="rounded-lg">
-                  <SelectValue placeholder="Select product type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {['all', 'esim', 'data', 'esim-card', 'ota-card', 'effective_date', 'external_data', 'sign_data'].map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              <Button onClick={() => void startSync()} disabled={isSyncing} className="rounded-lg">
-                {isSyncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Workflow className="mr-2 h-4 w-4" />}
-                Start sync
-              </Button>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="odoo-job-id">Job ID</Label>
-              <Input
-                id="odoo-job-id"
-                value={jobId}
-                onChange={(event) => setJobId(event.target.value)}
-                placeholder="Paste a sync job id"
-                className="rounded-lg"
-              />
-            </div>
-
-            <Button variant="outline" onClick={() => void loadJob()} disabled={isLoadingJob} className="rounded-lg">
-              {isLoadingJob ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-              Load job status
-            </Button>
-
-            <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
-              <p className="font-medium text-slate-900">Sync status</p>
-              <p
-                className={
-                  syncTone === 'error'
-                    ? 'mt-1 text-red-600'
-                    : syncTone === 'success'
-                      ? 'mt-1 text-emerald-700'
-                      : 'mt-1 text-slate-600'
-                }
-              >
-                {syncMessage}
-              </p>
-            </div>
-
-            {jobPayload ? (
-              <div className="grid gap-3 rounded-lg border border-slate-200 p-4 text-sm text-slate-600">
-                <div className="flex justify-between gap-4">
-                  <span className="text-slate-500">Job</span>
-                  <span className="font-medium text-slate-900">{jobPayload.jobId}</span>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <span className="text-slate-500">Status</span>
-                  <span className="font-medium text-slate-900">{jobPayload.status || 'unknown'}</span>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <span className="text-slate-500">Product type</span>
-                  <span className="font-medium text-slate-900">{jobPayload.productType || 'n/a'}</span>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <span className="text-slate-500">Progress</span>
-                  <span className="font-medium text-slate-900">
-                    {typeof jobPayload.progressDone === 'number' && typeof jobPayload.progressTotal === 'number'
-                      ? `${jobPayload.progressDone}/${jobPayload.progressTotal}`
-                      : 'n/a'}
-                  </span>
-                </div>
-                {jobPayload.lastError ? (
-                  <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-700">
-                    {jobPayload.lastError}
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
-}
-
-function ShippingNativeWorkspace(props: {
-  installationId: string;
-  enabled: boolean;
-}) {
-  const { installationId, enabled } = props;
-  const [provider, setProvider] = useState<ShippingProvider>('kuaidi100');
-  const [action, setAction] = useState(shippingProviderActions.kuaidi100[0].value);
-  const [merchantReference, setMerchantReference] = useState('');
-  const [orderId, setOrderId] = useState('');
-  const [requestDraft, setRequestDraft] = useState('{}');
-  const [responseDraft, setResponseDraft] = useState('');
-  const [statusMessage, setStatusMessage] = useState('Ready');
-  const [statusTone, setStatusTone] = useState<'default' | 'error' | 'success'>('default');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const availableActions = shippingProviderActions[provider];
-  const selectedAction = availableActions.find((item) => item.value === action) || availableActions[0];
-
-  const selectProvider = (nextProvider: ShippingProvider) => {
-    setProvider(nextProvider);
-    setAction(shippingProviderActions[nextProvider][0].value);
-    setResponseDraft('');
-    setStatusMessage('Ready');
-    setStatusTone('default');
-  };
-
-  const submitProviderAction = async () => {
-    if (!enabled) {
-      const message = 'Enable the Shipping instance before running provider operations.';
-      setStatusMessage(message);
-      setStatusTone('error');
-      toast.error(message);
-      return;
-    }
-
-    if (selectedAction.needsMerchantReference && !merchantReference.trim()) {
-      const message = 'Merchant reference is required for create operations.';
-      setStatusMessage(message);
-      setStatusTone('error');
-      toast.error(message);
-      return;
-    }
-    if (selectedAction.needsMerchantReference && !orderId.trim()) {
-      const message = 'Bokmoo order ID is required for create operations.';
-      setStatusMessage(message);
-      setStatusTone('error');
-      toast.error(message);
-      return;
-    }
-
-    let payload: Record<string, unknown>;
-    try {
-      const parsed = JSON.parse(requestDraft);
-      if (!isPlainObject(parsed)) throw new Error('Request body must be a JSON object.');
-      payload = parsed;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Request body is not valid JSON.';
-      setStatusMessage(message);
-      setStatusTone('error');
-      toast.error(message);
-      return;
-    }
-
-    setIsSubmitting(true);
-    setResponseDraft('');
-    setStatusMessage(`Running ${selectedAction.label.toLowerCase()}...`);
-    setStatusTone('default');
-
-    try {
-      const requestBody = selectedAction.needsMerchantReference
-        ? { reference: merchantReference.trim(), orderId: orderId.trim(), input: payload }
-        : ['tracking-subscribe', 'cancel-order', 'get-tracking'].includes(selectedAction.value)
-          ? payload
-          : { input: payload };
-      const response = await apiClient.post(
-        `/extensions/plugin/shipping/api/admin/providers/${selectedAction.endpoint}`,
-        requestBody,
-        { params: { installationId }, timeout: 120000 }
-      );
-      const data = unwrapApiResponse<unknown>(response);
-      setResponseDraft(JSON.stringify(data, null, 2));
-      setStatusMessage(`${selectedAction.label} completed.`);
-      setStatusTone('success');
-      toast.success(`${selectedAction.label} completed`);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : `${selectedAction.label} failed.`;
-      setStatusMessage(message);
-      setStatusTone('error');
-      toast.error(message);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  return (
-    <Card className="rounded-lg border-gray-100 shadow-sm">
-      <CardHeader>
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-700">
-            <Truck className="h-5 w-5" />
-          </div>
-          <div>
-            <CardTitle className="text-xl tracking-tight">Fulfillment operations</CardTitle>
-            <CardDescription>Run provider operations through the selected Shipping instance.</CardDescription>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-5">
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="shipping-provider">Provider</Label>
-            <Select value={provider} onValueChange={(value) => selectProvider(value === 'fourpx' ? 'fourpx' : 'kuaidi100')}>
-              <SelectTrigger id="shipping-provider" className="rounded-lg">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="kuaidi100">Kuaidi100</SelectItem>
-                <SelectItem value="fourpx">4PX</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="shipping-action">Operation</Label>
-            <Select value={selectedAction.value} onValueChange={setAction}>
-              <SelectTrigger id="shipping-action" className="rounded-lg">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {availableActions.map((item) => (
-                  <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {selectedAction.needsMerchantReference ? (
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="shipping-order-id">Bokmoo order ID</Label>
-              <Input
-                id="shipping-order-id"
-                value={orderId}
-                onChange={(event) => setOrderId(event.target.value)}
-                placeholder="ord_..."
-                className="rounded-lg"
-              />
-            </div>
-            <div className="space-y-2">
-            <Label htmlFor="shipping-merchant-reference">Merchant reference</Label>
-            <Input
-              id="shipping-merchant-reference"
-              value={merchantReference}
-              onChange={(event) => setMerchantReference(event.target.value)}
-              placeholder="Stable provider operation reference"
-              className="rounded-lg"
-            />
-            </div>
-          </div>
-        ) : null}
-
-        <div className="space-y-2">
-          <Label htmlFor="shipping-request-body">Provider request</Label>
-          <Textarea
-            id="shipping-request-body"
-            value={requestDraft}
-            onChange={(event) => setRequestDraft(event.target.value)}
-            className="min-h-48 rounded-lg font-mono text-xs"
-            spellCheck={false}
-          />
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          <Button onClick={() => void submitProviderAction()} disabled={isSubmitting || !enabled} className="rounded-lg">
-            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-            Run operation
-          </Button>
-          <Badge
-            variant="outline"
-            className={
-              statusTone === 'error'
-                ? 'border-red-200 bg-red-50 text-red-700'
-                : statusTone === 'success'
-                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                  : 'border-slate-200 bg-slate-50 text-slate-600'
-            }
-          >
-            {statusMessage}
-          </Badge>
-        </div>
-
-        {responseDraft ? (
-          <div className="space-y-2">
-            <Label>Response</Label>
-            <pre className="max-h-80 overflow-auto rounded-lg bg-slate-950 p-4 text-xs leading-5 text-slate-100">
-              {responseDraft}
-            </pre>
-          </div>
-        ) : null}
-      </CardContent>
-    </Card>
-  );
 }
 
 export function PluginWorkspace({ slug }: { slug: string }) {
+  return (
+    <PluginSaveProvider>
+      <PluginWorkspaceContent slug={slug} />
+    </PluginSaveProvider>
+  );
+}
+
+function PluginWorkspaceContent({ slug }: { slug: string }) {
   const locale = useLocale();
   const t = useT();
+  const tf = useWorkspaceText();
+  const registry = usePluginSaveRegistry();
+  const user = useAuthStore((state) => state.user);
   const { data, isLoading, error } = usePluginConfig(slug);
   const jobsAdminAvailable = useJobsAdminCapability();
   const affiliateOverviewQuery = useAffiliateNativeOverview(slug);
@@ -1322,9 +177,14 @@ export function PluginWorkspace({ slug }: { slug: string }) {
   const { mutateAsync: createInstance, isPending: isCreatingInstance } = useCreatePluginInstance();
   const { mutateAsync: updateInstance, isPending: isUpdatingInstance } = useUpdatePluginInstance();
   const [selectedInstallationId, setSelectedInstallationId] = useState('default');
-  const [configDraft, setConfigDraft] = useState<Record<string, unknown>>({});
-  const [jsonFieldDrafts, setJsonFieldDrafts] = useState<Record<string, string>>({});
-  const [jsonFieldErrors, setJsonFieldErrors] = useState<Record<string, string>>({});
+  const [draftState, dispatchDraft] = useReducer(configDraftReducer, undefined, () => ({
+    installationId: null,
+    draft: EMPTY_CONFIG,
+    persisted: EMPTY_CONFIG,
+    lastSaved: null,
+    jsonDrafts: {},
+    jsonErrors: {},
+  }));
 
   const getText = (key: string, fallback: string): string => {
     if (!t) return fallback;
@@ -1334,6 +194,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
 
   const instances = useMemo(() => instancesData?.items || [], [instancesData?.items]);
   const installedPlugins = installedPluginsData?.items || [];
+  const installedMeta = installedPlugins.find((plugin) => plugin.slug === slug);
   const officialPluginSlugs = useMemo(
     () =>
       new Set(
@@ -1341,23 +202,18 @@ export function PluginWorkspace({ slug }: { slug: string }) {
           .filter((item) => item.kind === 'plugin')
           .map((item) => item.slug)
       ),
-    [officialCatalogData?.items]
+    [officialCatalogData?.items],
   );
   const configSchema = isPlainObject(data?.configSchema) ? (data?.configSchema as PluginConfigSchema) : undefined;
-  // Support Hub renders its AI/chat controls in the dedicated SupportHubAiPanel;
-  // keep those fields out of the generic schema editor to avoid double editing.
-  const supportHubEditorConfigSchema = useMemo(() => {
-    if (slug !== 'support-hub' || !configSchema) return configSchema;
-    const panelFields = new Set([
-      'chatEnabled', 'aiEnabled', 'aiProvider', 'aiBaseUrl', 'aiApiKey', 'aiModel',
-      'aiSystemPrompt', 'aiWelcomeMessage', 'aiHandoffMessage',
-    ]);
+  const editorConfigSchema = useMemo(() => {
+    if (!configSchema || slug !== 'support-hub') return configSchema;
     const filtered: PluginConfigSchema = {};
     for (const [field, descriptor] of Object.entries(configSchema)) {
-      if (!panelFields.has(field)) filtered[field] = descriptor;
+      if (!SUPPORT_HUB_AI_FIELDS.has(field) && !SUPPORT_HUB_CHANNEL_FIELD_SET.has(field)) filtered[field] = descriptor;
     }
     return filtered;
   }, [configSchema, slug]);
+  const hasEditableConfig = Boolean(editorConfigSchema && Object.keys(editorConfigSchema).length > 0);
 
   useEffect(() => {
     if (instances.length === 0) {
@@ -1372,176 +228,269 @@ export function PluginWorkspace({ slug }: { slug: string }) {
     });
   }, [instances]);
 
-  const selectedInstance = instances.find((instance) => instance.installationId === selectedInstallationId)
+  const selectedInstance: PluginInstance | null = instances.find((instance) => instance.installationId === selectedInstallationId)
     || instances.find((instance) => instance.instanceKey === 'default')
     || instances[0]
     || null;
-
-  const selectedConfig = useMemo(
-    () => (
-      isPlainObject(selectedInstance?.config)
-        ? (selectedInstance.config as Record<string, unknown>)
-        : {}
-    ),
-    [selectedInstance?.config]
-  );
-  const selectedConfigMeta = selectedInstance?.configMeta || data?.configMeta;
-  const selectedReadiness = evaluateConfigReadiness(configSchema, selectedConfig, selectedConfigMeta);
-  const hasNativeWorkspace = slug === 'odoo' || slug === 'i18n' || slug === 'remoteradar-jobs' || slug === 'seo' || Boolean(configSchema);
+  const selectedInstallationKey = selectedInstance?.installationId ?? null;
+  const installationId = selectedInstance?.installationId || 'default';
+  const instanceEnabled = Boolean(selectedInstance?.enabled);
+  // This is the server's own object, so its identity only changes when the instance data does
+  // (react-query shares unchanged results between refetches); the sync effect relies on that.
+  const selectedConfig = isPlainObject(selectedInstance?.config) ? selectedInstance.config : EMPTY_CONFIG;
+  const selectedConfigMeta: PluginConfigMeta | undefined = selectedInstance?.configMeta || data?.configMeta;
+  const isNative = data?.runtimeType === 'cloudflare-native';
 
   useEffect(() => {
-    setConfigDraft(selectedConfig);
-    setJsonFieldDrafts(buildJsonFieldDrafts(configSchema, selectedConfig));
-    setJsonFieldErrors({});
-  }, [selectedInstance?.installationId, selectedInstance?.updatedAt, configSchema, selectedConfig]);
+    dispatchDraft({ type: 'sync', installationId: selectedInstallationKey, config: selectedConfig, schema: configSchema });
+  }, [selectedInstallationKey, selectedConfig, configSchema]);
+
+  const configDraft = draftState.draft;
+  const hasConfigChanges = !isSameConfigValue(configDraft, draftState.persisted);
+  // Readiness is judged on the draft so the notice clears as soon as the required fields are filled in.
+  const draftReadiness = evaluateConfigReadiness(configSchema, configDraft, selectedConfigMeta);
 
   const updateConfigField = (field: string, value: unknown) => {
-    setConfigDraft((current) => ({
-      ...current,
-      [field]: value,
-    }));
+    dispatchDraft({ type: 'field', field, value });
   };
 
   const updateJsonConfigField = (field: string, rawValue: string, expectedType: 'object' | 'array') => {
-    setJsonFieldDrafts((current) => ({
-      ...current,
-      [field]: rawValue,
-    }));
-
-    const trimmed = rawValue.trim();
-    if (!trimmed) {
-      updateConfigField(field, expectedType === 'array' ? [] : {});
-      setJsonFieldErrors((current) => ({
-        ...current,
-        [field]: '',
-      }));
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(rawValue);
-      const valid = expectedType === 'array' ? Array.isArray(parsed) : isPlainObject(parsed);
-      if (!valid) {
-        throw new Error(`Value must be a JSON ${expectedType}`);
-      }
-      updateConfigField(field, parsed);
-      setJsonFieldErrors((current) => ({
-        ...current,
-        [field]: '',
-      }));
-    } catch (error) {
-      setJsonFieldErrors((current) => ({
-        ...current,
-        [field]: error instanceof Error ? error.message : 'Invalid JSON',
-      }));
-    }
+    dispatchDraft({ type: 'json', field, raw: rawValue, expectedType });
   };
 
   const persistSelectedConfig = async (nextConfig: Record<string, unknown>) => {
-    if (Object.values(jsonFieldErrors).some(Boolean)) {
+    if (Object.values(draftState.jsonErrors).some(Boolean)) {
       const message = getText('common.validation.invalidFormat', 'Invalid format');
       toast.error(message);
       throw new Error(message);
     }
 
-    if (selectedInstance) {
-      await updateInstance({
-        slug,
-        installationId: selectedInstance.installationId,
-        enabled: selectedInstance.enabled,
-        config: nextConfig,
-      });
-      return;
-    }
-
-    const created = await createInstance({
-      slug,
-      instanceKey: 'default',
-      enabled: false,
-      config: nextConfig,
-    });
-    setSelectedInstallationId(created.installationId);
-  };
-
-  const handleSaveGenericConfig = async () => {
     try {
-      await persistSelectedConfig(configDraft);
-    } catch {
-      // Toast is surfaced through the mutation hooks.
-    }
-  };
-
-  const handleCreateDefaultInstance = async () => {
-    try {
-      const created = await createInstance({
-        slug,
-        instanceKey: 'default',
-        enabled: false,
-        config: {},
-      });
-      setSelectedInstallationId(created.installationId);
-    } catch {
-      // Toast is surfaced through the mutation hook.
-    }
-  };
-
-  const handleToggleSelectedInstance = async () => {
-    try {
-      const nextEnabled = !selectedInstance?.enabled;
-      const readiness = evaluateConfigReadiness(configSchema, selectedConfig, selectedConfigMeta);
-
-      if (nextEnabled && readiness.configRequired && !readiness.configReady) {
-        const detail = readiness.missingConfigFields.length > 0
-          ? `: ${readiness.missingConfigFields.join(', ')}`
-          : '';
-        toast.error(`This plugin requires configuration before enabling${detail}`);
-        return;
-      }
-
       if (selectedInstance) {
         await updateInstance({
           slug,
           installationId: selectedInstance.installationId,
-          enabled: nextEnabled,
-          config: selectedConfig,
+          enabled: selectedInstance.enabled,
+          config: nextConfig,
+          successMessage: tf('saved', 'Changes saved'),
         });
-        return;
+      } else {
+        const created = await createInstance({
+          slug,
+          instanceKey: 'default',
+          enabled: false,
+          config: nextConfig,
+          successMessage: tf('saved', 'Changes saved'),
+        });
+        if (created?.installationId) setSelectedInstallationId(created.installationId);
       }
-
-      const created = await createInstance({
-        slug,
-        instanceKey: 'default',
-        enabled: true,
-        config: selectedConfig,
-      });
-      setSelectedInstallationId(created.installationId);
     } catch {
-      // Toast is surfaced through the mutation hook.
+      // The toast is surfaced through the mutation hook; reject so the page stays dirty.
+      throw new Error('Plugin configuration was not saved');
+    }
+
+    dispatchDraft({ type: 'saved', config: nextConfig });
+  };
+
+  usePluginSaveContribution(
+    'plugin-config',
+    hasConfigChanges,
+    async () => {
+      await persistSelectedConfig(configDraft);
+    },
+    hasEditableConfig,
+  );
+
+  const instanceBusy = isCreatingInstance || isUpdatingInstance || registry.saving;
+
+  const refuseMissingConfig = (fields: string[]) => {
+    toast.error(tf(
+      'missingRequired',
+      'Complete these required settings before enabling: {fields}',
+      { fields: describeMissingFields(slug, locale, fields, configSchema) },
+    ));
+  };
+
+  /** Flips the on/off switch of the selected instance. Resolves false when it could not. */
+  const toggleEnabled = async (): Promise<boolean> => {
+    if (instanceBusy) return false;
+    const nextEnabled = !instanceEnabled;
+
+    try {
+      if (selectedInstance) {
+        if (nextEnabled) {
+          // Turning the plugin on uses what is on screen: persist pending edits first.
+          if (registry.hasDirty && !(await registry.save())) return false;
+          const readiness = evaluateConfigReadiness(configSchema, configDraft, selectedConfigMeta);
+          if (readiness.configRequired && !readiness.configReady) {
+            refuseMissingConfig(readiness.missingConfigFields);
+            return false;
+          }
+        }
+
+        await updateInstance({
+          slug,
+          installationId: selectedInstance.installationId,
+          enabled: nextEnabled,
+          // The native PATCH merges only the fields it receives, so the just-saved config is
+          // left untouched; other runtimes replace it and need the current one sent along.
+          ...(isNative ? {} : { config: nextEnabled ? configDraft : selectedInstance.config }),
+          successMessage: nextEnabled ? tf('instanceEnabled', 'Plugin enabled') : tf('instanceDisabled', 'Plugin disabled'),
+        });
+      } else {
+        // No instance yet: creating it carries the whole draft, so nothing else needs saving first.
+        const readiness = evaluateConfigReadiness(configSchema, configDraft, selectedConfigMeta);
+        if (readiness.configRequired && !readiness.configReady) {
+          refuseMissingConfig(readiness.missingConfigFields);
+          return false;
+        }
+        const created = await createInstance({
+          slug,
+          instanceKey: 'default',
+          enabled: true,
+          config: configDraft,
+          successMessage: tf('instanceEnabled', 'Plugin enabled'),
+        });
+        dispatchDraft({ type: 'saved', config: configDraft });
+        if (created?.installationId) setSelectedInstallationId(created.installationId);
+      }
+      return true;
+    } catch {
+      // The toast is surfaced through the mutation hook.
+      return false;
     }
   };
 
+  // Unsaved edits are easy to lose on a refresh; warn before a full page unload.
+  useEffect(() => {
+    if (!registry.hasDirty) return;
+    const warnBeforeLeaving = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+    };
+    window.addEventListener('beforeunload', warnBeforeLeaving);
+    return () => window.removeEventListener('beforeunload', warnBeforeLeaving);
+  }, [registry.hasDirty]);
+
+  const pluginName = localizeExtensionName(slug, data?.name || installedMeta?.name || slug, locale);
+  const pluginDescription = localizeExtensionDescription(
+    slug,
+    data?.description || installedMeta?.description || getText('merchant.plugins.defaultDescription', 'A merchant-facing plugin that extends your store operations.'),
+    locale,
+  );
+  const pluginVersion = data?.version || installedMeta?.version || '';
+  const isOfficial = officialPluginSlugs.has(slug) || data?.source === 'official-market' || installedMeta?.source === 'official-market';
+  const canOpenInbox = canAccessAnyPermission(user, [ADMIN_PERMISSIONS.SUPPORT_READ]);
+  const supportsConfigForm = slug !== 'i18n' && (slug !== 'odoo' || isNative);
+  const hasNativeWorkspace = slug === 'odoo' || slug === 'i18n' || slug === 'remoteradar-jobs' || slug === 'seo' || Boolean(configSchema);
+  // True for plugins that declare no settings and ship no dedicated panel, such as the wallet.
+  const hasNoContent = !(
+    (supportsConfigForm && hasEditableConfig)
+    || slug === 'i18n'
+    || slug === 'odoo'
+    || (slug === 'shipping' && isNative)
+    || slug === 'remoteradar-jobs'
+    || slug === 'support-hub'
+    || slug === 'seo'
+  );
+
+  const headerActions = (
+    <>
+      {instances.length > 1 ? (
+        <div className="min-w-[200px]">
+          <Select
+            value={selectedInstance?.installationId || ''}
+            onValueChange={setSelectedInstallationId}
+            disabled={isInstancesLoading || instanceBusy}
+          >
+            <SelectTrigger
+              className="h-9 rounded-lg border-gray-100 bg-white text-sm font-semibold"
+              aria-label={tf('selectInstance', 'Select instance')}
+            >
+              <SelectValue placeholder={tf('selectInstance', 'Select instance')} />
+            </SelectTrigger>
+            <SelectContent>
+              {instances.map((instance) => (
+                <SelectItem key={instance.installationId} value={instance.installationId}>
+                  {instance.instanceKey}
+                  {instance.enabled ? '' : ` (${tf('common.status.disabled', 'Disabled')})`}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      ) : null}
+
+      <div className="flex h-9 items-center gap-2.5 rounded-lg border border-gray-100 bg-white px-3">
+        <span className="text-sm font-semibold text-gray-700">{tf('enablePlugin', 'Enable plugin')}</span>
+        <Switch
+          checked={instanceEnabled}
+          disabled={instanceBusy}
+          onCheckedChange={() => void toggleEnabled()}
+          aria-label={tf('enablePlugin', 'Enable plugin')}
+        />
+      </div>
+
+      {registry.registered ? (
+        <Button
+          onClick={() => void registry.save()}
+          disabled={registry.saving || !registry.hasDirty}
+          className={workspacePrimaryButtonClass}
+        >
+          {registry.saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+          {registry.saving ? tf('saving', 'Saving...') : tf('save', 'Save changes')}
+        </Button>
+      ) : null}
+    </>
+  );
+
+  const renderShell = (children: ReactNode) => (
+    <PageShell
+      title={
+        <span className="inline-flex flex-wrap items-center gap-2">
+          {pluginName}
+          {isOfficial ? <OfficialBadge compact /> : null}
+          {pluginVersion ? (
+            <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-500">v{pluginVersion}</span>
+          ) : null}
+        </span>
+      }
+      description={pluginDescription}
+      actions={headerActions}
+    >
+      <div className="grid gap-5 lg:grid-cols-[260px,minmax(0,1fr)]">
+        {/* On narrow screens the settings come first; the plugin rail follows below them. */}
+        <div className="order-last lg:order-first">
+          <InstalledPluginsRail
+            locale={locale}
+            plugins={installedPlugins}
+            selectedSlug={slug}
+            officialSlugs={officialPluginSlugs}
+            getText={getText}
+          />
+        </div>
+        <div className="min-w-0 space-y-5">{children}</div>
+      </div>
+    </PageShell>
+  );
+
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-muted-foreground gap-2">
-        <Loader2 className="h-4 w-4 animate-spin" />
-        <span>Loading plugin workspace...</span>
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          <p className="text-sm text-gray-500">{tf('loadingWorkspace', 'Loading plugin workspace...')}</p>
+        </div>
       </div>
     );
   }
 
   // The native affiliate adapter serves live partners/commissions/attributions
   // from native_affiliate_* tables through its own admin overview endpoint, so
-  // the affiliate workspace renders that data view before the generic
+  // the affiliate workspace renders that data view instead of the generic
   // config-driven workspace (the generic detail endpoint is still used on
   // platform deployments where the overview route does not exist).
-  if (slug === 'affiliate' && !isLoading && affiliateOverviewQuery.isSuccess) {
-    return (
-      <div className="min-h-screen w-full bg-[#f8fafc]">
-        <div className="mx-auto w-full max-w-[1540px] px-5 py-6 sm:px-8 lg:px-10">
-          <AffiliateNativeWorkspace data={affiliateOverviewQuery.data} />
-        </div>
-      </div>
-    );
+  if (slug === 'affiliate' && affiliateOverviewQuery.isSuccess) {
+    return renderShell(<AffiliateNativeWorkspace data={affiliateOverviewQuery.data} />);
   }
 
   if (error || !data) {
@@ -1552,691 +501,194 @@ export function PluginWorkspace({ slug }: { slug: string }) {
     // cannot load — but only on instances that actually configure the jobs
     // service, so generic deployments still see the standard failure surface.
     if (slug === 'remoteradar-jobs' && jobsAdminAvailable) {
-      return (
-        <div className="min-h-screen w-full bg-[#f8fafc]">
-          <div className="mx-auto w-full max-w-[1540px] px-5 py-6 sm:px-8 lg:px-10">
-            <RemoteRadarJobsNativeWorkspace installationId="default" />
-          </div>
-        </div>
-      );
+      return renderShell(<RemoteRadarJobsNativeWorkspace installationId="default" />);
     }
+
     return (
-      <div className="min-h-screen flex items-center justify-center p-6">
-        <div className="max-w-md rounded-lg border bg-white p-6 shadow-sm">
-          <div className="flex items-center gap-3 text-red-600">
-            <AlertTriangle className="h-5 w-5" />
-            <h1 className="text-lg font-semibold">Plugin unavailable</h1>
-          </div>
-          <p className="mt-3 text-sm text-muted-foreground">
-            The plugin details could not be loaded.
-          </p>
-          <div className="mt-6">
-            <Link href={`/${locale}/plugins`}>
-              <Button variant="outline">Back to plugins</Button>
-            </Link>
-          </div>
-        </div>
-      </div>
+      <PageShell
+        title={tf('unavailableTitle', 'Plugin unavailable')}
+        description={tf('unavailableDescription', 'The plugin details could not be loaded.')}
+        actions={
+          <Button asChild variant="outline" className={workspaceOutlineButtonClass}>
+            <Link href={`/${locale}/plugins`}>{getText('merchant.plugins.backToMarketplace', 'Back to plugins')}</Link>
+          </Button>
+        }
+      >
+        <WorkspaceNotice tone="warning">
+          <span className="font-semibold">{pluginName}.</span>{' '}
+          {tf('unavailableDescription', 'The plugin details could not be loaded.')}
+        </WorkspaceNotice>
+      </PageShell>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-[#f8fafc] p-5 sm:p-7 lg:p-10">
-      <div className="mx-auto grid max-w-[1600px] gap-5 lg:grid-cols-[260px,minmax(0,1fr)]">
-        <InstalledPluginsRail
-          locale={locale}
-          plugins={installedPlugins}
-          selectedSlug={slug}
-          officialSlugs={officialPluginSlugs}
-          getText={getText}
+  return renderShell(
+    <>
+      {draftReadiness.configRequired && !draftReadiness.configReady ? (
+        <WorkspaceNotice tone="warning">
+          {tf(
+            'missingRequired',
+            'Complete these required settings before enabling: {fields}',
+            { fields: describeMissingFields(slug, locale, draftReadiness.missingConfigFields, configSchema) },
+          )}
+        </WorkspaceNotice>
+      ) : null}
+
+      {slug === 'i18n' ? (
+        <>
+          <I18nNativeWorkspace installationId={installationId} disabled={!selectedInstance} />
+          <I18nTranslationsPanel installationId={installationId} disabled={!selectedInstance} />
+        </>
+      ) : null}
+
+      {slug === 'odoo' && !isNative ? (
+        <OdooNativeWorkspace
+          installationId={installationId}
+          selectedInstance={selectedInstance}
+          onSaveConfig={persistSelectedConfig}
         />
+      ) : null}
 
-        <div className="space-y-5">
-          <div className="overflow-hidden rounded-3xl border border-blue-100 bg-gradient-to-r from-blue-50 via-indigo-50/70 to-white px-7 py-7 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-              <div className="min-w-0">
-                <div className="mb-2 flex items-center gap-2 text-sm text-slate-500">
-                  <Link href={`/${locale}/plugins`} className="hover:text-blue-600">Plugins</Link>
-                  <span>/</span>
-                  <span>Installed</span>
-                  <span>/</span>
-                  <span className="truncate font-medium text-slate-700">{data.name || slug}</span>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  {officialPluginSlugs.has(slug) ? <OfficialBadge compact /> : null}
-                </div>
-                <h1 className="mt-2 text-[32px] font-bold tracking-tight text-slate-950">
-                  {data.name || slug}
-                </h1>
-                <p className="mt-1.5 max-w-3xl text-sm leading-6 text-slate-600">
-                  {getText(
-                    'merchant.plugins.workspaceDescription',
-                    'Manage plugin-specific configuration, instance targeting, and native Admin controls from a dedicated workspace.'
-                  )}
-                </p>
-              </div>
+      {slug === 'remoteradar-jobs' ? (
+        <RemoteRadarJobsNativeWorkspace installationId={installationId} disabled={!selectedInstance} />
+      ) : null}
 
-              <div className="flex flex-wrap gap-3 xl:justify-end">
-                <div className="min-w-[220px]">
-                  <Select
-                    value={selectedInstance?.installationId || selectedInstallationId}
-                    onValueChange={setSelectedInstallationId}
-                    disabled={isInstancesLoading || instances.length === 0}
-                  >
-                    <SelectTrigger className="h-10 rounded-lg bg-white">
-                      <SelectValue placeholder={isInstancesLoading ? 'Loading instances...' : 'Select instance'} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {instances.length === 0 ? (
-                        <SelectItem value="default">default</SelectItem>
-                      ) : (
-                        instances.map((instance) => (
-                          <SelectItem key={instance.installationId} value={instance.installationId}>
-                            {instance.instanceKey}
-                            {instance.enabled ? '' : ' (disabled)'}
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button asChild variant="outline" className="rounded-lg">
-                  <Link href={`/${locale}/plugins`}>
-                    {getText('merchant.plugins.backToMarketplace', 'Back to plugins')}
-                  </Link>
-                </Button>
-              </div>
-            </div>
-          </div>
+      {slug === 'support-hub' ? (
+        <>
+          <SupportHubAiPanel configDraft={configDraft} onUpdateField={updateConfigField} />
+          {configSchema ? (
+            <SupportHubChannelsSection
+              configSchema={configSchema}
+              configDraft={configDraft}
+              onUpdateField={updateConfigField}
+            />
+          ) : null}
+        </>
+      ) : null}
 
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      {supportsConfigForm && hasEditableConfig ? (
+        <>
+          {slug === 'stripe' ? (
+            configDraft.mode === 'live' ? (
+              <WorkspaceNotice tone="warning">
+                <span className="font-semibold">{tf('stripeLiveTitle', 'Live mode')}.</span>{' '}
+                {tf('stripeLiveDescription', 'Stripe will create real charges after this configuration is saved.')}
+              </WorkspaceNotice>
+            ) : (
+              <WorkspaceNotice tone="info">
+                <span className="font-semibold">{tf('stripeTestTitle', 'Test mode')}.</span>{' '}
+                {tf('stripeTestDescription', 'Stripe test data is active. No real charges will be created.')}
+              </WorkspaceNotice>
+            )
+          ) : null}
+          <PluginConfigSection
+            slug={slug}
+            configSchema={editorConfigSchema ?? {}}
+            configDraft={configDraft}
+            configMeta={selectedConfigMeta}
+            jsonFieldDrafts={draftState.jsonDrafts}
+            jsonFieldErrors={draftState.jsonErrors}
+            onUpdateField={updateConfigField}
+            onUpdateJsonField={updateJsonConfigField}
+            title={slug === 'support-hub' ? tf('otherTitle', 'Other settings') : undefined}
+          />
+        </>
+      ) : null}
+
+      {/* Settings come first; the carrier console is a tool that runs against them. */}
+      {slug === 'shipping' && isNative ? (
+        <ShippingNativeWorkspace installationId={installationId} enabled={instanceEnabled} />
+      ) : null}
+
+      {isNative && ['smtp-email', 'stripe', 'odoo'].includes(slug) ? (
+        <NativeConnectionTest slug={slug} disabled={!instanceEnabled} onEnable={toggleEnabled} />
+      ) : null}
+
+      {slug === 'seo' ? (
+        <WorkspaceCard
+          icon={<Search className="h-6 w-6" />}
+          title={tf('seoTitle', 'SEO management')}
+          description={tf(
+            'seoDescription',
+            'Redirects, audit, and settings live in the built-in SEO pages; storefront robots.txt, sitemap.xml, and product metadata are generated automatically.',
+          )}
+        >
+          <div className="flex flex-wrap gap-3">
             {[
-              { label: 'Runtime', value: data.runtimeType || 'n/a', icon: <Cloud className="h-5 w-5" />, chip: 'bg-blue-50 text-blue-600' },
-              { label: 'Instance', value: selectedInstance?.instanceKey || 'default', icon: <Settings2 className="h-5 w-5" />, chip: 'bg-indigo-50 text-indigo-600' },
-              {
-                label: 'Config readiness',
-                value: selectedReadiness.configReady ? 'Ready' : 'Needs config',
-                icon: <CheckCircle2 className="h-5 w-5" />,
-                chip: selectedReadiness.configReady ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600',
-              },
-              {
-                label: 'Version',
-                value: data.version || 'n/a',
-                icon: <Settings2 className="h-5 w-5" />,
-                chip: 'bg-purple-50 text-purple-600',
-              },
-            ].map((tile) => (
-              <div key={tile.label} className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
-                <div className="flex items-center gap-3">
-                  <span className={tile.chip}>
-                    {tile.icon}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-xs text-slate-500">{tile.label}</p>
-                    <p className="truncate text-base font-bold text-slate-900">{tile.value}</p>
-                  </div>
-                </div>
-              </div>
+              { href: 'seo/redirects', label: tf('seoRedirects', 'Redirects') },
+              { href: 'seo/audit', label: tf('seoAudit', 'SEO audit') },
+              { href: 'seo', label: tf('seoSettings', 'SEO settings') },
+            ].map((link) => (
+              <Button key={link.href} asChild variant="outline" className={workspaceOutlineButtonClass}>
+                <Link href={`/${locale}/${link.href}`}>{link.label}</Link>
+              </Button>
             ))}
           </div>
+        </WorkspaceCard>
+      ) : null}
 
-          <p className="px-1 text-xs text-slate-400">
-            {`Source: ${data.source || 'installed'} · Instance: ${selectedInstance?.instanceKey || 'default'} · Installation ID: ${selectedInstance?.installationId || 'default'}${selectedInstance?.updatedAt ? ` · Last updated ${new Date(selectedInstance.updatedAt).toLocaleString()}` : ''}`}
+      {slug === 'support-hub' && canOpenInbox ? (
+        <WorkspaceCard
+          icon={<Inbox className="h-6 w-6" />}
+          title={tf('inboxTitle', 'Support conversations')}
+          description={tf(
+            'inboxDescription',
+            'Visitor messages and agent replies are handled on the Support conversations page.',
+          )}
+          actions={
+            <Button asChild variant="outline" className={workspaceOutlineButtonClass}>
+              <Link href={`/${locale}/support`}>{tf('openInbox', 'Open support conversations')}</Link>
+            </Button>
+          }
+        >
+          <p className="text-sm leading-6 text-gray-600">
+            {tf(
+              'inboxHint',
+              'Replies sent there appear in the storefront chat within seconds, and a conversation answered by an agent stops using AI replies.',
+            )}
           </p>
+        </WorkspaceCard>
+      ) : null}
 
-          <Alert className="border-blue-200 bg-blue-50 text-blue-950">
-            <CheckCircle2 className="h-4 w-4" />
-            <AlertTitle>Native workspace</AlertTitle>
-            <AlertDescription>
-              Merchant Admin now renders plugin controls as native UI. iframe-based plugin consoles are not embedded in this workspace.
-            </AlertDescription>
-          </Alert>
+      {hasNoContent ? (
+        hasNativeWorkspace ? (
+          // A plugin with an empty schema (e.g. the wallet) is usable as soon as it is enabled.
+          <WorkspaceCard
+            icon={<CheckCircle2 className="h-6 w-6" />}
+            title={tf('noSettingsTitle', 'No settings required')}
+            description={tf(
+              'noSettingsDescription',
+              'This plugin has no options to configure. It is ready to use once enabled.',
+            )}
+          />
+        ) : (
+          <WorkspaceNotice>
+            <span className="font-semibold">{tf('noControlsTitle', 'No settings yet')}.</span>{' '}
+            {tf('noControlsDescription', 'This plugin does not declare any settings or native Admin controls.')}
+          </WorkspaceNotice>
+        )
+      ) : null}
 
-          <div className="space-y-5">
-            <div className="space-y-5">
-              {slug === 'i18n' ? (
-                <div className="space-y-5">
-                  <I18nNativeWorkspace
-                    installationId={selectedInstance?.installationId || 'default'}
-                    disabled={!selectedInstance}
-                  />
-                  <I18nTranslationsPanel
-                    installationId={selectedInstance?.installationId || 'default'}
-                    disabled={!selectedInstance}
-                  />
-                </div>
-              ) : null}
-
-              {slug === 'odoo' && data.runtimeType !== 'cloudflare-native' ? (
-                <OdooNativeWorkspace
-                  installationId={selectedInstance?.installationId || 'default'}
-                  selectedInstance={selectedInstance}
-                  onSaveConfig={persistSelectedConfig}
-                />
-              ) : null}
-
-              {slug === 'shipping' && data.runtimeType === 'cloudflare-native' ? (
-                <ShippingNativeWorkspace
-                  installationId={selectedInstance?.installationId || 'default'}
-                  enabled={Boolean(selectedInstance?.enabled)}
-                />
-              ) : null}
-
-              {slug === 'remoteradar-jobs' ? (
-                <RemoteRadarJobsNativeWorkspace
-                  installationId={selectedInstance?.installationId || 'default'}
-                  disabled={!selectedInstance}
-                />
-              ) : null}
-
-              {slug === 'support-hub' ? (
-                <SupportHubAiPanel
-                  configDraft={configDraft}
-                  onUpdateField={updateConfigField}
-                  onSave={() => handleSaveGenericConfig()}
-                  saving={isCreatingInstance || isUpdatingInstance}
-                  disabled={!selectedInstance?.enabled}
-                />
-              ) : null}
-
-              {slug === 'support-hub' ? (
-                <SupportHubInboxWorkspace
-                  installationId={selectedInstance?.installationId || 'default'}
-                  disabled={!selectedInstance?.enabled}
-                />
-              ) : null}
-
-              {slug !== 'i18n' && (slug !== 'odoo' || data.runtimeType === 'cloudflare-native') && configSchema ? (
-                <div className="space-y-4">
-                  {slug === 'stripe' ? (
-                    configDraft.mode === 'live' ? (
-                      <Alert className="border-red-200 bg-red-50 text-red-950">
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertTitle>Live mode</AlertTitle>
-                        <AlertDescription>Stripe will create real charges after this configuration is saved.</AlertDescription>
-                      </Alert>
-                    ) : (
-                      <Alert className="border-amber-300 bg-amber-50 text-amber-950">
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertTitle>Test mode</AlertTitle>
-                        <AlertDescription>Stripe test data is active. No real charges will be created.</AlertDescription>
-                      </Alert>
-                    )
-                  ) : null}
-                  <GenericConfigEditor
-                    configSchema={slug === 'support-hub' ? (supportHubEditorConfigSchema ?? {}) : configSchema}
-                    configDraft={configDraft}
-                    configMeta={selectedConfigMeta}
-                    jsonFieldDrafts={jsonFieldDrafts}
-                    jsonFieldErrors={jsonFieldErrors}
-                    onUpdateField={updateConfigField}
-                    onUpdateJsonField={updateJsonConfigField}
-                    onSave={() => void handleSaveGenericConfig()}
-                    saving={isCreatingInstance || isUpdatingInstance}
-                  />
-                </div>
-              ) : null}
-
-              {data.runtimeType === 'cloudflare-native' && ['smtp-email', 'stripe', 'odoo'].includes(slug) ? (
-                <NativeConnectionTest slug={slug} disabled={!selectedInstance?.enabled} onEnable={handleToggleSelectedInstance} />
-              ) : null}
-
-              {slug === 'seo' ? (
-                <Card className="rounded-2xl border-slate-200/80 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
-                  <CardHeader>
-                    <CardTitle className="text-lg tracking-tight">
-                      {locale.startsWith('zh') ? 'SEO 管理入口' : 'SEO management'}
-                    </CardTitle>
-                    <CardDescription>
-                      {locale.startsWith('zh')
-                        ? '重定向管理、审计与设置已内置于 Merchant Admin；robots.txt、sitemap.xml 与产品页元数据由店面自动生成并生效。'
-                        : 'Redirects, audit, and settings live in the built-in SEO pages; storefront robots.txt, sitemap.xml, and product metadata are generated automatically.'}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="flex flex-wrap gap-3">
-                    <Button asChild variant="outline" className="rounded-lg">
-                      <Link href={`/${locale}/seo/redirects`}>{locale.startsWith('zh') ? '重定向管理' : 'Redirects'}</Link>
-                    </Button>
-                    <Button asChild variant="outline" className="rounded-lg">
-                      <Link href={`/${locale}/seo/audit`}>{locale.startsWith('zh') ? 'SEO 审计' : 'SEO audit'}</Link>
-                    </Button>
-                    <Button asChild variant="outline" className="rounded-lg">
-                      <Link href={`/${locale}/seo`}>{locale.startsWith('zh') ? 'SEO 设置' : 'SEO settings'}</Link>
-                    </Button>
-                  </CardContent>
-                </Card>
-              ) : null}
-
-              {!hasNativeWorkspace ? (
-                <Alert className="border-amber-200 bg-amber-50 text-amber-900">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>No native controls yet</AlertTitle>
-                  <AlertDescription>
-                    This plugin does not declare a config schema or a native Admin adapter yet. Merchant Admin will not embed its legacy HTML surface in an iframe.
-                  </AlertDescription>
-                </Alert>
-              ) : null}
-            </div>
-
-            {/* Instance controls sit below the full-width config form. */}
-            <div className="space-y-5">
-              <Card className="rounded-2xl border-slate-200/80 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
-                <CardHeader>
-                  <CardTitle className="text-lg tracking-tight">Instance status</CardTitle>
-                  <CardDescription>
-                    Native Admin controls operate on the selected plugin instance.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4 text-sm">
-                  <div className="grid gap-3 border border-slate-200 p-4">
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="text-slate-500">Enabled</span>
-                      <Badge variant={selectedInstance?.enabled ? 'default' : 'outline'}>
-                        {selectedInstance?.enabled ? 'Enabled' : 'Disabled'}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="text-slate-500">Config readiness</span>
-                      <Badge variant={selectedReadiness.configReady ? 'default' : 'outline'}>
-                        {selectedReadiness.configReady ? 'Ready' : 'Needs config'}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="text-slate-500">Runtime</span>
-                      <span className="font-medium text-slate-900">{data.runtimeType || 'n/a'}</span>
-                    </div>
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="text-slate-500">Admin surface</span>
-                      <span className="font-medium text-slate-900">Native</span>
-                    </div>
-                  </div>
-
-                  {selectedReadiness.missingConfigFields.length > 0 ? (
-                    <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">
-                      Missing required fields: {selectedReadiness.missingConfigFields.join(', ')}
-                    </div>
-                  ) : null}
-
-                  <div className="flex flex-wrap gap-3">
-                    <Button
-                      onClick={() => void handleToggleSelectedInstance()}
-                      disabled={isCreatingInstance || isUpdatingInstance}
-                      className="rounded-lg"
-                    >
-                      {isCreatingInstance || isUpdatingInstance ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                      {selectedInstance?.enabled ? 'Disable instance' : 'Enable instance'}
-                    </Button>
-
-                    {!selectedInstance ? (
-                      <Button
-                        variant="outline"
-                        onClick={() => void handleCreateDefaultInstance()}
-                        disabled={isCreatingInstance}
-                        className="rounded-lg"
-                      >
-                        Create default instance
-                      </Button>
-                    ) : null}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <PluginInstanceManager
-                pluginSlug={slug}
-                pluginName={data.name || slug}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+      {/* The native runtime keeps a single, fixed "default" installation per plugin, so the
+          header switch already covers everything there is to manage. */}
+      {isNative ? null : (
+        <PluginInstanceCard
+          pluginSlug={slug}
+          pluginName={pluginName}
+          instances={instances}
+          selectedInstallationId={selectedInstance?.installationId ?? null}
+          onSelect={setSelectedInstallationId}
+        />
+      )}
+    </>
   );
 }
 
-function affiliateText(value: unknown, fallback = '—'): string {
-  if (value === null || value === undefined || value === '') return fallback;
-  return String(value);
-}
-
-function affiliateMoney(value: unknown, currency: unknown): string {
-  const amount = Number(value || 0);
-  return `${affiliateText(currency, 'USD')} ${amount.toFixed(2)}`;
-}
-
-export function AffiliateNativeWorkspace({ data }: { data: AffiliateNativeOverviewData }) {
-  const partners = data.partners || [];
-  const organizations = data.organizations || [];
-  const commissions = data.commissions || [];
-  const attributions = data.attributions || [];
-  const totals = data.totals || {};
-
-  const partnerMutation = useUpdateAffiliatePartner();
-  const organizationMutation = useUpdateAffiliateOrganization();
-  const commissionMutation = useUpdateAffiliateCommissionStatus();
-
-  const [partnerEdits, setPartnerEdits] = useState<Record<string, { rate: string; status: string; code: string; discount: string }>>({});
-  const [orgEdits, setOrgEdits] = useState<Record<string, { rate: string; status: string }>>({});
-  const [actionError, setActionError] = useState('');
-
-  const partnerEdit = (id: string) =>
-    partnerEdits[id] || {
-      rate: String(Number(partners.find((row) => row.id === id)?.commission_rate ?? 0)),
-      status: String(partners.find((row) => row.id === id)?.status ?? 'active'),
-      code: String(partners.find((row) => row.id === id)?.code ?? ''),
-      discount: String(Number(partners.find((row) => row.id === id)?.discount_rate ?? 0)),
-    };
-  const orgEdit = (id: string) =>
-    orgEdits[id] || {
-      rate: String(Number(organizations.find((row) => row.id === id)?.commission_rate ?? 0)),
-      status: String(organizations.find((row) => row.id === id)?.status ?? 'active'),
-    };
-
-  const savePartner = async (id: string) => {
-    setActionError('');
-    const edit = partnerEdit(id);
-    try {
-      await partnerMutation.mutateAsync({
-        id,
-        commissionRate: Number(edit.rate),
-        status: edit.status,
-        code: edit.code,
-        discountRate: Number(edit.discount),
-      });
-    } catch (cause: any) {
-      setActionError(cause?.message || 'Could not update the partner.');
-    }
-  };
-  const saveOrganization = async (id: string) => {
-    setActionError('');
-    const edit = orgEdit(id);
-    try {
-      await organizationMutation.mutateAsync({ id, commissionRate: Number(edit.rate), status: edit.status });
-    } catch (cause: any) {
-      setActionError(cause?.message || 'Could not update the organization.');
-    }
-  };
-  const markCommission = async (id: string, status: 'paid' | 'reversed') => {
-    setActionError('');
-    try {
-      await commissionMutation.mutateAsync({ id, status });
-    } catch (cause: any) {
-      setActionError(cause?.message || 'Could not update the commission.');
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="rounded-lg border bg-white p-5 shadow-sm">
-        <h1 className="text-lg font-semibold">Affiliate workspace</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Manage partners, organizations, commission rates, and payouts. Changes apply immediately.
-        </p>
-        <div className="mt-4 grid gap-3 sm:grid-cols-5">
-          <div className="rounded-md border p-3">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">Partners</p>
-            <p className="mt-1 text-xl font-semibold">{Number(totals.partnerCount || 0)}</p>
-          </div>
-          <div className="rounded-md border p-3">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">Organizations</p>
-            <p className="mt-1 text-xl font-semibold">{Number(totals.organizationCount || 0)}</p>
-          </div>
-          <div className="rounded-md border p-3">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">Commission entries</p>
-            <p className="mt-1 text-xl font-semibold">{Number(totals.commissionCount || 0)}</p>
-          </div>
-          <div className="rounded-md border p-3">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">Commission total</p>
-            <p className="mt-1 text-xl font-semibold">{affiliateMoney(totals.commissionTotal, 'USD')}</p>
-          </div>
-          <div className="rounded-md border p-3">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">Pending payout</p>
-            <p className="mt-1 text-xl font-semibold">{affiliateMoney(totals.commissionPending, 'USD')}</p>
-          </div>
-        </div>
-        {actionError ? (
-          <p className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{actionError}</p>
-        ) : null}
-      </div>
-
-      <div className="rounded-lg border bg-white p-5 shadow-sm">
-        <h2 className="text-base font-semibold">Partners</h2>
-        <p className="mt-1 text-xs text-muted-foreground">Set each partner&apos;s commission rate (%) or suspend them.</p>
-        <div className="mt-3 overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
-                <th className="py-2 pr-4">Promo code</th>
-                <th className="py-2 pr-4">Partner</th>
-                <th className="py-2 pr-4">Commissions</th>
-                <th className="py-2 pr-4">Rate (%)</th>
-                <th className="py-2 pr-4">Discount (%)</th>
-                <th className="py-2 pr-4">Status</th>
-                <th className="py-2 pr-4">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {partners.map((partner) => {
-                const id = String(partner.id || '');
-                const edit = partnerEdit(id);
-                return (
-                  <tr key={id} className="border-b align-middle">
-                    <td className="py-2 pr-4">
-                      <Input
-                        value={edit.code}
-                        onChange={(event) =>
-                          setPartnerEdits((previous) => ({ ...previous, [id]: { ...edit, code: event.target.value.toUpperCase() } }))
-                        }
-                        className="h-8 w-28 font-mono text-xs"
-                      />
-                    </td>
-                    <td className="py-2 pr-4">{String(partner.display_name || partner.email || '—')}</td>
-                    <td className="py-2 pr-4">
-                      {affiliateMoney(partner.commission_total, partner.currency)}
-                      <span className="ml-1 text-xs text-muted-foreground">
-                        ({Number(partner.commission_count || 0)})
-                      </span>
-                    </td>
-                    <td className="py-2 pr-4">
-                      <Input
-                        type="number"
-                        min={0}
-                        max={90}
-                        step="0.5"
-                        value={edit.rate}
-                        onChange={(event) =>
-                          setPartnerEdits((previous) => ({ ...previous, [id]: { ...edit, rate: event.target.value } }))
-                        }
-                        className="h-8 w-20"
-                      />
-                    </td>
-                    <td className="py-2 pr-4">
-                      <Input
-                        type="number"
-                        min={0}
-                        max={90}
-                        step="1"
-                        value={edit.discount}
-                        onChange={(event) =>
-                          setPartnerEdits((previous) => ({ ...previous, [id]: { ...edit, discount: event.target.value } }))
-                        }
-                        className="h-8 w-16"
-                      />
-                    </td>
-                    <td className="py-2 pr-4">
-                      <select
-                        value={edit.status}
-                        onChange={(event) =>
-                          setPartnerEdits((previous) => ({ ...previous, [id]: { ...edit, status: event.target.value } }))
-                        }
-                        className="h-8 rounded-md border bg-background px-2 text-sm"
-                      >
-                        <option value="active">active</option>
-                        <option value="suspended">suspended</option>
-                      </select>
-                    </td>
-                    <td className="py-2 pr-4">
-                      <Button size="sm" variant="outline" disabled={partnerMutation.isPending} onClick={() => void savePartner(id)}>
-                        Save
-                      </Button>
-                    </td>
-                  </tr>
-                );
-              })}
-              {partners.length === 0 ? (
-                <tr><td colSpan={7} className="py-4 text-center text-muted-foreground">No partners yet.</td></tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div className="rounded-lg border bg-white p-5 shadow-sm">
-        <h2 className="text-base font-semibold">Organizations</h2>
-        <p className="mt-1 text-xs text-muted-foreground">Organization-wide commission rate and lifecycle status.</p>
-        <div className="mt-3 overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
-                <th className="py-2 pr-4">Code</th>
-                <th className="py-2 pr-4">Name</th>
-                <th className="py-2 pr-4">Members</th>
-                <th className="py-2 pr-4">Rate (%)</th>
-                <th className="py-2 pr-4">Status</th>
-                <th className="py-2 pr-4">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {organizations.map((organization) => {
-                const id = String(organization.id || '');
-                const edit = orgEdit(id);
-                return (
-                  <tr key={id} className="border-b align-middle">
-                    <td className="py-2 pr-4 font-mono text-xs">{String(organization.code || '—')}</td>
-                    <td className="py-2 pr-4">{String(organization.name || '—')}</td>
-                    <td className="py-2 pr-4">{Number(organization.member_count || 0)}</td>
-                    <td className="py-2 pr-4">
-                      <Input
-                        type="number"
-                        min={0}
-                        max={90}
-                        step="0.5"
-                        value={edit.rate}
-                        onChange={(event) =>
-                          setOrgEdits((previous) => ({ ...previous, [id]: { ...edit, rate: event.target.value } }))
-                        }
-                        className="h-8 w-20"
-                      />
-                    </td>
-                    <td className="py-2 pr-4">
-                      <select
-                        value={edit.status}
-                        onChange={(event) =>
-                          setOrgEdits((previous) => ({ ...previous, [id]: { ...edit, status: event.target.value } }))
-                        }
-                        className="h-8 rounded-md border bg-background px-2 text-sm"
-                      >
-                        <option value="active">active</option>
-                        <option value="suspended">suspended</option>
-                        <option value="closed">closed</option>
-                      </select>
-                    </td>
-                    <td className="py-2 pr-4">
-                      <Button size="sm" variant="outline" disabled={organizationMutation.isPending} onClick={() => void saveOrganization(id)}>
-                        Save
-                      </Button>
-                    </td>
-                  </tr>
-                );
-              })}
-              {organizations.length === 0 ? (
-                <tr><td colSpan={6} className="py-4 text-center text-muted-foreground">No organizations yet.</td></tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div className="rounded-lg border bg-white p-5 shadow-sm">
-        <h2 className="text-base font-semibold">Commissions</h2>
-        <p className="mt-1 text-xs text-muted-foreground">Mark payouts as paid, or reverse an entry.</p>
-        <div className="mt-3 overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
-                <th className="py-2 pr-4">Partner</th>
-                <th className="py-2 pr-4">Order</th>
-                <th className="py-2 pr-4">Amount</th>
-                <th className="py-2 pr-4">Rate</th>
-                <th className="py-2 pr-4">Status</th>
-                <th className="py-2 pr-4">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {commissions.map((commission) => {
-                const id = String(commission.id || '');
-                const status = String(commission.status || 'pending');
-                return (
-                  <tr key={id} className="border-b align-middle">
-                    <td className="py-2 pr-4 font-mono text-xs">{String(commission.partner_code || '—')}</td>
-                    <td className="py-2 pr-4 font-mono text-xs">{String(commission.order_id || '—')}</td>
-                    <td className="py-2 pr-4">{affiliateMoney(commission.amount, commission.currency)}</td>
-                    <td className="py-2 pr-4">{Number(commission.commission_rate || 0)}%</td>
-                    <td className="py-2 pr-4"><Badge variant="outline">{status}</Badge></td>
-                    <td className="py-2 pr-4">
-                      <div className="flex gap-2">
-                        {status !== 'paid' ? (
-                          <Button size="sm" variant="outline" disabled={commissionMutation.isPending} onClick={() => void markCommission(id, 'paid')}>
-                            Mark paid
-                          </Button>
-                        ) : null}
-                        {status !== 'reversed' ? (
-                          <Button size="sm" variant="ghost" disabled={commissionMutation.isPending} onClick={() => void markCommission(id, 'reversed')}>
-                            Reverse
-                          </Button>
-                        ) : null}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-              {commissions.length === 0 ? (
-                <tr><td colSpan={6} className="py-4 text-center text-muted-foreground">No commissions yet.</td></tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div className="rounded-lg border bg-white p-5 shadow-sm">
-        <h2 className="text-base font-semibold">Attributions</h2>
-        <div className="mt-3 overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
-                <th className="py-2 pr-4">Partner</th>
-                <th className="py-2 pr-4">User</th>
-                <th className="py-2 pr-4">Status</th>
-                <th className="py-2 pr-4">Landing</th>
-                <th className="py-2 pr-4">Associated</th>
-              </tr>
-            </thead>
-            <tbody>
-              {attributions.map((attribution) => (
-                <tr key={String(attribution.id || '')} className="border-b">
-                  <td className="py-2 pr-4 font-mono text-xs">{String(attribution.partner_code || '—')}</td>
-                  <td className="py-2 pr-4 font-mono text-xs">{String(attribution.user_id || '—').slice(0, 12)}</td>
-                  <td className="py-2 pr-4"><Badge variant="outline">{String(attribution.status || '—')}</Badge></td>
-                  <td className="py-2 pr-4 max-w-[16rem] truncate text-xs">{String(attribution.landing_url || '—')}</td>
-                  <td className="py-2 pr-4 text-xs">{affiliateText(attribution.associated_at)}</td>
-                </tr>
-              ))}
-              {attributions.length === 0 ? (
-                <tr><td colSpan={5} className="py-4 text-center text-muted-foreground">No attributions yet.</td></tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
+function describeMissingFields(
+  slug: string,
+  locale: string,
+  fields: string[],
+  configSchema: PluginConfigSchema | undefined,
+): string {
+  return fields.map((field) => getConfigFieldLabel(slug, locale, field, configSchema?.[field])).join(', ');
 }

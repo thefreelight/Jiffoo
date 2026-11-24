@@ -8,12 +8,13 @@
 
 'use client'
 
+import type { ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 
 interface PageShellProps {
   /** Omit to let the page hero act as the header (list pages). */
-  title?: string
-  description?: string
+  title?: ReactNode
+  description?: ReactNode
   /** Right-aligned header actions (buttons, filters, etc.). */
   actions?: React.ReactNode
   children: React.ReactNode
