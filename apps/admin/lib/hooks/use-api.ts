@@ -1574,30 +1574,26 @@ export function useCreatePluginInstance() {
   const { getErrorMessage } = useLocalizedApiFeedback();
 
   return useMutation({
-    mutationFn: async ({
-      slug,
-      instanceKey,
-      enabled,
-      config,
-      grantedPermissions,
-    }: {
+    mutationFn: async (variables: {
       slug: string;
       instanceKey: string;
       enabled?: boolean;
       config?: Record<string, unknown>;
       grantedPermissions?: string[];
+      /** Caller-provided confirmation text, e.g. when the page-level Save creates the default instance. */
+      successMessage?: string;
     }) => {
-      const response = await pluginsApi.createInstance(slug, {
-        instanceKey,
-        enabled,
-        config,
-        grantedPermissions,
+      const response = await pluginsApi.createInstance(variables.slug, {
+        instanceKey: variables.instanceKey,
+        enabled: variables.enabled,
+        config: variables.config,
+        grantedPermissions: variables.grantedPermissions,
       });
       return unwrapApiResponse(response);
     },
     onSuccess: (_, variables) => {
       refreshPluginRuntimeState(queryClient, variables.slug);
-      toast.success(`Instance "${variables.instanceKey}" created successfully`);
+      toast.success(variables.successMessage || `Instance "${variables.instanceKey}" created successfully`);
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -1611,29 +1607,25 @@ export function useUpdatePluginInstance() {
   const { getErrorMessage } = useLocalizedApiFeedback();
 
   return useMutation({
-    mutationFn: async ({
-      slug,
-      installationId,
-      enabled,
-      config,
-      grantedPermissions,
-    }: {
+    mutationFn: async (variables: {
       slug: string;
       installationId: string;
       enabled?: boolean;
       config?: Record<string, unknown>;
       grantedPermissions?: string[];
+      /** Caller-provided confirmation text; the page-level Save and the enable switch each name their own action. */
+      successMessage?: string;
     }) => {
-      const response = await pluginsApi.updateInstance(slug, installationId, {
-        enabled,
-        config,
-        grantedPermissions,
+      const response = await pluginsApi.updateInstance(variables.slug, variables.installationId, {
+        enabled: variables.enabled,
+        config: variables.config,
+        grantedPermissions: variables.grantedPermissions,
       });
       return unwrapApiResponse(response);
     },
     onSuccess: (_, variables) => {
       refreshPluginRuntimeState(queryClient, variables.slug);
-      toast.success('Instance updated successfully');
+      toast.success(variables.successMessage || 'Instance updated successfully');
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));

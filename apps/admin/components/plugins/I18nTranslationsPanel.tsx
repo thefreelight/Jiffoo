@@ -1,16 +1,24 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Download, Loader2, RefreshCw, Save, Upload } from 'lucide-react';
+import { Download, Languages, Loader2, RefreshCw, Upload } from 'lucide-react';
 import { apiClient, unwrapApiResponse } from '@/lib/api';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { usePluginSaveContribution } from '@/components/plugins/plugin-save-registry';
+import {
+  WorkspaceCard,
+  WorkspaceField,
+  WorkspaceNotice,
+  workspaceInputClass,
+  workspaceOutlineButtonClass,
+  workspaceSelectTriggerClass,
+} from '@/components/plugins/plugin-workspace-ui';
+import { useWorkspaceText } from '@/components/plugins/use-workspace-text';
 
 type NamespaceSummary = {
   namespace: string;
@@ -37,9 +45,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
  * UI text translations kept by the Store Localization plugin. Themes ship
  * built-in copy; the rows edited here override it, keyed by the theme's
  * English source string under a `theme.<slug>` namespace. An emptied value
- * removes the override, so the built-in copy takes over again.
+ * removes the override, so the built-in copy takes over again. Edited rows are
+ * persisted by the page-level Save button.
  */
 export function I18nTranslationsPanel({ installationId, disabled }: { installationId: string; disabled: boolean }) {
+  const tf = useWorkspaceText();
   const [locales, setLocales] = useState<Array<{ code: string; name: string }>>([]);
   const [namespaces, setNamespaces] = useState<NamespaceSummary[]>([]);
   const [locale, setLocale] = useState('');
@@ -50,11 +60,8 @@ export function I18nTranslationsPanel({ installationId, disabled }: { installati
   const [visible, setVisible] = useState(PAGE_SIZE);
   const [importText, setImportText] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [status, setStatus] = useState<{ tone: 'default' | 'error' | 'success'; text: string }>({
-    tone: 'default',
-    text: 'Loading translations...',
-  });
+  const [isImporting, setIsImporting] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const params = useMemo(() => ({ params: { installationId } }), [installationId]);
 
@@ -66,15 +73,15 @@ export function I18nTranslationsPanel({ installationId, disabled }: { installati
       setEntries(next);
       setDrafts(next);
       setVisible(PAGE_SIZE);
-      setStatus({ tone: 'success', text: `${Object.keys(next).length} strings loaded for ${targetLocale} / ${targetNamespace}.` });
+      setLoadError(null);
     } catch (error) {
       setEntries({});
       setDrafts({});
-      setStatus({ tone: 'error', text: error instanceof Error ? error.message : 'Failed to load translations.' });
+      setLoadError(error instanceof Error ? error.message : tf('translations.loadFailed', 'Failed to load translations.'));
     } finally {
       setIsLoading(false);
     }
-  }, [params]);
+  }, [params, tf]);
 
   const loadOverview = useCallback(async () => {
     setIsLoading(true);
@@ -95,10 +102,10 @@ export function I18nTranslationsPanel({ installationId, disabled }: { installati
       setNamespace(known);
       await loadEntries(nextLocale, known);
     } catch (error) {
-      setStatus({ tone: 'error', text: error instanceof Error ? error.message : 'Failed to load the translation overview.' });
+      setLoadError(error instanceof Error ? error.message : tf('translations.loadOverviewFailed', 'Failed to load the translation overview.'));
       setIsLoading(false);
     }
-  }, [params, loadEntries]);
+  }, [loadEntries, params, tf]);
 
   useEffect(() => {
     if (disabled) {
@@ -106,7 +113,7 @@ export function I18nTranslationsPanel({ installationId, disabled }: { installati
       setNamespaces([]);
       setEntries({});
       setDrafts({});
-      setStatus({ tone: 'default', text: 'Create or select a plugin instance to manage translations.' });
+      setLoadError(null);
       setIsLoading(false);
       return;
     }
@@ -126,28 +133,29 @@ export function I18nTranslationsPanel({ installationId, disabled }: { installati
 
   const save = async () => {
     if (dirtyKeys.length === 0) return;
-    setIsSaving(true);
     try {
       const payload = Object.fromEntries(dirtyKeys.map((key) => [key, drafts[key]]));
       const response = await apiClient.put(`${BASE}/ui/${encodeURIComponent(locale)}/${encodeURIComponent(namespace)}`, payload, params);
       const result = unwrapApiResponse<{ saved: number; removed: number }>(response);
       await loadEntries(locale, namespace);
-      toast.success(`Saved ${result?.saved ?? dirtyKeys.length} translations`);
+      toast.success(tf('translations.saved', 'Saved {count} translations', { count: result?.saved ?? dirtyKeys.length }));
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to save translations.';
-      setStatus({ tone: 'error', text: message });
+      const message = error instanceof Error ? error.message : tf('translations.saveFailed', 'Failed to save translations.');
+      setLoadError(message);
       toast.error(message);
-    } finally {
-      setIsSaving(false);
+      // Keep the section dirty so the edits can be retried from the page-level Save.
+      throw error;
     }
   };
+
+  usePluginSaveContribution('i18n-translations', !disabled && !isLoading && dirtyKeys.length > 0, save);
 
   const importJson = async () => {
     let parsed: unknown;
     try {
       parsed = JSON.parse(importText);
     } catch {
-      setStatus({ tone: 'error', text: 'The import is not valid JSON.' });
+      setLoadError(tf('translations.importInvalidJson', 'The import is not valid JSON.'));
       return;
     }
     // Accept a bare `{ key: value }` object for the selected locale + namespace, or an export document.
@@ -155,22 +163,26 @@ export function I18nTranslationsPanel({ installationId, disabled }: { installati
       ? parsed
       : { locale, namespace, entries: parsed };
     if (!isRecord(body) || !isRecord(body.entries)) {
-      setStatus({ tone: 'error', text: 'The import must be a `{ "key": "value" }` object or an exported document.' });
+      setLoadError(tf(
+        'translations.importInvalidShape',
+        'The import must be a `{ "key": "value" }` object or an exported document.',
+      ));
       return;
     }
-    setIsSaving(true);
+
+    setIsImporting(true);
     try {
       const response = await apiClient.post(`${BASE}/import/ui/json`, body, params);
       const result = unwrapApiResponse<{ imported: number; targets: number }>(response);
       setImportText('');
       await loadEntries(locale, namespace);
-      toast.success(`Imported ${result?.imported ?? 0} translations`);
+      toast.success(tf('translations.imported', 'Imported {count} translations', { count: result?.imported ?? 0 }));
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to import translations.';
-      setStatus({ tone: 'error', text: message });
+      const message = error instanceof Error ? error.message : tf('translations.importFailed', 'Failed to import translations.');
+      setLoadError(message);
       toast.error(message);
     } finally {
-      setIsSaving(false);
+      setIsImporting(false);
     }
   };
 
@@ -186,38 +198,56 @@ export function I18nTranslationsPanel({ installationId, disabled }: { installati
       link.click();
       URL.revokeObjectURL(url);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to export translations.');
+      toast.error(error instanceof Error ? error.message : tf('translations.exportFailed', 'Failed to export translations.'));
     }
   };
 
   const namespaceCount = namespaces.find((entry) => entry.namespace === namespace)?.locales?.[locale];
+  const busy = isLoading || isImporting;
 
   return (
-    <Card className="rounded-lg border-gray-100 shadow-sm">
-      <CardHeader>
-        <CardTitle className="flex flex-wrap items-center gap-2 text-xl tracking-tight">
-          Translations
-          <Badge variant="secondary" className="font-normal">
-            {Object.keys(drafts).length} strings
+    <WorkspaceCard
+      icon={<Languages className="h-6 w-6" />}
+      title={tf('translations.title', 'UI translations')}
+      badge={
+        <>
+          <Badge variant="secondary" className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-600">
+            {tf('translations.strings', '{count} strings', { count: Object.keys(drafts).length })}
           </Badge>
-          {dirtyKeys.length > 0 ? <Badge variant="default">{dirtyKeys.length} unsaved</Badge> : null}
-        </CardTitle>
-        <CardDescription>
-          Override the storefront&apos;s built-in copy per language. Keys are the theme&apos;s English source strings; empty a value to fall back
-          to the built-in translation.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-5">
-        <div className="grid gap-3 md:grid-cols-[1fr_1fr_2fr]">
-          <div className="space-y-2">
-            <Label htmlFor="i18n-ui-locale">Language</Label>
+          {dirtyKeys.length > 0 ? (
+            <Badge className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700 hover:bg-amber-50">
+              {tf('translations.unsaved', '{count} unsaved', { count: dirtyKeys.length })}
+            </Badge>
+          ) : null}
+        </>
+      }
+      description={tf(
+        'translations.description',
+        "Override the storefront's built-in copy per language. Keys are the theme's English source strings; clear a value to use the built-in translation again.",
+      )}
+      actions={
+        <>
+          <Button variant="outline" className={workspaceOutlineButtonClass} onClick={() => void loadOverview()} disabled={disabled || busy}>
+            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+            {tf('refresh', 'Refresh')}
+          </Button>
+          <Button variant="outline" className={workspaceOutlineButtonClass} onClick={() => void exportJson()} disabled={disabled || isLoading}>
+            <Download className="mr-2 h-4 w-4" />
+            {tf('translations.exportJson', 'Export JSON')}
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-6">
+        <div className="grid gap-6 md:grid-cols-3">
+          <WorkspaceField label={tf('translations.language', 'Language')} htmlFor="i18n-ui-locale">
             <Select
               value={locale}
               onValueChange={(next) => { setLocale(next); void loadEntries(next, namespace); }}
               disabled={disabled || isLoading || locales.length === 0}
             >
-              <SelectTrigger id="i18n-ui-locale" className="rounded-lg">
-                <SelectValue placeholder="Select language" />
+              <SelectTrigger id="i18n-ui-locale" className={workspaceSelectTriggerClass}>
+                <SelectValue placeholder={tf('translations.selectLanguage', 'Select language')} />
               </SelectTrigger>
               <SelectContent>
                 {locales.map((entry) => (
@@ -227,16 +257,15 @@ export function I18nTranslationsPanel({ installationId, disabled }: { installati
                 ))}
               </SelectContent>
             </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="i18n-ui-namespace">Namespace</Label>
+          </WorkspaceField>
+          <WorkspaceField label={tf('translations.namespace', 'Namespace')} htmlFor="i18n-ui-namespace">
             <Select
               value={namespace}
               onValueChange={(next) => { setNamespace(next); void loadEntries(locale, next); }}
               disabled={disabled || isLoading || namespaces.length === 0}
             >
-              <SelectTrigger id="i18n-ui-namespace" className="rounded-lg">
-                <SelectValue placeholder="Select namespace" />
+              <SelectTrigger id="i18n-ui-namespace" className={workspaceSelectTriggerClass}>
+                <SelectValue placeholder={tf('translations.selectNamespace', 'Select namespace')} />
               </SelectTrigger>
               <SelectContent>
                 {(namespaces.length ? namespaces.map((entry) => entry.namespace) : [namespace]).map((entry) => (
@@ -246,115 +275,143 @@ export function I18nTranslationsPanel({ installationId, disabled }: { installati
                 ))}
               </SelectContent>
             </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="i18n-ui-search">Search</Label>
+          </WorkspaceField>
+          <WorkspaceField label={tf('translations.search', 'Search')} htmlFor="i18n-ui-search">
             <Input
               id="i18n-ui-search"
+              type="search"
               value={search}
               onChange={(event) => { setSearch(event.target.value); setVisible(PAGE_SIZE); }}
-              placeholder="Filter by key or translation"
-              className="rounded-lg"
+              placeholder={tf('translations.searchPlaceholder', 'Filter by key or translation')}
+              className={workspaceInputClass}
               disabled={disabled || isLoading}
             />
-          </div>
+          </WorkspaceField>
         </div>
 
-        <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
-          <p className="font-medium text-slate-900">Status</p>
-          <p className={status.tone === 'error' ? 'mt-1 text-red-600' : status.tone === 'success' ? 'mt-1 text-emerald-700' : 'mt-1 text-slate-600'}>
-            {status.text}
-            {typeof namespaceCount === 'number' ? ` ${namespaceCount} rows stored for this language.` : ' No rows stored for this language yet — import the theme catalog or edit below.'}
-          </p>
-        </div>
+        <p className="text-sm leading-6 text-gray-500">
+          {typeof namespaceCount === 'number'
+            ? tf('translations.storedRows', '{count} rows stored for this language.', { count: namespaceCount })
+            : tf('translations.noStoredRows', 'No rows stored for this language yet. Import a catalog or edit below.')}
+        </p>
+
+        {loadError ? <WorkspaceNotice tone="error">{loadError}</WorkspaceNotice> : null}
 
         {isLoading ? (
-          <div className="flex items-center gap-2 text-sm text-slate-500">
-            <Loader2 className="h-4 w-4 animate-spin" /> Loading...
+          <div className="flex items-center justify-center gap-2 py-10 text-sm text-gray-500">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            {tf('loading', 'Loading...')}
           </div>
         ) : (
-          <div className="overflow-hidden rounded-lg border border-slate-200">
-            <div className="max-h-[32rem] divide-y divide-slate-100 overflow-y-auto">
+          <div className="overflow-hidden rounded-2xl border border-gray-100">
+            <div className="max-h-[32rem] divide-y divide-gray-100 overflow-y-auto">
               {rows.length === 0 ? (
-                <p className="px-4 py-8 text-center text-sm text-slate-500">
-                  {search ? 'No strings match this search.' : 'This namespace has no translations for this language yet. Import a catalog to start.'}
+                <p className="px-4 py-10 text-center text-sm text-gray-500">
+                  {search
+                    ? tf('translations.noMatch', 'No strings match this search.')
+                    : tf('translations.noRows', 'This namespace has no translations for this language yet. Import a catalog or edit below.')}
                 </p>
               ) : (
                 rows.slice(0, visible).map((key) => {
                   const overridden = key in entries;
-                  const dirty = drafts[key] !== (entries[key] ?? '');
+                  const edited = drafts[key] !== (entries[key] ?? '');
                   return (
-                    <div key={key} className="grid gap-2 px-4 py-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-center">
+                    <div
+                      key={key}
+                      className={
+                        edited
+                          ? 'grid gap-3 bg-amber-50/40 px-4 py-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-center'
+                          : 'grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-center'
+                      }
+                    >
                       <div className="min-w-0">
-                        <p className="break-words font-mono text-xs text-slate-600">{key}</p>
-                        {!overridden ? <p className="mt-0.5 text-[11px] text-slate-400">New key</p> : null}
+                        <p className="break-words font-mono text-xs leading-5 text-gray-600">{key}</p>
+                        {!overridden ? <p className="mt-0.5 text-[11px] text-gray-400">{tf('translations.newKey', 'New key')}</p> : null}
                       </div>
                       <Input
                         value={drafts[key]}
                         onChange={(event) => setDrafts((current) => ({ ...current, [key]: event.target.value }))}
-                        className="rounded-lg"
-                        placeholder="Leave empty to use the built-in translation"
-                        disabled={disabled || isSaving}
+                        className={`${workspaceInputClass} h-10 bg-white`}
+                        placeholder={tf('translations.placeholder', 'Leave empty to use the built-in translation')}
+                        disabled={disabled || isImporting}
                       />
-                      {dirty ? <Badge variant="outline">edited</Badge> : <span className="hidden md:block w-14" />}
+                      {edited ? (
+                        <Badge variant="outline" className="w-fit justify-self-end border-amber-200 bg-amber-50 text-amber-700">
+                          {tf('translations.edited', 'edited')}
+                        </Badge>
+                      ) : (
+                        <span className="hidden md:block md:w-14" />
+                      )}
                     </div>
                   );
                 })
               )}
             </div>
             {rows.length > visible ? (
-              <div className="border-t border-slate-100 bg-slate-50 px-4 py-2">
-                <Button variant="ghost" size="sm" className="rounded-lg" onClick={() => setVisible((count) => count + PAGE_SIZE)}>
-                  Show more ({rows.length - visible} remaining)
+              <div className="border-t border-gray-100 bg-gray-50/60 px-4 py-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="rounded-lg text-gray-600 hover:text-gray-900"
+                  onClick={() => setVisible((count) => count + PAGE_SIZE)}
+                >
+                  {tf('translations.showMore', 'Show more ({count} remaining)', { count: rows.length - visible })}
                 </Button>
               </div>
             ) : null}
           </div>
         )}
 
-        <div className="flex flex-wrap gap-3">
-          <Button onClick={() => void save()} disabled={disabled || isSaving || isLoading || dirtyKeys.length === 0} className="rounded-lg">
-            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-            Save changes
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => { setDrafts(entries); setVisible(PAGE_SIZE); }}
-            disabled={disabled || isSaving || isLoading || dirtyKeys.length === 0}
-            className="rounded-lg"
-          >
-            Discard edits
-          </Button>
-          <Button variant="outline" onClick={() => void loadOverview()} disabled={disabled || isSaving || isLoading} className="rounded-lg">
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Reload
-          </Button>
-          <Button variant="outline" onClick={() => void exportJson()} disabled={disabled || isLoading} className="rounded-lg">
-            <Download className="mr-2 h-4 w-4" />
-            Export JSON
-          </Button>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="i18n-ui-import">Import JSON</Label>
-          <Textarea
-            id="i18n-ui-import"
-            value={importText}
-            onChange={(event) => setImportText(event.target.value)}
-            rows={4}
-            placeholder={`{ "Sign in": "ログイン", "Password": "パスワード" }`}
-            className="rounded-lg font-mono text-xs"
-            disabled={disabled || isSaving || isLoading}
-          />
+        <div className="space-y-6 border-t border-gray-50 pt-6">
           <div className="flex flex-wrap items-center gap-3">
-            <Button variant="outline" onClick={() => void importJson()} disabled={disabled || isSaving || isLoading || importText.trim() === ''} className="rounded-lg">
-              {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-              Import into {locale} / {namespace}
+            <Button
+              variant="outline"
+              className={workspaceOutlineButtonClass}
+              onClick={() => { setDrafts(entries); setVisible(PAGE_SIZE); }}
+              disabled={disabled || busy || dirtyKeys.length === 0}
+            >
+              {tf('translations.discard', 'Discard edits')}
             </Button>
-            <p className="text-xs text-slate-500">A bare object imports into the selected language and namespace; an exported document keeps its own languages.</p>
+            {disabled ? (
+              <p className="text-sm leading-6 text-gray-500">
+                {tf('translations.disabledHint', 'Create or select a plugin instance to manage translations.')}
+              </p>
+            ) : null}
           </div>
+
+          <WorkspaceField
+            label={tf('translations.importLabel', 'Import JSON')}
+            htmlFor="i18n-ui-import"
+            hint={tf(
+              'translations.importHint',
+              'A bare object imports into the selected language and namespace; an exported document keeps its own languages.',
+            )}
+          >
+            <Textarea
+              id="i18n-ui-import"
+              value={importText}
+              onChange={(event) => setImportText(event.target.value)}
+              rows={4}
+              placeholder='{ "Sign in": "ログイン", "Password": "パスワード" }'
+              className="rounded-xl border-gray-100 bg-white font-mono text-xs"
+              disabled={disabled || busy}
+            />
+            <Button
+              variant="outline"
+              className={workspaceOutlineButtonClass}
+              onClick={() => void importJson()}
+              disabled={disabled || busy || importText.trim() === ''}
+            >
+              {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+              {tf(
+                'translations.importButton',
+                'Import into {locale} / {namespace}',
+                { locale, namespace },
+              )}
+            </Button>
+          </WorkspaceField>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </WorkspaceCard>
   );
 }

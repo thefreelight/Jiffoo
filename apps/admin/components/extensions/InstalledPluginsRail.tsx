@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { localizeExtensionName } from '@/lib/extension-catalog-zh';
 import type { PluginMetaWithState } from '@/lib/types';
 import type { ManagedPackageDefinition } from '@/lib/managed-mode';
 import { ChevronRight, Puzzle, Settings2, ShieldCheck } from 'lucide-react';
@@ -24,11 +25,11 @@ function resolvePluginStatus(
   getText: InstalledPluginsRailProps['getText'],
 ): { label: string; tone: RailStatusTone } {
   if (plugin.enabled) {
-    return { label: getText('merchant.plugins.enabled', 'Enabled'), tone: 'emerald' };
+    return { label: getText('merchant.plugins.workspace.railEnabled', 'Enabled'), tone: 'emerald' };
   }
 
   if (plugin.configRequired && !plugin.configReady) {
-    return { label: getText('merchant.plugins.needsConfiguration', 'Needs config'), tone: 'amber' };
+    return { label: getText('merchant.plugins.workspace.railNeedsConfig', 'Needs config'), tone: 'amber' };
   }
 
   return { label: getText('merchant.plugins.installed', 'Installed'), tone: 'slate' };
@@ -101,12 +102,13 @@ export function InstalledPluginsRail({
               const isSelected = plugin.slug === selectedSlug;
               const isOfficial = officialSlugs?.has(plugin.slug) || plugin.source === 'official-market';
               const status = resolvePluginStatus(plugin, getText);
+              const displayName = localizeExtensionName(plugin.slug, plugin.name, locale);
 
               return (
                 <Link
                   key={plugin.slug}
                   href={`/${locale}/plugins/${plugin.slug}`}
-                  title={plugin.name}
+                  title={displayName}
                   className={cn(
                     'group flex items-center gap-3 rounded-xl px-2.5 py-2.5 transition-colors',
                     isSelected
@@ -128,7 +130,7 @@ export function InstalledPluginsRail({
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
                       <p className={cn('truncate text-sm font-semibold', isSelected ? 'text-blue-700' : 'text-slate-900')}>
-                        {plugin.name}
+                        {displayName}
                       </p>
                       {isOfficial ? (
                         <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-blue-500" aria-label="Official" />

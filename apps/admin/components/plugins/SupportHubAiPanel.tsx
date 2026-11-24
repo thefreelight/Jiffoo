@@ -1,16 +1,29 @@
 'use client';
 
+/**
+ * Support Hub AI reply settings. The panel edits the shared config draft like
+ * any other section of the workspace; the page-level Save button persists it.
+ */
+
+import { useState } from 'react';
 import { Loader2, Sparkles } from 'lucide-react';
+import { useLocale } from 'shared/src/i18n/react';
 import { apiClient, unwrapApiResponse } from '@/lib/api';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { usePluginSaveRegistry } from '@/components/plugins/plugin-save-registry';
+import {
+  WorkspaceCard,
+  WorkspaceField,
+  WorkspaceToggleRow,
+  workspaceInputClass,
+  workspaceOutlineButtonClass,
+  workspaceSelectTriggerClass,
+} from '@/components/plugins/plugin-workspace-ui';
+import { useWorkspaceText } from '@/components/plugins/use-workspace-text';
 
 /**
  * Mainstream OpenAI-compatible provider presets. Picking a provider fills
@@ -20,18 +33,22 @@ import { toast } from 'sonner';
 interface ProviderPreset {
   key: string;
   label: string;
+  labelZhHans: string;
+  labelZhHant: string;
   baseUrl: string;
   models: string[];
 }
 
+const GLM_MODELS = ['glm-5.3', 'glm-5.3-flash', 'glm-5.3-flashx', 'glm-5.2', 'glm-5.1', 'glm-4.7', 'glm-4.7-flash'];
+
 const PROVIDER_PRESETS: ProviderPreset[] = [
-  { key: 'glm', label: '智谱 GLM（国内）', baseUrl: 'https://open.bigmodel.cn/api/paas/v4', models: ['glm-5.3', 'glm-5.3-flash', 'glm-5.3-flashx', 'glm-5.2', 'glm-5.1', 'glm-4.7', 'glm-4.7-flash'] },
-  { key: 'zai', label: 'Z.ai（智谱国际版）', baseUrl: 'https://api.z.ai/api/paas/v4', models: ['glm-5.3', 'glm-5.3-flash', 'glm-5.3-flashx', 'glm-5.2', 'glm-5.1', 'glm-4.7', 'glm-4.7-flash'] },
-  { key: 'deepseek', label: 'DeepSeek', baseUrl: 'https://api.deepseek.com/v1', models: ['deepseek-flash', 'deepseek-chat', 'deepseek-reasoner'] },
-  { key: 'moonshot', label: 'Moonshot Kimi', baseUrl: 'https://api.moonshot.cn/v1', models: ['kimi-latest', 'kimi-k3.1-pro'] },
-  { key: 'qwen', label: '通义千问 Qwen', baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', models: ['qwen3.8-max', 'qwen3.8-flash', 'qwen-plus', 'qwen-turbo'] },
-  { key: 'openai', label: 'OpenAI', baseUrl: 'https://api.openai.com/v1', models: ['gpt-6.1-sol', 'gpt-6-astra', 'gpt-5.2', 'gpt-4o-mini'] },
-  { key: 'custom', label: '自定义 / Custom', baseUrl: '', models: [] },
+  { key: 'glm', label: 'Zhipu GLM (China)', labelZhHans: '智谱 GLM（国内）', labelZhHant: '智譜 GLM（國內）', baseUrl: 'https://open.bigmodel.cn/api/paas/v4', models: GLM_MODELS },
+  { key: 'zai', label: 'Z.ai (Zhipu, international)', labelZhHans: 'Z.ai（智谱国际版）', labelZhHant: 'Z.ai（智譜國際版）', baseUrl: 'https://api.z.ai/api/paas/v4', models: GLM_MODELS },
+  { key: 'deepseek', label: 'DeepSeek', labelZhHans: 'DeepSeek', labelZhHant: 'DeepSeek', baseUrl: 'https://api.deepseek.com/v1', models: ['deepseek-flash', 'deepseek-chat', 'deepseek-reasoner'] },
+  { key: 'moonshot', label: 'Moonshot Kimi', labelZhHans: 'Moonshot Kimi', labelZhHant: 'Moonshot Kimi', baseUrl: 'https://api.moonshot.cn/v1', models: ['kimi-latest', 'kimi-k3.1-pro'] },
+  { key: 'qwen', label: 'Qwen (Alibaba Cloud)', labelZhHans: '通义千问 Qwen', labelZhHant: '通義千問 Qwen', baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', models: ['qwen3.8-max', 'qwen3.8-flash', 'qwen-plus', 'qwen-turbo'] },
+  { key: 'openai', label: 'OpenAI', labelZhHans: 'OpenAI', labelZhHant: 'OpenAI', baseUrl: 'https://api.openai.com/v1', models: ['gpt-6.1-sol', 'gpt-6-astra', 'gpt-5.2', 'gpt-4o-mini'] },
+  { key: 'custom', label: 'Custom', labelZhHans: '自定义', labelZhHant: '自訂', baseUrl: '', models: [] },
 ];
 
 interface SupportHubAiConfig {
@@ -49,11 +66,13 @@ interface SupportHubAiConfig {
 export function SupportHubAiPanel(props: {
   configDraft: Record<string, unknown>;
   onUpdateField: (field: string, value: unknown) => void;
-  onSave: () => Promise<void> | void;
-  saving: boolean;
   disabled?: boolean;
 }) {
-  const { configDraft, onUpdateField, onSave, saving, disabled } = props;
+  const { configDraft, onUpdateField, disabled } = props;
+  const locale = useLocale();
+  const tf = useWorkspaceText();
+  const { hasDirty } = usePluginSaveRegistry();
+  const [testing, setTesting] = useState(false);
   const cfg = configDraft as SupportHubAiConfig;
   const aiEnabled = cfg.aiEnabled === true;
   const chatEnabled = cfg.chatEnabled === true;
@@ -62,8 +81,19 @@ export function SupportHubAiPanel(props: {
   const preset = PROVIDER_PRESETS.find((candidate) => candidate.key === providerKey) ??
     PROVIDER_PRESETS[PROVIDER_PRESETS.length - 1]!;
   const providerModels = preset.models;
+  const providerLabel = (candidate: ProviderPreset) =>
+    locale === 'zh-Hant' ? candidate.labelZhHant : locale === 'zh-Hans' ? candidate.labelZhHans : candidate.label;
+
+  // The test posts through the storefront with the saved configuration, so it
+  // would report on stale settings while the draft has unsaved edits.
+  const testBlockedHint = disabled
+    ? tf('ai.testEnableFirst', 'Enable the plugin before sending a test message.')
+    : hasDirty
+      ? tf('ai.testSaveFirstHint', 'Save your changes before sending a test message.')
+      : tf('ai.testHint', 'Sends a visitor message through the storefront using the saved configuration.');
 
   const testReply = async () => {
+    setTesting(true);
     try {
       const visitorToken = `panel_test_${Date.now().toString(36)}`;
       const response = await apiClient.post(
@@ -74,55 +104,60 @@ export function SupportHubAiPanel(props: {
       const data = unwrapApiResponse<{ reply?: { content?: string; sender?: string } | null }>(response);
       const reply = data?.reply;
       if (reply?.content) {
-        toast.success(`AI 回复：${reply.content.slice(0, 80)}`);
+        toast.success(tf('ai.testReply', 'AI replied: {reply}', { reply: reply.content.slice(0, 80) }));
       } else {
-        toast.message('已保存，但当前没有 AI 回复（可能已转人工模式或 AI 未启用）');
+        toast.message(tf(
+          'ai.testNoReply',
+          'Message sent, but no AI reply came back (the conversation may be with a human agent, or AI replies are off).',
+        ));
       }
     } catch {
-      toast.error('连通性测试失败：请确认插件已启用且配置已保存');
+      toast.error(tf('ai.testFailed', 'Test failed. Check that the plugin is enabled and the configuration is saved.'));
+    } finally {
+      setTesting(false);
     }
   };
 
   return (
-    <Card className="rounded-2xl border-slate-200/80 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
-      <CardHeader className="flex flex-row items-start justify-between space-y-0 px-7 pt-7">
-        <div className="space-y-1.5">
-          <CardTitle className="flex items-center gap-2 text-lg tracking-tight">
-            <Sparkles className="h-5 w-5 text-blue-600" />
-            AI 客服助手
-            <Badge variant="secondary" className="rounded-md bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700">
-              AI replies
-            </Badge>
-          </CardTitle>
-          <CardDescription>
-            选择主流厂商（自动填好接口地址和模型），填入 API Key 即可让 AI 自动回复店面咨询。客服人工回复过的会话会停用 AI。
-          </CardDescription>
+    <WorkspaceCard
+      icon={<Sparkles className="h-6 w-6" />}
+      title={tf('ai.title', 'AI support assistant')}
+      description={tf(
+        'ai.description',
+        'Pick a provider (the endpoint and default model are filled in for you), add an API key, and AI answers storefront questions automatically.',
+      )}
+    >
+      <div className="space-y-6">
+        <div className="space-y-3">
+          <WorkspaceToggleRow
+            id="support-hub-chatEnabled"
+            label={tf('ai.chatToggle', 'Storefront chat')}
+            description={tf('ai.chatToggleHint', 'Show the chat entry on the storefront so visitors can start a conversation.')}
+            checked={chatEnabled}
+            disabled={disabled}
+            onCheckedChange={(checked) => onUpdateField('chatEnabled', checked)}
+          />
+          <WorkspaceToggleRow
+            id="support-hub-aiEnabled"
+            label={tf('ai.aiToggle', 'AI replies')}
+            description={tf(
+              'ai.aiToggleHint',
+              'Let AI answer storefront questions automatically. Conversations an agent has replied to are left to humans.',
+            )}
+            checked={aiEnabled}
+            disabled={disabled}
+            onCheckedChange={(checked) => onUpdateField('aiEnabled', checked)}
+          />
         </div>
-        <div className="flex shrink-0 items-center gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-slate-500">店面聊天</span>
-            <Switch
-              checked={chatEnabled}
-              disabled={disabled}
-              onCheckedChange={(checked) => onUpdateField('chatEnabled', checked)}
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-slate-700">AI 回复</span>
-            <Switch
-              checked={aiEnabled}
-              disabled={disabled}
-              onCheckedChange={(checked) => onUpdateField('aiEnabled', checked)}
-            />
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-5 px-7 pb-7">
+
         {aiEnabled ? (
           <>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">AI 提供商</Label>
+            <div className="grid gap-6 md:grid-cols-2">
+              <WorkspaceField
+                label={tf('ai.provider', 'AI provider')}
+                htmlFor="support-hub-aiProvider"
+                hint={providerKey === 'custom' ? tf('ai.providerCustomHint', 'Custom mode: enter the endpoint and model name yourself.') : tf('ai.providerAutoHint', 'The endpoint and default model are filled in for you.')}
+              >
                 <Select
                   value={providerKey}
                   disabled={disabled}
@@ -136,57 +171,55 @@ export function SupportHubAiPanel(props: {
                     }
                   }}
                 >
-                  <SelectTrigger className="h-11 rounded-xl">
-                    <SelectValue placeholder="选择厂商" />
+                  <SelectTrigger id="support-hub-aiProvider" className={workspaceSelectTriggerClass}>
+                    <SelectValue placeholder={tf('ai.provider', 'AI provider')} />
                   </SelectTrigger>
                   <SelectContent>
                     {PROVIDER_PRESETS.map((candidate) => (
                       <SelectItem key={candidate.key} value={candidate.key}>
-                        {candidate.label}
+                        {providerLabel(candidate)}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-muted-foreground">
-                  {providerKey === 'custom'
-                    ? '自定义模式：手动填写接口地址与模型名。'
-                    : '已自动填好接口地址与默认模型。'}
-                </p>
-              </div>
+              </WorkspaceField>
 
               {providerKey === 'custom' ? (
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">接口地址（Base URL）</Label>
+                <WorkspaceField
+                  label={tf('ai.baseUrl', 'Base URL')}
+                  htmlFor="support-hub-aiBaseUrl"
+                  hint={tf('ai.baseUrlHint', 'OpenAI-compatible endpoint; /chat/completions is appended automatically.')}
+                >
                   <Input
+                    id="support-hub-aiBaseUrl"
                     value={cfg.aiBaseUrl ?? ''}
                     onChange={(event) => onUpdateField('aiBaseUrl', event.target.value)}
                     placeholder="https://api.openai.com/v1"
-                    className="h-11 rounded-xl"
+                    disabled={disabled}
+                    className={workspaceInputClass}
                   />
-                  <p className="text-xs text-muted-foreground">OpenAI 兼容地址，系统自动补 /chat/completions。</p>
-                </div>
+                </WorkspaceField>
               ) : (
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">接口地址（自动）</Label>
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-600">
+                <WorkspaceField label={tf('ai.baseUrlAuto', 'Base URL (automatic)')} htmlFor="support-hub-aiBaseUrl">
+                  <div
+                    id="support-hub-aiBaseUrl"
+                    className="flex h-11 items-center truncate rounded-xl border border-gray-100 bg-gray-50/60 px-4 text-sm text-gray-600"
+                    title={preset.baseUrl}
+                  >
                     {preset.baseUrl}
                   </div>
-                </div>
+                </WorkspaceField>
               )}
 
               {providerModels.length > 0 ? (
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">模型</Label>
+                <WorkspaceField label={tf('ai.model', 'Model')} htmlFor="support-hub-aiModel">
                   <Select
-                    value={providerModels.includes(cfg.aiModel ?? '') ? cfg.aiModel : providerModels[0]}
+                    value={providerModels.includes(cfg.aiModel ?? '') ? cfg.aiModel ?? providerModels[0] : providerModels[0]}
                     disabled={disabled}
-                    onValueChange={(next) => {
-                      onUpdateField('aiModel', next);
-                      if (!providerModels.includes(cfg.aiModel ?? '')) onUpdateField('aiModel', next);
-                    }}
+                    onValueChange={(next) => onUpdateField('aiModel', next)}
                   >
-                    <SelectTrigger className="h-11 rounded-xl">
-                      <SelectValue placeholder="选择模型" />
+                    <SelectTrigger id="support-hub-aiModel" className={workspaceSelectTriggerClass}>
+                      <SelectValue placeholder={tf('ai.model', 'Model')} />
                     </SelectTrigger>
                     <SelectContent>
                       {providerModels.map((model) => (
@@ -196,74 +229,91 @@ export function SupportHubAiPanel(props: {
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
+                </WorkspaceField>
               ) : (
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">模型名</Label>
+                <WorkspaceField label={tf('ai.modelName', 'Model name')} htmlFor="support-hub-aiModel">
                   <Input
+                    id="support-hub-aiModel"
                     value={cfg.aiModel ?? ''}
                     onChange={(event) => onUpdateField('aiModel', event.target.value)}
                     placeholder="gpt-4o-mini"
-                    className="h-11 rounded-xl"
+                    disabled={disabled}
+                    className={workspaceInputClass}
                   />
-                </div>
+                </WorkspaceField>
               )}
 
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">API Key</Label>
+              <WorkspaceField label={tf('ai.apiKey', 'API key')} htmlFor="support-hub-aiApiKey">
                 <Input
+                  id="support-hub-aiApiKey"
                   type="password"
                   value={cfg.aiApiKey ?? ''}
                   onChange={(event) => onUpdateField('aiApiKey', event.target.value)}
-                  placeholder={providerKey === 'glm' ? '粘贴智谱 API Key…' : 'sk-…'}
-                  className="h-11 rounded-xl"
+                  placeholder={providerKey === 'glm' ? tf('ai.apiKeyPlaceholderGlm', 'Paste your Zhipu API key…') : 'sk-…'}
+                  disabled={disabled}
+                  autoComplete="off"
+                  spellCheck={false}
+                  className={workspaceInputClass}
                 />
-              </div>
+              </WorkspaceField>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">欢迎语</Label>
+            <div className="grid gap-6 md:grid-cols-2">
+              <WorkspaceField label={tf('ai.welcome', 'Welcome message')} htmlFor="support-hub-aiWelcomeMessage">
                 <Input
+                  id="support-hub-aiWelcomeMessage"
                   value={cfg.aiWelcomeMessage ?? ''}
                   onChange={(event) => onUpdateField('aiWelcomeMessage', event.target.value)}
-                  className="rounded-xl"
+                  disabled={disabled}
+                  className={workspaceInputClass}
                 />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">兜底文案（AI 不可用时展示）</Label>
+              </WorkspaceField>
+              <WorkspaceField label={tf('ai.handoff', 'Handoff message')} htmlFor="support-hub-aiHandoffMessage">
                 <Input
+                  id="support-hub-aiHandoffMessage"
                   value={cfg.aiHandoffMessage ?? ''}
                   onChange={(event) => onUpdateField('aiHandoffMessage', event.target.value)}
-                  className="rounded-xl"
+                  disabled={disabled}
+                  className={workspaceInputClass}
                 />
-              </div>
-              <div className="space-y-2 md:col-span-2">
-                <Label className="text-sm font-medium">系统提示词（AI 人设与边界）</Label>
+              </WorkspaceField>
+              <WorkspaceField
+                label={tf('ai.systemPrompt', 'System prompt')}
+                htmlFor="support-hub-aiSystemPrompt"
+                className="md:col-span-2"
+              >
                 <Textarea
+                  id="support-hub-aiSystemPrompt"
                   value={cfg.aiSystemPrompt ?? ''}
                   onChange={(event) => onUpdateField('aiSystemPrompt', event.target.value)}
-                  className="min-h-[96px] rounded-xl font-mono text-xs"
+                  disabled={disabled}
+                  className="min-h-[96px] rounded-xl border-gray-100 bg-white font-mono text-xs"
                 />
-              </div>
+              </WorkspaceField>
             </div>
 
-            <div className="flex items-center justify-between gap-4 rounded-xl border border-blue-200 bg-blue-50/70 px-4 py-3">
-              <p className="text-sm text-blue-950">
-                保存后可用店面发一条消息做连通性测试。
-              </p>
-              <Button variant="outline" size="sm" className="shrink-0 rounded-lg" disabled={saving} onClick={() => void testReply()}>
-                {!saving ? null : <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                发送测试消息
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-100 bg-gray-50/40 px-4 py-3">
+              <p className="min-w-0 text-sm leading-6 text-gray-600">{testBlockedHint}</p>
+              <Button
+                variant="outline"
+                className={workspaceOutlineButtonClass}
+                disabled={disabled || hasDirty || testing}
+                onClick={() => void testReply()}
+              >
+                {testing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                {tf('ai.test', 'Send test message')}
               </Button>
             </div>
           </>
         ) : (
-          <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
-            打开上方「AI 回复」开关后，选择厂商并填入 API Key，即可让 AI 自动回答店面咨询。
+          <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50/40 px-4 py-8 text-center text-sm leading-6 text-gray-500">
+            {tf(
+              'ai.aiOffHint',
+              'Turn on AI replies, pick a provider, and add an API key to let AI answer storefront questions.',
+            )}
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </WorkspaceCard>
   );
 }
