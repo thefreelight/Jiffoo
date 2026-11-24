@@ -15713,7 +15713,7 @@
                       /* @__PURE__ */ jsx("path", { d: "M450.81,75.83c-8-5.13-12.01-11.31-12.01-18.56,0-7.24,4-13.42,12.01-18.55,8-5.14,17.65-7.7,28.95-7.7,11.29,0,20.94,2.56,28.95,7.7,8,5.13,12.01,11.31,12.01,18.55,0,7.24-4,13.43-12.01,18.56-8,5.14-17.65,7.7-28.95,7.7-11.3,0-20.95-2.56-28.95-7.7ZM459.45,44.26c-5.61,3.59-8.42,7.93-8.42,13.01,0,5.09,2.8,9.43,8.42,13.02,5.61,3.59,12.38,5.39,20.31,5.39,7.93,0,14.7-1.8,20.3-5.39,5.61-3.59,8.42-7.93,8.42-13.02,0-5.08-2.8-9.42-8.42-13.01-5.61-3.59-12.38-5.39-20.3-5.39-7.93,0-14.7,1.8-20.31,5.39Z" })
                     ] })
                   ] }) }),
-                  /* @__PURE__ */ jsx("div", { className: "absolute right-2 top-2", children: /* @__PURE__ */ jsx("svg", { className: "h-5 w-5 stroke-[2.2] text-[#e5c365] drop-shadow-[0_1px_4px_rgba(212,175,55,0.35)]", fill: "none", viewBox: "0 0 24 24", "aria-hidden": "true", children: /* @__PURE__ */ jsx("path", { d: "M6.5 6.5l11 11L12 23V1l5.5 5.5-11 11", strokeLinecap: "round", strokeLinejoin: "round" }) }) })
+                  /* @__PURE__ */ jsx("div", { className: "absolute right-2 top-2", children: /* @__PURE__ */ jsx("svg", { className: "h-5 w-5 stroke-[2.2] stroke-current text-[#e5c365] drop-shadow-[0_1px_4px_rgba(212,175,55,0.35)]", fill: "none", viewBox: "0 0 24 24", "aria-hidden": "true", children: /* @__PURE__ */ jsx("path", { d: "M6.5 6.5l11 11L12 23V1l5.5 5.5-11 11", strokeLinecap: "round", strokeLinejoin: "round" }) }) })
                 ] }),
                 /* @__PURE__ */ jsx("div", { className: "relative z-20 my-auto mx-auto flex w-full items-center justify-center py-2", children: /* @__PURE__ */ jsx("div", { className: "relative h-[162px] w-[270px]", children: /* @__PURE__ */ jsxs("svg", { className: "h-full w-full drop-shadow-[0_4px_12px_rgba(0,0,0,0.85)]", fill: "none", viewBox: "0 0 270 162", "aria-hidden": "true", children: [
                   /* @__PURE__ */ jsx("path", { d: "M 28 8 H 118", stroke: "#f5f5f5", strokeLinecap: "round", strokeWidth: "4.5" }),
@@ -18471,7 +18471,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.58",
+      version: "1.1.59",
       target: "shop"
     }
   };
