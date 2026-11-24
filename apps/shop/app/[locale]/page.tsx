@@ -9,11 +9,12 @@
 import type { Metadata } from 'next';
 import { getServerStoreContext } from '@/lib/server-store-context';
 import { resolvePublicOrigin } from '@/lib/server-api-url';
+import { homeJsonLd, organizationJsonLd } from '@/lib/seo/public-page-metadata';
 import {
-  generatePublicPageMetadata,
-  homeJsonLd,
-  organizationJsonLd,
-} from '@/lib/seo/public-page-metadata';
+  generateThemePageMetadata,
+  resolveBrandName,
+  resolveThemePageCopy,
+} from '@/lib/seo/theme-page-copy';
 import HomePageClient from './HomePageClient';
 
 interface HomePageProps {
@@ -26,16 +27,17 @@ export async function generateMetadata({ params }: HomePageProps): Promise<Metad
     getServerStoreContext({ cache: 'no-store' }),
     resolvePublicOrigin(),
   ]);
-  const brandName = context?.theme?.config?.brand?.name?.trim() || context?.storeName?.trim() || 'BOKMOO';
-  return generatePublicPageMetadata({ route: 'home', locale, origin, brandName });
+  return generateThemePageMetadata({ route: 'home', locale, context, origin });
 }
 
 export default async function HomePage({ params }: HomePageProps) {
   const { locale } = await params;
   const context = await getServerStoreContext({ cache: 'no-store' });
-  const brandName = context?.theme?.config?.brand?.name?.trim() || context?.storeName?.trim() || 'BOKMOO';
+  const brandName = resolveBrandName(context) || 'BOKMOO';
   const origin = await resolvePublicOrigin();
-  const structuredData = `${homeJsonLd(origin, brandName)}\n${organizationJsonLd(origin, brandName)}`;
+  // The structured data describes what this storefront's home page actually is.
+  const copy = await resolveThemePageCopy({ route: 'home', locale, brandName, themeSlug: context?.theme?.slug });
+  const structuredData = `${homeJsonLd(origin, brandName, copy?.description)}\n${organizationJsonLd(origin, brandName)}`;
   return (
     <>
       <HomePageClient />

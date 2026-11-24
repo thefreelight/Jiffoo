@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import test from 'node:test';
@@ -224,4 +225,57 @@ test('destination catalog is derived from product coverage and sorted for the lo
   assert.equal(catalog[1].planCount, 1);
   // Coverage codes the registry does not name are skipped rather than shown raw.
   assert.deepEqual(buildDestinationCatalog([product('x', ['ZZ'], 1)], 'en'), []);
+});
+
+type PageSeo = { title?: string; description?: string };
+const SEO_LOCALES = ['en', 'zh-Hans', 'zh-Hant', ...CATALOG_LOCALES];
+
+function declaredPageSeo(): Record<string, Record<string, PageSeo | undefined>> {
+  const manifest = JSON.parse(readFileSync(join(SRC, '..', 'theme-pack', 'theme.json'), 'utf8')) as {
+    'x-jiffoo-seo'?: { pages: Record<string, Record<string, PageSeo | undefined>> };
+  };
+  return manifest['x-jiffoo-seo']?.pages ?? {};
+}
+
+test('page metadata in theme.json is complete in all seven storefront locales', () => {
+  const pages = declaredPageSeo();
+  assert.ok(Object.keys(pages).length > 0, 'theme.json declares no page metadata');
+
+  for (const [route, locales] of Object.entries(pages)) {
+    const english = locales.en;
+    assert.ok(english?.title && english?.description, `${route}: the English source is required`);
+    for (const locale of SEO_LOCALES) {
+      const entry = locales[locale];
+      assert.ok(entry?.title?.trim(), `${route}: ${locale} title is missing`);
+      assert.ok(entry?.description?.trim(), `${route}: ${locale} description is missing`);
+      for (const field of ['title', 'description'] as const) {
+        // The host fills `{brand}` per storefront, so a translation keeps or drops it exactly like its source.
+        assert.equal(
+          entry[field]!.includes('{brand}'),
+          english[field]!.includes('{brand}'),
+          `${route} ${locale} ${field}: {brand} must match the English source`,
+        );
+        assert.equal(/\$\{/.test(entry[field]!), false, `${route} ${locale} ${field}: only {brand} may be interpolated`);
+      }
+      assert.ok(entry.title!.length <= 70, `${route} ${locale}: title is ${entry.title!.length} characters`);
+      assert.ok(entry.description!.length <= 170, `${route} ${locale}: description is ${entry.description!.length} characters`);
+    }
+  }
+});
+
+test('page metadata is exported for the Store Localization plugin like every other string', () => {
+  const exported = JSON.parse(execFileSync(
+    process.execPath,
+    [join(SRC, '..', 'scripts', 'export-i18n.mjs')],
+    { encoding: 'utf8' },
+  )) as { translations: Record<string, Record<string, Record<string, string>>> };
+
+  for (const [route, locales] of Object.entries(declaredPageSeo())) {
+    for (const locale of SEO_LOCALES) {
+      for (const field of ['title', 'description'] as const) {
+        const english = locales.en![field]!;
+        assert.equal(exported.translations[locale]?.['theme.esim']?.[english], locales[locale]![field], `${route} ${locale} ${field}`);
+      }
+    }
+  }
 });

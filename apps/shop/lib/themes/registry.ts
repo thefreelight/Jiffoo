@@ -7,14 +7,45 @@
  * 2. Installed themes - Installed via Extension Installer to extensions/themes/shop/
  */
 
-import type { ThemePackage, ThemeMeta, ThemeRegistryEntry, ThemeRegistry } from 'shared/src/types/theme';
+import type {
+  ThemePackage,
+  ThemeMeta,
+  ThemePageSeo,
+  ThemeRegistryEntry,
+  ThemeRegistry,
+  ThemeSeoPages,
+} from 'shared/src/types/theme';
 import bokmooTheme from '@shop-themes/bokmoo/src/runtime';
 import esimRouteTheme from '@shop-themes/esim/src/runtime';
+import esimRouteManifest from '@shop-themes/esim/theme-pack/theme.json';
 import esimMallTheme from '@shop-themes/esim-mall/src/runtime';
 import yevbiTheme from '@shop-themes/yevbi/src/runtime';
 import imagicStudioTheme from '@shop-themes/imagic-studio/src/runtime';
 import appLandingpageTheme from '@shop-themes/app-landingpage/src/runtime';
 import navtoaiTheme from '@shop-themes/navtoai/src/runtime';
+
+/**
+ * Page metadata a theme pack declares for the marketing routes the host renders
+ * for it (`x-jiffoo-seo.pages` in theme.json). A route only counts when the pack
+ * declares the English source for it; other locales are kept as declared.
+ */
+function readDeclaredSeo(manifest: { 'x-jiffoo-seo'?: { pages?: unknown } }): ThemeSeoPages | undefined {
+  const pages = manifest['x-jiffoo-seo']?.pages;
+  if (!pages || typeof pages !== 'object') return undefined;
+
+  const seo: ThemeSeoPages = {};
+  for (const [route, locales] of Object.entries(pages as Record<string, unknown>)) {
+    if (!locales || typeof locales !== 'object') continue;
+    const declared: Partial<Record<string, ThemePageSeo>> = {};
+    for (const [locale, entry] of Object.entries(locales as Record<string, Partial<ThemePageSeo> | null>)) {
+      if (typeof entry?.title === 'string' && typeof entry.description === 'string') {
+        declared[locale] = { title: entry.title, description: entry.description };
+      }
+    }
+    if (declared.en) seo[route] = declared;
+  }
+  return Object.keys(seo).length > 0 ? seo : undefined;
+}
 
 // ============================================================================
 // Built-in Theme Constants
@@ -105,12 +136,13 @@ export const BUILTIN_THEMES: ThemeRegistry = {
     meta: {
       slug: 'esim',
       name: 'eSIM Route Mall',
-      version: '0.0.24',
+      version: '0.0.25',
       description: 'Route-first eSIM mall storefront (One trip, one eSIM) on the black-and-gold Bokmoo design language.',
       category: 'esim',
       author: 'Jiffoo',
       target: 'shop',
       tags: ['esim', 'travel', 'route-planner', 'premium'],
+      seo: readDeclaredSeo(esimRouteManifest),
     },
     load: async () => esimRouteTheme,
   },

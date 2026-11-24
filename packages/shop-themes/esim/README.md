@@ -33,3 +33,28 @@ nothing may resolve copy by hand.
 `node scripts/export-i18n.mjs > theme-i18n.json` exports every string with its
 current translations in the plugin's import format, so the plugin's table can
 be seeded for a store.
+
+## Page metadata (title and description)
+
+The shop host renders a few marketing routes on the theme's behalf and emits
+their `<title>` and meta description server-side, so the theme runtime cannot
+set them. The theme declares them instead in `theme-pack/theme.json`, per route
+and locale:
+
+```json
+"x-jiffoo-seo": {
+  "pages": {
+    "home": {
+      "en": { "title": "{brand} eSIM — One Trip, One eSIM", "description": "…" },
+      "de": { "title": "{brand} eSIM — Eine Reise, eine eSIM", "description": "…" }
+    }
+  }
+}
+```
+
+The host resolves a route's copy in the same order as `pickCopy`: the plugin
+translation keyed by the English source, then the entry declared for the
+locale, then the English source. `{brand}` becomes the storefront brand name.
+Routes the theme does not list keep the host defaults. `npm test` checks that
+every declared route covers all seven locales, and `scripts/export-i18n.mjs`
+exports these strings as well, so operators can override them in the plugin.

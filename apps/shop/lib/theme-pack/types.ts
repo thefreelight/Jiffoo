@@ -6,6 +6,8 @@
  * optionally ship a storefront runtime bundle for package-managed full themes.
  */
 
+import type { ThemeSeoPages } from 'shared/src/types/theme';
+
 /**
  * Theme Pack Manifest (theme.json)
  * This is the main entry point for a Theme Pack
@@ -42,6 +44,11 @@ export interface ThemePackManifest {
    * Built-in renderer slug to use when renderer mode is "embedded".
    */
   'x-jiffoo-renderer-slug'?: string;
+  /**
+   * Optional page metadata (title and description per route and locale) the
+   * theme declares for the marketing routes the host renders for it.
+   */
+  'x-jiffoo-seo'?: { pages: ThemeSeoPages };
 }
 
 /**

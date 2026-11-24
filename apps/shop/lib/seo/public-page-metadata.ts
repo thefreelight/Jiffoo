@@ -124,7 +124,13 @@ const PAGE_META = {
   },
 } satisfies Record<string, { en: { title: string; description: string }; 'zh-Hant': { title: string; description: string }; jsonLd?: boolean }>;
 
-type PageRoute = keyof typeof PAGE_META;
+export type PageRoute = keyof typeof PAGE_META;
+
+/** Resolved page copy for one route, `{brand}` already filled in. */
+export interface PageCopy {
+  title: string;
+  description: string;
+}
 
 function ogLocale(locale: string): string {
   return locale === 'zh-Hant' ? 'zh_TW' : 'en_US';
@@ -134,23 +140,30 @@ function ogLocale(locale: string): string {
 /*  Public API                                                         */
 /* ------------------------------------------------------------------ */
 
+/**
+ * `copy` is the active theme's own page copy for this route and locale (see
+ * lib/seo/theme-page-copy.ts). Without it the defaults above apply, so a theme
+ * that declares nothing renders exactly as before.
+ */
 export function generatePublicPageMetadata({
   route,
   locale,
   origin,
   brandName,
+  copy,
 }: {
   route: PageRoute;
   locale: string;
   origin: string;
   brandName?: string;
+  copy?: PageCopy | null;
 }): Metadata {
   const meta = PAGE_META[route];
   const lang = locale === 'zh-Hant' ? 'zh-Hant' : 'en';
   const brand = brandName?.trim() || 'BOKMOO';
   const { title: rawTitle, description: rawDescription } = meta[lang]!;
-  const title = rawTitle.split('{brand}').join(brand);
-  const description = rawDescription.split('{brand}').join(brand);
+  const title = (copy?.title || rawTitle).split('{brand}').join(brand);
+  const description = (copy?.description || rawDescription).split('{brand}').join(brand);
 
   const base = new URL(origin);
   const urlPath = `/${locale}/${route === 'home' ? '' : route}`;
@@ -195,15 +208,25 @@ export function generatePublicPageMetadata({
 /*  JSON-LD (home page only)                                           */
 /* ------------------------------------------------------------------ */
 
-export function homeJsonLd(origin: string, brandName = 'BOKMOO'): string {
+const DEFAULT_HOME_DESCRIPTION =
+  'is a physical eSIM card for global travelers — 200+ countries and regions with flexible plans.';
+
+/**
+ * `description` is the home page's resolved description, so the structured data
+ * says what the page actually shows instead of the core default.
+ */
+export function homeJsonLd(
+  origin: string,
+  brandName = 'BOKMOO',
+  description = `${brandName} ${DEFAULT_HOME_DESCRIPTION}`,
+): string {
   const base = new URL(origin);
   return JSON.stringify({
     '@context': 'https://schema.org',
     '@type': 'WebSite',
     name: brandName,
     url: base.toString(),
-    description:
-      `${brandName} is a physical eSIM card for global travelers — 200+ countries and regions with flexible plans.`,
+    description,
     potentialAction: {
       '@type': 'SearchAction',
       target: { '@type': 'EntryPoint', urlTemplate: `${base}en/search?q={search_term_string}` },
