@@ -11,18 +11,20 @@ import { getTestPrisma } from '../helpers/db';
 import { createTestApp } from '../helpers/create-test-app';
 
 // Mock official-catalog to make 'stripe' non-free so it goes through authorizeInstall
-// (which returns allowed: false for entitlement denial tests)
+// (which returns allowed: false for entitlement denial tests). The market routes resolve
+// entries through resolveOfficialCatalogEntry, so the override covers both lookups.
 vi.mock('@/core/admin/market/official-catalog', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/core/admin/market/official-catalog')>();
+  const asSubscription = (
+    slug: string,
+    entry: ReturnType<typeof actual.getOfficialCatalogEntry> | undefined,
+  ) => (entry && slug === 'stripe'
+    ? { ...entry, defaultPricingModel: 'subscription' as const }
+    : entry);
   return {
     ...actual,
-    getOfficialCatalogEntry: (slug: string) => {
-      const entry = actual.getOfficialCatalogEntry(slug);
-      if (entry && slug === 'stripe') {
-        return { ...entry, defaultPricingModel: 'subscription' as const };
-      }
-      return entry;
-    },
+    getOfficialCatalogEntry: (slug: string) => asSubscription(slug, actual.getOfficialCatalogEntry(slug)),
+    resolveOfficialCatalogEntry: async (slug: string) => asSubscription(slug, await actual.resolveOfficialCatalogEntry(slug)),
   };
 });
 

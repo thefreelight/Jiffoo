@@ -21,6 +21,7 @@ vi.mock('@/core/auth/middleware', () => ({
 vi.mock('@/core/admin/market/official-catalog', () => ({
   getOfficialCatalog: vi.fn(),
   getOfficialCatalogEntry: mocks.getOfficialCatalogEntry,
+  resolveOfficialCatalogEntry: (slug: string) => mocks.getOfficialCatalogEntry(slug),
 }));
 
 vi.mock('@/core/admin/platform-connection/service', () => ({
