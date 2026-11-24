@@ -1,7 +1,8 @@
 import React from 'react';
-import { Apple, Chrome, Facebook, Eye, EyeOff, Loader2, LockKeyhole, Mail, ShieldCheck } from 'lucide-react';
+import { Eye, EyeOff, Loader2, LockKeyhole, Mail, ShieldCheck } from 'lucide-react';
 import type { LoginPageProps } from 'shared/src/types/theme';
 import { resolveBokmooSiteConfig } from '../site';
+import { readySocialProviders, SocialAuthButtons } from './SocialAuthButtons';
 
 const FOCUS_VISIBLE_RING =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bokmoo-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bokmoo-bg)]';
@@ -14,10 +15,16 @@ export function LoginPage({
   onOAuthClick,
   onAppleOAuthClick,
   onFacebookOAuthClick,
+  socialAuthStatus,
   onNavigateToRegister,
   onNavigateToForgotPassword,
 }: LoginPageProps) {
   const site = resolveBokmooSiteConfig(config);
+  const socialProviders = readySocialProviders(socialAuthStatus, {
+    google: onOAuthClick,
+    apple: onAppleOAuthClick,
+    facebook: onFacebookOAuthClick,
+  });
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [showPassword, setShowPassword] = React.useState(false);
@@ -90,43 +97,25 @@ export function LoginPage({
               </p>
             </div>
 
-            <div className="mt-7 grid gap-3 sm:grid-cols-3">
-              <button
-                type="button"
-                onClick={() => onOAuthClick('google')}
-                className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_86%,black)] px-4 text-sm font-semibold text-[var(--bokmoo-ink)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)] disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING}`}
-                disabled={isLoading}
-              >
-                <Chrome className="h-4 w-4" />
-                Google
-              </button>
-              <button
-                type="button"
-                onClick={() => onAppleOAuthClick?.()}
-                className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_86%,black)] px-4 text-sm font-semibold text-[var(--bokmoo-ink)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)] disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING}`}
-                disabled={isLoading || !onAppleOAuthClick}
-              >
-                <Apple className="h-4 w-4" />
-                Apple
-              </button>
-              <button
-                type="button"
-                onClick={() => onFacebookOAuthClick?.()}
-                className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_86%,black)] px-4 text-sm font-semibold text-[var(--bokmoo-ink)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)] disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING}`}
-                disabled={isLoading || !onFacebookOAuthClick}
-              >
-                <Facebook className="h-4 w-4" />
-                Facebook
-              </button>
-            </div>
-
-            <div className="mt-6 flex items-center gap-3">
-              <div className="h-px flex-1 bg-[var(--bokmoo-line)]" />
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--bokmoo-copy-soft)]">
-                or email
-              </span>
-              <div className="h-px flex-1 bg-[var(--bokmoo-line)]" />
-            </div>
+            {socialProviders.length > 0 ? (
+              <>
+                <SocialAuthButtons
+                  className="mt-7"
+                  providers={socialProviders}
+                  isLoading={isLoading}
+                  onGoogle={() => onOAuthClick('google')}
+                  onApple={onAppleOAuthClick}
+                  onFacebook={onFacebookOAuthClick}
+                />
+                <div className="mt-6 flex items-center gap-3">
+                  <div className="h-px flex-1 bg-[var(--bokmoo-line)]" />
+                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--bokmoo-copy-soft)]">
+                    or email
+                  </span>
+                  <div className="h-px flex-1 bg-[var(--bokmoo-line)]" />
+                </div>
+              </>
+            ) : null}
 
             <form onSubmit={handleSubmit} className="mt-7 space-y-5">
               {error ? (
