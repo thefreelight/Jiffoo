@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { AccountService } from './service';
 import { UpdateEmailSchema, UpdateProfileSchema } from './types';
 import { authMiddleware } from '@/core/auth/middleware';
+import { protectedRoute } from '@/core/auth/openapi';
 import { sendSuccess, sendError } from '@/utils/response';
 import { UploadService } from '@/core/upload/service';
 import { mapAccountRouteError } from '@/utils/route-error-mapper';
@@ -56,7 +57,7 @@ export async function accountRoutes(fastify: FastifyInstance) {
   // Apply auth middleware to all account routes (before schema validation)
   fastify.addHook('onRequest', authMiddleware);
 
-  fastify.get('', async (request, reply) => {
+  fastify.get('', protectedRoute(), async (request, reply) => {
     try {
       const profile = await AccountService.getProfile(request.user!.id);
       const isGuest = profile.role === 'GUEST' || profile.email.endsWith('@guest.bokmoo.invalid');
@@ -81,7 +82,7 @@ export async function accountRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.delete('', async (request, reply) => {
+  fastify.delete('', protectedRoute(), async (request, reply) => {
     try {
       const userId = request.user!.id;
       await prisma.user.update({ where: { id: userId }, data: { isActive: false } });

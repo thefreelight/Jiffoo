@@ -1,5 +1,12 @@
 import jwt from 'jsonwebtoken';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+// `env` is parsed once at import and SERVICE_JWT_SECRET is optional, so it is
+// unset in CI; this test is about a token signed with it.
+vi.hoisted(() => {
+  process.env.SERVICE_JWT_SECRET ||= 'test-service-secret';
+});
+
 import { verifyServiceToken } from '@/core/auth/service-auth';
 
 describe('service authentication', () => {

@@ -10,6 +10,8 @@
  */
 
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+
+import { protectedRoute } from '@/core/auth/openapi';
 import { PrismaClient } from '@prisma/client';
 import { authMiddleware, adminMiddleware } from '@/core/auth/middleware';
 import { sendSuccess, sendError } from '@/utils/response';
@@ -53,6 +55,7 @@ export async function developerSubmissionRoutes(fastify: FastifyInstance) {
 
   fastify.get(
     '/developer/me',
+    protectedRoute(),
     async (request: FastifyRequest, reply: FastifyReply) => {
       return sendSuccess(reply, { developer: getDeveloperIdentity(request) });
     },
@@ -60,6 +63,7 @@ export async function developerSubmissionRoutes(fastify: FastifyInstance) {
 
   fastify.post(
     '/developer/submissions',
+    protectedRoute(),
     async (request: FastifyRequest<{ Body: unknown }>, reply: FastifyReply) => {
       try {
         const developer = getDeveloperIdentity(request);
@@ -82,6 +86,7 @@ export async function developerSubmissionRoutes(fastify: FastifyInstance) {
 
   fastify.get(
     '/developer/submissions',
+    protectedRoute(),
     async (request: FastifyRequest, reply: FastifyReply) => {
       try {
         const developer = getDeveloperIdentity(request);
@@ -95,6 +100,7 @@ export async function developerSubmissionRoutes(fastify: FastifyInstance) {
 
   fastify.get(
     '/developer/submissions/:id',
+    protectedRoute(),
     async (request: FastifyRequest<{ Params: SubmissionParams }>, reply: FastifyReply) => {
       try {
         const developer = getDeveloperIdentity(request);
@@ -111,6 +117,7 @@ export async function developerSubmissionRoutes(fastify: FastifyInstance) {
 
   fastify.post(
     '/developer/submissions/:id/artifact',
+    protectedRoute(),
     async (
       request: FastifyRequest<{ Params: SubmissionParams; Body: { artifactUrl?: string; checksumSha256?: string } }>,
       reply: FastifyReply,
@@ -138,6 +145,7 @@ export async function developerSubmissionRoutes(fastify: FastifyInstance) {
 
   fastify.post(
     '/developer/submissions/:id/artifact/upload',
+    protectedRoute(),
     async (request: FastifyRequest<{ Params: SubmissionParams }>, reply: FastifyReply) => {
       try {
         const developer = getDeveloperIdentity(request);
@@ -162,6 +170,7 @@ export async function developerSubmissionRoutes(fastify: FastifyInstance) {
 
   fastify.post(
     '/developer/submissions/:id/submit',
+    protectedRoute(),
     async (request: FastifyRequest<{ Params: SubmissionParams }>, reply: FastifyReply) => {
       try {
         const developer = getDeveloperIdentity(request);
@@ -189,6 +198,7 @@ export async function adminSubmissionReviewRoutes(fastify: FastifyInstance) {
 
   fastify.get(
     '/submissions',
+    protectedRoute(),
     async (
       request: FastifyRequest<{ Querystring: { status?: string; limit?: string } }>,
       reply: FastifyReply,
@@ -207,6 +217,7 @@ export async function adminSubmissionReviewRoutes(fastify: FastifyInstance) {
 
   fastify.get(
     '/submissions/:id',
+    protectedRoute(),
     async (request: FastifyRequest<{ Params: SubmissionParams }>, reply: FastifyReply) => {
       try {
         return sendSuccess(reply, { submission: await service.getSubmission(request.params.id) });
@@ -218,6 +229,7 @@ export async function adminSubmissionReviewRoutes(fastify: FastifyInstance) {
 
   fastify.get(
     '/submissions/:id/artifact',
+    protectedRoute(),
     async (request: FastifyRequest<{ Params: SubmissionParams }>, reply: FastifyReply) => {
       try {
         const submission = await service.getSubmission(request.params.id);
@@ -266,15 +278,17 @@ export async function adminSubmissionReviewRoutes(fastify: FastifyInstance) {
     }
   }
 
-  fastify.post('/submissions/:id/approve', async (request, reply) => reviewAction(request, reply, 'approve'));
-  fastify.post('/submissions/:id/reject', async (request, reply) => reviewAction(request, reply, 'reject'));
+  fastify.post('/submissions/:id/approve', protectedRoute(), async (request, reply) => reviewAction(request, reply, 'approve'));
+  fastify.post('/submissions/:id/reject', protectedRoute(), async (request, reply) => reviewAction(request, reply, 'reject'));
   fastify.post(
     '/submissions/:id/request-changes',
+    protectedRoute(),
     async (request, reply) => reviewAction(request, reply, 'request-changes'),
   );
 
   fastify.post(
     '/submissions/:id/publish',
+    protectedRoute(),
     async (request: FastifyRequest<{ Params: SubmissionParams }>, reply: FastifyReply) => {
       try {
         const reviewer = (request as unknown as { user?: { email?: string; id?: string } }).user;
@@ -291,7 +305,7 @@ export async function adminSubmissionReviewRoutes(fastify: FastifyInstance) {
 
   // ---- Developer account management ----
 
-  fastify.get('/developers', async (_request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/developers', protectedRoute(), async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
       return sendSuccess(reply, { developers: await listDeveloperAccounts() });
     } catch (error) {
@@ -301,6 +315,7 @@ export async function adminSubmissionReviewRoutes(fastify: FastifyInstance) {
 
   fastify.post(
     '/developers',
+    protectedRoute(),
     async (
       request: FastifyRequest<{ Body: { name?: string; email?: string; company?: string } }>,
       reply: FastifyReply,
@@ -329,6 +344,7 @@ export async function adminSubmissionReviewRoutes(fastify: FastifyInstance) {
 
   fastify.post(
     '/developers/:id/revoke',
+    protectedRoute(),
     async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
       try {
         return sendSuccess(

@@ -16,10 +16,18 @@ import type { FastifyInstance } from 'fastify';
 import { createTestApp } from '../helpers/create-test-app';
 import { createUserWithToken, createAdminWithToken, deleteAllTestUsers } from '../helpers/auth';
 import { PUBLIC_CORE_UPDATE_MANIFEST } from 'shared';
+import fs from 'node:fs';
+import path from 'node:path';
 
 const PUBLIC_MANIFEST_URL = 'https://get.jiffoo.com/releases/core/manifest.json';
 const PUBLIC_MANIFEST = PUBLIC_CORE_UPDATE_MANIFEST;
 const TEST_LATEST_VERSION = PUBLIC_MANIFEST.latestVersion;
+// The runtime version this checkout carries (`1.0.164-opensource` in package.json), as the
+// service normalizes it for the public feed. Reading it beats pinning a number: the pinned
+// number rots on every release.
+const WORKSPACE_VERSION = (
+  JSON.parse(fs.readFileSync(path.resolve(process.cwd(), '../../package.json'), 'utf8')) as { version: string }
+).version.replace(/-opensource$/, '');
 
 describe('Upgrade Endpoints', () => {
   let app: FastifyInstance;
@@ -203,11 +211,12 @@ describe('Upgrade Endpoints', () => {
 
     it('should normalize -opensource runtime versions before comparing against the public feed', async () => {
       vi.stubEnv('JIFFOO_DEPLOYMENT_MODE', 'docker-compose');
+      vi.stubEnv('JIFFOO_CORE_UPDATE_MANIFEST_URL', 'https://updates.example.com/releases/core/manifest.json');
       vi.stubGlobal(
         'fetch',
         vi.fn(async () => ({
           ok: true,
-          json: async () => PUBLIC_MANIFEST,
+          json: async () => ({ ...PUBLIC_MANIFEST, latestVersion: WORKSPACE_VERSION, latestStableVersion: WORKSPACE_VERSION }),
         })) as typeof fetch,
       );
 
@@ -219,8 +228,8 @@ describe('Upgrade Endpoints', () => {
 
       expect(response.statusCode).toBe(200);
       const body = response.json();
-      expect(body.data.currentVersion).toBe(TEST_LATEST_VERSION);
-      expect(body.data.latestVersion).toBe(TEST_LATEST_VERSION);
+      expect(body.data.currentVersion).toBe(WORKSPACE_VERSION);
+      expect(body.data.latestVersion).toBe(WORKSPACE_VERSION);
       expect(body.data.updateAvailable).toBe(false);
     });
   });
