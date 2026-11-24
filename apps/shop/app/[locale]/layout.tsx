@@ -5,6 +5,7 @@
  * Wraps children with I18nProvider containing locale-specific messages.
  */
 
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import {
@@ -24,9 +25,28 @@ import { OfflineDetector } from '@/components/offline-detector';
 import { SkipToMain } from '@/components/skip-to-main';
 import { ThemeMessagesRegistrar } from '@/components/theme-messages-registrar';
 import { getThemeMessages } from '@/lib/theme-i18n-server';
+import { generateThemeDefaultMetadata } from '@/lib/seo/theme-page-copy';
 
 interface Props extends Omit<LocaleLayoutProps, 'params'> {
   params: Promise<{ locale: string }>;
+}
+
+/**
+ * Title and description for pages that set none of their own (the plans listing,
+ * destinations, search, …). They come from the active theme's declared default in
+ * the visitor's language; a theme without one keeps the root layout's metadata.
+ */
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { locale } = await params;
+  if (!isSupportedLocale(locale)) return {};
+
+  let context: StoreContext | null = null;
+  try {
+    context = (await getServerStoreContext({ cache: 'no-store' })) as unknown as StoreContext | null;
+  } catch {
+    context = null;
+  }
+  return generateThemeDefaultMetadata({ locale, context });
 }
 
 export default async function LocaleLayout({ children, params }: Props) {

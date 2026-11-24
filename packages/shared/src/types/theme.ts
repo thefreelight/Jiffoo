@@ -27,11 +27,18 @@ export interface ThemePageSeo {
 }
 
 /**
- * Page metadata a theme ships, keyed by route and then by storefront locale.
- * `en` is the source: the Store Localization (i18n) plugin overrides it by
- * English source string, and a locale the theme does not declare falls back to it.
+ * Page metadata a theme declares for one target (a marketing route the host renders
+ * for it, or the default for pages without their own), keyed by storefront locale.
+ * `en` is the source: the Store Localization (i18n) plugin overrides it by English
+ * source string, and a locale the theme does not declare falls back to it.
  */
-export type ThemeSeoPages = Record<string, Partial<Record<string, ThemePageSeo>>>;
+export type ThemeSeoLocaleEntries = Partial<Record<string, ThemePageSeo>>;
+
+/**
+ * Page metadata a theme ships, keyed by target. `default` is the copy for pages that
+ * set no metadata of their own; every other key is a marketing route.
+ */
+export type ThemeSeoPages = Record<string, ThemeSeoLocaleEntries>;
 
 /**
  * Theme Metadata (for registry)

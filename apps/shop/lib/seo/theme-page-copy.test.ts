@@ -1,7 +1,7 @@
 /**
- * Theme-owned page copy for the host-rendered marketing routes
- * (lib/seo/theme-page-copy.ts): theme declaration, plugin override, core defaults,
- * and the server/client import boundary that only a real Next build would otherwise catch.
+ * Theme-owned page copy (lib/seo/theme-page-copy.ts): the marketing route wrappers and
+ * the locale layout's default — theme declaration, plugin override, core defaults — and
+ * the server/client import boundary that only a real Next build would otherwise catch.
  */
 
 import { readFile } from 'node:fs/promises';
@@ -14,10 +14,16 @@ const mocks = vi.hoisted(() => ({
   getThemeMessages: vi.fn(),
 }));
 
-vi.mock('@/lib/themes/theme-seo', () => ({ getDeclaredThemeSeo: mocks.getDeclaredThemeSeo }));
+vi.mock('@/lib/themes/theme-seo', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/themes/theme-seo')>()),
+  getDeclaredThemeSeo: mocks.getDeclaredThemeSeo,
+}));
 vi.mock('@/lib/theme-i18n-server', () => ({ getThemeMessages: mocks.getThemeMessages }));
 
+// The mocked declarations module keeps the real constants and only stubs the lookup.
+import { DEFAULT_THEME_SEO_ROUTE } from '@/lib/themes/theme-seo';
 import {
+  generateThemeDefaultMetadata,
   generateThemePageMetadata,
   resolveBrandName,
   resolveThemePageCopy,
@@ -28,7 +34,15 @@ const HOME_EN = {
   title: '{brand} eSIM — One Trip, One eSIM',
   description: 'Route-first eSIM mall by {brand}.',
 };
+const DEFAULT_EN = {
+  title: '{brand} eSIM — Travel eSIM Plans & Data',
+  description: 'Destination and regional eSIM plans from {brand}.',
+};
 const DECLARED = {
+  [DEFAULT_THEME_SEO_ROUTE]: {
+    en: DEFAULT_EN,
+    de: { title: '{brand} eSIM — Tarife und Daten', description: 'Ziel- und Regional-Tarife von {brand}.' },
+  },
   home: {
     en: HOME_EN,
     de: { title: '{brand} eSIM — Eine Reise', description: 'Routenbasierter eSIM-Shop von {brand}.' },
@@ -170,6 +184,55 @@ describe('generateThemePageMetadata', () => {
   });
 });
 
+describe('generateThemeDefaultMetadata (locale layout)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.getThemeMessages.mockResolvedValue(null);
+    mocks.getDeclaredThemeSeo.mockImplementation((slug: string) => (slug === 'esim' ? DECLARED : undefined));
+  });
+
+  it('gives pages without their own metadata the declared default, keeping the brand title template', async () => {
+    await expect(generateThemeDefaultMetadata({ locale: 'de', context: context() })).resolves.toEqual({
+      title: { default: 'Bokmoo eSIM — Tarife und Daten', template: '%s | Bokmoo' },
+      description: 'Ziel- und Regional-Tarife von Bokmoo.',
+      openGraph: { title: 'Bokmoo eSIM — Tarife und Daten', description: 'Ziel- und Regional-Tarife von Bokmoo.', locale: 'en_US' },
+      twitter: { title: 'Bokmoo eSIM — Tarife und Daten', description: 'Ziel- und Regional-Tarife von Bokmoo.' },
+    });
+  });
+
+  it('falls back to the English default and maps the Open Graph locale', async () => {
+    const metadata = await generateThemeDefaultMetadata({ locale: 'zh-Hant', context: context() });
+
+    expect(metadata.title).toEqual({ default: 'Bokmoo eSIM — Travel eSIM Plans & Data', template: '%s | Bokmoo' });
+    expect(metadata.openGraph?.locale).toBe('zh_TW');
+  });
+
+  it('lets the Store Localization plugin override the default by English source', async () => {
+    mocks.getThemeMessages.mockResolvedValue({ 'theme.esim': { [DEFAULT_EN.title]: '{brand} Reise-eSIM' } });
+
+    const metadata = await generateThemeDefaultMetadata({ locale: 'de', context: context() });
+
+    expect(metadata.title).toEqual({ default: 'Bokmoo Reise-eSIM', template: '%s | Bokmoo' });
+    expect(metadata.description).toBe('Ziel- und Regional-Tarife von Bokmoo.');
+  });
+
+  it('answers an empty object so the root layout metadata stays in force', async () => {
+    // A theme that declares nothing at all.
+    expect(await generateThemeDefaultMetadata({ locale: 'de', context: context({ theme: { slug: 'builtin-default' } }) })).toEqual({});
+    // A theme with route copy but no default.
+    mocks.getDeclaredThemeSeo.mockImplementation((slug: string) => (slug === 'esim' ? { home: DECLARED.home } : undefined));
+    expect(await generateThemeDefaultMetadata({ locale: 'de', context: context() })).toEqual({});
+    // No theme, no context.
+    expect(await generateThemeDefaultMetadata({ locale: 'de', context: context({ theme: null }) })).toEqual({});
+    expect(await generateThemeDefaultMetadata({ locale: 'de', context: null })).toEqual({});
+    expect(mocks.getThemeMessages).not.toHaveBeenCalled();
+  });
+
+  it('answers an empty object when there is no brand name to build a title template from', async () => {
+    expect(await generateThemeDefaultMetadata({ locale: 'de', context: context({ storeName: '', theme: { slug: 'esim' } }) })).toEqual({});
+  });
+});
+
 describe('server boundary', () => {
   it('keeps the server-side metadata module away from the theme registry and theme runtimes', async () => {
     // Server components import this module to generate metadata. The registry pulls in the
@@ -178,6 +241,13 @@ describe('server boundary', () => {
 
     expect(source).not.toMatch(/themes\/registry|@shop-themes\/[^'"]*\/src\/runtime/);
     expect(source).toMatch(/themes\/theme-seo'/);
+  });
+
+  it('keeps the locale layout, which generates metadata for every page, away from the theme registry too', async () => {
+    const source = await readFile(path.join(process.cwd(), 'app', '[locale]', 'layout.tsx'), 'utf8');
+
+    expect(source).toMatch(/seo\/theme-page-copy'/);
+    expect(source).not.toMatch(/themes\/registry|@shop-themes\/[^'"]*\/src\/runtime/);
   });
 
   it('keeps the declared page metadata module free of anything but type and manifest imports', async () => {
