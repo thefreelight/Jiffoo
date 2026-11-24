@@ -1,17 +1,20 @@
 /**
  * Theme-owned page copy for the host-rendered marketing routes
- * (lib/seo/theme-page-copy.ts): theme declaration, plugin override, core defaults.
+ * (lib/seo/theme-page-copy.ts): theme declaration, plugin override, core defaults,
+ * and the server/client import boundary that only a real Next build would otherwise catch.
  */
 
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ServerStoreContext } from '@/lib/server-store-context';
 
 const mocks = vi.hoisted(() => ({
-  getThemeMeta: vi.fn(),
+  getDeclaredThemeSeo: vi.fn(),
   getThemeMessages: vi.fn(),
 }));
 
-vi.mock('@/lib/themes/registry', () => ({ getThemeMeta: mocks.getThemeMeta }));
+vi.mock('@/lib/themes/theme-seo', () => ({ getDeclaredThemeSeo: mocks.getDeclaredThemeSeo }));
 vi.mock('@/lib/theme-i18n-server', () => ({ getThemeMessages: mocks.getThemeMessages }));
 
 import {
@@ -48,7 +51,7 @@ describe('resolveThemePageCopy', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getThemeMessages.mockResolvedValue(null);
-    mocks.getThemeMeta.mockImplementation((slug: string) => (slug === 'esim' ? { slug, seo: DECLARED } : undefined));
+    mocks.getDeclaredThemeSeo.mockImplementation((slug: string) => (slug === 'esim' ? DECLARED : undefined));
   });
 
   it('returns what the theme declares for the locale, with {brand} filled in', async () => {
@@ -114,7 +117,7 @@ describe('resolveThemePageCopy', () => {
   });
 
   it('does not treat a route as declared when the theme lacks the English source', async () => {
-    mocks.getThemeMeta.mockReturnValue({ slug: 'x', seo: { home: { de: { title: 'nur Deutsch', description: 'ohne Quelle' } } } });
+    mocks.getDeclaredThemeSeo.mockReturnValue({ home: { de: { title: 'nur Deutsch', description: 'ohne Quelle' } } });
 
     expect(await resolveThemePageCopy({ route: 'home', locale: 'de', brandName: 'Bokmoo', themeSlug: 'x' })).toBeNull();
   });
@@ -127,7 +130,7 @@ describe('generateThemePageMetadata', () => {
   });
 
   it('leaves a theme that declares nothing on the core defaults', async () => {
-    mocks.getThemeMeta.mockReturnValue({ slug: 'builtin-default' });
+    mocks.getDeclaredThemeSeo.mockReturnValue(undefined);
 
     const metadata = await generateThemePageMetadata({
       route: 'home',
@@ -143,7 +146,7 @@ describe('generateThemePageMetadata', () => {
   });
 
   it('builds the metadata from the theme copy for the active theme of the store context', async () => {
-    mocks.getThemeMeta.mockReturnValue({ slug: 'esim', seo: DECLARED });
+    mocks.getDeclaredThemeSeo.mockReturnValue(DECLARED);
 
     const metadata = await generateThemePageMetadata({ route: 'home', locale: 'de', context: context(), origin: ORIGIN });
 
@@ -158,12 +161,33 @@ describe('generateThemePageMetadata', () => {
   });
 
   it('renders even without a store context', async () => {
-    mocks.getThemeMeta.mockReturnValue({ slug: 'esim', seo: DECLARED });
+    mocks.getDeclaredThemeSeo.mockReturnValue(DECLARED);
 
     const metadata = await generateThemePageMetadata({ route: 'home', locale: 'de', context: null, origin: ORIGIN });
 
     expect(metadata.title).toBe('BOKMOO – One Card, Connected to Your World');
     expect(mocks.getThemeMessages).not.toHaveBeenCalled();
+  });
+});
+
+describe('server boundary', () => {
+  it('keeps the server-side metadata module away from the theme registry and theme runtimes', async () => {
+    // Server components import this module to generate metadata. The registry pulls in the
+    // client-side theme runtimes, and Next refuses to build that server graph.
+    const source = await readFile(path.join(process.cwd(), 'lib', 'seo', 'theme-page-copy.ts'), 'utf8');
+
+    expect(source).not.toMatch(/themes\/registry|@shop-themes\/[^'"]*\/src\/runtime/);
+    expect(source).toMatch(/themes\/theme-seo'/);
+  });
+
+  it('keeps the declared page metadata module free of anything but type and manifest imports', async () => {
+    const source = await readFile(path.join(process.cwd(), 'lib', 'themes', 'theme-seo.ts'), 'utf8');
+    const imports = [...source.matchAll(/^import .*;$/gm)].map((match) => match[0]);
+
+    expect(imports.length).toBeGreaterThan(0);
+    for (const statement of imports) {
+      expect(statement, statement).toMatch(/^import type |\.json';$/);
+    }
   });
 });
 

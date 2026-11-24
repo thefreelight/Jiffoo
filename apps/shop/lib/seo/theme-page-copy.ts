@@ -4,8 +4,7 @@
  * The host renders a few marketing routes (home, help, terms, …) on behalf of the
  * active theme, so their title and description have to come from the theme rather
  * than from one set of defaults. A theme declares them in its pack
- * (`theme.json` → `x-jiffoo-seo.pages`), which reaches this module through the
- * embedded theme registry.
+ * (`theme.json` → `x-jiffoo-seo.pages`), read through lib/themes/theme-seo.ts.
  *
  * Resolution for one route and locale, the same order the theme runtime's
  * `pickCopy` applies to storefront copy:
@@ -17,7 +16,9 @@
 
 import type { Metadata } from 'next';
 import type { ServerStoreContext } from '@/lib/server-store-context';
-import { getThemeMeta } from '@/lib/themes/registry';
+// Server components import this module to generate metadata, so it must not reach the
+// theme registry and its client-side theme runtimes (lib/themes/theme-seo.ts is import-free).
+import { getDeclaredThemeSeo } from '@/lib/themes/theme-seo';
 import { getThemeMessages } from '@/lib/theme-i18n-server';
 import { generatePublicPageMetadata, type PageCopy, type PageRoute } from './public-page-metadata';
 
@@ -41,7 +42,7 @@ export async function resolveThemePageCopy({
   brandName?: string;
   themeSlug?: string | null;
 }): Promise<PageCopy | null> {
-  const declared = themeSlug ? getThemeMeta(themeSlug)?.seo?.[route] : undefined;
+  const declared = themeSlug ? getDeclaredThemeSeo(themeSlug)?.[route] : undefined;
   const source = declared?.en;
   if (!declared || !source || !themeSlug) return null;
 
