@@ -132,7 +132,7 @@ export interface PageCopy {
   description: string;
 }
 
-export function ogLocale(locale: string): string {
+function ogLocale(locale: string): string {
   return locale === 'zh-Hant' ? 'zh_TW' : 'en_US';
 }
 

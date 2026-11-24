@@ -195,16 +195,23 @@ describe('generateThemeDefaultMetadata (locale layout)', () => {
     await expect(generateThemeDefaultMetadata({ locale: 'de', context: context() })).resolves.toEqual({
       title: { default: 'Bokmoo eSIM — Tarife und Daten', template: '%s | Bokmoo' },
       description: 'Ziel- und Regional-Tarife von Bokmoo.',
-      openGraph: { title: 'Bokmoo eSIM — Tarife und Daten', description: 'Ziel- und Regional-Tarife von Bokmoo.', locale: 'en_US' },
-      twitter: { title: 'Bokmoo eSIM — Tarife und Daten', description: 'Ziel- und Regional-Tarife von Bokmoo.' },
     });
   });
 
-  it('falls back to the English default and maps the Open Graph locale', async () => {
+  it('sets only title and description so the root layout survives the shallow merge', async () => {
+    // Next replaces a nested openGraph / twitter object wholesale. Returning one here
+    // would drop the root layout's share image, site name, URL and card type from every
+    // page that sets no metadata of its own.
+    const metadata = await generateThemeDefaultMetadata({ locale: 'zh-Hant', context: context() });
+
+    expect(Object.keys(metadata).sort()).toEqual(['description', 'title']);
+  });
+
+  it('falls back to the English default', async () => {
     const metadata = await generateThemeDefaultMetadata({ locale: 'zh-Hant', context: context() });
 
     expect(metadata.title).toEqual({ default: 'Bokmoo eSIM — Travel eSIM Plans & Data', template: '%s | Bokmoo' });
-    expect(metadata.openGraph?.locale).toBe('zh_TW');
+    expect(metadata.description).toBe('Destination and regional eSIM plans from Bokmoo.');
   });
 
   it('lets the Store Localization plugin override the default by English source', async () => {
