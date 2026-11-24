@@ -2,6 +2,7 @@ import React from 'react';
 import { ChevronDown, Globe2, Menu, X } from 'lucide-react';
 import type { HeaderProps } from 'shared/src/types/theme';
 import { pickCopy } from '../site';
+import { OPEN_MOBILE_MENU_EVENT } from '../lib/mobile-menu';
 
 /* Official BOKMOO logomark (750x82 full lockup, gold #e2c26a) — keep inline so
    the storefront has zero remote brand dependencies. */
@@ -53,6 +54,12 @@ export const Header = React.memo(function Header({
 }: HeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const mobileMenuId = 'bokmoo-mobile-menu';
+  // The footer's mobile "Menu" tab asks the header to open this same panel.
+  React.useEffect(() => {
+    const openMenu = () => setIsMenuOpen(true);
+    window.addEventListener(OPEN_MOBILE_MENU_EVENT, openMenu);
+    return () => window.removeEventListener(OPEN_MOBILE_MENU_EVENT, openMenu);
+  }, []);
   const accountInitial = ((user?.firstName || user?.email || 'B').trim().charAt(0) || 'B').toUpperCase();
   // Desktop account menu (My Account / Log Out)
   const [accountMenuOpen, setAccountMenuOpen] = React.useState(false);
@@ -120,7 +127,7 @@ export const Header = React.memo(function Header({
 
   return (
     <header className="w-full border-b border-white/5 backdrop-blur-md sticky top-0 z-50 bg-[#0B0B0D]/80">
-      <div className="w-full max-w-7xl mx-auto px-6 h-20 flex items-center justify-between gap-6 flex-nowrap overflow-visible">
+      <div className="bokmoo-header-bar w-full max-w-7xl mx-auto h-20 flex items-center justify-between flex-nowrap overflow-visible">
         <a
           className={`flex items-center gap-3 shrink-0 group py-1 select-none ${FOCUS_VISIBLE_RING}`}
           data-purpose="brand-logo"
@@ -130,10 +137,10 @@ export const Header = React.memo(function Header({
             onNavigateToHome();
           }}
         >
-          <BokmooLogoLockup className="h-7 w-auto fill-[#e2c26a] drop-shadow-[0_1px_4px_rgba(212,175,55,0.35)] shrink-0" />
+          <BokmooLogoLockup className="bokmoo-header-logo w-auto fill-[#e2c26a] drop-shadow-[0_1px_4px_rgba(212,175,55,0.35)] shrink-0" />
         </a>
 
-        <nav className="hidden md:flex items-center gap-6 lg:gap-8 flex-nowrap shrink-0 text-sm tracking-wide text-neutral-300 font-medium whitespace-nowrap">
+        <nav className="bokmoo-header-nav items-center flex-nowrap shrink-0 text-sm tracking-wide text-neutral-300 font-medium whitespace-nowrap">
           {navItems.map((item) => (
             <a
               key={item.label}
@@ -150,18 +157,19 @@ export const Header = React.memo(function Header({
           ))}
         </nav>
 
-        <div className="flex items-center gap-3 md:gap-4 shrink-0 flex-nowrap">
+        <div className="bokmoo-header-actions flex items-center shrink-0 flex-nowrap">
           <div className="relative group" data-purpose="language-selector">
             <button
               aria-expanded={isLocaleOpen}
               aria-haspopup="true"
+              aria-label={pickCopy(locale, { en: 'Language', hans: '语言', hant: '語言', ja: '言語', ko: '언어', fr: 'Langue', de: 'Sprache' })}
               className={`text-xs md:text-sm font-medium text-neutral-300 hover:text-[#E5C365] transition-all px-2.5 md:px-3 py-1.5 flex items-center gap-1.5 rounded-full border border-white/10 hover:border-[#E5C365]/40 bg-white/[0.03] hover:bg-white/[0.08] backdrop-blur-md cursor-pointer select-none whitespace-nowrap ${FOCUS_VISIBLE_RING}`}
               onClick={() => setIsLocaleOpen((open) => !open)}
               type="button"
             >
               <Globe2 className="w-3.5 h-3.5 md:w-4 md:h-4 text-[#E5C365] shrink-0" />
-              <span className="tracking-wide">{currentLocale.short}</span>
-              <ChevronDown className={`w-3 h-3 text-neutral-400 group-hover:text-[#E5C365] transition-transform duration-200 ${isLocaleOpen ? 'rotate-180' : ''}`} />
+              <span className="bokmoo-header-locale-label tracking-wide">{currentLocale.short}</span>
+              <ChevronDown className={`bokmoo-header-locale-chevron w-3 h-3 text-neutral-400 group-hover:text-[#E5C365] transition-transform duration-200 ${isLocaleOpen ? 'rotate-180' : ''}`} />
             </button>
             {isLocaleOpen ? (
               <div className="absolute right-0 top-full mt-2 w-36 py-1.5 rounded-xl bg-[#17171c]/95 border border-neutral-700/80 shadow-2xl backdrop-blur-md transition-all duration-200 z-50 flex flex-col">
@@ -190,14 +198,17 @@ export const Header = React.memo(function Header({
                 onClick={() => setAccountMenuOpen((value) => !value)}
                 aria-haspopup="menu"
                 aria-expanded={accountMenuOpen}
-                className={`inline-flex items-center gap-2 rounded-full border border-[rgba(212,175,55,0.3)] bg-white/[0.03] pl-1 pr-3 py-1 text-sm font-medium text-[var(--bokmoo-ink)] transition-colors hover:border-[#E5C365]/50 ${FOCUS_VISIBLE_RING}`}
+                aria-label={pickCopy(locale, { en: 'My Account', hans: '我的帐户', hant: '我的帳戶', ja: 'マイアカウント', ko: '내 계정', fr: 'Mon compte', de: 'Mein Konto' })}
+                className={`bokmoo-header-signin items-center gap-2 rounded-full border border-[rgba(212,175,55,0.3)] bg-white/[0.03] pl-1 pr-3 py-1 text-sm font-medium text-[var(--bokmoo-ink)] transition-colors hover:border-[#E5C365]/50 ${FOCUS_VISIBLE_RING}`}
                 type="button"
               >
                 <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#E5C365] text-[0.72rem] font-bold text-[#0d0d0d]">
                   {accountInitial}
                 </span>
-                {pickCopy(locale, { en: 'My Account', hans: '我的帐户', hant: '我的帳戶', ja: 'マイアカウント', ko: '내 계정', fr: 'Mon compte', de: 'Mein Konto' })}
-                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${accountMenuOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
+                <span className="bokmoo-header-signin-label">
+                  {pickCopy(locale, { en: 'My Account', hans: '我的帐户', hant: '我的帳戶', ja: 'マイアカウント', ko: '내 계정', fr: 'Mon compte', de: 'Mein Konto' })}
+                </span>
+                <ChevronDown className={`bokmoo-header-account-chevron h-3.5 w-3.5 transition-transform ${accountMenuOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
               </button>
               {accountMenuOpen ? (
                 <div
@@ -232,7 +243,7 @@ export const Header = React.memo(function Header({
             </div>
           ) : (
             <a
-              className={`text-xs md:text-sm font-medium text-neutral-300 hover:text-[#E5C365] transition-colors px-2 md:px-3 py-1.5 flex items-center gap-1.5 rounded-full hover:bg-white/[0.04] whitespace-nowrap ${FOCUS_VISIBLE_RING}`}
+              className={`bokmoo-header-signin text-xs md:text-sm font-medium text-neutral-300 hover:text-[#E5C365] transition-colors px-2 md:px-3 py-1.5 items-center gap-1.5 rounded-full hover:bg-white/[0.04] whitespace-nowrap ${FOCUS_VISIBLE_RING}`}
               href="#login"
               onClick={(event) => {
                 event.preventDefault();
@@ -243,7 +254,7 @@ export const Header = React.memo(function Header({
               <svg className="w-4 h-4 text-neutral-400 transition-colors shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-              <span>{pickCopy(locale, { en: 'Sign In', hans: '登入', hant: '登入', ja: 'サインイン', ko: '로그인', fr: 'Connexion', de: 'Anmelden' })}</span>
+              <span className="bokmoo-header-signin-label">{pickCopy(locale, { en: 'Sign In', hans: '登入', hant: '登入', ja: 'サインイン', ko: '로그인', fr: 'Connexion', de: 'Anmelden' })}</span>
             </a>
           )}
 
@@ -266,7 +277,7 @@ export const Header = React.memo(function Header({
           </button>
 
           <a
-            className={`px-4 md:px-5 py-2 rounded-full bg-[#E5C365] hover:bg-[#F3D482] text-[#111113] text-xs md:text-sm font-semibold transition-all shadow-[0_2px_12px_rgba(229,195,101,0.25)] hover:shadow-[0_4px_16px_rgba(229,195,101,0.4)] flex items-center gap-1.5 shrink-0 whitespace-nowrap ${FOCUS_VISIBLE_RING}`}
+            className={`px-4 md:px-5 py-2 rounded-full bg-[#E5C365] hover:bg-[#F3D482] text-[#111113] text-xs md:text-sm font-semibold transition-all shadow-[0_2px_12px_rgba(229,195,101,0.25)] hover:shadow-[0_4px_16px_rgba(229,195,101,0.4)] bokmoo-header-cta items-center gap-1.5 shrink-0 whitespace-nowrap ${FOCUS_VISIBLE_RING}`}
             href="https://bokmoo.com/products"
             onClick={(event) => {
               if (!window.location.host.includes('bokmoo.com')) {
@@ -284,7 +295,7 @@ export const Header = React.memo(function Header({
 
         <button
           onClick={() => setIsMenuOpen((value) => !value)}
-          className={`ml-auto md:ml-0 flex h-11 w-11 items-center justify-center rounded-[0.8rem] border border-white/10 text-[var(--bokmoo-ink)] md:hidden ${FOCUS_VISIBLE_RING}`}
+          className={`bokmoo-header-burger h-11 items-center justify-center rounded-[0.8rem] border border-white/10 text-[var(--bokmoo-ink)] ${FOCUS_VISIBLE_RING}`}
           aria-controls={mobileMenuId}
           aria-expanded={isMenuOpen}
           aria-label={isMenuOpen ? pickCopy(locale, { en: 'Close menu', hans: '关闭选单', hant: '關閉選單', ja: 'メニューを閉じる', ko: '메뉴 닫기', fr: 'Fermer le menu', de: 'Menü schließen' }) : pickCopy(locale, { en: 'Open menu', hans: '开启选单', hant: '開啟選單', ja: 'メニューを開く', ko: '메뉴 열기', fr: 'Ouvrir le menu', de: 'Menü öffnen' })}
@@ -295,7 +306,7 @@ export const Header = React.memo(function Header({
       </div>
 
       {isMenuOpen ? (
-        <div id={mobileMenuId} className="border-t border-white/5 bg-[#0B0B0D]/95 backdrop-blur-md px-4 py-4 md:hidden">
+        <div id={mobileMenuId} className="bokmoo-header-menu border-t border-white/5 bg-[#0B0B0D]/95 backdrop-blur-md px-4 py-4">
           <div className="grid gap-2">
             {navItems.map((item) => (
               <button

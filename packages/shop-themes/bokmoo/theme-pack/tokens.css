@@ -114,6 +114,251 @@ h6 {
   color: var(--bokmoo-copy);
 }
 
+/* >>> Responsive chrome (header + footer breakpoints). Keep this block byte-identical
+   in src/tokens.css (embedded renderer) and theme-pack/tokens.css (remote runtime). */
+/* Header breakpoints. The full desktop row (logo, five nav items, language,
+   sign-in, cart, CTA) needs 1255px in English and up to 1327px in German, and
+   it used to overflow the viewport on every width below that — on phones the
+   cart and menu button sat off-screen. Breakpoints live here for the same
+   reason as the PDP title: utilities only exist in the host app's compiled
+   CSS, and theme versions ship on their own. */
+.bokmoo-header-bar {
+  gap: 0.75rem;
+  padding-inline: 1rem;
+}
+
+.bokmoo-header-actions {
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.bokmoo-header-logo {
+  height: 1.25rem;
+}
+
+.bokmoo-header-burger {
+  display: flex;
+  width: 2.5rem;
+}
+
+.bokmoo-header-nav {
+  display: none;
+  column-gap: 1.5rem;
+}
+
+.bokmoo-header-signin,
+.bokmoo-header-cta,
+.bokmoo-header-signin-label,
+.bokmoo-header-locale-label,
+.bokmoo-header-locale-chevron,
+.bokmoo-header-account-chevron {
+  display: none;
+}
+
+@media (max-width: 359px) {
+  .bokmoo-header-logo {
+    height: 1rem;
+  }
+}
+
+/* 640–1279: logo, language, cart and the menu button; the nav, sign-in and
+   CTA stay available inside the menu panel. */
+@media (min-width: 640px) {
+  .bokmoo-header-bar {
+    gap: 1.5rem;
+    padding-inline: 1.5rem;
+  }
+
+  .bokmoo-header-logo {
+    height: 1.5rem;
+  }
+
+  .bokmoo-header-burger {
+    width: 2.75rem;
+  }
+
+  .bokmoo-header-locale-label {
+    display: inline;
+  }
+
+  .bokmoo-header-locale-chevron {
+    display: block;
+  }
+}
+
+@media (min-width: 768px) {
+  .bokmoo-header-actions {
+    gap: 1rem;
+  }
+
+  .bokmoo-header-signin {
+    display: inline-flex;
+  }
+}
+
+/* 1280–1359: full nav and CTA, with sign-in / account as an icon only and
+   the chevrons dropped — spelling that label out needs ~1330px in the
+   longest locales. */
+@media (min-width: 1280px) {
+  .bokmoo-header-bar {
+    gap: 1rem;
+    padding-inline: 1rem;
+  }
+
+  .bokmoo-header-actions {
+    gap: 0.75rem;
+    margin-left: 0;
+  }
+
+  .bokmoo-header-logo {
+    height: 1.75rem;
+  }
+
+  .bokmoo-header-nav,
+  .bokmoo-header-cta {
+    display: flex;
+  }
+
+  .bokmoo-header-burger,
+  .bokmoo-header-menu,
+  .bokmoo-header-locale-chevron,
+  .bokmoo-header-account-chevron {
+    display: none;
+  }
+}
+
+@media (min-width: 1360px) {
+  .bokmoo-header-signin-label {
+    display: inline;
+  }
+}
+
+/* 1536 up: the roomy spacing the header was designed with. Below that the
+   tight tier keeps the longest locales inside the 1280px container. */
+@media (min-width: 1536px) {
+  .bokmoo-header-bar {
+    gap: 1.5rem;
+    padding-inline: 1.5rem;
+  }
+
+  .bokmoo-header-actions {
+    gap: 1rem;
+  }
+
+  .bokmoo-header-nav {
+    column-gap: 2rem;
+  }
+
+  .bokmoo-header-locale-chevron,
+  .bokmoo-header-account-chevron {
+    display: block;
+  }
+}
+
+/* Footer links and copyright sit side by side on desktop (331px). On narrow
+   phones, and in the longer locales, they overflowed the viewport, so they
+   wrap and centre below 768px. */
+.bokmoo-footer-links {
+  flex-wrap: wrap;
+  justify-content: center;
+  column-gap: 2rem;
+  row-gap: 0.75rem;
+}
+
+.bokmoo-footer-copy {
+  flex-basis: 100%;
+  text-align: center;
+}
+
+.bokmoo-footer-nav {
+  flex-wrap: wrap;
+  justify-content: center;
+  column-gap: 1.5rem;
+  row-gap: 0.25rem;
+}
+
+@media (min-width: 768px) {
+  .bokmoo-footer-links {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    row-gap: 0;
+  }
+
+  .bokmoo-footer-copy {
+    flex-basis: auto;
+    text-align: left;
+  }
+
+  .bokmoo-footer-nav {
+    flex-wrap: nowrap;
+  }
+}
+
+@media (max-width: 359px) {
+  .bokmoo-header-logo {
+    height: 1rem;
+  }
+}
+
+@media (min-width: 640px) {
+  .bokmoo-header-bar {
+    gap: 1.5rem;
+    padding-inline: 1.5rem;
+  }
+
+  .bokmoo-header-logo {
+    height: 1.5rem;
+  }
+
+  .bokmoo-header-burger {
+    width: 2.75rem;
+  }
+
+  .bokmoo-header-locale-label {
+    display: inline;
+  }
+
+  .bokmoo-header-locale-chevron {
+    display: block;
+  }
+}
+
+@media (min-width: 768px) {
+  .bokmoo-header-actions {
+    gap: 1rem;
+  }
+
+  .bokmoo-header-signin {
+    display: inline-flex;
+  }
+}
+
+@media (min-width: 1280px) {
+  .bokmoo-header-bar {
+    gap: 1.5rem;
+    padding-inline: 1.5rem;
+  }
+
+  .bokmoo-header-actions {
+    margin-left: 0;
+  }
+
+  .bokmoo-header-logo {
+    height: 1.75rem;
+  }
+
+  .bokmoo-header-nav,
+  .bokmoo-header-cta {
+    display: flex;
+  }
+
+  .bokmoo-header-burger,
+  .bokmoo-header-menu {
+    display: none;
+  }
+}
+/* <<< Responsive chrome end */
+
 ::selection {
   background: color-mix(in oklab, var(--bokmoo-gold) 38%, transparent);
   color: var(--bokmoo-ink);

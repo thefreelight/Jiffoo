@@ -2,6 +2,7 @@ import React from 'react';
 import { Home, LayoutGrid, LifeBuoy, ReceiptText, Smartphone } from 'lucide-react';
 import type { FooterProps } from 'shared/src/types/theme';
 import { pickCopy, resolveBokmooSiteConfig } from '../site';
+import { requestOpenMobileMenu } from '../lib/mobile-menu';
 import { SupportChat } from './SupportChat';
 
 /* Official BOKMOO logomark (750x82 full lockup, gold #e2c26a). */
@@ -34,7 +35,6 @@ export const Footer = React.memo(function Footer({
   platformBranding,
   onNavigate,
   onNavigateToProducts,
-  onNavigateToCategories,
   onNavigateToHelp,
   onNavigateToContact,
   onNavigateToPrivacy,
@@ -74,8 +74,8 @@ export const Footer = React.memo(function Footer({
           </div>
         </div>
         {/* Footer Navigation Links */}
-        <div className="flex items-center gap-8 text-xs sm:text-sm text-neutral-400">
-          <nav className="flex items-center gap-6">
+        <div className="bokmoo-footer-links flex items-center text-xs sm:text-sm text-neutral-400">
+          <nav className="bokmoo-footer-nav flex items-center">
             {footerLinks.map((link) => (
               <a
                 className="hover:text-[#E5C365] transition-colors cursor-pointer"
@@ -90,7 +90,7 @@ export const Footer = React.memo(function Footer({
               </a>
             ))}
           </nav>
-          <span className="text-neutral-500">
+          <span className="bokmoo-footer-copy text-neutral-500">
             © {year} {site.brandName.toUpperCase()}. All rights reserved.
             {showPoweredByJiffoo ? (
               <>
@@ -118,7 +118,7 @@ export const Footer = React.memo(function Footer({
             { label: pickCopy(locale, { en: 'Store', hans: '商店', hant: '商店', ja: 'ストア', ko: '스토어', fr: 'Boutique', de: 'Shop' }), icon: LayoutGrid, onClick: onNavigateToProducts },
             { label: pickCopy(locale, { en: 'Orders', hans: '订单', hant: '訂單', ja: '注文', ko: '주문', fr: 'Commandes', de: 'Bestellungen' }), icon: ReceiptText, onClick: () => onNavigate?.('/orders') },
             { label: pickCopy(locale, { en: 'Support', hans: '支援', hant: '支援', ja: 'サポート', ko: '지원', fr: 'Assistance', de: 'Support' }), icon: LifeBuoy, onClick: onNavigateToHelp },
-            { label: pickCopy(locale, { en: 'Menu', hans: '选单', hant: '選單', ja: 'メニュー', ko: '메뉴', fr: 'Menu', de: 'Menü' }), icon: Smartphone, onClick: onNavigateToCategories },
+            { label: pickCopy(locale, { en: 'Menu', hans: '选单', hant: '選單', ja: 'メニュー', ko: '메뉴', fr: 'Menu', de: 'Menü' }), icon: Smartphone, onClick: requestOpenMobileMenu },
           ].map(({ label, icon: Icon, onClick }) => (
             <button
               key={label}
