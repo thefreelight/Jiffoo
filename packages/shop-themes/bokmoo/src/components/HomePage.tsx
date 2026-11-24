@@ -136,7 +136,7 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
                     </g>
                   </svg>
                   <div className="absolute right-2 top-2">
-                    <svg className="h-5 w-5 stroke-[2.2] text-[#e5c365] drop-shadow-[0_1px_4px_rgba(212,175,55,0.35)]" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                    <svg className="h-5 w-5 stroke-[2.2] stroke-current text-[#e5c365] drop-shadow-[0_1px_4px_rgba(212,175,55,0.35)]" fill="none" viewBox="0 0 24 24" aria-hidden="true">
                       <path d="M6.5 6.5l11 11L12 23V1l5.5 5.5-11 11" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   </div>
