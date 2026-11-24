@@ -91,7 +91,12 @@ describe('native product redemption codes', () => {
     run?: (sql: string) => Promise<unknown>;
     batch?: (statements: unknown[]) => Promise<unknown[]>;
   } = {}) {
-    const rows = { 'native_plugin_instances': { enabled: 1 }, ...(overrides.rows ?? {}) };
+    const rows = {
+      'native_plugin_instances': { enabled: 1 },
+      // The per-day order sequence answers its atomic reservation.
+      'native_order_number_sequences': { seq: 1 },
+      ...(overrides.rows ?? {}),
+    };
     const batch = overrides.batch ?? vi.fn(async () => []);
     const routeFirst = vi.fn(async (sql: string) => {
       for (const [fragment, row] of Object.entries(rows)) {
@@ -109,7 +114,7 @@ describe('native product redemption codes', () => {
           all: routeAll,
           run: vi.fn(async () => overrides.run?.(sql) ?? { success: true, meta: { changes: 1 } }),
         };
-        return { ...bound, bind: vi.fn(() => bound) };
+        return { ...bound, bind: vi.fn((...values: unknown[]) => ({ ...bound, values })) };
       }),
     };
     return { db, batch };
@@ -171,6 +176,29 @@ describe('native product redemption codes', () => {
     const outbox = statements.find((statement) => statement.sql.includes('native_checkout_outbox'));
     expect(outbox).toBeDefined();
     expect(sqls.some((sql) => sql.includes("'payment.succeeded'"))).toBe(true);
+  });
+
+  it('issues a human-readable order number to the redemption order', async () => {
+    authenticateNativeUser.mockResolvedValueOnce({ id: 'user-1', email: 'u@example.com' });
+    const { db, batch } = couponDb({
+      rows: {
+        'native_subscription_redemption_codes': null,
+        'native_product_redemption_codes': { id: 'pcode-1', code: 'ESIMJP7D', product_id: 'esim-jp-7d-1gb', variant_id: null, quantity: 1 },
+        'native_product_redemption_claims': null,
+        // The day's sequence already stands at 6.
+        'native_order_number_sequences': { seq: 7 },
+      },
+    });
+    const response = await tryNativeCoupon(new Request('https://api.example/api/v1/plugins/coupon/api/redeem', {
+      method: 'POST', body: JSON.stringify({ code: 'esimjp7d' }),
+    }), { DB: db, ORDER_NUMBER_PREFIX: 'BM' } as never, vi.fn(async () => esimProduct));
+    expect(response?.status).toBe(201);
+    const statements = batch.mock.calls[0]![0] as Array<{ sql: string; values?: unknown[] }>;
+    const insertOrder = statements.find((statement) => statement.sql.includes('INSERT INTO native_order_snapshots'))!;
+    // One atomic reservation, then the same number in the column and the payload.
+    expect(insertOrder.sql).toContain('imported_at, order_number)');
+    expect(insertOrder.values?.[5]).toMatch(/^BM\d{8}0007$/);
+    expect(JSON.parse(String(insertOrder.values?.[3])).orderNumber).toBe(insertOrder.values?.[5]);
   });
 
   it('rejects a product code claimed by another user', async () => {

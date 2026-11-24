@@ -19,7 +19,8 @@ function goodsDb() {
   return {
     prepare: (sql: string) => ({
       bind: (..._values: unknown[]) => ({
-        first: async () => null,
+        // The per-day sequence answers its atomic reservation.
+        first: async () => (sql.includes('native_order_number_sequences') ? { seq: 1 } : null),
         all: async () => ({ results: [] }),
         run: async () => ({ success: true }),
       }),
