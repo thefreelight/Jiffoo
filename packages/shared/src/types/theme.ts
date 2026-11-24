@@ -18,6 +18,22 @@ import type { Locale, TranslationFunction } from '../i18n/types';
 export type ThemeTarget = 'shop' | 'admin';
 
 /**
+ * Page metadata a theme declares for a marketing route the host renders for it.
+ * `{brand}` is replaced with the storefront brand name.
+ */
+export interface ThemePageSeo {
+  title: string;
+  description: string;
+}
+
+/**
+ * Page metadata a theme ships, keyed by route and then by storefront locale.
+ * `en` is the source: the Store Localization (i18n) plugin overrides it by
+ * English source string, and a locale the theme does not declare falls back to it.
+ */
+export type ThemeSeoPages = Record<string, Partial<Record<string, ThemePageSeo>>>;
+
+/**
  * Theme Metadata (for registry)
  */
 export interface ThemeMeta {
@@ -43,6 +59,8 @@ export interface ThemeMeta {
   tags?: string[];
   /** Target platform */
   target: ThemeTarget;
+  /** Page metadata the theme declares for host-rendered marketing routes */
+  seo?: ThemeSeoPages;
 }
 
 /**

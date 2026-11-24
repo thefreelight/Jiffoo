@@ -11,6 +11,10 @@
  * the message catalog in src/i18n, and `en` maps every key to itself so the
  * English copy can be overridden too. Strings with interpolated templates
  * are skipped: they carry their own inline translations and have no stable key.
+ *
+ * Page metadata (theme.json -> x-jiffoo-seo.pages) is exported the same way:
+ * the English title / description of each route is the key, the declared
+ * locales are its translations.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -100,11 +104,31 @@ for (const locale of ['ja', 'ko', 'fr', 'de']) {
   if (fs.existsSync(file)) catalog[locale] = JSON.parse(fs.readFileSync(file, 'utf8'));
 }
 
+/** english source -> { hans, hant, ja, ko, fr, de } from theme.json -> x-jiffoo-seo.pages */
+const pageMetadata = new Map();
+const manifest = JSON.parse(fs.readFileSync(path.join(themeRoot, 'theme-pack', 'theme.json'), 'utf8'));
+for (const locales of Object.values(manifest['x-jiffoo-seo']?.pages ?? {})) {
+  if (!locales.en) continue;
+  for (const field of ['title', 'description']) {
+    const english = locales.en[field];
+    if (typeof english !== 'string') continue;
+    const values = {};
+    for (const [locale, entry] of Object.entries(locales)) {
+      // Same field names as the inline entries: zh-Hans -> hans, zh-Hant -> hant.
+      const name = locale === 'zh-Hans' ? 'hans' : locale === 'zh-Hant' ? 'hant' : locale;
+      if (locale !== 'en' && typeof entry?.[field] === 'string') values[name] = entry[field];
+    }
+    pageMetadata.set(english, values);
+  }
+}
+
 const translations = {};
 for (const locale of localeFilter) translations[locale] = { [namespace]: {} };
 
-const report = { keys: inline.size, missing: { 'zh-Hans': 0, 'zh-Hant': 0, ja: 0, ko: 0, fr: 0, de: 0 } };
-for (const [english, copy] of [...inline.entries()].sort(([a], [b]) => a.localeCompare(b))) {
+const report = { keys: inline.size + pageMetadata.size, missing: { 'zh-Hans': 0, 'zh-Hant': 0, ja: 0, ko: 0, fr: 0, de: 0 } };
+const sources = [...new Set([...inline.keys(), ...pageMetadata.keys()])].sort((a, b) => a.localeCompare(b));
+for (const english of sources) {
+  const copy = { ...pageMetadata.get(english), ...(inline.get(english) || {}) };
   if (localeFilter.includes('en')) translations.en[namespace][english] = english;
   if (localeFilter.includes('zh-Hans')) {
     if (copy.hans !== undefined) translations['zh-Hans'][namespace][english] = copy.hans;
@@ -116,7 +140,7 @@ for (const [english, copy] of [...inline.entries()].sort(([a], [b]) => a.localeC
   }
   for (const locale of ['ja', 'ko', 'fr', 'de']) {
     if (!localeFilter.includes(locale)) continue;
-    const value = catalog[locale]?.[english];
+    const value = copy[locale] ?? catalog[locale]?.[english];
     if (typeof value === 'string' && value.trim()) translations[locale][namespace][english] = value;
     else report.missing[locale] += 1;
   }

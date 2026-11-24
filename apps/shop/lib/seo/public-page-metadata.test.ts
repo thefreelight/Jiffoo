@@ -50,4 +50,33 @@ describe('generatePublicPageMetadata', () => {
     expect(org['@type']).toBe('Organization');
     expect(String(website.url)).toContain('remoteradar.cc');
   });
+
+  it('uses the active theme page copy for title, description and social tags, with {brand} filled in', () => {
+    const home = generatePublicPageMetadata({
+      route: 'home',
+      locale: 'en',
+      origin: ORIGIN,
+      brandName: 'Bokmoo',
+      copy: { title: '{brand} eSIM — One Trip', description: 'Route-first eSIM mall by {brand}.' },
+    });
+
+    expect(home.title).toBe('Bokmoo eSIM — One Trip');
+    expect(home.description).toBe('Route-first eSIM mall by Bokmoo.');
+    expect(home.openGraph?.title).toBe('Bokmoo eSIM — One Trip');
+    expect((home.twitter as { description?: string } | undefined)?.description).toBe('Route-first eSIM mall by Bokmoo.');
+    // The theme only supplies words: canonical and hreflang stay the route's own.
+    expect(home.alternates?.canonical).toBe('https://remoteradar.cc/en/');
+  });
+
+  it('leaves the defaults untouched when the theme declares nothing for the route', () => {
+    const defaults = generatePublicPageMetadata({ route: 'home', locale: 'en', origin: ORIGIN, brandName: 'Bokmoo' });
+
+    expect(generatePublicPageMetadata({ route: 'home', locale: 'en', origin: ORIGIN, brandName: 'Bokmoo', copy: null })).toEqual(defaults);
+    expect(generatePublicPageMetadata({ route: 'home', locale: 'en', origin: ORIGIN, brandName: 'Bokmoo', copy: undefined })).toEqual(defaults);
+  });
+
+  it('describes the home page with the resolved description in JSON-LD', () => {
+    expect(JSON.parse(homeJsonLd(ORIGIN, 'Bokmoo', 'Route-first eSIM mall by Bokmoo.')).description).toBe('Route-first eSIM mall by Bokmoo.');
+    expect(JSON.parse(homeJsonLd(ORIGIN, 'Bokmoo', undefined)).description).toBe(JSON.parse(homeJsonLd(ORIGIN, 'Bokmoo')).description);
+  });
 });

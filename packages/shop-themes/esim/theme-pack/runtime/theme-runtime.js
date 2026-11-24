@@ -22242,7 +22242,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "esim",
-      version: "0.0.24",
+      version: "0.0.25",
       target: "shop"
     }
   };
