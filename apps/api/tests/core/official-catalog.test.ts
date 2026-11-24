@@ -60,7 +60,7 @@ vi.mock('@/core/admin/market/official-artifacts-client', () => ({
   buildOfficialArtifactMap: mocks.buildOfficialArtifactMap,
 }));
 
-import { getOfficialCatalog } from '@/core/admin/market/official-catalog';
+import { getOfficialCatalog, resolveOfficialCatalogEntry } from '@/core/admin/market/official-catalog';
 
 function makeRemoteTheme(slug: string, name: string, version = '1.0.0') {
   return {
@@ -436,6 +436,94 @@ describe('getOfficialCatalog', () => {
       latestVersion: '1.1.0',
       updateAvailable: true,
       installState: 'enabled',
+    });
+  });
+
+  describe('extensions that exist only in the remote catalog', () => {
+    beforeEach(() => {
+      mocks.getActiveTheme.mockResolvedValue({
+        slug: 'builtin-default',
+        version: '1.0.0',
+        source: 'builtin',
+        type: 'pack',
+        config: {},
+      });
+      mocks.getInstalledThemes.mockResolvedValue({ items: [], total: 0 });
+    });
+
+    it('lists them next to the static seeds, each exactly once', async () => {
+      mocks.getOfficialCatalog.mockResolvedValue({
+        items: [
+          makeRemoteTheme('esim-mall', 'eSIM Mall'),
+          makeRemotePlugin('coupon', 'Coupon', '0.1.5'),
+          { ...makeRemoteTheme('agentra', 'Agentra', '0.0.15'), category: 'ai' },
+        ],
+      });
+
+      const response = await getOfficialCatalog();
+
+      expect(response.items.find((item) => item.slug === 'coupon')).toMatchObject({
+        slug: 'coupon',
+        kind: 'plugin',
+        name: 'Coupon',
+        version: '0.1.5',
+        sellableVersion: '0.1.5',
+        latestVersion: '0.1.5',
+        artifactPackageUrl: 'https://market.example.com/coupon.jplugin',
+        availableInMarket: true,
+        installable: true,
+        installState: 'not_installed',
+        releaseStatus: 'published',
+      });
+      expect(response.items.find((item) => item.slug === 'agentra')).toMatchObject({
+        slug: 'agentra',
+        kind: 'theme',
+        category: 'ai',
+        availableInMarket: true,
+      });
+      expect(response.items.find((item) => item.slug === 'esim-mall')).toMatchObject({
+        slug: 'esim-mall',
+        availableInMarket: true,
+      });
+      expect(new Set(response.items.map((item) => item.slug)).size).toBe(response.items.length);
+    });
+
+    it('does not list them while the market is unreachable', async () => {
+      mocks.checkConnectivity.mockResolvedValue({ ok: false, error: 'market down' });
+
+      const response = await getOfficialCatalog();
+
+      expect(response.items.find((item) => item.slug === 'coupon')).toBeUndefined();
+      expect(response.marketOnline).toBe(false);
+      expect(mocks.getOfficialCatalog).not.toHaveBeenCalled();
+    });
+
+    it('resolves an install entry for them, and never needs the market for a static seed', async () => {
+      mocks.getOfficialCatalog.mockResolvedValue({
+        items: [makeRemotePlugin('coupon', 'Coupon', '0.1.5')],
+      });
+
+      await expect(resolveOfficialCatalogEntry('coupon')).resolves.toMatchObject({
+        slug: 'coupon',
+        kind: 'plugin',
+        version: '0.1.5',
+        packageUrl: 'https://market.example.com/coupon.jplugin',
+        minCoreVersion: '0.2.0',
+        deliveryMode: 'package-managed',
+        defaultPricingModel: 'free',
+      });
+
+      mocks.getOfficialCatalog.mockClear();
+      expect(await resolveOfficialCatalogEntry('stripe')).toMatchObject({ slug: 'stripe', kind: 'plugin' });
+      expect(mocks.getOfficialCatalog).not.toHaveBeenCalled();
+    });
+
+    it('resolves to undefined when neither the static list nor the market knows the slug', async () => {
+      mocks.getOfficialCatalog.mockResolvedValue({ items: [makeRemotePlugin('coupon', 'Coupon')] });
+      expect(await resolveOfficialCatalogEntry('not-an-extension')).toBeUndefined();
+
+      mocks.getOfficialCatalog.mockRejectedValue(new Error('market down'));
+      expect(await resolveOfficialCatalogEntry('coupon')).toBeUndefined();
     });
   });
 });

@@ -12,7 +12,7 @@ import { MarketClient } from './market-client';
 import type { ExtensionKind } from '@/core/admin/extension-installer';
 import { getSignatureVerifyMode, hasOfficialPublicKey } from '@/core/admin/extension-installer/signature-verifier';
 import { isOfficialMarketOnly } from '@/core/admin/extension-installer/official-only';
-import { getOfficialCatalog, getOfficialCatalogEntry } from './official-catalog';
+import { getOfficialCatalog, resolveOfficialCatalogEntry } from './official-catalog';
 import { installOfficialMarketExtension } from './install-handoff';
 import { cleanupDownloadedArtifact, downloadArtifactWithResume } from './resumable-downloader';
 import { verifyEmbeddedOfficialArtifact, verifyOfficialArtifact } from './artifact-verification';
@@ -35,7 +35,7 @@ async function buildFreeInstallAuthorization(
   slug: string,
   requestedVersion: string | undefined,
 ) {
-  const seed = getOfficialCatalogEntry(slug);
+  const seed = await resolveOfficialCatalogEntry(slug);
   const [detail, artifactItems] = await Promise.all([
     MarketClient.getOfficialDetail(slug).catch(() => null),
     fetchOfficialArtifactsIndex().catch(() => []),
@@ -210,7 +210,7 @@ export async function marketRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       try {
         const { slug } = request.params;
-        if (!getOfficialCatalogEntry(slug)) {
+        if (!(await resolveOfficialCatalogEntry(slug))) {
           return sendError(reply, 404, 'NOT_FOUND', `Official extension "${slug}" not found`);
         }
         const result = await MarketClient.getOfficialDetail(slug);
@@ -245,7 +245,7 @@ export async function marketRoutes(fastify: FastifyInstance) {
       try {
         const { slug } = request.params;
         const { version, kind = 'plugin', activate, themeConfig } = request.body || {};
-        const officialEntry = getOfficialCatalogEntry(slug);
+        const officialEntry = await resolveOfficialCatalogEntry(slug);
 
         if (!officialEntry) {
           return sendError(reply, 404, 'NOT_FOUND', `Official extension "${slug}" not found`);

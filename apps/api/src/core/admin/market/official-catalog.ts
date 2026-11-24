@@ -84,10 +84,6 @@ export interface OfficialCatalogResponse {
 }
 
 const OFFICIAL_CATALOG_META: Record<string, OfficialCatalogPresentationMeta> = {
-  fire: {
-    category: 'finance',
-    target: 'shop',
-  },
   'imagic-studio': {
     category: 'ai',
     target: 'shop',
@@ -98,10 +94,6 @@ const OFFICIAL_CATALOG_META: Record<string, OfficialCatalogPresentationMeta> = {
   },
   modelsfind: {
     category: 'gallery',
-    target: 'shop',
-  },
-  'ai-gateway': {
-    category: 'ai',
     target: 'shop',
   },
   'esim-mall': {
@@ -128,9 +120,6 @@ const OFFICIAL_CATALOG_META: Record<string, OfficialCatalogPresentationMeta> = {
     category: 'storefront',
     target: 'shop',
   },
-  'imagic-core': {
-    category: 'ai',
-  },
   'hermes-bridge': {
     category: 'analytics',
     target: 'admin',
@@ -142,12 +131,6 @@ const OFFICIAL_CATALOG_META: Record<string, OfficialCatalogPresentationMeta> = {
   'smtp-email': {
     category: 'email',
     target: 'admin',
-  },
-  'quiet-curator-cms': {
-    category: 'content',
-  },
-  'ai-gateway-core': {
-    category: 'ai',
   },
   stripe: {
     category: 'payment',
@@ -166,14 +149,6 @@ const OFFICIAL_CATALOG_META: Record<string, OfficialCatalogPresentationMeta> = {
   },
   odoo: {
     category: 'integration',
-  },
-  'admin-security': {
-    category: 'security',
-    target: 'admin',
-  },
-  'partner-network': {
-    category: 'operations',
-    target: 'admin',
   },
   'support-hub': {
     category: 'support',
@@ -353,6 +328,49 @@ function getCatalogSeed(slug: string): OfficialCatalogEntry | undefined {
   return OFFICIAL_LAUNCH_EXTENSIONS.find((entry) => entry.slug === slug);
 }
 
+/**
+ * An official extension published after this build shipped is known only to the remote
+ * catalog. It still has to be listed and installable, so it gets a seed derived from the
+ * remote item itself; the static list is the offline fallback, not the set of what exists.
+ */
+function seedFromRemoteItem(item: RemoteOfficialCatalogItem): OfficialCatalogEntry {
+  const versionSummary = item.versions.find((candidate) => candidate.version === item.sellableVersion) || item.versions[0];
+  return {
+    slug: item.slug,
+    name: item.name,
+    kind: item.kind,
+    target: item.target,
+    listingDomain: item.listingDomain,
+    listingKind: item.listingKind,
+    providerType: item.providerType,
+    version: item.sellableVersion || item.currentVersion || versionSummary?.version || '0.0.1',
+    author: item.author,
+    description: item.description,
+    deliveryMode: item.deliveryMode,
+    paymentMode: item.paymentMode,
+    settlementTargetType: item.settlementTargetType,
+    settlementTargetId: item.settlementTargetId ?? null,
+    artifactKind: item.kind === 'theme' ? 'theme-package' : 'plugin-package',
+    launchWave: 'official-extensions-go-live-v1',
+    packageUrl: versionSummary?.packageUrl ?? '',
+    minCoreVersion: versionSummary?.minCoreVersion || '0.2.0',
+    defaultPricingModel: item.pricingModel,
+    defaultCurrency: item.currency,
+    pricingConfigured: false,
+  };
+}
+
+/** Static seed first; falls back to the remote catalog for extensions this build does not seed. */
+export async function resolveOfficialCatalogEntry(slug: string): Promise<OfficialCatalogEntry | undefined> {
+  const seed = getCatalogSeed(slug);
+  if (seed) return seed;
+
+  const remoteCatalog = await MarketClient.getOfficialCatalog().catch(() => null);
+  const remoteItem = remoteCatalog?.items?.find((item) => item.slug === slug);
+  if (!remoteItem || (remoteItem.kind !== 'theme' && remoteItem.kind !== 'plugin')) return undefined;
+  return seedFromRemoteItem(remoteItem);
+}
+
 export async function getOfficialCatalog(): Promise<OfficialCatalogResponse> {
   const [connectivity, activeTheme, installedThemes, pluginPackages, managedStatus] = await Promise.all([
     MarketClient.checkConnectivity(),
@@ -391,15 +409,28 @@ export async function getOfficialCatalog(): Promise<OfficialCatalogResponse> {
   const installedOfficialThemesBySlug = buildInstalledOfficialThemeState(activeTheme, installedThemes);
   const installedPluginsBySlug = new Map(pluginPackages.map((plugin) => [plugin.slug, plugin]));
 
+  // Extensions that exist only in the remote catalog (published after this build
+  // shipped) are listed next to the static seeds whenever the market is reachable.
+  const remoteOnlySeeds = (remoteCatalog?.items || [])
+    .filter((item) => (item.kind === 'theme' || item.kind === 'plugin') && !getCatalogSeed(item.slug))
+    .map(seedFromRemoteItem);
+  const remoteOnlySlugs = new Set(remoteOnlySeeds.map((seed) => seed.slug));
+  const catalogSeeds = [...OFFICIAL_LAUNCH_EXTENSIONS, ...remoteOnlySeeds];
+
   const items = await Promise.all(
-    OFFICIAL_LAUNCH_EXTENSIONS.map(async (seed): Promise<OfficialCatalogItem> => {
+    catalogSeeds.map(async (seed): Promise<OfficialCatalogItem> => {
       // Keep a malformed or newly added launch entry from taking down the
       // whole marketplace response. The shared catalog remains the source of
       // truth for its target; presentation metadata only enriches it.
-      const meta = OFFICIAL_CATALOG_META[seed.slug] || {
-        category: seed.kind === 'theme' ? 'storefront' : 'general',
-        target: seed.target,
-      };
+      const meta = OFFICIAL_CATALOG_META[seed.slug] || (remoteOnlySlugs.has(seed.slug)
+        ? {
+          category: remoteItemsBySlug.get(seed.slug)?.category || (seed.kind === 'theme' ? 'storefront' : 'general'),
+          target: remoteItemsBySlug.get(seed.slug)?.target || seed.target,
+        }
+        : {
+          category: seed.kind === 'theme' ? 'storefront' : 'general',
+          target: seed.target,
+        });
       const remoteItem = remoteItemsBySlug.get(seed.slug) || toFallbackRemoteItem(seed);
       const remoteVersions = Array.isArray(remoteItem.versions) ? remoteItem.versions : [];
       const artifactItem = artifactItemsByKey.get(`${seed.kind}:${seed.slug}`);
