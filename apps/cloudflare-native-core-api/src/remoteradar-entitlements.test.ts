@@ -78,9 +78,11 @@ describe('RemoteRadar entitlements', () => {
   it('prices and grants every published tier product once', () => {
     for (const [product, price] of Object.entries(REMOTERADAR_PRICING_USD)) {
       expect(Number.isFinite(price) && price > 0).toBe(true);
-      expect(product.startsWith('remoteradar-')).toBe(true);
+      expect(product.startsWith('remoteradar-') || product.startsWith('cuinima-pro-')).toBe(true);
     }
-    expect(Object.keys(REMOTERADAR_PRICING_USD)).toHaveLength(9);
+    expect(Object.keys(REMOTERADAR_PRICING_USD)).toHaveLength(11);
+    expect(REMOTERADAR_PRICING_USD[REMOTERADAR_PRODUCTS.CNM_PRO_MONTHLY]).toBe(2.99);
+    expect(REMOTERADAR_PRICING_USD[REMOTERADAR_PRODUCTS.CNM_PRO_ANNUAL]).toBe(19.99);
   });
 
   it('returns an idempotent result without a second grant', async () => {
