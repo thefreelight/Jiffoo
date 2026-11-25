@@ -6,7 +6,7 @@
  * optionally ship a storefront runtime bundle for package-managed full themes.
  */
 
-import type { ThemeSeoLocaleEntries, ThemeSeoPages } from 'shared/src/types/theme';
+import type { ThemeSeoDeclaration } from 'shared/src/types/theme';
 
 /**
  * Theme Pack Manifest (theme.json)
@@ -49,7 +49,7 @@ export interface ThemePackManifest {
    * for the marketing routes the host renders for it, plus a default that the
    * locale layout applies to pages without metadata of their own.
    */
-  'x-jiffoo-seo'?: { default?: ThemeSeoLocaleEntries; pages?: ThemeSeoPages };
+  'x-jiffoo-seo'?: ThemeSeoDeclaration;
 }
 
 /**

@@ -33,7 +33,8 @@ export function resolveBrandName(context: StoreContext): string | undefined {
 }
 
 /** What the active theme declares for: a marketing route, or its default for pages without their own. */
-export type ThemeSeoTarget = PageRoute | typeof DEFAULT_THEME_SEO_ROUTE;
+/** `lib/seo/route-metadata.ts` adds the routes a theme can feed itself (games, credits). */
+export type ThemeSeoTarget = PageRoute | typeof DEFAULT_THEME_SEO_ROUTE | 'games' | 'credits';
 
 /** The active theme's page copy for a target, or null when the theme declares nothing for it. */
 export async function resolveThemePageCopy({

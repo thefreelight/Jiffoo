@@ -7,6 +7,7 @@
  */
 
 import type { Metadata } from 'next';
+import { storeDefaultLocale, storeLocales } from '@/lib/store-locales';
 
 /* ------------------------------------------------------------------ */
 /*  Per-page, per-locale content map                                   */
@@ -132,8 +133,18 @@ export interface PageCopy {
   description: string;
 }
 
+const OG_LOCALES: Record<string, string> = {
+  en: 'en_US',
+  'zh-Hans': 'zh_CN',
+  'zh-Hant': 'zh_TW',
+  ja: 'ja_JP',
+  ko: 'ko_KR',
+  fr: 'fr_FR',
+  de: 'de_DE',
+};
+
 function ogLocale(locale: string): string {
-  return locale === 'zh-Hant' ? 'zh_TW' : 'en_US';
+  return OG_LOCALES[locale] ?? 'en_US';
 }
 
 /* ------------------------------------------------------------------ */
@@ -169,8 +180,13 @@ export function generatePublicPageMetadata({
   const urlPath = `/${locale}/${route === 'home' ? '' : route}`;
   const canonical = new URL(urlPath, base).toString();
 
-  const alternateEn = new URL(`/${lang === 'en' ? 'en' : 'en'}/${route === 'home' ? '' : route}`, base).toString();
-  const alternateZh = new URL(`/zh-Hant/${route === 'home' ? '' : route}`, base).toString();
+  // hreflang names the locales this store offers, and only when there is a
+  // choice to announce: a single-locale store has no alternate to send a crawler to.
+  const offered = storeLocales();
+  const pathFor = (offeredLocale: string) => new URL(`/${offeredLocale}/${route === 'home' ? '' : route}`, base).toString();
+  const languages = offered.length > 1
+    ? { ...Object.fromEntries(offered.map((offeredLocale) => [offeredLocale, pathFor(offeredLocale)])), 'x-default': pathFor(storeDefaultLocale(offered)) }
+    : undefined;
 
   const socialImageUrl = new URL('/icon-512x512.png', base).toString();
 
@@ -179,10 +195,7 @@ export function generatePublicPageMetadata({
     description,
     alternates: {
       canonical,
-      languages: {
-        en: alternateEn,
-        'zh-Hant': alternateZh,
-      },
+      ...(languages ? { languages } : {}),
     },
     openGraph: {
       title,

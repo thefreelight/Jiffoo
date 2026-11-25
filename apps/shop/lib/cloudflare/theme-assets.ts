@@ -29,6 +29,34 @@ function resolveAssetKey(url: URL): string | null {
   return segments.join('/');
 }
 
+/**
+ * Files that must live at the site root for an outside party to fetch:
+ * `/ads.txt` (authorized digital sellers) is looked up at the root and nowhere
+ * else. A deployment publishes it by putting `ads.txt` at the root of the theme
+ * asset bucket; a bucket without it leaves the request to the storefront.
+ */
+const ROOT_WELL_KNOWN: Record<string, string> = {
+  '/ads.txt': 'ads.txt',
+};
+
+export async function serveWellKnownThemeAsset(
+  request: Request,
+  bucket: R2Bucket,
+): Promise<Response | null> {
+  if (request.method !== 'GET' && request.method !== 'HEAD') return null;
+  const key = ROOT_WELL_KNOWN[new URL(request.url).pathname];
+  if (!key) return null;
+  const object = await bucket.get(key);
+  if (!object) return null;
+  const headers = new Headers();
+  object.writeHttpMetadata(headers);
+  if (!headers.get('content-type')) headers.set('content-type', 'text/plain; charset=utf-8');
+  headers.set('etag', object.httpEtag);
+  headers.set('cache-control', 'public, max-age=3600, stale-while-revalidate=86400');
+  headers.set('x-jiffoo-runtime', 'cloudflare-shop-r2');
+  return new Response(request.method === 'HEAD' ? null : object.body, { headers });
+}
+
 export async function serveThemeAsset(
   request: Request,
   bucket: R2Bucket,

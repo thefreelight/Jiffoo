@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { serveThemeAsset } from '@/lib/cloudflare/theme-assets';
+import { serveThemeAsset, serveWellKnownThemeAsset } from '@/lib/cloudflare/theme-assets';
 
 function createBucket(body = 'theme-content', contentType = 'text/css') {
   const writeHttpMetadata = (headers: Headers) => headers.set('content-type', contentType);
@@ -51,5 +51,23 @@ describe('Cloudflare storefront theme assets', () => {
     );
     expect(missingResponse?.status).toBe(404);
     expect(missingResponse?.headers.get('cache-control')).toBe('no-store');
+  });
+
+  it('serves /ads.txt from the root of the theme asset bucket', async () => {
+    const bucket = createBucket('google.com, pub-1234, DIRECT, f08c47fec0942fa0', 'text/plain');
+    const response = await serveWellKnownThemeAsset(new Request('https://shop.example.com/ads.txt'), bucket);
+    expect(response?.status).toBe(200);
+    expect(response?.headers.get('content-type')).toBe('text/plain');
+    expect(response?.headers.get('cache-control')).toBe('public, max-age=3600, stale-while-revalidate=86400');
+    expect(response?.headers.get('x-jiffoo-runtime')).toBe('cloudflare-shop-r2');
+    expect(await response?.text()).toBe('google.com, pub-1234, DIRECT, f08c47fec0942fa0');
+  });
+
+  it('leaves every other root path, writes and a bucket without the file to the storefront', async () => {
+    const bucket = createBucket();
+    expect(await serveWellKnownThemeAsset(new Request('https://shop.example.com/robots.txt'), bucket)).toBeNull();
+    expect(await serveWellKnownThemeAsset(new Request('https://shop.example.com/ads.txt', { method: 'POST' }), bucket)).toBeNull();
+    const empty = { get: vi.fn(async () => null) } as unknown as R2Bucket;
+    expect(await serveWellKnownThemeAsset(new Request('https://shop.example.com/ads.txt'), empty)).toBeNull();
   });
 });
