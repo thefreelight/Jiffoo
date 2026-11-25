@@ -181,22 +181,34 @@ export const CheckoutPage = React.memo(function CheckoutPage({
             <aside className="rounded-[1.2rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] p-4">
               <p className="text-lg font-medium text-[var(--bokmoo-ink)]">{pickCopy(locale, { en: 'Order Summary', hans: '订单摘要', hant: '訂單摘要' })}</p>
               <div className="mt-4 space-y-3">
-                {cart.items.map((item) => (
-                  <div key={item.id} className="rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_84%,black)] p-3">
-                    <div className="flex items-start gap-3">
-                      <div className="h-14 w-16 overflow-hidden rounded-[0.8rem] bg-[linear-gradient(160deg,#924a57_0%,#261922_44%,#0f1115_100%)]" />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-[var(--bokmoo-ink)]">{item.productName}</p>
-                        <p className="mt-1 text-xs text-[var(--bokmoo-copy-soft)]">
-                          {pickCopy(locale, { en: 'Qty', hans: '数量', hant: '數量' })} {item.quantity}{item.variantName ? ` · ${item.variantName}` : ''}
-                        </p>
+                {cart.items.map((item) => {
+                  const sale = saleFor(sales, item.productId);
+                  return (
+                    <div key={item.id} className="rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_84%,black)] p-3">
+                      <div className="flex items-start gap-3">
+                        <div className="h-14 w-16 overflow-hidden rounded-[0.8rem] bg-[linear-gradient(160deg,#924a57_0%,#261922_44%,#0f1115_100%)]" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-[var(--bokmoo-ink)]">{item.productName}</p>
+                          <p className="mt-1 text-xs text-[var(--bokmoo-copy-soft)]">
+                            {pickCopy(locale, { en: 'Qty', hans: '数量', hant: '數量' })} {item.quantity}{item.variantName ? ` · ${item.variantName}` : ''}
+                          </p>
+                          {sale ? (
+                            // Under a sale the price is three parts wide. Beside the name it crowded the name
+                            // into a sliver of this narrow column and printed over it, so it goes below.
+                            <p className="mt-1.5 text-sm text-[var(--bokmoo-copy)]" data-purpose="checkout-line-price" data-layout="stacked">
+                              <SalePrice unitPrice={Number(item.price || 0)} quantity={item.quantity} sale={sale} />
+                            </p>
+                          ) : null}
+                        </div>
+                        {sale ? null : (
+                          <span className="text-sm text-[var(--bokmoo-copy)]" data-purpose="checkout-line-price" data-layout="inline">
+                            <SalePrice unitPrice={Number(item.price || 0)} quantity={item.quantity} sale={null} />
+                          </span>
+                        )}
                       </div>
-                      <span className="text-sm text-[var(--bokmoo-copy)]">
-                        <SalePrice unitPrice={Number(item.price || 0)} quantity={item.quantity} sale={saleFor(sales, item.productId)} />
-                      </span>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               <div className="mt-5 space-y-3 border-t border-[var(--bokmoo-line)] pt-4 text-sm">

@@ -13840,19 +13840,27 @@
       /* @__PURE__ */ jsx("div", { className: "mt-5 rounded-[1.35rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_18%,var(--bokmoo-line))] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_80%,black),color-mix(in_oklab,var(--bokmoo-bg-elevated)_92%,black))] p-3 shadow-[var(--bokmoo-shadow)] sm:rounded-[1.55rem] sm:p-5", children: /* @__PURE__ */ jsxs("div", { className: "grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]", children: [
         /* @__PURE__ */ jsxs("aside", { className: "rounded-[1.2rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] p-4", children: [
           /* @__PURE__ */ jsx("p", { className: "text-lg font-medium text-[var(--bokmoo-ink)]", children: pickCopy(locale, { en: "Order Summary", hans: "\u8BA2\u5355\u6458\u8981", hant: "\u8A02\u55AE\u6458\u8981" }) }),
-          /* @__PURE__ */ jsx("div", { className: "mt-4 space-y-3", children: cart.items.map((item) => /* @__PURE__ */ jsx("div", { className: "rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_84%,black)] p-3", children: /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-3", children: [
-            /* @__PURE__ */ jsx("div", { className: "h-14 w-16 overflow-hidden rounded-[0.8rem] bg-[linear-gradient(160deg,#924a57_0%,#261922_44%,#0f1115_100%)]" }),
-            /* @__PURE__ */ jsxs("div", { className: "min-w-0 flex-1", children: [
-              /* @__PURE__ */ jsx("p", { className: "text-sm font-medium text-[var(--bokmoo-ink)]", children: item.productName }),
-              /* @__PURE__ */ jsxs("p", { className: "mt-1 text-xs text-[var(--bokmoo-copy-soft)]", children: [
-                pickCopy(locale, { en: "Qty", hans: "\u6570\u91CF", hant: "\u6578\u91CF" }),
-                " ",
-                item.quantity,
-                item.variantName ? ` \xB7 ${item.variantName}` : ""
-              ] })
-            ] }),
-            /* @__PURE__ */ jsx("span", { className: "text-sm text-[var(--bokmoo-copy)]", children: /* @__PURE__ */ jsx(SalePrice, { unitPrice: Number(item.price || 0), quantity: item.quantity, sale: saleFor(sales, item.productId) }) })
-          ] }) }, item.id)) }),
+          /* @__PURE__ */ jsx("div", { className: "mt-4 space-y-3", children: cart.items.map((item) => {
+            const sale = saleFor(sales, item.productId);
+            return /* @__PURE__ */ jsx("div", { className: "rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_84%,black)] p-3", children: /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-3", children: [
+              /* @__PURE__ */ jsx("div", { className: "h-14 w-16 overflow-hidden rounded-[0.8rem] bg-[linear-gradient(160deg,#924a57_0%,#261922_44%,#0f1115_100%)]" }),
+              /* @__PURE__ */ jsxs("div", { className: "min-w-0 flex-1", children: [
+                /* @__PURE__ */ jsx("p", { className: "text-sm font-medium text-[var(--bokmoo-ink)]", children: item.productName }),
+                /* @__PURE__ */ jsxs("p", { className: "mt-1 text-xs text-[var(--bokmoo-copy-soft)]", children: [
+                  pickCopy(locale, { en: "Qty", hans: "\u6570\u91CF", hant: "\u6578\u91CF" }),
+                  " ",
+                  item.quantity,
+                  item.variantName ? ` \xB7 ${item.variantName}` : ""
+                ] }),
+                sale ? (
+                  // Under a sale the price is three parts wide. Beside the name it crowded the name
+                  // into a sliver of this narrow column and printed over it, so it goes below.
+                  /* @__PURE__ */ jsx("p", { className: "mt-1.5 text-sm text-[var(--bokmoo-copy)]", "data-purpose": "checkout-line-price", "data-layout": "stacked", children: /* @__PURE__ */ jsx(SalePrice, { unitPrice: Number(item.price || 0), quantity: item.quantity, sale }) })
+                ) : null
+              ] }),
+              sale ? null : /* @__PURE__ */ jsx("span", { className: "text-sm text-[var(--bokmoo-copy)]", "data-purpose": "checkout-line-price", "data-layout": "inline", children: /* @__PURE__ */ jsx(SalePrice, { unitPrice: Number(item.price || 0), quantity: item.quantity, sale: null }) })
+            ] }) }, item.id);
+          }) }),
           /* @__PURE__ */ jsxs("div", { className: "mt-5 space-y-3 border-t border-[var(--bokmoo-line)] pt-4 text-sm", children: [
             /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between text-[var(--bokmoo-copy)]", children: [
               /* @__PURE__ */ jsx("span", { children: pickCopy(locale, { en: "Subtotal", hans: "\u5C0F\u8BA1", hant: "\u5C0F\u8A08", ja: "\u5C0F\u8A08", ko: "\uC18C\uACC4", fr: "Sous-total", de: "Zwischensumme" }) }),
@@ -19030,7 +19038,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.63",
+      version: "1.1.64",
       target: "shop"
     }
   };
