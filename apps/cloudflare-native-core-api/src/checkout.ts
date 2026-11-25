@@ -214,7 +214,10 @@ async function createOrder(
     env,
     resolved.map(({ product }) => product.id),
     new Map(resolved.map(({ input, product }) => [product.id, input.quantity])),
-    new Map(resolved.map(({ variant }) => [variant.id, variant.salePrice])),
+    // Keyed by product id, like the two maps above: the resolver looks the
+    // price up by product id, and a variant-keyed map made every promotion
+    // look like it discounted nothing.
+    new Map(resolved.map(({ product, variant }) => [product.id, variant.salePrice])),
     user.id,
   );
   const pricing = priceOrderDiscounts({
