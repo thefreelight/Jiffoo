@@ -1,5 +1,14 @@
 import { authenticateNativeAdmin, type NativeAuthEnv } from './auth';
-import { buildNativeCatalogResponse, type NativeCatalogItem } from './marketplace-mapping';
+import {
+  buildNativeCatalogResponse,
+  deliveryRequestHeaders,
+  officialPackageRoute,
+  parsePlatformConnection,
+  parseStoredLicenseSettings,
+  requiresPlatformEntitlement,
+  type NativeCatalogItem,
+  type PlatformDeliveryCredentials,
+} from './marketplace-mapping';
 import { installThemePackage, readActiveThemeSnapshot } from './theme-install';
 
 type Env = NativeAuthEnv & {
@@ -46,6 +55,52 @@ function failure(error: unknown): Response {
   } }, { status: 503, headers: { 'cache-control': 'no-store', 'x-jiffoo-runtime': 'cloudflare-native-marketplace' } });
 }
 
+// Packages are read through the platform, which streams them from storage; a
+// large theme needs longer than a catalog lookup.
+const PLATFORM_PACKAGE_TIMEOUT_MS = 120_000;
+
+async function platformRequest(env: Env, path: string, init: RequestInit, timeoutMs = PLATFORM_FETCH_TIMEOUT_MS): Promise<Response> {
+  const target = `${baseUrl(env)}${path}`;
+  const request = new Request(target, { ...init, signal: AbortSignal.timeout(timeoutMs) });
+  return env.PLATFORM_API ? env.PLATFORM_API.fetch(request) : fetch(request);
+}
+
+async function readRow(env: Env, sql: string, ...values: unknown[]): Promise<Record<string, unknown> | null> {
+  try {
+    const statement = env.DB.prepare(sql);
+    const bound = values.length > 0 ? statement.bind(...values) : statement;
+    if (typeof bound.first !== 'function') return null;
+    return await bound.first<Record<string, unknown>>();
+  } catch {
+    return null;
+  }
+}
+
+/** What this instance can present to the platform to prove an entitlement:
+ * a Pro membership license key in the system settings, a device-authorised
+ * platform connection, or both. Anything unreadable counts as absent. */
+async function deliveryCredentials(env: Env): Promise<PlatformDeliveryCredentials> {
+  const [settings, connection] = await Promise.all([
+    readRow(env, 'SELECT settings FROM native_settings WHERE id = ?1', 'system'),
+    readRow(env, "SELECT value FROM runtime_metadata WHERE key = 'platform_connection'"),
+  ]);
+  return {
+    licenseKey: parseStoredLicenseSettings(typeof settings?.settings === 'string' ? settings.settings : null),
+    connection: parsePlatformConnection(typeof connection?.value === 'string' ? connection.value : null),
+  };
+}
+
+function membershipRequiredResponse(details: unknown): Response {
+  const purchaseUrl = details && typeof details === 'object' && typeof (details as { purchaseUrl?: unknown }).purchaseUrl === 'string'
+    ? (details as { purchaseUrl: string }).purchaseUrl
+    : 'https://platform-api.jiffoo.com/membership';
+  return Response.json({ success: false, error: {
+    code: 'MEMBERSHIP_REQUIRED',
+    message: 'This official extension requires an active Jiffoo Pro membership. Connect this instance to Jiffoo Platform or add the membership license key, then try again.',
+    details: { purchaseUrl },
+  } }, { status: 402, headers: { 'cache-control': 'no-store', 'x-jiffoo-runtime': 'cloudflare-native-marketplace' } });
+}
+
 export async function tryNativeMarketplace(request: Request, env: Env): Promise<Response | null> {
   const url = new URL(request.url);
   const path = url.pathname;
@@ -67,13 +122,32 @@ export async function tryNativeMarketplace(request: Request, env: Env): Promise<
       const item = catalog.find((candidate) => candidate.slug === install[1] && candidate.kind === catalogKind && candidate.installable);
       if (!item) return Response.json({ success: false, error: { code: 'ARTIFACT_NOT_FOUND', message: `Official ${body.kind} "${install[1]}" is not installable` } }, { status: 404 });
       const version = body.version || item.sellableVersion || item.currentVersion || item.versions?.find((entry) => entry.isCurrent)?.version || '0.0.1';
+      // A non-free item is only ever obtained from the platform's authorized
+      // package route. The platform decides whether this instance is entitled;
+      // a public package URL in the catalog is never used for such an item.
+      let entitlement: PlatformDeliveryCredentials | null = null;
+      if (requiresPlatformEntitlement(item)) {
+        entitlement = await deliveryCredentials(env);
+        if (!entitlement.licenseKey && !entitlement.connection) return membershipRequiredResponse(null);
+        const access = await platformRequest(env, officialPackageRoute(catalogKind, item.slug, version), { method: 'HEAD', headers: deliveryRequestHeaders(entitlement) });
+        if (access.status === 402) {
+          const denial = await access.json().catch(() => null) as { error?: { details?: unknown } } | null;
+          return membershipRequiredResponse(denial?.error?.details);
+        }
+        if (!access.ok) return failure(new Error(`Official marketplace request failed (${access.status})`));
+      }
       if (body.kind === 'theme' || body.kind === 'theme-shop') {
-        const packageUrl = item.versions?.find((entry) => entry.version === version)?.packageUrl
-          || item.versions?.[0]?.packageUrl;
-        if (!packageUrl) return Response.json({ success: false, error: { code: 'ARTIFACT_NOT_FOUND', message: `Official theme "${install[1]}" has no package for ${version}` } }, { status: 404 });
-        const packageResponse = env.PLATFORM_API
-          ? await env.PLATFORM_API.fetch(new Request(packageUrl))
-          : await fetch(packageUrl);
+        let packageResponse: Response;
+        if (entitlement) {
+          packageResponse = await platformRequest(env, officialPackageRoute(catalogKind, item.slug, version), { method: 'GET', headers: deliveryRequestHeaders(entitlement) }, PLATFORM_PACKAGE_TIMEOUT_MS);
+        } else {
+          const packageUrl = item.versions?.find((entry) => entry.version === version)?.packageUrl
+            || item.versions?.[0]?.packageUrl;
+          if (!packageUrl) return Response.json({ success: false, error: { code: 'ARTIFACT_NOT_FOUND', message: `Official theme "${install[1]}" has no package for ${version}` } }, { status: 404 });
+          packageResponse = env.PLATFORM_API
+            ? await env.PLATFORM_API.fetch(new Request(packageUrl))
+            : await fetch(packageUrl);
+        }
         if (!packageResponse.ok) return failure(new Error(`Theme package request failed (${packageResponse.status})`));
         const installed = await installThemePackage(env, {
           slug: install[1], version, packageBytes: await packageResponse.arrayBuffer(),

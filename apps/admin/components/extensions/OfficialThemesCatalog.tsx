@@ -34,6 +34,10 @@ function formatPrice(item: OfficialCatalogItem): string {
   if (item.pricingModel === 'free' || item.price <= 0) {
     return 'Free';
   }
+  if (item.pricingModel === 'member') {
+    // Membership-priced items are unlocked by a Jiffoo Pro membership, not bought one by one.
+    return `Pro · ${item.currency} ${item.price}/yr`;
+  }
   return `${item.pricingModel === 'subscription' ? 'Subscription' : 'One-time'} · ${item.currency} ${item.price}`;
 }
 

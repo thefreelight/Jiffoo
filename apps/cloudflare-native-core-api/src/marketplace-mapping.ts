@@ -1,3 +1,5 @@
+export type OfficialPricingModel = 'free' | 'one_time' | 'subscription' | 'member';
+
 export type NativeCatalogItem = {
   slug: string;
   name?: string;
@@ -12,7 +14,9 @@ export type NativeCatalogItem = {
   paymentMode?: 'platform_collect' | 'merchant_collect';
   settlementTargetType?: 'platform' | 'developer' | 'vendor' | 'merchant' | 'none';
   settlementTargetId?: string | null;
-  pricingModel?: 'free' | 'one_time' | 'subscription';
+  pricingModel?: OfficialPricingModel;
+  /** `license` packages are only served by the platform after an entitlement check. */
+  packageAccess?: 'public' | 'license';
   price?: number | null;
   currency?: string;
   currentVersion?: string;
@@ -21,8 +25,75 @@ export type NativeCatalogItem = {
   installCount?: number;
   iconUrl?: string | null;
   screenshots?: string[];
-  versions?: Array<{ version: string; packageUrl?: string; minCoreVersion?: string | null; isCurrent?: boolean }>;
+  versions?: Array<{ version: string; packageUrl?: string | null; minCoreVersion?: string | null; isCurrent?: boolean }>;
 };
+
+export type PlatformDeliveryCredentials = {
+  licenseKey: string | null;
+  connection: { instanceId: string; instanceToken: string; tenantBindingId: string; localStoreId: string } | null;
+};
+
+/**
+ * Whether installing this item needs the platform to confirm an entitlement.
+ * Only the platform saying `free` skips the check; anything else — including a
+ * missing pricing model — is treated as non-free.
+ */
+export function requiresPlatformEntitlement(item: Pick<NativeCatalogItem, 'pricingModel' | 'packageAccess'>): boolean {
+  return item.packageAccess === 'license' || item.pricingModel !== 'free';
+}
+
+/** The platform route that serves an official package after checking credentials. */
+export function officialPackageRoute(kind: 'theme' | 'plugin', slug: string, version: string): string {
+  return `/marketplace/official/package/${kind}/${encodeURIComponent(slug)}/${encodeURIComponent(version)}`;
+}
+
+function text(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+/** A Pro membership license key kept in the instance's system settings. */
+export function parseStoredLicenseSettings(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as { platformLicenseKey?: unknown };
+    const key = text(parsed.platformLicenseKey);
+    return /^JIF-[A-Z0-9-]{4,80}$/.test(key) ? key : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The instance's platform connection (device-authorised account + store binding). */
+export function parsePlatformConnection(raw: string | null | undefined): PlatformDeliveryCredentials['connection'] {
+  if (!raw) return null;
+  try {
+    const state = JSON.parse(raw) as { instance?: unknown; tenantBinding?: unknown };
+    const instance = (state.instance && typeof state.instance === 'object' ? state.instance : {}) as Record<string, unknown>;
+    const binding = (state.tenantBinding && typeof state.tenantBinding === 'object' ? state.tenantBinding : {}) as Record<string, unknown>;
+    const connection = {
+      instanceId: text(instance.instanceId),
+      instanceToken: text(instance.instanceToken),
+      tenantBindingId: text(binding.tenantBindingId),
+      localStoreId: text(binding.localStoreId),
+    };
+    return Object.values(connection).every(Boolean) ? connection : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Credential headers understood by the platform's package route; empty when nothing is configured. */
+export function deliveryRequestHeaders(credentials: PlatformDeliveryCredentials): Record<string, string> {
+  const headers: Record<string, string> = { accept: 'application/json' };
+  if (credentials.licenseKey) headers['x-jiffoo-license-key'] = credentials.licenseKey;
+  if (credentials.connection) {
+    headers['x-jiffoo-instance-id'] = credentials.connection.instanceId;
+    headers['x-jiffoo-instance-token'] = credentials.connection.instanceToken;
+    headers['x-jiffoo-tenant-binding-id'] = credentials.connection.tenantBindingId;
+    headers['x-jiffoo-local-store-id'] = credentials.connection.localStoreId;
+  }
+  return headers;
+}
 
 const GROWTH_SLUG_CATEGORIES: Record<string, string> = {
   'visitor-identification': 'marketing',
