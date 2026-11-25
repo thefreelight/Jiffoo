@@ -71,6 +71,7 @@ import { nativeOdooMediaUrl } from './odoo';
 import { tryNativeBokmooConnect } from './bokmoo-connect';
 import { tryNativeFirepathCore } from './firepath-core';
 import { tryNativeCrosspilotBridge } from './crosspilot-bridge';
+import { processNativeGameStats, tryNativeGameStats } from './game-stats';
 
 type WorkerEnv = Cloudflare.Env & NativeAuthEnv & NativeJobsProxyEnv & {
   DEMO_MODE?: string;
@@ -322,6 +323,8 @@ async function routeNativeRequest(request: Request, env: WorkerEnv, ctx: Executi
     if (nativeFirepathCore) return nativeFirepathCore;
     const nativeCrosspilotBridge = await tryNativeCrosspilotBridge(nativeRequest, env);
     if (nativeCrosspilotBridge) return nativeCrosspilotBridge;
+    const nativeGameStats = await tryNativeGameStats(nativeRequest, env);
+    if (nativeGameStats) return nativeGameStats;
     const nativeRemoteRadarApplications = await tryNativeRemoteRadarApplications(nativeRequest, env);
     if (nativeRemoteRadarApplications) return nativeRemoteRadarApplications;
     const nativeWallet = await tryNativeWallet(nativeRequest, env);
@@ -456,7 +459,7 @@ export default {
     }
   },
   async scheduled(_controller: ScheduledController, env: WorkerEnv): Promise<void> {
-    const [checkout, email, odooCatalog, odooShipments, jobs, walletReservations, currencyReservations, creditGrants, resumeExtraction, videoTasks, toolDiscovery, staleReservations, bossCatalog, bossOrders] = await Promise.allSettled([
+    const [checkout, email, odooCatalog, odooShipments, jobs, walletReservations, currencyReservations, creditGrants, resumeExtraction, videoTasks, toolDiscovery, staleReservations, bossCatalog, bossOrders, gameStats] = await Promise.allSettled([
       processCheckoutOutbox(env),
       processNativeEmailOutbox(env),
       processScheduledOdooCatalogSync(env),
@@ -471,6 +474,7 @@ export default {
       processScheduledToolDiscovery(env),
       releaseStaleInventoryReservations(env),
       syncBossOrderStatuses(env),
+      processNativeGameStats(env),
     ]);
     console.log(JSON.stringify({
       message: 'native scheduled work processed',
@@ -502,6 +506,7 @@ export default {
         : { error: String(staleReservations.reason) },
       bossCatalog: bossCatalog.status === 'fulfilled' ? bossCatalog.value : { error: String(bossCatalog.reason) },
       bossOrders: bossOrders.status === 'fulfilled' ? bossOrders.value : { error: String(bossOrders.reason) },
+      gameStats: gameStats.status === 'fulfilled' ? gameStats.value : { error: String(gameStats.reason) },
     }));
   },
 } satisfies ExportedHandler<WorkerEnv>;
