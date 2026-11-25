@@ -30,8 +30,10 @@ import { recordNativeLoginSuccess } from './security-audit';
  *   IS NULL), so a replayed state can never complete twice; the handoff is
  *   consumed atomically the same way and expires after 60 seconds.
  * - verified claims become queryable only after the provider verified the
- *   email; accounts merge or log in strictly by (issuer, subject) — an
- *   identical email string on another account never merges (IDENTITY_EMAIL_IN_USE).
+ *   email; a known (issuer, subject) always logs in to its own account. A new
+ *   (issuer, subject) whose verified email belongs to an existing account is
+ *   linked to that account only when the account's own email is verified too;
+ *   an unverified owner blocks the claim (IDENTITY_EMAIL_IN_USE).
  * - staff and inactive accounts cannot obtain a customer identity session.
  * - returnTo must be a locale-prefixed in-app path (no open redirects); the
  *   finish origin is captured from the start request and re-validated before
@@ -679,32 +681,41 @@ async function loginWithIdentity(env: IdentityEnv, request: Request, identity: V
     ).bind(existing.id, user.id).first<{ id: string }>();
     if (!stillBound) throw new IdentityError('IDENTITY_TRANSACTION_INVALID');
   } else {
-    // Identical email strings never merge accounts: a native_users row that
-    // already owns the address (password account or another identity) blocks
-    // the claim instead of silently attaching.
     const emailOwner = await findNativeUserByEmail(env, identity.email);
-    if (emailOwner) throw new IdentityError('IDENTITY_EMAIL_IN_USE', 409);
-    const display = (identity.displayName ?? 'Customer').trim().replace(/[^\p{L}\p{N}_-]+/gu, '-').slice(0, 30) || 'Customer';
-    const username = `${display}-${identitySecret(12)}`;
-    // Identity-only account: password_set = 0 with an unusable random hash so
-    // password login can never succeed against it.
-    const userId = crypto.randomUUID();
-    await env.DB.prepare(
-      `INSERT INTO native_users
-        (id, email, username, role, avatar, password_salt, password_hash, password_iterations, is_active,
-         email_verified, password_set, updated_at)
-       VALUES (?1, ?2, ?3, 'USER', NULL, ?4, ?5, 100000, 1, 1, 0, CURRENT_TIMESTAMP)`,
-    ).bind(
-      userId,
-      identity.email,
-      username,
-      base64Url(crypto.getRandomValues(new Uint8Array(32))),
-      base64Url(crypto.getRandomValues(new Uint8Array(32))),
-    ).run();
-    await env.DB.prepare(
-      'INSERT INTO native_external_identities (id, user_id, provider_slug, issuer, subject, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)',
-    ).bind(crypto.randomUUID(), userId, providerSlug, identity.issuer, identity.subject, nowIso()).run();
-    user = (await findUserRow(env, userId))!;
+    if (emailOwner) {
+      // Link the identity to the account that owns the address only when both
+      // sides verified it: the provider's claim got us here, so the gate is
+      // the account's own email_verified flag. An unverified owner could be
+      // anyone who typed the address at sign-up, and merging would hand that
+      // person the real owner's session — so it keeps blocking the claim.
+      if (emailOwner.email_verified !== 1) throw new IdentityError('IDENTITY_EMAIL_IN_USE', 409);
+      user = await requireCustomerUser(env, await findUserRow(env, emailOwner.id));
+      await env.DB.prepare(
+        'INSERT INTO native_external_identities (id, user_id, provider_slug, issuer, subject, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)',
+      ).bind(crypto.randomUUID(), user.id, providerSlug, identity.issuer, identity.subject, nowIso()).run();
+    } else {
+      const display = (identity.displayName ?? 'Customer').trim().replace(/[^\p{L}\p{N}_-]+/gu, '-').slice(0, 30) || 'Customer';
+      const username = `${display}-${identitySecret(12)}`;
+      // Identity-only account: password_set = 0 with an unusable random hash so
+      // password login can never succeed against it.
+      const userId = crypto.randomUUID();
+      await env.DB.prepare(
+        `INSERT INTO native_users
+          (id, email, username, role, avatar, password_salt, password_hash, password_iterations, is_active,
+           email_verified, password_set, updated_at)
+         VALUES (?1, ?2, ?3, 'USER', NULL, ?4, ?5, 100000, 1, 1, 0, CURRENT_TIMESTAMP)`,
+      ).bind(
+        userId,
+        identity.email,
+        username,
+        base64Url(crypto.getRandomValues(new Uint8Array(32))),
+        base64Url(crypto.getRandomValues(new Uint8Array(32))),
+      ).run();
+      await env.DB.prepare(
+        'INSERT INTO native_external_identities (id, user_id, provider_slug, issuer, subject, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)',
+      ).bind(crypto.randomUUID(), userId, providerSlug, identity.issuer, identity.subject, nowIso()).run();
+      user = (await findUserRow(env, userId))!;
+    }
   }
   user = await requireCustomerUser(env, user);
   await recordNativeLoginSuccess(env, {
