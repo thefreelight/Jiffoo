@@ -221,8 +221,10 @@ export default function AuthIdentityFinishPage() {
 
   const FinishComponent = theme?.components?.AuthIdentityFinishPage;
   if (!FinishComponent) {
-    // Own colours on every element: a dark theme repaints the page background
-    // but not the shell's body text colour, which left this card unreadable.
+    // Own colours on every element. The shell's base layer colours headings
+    // directly (h1 { color: var(--jf-text-main) }), which beats inheriting the
+    // card's colour, and a dark theme repaints the page around the card. A
+    // heading without its own colour class ended up dark on dark.
     return (
       <div className="flex min-h-screen items-center justify-center bg-neutral-950 px-4 py-12">
         <div className="w-full max-w-md rounded-2xl bg-white p-8 text-center text-neutral-900 shadow-xl">
@@ -232,11 +234,11 @@ export default function AuthIdentityFinishPage() {
                 aria-hidden
                 className="mx-auto block h-8 w-8 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-900"
               />
-              <h1 className="mt-6 text-xl font-semibold">Completing sign in</h1>
+              <h1 className="mt-6 text-xl font-semibold text-neutral-900">Completing sign in</h1>
             </>
           ) : error ? (
             <>
-              <h1 className="text-xl font-semibold">{error}</h1>
+              <h1 className="text-xl font-semibold text-neutral-900">{error}</h1>
               <button
                 type="button"
                 onClick={() => push('/auth/login')}
@@ -246,7 +248,7 @@ export default function AuthIdentityFinishPage() {
               </button>
             </>
           ) : (
-            <h1 className="text-xl font-semibold">Sign in finished</h1>
+            <h1 className="text-xl font-semibold text-neutral-900">Sign in finished</h1>
           )}
         </div>
       </div>

@@ -153,7 +153,14 @@ describe('identity finish page', () => {
     expect(await screen.findByText(EXPIRED)).toBeInTheDocument();
     expect(replace).not.toHaveBeenCalled();
     expect(setAuthenticated).toHaveBeenLastCalledWith(false);
-    expect(screen.getByRole('button', { name: 'Back to sign in' })).toBeInTheDocument();
+
+    // The card sits on a dark theme and the shell's base layer colours headings
+    // directly, so each text element carries its own colours: inheriting the
+    // card's left the message dark on dark.
+    const back = screen.getByRole('button', { name: 'Back to sign in' });
+    expect(screen.getByRole('heading', { level: 1 })).toHaveClass('text-neutral-900');
+    expect(back).toHaveClass('bg-neutral-900', 'text-white');
+    expect(back.closest('.bg-white')).not.toBeNull();
     vi.unstubAllGlobals();
   });
 
