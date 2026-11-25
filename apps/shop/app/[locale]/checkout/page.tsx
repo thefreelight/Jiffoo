@@ -222,9 +222,11 @@ export default function CheckoutPage() {
     };
   }, [cart, checkoutItems]);
 
-  // Redirect if cart is empty
+  // Redirect if cart is empty. The store is asked directly: a full page load first renders with the cart
+  // as the server saw it (empty), before the shopper's saved cart is taken into account, and acting on
+  // that render sent everyone who opened or refreshed /checkout straight back to the cart.
   React.useEffect(() => {
-    if (cart.items.length === 0) {
+    if (useCartStore.getState().cart.items.length === 0) {
       clearSelectedCartItemIds();
       nav.push('/cart');
     }

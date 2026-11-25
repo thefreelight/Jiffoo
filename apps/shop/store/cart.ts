@@ -111,6 +111,12 @@ const cartRequestWentThrough = (request: Promise<{ success?: boolean }>) =>
 // guest cart, so a failed request never costs the shopper what they picked. False when items were left
 // behind.
 async function moveGuestCart(get: CartStoreGet, set: CartStoreSet): Promise<boolean> {
+  // Not signed in (yet): nothing can be moved, and the guest cart is what is shown
+  if (!get().isLoggedIn()) {
+    set({ cart: localCartToDisplayCart(get().localCart), isLoading: false });
+    return true;
+  }
+
   const { localCart } = get();
 
   if (localCart.length === 0) {
