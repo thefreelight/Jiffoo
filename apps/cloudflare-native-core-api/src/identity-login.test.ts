@@ -427,23 +427,76 @@ describe('exchange (handoff consume)', () => {
     expect(db.identities[0].user_id).toBe(db.users[0].id);
   });
 
-  it('never merges an identical email string with an existing password account', async () => {
-    await startAndCallback({ email: 'buyer@example.com', subject: 'sub-1' });
-    const location = await (async () => {
-      const { location: l, binding } = await startAndCallback({ email: 'buyer@example.com', subject: 'sub-2' });
-      const code = must(l!.match(/#code=([^&]+|[^#]*)/)?.[0]?.replace('#code=', ''), 'code');
-      // A password account already owns the claimed email address.
-      findNativeUserByEmail.mockResolvedValue({ id: 'pw-user-1', email: 'buyer@example.com', username: 'pw', role: 'USER', is_active: 1 });
-      const response = await exchange(binding!, decodeURIComponent(code));
-      expect(response.status).toBe(409);
-      const body = await response.json() as { error: { code: string } };
-      expect(body.error.code).toBe('IDENTITY_EMAIL_IN_USE');
-      return l;
-    })();
-    expect(location).not.toBeNull();
+  function existingPasswordAccount(overrides: Partial<UserRow> = {}): UserRow {
+    const account: UserRow = { id: 'pw-user-1', email: 'buyer@example.com', username: 'pw', role: 'USER', avatar: null, is_active: 1, password_set: 1, email_verified: 1, password_salt: 's', password_hash: 'h', ...overrides };
+    db.users.push(account);
+    findNativeUserByEmail.mockResolvedValue(account);
+    return account;
+  }
+
+  async function codeFrom(location: string | null): Promise<string> {
+    return decodeURIComponent(must(location!.match(/#code=([^&]+|[^#]*)/)?.[0]?.replace('#code=', ''), 'code'));
+  }
+
+  it('keeps an unverified account blocking a new identity with the same email', async () => {
+    // The provider verified the address, but the local account never did:
+    // it could be anyone who typed it at sign-up, so nothing is merged.
+    existingPasswordAccount({ email_verified: 0 });
+    const { binding, location } = await startAndCallback();
+    const response = await exchange(binding!, await codeFrom(location));
+    expect(response.status).toBe(409);
+    const body = await response.json() as { error: { code: string } };
+    expect(body.error.code).toBe('IDENTITY_EMAIL_IN_USE');
     // No merge, no creation: the password account keeps the address.
-    expect(db.users).toHaveLength(0);
+    expect(db.users).toHaveLength(1);
     expect(db.identities).toHaveLength(0);
+  });
+
+  it('links the identity to the existing account when both sides verified the email', async () => {
+    existingPasswordAccount();
+    const { binding, location } = await startAndCallback();
+    const response = await exchange(binding!, await codeFrom(location));
+    expect(response.status).toBe(200);
+    const body = await response.json() as { data: { user: { id: string }; access_token: string } };
+    // The session belongs to the password account, not to a new customer.
+    expect(body.data.user.id).toBe('pw-user-1');
+    expect(body.data.access_token).toBe('access');
+    expect(db.users).toHaveLength(1);
+    expect(db.users[0].password_set).toBe(1);
+    expect(db.identities).toHaveLength(1);
+    expect(db.identities[0]).toMatchObject({
+      user_id: 'pw-user-1', provider_slug: 'google-auth', issuer: 'https://accounts.google.com', subject: 'sub-1',
+    });
+  });
+
+  it('logs a merged account straight in on its next sign-in', async () => {
+    existingPasswordAccount();
+    const first = await startAndCallback();
+    expect((await exchange(first.binding!, await codeFrom(first.location))).status).toBe(200);
+    const second = await startAndCallback();
+    const response = await exchange(second.binding!, await codeFrom(second.location));
+    expect(response.status).toBe(200);
+    const body = await response.json() as { data: { user: { id: string } } };
+    expect(body.data.user.id).toBe('pw-user-1');
+    expect(db.users).toHaveLength(1);
+    expect(db.identities).toHaveLength(1);
+  });
+
+  it('never links a staff or inactive account, even with a verified email', async () => {
+    const cases: Array<[string, (account: UserRow) => void]> = [
+      ['staff membership', (account) => { db.memberships.push({ user_id: account.id, role: 'SUPPORT_AGENT', status: 'ACTIVE' }); }],
+      ['deactivated', (account) => { account.is_active = 0; }],
+    ];
+    for (const [what, arrange] of cases) {
+      db = state();
+      arrange(existingPasswordAccount());
+      const { binding, location } = await startAndCallback();
+      const response = await exchange(binding!, await codeFrom(location));
+      expect(response.status, what).toBe(400);
+      const body = await response.json() as { error: { code: string } };
+      expect(body.error.code, what).toBe('IDENTITY_ACCOUNT_UNAVAILABLE');
+      expect(db.identities, what).toHaveLength(0);
+    }
   });
 
   it('rejects a wrong binding cookie', async () => {
@@ -826,6 +879,40 @@ describe('native token channel', () => {
     expect(db.identities).toHaveLength(1);
     expect(db.identities[0].issuer).toBe('https://appleid.apple.com');
     expect(db.identities[0].subject).toBe('apple-native-1');
+  });
+
+  async function appleAppToken(subject: string, email: string): Promise<string> {
+    const token = await es256Token({ iss: 'https://appleid.apple.com', aud: APPLE_BUNDLE_ID, sub: subject, email, email_verified: 'true', exp: Math.floor(Date.now() / 1000) + 600, nonce: 'n-123' });
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ keys: [{ ...applePublicJwk, kid: 'apple-key-1', alg: 'ES256' }] }), { status: 200 })));
+    return token;
+  }
+
+  it('links an app token to the existing account when both sides verified the email', async () => {
+    const account: UserRow = { id: 'pw-user-1', email: 'buyer@icloud.com', username: 'pw', role: 'USER', avatar: null, is_active: 1, password_set: 1, email_verified: 1, password_salt: 's', password_hash: 'h' };
+    db.users.push(account);
+    findNativeUserByEmail.mockResolvedValue(account);
+    const token = await appleAppToken('apple-native-2', 'buyer@icloud.com');
+    const response = await tryNativeIdentityLogin(nativeRequest({ providerSlug: 'apple-auth', idToken: token, nonce: 'n-123' }), makeEnv());
+    vi.unstubAllGlobals();
+    expect(response?.status).toBe(200);
+    const body = await (response as Response).json() as { data: { user: { id: string } } };
+    expect(body.data.user.id).toBe('pw-user-1');
+    expect(db.users).toHaveLength(1);
+    expect(db.identities).toHaveLength(1);
+    expect(db.identities[0].user_id).toBe('pw-user-1');
+  });
+
+  it('keeps an unverified account blocking an app token with the same email', async () => {
+    const account: UserRow = { id: 'pw-user-1', email: 'buyer@icloud.com', username: 'pw', role: 'USER', avatar: null, is_active: 1, password_set: 1, email_verified: 0, password_salt: 's', password_hash: 'h' };
+    db.users.push(account);
+    findNativeUserByEmail.mockResolvedValue(account);
+    const token = await appleAppToken('apple-native-3', 'buyer@icloud.com');
+    const response = await tryNativeIdentityLogin(nativeRequest({ providerSlug: 'apple-auth', idToken: token, nonce: 'n-123' }), makeEnv());
+    vi.unstubAllGlobals();
+    expect(response?.status).toBe(409);
+    const body = await (response as Response).json() as { error: { code: string } };
+    expect(body.error.code).toBe('IDENTITY_EMAIL_IN_USE');
+    expect(db.identities).toHaveLength(0);
   });
 
   it('rejects a tampered signature, a foreign audience, and a nonce mismatch', async () => {
