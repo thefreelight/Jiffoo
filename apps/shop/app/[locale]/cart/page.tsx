@@ -15,7 +15,7 @@ import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
 import { useT } from 'shared/src/i18n/react';
 import { LoadingState, ErrorState } from '@/components/ui/state-components';
 import { toast } from '@/components/ui/toaster';
-import { persistSelectedCartItemIds } from '@/lib/checkout-selection';
+import { handSelectionToCheckout } from '@/lib/checkout-selection';
 
 export default function CartPage() {
   const { theme, config, isLoading: themeLoading } = useShopTheme();
@@ -85,7 +85,7 @@ export default function CartPage() {
       return;
     }
 
-    persistSelectedCartItemIds(itemIds);
+    handSelectionToCheckout(itemIds, isAuthenticated);
 
     if (!isAuthenticated) {
       sessionStorage.setItem('redirectAfterLogin', nav.getHref('/checkout'));
