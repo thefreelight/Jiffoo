@@ -1,5 +1,6 @@
 import { authenticateNativeUser, type NativeAuthEnv, type NativeSessionUser } from './auth';
 import { resolveActivePromotion } from './bokmoo-promotions';
+import { priceOrderDiscounts, type AffiliateBuyerDiscount } from './order-discounts';
 import { getNativePluginConfig, getNativePluginSecret, getNativeStripeSecret } from './plugin-settings';
 import { settleNativeWalletCheckout } from './native-wallet';
 import { allocateOrderNumber, type OrderNumberEnv } from './order-numbers';
@@ -196,16 +197,15 @@ async function createOrder(
 
   const now = new Date().toISOString();
   const orderId = internalOrderId();
-  // Campaign promotion: the single best active promotion replaces the
-  // affiliate discount (no stacking) and lands on the covered items' unit
-  // price, keeping the Stripe charge, the order record and the apps equal.
-  // Promo codes double as buyer discounts and affiliate attribution.
+  // A promotion lands on the covered items' unit price, keeping the Stripe
+  // charge, the order record and the apps equal. Promo codes double as buyer
+  // discounts and affiliate attribution, and stack on top of the promotion.
   const affiliateCodeRaw = typeof body.affiliateCode === 'string' ? body.affiliateCode.trim().toUpperCase() : '';
   const affiliatePartner = affiliateCodeRaw
     ? await env.DB.prepare(
-      `SELECT id, discount_rate FROM native_affiliate_partners
+      `SELECT id, discount_rate, discount_type FROM native_affiliate_partners
        WHERE code = ?1 AND status = 'active' AND discount_rate > 0`,
-    ).bind(affiliateCodeRaw).first<{ id: string; discount_rate: number }>()
+    ).bind(affiliateCodeRaw).first<AffiliateBuyerDiscount>()
     : null;
   const catalogSubtotal = resolved.reduce(
     (sum, { input, variant }) => sum + variant.salePrice * input.quantity, 0,
@@ -217,26 +217,17 @@ async function createOrder(
     new Map(resolved.map(({ variant }) => [variant.id, variant.salePrice])),
     user.id,
   );
-  const affiliateDiscount = affiliatePartner
-    ? Math.min(catalogSubtotal, Math.round(catalogSubtotal * affiliatePartner.discount_rate) / 100)
-    : 0;
-  const appliedPromotion = promotion && promotion.discountAmount > 0 && promotion.discountAmount >= affiliateDiscount
-    ? promotion : null;
-  const discountAmount = appliedPromotion
-    ? Math.min(appliedPromotion.discountAmount, catalogSubtotal)
-    : affiliateDiscount;
-  const discountedUnit = new Map<string, number>();
-  if (appliedPromotion) {
-    for (const { product, variant } of resolved) {
-      const covered = !appliedPromotion.row.product_ids_json
-        || (() => { try { return (JSON.parse(appliedPromotion.row.product_ids_json!) as string[]).includes(product.id); } catch { return false; } })();
-      if (!covered) continue;
-      const perUnit = appliedPromotion.row.discount_type === 'percent'
-        ? Math.round(variant.salePrice * appliedPromotion.row.discount_value) / 100
-        : Math.min(appliedPromotion.row.discount_value, Math.max(variant.salePrice - 0.01, 0));
-      discountedUnit.set(variant.id, Math.max(variant.salePrice - Math.min(perUnit, variant.salePrice), 0.01));
-    }
-  }
+  const pricing = priceOrderDiscounts({
+    items: resolved.map(({ input, product, variant }) => ({
+      productId: product.id, variantId: variant.id, salePrice: variant.salePrice, quantity: input.quantity,
+    })),
+    promotion: promotion && promotion.discountAmount > 0 ? promotion.row : null,
+    affiliate: affiliatePartner,
+  });
+  const { promotionDiscount, affiliateDiscount } = pricing;
+  const appliedPromotion = promotionDiscount > 0 && promotion ? promotion : null;
+  const discountAmount = Math.round((promotionDiscount + affiliateDiscount) * 100) / 100;
+  const discountedUnit = pricing.unitPrices;
   // eSIM reuse: an authenticated buyer may pin the order to an already
   // provisioned eSIM (ICCID) so the BOSS hook tops up that profile instead
   // of paying a fresh provisioning fee. Validated loosely; the BOSS hook
@@ -298,14 +289,19 @@ async function createOrder(
     status: 'PENDING',
     paymentStatus: 'PENDING',
     subtotalAmount: catalogSubtotal,
-    totalAmount: catalogSubtotal + shippingAmount - discountAmount,
+    totalAmount: Math.round((catalogSubtotal + shippingAmount - discountAmount) * 100) / 100,
     discountAmount,
     shippingAmount,
     shippingMethod: requiresShipping ? shipping?.method_name ?? null : null,
     shippingProvider: requiresShipping ? shipping?.plugin_slug ?? null : null,
-    appliedDiscounts: appliedPromotion
-      ? [{ kind: 'promotion', id: appliedPromotion.row.id, slug: appliedPromotion.row.slug, amount: discountAmount }]
-      : (affiliatePartner ? [{ kind: 'affiliate', id: affiliatePartner.id, amount: discountAmount }] : []),
+    appliedDiscounts: [
+      ...(appliedPromotion
+        ? [{ kind: 'promotion', id: appliedPromotion.row.id, slug: appliedPromotion.row.slug, amount: promotionDiscount }]
+        : []),
+      ...(affiliatePartner && affiliateDiscount > 0
+        ? [{ kind: 'affiliate', id: affiliatePartner.id, amount: affiliateDiscount }]
+        : []),
+    ],
     currency: orderCurrency,
     shippingAddress: shippingAddress ?? body.shippingAddress ?? null,
     customerEmail: user.email,
@@ -337,7 +333,7 @@ async function createOrder(
       `INSERT INTO native_order_metadata
        (order_id, user_id, idempotency_key, payment_status, currency, total_amount, affiliate_partner_id, promotion_id)
        VALUES (?1, ?2, ?3, 'PENDING', ?4, ?5, ?6, ?7)`,
-    ).bind(orderId, user.id, idempotencyKey, orderCurrency, catalogSubtotal + shippingAmount - discountAmount, affiliatePartner?.id ?? null, appliedPromotion?.row.id ?? null),
+    ).bind(orderId, user.id, idempotencyKey, orderCurrency, order.totalAmount, affiliatePartner?.id ?? null, appliedPromotion?.row.id ?? null),
   ];
   for (let index = 0; index < resolved.length; index += 1) {
     const { input, product, variant } = resolved[index]!;
