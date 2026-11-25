@@ -179,6 +179,47 @@ describe('cart under a sale', () => {
   });
 });
 
+describe('checkout order summary', () => {
+  const renderCheckout = () => render(
+    <CheckoutPage
+      cart={cartWith(line(CARD, 20, 1)) as never}
+      isLoading={false}
+      isProcessing={false}
+      availablePaymentMethods={[{ name: 'stripe', displayName: 'Card' }]}
+      onSubmit={vi.fn(async () => undefined)}
+      onBack={vi.fn()}
+      locale="en"
+    />,
+  );
+
+  // The summary is a narrow column. With the sale price, the struck price and the badge beside it, the
+  // name was squeezed into a sliver and the price printed over it.
+  it('puts a sale price below the name, where it cannot print over it', async () => {
+    stubStorefront({ sales: [API_SALE] });
+    const { container } = renderCheckout();
+    await flush();
+
+    const price = container.querySelector('[data-purpose="checkout-line-price"]');
+    expect(price?.getAttribute('data-layout')).toBe('stacked');
+    expect(price?.textContent).toBe('$16.00$20.00-20%');
+    const nameColumn = price?.parentElement;
+    expect(nameColumn?.classList.contains('flex-1')).toBe(true);
+    // name, quantity, price — and nothing printed beside the column
+    expect(nameColumn?.children).toHaveLength(3);
+    expect(nameColumn?.nextElementSibling).toBeNull();
+  });
+
+  it('keeps the price beside the name when nothing is on sale', async () => {
+    stubStorefront({ sales: [] });
+    const { container } = renderCheckout();
+    await flush();
+
+    const price = container.querySelector('[data-purpose="checkout-line-price"]');
+    expect(price?.getAttribute('data-layout')).toBe('inline');
+    expect(price?.textContent).toBe('$20.00');
+  });
+});
+
 describe('checkout promo code', () => {
   const renderCheckout = () => render(
     <CheckoutPage
