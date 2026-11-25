@@ -38,7 +38,7 @@ export function AffiliateNativeWorkspace({ data }: { data: AffiliateNativeOvervi
   const organizationMutation = useUpdateAffiliateOrganization();
   const commissionMutation = useUpdateAffiliateCommissionStatus();
 
-  const [partnerEdits, setPartnerEdits] = useState<Record<string, { rate: string; status: string; code: string; discount: string }>>({});
+  const [partnerEdits, setPartnerEdits] = useState<Record<string, { rate: string; status: string; code: string; discount: string; discountType: string }>>({});
   const [orgEdits, setOrgEdits] = useState<Record<string, { rate: string; status: string }>>({});
   const [actionError, setActionError] = useState('');
 
@@ -48,6 +48,7 @@ export function AffiliateNativeWorkspace({ data }: { data: AffiliateNativeOvervi
       status: String(partners.find((row) => row.id === id)?.status ?? 'active'),
       code: String(partners.find((row) => row.id === id)?.code ?? ''),
       discount: String(Number(partners.find((row) => row.id === id)?.discount_rate ?? 0)),
+      discountType: String(partners.find((row) => row.id === id)?.discount_type || 'percentage'),
     };
   const orgEdit = (id: string) =>
     orgEdits[id] || {
@@ -65,6 +66,7 @@ export function AffiliateNativeWorkspace({ data }: { data: AffiliateNativeOvervi
         status: edit.status,
         code: edit.code,
         discountRate: Number(edit.discount),
+        discountType: edit.discountType,
       });
     } catch (cause: any) {
       setActionError(cause?.message || 'Could not update the partner.');
@@ -120,7 +122,10 @@ export function AffiliateNativeWorkspace({ data }: { data: AffiliateNativeOvervi
 
       <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
         <h2 className="text-base font-semibold">Partners</h2>
-        <p className="mt-1 text-xs text-muted-foreground">Set each partner&apos;s commission rate (%) or suspend them.</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Set each partner&apos;s commission rate (%), the buyer discount of their promo code (a percentage that stacks on a running
+          promotion, or a fixed amount off) or suspend them.
+        </p>
         <div className="mt-3 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -129,7 +134,7 @@ export function AffiliateNativeWorkspace({ data }: { data: AffiliateNativeOvervi
                 <th className="py-2 pr-4">Partner</th>
                 <th className="py-2 pr-4">Commissions</th>
                 <th className="py-2 pr-4">Rate (%)</th>
-                <th className="py-2 pr-4">Discount (%)</th>
+                <th className="py-2 pr-4">Buyer discount</th>
                 <th className="py-2 pr-4">Status</th>
                 <th className="py-2 pr-4">Actions</th>
               </tr>
@@ -170,17 +175,30 @@ export function AffiliateNativeWorkspace({ data }: { data: AffiliateNativeOvervi
                       />
                     </td>
                     <td className="py-2 pr-4">
-                      <Input
-                        type="number"
-                        min={0}
-                        max={90}
-                        step="1"
-                        value={edit.discount}
-                        onChange={(event) =>
-                          setPartnerEdits((previous) => ({ ...previous, [id]: { ...edit, discount: event.target.value } }))
-                        }
-                        className="h-8 w-16"
-                      />
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="number"
+                          min={0}
+                          max={edit.discountType === 'fixed_amount' ? 1000 : 90}
+                          step="1"
+                          value={edit.discount}
+                          onChange={(event) =>
+                            setPartnerEdits((previous) => ({ ...previous, [id]: { ...edit, discount: event.target.value } }))
+                          }
+                          className="h-8 w-16"
+                        />
+                        <select
+                          aria-label="Buyer discount type"
+                          value={edit.discountType}
+                          onChange={(event) =>
+                            setPartnerEdits((previous) => ({ ...previous, [id]: { ...edit, discountType: event.target.value } }))
+                          }
+                          className="h-8 rounded-md border bg-background px-1 text-sm"
+                        >
+                          <option value="percentage">% off</option>
+                          <option value="fixed_amount">{String(partner.currency || 'USD')} off</option>
+                        </select>
+                      </div>
                     </td>
                     <td className="py-2 pr-4">
                       <select
