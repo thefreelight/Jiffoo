@@ -3,11 +3,12 @@
 import * as React from 'react';
 import { WifiOff, Wifi, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useT } from 'shared/src/i18n/react';
 
 interface OfflineDetectorProps {
-  /** Custom offline message */
+  /** Custom offline message; the storefront's own copy when unset */
   offlineMessage?: string;
-  /** Custom online message */
+  /** Custom online message; the storefront's own copy when unset */
   onlineMessage?: string;
   /** Display position */
   position?: 'top' | 'bottom';
@@ -26,13 +27,20 @@ interface OfflineDetectorProps {
  * Automatically hides and triggers callback when network is restored.
  */
 export function OfflineDetector({
-  offlineMessage = 'You are currently offline. Some features may be unavailable.',
-  onlineMessage = 'Network restored',
+  offlineMessage,
+  onlineMessage,
   position = 'top',
   className,
   onOnline,
   onOffline,
 }: OfflineDetectorProps) {
+  const t = useT();
+  // A caller's message wins; otherwise the storefront's language, then English.
+  const copy = (key: string, fallback: string, custom?: string) => {
+    if (custom) return custom;
+    const translated = t?.(key);
+    return translated && translated !== key ? translated : fallback;
+  };
   const [isOnline, setIsOnline] = React.useState(true);
   const [showOnlineNotice, setShowOnlineNotice] = React.useState(false);
   const [dismissed, setDismissed] = React.useState(false);
@@ -93,11 +101,11 @@ export function OfflineDetector({
         aria-live="polite"
       >
         <WifiOff className="h-4 w-4 flex-shrink-0" />
-        <span className="text-sm font-medium">{offlineMessage}</span>
+        <span className="text-sm font-medium">{copy('common.shell.offline', 'You are currently offline. Some features may be unavailable.', offlineMessage)}</span>
         <button
           onClick={() => setDismissed(true)}
           className="ml-2 p-1 hover:bg-amber-600 rounded transition-colors"
-          aria-label="Dismiss notice"
+          aria-label={copy('common.shell.dismissNotice', 'Dismiss notice')}
         >
           <X className="h-4 w-4" />
         </button>
@@ -121,7 +129,7 @@ export function OfflineDetector({
         aria-live="polite"
       >
         <Wifi className="h-4 w-4 flex-shrink-0" />
-        <span className="text-sm font-medium">{onlineMessage}</span>
+        <span className="text-sm font-medium">{copy('common.shell.backOnline', 'Network restored', onlineMessage)}</span>
       </div>
     );
   }
