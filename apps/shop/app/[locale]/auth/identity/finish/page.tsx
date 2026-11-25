@@ -128,17 +128,11 @@ function finishSignIn(code: string, getHref: (path: string) => string): Promise<
   return running;
 }
 
-// First existing translation wins. The storefront dictionaries name this
-// success line differently per language (camelCase in the TS messages,
-// snake_case in the Chinese JSON), and useT answers a missing key with the
-// key itself.
-function translated(t: ReturnType<typeof useT>, keys: string[], fallback: string): string {
+// useT answers a missing key with the key itself; English covers that case.
+function translated(t: ReturnType<typeof useT>, key: string, fallback: string): string {
   if (typeof t !== 'function') return fallback;
-  for (const key of keys) {
-    const value = t(key);
-    if (typeof value === 'string' && value && value !== key) return value;
-  }
-  return fallback;
+  const value = t(key);
+  return typeof value === 'string' && value && value !== key ? value : fallback;
 }
 
 export default function AuthIdentityFinishPage() {
@@ -150,18 +144,20 @@ export default function AuthIdentityFinishPage() {
   const t = useT();
   const [error, setError] = React.useState<string | null>(null);
   const [isCompleting, setIsCompleting] = React.useState(true);
-  // One attempt per mount. Translation and toast helpers are new functions on
-  // every render, so without this guard the effect would re-run once the
-  // sign-in has already been completed and the code dropped from the URL.
-  const startedRef = React.useRef(false);
+
+  // One attempt per mount. The helpers below are new functions on later
+  // renders (a theme finishing loading, the auth store updating), and listing
+  // them as effect dependencies re-ran the attempt with the same one-time
+  // code. The effect reads the latest of each through this ref instead.
+  const latest = React.useRef({ getHref, router, toast, t, setUser, setAuthenticated, setLoading });
+  React.useEffect(() => {
+    latest.current = { getHref, router, toast, t, setUser, setAuthenticated, setLoading };
+  });
 
   React.useEffect(() => {
-    if (startedRef.current) return;
-    startedRef.current = true;
     let cancelled = false;
 
     async function finishAuth() {
-      setIsCompleting(true);
       setLoading(true);
 
       let result: FinishResult;
@@ -169,7 +165,13 @@ export default function AuthIdentityFinishPage() {
       if (errorCode) {
         result = { kind: 'failed', message: describeError(errorCode, 'Sign-in failed') };
       } else if (code) {
-        result = await finishSignIn(code, getHref);
+        try {
+          result = await finishSignIn(code, latest.current.getHref);
+        } catch {
+          // The exchange never got an answer. Show the way back rather than
+          // leaving the spinner up for good.
+          result = { kind: 'failed', message: describeError('IDENTITY_UNAVAILABLE', 'Sign-in could not be completed') };
+        }
       } else if (localStorage.getItem('auth_token')) {
         // No handoff in the URL. After a successful sign-in the code has been
         // dropped from it, so a signed-in visitor landing here just moves on.
@@ -179,10 +181,11 @@ export default function AuthIdentityFinishPage() {
       }
 
       setLoading(false);
-      // A later mount (or effect run) of this page owns the screen; this one
-      // only shared the exchange.
+      // Unmounted meanwhile: a later mount of this page owns the screen, and
+      // this run only shared the exchange.
       if (cancelled) return;
 
+      const { getHref, router, toast, t, setUser, setAuthenticated } = latest.current;
       if (result.kind === 'failed') {
         setError(result.message);
         setAuthenticated(false);
@@ -197,7 +200,7 @@ export default function AuthIdentityFinishPage() {
         }
         setAuthenticated(true);
         if (result.announce) {
-          toast({ title: translated(t, ['shop.auth.login.success', 'shop.auth.login_success'], 'Login successful') });
+          toast({ title: translated(t, 'shop.auth.login.success', 'Login successful') });
         }
       }
       setIsCompleting(false);
@@ -214,7 +217,7 @@ export default function AuthIdentityFinishPage() {
     return () => {
       cancelled = true;
     };
-  }, [getHref, router, setAuthenticated, setLoading, setUser, t, toast]);
+  }, []);
 
   const FinishComponent = theme?.components?.AuthIdentityFinishPage;
   if (!FinishComponent) {

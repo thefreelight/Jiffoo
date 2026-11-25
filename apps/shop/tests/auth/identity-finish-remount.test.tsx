@@ -9,10 +9,14 @@ const setAuthenticated = vi.fn();
 const setLoading = vi.fn();
 const toast = vi.fn();
 const getProfile = vi.fn();
+// Answers with the key itself when the dictionary has no entry, like useT.
+let translate = (key: string): string => key;
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ replace: (...args: unknown[]) => replace(...args), push: (...args: unknown[]) => push(...args) }),
 }));
+// New function identities on every render, as a theme or locale finishing
+// loading produces in the storefront.
 vi.mock('@/hooks/use-localized-navigation', () => ({
   useLocalizedNavigation: () => ({ getHref: (path: string) => `/en${path}`, push: (...args: unknown[]) => push(...args), locale: 'en' }),
 }));
@@ -28,8 +32,7 @@ vi.mock('@/store/auth', () => ({
 }));
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: (...args: unknown[]) => toast(...args) }) }));
 vi.mock('@/lib/api', () => ({ accountApi: { getProfile: (...args: unknown[]) => getProfile(...args) } }));
-// Returns the key itself, which is what the real useT does for a missing key.
-vi.mock('shared/src/i18n/react', () => ({ useT: () => (key: string) => key }));
+vi.mock('shared/src/i18n/react', () => ({ useT: () => (key: string) => translate(key) }));
 
 const EXPIRED = /expired or was already used/i;
 const PROFILE = { id: 'user-1', email: 'buyer@example.com' };
@@ -52,8 +55,8 @@ function singleUseExchange(): ReturnType<typeof vi.fn> {
 
 let page: ComponentType | null = null;
 
+// A remount keeps the page module; only the component instance is new.
 async function mount() {
-  // A remount keeps the page module; only the component instance is new.
   if (!page) page = (await import('@/app/[locale]/auth/identity/finish/page')).default as ComponentType;
   const Page = page;
   return render(<Page />);
@@ -63,6 +66,7 @@ describe('identity finish page', () => {
   beforeEach(() => {
     vi.resetModules();
     page = null;
+    translate = (key: string): string => key;
     replace.mockReset();
     push.mockReset();
     setUser.mockReset();
@@ -85,16 +89,44 @@ describe('identity finish page', () => {
 
     const first = await mount();
     first.unmount();
-    await mount();
+    const second = await mount();
+    // The later mount owns the screen: one exchange, one notice, one redirect.
+    const Page = page!;
+    second.rerender(<Page />);
 
     await waitFor(() => expect(replace).toHaveBeenCalledWith('/en/profile'));
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(screen.queryByText(EXPIRED)).toBeNull();
     expect(localStorage.getItem('auth_token')).toBe('access-1');
     expect(setUser).toHaveBeenCalledWith(PROFILE);
+    expect(toast).toHaveBeenCalledTimes(1);
     expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Login successful' }));
+    expect(replace).toHaveBeenCalledTimes(1);
     // The one-time code is gone from the URL, so a refresh cannot replay it.
     expect(window.location.hash).toBe('');
+    vi.unstubAllGlobals();
+  });
+
+  it('keeps to one exchange when the page re-renders mid sign-in', async () => {
+    // The auth store updating, or the theme finishing loading, re-renders this
+    // page while the exchange is still in flight.
+    window.history.replaceState(null, '', '/en/auth/identity/finish#code=handoff-3');
+    const fetchMock = singleUseExchange();
+    vi.stubGlobal('fetch', fetchMock);
+
+    const view = await mount();
+    const Page = page!;
+    view.rerender(<Page />);
+    view.rerender(<Page />);
+
+    await waitFor(() => expect(replace).toHaveBeenCalledWith('/en/profile'));
+    // Later renders do not start a second attempt or a second notice either.
+    view.rerender(<Page />);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(toast).toHaveBeenCalledTimes(1);
+    expect(replace).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText(EXPIRED)).toBeNull();
+    expect(localStorage.getItem('auth_token')).toBe('access-1');
     vi.unstubAllGlobals();
   });
 
@@ -125,6 +157,21 @@ describe('identity finish page', () => {
     vi.unstubAllGlobals();
   });
 
+  it('shows the way back when the exchange request itself fails', async () => {
+    window.history.replaceState(null, '', '/en/auth/identity/finish#code=handoff-4');
+    vi.stubGlobal('fetch', vi.fn(async () => {
+      throw new TypeError('network down');
+    }));
+
+    await mount();
+
+    expect(await screen.findByText(/temporarily unavailable/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Back to sign in' })).toBeInTheDocument();
+    expect(replace).not.toHaveBeenCalled();
+    expect(setAuthenticated).toHaveBeenLastCalledWith(false);
+    vi.unstubAllGlobals();
+  });
+
   it('explains a sign-in the customer cancelled', async () => {
     window.history.replaceState(null, '', '/en/auth/identity/finish?error=IDENTITY_CANCELLED');
     vi.stubGlobal('fetch', singleUseExchange());
@@ -134,6 +181,18 @@ describe('identity finish page', () => {
     expect(await screen.findByText(/Sign-in was cancelled/i)).toBeInTheDocument();
     expect(fetch).not.toHaveBeenCalled();
     expect(replace).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
+  });
+
+  it('announces the sign-in in the storefront language', async () => {
+    window.history.replaceState(null, '', '/en/auth/identity/finish#code=handoff-5');
+    translate = (key: string): string => (key === 'shop.auth.login.success' ? '登录成功' : key);
+    vi.stubGlobal('fetch', singleUseExchange());
+
+    await mount();
+
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: '登录成功' })));
+    await waitFor(() => expect(replace).toHaveBeenCalledWith('/en/profile'));
     vi.unstubAllGlobals();
   });
 
