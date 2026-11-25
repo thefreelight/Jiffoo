@@ -42,6 +42,9 @@ interface OfficialPluginsCatalogProps {
 }
 
 function formatPrice(item: OfficialCatalogItem): string {
+  if (item.pricingModel === 'member') {
+    return item.price > 0 ? `Pro · ${item.currency} ${item.price}/yr` : 'Pro membership';
+  }
   if (item.pricingModel === 'free' || item.price <= 0) {
     return 'Free';
   }
@@ -257,7 +260,7 @@ export function OfficialPluginsCatalog({
             const hasSolutionSemantics = solutionMeta?.offerKind === 'theme_first_solution' || controlPlaneSolution?.offerKind === 'theme_first_solution';
             const isInstalling = installingSlug === item.slug || (isProvisioningPackage && solutionMeta?.offerKind === 'theme_first_solution');
             const showConfigure = item.installState === 'installed' && item.configRequired && !item.configReady;
-            const requiresPlatformBinding = item.pricingModel !== 'free';
+            const requiresPlatformBinding = item.pricingModel !== 'free' && item.pricingModel !== 'member';
             const isUpdateAction = Boolean(item.updateAvailable && item.installState !== 'not_installed');
             const installDisabled =
               item.installState === 'not_installed' &&
