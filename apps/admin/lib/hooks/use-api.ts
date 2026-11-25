@@ -1426,12 +1426,13 @@ export function useUpdateAffiliatePartner() {
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
   return useMutation({
-    mutationFn: async (input: { id: string; commissionRate?: number; status?: string; code?: string; discountRate?: number }) => {
+    mutationFn: async (input: { id: string; commissionRate?: number; status?: string; code?: string; discountRate?: number; discountType?: string }) => {
       const response = await apiClient.patch(`/extensions/plugin/affiliate/api/admin/partners/${input.id}`, {
         ...(input.commissionRate !== undefined ? { commissionRate: input.commissionRate } : {}),
         ...(input.status !== undefined ? { status: input.status } : {}),
         ...(input.code !== undefined ? { code: input.code } : {}),
         ...(input.discountRate !== undefined ? { discountRate: input.discountRate } : {}),
+        ...(input.discountType !== undefined ? { discountType: input.discountType } : {}),
       });
       if (!response.success) throw new Error(getErrorMessage(response) || 'Update failed');
       return response.data;

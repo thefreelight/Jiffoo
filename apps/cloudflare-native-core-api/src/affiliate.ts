@@ -1,5 +1,6 @@
 import { authenticateNativeAdmin, authenticateNativeUser, type NativeAuthEnv, type NativeSessionUser } from './auth';
 import { isNativePluginEnabled } from './plugin-enabled';
+import { affiliateDiscountType, MAX_FIXED_BUYER_DISCOUNT } from './order-discounts';
 
 interface AffiliateEnv extends NativeAuthEnv { DB: D1Database }
 type AffiliateDataEnv = Pick<Cloudflare.Env, 'DB'>;
@@ -8,6 +9,8 @@ interface PartnerRow {
   id: string; user_id: string; code: string; status: string; display_name: string | null;
   email: string | null; commission_rate: number; currency: string; organization_id: string | null;
   member_role: string | null; created_at: string; updated_at: string;
+  /** Buyer discount of the promo code; `discount_rate` is the value for both types. */
+  discount_rate?: number; discount_type?: string | null;
 }
 
 interface OrganizationRow {
@@ -38,6 +41,8 @@ function partner(row: PartnerRow): Record<string, unknown> {
     commissionType: 'percentage', commissionRate: row.commission_rate,
     organizationId: row.organization_id,
     memberRole: row.member_role,
+    discountType: affiliateDiscountType(row.discount_type),
+    discountValue: row.discount_rate ?? 0,
     currency: row.currency, createdAt: row.created_at, updatedAt: row.updated_at,
   };
 }
@@ -319,7 +324,7 @@ async function handleNativeAffiliate(request: Request, env: AffiliateEnv, _url: 
     if (!admin) return failure(401, 'UNAUTHORIZED', 'Administrator authentication is required');
     if (!(await isNativePluginEnabled(env, 'affiliate'))) return failure(404, 'PLUGIN_NOT_ENABLED', 'Affiliate plugin is not installed and enabled');
     const partners = await env.DB.prepare(
-      `SELECT p.id, p.code, p.status, p.display_name, p.email, p.commission_rate, p.discount_rate, p.currency,
+      `SELECT p.id, p.code, p.status, p.display_name, p.email, p.commission_rate, p.discount_rate, p.discount_type, p.currency,
               p.organization_id, p.created_at,
               COUNT(c.id) AS commission_count,
               COALESCE(SUM(c.amount), 0) AS commission_total,
@@ -379,7 +384,9 @@ async function handleNativeAffiliate(request: Request, env: AffiliateEnv, _url: 
   if (adminPartnerMatch && request.method === 'PATCH') {
     const guard = await adminAffiliateGuard();
     if (guard.error) return guard.error;
-    const body = await request.clone().json().catch(() => ({})) as { commissionRate?: unknown; status?: unknown; code?: unknown; discountRate?: unknown };
+    const body = await request.clone().json().catch(() => ({})) as {
+      commissionRate?: unknown; status?: unknown; code?: unknown; discountRate?: unknown; discountType?: unknown;
+    };
     const updates: string[] = [];
     const bindings: unknown[] = [];
     if (body.commissionRate !== undefined) {
@@ -401,13 +408,32 @@ async function handleNativeAffiliate(request: Request, env: AffiliateEnv, _url: 
       updates.push('code = ?');
       bindings.push(code);
     }
-    if (body.discountRate !== undefined) {
-      const rate = Number(body.discountRate);
-      if (!Number.isFinite(rate) || rate < 0 || rate > 90) {
-        return failure(400, 'VALIDATION_ERROR', 'Buyer discount rate must be between 0 and 90');
+    if (body.discountType !== undefined || body.discountRate !== undefined) {
+      // One column holds the value of both types, so its bounds depend on
+      // the type in force, and changing the type requires a fresh value.
+      const current = await env.DB.prepare('SELECT discount_type FROM native_affiliate_partners WHERE id = ?1')
+        .bind(adminPartnerMatch[1]!).first<{ discount_type: string | null }>();
+      if (!current) return failure(404, 'NOT_FOUND', 'Partner not found');
+      const currentType = affiliateDiscountType(current.discount_type);
+      if (body.discountType !== undefined && body.discountType !== 'percentage' && body.discountType !== 'fixed_amount') {
+        return failure(400, 'VALIDATION_ERROR', 'Buyer discount type must be percentage or fixed_amount');
       }
-      updates.push('discount_rate = ?');
-      bindings.push(rate);
+      const type = body.discountType === undefined ? currentType : body.discountType;
+      if (body.discountRate === undefined) {
+        if (type !== currentType) return failure(400, 'VALIDATION_ERROR', 'Send discountRate together with the new discountType');
+      } else {
+        const value = Number(body.discountRate);
+        const max = type === 'percentage' ? 90 : MAX_FIXED_BUYER_DISCOUNT;
+        if (!Number.isFinite(value) || value < 0 || value > max) {
+          return failure(400, 'VALIDATION_ERROR', type === 'percentage'
+            ? 'Buyer discount rate must be between 0 and 90'
+            : `Fixed buyer discount must be between 0 and ${MAX_FIXED_BUYER_DISCOUNT}`);
+        }
+        updates.push('discount_rate = ?');
+        bindings.push(value);
+      }
+      updates.push('discount_type = ?');
+      bindings.push(type);
     }
     if (body.status !== undefined) {
       const status = String(body.status);
@@ -487,11 +513,17 @@ async function handleNativeAffiliate(request: Request, env: AffiliateEnv, _url: 
     // Public: the checkout shows the buyer their discount before paying.
     const code = decodeURIComponent(promoRoute[1]!).toUpperCase();
     const partner = await env.DB.prepare(
-      `SELECT code, discount_rate, display_name FROM native_affiliate_partners
+      `SELECT code, discount_rate, discount_type, display_name FROM native_affiliate_partners
        WHERE code = ?1 AND status = 'active' AND discount_rate > 0`,
-    ).bind(code).first<{ code: string; discount_rate: number; display_name: string | null }>();
+    ).bind(code).first<{ code: string; discount_rate: number; discount_type?: string | null; display_name: string | null }>();
     if (!partner) return success({ valid: false }, 200);
-    return success({ valid: true, code: partner.code, discountRate: partner.discount_rate, partnerName: partner.display_name }, 200);
+    const discountType = affiliateDiscountType(partner.discount_type);
+    return success({
+      valid: true, code: partner.code, partnerName: partner.display_name,
+      discountType, discountValue: partner.discount_rate,
+      // kept for callers written before discount types existed
+      discountRate: discountType === 'percentage' ? partner.discount_rate : 0,
+    }, 200);
   }
   if (request.method === 'GET' && route) return recordReferral(request, env, decodeURIComponent(route[1]!));
   const user = await currentUser(request, env);
