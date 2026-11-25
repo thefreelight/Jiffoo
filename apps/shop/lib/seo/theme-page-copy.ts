@@ -22,7 +22,7 @@ import type { ServerStoreContext } from '@/lib/server-store-context';
 // theme registry and its client-side theme runtimes (lib/themes/theme-seo.ts is import-free).
 import { DEFAULT_THEME_SEO_ROUTE, getDeclaredThemeSeo } from '@/lib/themes/theme-seo';
 import { getThemeMessages } from '@/lib/theme-i18n-server';
-import { generatePublicPageMetadata, ogLocale, type PageCopy, type PageRoute } from './public-page-metadata';
+import { generatePublicPageMetadata, type PageCopy, type PageRoute } from './public-page-metadata';
 
 type StoreContext = ServerStoreContext | null | undefined;
 
@@ -92,6 +92,11 @@ export async function generateThemePageMetadata({
  * listing, destinations, search, …) would otherwise inherit the root layout's bare
  * brand title. Returns an empty object when the theme declares no default, so the
  * root layout's metadata stays in force for that storefront.
+ *
+ * Only top-level `title` and `description` are set. Next shallow-merges metadata
+ * across segments, so a nested `openGraph` or `twitter` object defined here would
+ * replace the root layout's complete one (share image, site name, URL, card type).
+ * The template is repeated because the nearest layout that defines one owns it.
  */
 export async function generateThemeDefaultMetadata({
   locale,
@@ -109,7 +114,5 @@ export async function generateThemeDefaultMetadata({
   return {
     title: { default: copy.title, template: `%s | ${brandName}` },
     description: copy.description,
-    openGraph: { title: copy.title, description: copy.description, locale: ogLocale(locale) },
-    twitter: { title: copy.title, description: copy.description },
   };
 }
