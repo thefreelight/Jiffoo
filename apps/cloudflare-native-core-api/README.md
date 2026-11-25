@@ -36,3 +36,28 @@ the first time an order list or detail read touches them.
 Copy `wrangler.jsonc` to a deployment-specific ignored configuration, replace
 all placeholders, generate binding types, run `type-check`, apply migrations,
 and deploy the immutable source commit.
+
+## Game Stats
+
+Portals report anonymous play counts through the `game-stats` plugin. It runs
+once its `native_plugin_instances` row exists (the official-market install
+creates it). A portal on another origin that reports from a browser lists that
+origin in the plugin's `allowedOrigins` setting.
+
+- `POST /api/v1/plugins/game-stats/store/sessions` takes
+  `{ action: start | heartbeat | end, gameId, playerId, sessionId }`. The page
+  generates `playerId` (a random string it keeps) and a UUID `sessionId`, and
+  sends a heartbeat every `heartbeatIntervalSeconds` while the tab is visible.
+- `GET /api/v1/plugins/game-stats/store/live` returns `{ online, byGame }`:
+  the players whose last heartbeat is inside `heartbeatWindowSeconds` (90 by
+  default).
+- `GET /api/v1/extensions/plugin/game-stats/api/admin/{overview,timeseries,games}`
+  serves the reports the Admin app shows under Game Stats; they need
+  `dashboard.read`.
+
+Nothing personal is stored. `playerId` is hashed together with the calendar
+day, so one browser counts once per day and cannot be followed across days; no
+IP address, account or user agent is written. Raw sessions and player keys are
+kept for `retentionDays` (90 by default) and the daily rollups are kept.
+`timezoneOffsetMinutes` (0 by default) sets the day boundary. The minute cron
+closes stale sessions, rolls up finished days and prunes raw rows.

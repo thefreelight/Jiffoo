@@ -215,6 +215,16 @@ const definitions: Record<string, PluginDefinition> = {
     description: 'Storefront SEO manager: redirects with hit counts and 404 conversion. Storefront robots.txt, sitemap.xml, canonical/hreflang metadata, and product JSON-LD are built into the framework and always active.',
     configSchema: {},
   },
+  'game-stats': {
+    slug: 'game-stats', name: 'Game Stats', version: '0.0.1', category: 'analytics',
+    description: 'Anonymous play counts for game portals: who is playing now, plus sessions, players and play time per game per day. Stores no personal data.',
+    configSchema: {
+      heartbeatWindowSeconds: { type: 'number', label: 'Heartbeat window (seconds)', description: 'A player counts as playing while their last heartbeat is younger than this.', placeholder: '90' },
+      retentionDays: { type: 'number', label: 'Raw data retention (days)', description: 'Sessions and player keys are kept this long; daily totals are kept.', placeholder: '90' },
+      timezoneOffsetMinutes: { type: 'number', label: 'Timezone offset (minutes)', description: 'Minutes east of UTC used as the day boundary for the daily totals.', placeholder: '0' },
+      allowedOrigins: { type: 'string', label: 'Allowed origins', description: 'Comma-separated site origins allowed to report plays from a browser.', placeholder: 'https://games.example.com' },
+    },
+  },
 };
 
 const encoder = new TextEncoder();
@@ -362,6 +372,15 @@ function validateConfig(slug: string, config: Record<string, unknown>, secrets: 
     for (const field of ['fromEmail', 'replyTo']) {
       const value = config[field];
       if (typeof value === 'string' && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) throw new Error(`${field} must be a valid email address`);
+    }
+  }
+  if (slug === 'game-stats') {
+    // Same bounds the plugin clamps to at read time; rejecting here keeps the stored value the one in use.
+    for (const [field, min, max] of [['heartbeatWindowSeconds', 30, 600], ['retentionDays', 7, 3650], ['timezoneOffsetMinutes', -840, 840]] as const) {
+      const value = config[field];
+      if (value !== undefined && (typeof value !== 'number' || !Number.isFinite(value) || value < min || value > max)) {
+        throw new Error(`${field} must be between ${min} and ${max}`);
+      }
     }
   }
   if (slug === 'stripe') {

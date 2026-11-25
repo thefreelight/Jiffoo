@@ -1,0 +1,16 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "game-production-admin",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-07-29",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "routes": [{ "pattern": "game-admin.jiffoo.com", "custom_domain": true }],
+  "r2_buckets": [{ "binding": "NEXT_INC_CACHE_R2_BUCKET", "bucket_name": "game-production-admin-cache" }],
+  "vars": {
+    "API_SERVICE_URL": "https://game-api.jiffoo.com",
+    "NEXT_PUBLIC_API_URL": "/api",
+    "NEXT_PUBLIC_ADMIN_URL": "https://game-admin.jiffoo.com",
+    "THEME_APP_PROXY_DISABLED": "1"
+  }
+}

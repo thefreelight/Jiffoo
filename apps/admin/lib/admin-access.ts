@@ -92,6 +92,10 @@ export function getRequiredPermissionsForAdminPath(
     return [ADMIN_PERMISSIONS.PRODUCTS_READ];
   }
 
+  if (path.startsWith('/analytics')) {
+    return [ADMIN_PERMISSIONS.DASHBOARD_READ];
+  }
+
   if (path.startsWith('/tool-discovery')) {
     return [ADMIN_PERMISSIONS.PRODUCTS_READ];
   }

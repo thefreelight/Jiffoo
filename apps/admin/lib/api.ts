@@ -1718,3 +1718,41 @@ export const redemptionsApi = {
   create: (input: CreateRedemptionCodeInput): Promise<ApiResponse<RedemptionCodeDTO>> =>
     apiClient.post('/plugins/coupon/admin/product-redemption-codes', input),
 };
+
+// Game Stats plugin (native): anonymous play counts for game portals. Times are
+// seconds; "online" means a heartbeat inside the plugin's window (90 seconds by default).
+export type GameStatsRangeDays = 7 | 30;
+
+export interface GameStatsOverview {
+  day: string;
+  online: { total: number; byGame: Record<string, number> };
+  today: { sessions: number; players: number; playSeconds: number };
+  totals: { sessions: number; playSeconds: number; days: number };
+}
+
+export interface GameStatsDay {
+  day: string;
+  sessions: number;
+  players: number;
+  playSeconds: number;
+}
+
+export interface GameStatsGame {
+  gameId: string;
+  sessions: number;
+  /** Sum of each day's unique players: player keys are salted per day, so a range has no exact distinct count. */
+  playerDays: number;
+  playSeconds: number;
+  online: number;
+}
+
+export const gameStatsApi = {
+  overview: (): Promise<ApiResponse<GameStatsOverview>> =>
+    apiClient.get('/plugins/game-stats/admin/overview'),
+
+  timeseries: (days: GameStatsRangeDays): Promise<ApiResponse<{ days: number; items: GameStatsDay[] }>> =>
+    apiClient.get(`/plugins/game-stats/admin/timeseries?days=${days}`),
+
+  games: (days: GameStatsRangeDays): Promise<ApiResponse<{ days: number; today: string; fromDay: string; items: GameStatsGame[] }>> =>
+    apiClient.get(`/plugins/game-stats/admin/games?days=${days}`),
+};

@@ -95,6 +95,7 @@ export const merchant = {
     pluginsMarketplace: '插件市场',
     installedPlugins: '已安装插件',
     jobSources: 'Job Sources',
+    gameStats: '游戏统计',
     roleSuperAdmin: '超级管理员',
     roleMember: '成员',
   },

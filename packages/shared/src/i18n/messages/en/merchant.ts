@@ -95,6 +95,7 @@ export const merchant = {
     pluginsMarketplace: 'Plugin Market',
     installedPlugins: 'Installed Plugins',
     jobSources: 'Job Sources',
+    gameStats: 'Game Stats',
     roleSuperAdmin: 'Super Admin',
     roleMember: 'Member',
   },

@@ -36,6 +36,7 @@ import {
   Radar,
   ShieldCheck,
   Headphones,
+  Gamepad2,
 } from 'lucide-react'
 import { useAuthStore } from '@/lib/store'
 import {
@@ -48,7 +49,7 @@ import {
 } from '../ui/dropdown-menu'
 import { useUpdateCheck } from '@/hooks/use-update-check'
 import { useJobsAdminCapability } from '@/hooks/use-jobs-admin-capability'
-import { useAdminDashboard, useInstalledPlugins } from '@/lib/hooks/use-api'
+import { useAdminDashboard, useInstalledPluginNav, useInstalledPlugins } from '@/lib/hooks/use-api'
 import { canAccessAnyPermission, getSystemNavHref } from '@/lib/admin-access'
 import { ADMIN_PERMISSIONS, type AdminPermission } from 'shared'
 import { UserAvatar } from '../ui/user-avatar'
@@ -104,6 +105,7 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
   const { record, isManaged } = useManagedMode()
   const { data: dashboardData } = useAdminDashboard()
   const { data: installedPlugins } = useInstalledPlugins()
+  const { data: installedPluginNav } = useInstalledPluginNav()
 
   // The plugins group splits into marketplace / installed views via a query
   // param. useSearchParams keeps the active highlight in sync on query-only
@@ -124,6 +126,8 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
   }, [dashboardData])
 
   const installedCount = (installedPlugins as { items?: unknown[] } | undefined)?.items?.length
+  // The game stats report only exists where the game-stats plugin is installed and enabled.
+  const gameStatsEnabled = installedPluginNav?.some((plugin) => plugin.slug === 'game-stats' && plugin.enabled) ?? false
 
   // Build navigation config dynamically
   const navigationConfig = useMemo(() => {
@@ -207,6 +211,19 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
     }
 
     items.push(
+      // Only meaningful on game portals: hidden everywhere else.
+      ...(gameStatsEnabled
+        ? [
+          {
+            id: 'gameStats',
+            nameKey: 'merchant.nav.gameStats',
+            fallback: '游戏统计',
+            href: '/analytics/games',
+            icon: Gamepad2,
+            requiredPermissions: [ADMIN_PERMISSIONS.DASHBOARD_READ],
+          } satisfies NavigationItem,
+        ]
+        : []),
       {
         id: 'themes',
         nameKey: 'merchant.nav.themes',
@@ -239,7 +256,7 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
     }
 
     return [items[0], packageItem, ...items.slice(1)] as (NavigationItem | 'divider')[]
-  }, [isManaged, record, jobsAdminAvailable])
+  }, [isManaged, record, jobsAdminAvailable, gameStatsEnabled])
 
   // Permission-filtered navigation; entries without requirements stay visible.
   const visibleNavigation = useMemo(
