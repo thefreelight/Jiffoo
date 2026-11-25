@@ -45,9 +45,9 @@ const accountCart = (items: GuestItemArg[]) => ({
 const taken = (items: GuestItemArg[]) => Promise.resolve({ success: true, data: accountCart(items) });
 const refused = { success: false, error: { code: 'METHOD_NOT_ALLOWED', message: 'Method Not Allowed' }, message: 'Method Not Allowed' };
 
-async function loadSignedInCartStore(guestItems: GuestItem[]) {
+async function loadSignedInCartStore(guestItems: GuestItem[], signedIn = true) {
   vi.resetModules();
-  window.localStorage.setItem('auth_token', 'token');
+  if (signedIn) window.localStorage.setItem('auth_token', 'token');
   const mod = await import('@/store/cart');
   mod.useCartStore.setState({ localCart: guestItems });
   return mod.useCartStore;
@@ -169,5 +169,18 @@ describe('cart store mergeGuestCart (the guest cart survives signing in)', () =>
     expect(batchAddMock).not.toHaveBeenCalled();
     expect(addMock).not.toHaveBeenCalled();
     expect(getCartMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves the guest cart alone while the shopper is not signed in yet', async () => {
+    const useCartStore = await loadSignedInCartStore([CARD], false);
+
+    const moved = await useCartStore.getState().mergeGuestCart();
+
+    expect(moved).toBe(true);
+    expect(batchAddMock).not.toHaveBeenCalled();
+    expect(addMock).not.toHaveBeenCalled();
+    expect(getCartMock).not.toHaveBeenCalled();
+    expect(useCartStore.getState().localCart).toEqual([CARD]);
+    expect(useCartStore.getState().cart.items).toHaveLength(1);
   });
 });

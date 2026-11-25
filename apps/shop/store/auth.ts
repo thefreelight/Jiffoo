@@ -99,22 +99,6 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             }
 
             await associateAffiliateVisitor();
-
-            // Move the guest cart to the account
-            if (typeof window !== 'undefined') {
-              setTimeout(() => {
-                import('@/store/cart').then(({ useCartStore }) => {
-                  const { mergeGuestCart } = useCartStore.getState();
-                  return mergeGuestCart();
-                }).then((moved) => {
-                  // What could not be moved stays in the guest cart; the shopper would only see an empty cart
-                  if (moved) return;
-                  return import('@/lib/cart-merge-notice').then(({ notifyGuestItemsLeftBehind }) => {
-                    notifyGuestItemsLeftBehind();
-                  });
-                });
-              }, 0);
-            }
           } else {
             throw Object.assign(new Error(response.error?.message || 'Login failed'), {
               code: response.error?.code,
