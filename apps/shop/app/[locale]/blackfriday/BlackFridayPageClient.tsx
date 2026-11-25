@@ -1,7 +1,12 @@
 /**
- * Black Friday 2026 campaign rules — bilingual (en / zh-Hans / zh-Hant).
- * Static content: window, discount, gold-pin raffle rules and the
- * no-purchase entry channel. Self-styled in the bokmoo dark-gold look.
+ * Black Friday 2026 campaign page, in the seven storefront languages.
+ *
+ * Static content: the window, the automatic discount on the two BOKMOO cards
+ * with a way to reach each card, how creator promo codes add to it, and the
+ * fine print. The catalog listing only shows eSIM plans, so for the cards
+ * this page is the way in. Self-styled in the
+ * bokmoo dark-gold look. Prices and dates here must match the promotion the
+ * store runs (native_promotions) — change them together.
  */
 
 'use client';
@@ -9,45 +14,185 @@
 import React from 'react';
 import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
 
-type Lang = 'en' | 'hans' | 'hant';
+type Lang = 'en' | 'hans' | 'hant' | 'ja' | 'ko' | 'fr' | 'de';
+type Copy = Record<Lang, string>;
 
 const COPY = {
-  eyebrow: { en: 'Black Friday 2026', hans: '2026 黑五活动', hant: '2026 黑五活動' },
-  title: { en: '20% off the BOKMOO Card — and a pure gold pin raffle', hans: 'BOKMOO 卡 8 折，纯金卡针抽奖', hant: 'BOKMOO 卡 8 折，純金卡針抽獎' },
-  windowLabel: { en: 'Campaign window', hans: '活动时间', hant: '活動時間' },
-  window: { en: 'Nov 25, 2026 00:00 — Dec 1, 2026 23:59 (UTC)', hans: '2026 年 11 月 25 日 00:00 — 12 月 1 日 23:59（UTC）', hant: '2026 年 11 月 25 日 00:00 — 12 月 1 日 23:59（UTC）' },
-  shopCta: { en: 'Shop the Black Friday deal', hans: '去抢黑五价', hant: '去搶黑五價' },
-  dealTitle: { en: 'The deal', hans: '优惠详情', hant: '優惠詳情' },
-  deal1: { en: 'The BOKMOO Card drops from $20 to $15.99 (20% off) during the window.', hans: '活动期间 BOKMOO 卡从 $20 降到 $15.99（8 折）。', hant: '活動期間 BOKMOO 卡從 $20 降到 $15.99（8 折）。' },
-  deal2: { en: 'The discount is applied automatically at checkout — no code needed.', hans: '结账时自动生效，无需优惠码。', hant: '結賬時自動生效，無需優惠碼。' },
-  deal3: { en: 'Limit: one promotion-priced order per customer during the campaign.', hans: '限购：活动期间每位顾客限 1 笔促销价订单。', hant: '限購：活動期間每位顧客限 1 筆促銷價訂單。' },
-  raffleTitle: { en: 'The gold pin raffle', hans: '纯金卡针抽奖', hant: '純金卡針抽獎' },
-  raffle1: { en: 'Prize: one BOKMOO pin in 1g of 999 fine gold, engraved with the campaign mark.', hans: '奖品：1 克 999 足金 BOKMOO 卡针一枚，刻活动印记。', hant: '獎品：1 克 999 足金 BOKMOO 卡針一枚，刻活動印記。' },
-  raffle2: { en: 'Every paid order during the window = one entry. More orders, more entries.', hans: '活动期内每笔已支付订单 = 1 次入围，多买多入围。', hant: '活動期內每筆已支付訂單 = 1 次入圍，多買多入圍。' },
-  raffle3: { en: 'The draw happens after the window closes, using publicly verifiable randomness: entries are hashed and the winner is picked against the hash of the first Bitcoin block mined after Dec 1, 23:59 UTC. Anyone can re-run the verification.', hans: '窗口关闭后开奖，采用公开可验证的随机源：入围单哈希化，以 12 月 1 日 23:59 UTC 之后挖出的第一个比特币区块哈希对齐选出中奖者，任何人可复算验证。', hant: '窗口關閉後開獎，採用公開可驗證的隨機源：入圍單哈希化，以 12 月 1 日 23:59 UTC 之後挖出的第一個比特幣區塊哈希對齊選出中獎者，任何人可復算驗證。' },
-  raffle4: { en: 'The winner is notified through the in-app notification center and by email; results and verification data are published on this page.', hans: '中奖者将通过 App 内通知中心和邮件获知；结果与验证数据公布在本页。', hant: '中獎者將通過 App 內通知中心和郵件獲知；結果與驗證數據公佈在本頁。' },
-  freeTitle: { en: 'No purchase necessary', hans: '免购入参与通道', hant: '免購入參與通道' },
-  free1: { en: 'A purchase does not improve your chances relative to the entry pool — free entries share the same draw.', hans: '免购入入围与订单入围进入同一奖池，中奖概率一致。', hant: '免購入入圍與訂單入圍進入同一獎池，中獎概率一致。' },
-  free2: { en: 'To enter for free, email support@bokmoo.com with the subject "BOKMOO Black Friday Entry" and your name plus a contact email, before the window closes.', hans: '免购入参与：在窗口关闭前发邮件至 support@bokmoo.com，标题写 "BOKMOO Black Friday Entry"，附姓名和联系邮箱。', hant: '免購入參與：在窗口關閉前發郵件至 support@bokmoo.com，標題寫 "BOKMOO Black Friday Entry"，附姓名和聯繫郵箱。' },
-  free3: { en: 'One free entry per person; duplicate or automated submissions are void.', hans: '每人限 1 次免购入入围，重复或机器提交无效。', hant: '每人限 1 次免購入入圍，重複或機器提交無效。' },
-  fineTitle: { en: 'Fine print', hans: '细则', hant: '細則' },
-  fine1: { en: 'Open to customers 18 or older where the campaign is available. One gold pin total; no cash alternative.', hans: '面向活动可用地区的 18 岁及以上顾客；金卡针共 1 枚，不可折现。', hant: '面向活動可用地區的 18 歲及以上顧客；金卡針共 1 枚，不可折現。' },
-  fine2: { en: 'Any applicable taxes on the prize are the winner\u2019s responsibility.', hans: '奖品涉及的相关税费由中奖者承担。', hant: '獎品涉及的相關稅費由中獎者承擔。' },
-  fine3: { en: 'We may disqualify entries that abuse the campaign (fraud, duplicate accounts, self-dealing).', hans: '滥用活动（欺诈、重复账号、自买自卖）的入围资格将被取消。', hant: '濫用活動（欺詐、重複賬號、自買自賣）的入圍資格將被取消。' },
-  fine4: { en: 'Apple Inc. and Google LLC are not sponsors of, or participants in, this campaign.', hans: 'Apple Inc. 与 Google LLC 非本活动的赞助方或参与方。', hant: 'Apple Inc. 與 Google LLC 非本活動的贊助方或參與方。' },
-  fine5: { en: 'These rules may be updated on this page; the version published at the time of the draw applies.', hans: '细则可能在本页更新，以开奖时公布版本为准。', hant: '細則可能在本頁更新，以開獎時公佈版本為準。' },
-} as const;
+  eyebrow: {
+    en: 'Black Friday 2026', hans: '2026 黑五活动', hant: '2026 黑五活動', ja: 'ブラックフライデー 2026',
+    ko: '2026 블랙 프라이데이', fr: 'Black Friday 2026', de: 'Black Friday 2026',
+  },
+  title: {
+    en: '20% off BOKMOO cards, and more off with a creator code',
+    hans: 'BOKMOO 实体卡 8 折，凭创作者折扣码还可再优惠',
+    hant: 'BOKMOO 實體卡 8 折，憑創作者折扣碼還可再優惠',
+    ja: 'BOKMOOカードが20%オフ、クリエイターコードでさらに割引',
+    ko: 'BOKMOO 카드 20% 할인, 크리에이터 코드로 추가 할인',
+    fr: '20 % de réduction sur les cartes BOKMOO, et davantage avec un code créateur',
+    de: '20 % Rabatt auf BOKMOO-Karten, mit Creator-Code noch mehr',
+  },
+  windowLabel: {
+    en: 'Campaign window', hans: '活动时间', hant: '活動時間', ja: 'キャンペーン期間',
+    ko: '프로모션 기간', fr: 'Période de l’offre', de: 'Zeitraum der Aktion',
+  },
+  window: {
+    en: 'Nov 27, 2026 00:00 — Nov 30, 2026 23:59 (UTC)',
+    hans: '2026 年 11 月 27 日 00:00 — 11 月 30 日 23:59（UTC）',
+    hant: '2026 年 11 月 27 日 00:00 — 11 月 30 日 23:59（UTC）',
+    ja: '2026年11月27日 00:00 — 11月30日 23:59（UTC）',
+    ko: '2026년 11월 27일 00:00 — 11월 30일 23:59 (UTC)',
+    fr: '27 novembre 2026 00:00 — 30 novembre 2026 23:59 (UTC)',
+    de: '27. November 2026 00:00 — 30. November 2026 23:59 (UTC)',
+  },
+  shopCta: {
+    en: 'Shop the Black Friday deal', hans: '去抢黑五价', hant: '去搶黑五價', ja: 'ブラックフライデーのセールを見る',
+    ko: '블랙 프라이데이 세일 보기', fr: 'Voir l’offre Black Friday', de: 'Zum Black-Friday-Angebot',
+  },
+  dealTitle: {
+    en: 'The deal', hans: '优惠详情', hant: '優惠詳情', ja: 'セール内容', ko: '할인 내용',
+    fr: 'L’offre', de: 'Das Angebot',
+  },
+  deal1: {
+    en: 'From Nov 27 to Nov 30 the BOKMOO Card drops from $20 to $16, and the Bokmoo Bluetooth Card from $40 to $32 — 20% off.',
+    hans: '11 月 27 日至 30 日，BOKMOO 卡从 $20 降到 $16，Bokmoo 蓝牙卡从 $40 降到 $32，即 8 折。',
+    hant: '11 月 27 日至 30 日，BOKMOO 卡從 $20 降到 $16，Bokmoo 藍牙卡從 $40 降到 $32，即 8 折。',
+    ja: '11月27日〜30日、BOKMOOカードは$20→$16、Bokmoo Bluetoothカードは$40→$32の20%オフ。',
+    ko: '11월 27일부터 30일까지 BOKMOO 카드는 $20에서 $16으로, Bokmoo 블루투스 카드는 $40에서 $32으로 20% 할인됩니다.',
+    fr: 'Du 27 au 30 novembre, la carte BOKMOO passe de 20 $ à 16 $ et la carte Bluetooth Bokmoo de 40 $ à 32 $ : 20 % de réduction.',
+    de: 'Vom 27. bis 30. November sinkt die BOKMOO-Karte von 20 $ auf 16 $ und die Bokmoo Bluetooth-Karte von 40 $ auf 32 $ — 20 % Rabatt.',
+  },
+  deal2: {
+    en: 'The discount is applied automatically at checkout. No code is needed.',
+    hans: '折扣在结算时自动生效，无需优惠码。',
+    hant: '折扣在結帳時自動生效，無需優惠碼。',
+    ja: '割引はチェックアウト時に自動で適用されます。コードは不要です。',
+    ko: '할인은 결제 시 자동으로 적용됩니다. 코드는 필요하지 않습니다.',
+    fr: 'La réduction est appliquée automatiquement au paiement. Aucun code n’est nécessaire.',
+    de: 'Der Rabatt wird an der Kasse automatisch abgezogen. Kein Code nötig.',
+  },
+  deal3: {
+    en: 'There is no order limit: the sale price applies to every order placed in the window.',
+    hans: '不限订单数：活动时间内的每一笔订单都享受活动价。',
+    hant: '不限訂單數：活動時間內的每一筆訂單都享有活動價。',
+    ja: '注文数の制限はありません。期間中のすべての注文にセール価格が適用されます。',
+    ko: '주문 수 제한이 없습니다. 기간 내의 모든 주문에 세일 가격이 적용됩니다.',
+    fr: 'Aucune limite de commandes : le prix soldé s’applique à chaque commande passée pendant la période.',
+    de: 'Keine Bestellbegrenzung: Der Sale-Preis gilt für jede Bestellung im Aktionszeitraum.',
+  },
+  cardsTitle: {
+    en: 'The cards on sale', hans: '参与活动的实体卡', hant: '參與活動的實體卡', ja: 'セール対象のカード',
+    ko: '할인 대상 카드', fr: 'Les cartes en soldes', de: 'Die Karten im Sale',
+  },
+  viewCard: {
+    en: 'View card', hans: '查看卡片', hant: '查看卡片', ja: 'カードを見る', ko: '카드 보기',
+    fr: 'Voir la carte', de: 'Karte ansehen',
+  },
+  codeTitle: {
+    en: 'Creator codes', hans: '创作者折扣码', hant: '創作者折扣碼', ja: 'クリエイターコード',
+    ko: '크리에이터 코드', fr: 'Codes créateurs', de: 'Creator-Codes',
+  },
+  code1: {
+    en: 'Creators in the BOKMOO affiliate program have their own promo codes. Enter one at checkout to take a further discount off the sale price — a percentage off or a fixed amount off, as set for that code.',
+    hans: 'BOKMOO 联盟计划的创作者拥有自己的折扣码。结算时输入，可在活动价基础上再享优惠——按该码的设置，可能是折上折或立减。',
+    hant: 'BOKMOO 聯盟計劃的創作者擁有自己的折扣碼。結帳時輸入，可在活動價基礎上再享優惠——按該碼的設定，可能是折上折或立減。',
+    ja: 'BOKMOOアフィリエイトプログラムのクリエイターには、それぞれのプロモコードがあります。チェックアウト時に入力すると、セール価格からさらに割引（コードごとに設定された割合、または固定額）が適用されます。',
+    ko: 'BOKMOO 제휴 프로그램의 크리에이터에게는 각자의 프로모 코드가 있습니다. 결제 시 입력하면 세일 가격에서 추가 할인(코드별로 설정된 비율 또는 고정 금액)을 받습니다.',
+    fr: 'Les créateurs du programme d’affiliation BOKMOO ont leur propre code promo. Saisissez-le au paiement pour une réduction supplémentaire sur le prix soldé — un pourcentage ou un montant fixe, selon le code.',
+    de: 'Creator im BOKMOO-Partnerprogramm haben eigene Promo-Codes. Geben Sie einen an der Kasse ein, um einen zusätzlichen Rabatt auf den Sale-Preis zu erhalten — prozentual oder als fester Betrag, je nach Code.',
+  },
+  code2: {
+    en: 'During this sale a creator code applies to the two cards above and can be used on every order.',
+    hans: '本次活动期间，创作者折扣码适用于上述两张实体卡，每笔订单都可使用。',
+    hant: '本次活動期間，創作者折扣碼適用於上述兩張實體卡，每筆訂單都可使用。',
+    ja: '本セール期間中、クリエイターコードは上記の2種類のカードに適用され、すべての注文で使えます。',
+    ko: '이번 세일 기간에는 크리에이터 코드가 위 두 가지 카드에 적용되며 모든 주문에서 사용할 수 있습니다.',
+    fr: 'Pendant cette vente, un code créateur s’applique aux deux cartes ci-dessus et peut être utilisé sur chaque commande.',
+    de: 'Während dieser Aktion gilt ein Creator-Code für die beiden Karten oben und kann bei jeder Bestellung verwendet werden.',
+  },
+  fineTitle: {
+    en: 'Fine print', hans: '细则', hant: '細則', ja: '注意事項', ko: '유의 사항',
+    fr: 'Conditions', de: 'Kleingedrucktes',
+  },
+  fine1: {
+    en: 'The sale starts and ends at the times above (UTC). Orders placed outside the window are charged at list price.',
+    hans: '活动按上述时间（UTC）开始和结束，活动时间外的订单按原价结算。',
+    hant: '活動按上述時間（UTC）開始和結束，活動時間外的訂單按原價結帳。',
+    ja: 'セールは上記の時間（UTC）に開始・終了します。期間外の注文は定価での請求となります。',
+    ko: '세일은 위 시간(UTC)에 시작하고 종료됩니다. 기간 외 주문은 정가로 결제됩니다.',
+    fr: 'La vente commence et se termine aux heures indiquées ci-dessus (UTC). Les commandes passées en dehors de cette période sont facturées au prix normal.',
+    de: 'Die Aktion beginnt und endet zu den oben genannten Zeiten (UTC). Bestellungen außerhalb des Zeitraums werden zum regulären Preis berechnet.',
+  },
+  fine2: {
+    en: 'Prices are in US dollars. Shipping, if any, is shown at checkout.',
+    hans: '价格以美元计。运费（如有）在结算页显示。',
+    hant: '價格以美元計。運費（如有）在結帳頁顯示。',
+    ja: '価格は米ドル建てです。送料がある場合はチェックアウト時に表示されます。',
+    ko: '가격은 미국 달러 기준입니다. 배송비가 있는 경우 결제 시 표시됩니다.',
+    fr: 'Les prix sont en dollars US. Les frais de livraison éventuels sont indiqués au paiement.',
+    de: 'Preise in US-Dollar. Versandkosten werden, falls vorhanden, an der Kasse angezeigt.',
+  },
+  fine3: {
+    en: 'The sale price cannot be combined with other promotions. Creator codes are the exception.',
+    hans: '活动价不能与其他优惠同时使用，创作者折扣码除外。',
+    hant: '活動價不能與其他優惠同時使用，創作者折扣碼除外。',
+    ja: 'セール価格は他のプロモーションと併用できません（クリエイターコードを除く）。',
+    ko: '세일 가격은 다른 프로모션과 중복 적용되지 않습니다. 크리에이터 코드는 예외입니다.',
+    fr: 'Le prix soldé ne se cumule pas avec d’autres promotions, sauf avec les codes créateurs.',
+    de: 'Der Sale-Preis ist nicht mit anderen Aktionen kombinierbar. Creator-Codes sind davon ausgenommen.',
+  },
+  fine4: {
+    en: 'We may cancel orders that abuse the campaign, such as fraud, duplicate accounts or self-dealing.',
+    hans: '滥用活动（欺诈、重复账号、自买自卖）的订单可能被取消。',
+    hant: '濫用活動（欺詐、重複帳號、自買自賣）的訂單可能被取消。',
+    ja: '不正、重複アカウント、自己購入などキャンペーンの悪用と判断された注文はキャンセルされる場合があります。',
+    ko: '사기, 중복 계정, 자체 구매 등 프로모션을 남용한 주문은 취소될 수 있습니다.',
+    fr: 'Nous pouvons annuler les commandes qui abusent de l’offre (fraude, comptes en double, auto-achat).',
+    de: 'Bestellungen, die die Aktion missbrauchen (Betrug, Doppelkonten, Eigenkauf), können wir stornieren.',
+  },
+  fine5: {
+    en: 'Questions? Write to support@bokmoo.com.',
+    hans: '有疑问请联系 support@bokmoo.com。',
+    hant: '有疑問請聯絡 support@bokmoo.com。',
+    ja: 'ご質問は support@bokmoo.com まで。',
+    ko: '문의: support@bokmoo.com',
+    fr: 'Une question ? Écrivez à support@bokmoo.com.',
+    de: 'Fragen? Schreiben Sie an support@bokmoo.com.',
+  },
+} satisfies Record<string, Copy>;
 
-function pick(locale: string | undefined, copy: Record<Lang, string>): string {
-  if (locale === 'zh-Hant') return copy.hant;
+// The two products the promotion covers. Keep in step with the promotion's
+// product ids and prices (native_promotions).
+const CARDS = [
+  { id: 'odoo-product-6', name: 'BOKMOO Card', listPrice: 20, salePrice: 16 },
+  { id: 'odoo-product-7', name: 'Bokmoo Bluetooth Card', listPrice: 40, salePrice: 32 },
+];
+
+function pick(locale: string | undefined, copy: Copy): string {
+  if (locale === 'zh-Hant' || locale === 'zh-HK') return copy.hant;
   if (locale?.startsWith('zh')) return copy.hans;
+  if (locale === 'ja') return copy.ja;
+  if (locale === 'ko') return copy.ko;
+  if (locale === 'fr') return copy.fr;
+  if (locale === 'de') return copy.de;
   return copy.en;
+}
+
+function Section({ title, items, gold, muted = false }: { title: string; items: string[]; gold: string; muted?: boolean }) {
+  return (
+    <>
+      <h2 className="text-lg font-bold" style={{ color: gold }}>{title}</h2>
+      <ul className={`mt-3 space-y-2 leading-relaxed ${muted ? 'text-xs text-white/60' : 'text-sm text-white/85'}`}>
+        {items.map((item) => (
+          <li key={item}>• {item}</li>
+        ))}
+      </ul>
+    </>
+  );
 }
 
 export default function BlackFridayPageClient() {
   const nav = useLocalizedNavigation();
-  const L = (copy: Record<Lang, string>) => pick(nav.locale, copy);
-  const shopHref = nav.getHref('/bestsellers');
+  const L = (copy: Copy) => pick(nav.locale, copy);
   const gold = '#d8b45a';
 
   return (
@@ -60,7 +205,7 @@ export default function BlackFridayPageClient() {
           <p className="text-xs font-semibold uppercase tracking-wider text-white/60">{L(COPY.windowLabel)}</p>
           <p className="mt-1 text-lg font-bold">{L(COPY.window)}</p>
           <a
-            href={shopHref}
+            href="#bf-cards"
             className="mt-4 inline-block rounded-full px-5 py-2.5 text-sm font-bold text-[#0b0c10] transition hover:opacity-90"
             style={{ backgroundColor: gold }}
           >
@@ -68,43 +213,42 @@ export default function BlackFridayPageClient() {
           </a>
         </div>
 
-        <section className="mt-8">
-          <h2 className="text-lg font-bold" style={{ color: gold }}>{L(COPY.dealTitle)}</h2>
-          <ul className="mt-3 space-y-2 text-sm leading-relaxed text-white/85">
-            <li>• {L(COPY.deal1)}</li>
-            <li>• {L(COPY.deal2)}</li>
-            <li>• {L(COPY.deal3)}</li>
-          </ul>
+        <section className="mt-8" id="bf-cards">
+          <h2 className="text-lg font-bold" style={{ color: gold }}>{L(COPY.cardsTitle)}</h2>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            {CARDS.map((card) => (
+              <a
+                key={card.id}
+                href={nav.getHref(`/products/${card.id}`)}
+                className="block rounded-2xl border p-5 transition hover:bg-white/10"
+                style={{ borderColor: 'rgba(216, 180, 90, 0.4)' }}
+              >
+                <p className="text-base font-bold text-white">{card.name}</p>
+                <p className="mt-1 text-2xl font-black" style={{ color: gold }}>
+                  ${card.salePrice.toFixed(2)}
+                  <s className="ml-2 text-sm font-normal text-white/50">${card.listPrice.toFixed(2)}</s>
+                </p>
+                <span className="mt-3 inline-block text-sm font-bold" style={{ color: gold }}>{L(COPY.viewCard)} →</span>
+              </a>
+            ))}
+          </div>
         </section>
 
         <section className="mt-8">
-          <h2 className="text-lg font-bold" style={{ color: gold }}>{L(COPY.raffleTitle)}</h2>
-          <ul className="mt-3 space-y-2 text-sm leading-relaxed text-white/85">
-            <li>• {L(COPY.raffle1)}</li>
-            <li>• {L(COPY.raffle2)}</li>
-            <li>• {L(COPY.raffle3)}</li>
-            <li>• {L(COPY.raffle4)}</li>
-          </ul>
+          <Section title={L(COPY.dealTitle)} items={[L(COPY.deal1), L(COPY.deal2), L(COPY.deal3)]} gold={gold} />
         </section>
 
         <section className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-5">
-          <h2 className="text-lg font-bold" style={{ color: gold }}>{L(COPY.freeTitle)}</h2>
-          <ul className="mt-3 space-y-2 text-sm leading-relaxed text-white/85">
-            <li>• {L(COPY.free1)}</li>
-            <li>• {L(COPY.free2)}</li>
-            <li>• {L(COPY.free3)}</li>
-          </ul>
+          <Section title={L(COPY.codeTitle)} items={[L(COPY.code1), L(COPY.code2)]} gold={gold} />
         </section>
 
         <section className="mt-8">
-          <h2 className="text-lg font-bold" style={{ color: gold }}>{L(COPY.fineTitle)}</h2>
-          <ul className="mt-3 space-y-2 text-xs leading-relaxed text-white/60">
-            <li>• {L(COPY.fine1)}</li>
-            <li>• {L(COPY.fine2)}</li>
-            <li>• {L(COPY.fine3)}</li>
-            <li>• {L(COPY.fine4)}</li>
-            <li>• {L(COPY.fine5)}</li>
-          </ul>
+          <Section
+            title={L(COPY.fineTitle)}
+            items={[L(COPY.fine1), L(COPY.fine2), L(COPY.fine3), L(COPY.fine4), L(COPY.fine5)]}
+            gold={gold}
+            muted
+          />
         </section>
       </div>
     </div>
