@@ -311,3 +311,46 @@ describe('password security audit trail', () => {
     expect(payload.data?.passwordReset).toBe(true);
   });
 });
+
+describe('the language of the account mails', () => {
+  it('is the one the instance names, and nothing of English is left in the mail', async () => {
+    smtp.sendSmtpEmail.mockReset().mockResolvedValue(undefined);
+    const { db } = emailDb();
+    await sendNativeVerificationCode(
+      { DB: db, JWT_SECRET_VALUE: 'secret', EMAIL_LOCALE: 'zh-Hans', EMAIL_REPLIES_MONITORED: '1' } as never,
+      { id: 'u1', email: 'user@example.com', username: '玩家' },
+    );
+    const call = smtp.sendSmtpEmail.mock.calls[0]![1] as { subject: string; text: string; html: string };
+    expect(call.subject).toMatch(/验证码：\d{6}$/);
+    expect(call.html).toContain('验证你的邮箱');
+    expect(call.html).toContain('lang="zh-Hans"');
+    expect(call.html).toContain('玩家');
+    expect(call.html).not.toContain('Verify your email');
+    // Somebody reads this address: the mail does not say replies go unseen.
+    expect(call.html).not.toContain('不会被查看');
+    expect(call.text).toContain('10 分钟内有效');
+  });
+
+  it('says replies go unseen unless the instance says the address is read', async () => {
+    smtp.sendSmtpEmail.mockReset().mockResolvedValue(undefined);
+    const { db } = emailDb();
+    await sendNativeVerificationCode(
+      { DB: db, JWT_SECRET_VALUE: 'secret', EMAIL_LOCALE: 'zh-Hans' } as never,
+      { id: 'u1', email: 'user@example.com', username: '玩家' },
+    );
+    expect((smtp.sendSmtpEmail.mock.calls[0]![1] as { html: string }).html).toContain('回复这个地址不会被查看。');
+  });
+
+  it('writes the password reset mail in it too', async () => {
+    smtp.sendSmtpEmail.mockReset().mockResolvedValue(undefined);
+    const { db } = emailDb();
+    await sendNativePasswordResetCode(
+      { DB: db, JWT_SECRET_VALUE: 'secret', EMAIL_LOCALE: 'zh-Hant' } as never,
+      { id: 'u1', email: 'user@example.com', username: '玩家' },
+    );
+    const call = smtp.sendSmtpEmail.mock.calls[0]![1] as { subject: string; html: string };
+    expect(call.subject).toMatch(/重設密碼驗證碼：\d{6}$/);
+    expect(call.html).toContain('重設你的密碼');
+    expect(call.html).not.toContain('Reset your password');
+  });
+});

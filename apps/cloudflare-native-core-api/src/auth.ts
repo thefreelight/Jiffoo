@@ -16,6 +16,10 @@ export interface NativeSmtpEnv {
   SMTP_FROM_EMAIL?: string;
   SMTP_FROM_NAME?: string;
   SMTP_REPLY_TO?: string;
+  /** Language of the account mails, a storefront locale; English when unset. */
+  EMAIL_LOCALE?: string;
+  /** "1" when somebody reads replies to the sending address. */
+  EMAIL_REPLIES_MONITORED?: string;
   /** Local test-only escape hatch; production uses the Secrets Store binding. */
   JWT_SECRET_VALUE?: string;
 }

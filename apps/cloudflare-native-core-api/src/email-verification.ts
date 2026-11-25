@@ -1,6 +1,7 @@
 import { sendSmtpEmail } from './smtp';
 import { findNativeUserByEmail, getNativeJwtSecret, type NativeAuthEnv } from './auth';
 import { nativeSiteName } from './site-name';
+import { accountMailCopy, resolveMailLocale, type AccountMailCopy, type MailCopy, type MailLocale } from './mail-copy';
 
 const CODE_TTL_SECONDS = 600;
 const MAX_ATTEMPTS = 5;
@@ -28,11 +29,11 @@ function equal(left: string, right: string): boolean {
 const escapeHtml = (value: string): string => value
   .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
 
-function verificationEmailHtml(siteName: string, username: string, value: string): string {
+function verificationEmailHtml(siteName: string, username: string, value: string, copy: MailCopy, footer: string, locale: MailLocale): string {
   const brand = escapeHtml(siteName);
   const name = escapeHtml(username);
   return `<!doctype html>
-<html lang="en"><body style="margin:0;padding:0;background:#f4f5fa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+<html lang="${locale}"><body style="margin:0;padding:0;background:#f4f5fa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f5fa;padding:32px 12px;"><tr><td align="center">
 <table role="presentation" width="520" cellpadding="0" cellspacing="0" style="max-width:520px;width:100%;">
   <tr><td style="text-align:center;padding-bottom:24px;">
@@ -42,24 +43,34 @@ function verificationEmailHtml(siteName: string, username: string, value: string
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;border:1px solid #e6e8f0;overflow:hidden;">
       <tr><td style="background:linear-gradient(135deg,#3157e5,#5b7cf7);height:6px;font-size:0;line-height:0;">&nbsp;</td></tr>
       <tr><td style="padding:36px 40px 8px;">
-        <h1 style="margin:0 0 12px;font-size:22px;line-height:1.3;color:#1d2433;">Verify your email</h1>
-        <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#5a6172;">Hi ${name}, use the verification code below to finish setting up your ${brand} account.</p>
+        <h1 style="margin:0 0 12px;font-size:22px;line-height:1.3;color:#1d2433;">${copy.title}</h1>
+        <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#5a6172;">${copy.intro(name, brand)}</p>
       </td></tr>
       <tr><td style="padding:0 40px 24px;" align="center">
         <div style="background:#f4f6ff;border:1px solid #d7defc;border-radius:12px;padding:20px 12px;font-size:36px;font-weight:800;letter-spacing:12px;color:#3157e5;font-variant-numeric:tabular-nums;">${escapeHtml(value)}</div>
       </td></tr>
       <tr><td style="padding:0 40px 32px;">
-        <p style="margin:0 0 6px;font-size:14px;line-height:1.6;color:#5a6172;">This code expires in <strong style="color:#1d2433;">10 minutes</strong>.</p>
-        <p style="margin:0;font-size:13px;line-height:1.6;color:#8a90a3;">If you didn't request this code, you can safely ignore this email — your account stays unused and nothing changes.</p>
+        <p style="margin:0 0 6px;font-size:14px;line-height:1.6;color:#5a6172;">${copy.expires[0]}<strong style="color:#1d2433;">${copy.expires[1]}</strong>${copy.expires[2]}</p>
+        <p style="margin:0;font-size:13px;line-height:1.6;color:#8a90a3;">${copy.ignore}</p>
       </td></tr>
       <tr><td style="padding:18px 40px;border-top:1px solid #eef0f6;">
-        <p style="margin:0;font-size:12px;line-height:1.6;color:#8a90a3;">This is an automated message from ${brand}. Replies to this address are not monitored.</p>
+        <p style="margin:0;font-size:12px;line-height:1.6;color:#8a90a3;">${footer}</p>
       </td></tr>
     </table>
   </td></tr>
 </table>
 </td></tr></table>
 </body></html>`;
+}
+
+/**
+ * The line under the sign-up mail: where it came from and, unless the instance
+ * says somebody reads the sending address, that replies go unseen.
+ */
+function mailFooter(env: NativeAuthEnv, siteName: string, copy: AccountMailCopy): string {
+  const sentences = [copy.footer(escapeHtml(siteName))];
+  if (env.EMAIL_REPLIES_MONITORED !== '1') sentences.push(copy.unmonitored);
+  return sentences.join(' ');
 }
 
 export async function sendNativeVerificationCode(
@@ -70,6 +81,8 @@ export async function sendNativeVerificationCode(
   const secret = await getNativeJwtSecret(env);
   const expiresAt = new Date(Date.now() + CODE_TTL_SECONDS * 1000).toISOString();
   const siteName = await nativeSiteName(env);
+  const locale = resolveMailLocale(env.EMAIL_LOCALE);
+  const copy = accountMailCopy(locale);
   await env.DB.prepare(
     `UPDATE native_users SET verification_code_hash = ?1, verification_expires_at = ?2,
       verification_attempts = 0, email_verified = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?3`,
@@ -77,9 +90,9 @@ export async function sendNativeVerificationCode(
 
   await sendSmtpEmail(env, {
     to: user.email,
-    subject: `${siteName} verification code: ${value}`,
-    text: `Hi ${user.username},\n\nYour ${siteName} verification code is ${value}. It expires in 10 minutes.\n\nIf you didn't request this code, you can safely ignore this email.`,
-    html: verificationEmailHtml(siteName, user.username, value),
+    subject: copy.verification.subject(siteName, value),
+    text: copy.verification.text(user.username, siteName, value),
+    html: verificationEmailHtml(siteName, user.username, value, copy.verification, mailFooter(env, siteName, copy), locale),
   });
 }
 
@@ -116,19 +129,19 @@ export async function verifyNativeEmailCode(
   return { success: true };
 }
 
-function passwordResetEmailHtml(siteName: string, username: string, value: string): string {
+function passwordResetEmailHtml(siteName: string, username: string, value: string, copy: MailCopy): string {
   return `<!doctype html><html><body style="margin:0;padding:0;background:#f4f6fb;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 12px;">
 <table role="presentation" width="520" cellpadding="0" cellspacing="0" style="max-width:520px;width:100%;background:#ffffff;border-radius:14px;padding:36px 40px;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
 <tr><td>
 <p style="margin:0 0 8px;font-size:12px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#8a90a3;">${escapeHtml(siteName)}</p>
-<h1 style="margin:0 0 18px;font-size:24px;line-height:1.2;color:#1d2433;">Reset your password</h1>
-<p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#5a6172;">Hi ${escapeHtml(username)}, use the code below to reset your ${escapeHtml(siteName)} password.</p>
+<h1 style="margin:0 0 18px;font-size:24px;line-height:1.2;color:#1d2433;">${copy.title}</h1>
+<p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#5a6172;">${copy.intro(escapeHtml(username), escapeHtml(siteName))}</p>
 <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;"><tr><td style="background:#f0f3fa;border-radius:10px;padding:14px 26px;">
 <span style="font-size:26px;font-weight:800;letter-spacing:0.34em;color:#1d2433;">${value}</span>
 </td></tr></table>
-<p style="margin:0 0 6px;font-size:14px;line-height:1.6;color:#5a6172;">This code expires in <strong style="color:#1d2433;">10 minutes</strong>.</p>
-<p style="margin:0;font-size:13px;line-height:1.6;color:#8a90a3;">If you didn't request a password reset, ignore this email — your password stays unchanged.</p>
+<p style="margin:0 0 6px;font-size:14px;line-height:1.6;color:#5a6172;">${copy.expires[0]}<strong style="color:#1d2433;">${copy.expires[1]}</strong>${copy.expires[2]}</p>
+<p style="margin:0;font-size:13px;line-height:1.6;color:#8a90a3;">${copy.ignore}</p>
 </td></tr></table>
 </td></tr></table>
 </body></html>`;
@@ -159,11 +172,12 @@ export async function deliverNativePasswordResetCode(
   value: string,
 ): Promise<void> {
   const siteName = await nativeSiteName(env);
+  const copy = accountMailCopy(resolveMailLocale(env.EMAIL_LOCALE));
   await sendSmtpEmail(env, {
     to: user.email,
-    subject: `${siteName} password reset code: ${value}`,
-    text: `Hi ${user.username},\n\nYour ${siteName} password reset code is ${value}. It expires in 10 minutes.\n\nIf you didn't request a password reset, ignore this email — your password stays unchanged.`,
-    html: passwordResetEmailHtml(siteName, user.username, value),
+    subject: copy.reset.subject(siteName, value),
+    text: copy.reset.text(user.username, siteName, value),
+    html: passwordResetEmailHtml(siteName, user.username, value, copy.reset),
   });
 }
 
