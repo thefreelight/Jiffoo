@@ -114,18 +114,20 @@ export async function adminUserRoutes(fastify: FastifyInstance) {
     schema: {
       tags: ['admin-users'],
       summary: 'Delete user',
-      description: 'Delete a customer account that has no orders (admin only). An account with orders must be deactivated instead so its sales history is kept.',
+      description: 'Delete a customer account (admin only). By default only accounts without orders can be deleted; `?force=true` also removes the account\'s orders, payments, refunds, and shipments.',
       security: [{ bearerAuth: [] }],
       ...adminUserSchemas.deleteUser,
     }
   }, async (request, reply) => {
+    const force = [ 'true', '1' ].includes(String((request.query as any)?.force ?? '').toLowerCase());
     try {
       const { id } = request.params as any;
-      const result = await AdminUserService.deleteUser(id, { actorId: request.user?.id });
+      const result = await AdminUserService.deleteUser(id, { actorId: request.user?.id, force });
       return sendSuccess(reply, {
         userId: id,
         deleted: result.deleted,
-      }, 'Customer deleted');
+        force,
+      }, force ? 'Customer and their orders deleted' : 'Customer deleted');
     } catch (error: any) {
       if (error.code === 'P2025' || error.message === 'User not found') {
         return sendError(reply, 404, 'NOT_FOUND', 'User not found');
@@ -133,11 +135,15 @@ export async function adminUserRoutes(fastify: FastifyInstance) {
       if (error.code === 'CUSTOMER_DELETE_NOT_ALLOWED') {
         return sendError(reply, 403, 'CUSTOMER_DELETE_NOT_ALLOWED', error.message);
       }
-      // USER_HAS_DATA is the explicit guard; P2003/P2014 mean the database itself
-      // refused because a related record still exists.
-      if (error.code === 'USER_HAS_DATA' || error.code === 'P2003' || error.code === 'P2014') {
+      if (error.code === 'USER_HAS_DATA') {
         return sendError(reply, 409, 'USER_HAS_DATA',
-          'Customer has orders and cannot be deleted. Deactivate the account instead.', error.details);
+          'Customer has orders and cannot be deleted. Deactivate the account instead, or force delete to remove the orders too.', error.details);
+      }
+      // The database refused: a related record this delete does not cover still exists.
+      if (error.code === 'P2003' || error.code === 'P2014') {
+        return sendError(reply, 409, 'USER_HAS_DATA', force
+          ? 'Customer has related records that force delete could not remove.'
+          : 'Customer has orders and cannot be deleted. Deactivate the account instead, or force delete to remove the orders too.');
       }
       return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
     }

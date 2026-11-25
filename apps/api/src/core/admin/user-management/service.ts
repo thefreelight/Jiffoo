@@ -252,13 +252,14 @@ export class AdminUserService {
   }
 
   /**
-   * Deletes a customer account. Only bare customer accounts are removable:
-   * orders carry the payments, refunds, and shipments of a sale, so an account
-   * that has any must be deactivated instead to keep the sales history intact.
+   * Deletes a customer account. By default only bare customer accounts are
+   * removable: orders carry the payments, refunds, and shipments of a sale, so
+   * an account that has any must be deactivated instead to keep the sales
+   * history intact. `force` removes the account together with them.
    */
   static async deleteUser(
     userId: string,
-    options: { actorId?: string } = {},
+    options: { actorId?: string; force?: boolean } = {},
   ): Promise<{ userId: string; deleted: boolean }> {
     await prisma.$transaction(async (tx) => {
       const existingUser = await tx.user.findUnique({
@@ -278,11 +279,20 @@ export class AdminUserService {
       }
 
       const orderCount = await tx.order.count({ where: { userId } });
-      if (orderCount > 0) {
+      if (orderCount > 0 && !options.force) {
         throw Object.assign(new Error('Customer has orders and cannot be deleted'), {
           code: 'USER_HAS_DATA',
           details: { orders: orderCount },
         });
+      }
+
+      if (orderCount > 0) {
+        // A forced delete takes the sale with the account.
+        const orderIds = (await tx.order.findMany({ where: { userId }, select: { id: true } })).map((order) => order.id);
+        await tx.refund.deleteMany({ where: { orderId: { in: orderIds } } });
+        await tx.shipment.deleteMany({ where: { orderId: { in: orderIds } } });
+        await tx.payment.deleteMany({ where: { orderId: { in: orderIds } } });
+        await tx.order.deleteMany({ where: { id: { in: orderIds } } });
       }
 
       await tx.user.delete({

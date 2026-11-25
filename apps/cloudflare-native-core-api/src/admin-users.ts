@@ -6,11 +6,17 @@ import { recordNativeSecurityEvent } from './security-audit';
 import {
   CUSTOMER_DELETE_AUDIT_ACTION,
   CUSTOMER_DELETE_AUDIT_SQL,
+  CUSTOMER_FORCE_DELETE_AUDIT_ACTION,
+  analyzeCustomerSchema,
   buildCustomerBlockerCountSql,
   buildCustomerDeletePlan,
   buildCustomerEraseSql,
+  buildCustomerForceDeletePlan,
+  buildCustomerRowCountSql,
   buildGuardedCustomerDeleteSql,
-  isCustomerDeletePlanTrustworthy,
+  isCustomerSchemaTrustworthy,
+  type CustomerForceDeletePlan,
+  type SchemaRow,
 } from './customer-delete';
 
 type AdminUserEnv = NativeAuthEnv;
@@ -255,7 +261,7 @@ export async function tryNativeAdminUsers(request: Request, env: AdminUserEnv): 
       .first<{ id: string; email: string; username: string; role: string }>();
     if (!target) return error(404, 'NOT_FOUND', 'User not found');
 
-    // Only bare customer accounts are removable: staff and admins are not, and nobody deletes themselves.
+    // Only customer accounts are removable: staff and admins are not, and nobody deletes themselves.
     const isStaff = target.role !== 'USER' || Boolean(
       await env.DB.prepare('SELECT id FROM native_admin_memberships WHERE user_id = ?1').bind(userId).first(),
     );
@@ -267,31 +273,81 @@ export async function tryNativeAdminUsers(request: Request, env: AdminUserEnv): 
       );
     }
 
+    // Tables and triggers: a trigger can add a row while the wipe runs.
+    const schema = analyzeCustomerSchema((await env.DB
+      .prepare("SELECT name, sql FROM sqlite_master WHERE type IN ('table', 'trigger')")
+      .all<SchemaRow>()).results ?? []);
+    // An unreadable schema must never turn into an unguarded delete.
+    if (!isCustomerSchemaTrustworthy(schema)) {
+      return error(500, 'CUSTOMER_DELETE_GUARD_UNAVAILABLE', 'The account could not be checked for related records, so it was not deleted');
+    }
+
+    const auditValues = (action: string, metadata: Record<string, unknown>) => [
+      crypto.randomUUID(),
+      target.id,
+      target.email,
+      target.username,
+      admin.id,
+      admin.email,
+      admin.username,
+      action,
+      JSON.stringify(metadata),
+      new Date().toISOString(),
+    ];
+
+    // `?force=true` removes the account together with everything it owns.
+    if (url.searchParams.get('force') === 'true') {
+      let forcePlan: CustomerForceDeletePlan;
+      try {
+        forcePlan = buildCustomerForceDeletePlan(schema);
+      } catch {
+        return error(409, 'CUSTOMER_DELETE_REFERENCED', 'This account is referenced by records that cannot be removed automatically.');
+      }
+
+      // What the wipe is about to touch, recorded while the rows still exist. The
+      // count results line up with the plan's entries one for one.
+      const counts = await env.DB.batch<{ table_name: string; column_name: string; count: number }>(
+        forcePlan.counted.map((entry) => env.DB.prepare(buildCustomerRowCountSql(entry)).bind(entry.table, entry.column, userId)),
+      );
+      const touched = counts.flatMap((result, index) => {
+        const row = result.results?.[0];
+        if (!(Number(row?.count ?? 0) > 0)) return [];
+        return [{ table: String(row.table_name), count: Number(row.count), detached: forcePlan.counted[index]?.detached ?? false }];
+      });
+      const removed = touched.filter((entry) => !entry.detached).map(({ table, count }) => ({ table, count }));
+      const detached = touched.filter((entry) => entry.detached).map(({ table, count }) => ({ table, count }));
+
+      try {
+        const batch = await env.DB.batch([
+          ...forcePlan.statements.map((statement) => (statement.includes('?1') ? env.DB.prepare(statement).bind(userId) : env.DB.prepare(statement))),
+          env.DB.prepare(CUSTOMER_DELETE_AUDIT_SQL).bind(...auditValues(CUSTOMER_FORCE_DELETE_AUDIT_ACTION, {
+            email: target.email,
+            force: true,
+            removed,
+            detached,
+          })),
+        ]);
+        if (!Number(batch[forcePlan.accountDelete]?.meta.changes ?? 0)) {
+          return error(409, 'CUSTOMER_DELETE_REFERENCED', 'The account changed while it was being deleted and was left untouched.');
+        }
+      } catch (cause) {
+        // A reference that still has no parent when the transaction commits rolls the whole wipe back.
+        if (/FOREIGN KEY constraint failed/i.test(String((cause as { message?: unknown })?.message ?? cause))) {
+          return error(409, 'CUSTOMER_DELETE_REFERENCED', 'This account is referenced by records that cannot be removed automatically.');
+        }
+        throw cause;
+      }
+
+      return json({ userId, deleted: true, force: true, removed, detached });
+    }
+
     // The delete, its audit trail, and the erasures form one transaction. The audit row and the
     // erasures are conditioned on the account actually being gone, so a refused delete leaves
     // everything untouched.
-    const schema = await env.DB
-      .prepare("SELECT name, sql FROM sqlite_master WHERE type = 'table'")
-      .all<{ name: string; sql: string | null }>();
-    const plan = buildCustomerDeletePlan(schema.results ?? []);
-    if (!isCustomerDeletePlanTrustworthy(plan)) {
-      // An unreadable schema leaves no blockers; deleting on that would be deleting anything.
-      return error(500, 'CUSTOMER_DELETE_GUARD_UNAVAILABLE', 'The account could not be checked for related records, so it was not deleted');
-    }
+    const plan = buildCustomerDeletePlan(schema);
     const batch = await env.DB.batch([
       env.DB.prepare(buildGuardedCustomerDeleteSql(plan.blockers)).bind(userId),
-      env.DB.prepare(CUSTOMER_DELETE_AUDIT_SQL).bind(
-        crypto.randomUUID(),
-        target.id,
-        target.email,
-        target.username,
-        admin.id,
-        admin.email,
-        admin.username,
-        CUSTOMER_DELETE_AUDIT_ACTION,
-        JSON.stringify({ email: target.email }),
-        new Date().toISOString(),
-      ),
+      env.DB.prepare(CUSTOMER_DELETE_AUDIT_SQL).bind(...auditValues(CUSTOMER_DELETE_AUDIT_ACTION, { email: target.email })),
       ...plan.erases.map((reference) => env.DB.prepare(buildCustomerEraseSql(reference)).bind(userId)),
     ]);
 
@@ -306,7 +362,7 @@ export async function tryNativeAdminUsers(request: Request, env: AdminUserEnv): 
       return error(
         409,
         'CUSTOMER_HAS_DATA',
-        'This customer still has orders, payments, wallet, or other records and cannot be deleted. Deactivate the account instead.',
+        'This customer still has orders, payments, wallet, or other records and cannot be deleted. Deactivate the account instead, or use force delete.',
         { blockers },
       );
     }
