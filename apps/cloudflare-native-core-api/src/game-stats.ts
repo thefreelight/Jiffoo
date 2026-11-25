@@ -509,6 +509,9 @@ export async function tryNativeGameStats(request: Request, env: GameStatsEnv): P
   const isStore = path.startsWith(`${MOUNT}/store/`) || path === `${MOUNT}/store`;
   const isAdmin = path.startsWith(`${MOUNT}/admin/`) || path === `${MOUNT}/admin`;
   if (!isStore && !isAdmin) return null;
+  // Kept for the error path: a browser on a listed origin must be able to read
+  // the failure too, otherwise a 500 reaches the page as an opaque CORS error.
+  let cors: OriginDecision | null = null;
 
   try {
     const state = await loadPluginState(env);
@@ -517,6 +520,7 @@ export async function tryNativeGameStats(request: Request, env: GameStatsEnv): P
 
     if (isStore) {
       const decision = decideOrigin(request, state.settings);
+      cors = decision;
       if (method === 'OPTIONS') return preflight(decision);
       if (!decision.allowed) return failure(403, 'FORBIDDEN_ORIGIN', 'Origin not allowed');
       if (method === 'POST' && path === `${MOUNT}/store/sessions`) {
@@ -544,7 +548,8 @@ export async function tryNativeGameStats(request: Request, env: GameStatsEnv): P
     if (route === 'games') return success(await adminGames(env, state.settings, now, days));
     return failure(404, 'NOT_FOUND', 'Unknown Game Stats admin route');
   } catch (error) {
-    return failure(500, 'GAME_STATS_OPERATION_FAILED', error instanceof Error ? error.message : 'Game Stats operation failed');
+    const failed = failure(500, 'GAME_STATS_OPERATION_FAILED', error instanceof Error ? error.message : 'Game Stats operation failed');
+    return cors?.allowed ? withCors(cors, failed) : failed;
   }
 }
 

@@ -362,6 +362,31 @@ describe('native game stats: storefront access rules', () => {
     expect((await reply(await live(h))).data?.online).toBe(1);
   });
 
+  it('lets a listed origin read a server failure instead of an opaque CORS error', async () => {
+    const h = openPlugin({ allowedOrigins: 'https://game.jiffoo.com' });
+    // The database fails on the write: the browser must still see a readable answer.
+    const broken = {
+      ...h.env,
+      DB: {
+        prepare: (sql: string) => ({
+          bind: () => ({
+            first: h.DB.prepare(sql).bind().first,
+            all: h.DB.prepare(sql).bind().all,
+            run: h.DB.prepare(sql).bind().run,
+          }),
+          first: h.DB.prepare(sql).first,
+          all: h.DB.prepare(sql).all,
+          run: h.DB.prepare(sql).run,
+        }),
+        batch: async () => { throw new Error('D1_ERROR: storage is read-only'); },
+      },
+    };
+    const response = await tryNativeGameStats(write('/sessions', { action: 'start', gameId: '2048', playerId: PLAYER_A, sessionId: session(1) }, { origin: 'https://game.jiffoo.com' }), broken as never);
+    expect(response?.status).toBe(500);
+    expect(response?.headers.get('access-control-allow-origin')).toBe('https://game.jiffoo.com');
+    expect(await reply(response)).toMatchObject({ success: false, error: { code: 'GAME_STATS_OPERATION_FAILED' } });
+  });
+
   it('rejects malformed and oversized writes', async () => {
     const h = openPlugin();
     const valid = { action: 'start', gameId: '2048', playerId: PLAYER_A, sessionId: session(1) };
