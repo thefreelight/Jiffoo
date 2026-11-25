@@ -1,0 +1,41 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "game-production-core-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-07-29",
+  "compatibility_flags": ["nodejs_compat"],
+  "account_id": "b2da93ccbca8c78973eb85e536a1d51f",
+  "routes": [
+    { "pattern": "game-api.jiffoo.com", "custom_domain": true }
+  ],
+  "triggers": {
+    "crons": ["*/1 * * * *"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "game-production",
+      "database_id": "56606041-bfe1-4e54-b9e0-1b72a8d998c1",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "kv_namespaces": [
+    { "binding": "CACHE", "id": "1991f0f9c5104ca29f99542d3f731086" }
+  ],
+  "r2_buckets": [
+    { "binding": "ASSETS", "bucket_name": "game-production-assets" }
+  ],
+  "secrets_store_secrets": [
+    {
+      "binding": "JWT_SECRET",
+      "store_id": "5a0c62abb59f4c1b892d1c15f723e528",
+      "secret_name": "game_jwt_secret"
+    }
+  ],
+  "vars": {
+    "CORE_ORIGIN": "https://game-api.jiffoo.com",
+    "EXPECTED_D1_SCHEMA_VERSION": "0084",
+    "PUBLIC_API_BASE_URL": "https://game-api.jiffoo.com",
+    "RUNTIME_VERSION": "game-native-1"
+  }
+}
