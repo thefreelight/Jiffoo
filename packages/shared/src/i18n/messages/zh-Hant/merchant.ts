@@ -95,6 +95,7 @@ export const merchant = {
     pluginsMarketplace: '外掛市場',
     installedPlugins: '已安裝外掛',
     jobSources: 'Job Sources',
+    gameStats: '遊戲統計',
     roleSuperAdmin: '超級管理員',
     roleMember: '成員',
   },

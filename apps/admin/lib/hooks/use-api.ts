@@ -5,10 +5,11 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiClient, PaginationParams, productsApi, ordersApi, redemptionsApi, usersApi, pluginsApi, themesApi, marketApi, managedPackageApi, platformConnectionApi, uploadApi, dashboardApi, inventoryApi, accountApi, authApi, healthApi, errorsApi, promotionsApi, redirectsApi, staffApi, unwrapApiResponse, isAdminApiError, ProductStatsData, OrderStatsData, UserStatsData, InventoryStatsData, type SeoRedirect, type Promotion, type PromotionForm as PromotionFormData, type StaffCreatePayload, type StaffMutationPayload } from '../api';
+import { apiClient, PaginationParams, productsApi, ordersApi, redemptionsApi, usersApi, pluginsApi, themesApi, marketApi, managedPackageApi, platformConnectionApi, uploadApi, dashboardApi, inventoryApi, accountApi, authApi, healthApi, errorsApi, promotionsApi, redirectsApi, staffApi, gameStatsApi, unwrapApiResponse, isAdminApiError, ProductStatsData, OrderStatsData, UserStatsData, InventoryStatsData, type SeoRedirect, type Promotion, type PromotionForm as PromotionFormData, type StaffCreatePayload, type StaffMutationPayload } from '../api';
 import { toast } from 'sonner';
 import { ProductForm, DashboardStats, Product, Order, OrderDetail, User, OrderItem, ThemeMeta, ActiveTheme, HealthMetricsResponse, HealthSummaryResponse, ErrorLog, ErrorListParams } from '../types';
 import { PageResult } from 'shared';
+import type { GameStatsDay, GameStatsGame, GameStatsOverview, GameStatsRangeDays } from '../api';
 import { UseQueryResult } from '@tanstack/react-query';
 import { useT } from 'shared/src/i18n/react';
 import { useAuthStore } from '../store';
@@ -59,6 +60,9 @@ export const queryKeys = {
   staffAuditLogs: (userId: string, page: number, limit: number) => ['staff', userId, 'audit', page, limit] as const,
   dashboardStats: ['dashboard-stats'] as const,
   redemptionCodes: ['redemption-codes'] as const,
+  gameStatsOverview: ['game-stats', 'overview'] as const,
+  gameStatsTimeseries: (days: number) => ['game-stats', 'timeseries', days] as const,
+  gameStatsGames: (days: number) => ['game-stats', 'games', days] as const,
   salesStats: (period: string) => ['sales-stats', period] as const,
   productStats: ['product-stats'] as const,
   adminDashboard: ['admin-dashboard'] as const,
@@ -301,6 +305,47 @@ export function useRedemptionCodes() {
       return data.items || [];
     },
     staleTime: 60 * 1000,
+  });
+}
+
+// Game Stats hooks (native game-stats plugin). "Online" is a live figure, so the
+// overview refreshes on its own; the per-day reports move once a day at most.
+const GAME_STATS_LIVE_REFETCH_MS = 30 * 1000;
+
+export function useGameStatsOverview() {
+  return useQuery({
+    queryKey: queryKeys.gameStatsOverview,
+    queryFn: async () => {
+      const response = await gameStatsApi.overview();
+      return unwrapApiResponse<GameStatsOverview>(response);
+    },
+    refetchInterval: GAME_STATS_LIVE_REFETCH_MS,
+    staleTime: 10 * 1000,
+    retry: false,
+  });
+}
+
+export function useGameStatsTimeseries(days: GameStatsRangeDays) {
+  return useQuery({
+    queryKey: queryKeys.gameStatsTimeseries(days),
+    queryFn: async () => {
+      const response = await gameStatsApi.timeseries(days);
+      return unwrapApiResponse<{ days: number; items: GameStatsDay[] }>(response);
+    },
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+}
+
+export function useGameStatsGames(days: GameStatsRangeDays) {
+  return useQuery({
+    queryKey: queryKeys.gameStatsGames(days),
+    queryFn: async () => {
+      const response = await gameStatsApi.games(days);
+      return unwrapApiResponse<{ days: number; today: string; fromDay: string; items: GameStatsGame[] }>(response);
+    },
+    staleTime: 5 * 60 * 1000,
+    retry: false,
   });
 }
 
