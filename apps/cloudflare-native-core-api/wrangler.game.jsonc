@@ -30,12 +30,29 @@
       "binding": "JWT_SECRET",
       "store_id": "5a0c62abb59f4c1b892d1c15f723e528",
       "secret_name": "game_jwt_secret"
+    },
+    // The password of the support mailbox, shared with the other instances that send from it.
+    {
+      "binding": "SMTP_PASSWORD",
+      "store_id": "5a0c62abb59f4c1b892d1c15f723e528",
+      "secret_name": "jiffoo_smtp_password"
     }
   ],
   "vars": {
     "CORE_ORIGIN": "https://game-api.jiffoo.com",
-    "EXPECTED_D1_SCHEMA_VERSION": "0084",
+    "EXPECTED_D1_SCHEMA_VERSION": "0085",
     "PUBLIC_API_BASE_URL": "https://game-api.jiffoo.com",
-    "RUNTIME_VERSION": "game-native-1"
+    "RUNTIME_VERSION": "game-native-1",
+    "SITE_NAME": "PLAYGROUND",
+    "SMTP_HOST": "mail.easyeuicc.cc",
+    "SMTP_PORT": "587",
+    "SMTP_SECURE": "false",
+    "SMTP_USERNAME": "support@jiffoo.com",
+    "SMTP_FROM_EMAIL": "support@jiffoo.com",
+    "SMTP_FROM_NAME": "PLAYGROUND",
+    "SMTP_REPLY_TO": "support@jiffoo.com",
+    // The account mails are written in the storefront's language.
+    "EMAIL_LOCALE": "zh-Hans",
+    "EMAIL_REPLIES_MONITORED": "1"
   }
 }
