@@ -39,6 +39,12 @@ type SettingField = {
 
 const CHECKOUT_COUNTRIES_KEY = 'checkout.address.countries_require_state_postal'
 
+// Membership license key that lets this instance install non-free official
+// marketplace items. The marketplace installer reads it from the system settings.
+const PRO_LICENSE_KEY = 'platformLicenseKey'
+const PRO_LICENSE_KEY_PATTERN = /^JIF-[A-Z0-9-]{4,80}$/
+const PRO_MEMBERSHIP_URL = 'https://platform-api.jiffoo.com/membership'
+
 const BRANDING_FIELDS: SettingField[] = [
   {
     key: 'branding.platform_name',
@@ -226,7 +232,7 @@ function SettingsPageContent() {
   } | null>(null)
 
   const editableKeys = useMemo(
-    () => [...BRANDING_FIELDS, ...LOCALIZATION_FIELDS, { key: CHECKOUT_COUNTRIES_KEY }].map((field) => field.key),
+    () => [...BRANDING_FIELDS, ...LOCALIZATION_FIELDS, { key: CHECKOUT_COUNTRIES_KEY }, { key: PRO_LICENSE_KEY }].map((field) => field.key),
     []
   )
 
@@ -435,12 +441,20 @@ function SettingsPageContent() {
       return
     }
 
+    const licenseKey = getString(draft[PRO_LICENSE_KEY]).trim().toUpperCase()
+    if (licenseKey && !PRO_LICENSE_KEY_PATTERN.test(licenseKey)) {
+      toast.error(getText('merchant.settings.proLicense.invalid', 'That does not look like a membership license key. It starts with "JIF-".'))
+      return
+    }
+
     setSaving(true)
     try {
       const updates: SystemSettingsMap = {}
       editableKeys.forEach((key) => {
         if (key === CHECKOUT_COUNTRIES_KEY) {
           updates[key] = parseCountryCodes(getString(draft[key]))
+        } else if (key === PRO_LICENSE_KEY) {
+          updates[key] = licenseKey
         } else {
           updates[key] = getString(draft[key]).trim()
         }
@@ -567,6 +581,41 @@ function SettingsPageContent() {
                 )}
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* Jiffoo Pro Membership Card */}
+        <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
+          <div className="px-8 py-6 border-b border-gray-50">
+            <h3 className="text-lg font-bold text-gray-900">
+              {getText('merchant.settings.proLicense.title', 'Jiffoo Pro Membership')}
+            </h3>
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+              {getText('merchant.settings.proLicense.desc', 'Install Pro themes and plugins from the official marketplace')}
+            </span>
+          </div>
+          <div className="p-8 space-y-3">
+            <Label htmlFor={PRO_LICENSE_KEY} className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+              {getText('merchant.settings.proLicense.keyLabel', 'Membership license key')}
+            </Label>
+            <Input
+              id={PRO_LICENSE_KEY}
+              type="password"
+              autoComplete="off"
+              value={getString(draft[PRO_LICENSE_KEY])}
+              onChange={(event) => updateField(PRO_LICENSE_KEY, event.target.value)}
+              placeholder="JIF-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+              className="h-11 rounded-xl border-gray-100 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all"
+            />
+            <p className="text-xs text-gray-500">
+              {getText(
+                'merchant.settings.proLicense.hint',
+                'Paste the license key from your membership. Non-free official marketplace items can then be installed on this instance.',
+              )}{' '}
+              <a href={PRO_MEMBERSHIP_URL} target="_blank" rel="noreferrer" className="font-medium text-blue-600 hover:underline">
+                {getText('merchant.settings.proLicense.link', 'Get a membership')}
+              </a>
+            </p>
           </div>
         </div>
 
