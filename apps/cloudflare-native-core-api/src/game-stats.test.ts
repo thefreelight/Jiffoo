@@ -398,7 +398,7 @@ describe('native game stats: storefront access rules', () => {
       ['path in game id', { ...valid, gameId: '../admin' }, 400],
       ['upper-case game id', { ...valid, gameId: '2048 ' }, 400],
       ['short player id', { ...valid, playerId: 'short' }, 400],
-      ['numeric player id', { ...valid, playerId: 12345678901234567890 }, 400],
+      ['numeric player id', { ...valid, playerId: 1234567890123456 }, 400],
       ['non-uuid session id', { ...valid, sessionId: 'session-1' }, 400],
       ['oversized body', JSON.stringify({ ...valid, junk: 'x'.repeat(5000) }), 413],
     ];
