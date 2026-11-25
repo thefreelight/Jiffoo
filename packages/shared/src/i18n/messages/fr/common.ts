@@ -115,6 +115,13 @@ export const common = {
   },
 
   // Error messages
+  // Shell chrome: heard by screen readers, seen on keyboard focus or when the network drops.
+  shell: {
+    skipToMain: 'Aller au contenu principal',
+    offline: 'Vous êtes hors ligne. Certaines fonctions peuvent être indisponibles.',
+    backOnline: 'Connexion rétablie',
+    dismissNotice: 'Fermer la notification',
+  },
   errors: {
     general: 'Something went wrong. Please try again.',
     notFound: 'Not found',
@@ -122,7 +129,7 @@ export const common = {
     forbidden: 'Access forbidden',
     serverError: 'Server error. Please try again later.',
     networkError: 'Network error. Please check your connection.',
-    rateLimited: 'Too many requests. Please try again later.',
+    rateLimited: 'Trop de requêtes. Veuillez réessayer plus tard.',
     timeout: 'Request timed out. Please try again.',
     unknown: 'An unknown error occurred',
     themeUnavailable: 'Theme Component Unavailable',
@@ -133,6 +140,7 @@ export const common = {
     validation: 'Validation Error',
     tryAgain: 'Please try again',
     error: 'Error',
+    loginUnavailable: 'Impossible de charger le formulaire de connexion. Veuillez réessayer.',
   },
 
   // Empty states
