@@ -3,6 +3,8 @@ import { ArrowLeft, Check, Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react
 import { cn } from '@jiffoo/ui';
 import type { CartPageProps } from 'shared/src/types/theme';
 import { pickCopy } from '../site';
+import { priceSale, saleFor, saleTitle, useActiveSales } from '../lib/sale';
+import { SalePrice } from './SalePrice';
 
 export const CartPage = React.memo(function CartPage({
   cart,
@@ -20,6 +22,7 @@ export const CartPage = React.memo(function CartPage({
   locale,
 }: CartPageProps) {
   const t = (copy: { en: string; hans: string; hant: string }) => pickCopy(locale, copy);
+  const sales = useActiveSales(locale);
   const supportsSelection = Boolean(
     onCheckoutSelected && onToggleItemSelection && onSelectAllItems && onDeselectAllItems
   );
@@ -31,11 +34,15 @@ export const CartPage = React.memo(function CartPage({
     ? cart.items.filter((item) => selectedIdSet.has(item.id))
     : cart.items;
   const selectedSubtotal = selectedItems.reduce((sum, item) => sum + item.subtotal, 0);
+  const salePricing = priceSale(
+    selectedItems.map((item) => ({ productId: item.productId, unitPrice: Number(item.price || 0), quantity: item.quantity })),
+    sales
+  );
   const ratio = cart.subtotal > 0 ? selectedSubtotal / cart.subtotal : 0;
   const selectedTax = Number(((cart.tax || 0) * ratio).toFixed(2));
   const selectedShipping = Number(((cart.shipping || 0) * ratio).toFixed(2));
   const selectedDiscount = Number(((cart.discount || 0) * ratio).toFixed(2));
-  const selectedTotal = Number((selectedSubtotal + selectedTax + selectedShipping - selectedDiscount).toFixed(2));
+  const selectedTotal = Number((selectedSubtotal + selectedTax + selectedShipping - selectedDiscount - salePricing.saleDiscount).toFixed(2));
   const selectedQuantity = selectedItems.reduce((sum, item) => sum + item.quantity, 0);
   const allSelected = cart.items.length > 0 && effectiveSelectedIds.length === cart.items.length;
   const hasSelection = effectiveSelectedIds.length > 0;
@@ -199,7 +206,7 @@ export const CartPage = React.memo(function CartPage({
                   <div className="text-right">
                     <p className="text-[10px] tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">{t({ en: 'Subtotal', hans: '小计', hant: '小計' })}</p>
                     <p className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[var(--bokmoo-ink)]">
-                      ${item.subtotal.toFixed(2)}
+                      <SalePrice unitPrice={Number(item.price || 0)} quantity={item.quantity} sale={saleFor(sales, item.productId)} />
                     </p>
                   </div>
                 </div>
@@ -232,6 +239,12 @@ export const CartPage = React.memo(function CartPage({
                     {selectedShipping === 0 ? t({ en: 'No shipping required', hans: '无需运费', hant: '無需運費' }) : `$${selectedShipping.toFixed(2)}`}
                   </span>
                 </div>
+                {salePricing.onSale ? (
+                  <div className="flex justify-between text-sm text-[var(--bokmoo-success)]" data-purpose="sale-discount-row">
+                    <span>{saleTitle(sales)}</span>
+                    <span>-${salePricing.saleDiscount.toFixed(2)}</span>
+                  </div>
+                ) : null}
                 {selectedDiscount > 0 ? (
                   <div className="flex justify-between text-sm text-[var(--bokmoo-success)]">
                     <span>{t({ en: 'Discount', hans: '优惠', hant: '優惠' })}</span>

@@ -6,6 +6,8 @@ import type { ProductsPageProps } from 'shared/src/types/theme';
 import { displayProductTitle, getBokmooProducts, mapBokmooApiProductToThemeProduct, normalizeProductForTheme, resolveBokmooMediaUrl } from '../lib/api';
 import { getBokmooTravelProfile } from '../lib/digital-fulfillment';
 import { pickCopy, resolveBokmooSiteConfig } from '../site';
+import { saleFor, useActiveSales } from '../lib/sale';
+import { SalePrice } from './SalePrice';
 
 const CATALOG_FILTERS = ['All', 'Popular', 'Local', 'Regional', 'Global'] as const;
 type CatalogFilter = (typeof CATALOG_FILTERS)[number];
@@ -96,6 +98,7 @@ export const ProductsPage = React.memo(function ProductsPage({
   config,
   locale,
 }: ProductsPageProps) {
+  const sales = useActiveSales(locale);
   const [searchQuery, setSearchQuery] = React.useState('');
   const [activeSearch, setActiveSearch] = React.useState('');
   const [remoteProducts, setRemoteProducts] = React.useState<Product[]>([]);
@@ -310,6 +313,7 @@ export const ProductsPage = React.memo(function ProductsPage({
                 const displayPrice = variantSalePrices.length > 0
                   ? Math.min(listPrice > 0 ? listPrice : Number.POSITIVE_INFINITY, ...variantSalePrices)
                   : listPrice;
+                const sale = saleFor(sales, product.id);
 
                 return (
                   <article
@@ -376,7 +380,7 @@ export const ProductsPage = React.memo(function ProductsPage({
                           {t({ en: 'Starting at', hans: '起价', hant: '起價' })}
                         </p>
                         <p className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-[var(--bokmoo-ink)]">
-                          ${Number(Number.isFinite(displayPrice) ? displayPrice : 0).toFixed(2)}
+                          <SalePrice unitPrice={Number(Number.isFinite(displayPrice) ? displayPrice : 0)} sale={sale} />
                         </p>
                         <p className="mt-2 text-xs text-[var(--bokmoo-copy)]">{profile.planBadge}</p>
                         <button

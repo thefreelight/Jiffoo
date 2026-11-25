@@ -475,6 +475,113 @@ body[data-theme='bokmoo'] ::selection {
 
 /* <<< Responsive chrome end */
 
+/* >>> Sale display (sale prices and the site-wide promo bar). Keep this block byte-identical
+   in src/tokens.css (embedded renderer) and theme-pack/tokens.css (remote runtime). */
+.bokmoo-sale-now {
+  color: var(--bokmoo-gold);
+  font-weight: 600;
+}
+
+.bokmoo-sale-was {
+  margin-left: 0.45rem;
+  font-size: 0.58em;
+  font-weight: 400;
+  color: var(--bokmoo-copy-soft);
+  text-decoration: line-through;
+  white-space: nowrap;
+}
+
+.bokmoo-sale-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.12em 0.55em;
+  border-radius: 999px;
+  background: var(--bokmoo-gold);
+  color: #0b0c10;
+  font-size: 0.5em;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  vertical-align: 0.12em;
+  white-space: nowrap;
+}
+
+.bokmoo-promo-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 2.75rem;
+  border-bottom: 1px solid rgba(229, 195, 101, 0.22);
+  background: linear-gradient(90deg, #17130a, #2b2210 50%, #17130a);
+  color: var(--bokmoo-gold);
+  font-size: 0.8rem;
+  line-height: 1.3;
+  text-align: center;
+}
+
+.bokmoo-promo-bar-link {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem 0.6rem;
+  color: inherit;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.bokmoo-promo-bar-badge {
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: var(--bokmoo-gold);
+  color: #0b0c10;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.bokmoo-promo-bar-timer {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.9;
+}
+
+.bokmoo-promo-bar-close {
+  position: absolute;
+  top: 50%;
+  right: 0.35rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font-size: 1rem;
+  opacity: 0.65;
+  cursor: pointer;
+}
+
+.bokmoo-promo-bar-close:hover,
+.bokmoo-promo-bar-close:focus-visible {
+  opacity: 1;
+  background: rgba(229, 195, 101, 0.14);
+}
+
+.bokmoo-promo-code-message {
+  font-weight: 600;
+}
+
+.bokmoo-promo-code-valid {
+  color: #4ade80;
+}
+
+.bokmoo-promo-code-invalid {
+  color: #f87171;
+}
+/* <<< Sale display end */
+
 /* ── Landing stage: CSS-rendered SIM card pedestal (Obsidian Aurum hero) ── */
 .bg-pedestal-top {
   background: radial-gradient(ellipse at center, #26262b 0%, #151518 70%, #0d0d0f 100%);

@@ -18,6 +18,8 @@ import { getBokmooProduct, getProductIdFromLocation, mapBokmooApiProductToThemeP
 import { pickCopy } from '../site';
 import { getBokmooTravelProfile } from '../lib/digital-fulfillment';
 import { resolveBokmooSiteConfig } from '../site';
+import { saleFor, saleUnitPrice, useActiveSales } from '../lib/sale';
+import { SalePrice } from './SalePrice';
 
 function getProductImage(product: Product | null): string | null {
   if (!product?.images?.length) return null;
@@ -101,6 +103,10 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
 
   const stockValue = Number(currentVariant?.inventory ?? normalizedProduct?.inventory?.available ?? 0);
   const priceValue = Number(currentVariant?.price ?? normalizedProduct?.price ?? 0);
+  // Shown and charged as the checkout prices it: the promotion's unit price.
+  const sales = useActiveSales(locale);
+  const sale = saleFor(sales, normalizedProduct?.id);
+  const unitPriceValue = sale ? saleUnitPrice(sale, priceValue) : priceValue;
   const maxQuantity = Math.max(1, Math.min(stockValue || 1, 10));
   const image = resolveBokmooMediaUrl(getProductImage(normalizedProduct), site.apiBaseUrl);
   const [adding, setAdding] = React.useState(false);
@@ -240,7 +246,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
                 </div>
                 <div className="sm:text-right">
                   <p className="bokmoo-pdp-price font-semibold tracking-[-0.05em] text-[var(--bokmoo-gold)]">
-                    ${priceValue.toFixed(2)}
+                    <SalePrice unitPrice={priceValue} sale={sale} />
                   </p>
                 </div>
               </div>
@@ -383,7 +389,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
                 {justAdded ? (
                   <>
                     <Check className="h-4 w-4" />
-                    {pickCopy(locale, { en: `Added to cart — $${priceValue.toFixed(2)}`, hans: `已加入购物车 — $${priceValue.toFixed(2)}`, hant: `已加入購物車 — $${priceValue.toFixed(2)}` })}
+                    {pickCopy(locale, { en: `Added to cart — $${unitPriceValue.toFixed(2)}`, hans: `已加入购物车 — $${unitPriceValue.toFixed(2)}`, hant: `已加入購物車 — $${unitPriceValue.toFixed(2)}`, ja: `カートに追加しました — $${unitPriceValue.toFixed(2)}`, ko: `장바구니에 추가됨 — $${unitPriceValue.toFixed(2)}`, fr: `Ajouté au panier — $${unitPriceValue.toFixed(2)}`, de: `Zum Warenkorb hinzugefügt — $${unitPriceValue.toFixed(2)}` })}
                   </>
                 ) : adding ? (
                   <>
@@ -393,7 +399,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
                 ) : (
                   <>
                     <ShoppingBag className="h-4 w-4" />
-                    {pickCopy(locale, { en: `Add to Cart — $${priceValue.toFixed(2)}`, hans: `加入购物车 — $${priceValue.toFixed(2)}`, hant: `加入購物車 — $${priceValue.toFixed(2)}` })}
+                    {pickCopy(locale, { en: `Add to Cart — $${unitPriceValue.toFixed(2)}`, hans: `加入购物车 — $${unitPriceValue.toFixed(2)}`, hant: `加入購物車 — $${unitPriceValue.toFixed(2)}`, ja: `カートに追加 — $${unitPriceValue.toFixed(2)}`, ko: `장바구니에 추가 — $${unitPriceValue.toFixed(2)}`, fr: `Ajouter au panier — $${unitPriceValue.toFixed(2)}`, de: `In den Warenkorb — $${unitPriceValue.toFixed(2)}` })}
                   </>
                 )}
               </button>
