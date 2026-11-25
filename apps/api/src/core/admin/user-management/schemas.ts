@@ -40,6 +40,7 @@ const deleteUserResultSchema = {
   properties: {
     userId: { type: 'string', description: 'Deleted user ID' },
     deleted: { type: 'boolean', description: 'Whether deletion succeeded' },
+    force: { type: 'boolean', description: 'Whether the account\'s orders were deleted with it' },
   },
   required: ['userId', 'deleted'],
 } as const;

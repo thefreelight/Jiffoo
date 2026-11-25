@@ -437,9 +437,11 @@ export default function CustomersPage() {
         open={Boolean(deleteTarget)}
         onOpenChange={(open) => { if (!open) setDeleteTarget(null) }}
         user={deleteTarget}
-        onDeleted={(deletedId) => {
+        onDeleted={(deletedId, result) => {
           refreshCustomers(deletedId)
-          toast.success(getText('merchant.customers.customerDelete.success', 'Customer deleted.'))
+          toast.success(result.force
+            ? getText('merchant.customers.customerDelete.forceSuccess', 'Customer and their records were force deleted.')
+            : getText('merchant.customers.customerDelete.success', 'Customer deleted.'))
         }}
         onDeactivated={() => {
           refreshCustomers()

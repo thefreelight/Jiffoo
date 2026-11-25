@@ -521,13 +521,15 @@ export default function CustomerDetailPage() {
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
         user={user}
-        onDeleted={(deletedId) => {
+        onDeleted={(deletedId, result) => {
           void queryClient.invalidateQueries({ queryKey: queryKeys.users, exact: false })
           void queryClient.invalidateQueries({ queryKey: queryKeys.userStats })
           queryClient.removeQueries({ queryKey: queryKeys.user(deletedId) })
           toast({
             title: getText('merchant.customers.success', 'Success'),
-            description: getText('merchant.customers.customerDelete.success', 'Customer deleted.'),
+            description: result.force
+              ? getText('merchant.customers.customerDelete.forceSuccess', 'Customer and their records were force deleted.')
+              : getText('merchant.customers.customerDelete.success', 'Customer deleted.'),
           })
           router.push(`/${locale}/customers`)
         }}

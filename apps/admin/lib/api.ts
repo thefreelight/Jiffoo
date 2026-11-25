@@ -547,7 +547,9 @@ export const usersApi = {
     isActive?: boolean;
   }): Promise<ApiResponse<UserProfile>> => apiClient.put(`/admin/users/${id}`, data),
 
-  delete: (id: string): Promise<ApiResponse<void>> => apiClient.delete(`/admin/users/${id}`),
+  // `force` deletes the account together with its orders and other records.
+  delete: (id: string, options: { force?: boolean } = {}): Promise<ApiResponse<void>> =>
+    apiClient.delete(`/admin/users/${id}`, { params: options.force ? { force: true } : undefined }),
 
   resetPassword: (id: string, newPassword: string): Promise<ApiResponse<{ message: string }>> =>
     apiClient.post(`/admin/users/${id}/reset-password`, { newPassword }),

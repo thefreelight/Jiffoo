@@ -375,6 +375,46 @@ describe('Admin Users Endpoints', () => {
       expect(await prisma.user.findUnique({ where: { id: user.id } })).not.toBeNull();
     });
 
+    it('should delete a customer and their orders when forced', async () => {
+      const { user } = await createUserWithToken({
+        email: `test-force-delete-${uuidv4().substring(0, 8)}@test.com`,
+      });
+      const order = await createTestOrder({ userId: user.id });
+      // A paid order carries the records the database refuses to orphan.
+      const prisma = getTestPrisma();
+      const payment = await prisma.payment.create({
+        data: { orderId: order.id, paymentMethod: 'card', amount: 10 },
+      });
+      await prisma.refund.create({
+        data: { paymentId: payment.id, orderId: order.id, amount: 2, idempotencyKey: uuidv4() },
+      });
+
+      const response = await app.inject({
+        method: 'DELETE',
+        url: `/api/admin/users/${user.id}?force=true`,
+        headers: { authorization: `Bearer ${adminToken}` },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json().data).toMatchObject({ userId: user.id, deleted: true, force: true });
+      expect(await prisma.order.findUnique({ where: { id: order.id } })).toBeNull();
+      expect(await prisma.payment.findUnique({ where: { id: payment.id } })).toBeNull();
+      expect(await prisma.refund.count({ where: { orderId: order.id } })).toBe(0);
+      expect(await prisma.user.findUnique({ where: { id: user.id } })).toBeNull();
+    });
+
+    it('should still refuse the calling admin when forced', async () => {
+      const response = await app.inject({
+        method: 'DELETE',
+        url: `/api/admin/users/${adminUserId}?force=true`,
+        headers: { authorization: `Bearer ${adminToken}` },
+      });
+
+      expect(response.statusCode).toBe(403);
+      expect(response.json().error.code).toBe('CUSTOMER_DELETE_NOT_ALLOWED');
+      expect(await getTestPrisma().user.findUnique({ where: { id: adminUserId } })).not.toBeNull();
+    });
+
     it('should refuse to delete the calling admin', async () => {
       const response = await app.inject({
         method: 'DELETE',
