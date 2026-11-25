@@ -11,7 +11,9 @@
 import { DEFAULT_LOCALE, isSupportedLocale } from 'shared/src/i18n';
 import { createProxyHandler, type ProxyConfig } from 'shared/src/proxy';
 import { NextResponse } from 'next/server';
-import { storeLocales } from '@/lib/store-locales';
+import { storeDefaultLocale, storeLocales, unofferedLocaleTarget } from '@/lib/store-locales';
+import { STOREFRONT_LOCALE_HEADER, requestLocale } from '@/lib/storefront-locale';
+import { legacyRedirectTarget, parseLegacyRedirectRules, type LegacyRedirectRule } from '@/lib/legacy-redirects';
 import {
   buildRedirectTarget,
   countRedirectHit,
@@ -27,9 +29,23 @@ import {
  */
 const shopProxyConfig: ProxyConfig = {
   target: 'shop',
-  defaultLocale: DEFAULT_LOCALE,
+  defaultLocale: storeDefaultLocale(),
   locales: storeLocales(),
 };
+
+/**
+ * Retired URL shapes (SHOP_LEGACY_REDIRECTS), parsed on first use. The rules
+ * are read inside the request so a deployment var that reaches process.env
+ * with the request context is seen; an unset var is simply re-read.
+ */
+let legacyRules: LegacyRedirectRule[] | null = null;
+function currentLegacyRules(): LegacyRedirectRule[] {
+  if (legacyRules) return legacyRules;
+  const raw = process.env.SHOP_LEGACY_REDIRECTS;
+  if (!raw) return [];
+  legacyRules = parseLegacyRedirectRules(raw);
+  return legacyRules;
+}
 
 /**
  * Storefront SEO redirects (admin-configured 301/302/307/308 mappings).
@@ -149,12 +165,44 @@ export function officialArtifactRedirect(request: ProxyRequest): NextResponse | 
   return NextResponse.redirect(target, 307);
 }
 
+/**
+ * A URL in a language this store does not offer (`/en/games` on a zh-Hans
+ * store) answers in the store's default language — or, for a retired URL under
+ * that language, at its new address in one hop. Only the retired address moves
+ * permanently: the store's language list can change, so a language fallback
+ * must not be cached as final.
+ */
+export function localeFallbackRedirect(
+  request: ProxyRequest,
+  locales: readonly string[],
+  defaultLocale: string,
+  rules: LegacyRedirectRule[],
+): NextResponse | null {
+  const fallback = unofferedLocaleTarget(request.nextUrl.pathname, locales, defaultLocale, rules);
+  if (!fallback) return null;
+  const target = new URL(fallback.path, request.nextUrl.origin);
+  // The request's own query rides along; a rule's query stays on the target.
+  for (const [key, value] of request.nextUrl.searchParams) target.searchParams.append(key, value);
+  return NextResponse.redirect(target, fallback.permanent ? 301 : undefined);
+}
+
 export async function middleware(request: ProxyRequest) {
   const artifactRedirect = officialArtifactRedirect(request);
   if (artifactRedirect) return artifactRedirect;
 
   if (isInstallRootRequest(request)) {
     return NextResponse.redirect(new URL('/install.sh', request.url));
+  }
+
+  // Retired URL shapes are answered with one 301 to their localized page,
+  // ahead of the locale redirect and of the exact-match redirect store.
+  if (request.method === 'GET' || request.method === 'HEAD') {
+    const legacy = legacyRedirectTarget(currentLegacyRules(), request.nextUrl.pathname, shopProxyConfig.defaultLocale);
+    if (legacy) {
+      const target = new URL(legacy, request.nextUrl.origin);
+      for (const [key, value] of request.nextUrl.searchParams) target.searchParams.append(key, value);
+      return NextResponse.redirect(target, 301);
+    }
   }
 
   // Storefront SEO redirects run ahead of the locale redirect: a legacy URL
@@ -173,7 +221,25 @@ export async function middleware(request: ProxyRequest) {
     }
   }
 
-  return baseProxy(request);
+  // A URL in a language this store does not offer (`/en/games` on a zh-Hans
+  // store) is answered in the store's default language. It follows the locale
+  // redirect's status on purpose: the store's language list can change, so
+  // the answer must not be cached as permanent.
+  if (request.method === 'GET' || request.method === 'HEAD') {
+    const fallback = localeFallbackRedirect(request, shopProxyConfig.locales, shopProxyConfig.defaultLocale, currentLegacyRules());
+    if (fallback) return fallback;
+  }
+
+  const response = await baseProxy(request);
+  if (response.headers.get('x-middleware-next') !== 'yes') return response;
+  // The root layout reads the page's language off the request; it sits above
+  // the [locale] segment and cannot take it from params.
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set(
+    STOREFRONT_LOCALE_HEADER,
+    requestLocale(request.nextUrl.pathname, shopProxyConfig.locales, shopProxyConfig.defaultLocale),
+  );
+  return NextResponse.next({ request: { headers: requestHeaders } });
 }
 
 /**

@@ -12,9 +12,11 @@ import { DevTools } from '@/components/dev-tools';
 import { ServiceWorkerRegister } from '@/components/service-worker-register';
 import { PwaInstallBanner } from '@/components/pwa-install-banner';
 import { getServerStoreContext } from '@/lib/server-store-context';
+import { NOINDEX_DIRECTIVE, storefrontIsNoindex } from '@/lib/seo/indexing';
 import { AppEmbedInjector } from '@/lib/theme-pack/app-embed-injector';
 import { resolvePublicOrigin } from '@/lib/server-api-url';
 import { generateThemeStyles } from '@/lib/theme-runtime';
+import { documentLocale } from '@/lib/storefront-locale';
 
 /**
  * Viewport configuration for PWA support
@@ -133,17 +135,19 @@ export async function generateMetadata(): Promise<Metadata> {
       description,
       images: [socialImageUrl],
     },
-    robots: {
-      index: true,
-      follow: true,
-      googleBot: {
-        index: true,
-        follow: true,
-        'max-video-preview': -1,
-        'max-image-preview': 'large',
-        'max-snippet': -1,
-      },
-    },
+    robots: storefrontIsNoindex()
+      ? NOINDEX_DIRECTIVE
+      : {
+          index: true,
+          follow: true,
+          googleBot: {
+            index: true,
+            follow: true,
+            'max-video-preview': -1,
+            'max-image-preview': 'large',
+            'max-snippet': -1,
+          },
+        },
     manifest: isBokmoo ? '/bokmoo-manifest.json' : '/manifest.json',
     icons: {
       icon: isBokmoo ? '/bokmoo-favicon.ico' : '/favicon.ico',
@@ -195,6 +199,8 @@ export default async function RootLayout({
 }) {
   // Fetch store context (theme, settings)
   const context = await getServerStoreContext();
+  // The page's language: the root layout is the only place <html lang> can be set.
+  const locale = await documentLocale();
 
   // Generate dynamic theme styles ONLY for builtin themes
   // For installed Theme Packs, the client-side ThemePackProvider will handle CSS injection
@@ -231,7 +237,7 @@ export default async function RootLayout({
     : undefined;
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <body className="font-sans antialiased" data-theme={activeThemeSlug}>
         {/*
           SECURITY: Only inject theme styles if they pass safety checks
