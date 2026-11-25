@@ -2,6 +2,8 @@ import React from 'react';
 import { ArrowLeft, CreditCard, Mail, ShieldCheck, Wallet } from 'lucide-react';
 import { cn } from '@jiffoo/ui';
 import { pickCopy } from '../site';
+import { codeDiscount, priceSale, promoCodeMessage, saleFor, saleTitle, useActiveSales, usePromoCode } from '../lib/sale';
+import { SalePrice } from './SalePrice';
 import type { CheckoutPageProps, SavedAddress } from 'shared/src/types/theme';
 
 export const CheckoutPage = React.memo(function CheckoutPage({
@@ -41,6 +43,16 @@ export const CheckoutPage = React.memo(function CheckoutPage({
     promoCode: '',
   });
   const [errors, setErrors] = React.useState<Record<string, string>>({});
+  // Shown as the checkout prices the order: promotion on the lines, then the
+  // promo code on top, so the total here is the total that will be charged.
+  const sales = useActiveSales(locale);
+  const salePricing = priceSale(
+    cart.items.map((item) => ({ productId: item.productId, unitPrice: Number(item.price || 0), quantity: item.quantity })),
+    sales
+  );
+  const promoCode = usePromoCode(formData.promoCode);
+  const codeAmount = codeDiscount(promoCode.offer, salePricing.saleBase);
+  const codeMessage = promoCodeMessage(locale, promoCode.state, promoCode.offer, codeAmount);
 
   const [selectedSavedAddressId, setSelectedSavedAddressId] = React.useState<string | null>(
     savedAddresses?.find((address) => address.isDefault)?.id ?? savedAddresses?.[0]?.id ?? null,
@@ -179,7 +191,9 @@ export const CheckoutPage = React.memo(function CheckoutPage({
                           {pickCopy(locale, { en: 'Qty', hans: '数量', hant: '數量' })} {item.quantity}{item.variantName ? ` · ${item.variantName}` : ''}
                         </p>
                       </div>
-                      <span className="text-sm text-[var(--bokmoo-copy)]">${Number(item.subtotal || 0).toFixed(2)}</span>
+                      <span className="text-sm text-[var(--bokmoo-copy)]">
+                        <SalePrice unitPrice={Number(item.price || 0)} quantity={item.quantity} sale={saleFor(sales, item.productId)} />
+                      </span>
                     </div>
                   </div>
                 ))}
@@ -187,12 +201,26 @@ export const CheckoutPage = React.memo(function CheckoutPage({
 
               <div className="mt-5 space-y-3 border-t border-[var(--bokmoo-line)] pt-4 text-sm">
                 <div className="flex items-center justify-between text-[var(--bokmoo-copy)]">
-                  <span>{pickCopy(locale, { en: 'Subtotal', hans: '小计', hant: '小計' })}</span>
+                  <span>{pickCopy(locale, { en: 'Subtotal', hans: '小计', hant: '小計', ja: '小計', ko: '소계', fr: 'Sous-total', de: 'Zwischensumme' })}</span>
                   <span>${Number(cart.subtotal || 0).toFixed(2)}</span>
                 </div>
+                {salePricing.onSale ? (
+                  <div className="flex items-center justify-between text-[var(--bokmoo-success)]" data-purpose="sale-discount-row">
+                    <span>{saleTitle(sales)}</span>
+                    <span>-${salePricing.saleDiscount.toFixed(2)}</span>
+                  </div>
+                ) : null}
+                {promoCode.state === 'valid' && codeAmount > 0 ? (
+                  <div className="flex items-center justify-between text-[var(--bokmoo-success)]" data-purpose="code-discount-row">
+                    <span>{promoCode.offer?.code}</span>
+                    <span>-${codeAmount.toFixed(2)}</span>
+                  </div>
+                ) : null}
                 <div className="flex items-center justify-between text-[var(--bokmoo-copy)]">
-                  <span>{pickCopy(locale, { en: 'Total', hans: '总计', hant: '總計' })}</span>
-                  <span className="font-semibold text-[var(--bokmoo-ink)]">${Number(cart.total || 0).toFixed(2)}</span>
+                  <span>{pickCopy(locale, { en: 'Total', hans: '总计', hant: '總計', ja: '合計', ko: '합계', fr: 'Total', de: 'Gesamt' })}</span>
+                  <span className="font-semibold text-[var(--bokmoo-ink)]" data-purpose="checkout-total">
+                    ${Number((cart.total || 0) - salePricing.saleDiscount - codeAmount).toFixed(2)}
+                  </span>
                 </div>
               </div>
             </aside>
@@ -211,8 +239,17 @@ export const CheckoutPage = React.memo(function CheckoutPage({
               className="mt-2 h-12 w-full rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] px-4 text-sm font-semibold tracking-[0.08em] text-[var(--bokmoo-ink)] outline-none focus:border-[var(--bokmoo-gold)]"
             />
             <p className="mt-2 text-xs leading-5 text-[var(--bokmoo-copy-soft)]">
-              {pickCopy(locale, { en: 'Have a referral code from a creator? Enter it — your discount is applied to the order total at payment.', hans: '有创作者的推荐码？输入后优惠会在支付时计入订单总额。', hant: '有創作者的推薦碼？輸入後優惠會在付款時計入訂單總額。' })}
+              {pickCopy(locale, { en: 'Have a creator code? Enter it: the discount shows here and is applied at payment.', hans: '有创作者的折扣码？输入后这里会显示优惠，付款时计入订单总额。', hant: '有創作者的折扣碼？輸入後這裡會顯示優惠，付款時計入訂單總額。', ja: 'クリエイターコードをお持ちですか？入力すると割引がここに表示され、支払い時に適用されます。', ko: '크리에이터 코드가 있나요? 입력하면 할인이 여기에 표시되고 결제 시 적용됩니다.', fr: 'Un code créateur ? Saisissez-le : la réduction s’affiche ici et s’applique au paiement.', de: 'Creator-Code zur Hand? Eingeben: Der Rabatt wird hier angezeigt und an der Kasse abgezogen.' })}
             </p>
+            {codeMessage ? (
+              <p
+                className={cn('bokmoo-promo-code-message mt-2 text-xs leading-5', promoCode.state === 'valid' ? 'bokmoo-promo-code-valid' : 'bokmoo-promo-code-invalid')}
+                data-purpose="promo-code-message"
+                role="status"
+              >
+                {codeMessage}
+              </p>
+            ) : null}
           </div>
               <div className="rounded-[1.2rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] p-4">
                 <div className="flex items-center gap-3">

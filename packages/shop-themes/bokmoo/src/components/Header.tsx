@@ -3,6 +3,7 @@ import { ChevronDown, Globe2, Menu, X } from 'lucide-react';
 import type { HeaderProps } from 'shared/src/types/theme';
 import { pickCopy } from '../site';
 import { OPEN_MOBILE_MENU_EVENT } from '../lib/mobile-menu';
+import { PromoBar } from './PromoBar';
 
 /* Official BOKMOO logomark (750x82 full lockup, gold #e2c26a) — keep inline so
    the storefront has zero remote brand dependencies. */
@@ -127,6 +128,7 @@ export const Header = React.memo(function Header({
 
   return (
     <header className="w-full border-b border-white/5 backdrop-blur-md sticky top-0 z-50 bg-[#0B0B0D]/80">
+      <PromoBar locale={locale} />
       <div className="bokmoo-header-bar w-full max-w-7xl mx-auto h-20 flex items-center justify-between flex-nowrap overflow-visible">
         <a
           className={`flex items-center gap-3 shrink-0 group py-1 select-none ${FOCUS_VISIBLE_RING}`}

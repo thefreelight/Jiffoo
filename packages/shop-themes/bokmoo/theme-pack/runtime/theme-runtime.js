@@ -13214,6 +13214,189 @@
   }
   ProductGrid2.displayName = "ProductGrid";
 
+  // src/lib/sale.ts
+  var SALE_LOCALES = ["en", "zh-Hans", "zh-Hant", "ja", "ko", "fr", "de"];
+  var SALE_CACHE_MS = 6e4;
+  var CODE_LOOKUP_DELAY_MS = 450;
+  var cents = (amount) => Math.round(amount * 100) / 100;
+  var money2 = (amount) => `$${Number(Number.isFinite(amount) ? amount : 0).toFixed(2)}`;
+  function saleLocale(locale) {
+    const value = (locale || "").trim();
+    return SALE_LOCALES.includes(value) ? value : "en";
+  }
+  function parseSale(raw) {
+    if (!raw || typeof raw !== "object") return null;
+    const row = raw;
+    const value = typeof row.discountValue === "number" && Number.isFinite(row.discountValue) ? row.discountValue : 0;
+    if (typeof row.id !== "string" || !row.id || value <= 0) return null;
+    const banner = row.banner && typeof row.banner === "object" ? row.banner : null;
+    return {
+      id: row.id,
+      slug: typeof row.slug === "string" ? row.slug : row.id,
+      name: typeof row.name === "string" ? row.name : "",
+      startsAt: String(row.startsAt ?? ""),
+      endsAt: String(row.endsAt ?? ""),
+      discountType: row.discountType === "fixed" ? "fixed" : "percent",
+      discountValue: value,
+      productIds: Array.isArray(row.productIds) ? row.productIds.filter((id3) => typeof id3 === "string") : null,
+      banner: banner && typeof banner.title === "string" && typeof banner.body === "string" ? { title: banner.title, body: banner.body } : null,
+      rulesUrl: typeof row.rulesUrl === "string" && /^https?:\/\//i.test(row.rulesUrl) ? row.rulesUrl : null,
+      activeNow: row.activeNow === true
+    };
+  }
+  async function fetchSameOrigin(path) {
+    const response = await fetch(path, { headers: { Accept: "application/json" }, cache: "no-store" });
+    if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
+    const json = await response.json();
+    return json && typeof json === "object" && "data" in json ? json.data : json;
+  }
+  var saleCache = null;
+  var saleRequest = null;
+  function loadSales(locale) {
+    const key = saleLocale(locale);
+    const cached = saleCache;
+    if (cached && cached.locale === key && Date.now() - cached.at < SALE_CACHE_MS) return Promise.resolve(cached.sales);
+    if (saleRequest && saleRequest.locale === key) return saleRequest.promise;
+    const promise = fetchSameOrigin(`/api/v1/promotions/active?locale=${encodeURIComponent(key)}`).then((data) => {
+      const sales = (Array.isArray(data?.items) ? data.items : []).map(parseSale).filter((sale) => sale !== null);
+      saleCache = { locale: key, at: Date.now(), sales };
+      return sales;
+    }).finally(() => {
+      if (saleRequest?.promise === promise) saleRequest = null;
+    });
+    saleRequest = { locale: key, promise };
+    return promise;
+  }
+  function useActiveSales(locale) {
+    const key = saleLocale(locale);
+    const [sales, setSales] = react_default.useState(() => saleCache && saleCache.locale === key ? saleCache.sales : []);
+    react_default.useEffect(() => {
+      let cancelled = false;
+      loadSales(key).then((items) => {
+        if (!cancelled) setSales(items);
+      }).catch(() => {
+      });
+      return () => {
+        cancelled = true;
+      };
+    }, [key]);
+    return sales;
+  }
+  var codeCache = /* @__PURE__ */ new Map();
+  async function lookupPromoCode(code) {
+    const data = await fetchSameOrigin(`/api/v1/plugins/affiliate/store/promo/${encodeURIComponent(code)}`);
+    if (!data || data.valid !== true || typeof data.discountType !== "string" || typeof data.discountValue !== "number") return null;
+    const discountType = data.discountType === "fixed_amount" ? "fixed_amount" : "percentage";
+    return {
+      code: typeof data.code === "string" ? data.code : code,
+      partnerName: typeof data.partnerName === "string" ? data.partnerName : null,
+      discountType,
+      discountValue: data.discountValue
+    };
+  }
+  function usePromoCode(code) {
+    const normalized = (code || "").trim().toUpperCase();
+    const [result, setResult] = react_default.useState(null);
+    react_default.useEffect(() => {
+      if (!normalized) return;
+      let cancelled = false;
+      if (codeCache.has(normalized)) {
+        const offer = codeCache.get(normalized) ?? null;
+        setResult({ code: normalized, offer, failed: false });
+        return;
+      }
+      const timer = window.setTimeout(() => {
+        lookupPromoCode(normalized).then((offer) => {
+          codeCache.set(normalized, offer);
+          if (!cancelled) setResult({ code: normalized, offer, failed: false });
+        }).catch(() => {
+          if (!cancelled) setResult({ code: normalized, offer: null, failed: true });
+        });
+      }, CODE_LOOKUP_DELAY_MS);
+      return () => {
+        cancelled = true;
+        window.clearTimeout(timer);
+      };
+    }, [normalized]);
+    if (!normalized) return { state: "empty", offer: null };
+    if (!result || result.code !== normalized) return { state: "checking", offer: null };
+    if (result.failed) return { state: "unavailable", offer: null };
+    return result.offer ? { state: "valid", offer: result.offer } : { state: "invalid", offer: null };
+  }
+  function saleFor(sales, productId) {
+    if (!sales || !productId) return null;
+    return sales.find((sale) => sale.activeNow && (!sale.productIds || sale.productIds.includes(productId))) ?? null;
+  }
+  function saleUnitPrice(sale, unitPrice) {
+    const perUnit = sale.discountType === "percent" ? Math.round(unitPrice * sale.discountValue) / 100 : Math.min(sale.discountValue, Math.max(unitPrice - 0.01, 0));
+    return cents(Math.max(unitPrice - Math.min(perUnit, unitPrice), 0.01));
+  }
+  function codeDiscount(offer, base) {
+    if (!offer || !(base > 0)) return 0;
+    const raw = offer.discountType === "fixed_amount" ? Math.min(offer.discountValue, base) : Math.min(base, Math.round(base * offer.discountValue) / 100);
+    return cents(Math.max(raw, 0));
+  }
+  function priceSale(lines, sales) {
+    let listSubtotal = 0;
+    let promotedSubtotal = 0;
+    let saleDiscount = 0;
+    for (const line of lines) {
+      listSubtotal += line.unitPrice * line.quantity;
+      const sale = saleFor(sales, line.productId);
+      if (!sale) continue;
+      const unit = saleUnitPrice(sale, line.unitPrice);
+      saleDiscount += line.unitPrice * line.quantity - unit * line.quantity;
+      promotedSubtotal += unit * line.quantity;
+    }
+    saleDiscount = cents(saleDiscount);
+    return {
+      saleDiscount,
+      saleBase: saleDiscount > 0 ? cents(promotedSubtotal) : cents(listSubtotal),
+      onSale: saleDiscount > 0
+    };
+  }
+  function countdown(endsAt, now2 = Date.now()) {
+    const target = Date.parse(endsAt || "");
+    const remaining = target - now2;
+    if (!Number.isFinite(target) || remaining <= 0) return null;
+    const days = Math.floor(remaining / 864e5);
+    const hours = Math.floor(remaining % 864e5 / 36e5);
+    const minutes = Math.floor(remaining % 36e5 / 6e4);
+    return days > 0 ? `${days}d ${hours}h` : `${hours}h ${String(minutes).padStart(2, "0")}m`;
+  }
+  function promoCodeMessage(locale, state, offer, amount) {
+    const pick = (copy, values = {}) => {
+      let text = pickCopy(locale, copy);
+      for (const [key, value] of Object.entries(values)) text = text.split(`{${key}}`).join(String(value));
+      return text;
+    };
+    if (state === "valid" && offer) {
+      const values = { code: offer.code, rate: offer.discountValue, amount: money2(amount) };
+      return offer.discountType === "fixed_amount" ? pick({ en: "{code}: {amount} off this order.", hans: "{code}\uFF1A\u672C\u5355\u7ACB\u51CF {amount}\u3002", hant: "{code}\uFF1A\u672C\u55AE\u7ACB\u6E1B {amount}\u3002", ja: "{code}\uFF1A\u3053\u306E\u6CE8\u6587\u304B\u3089{amount}\u5F15\u304D\u3002", ko: "{code}: \uC774 \uC8FC\uBB38\uC5D0\uC11C {amount} \uD560\uC778.", fr: "{code} : {amount} de r\xE9duction sur cette commande.", de: "{code}: {amount} Rabatt auf diese Bestellung." }, values) : pick({ en: "{code}: {rate}% off the sale price ({amount} off).", hans: "{code}\uFF1A\u6D3B\u52A8\u4EF7\u518D\u51CF {rate}%\uFF08\u5171\u51CF {amount}\uFF09\u3002", hant: "{code}\uFF1A\u6D3B\u52D5\u50F9\u518D\u6E1B {rate}%\uFF08\u5171\u6E1B {amount}\uFF09\u3002", ja: "{code}\uFF1A\u30BB\u30FC\u30EB\u4FA1\u683C\u304B\u3089\u3055\u3089\u306B{rate}%\u30AA\u30D5\uFF08{amount}\u5F15\u304D\uFF09\u3002", ko: "{code}: \uC138\uC77C \uAC00\uACA9\uC5D0\uC11C \uCD94\uAC00 {rate}% \uD560\uC778({amount} \uD560\uC778).", fr: "{code} : {rate} % de r\xE9duction suppl\xE9mentaire sur le prix sold\xE9 ({amount} de moins).", de: "{code}: {rate} % Extra-Rabatt auf den Sale-Preis ({amount} weniger)." }, values);
+    }
+    if (state === "invalid") {
+      return pick({ en: "This code doesn\u2019t add a discount.", hans: "\u8BE5\u7801\u6CA1\u6709\u9644\u52A0\u6298\u6263\u3002", hant: "\u8A72\u78BC\u6C92\u6709\u9644\u52A0\u6298\u6263\u3002", ja: "\u3053\u306E\u30B3\u30FC\u30C9\u306F\u5272\u5F15\u306B\u4F7F\u3048\u307E\u305B\u3093\u3002", ko: "\uC774 \uCF54\uB4DC\uB294 \uD560\uC778\uC5D0 \uC0AC\uC6A9\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.", fr: "Ce code ne donne pas de r\xE9duction.", de: "Dieser Code gew\xE4hrt keinen Rabatt." });
+    }
+    return null;
+  }
+  function saleTitle(sales) {
+    const sale = sales?.find((entry) => entry.activeNow);
+    return sale?.banner?.title || sale?.name || null;
+  }
+
+  // src/components/SalePrice.tsx
+  var SalePrice = react_default.memo(function SalePrice2({ unitPrice, quantity, sale }) {
+    const count = Math.max(1, Math.floor(Number(quantity) || 1));
+    const unit = Number(Number.isFinite(unitPrice) ? unitPrice : 0);
+    const list = cents(unit * count);
+    if (!sale) return /* @__PURE__ */ jsx("span", { "data-purpose": "price", children: money2(list) });
+    return /* @__PURE__ */ jsxs("span", { className: "bokmoo-sale", "data-purpose": "sale-price", children: [
+      /* @__PURE__ */ jsx("span", { className: "bokmoo-sale-now", children: money2(cents(saleUnitPrice(sale, unit) * count)) }),
+      /* @__PURE__ */ jsx("s", { className: "bokmoo-sale-was", children: money2(list) }),
+      /* @__PURE__ */ jsx("span", { className: "bokmoo-sale-badge", children: sale.discountType === "percent" ? `-${Math.round(sale.discountValue)}%` : "SALE" })
+    ] });
+  });
+
   // src/components/CartPage.tsx
   var CartPage = react_default.memo(function CartPage2({
     cart,
@@ -13231,6 +13414,7 @@
     locale
   }) {
     const t = (copy) => pickCopy(locale, copy);
+    const sales = useActiveSales(locale);
     const supportsSelection = Boolean(
       onCheckoutSelected && onToggleItemSelection && onSelectAllItems && onDeselectAllItems
     );
@@ -13238,11 +13422,15 @@
     const selectedIdSet = new Set(effectiveSelectedIds);
     const selectedItems = supportsSelection ? cart.items.filter((item) => selectedIdSet.has(item.id)) : cart.items;
     const selectedSubtotal = selectedItems.reduce((sum, item) => sum + item.subtotal, 0);
+    const salePricing = priceSale(
+      selectedItems.map((item) => ({ productId: item.productId, unitPrice: Number(item.price || 0), quantity: item.quantity })),
+      sales
+    );
     const ratio = cart.subtotal > 0 ? selectedSubtotal / cart.subtotal : 0;
     const selectedTax = Number(((cart.tax || 0) * ratio).toFixed(2));
     const selectedShipping = Number(((cart.shipping || 0) * ratio).toFixed(2));
     const selectedDiscount = Number(((cart.discount || 0) * ratio).toFixed(2));
-    const selectedTotal = Number((selectedSubtotal + selectedTax + selectedShipping - selectedDiscount).toFixed(2));
+    const selectedTotal = Number((selectedSubtotal + selectedTax + selectedShipping - selectedDiscount - salePricing.saleDiscount).toFixed(2));
     const selectedQuantity = selectedItems.reduce((sum, item) => sum + item.quantity, 0);
     const allSelected = cart.items.length > 0 && effectiveSelectedIds.length === cart.items.length;
     const hasSelection = effectiveSelectedIds.length > 0;
@@ -13378,10 +13566,7 @@
               ] }),
               /* @__PURE__ */ jsxs("div", { className: "text-right", children: [
                 /* @__PURE__ */ jsx("p", { className: "text-[10px] tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: t({ en: "Subtotal", hans: "\u5C0F\u8BA1", hant: "\u5C0F\u8A08" }) }),
-                /* @__PURE__ */ jsxs("p", { className: "mt-2 text-2xl font-semibold tracking-[-0.04em] text-[var(--bokmoo-ink)]", children: [
-                  "$",
-                  item.subtotal.toFixed(2)
-                ] })
+                /* @__PURE__ */ jsx("p", { className: "mt-2 text-2xl font-semibold tracking-[-0.04em] text-[var(--bokmoo-ink)]", children: /* @__PURE__ */ jsx(SalePrice, { unitPrice: Number(item.price || 0), quantity: item.quantity, sale: saleFor(sales, item.productId) }) })
               ] })
             ] })
           },
@@ -13412,6 +13597,13 @@
               /* @__PURE__ */ jsx("span", { className: "text-[var(--bokmoo-copy)]", children: t({ en: "Shipping", hans: "\u8FD0\u8D39", hant: "\u904B\u8CBB" }) }),
               /* @__PURE__ */ jsx("span", { className: "text-[var(--bokmoo-ink)]", children: selectedShipping === 0 ? t({ en: "No shipping required", hans: "\u65E0\u9700\u8FD0\u8D39", hant: "\u7121\u9700\u904B\u8CBB" }) : `$${selectedShipping.toFixed(2)}` })
             ] }),
+            salePricing.onSale ? /* @__PURE__ */ jsxs("div", { className: "flex justify-between text-sm text-[var(--bokmoo-success)]", "data-purpose": "sale-discount-row", children: [
+              /* @__PURE__ */ jsx("span", { children: saleTitle(sales) }),
+              /* @__PURE__ */ jsxs("span", { children: [
+                "-$",
+                salePricing.saleDiscount.toFixed(2)
+              ] })
+            ] }) : null,
             selectedDiscount > 0 ? /* @__PURE__ */ jsxs("div", { className: "flex justify-between text-sm text-[var(--bokmoo-success)]", children: [
               /* @__PURE__ */ jsx("span", { children: t({ en: "Discount", hans: "\u4F18\u60E0", hant: "\u512A\u60E0" }) }),
               /* @__PURE__ */ jsxs("span", { children: [
@@ -13537,6 +13729,14 @@
       promoCode: ""
     });
     const [errors, setErrors] = react_default.useState({});
+    const sales = useActiveSales(locale);
+    const salePricing = priceSale(
+      cart.items.map((item) => ({ productId: item.productId, unitPrice: Number(item.price || 0), quantity: item.quantity })),
+      sales
+    );
+    const promoCode = usePromoCode(formData.promoCode);
+    const codeAmount = codeDiscount(promoCode.offer, salePricing.saleBase);
+    const codeMessage = promoCodeMessage(locale, promoCode.state, promoCode.offer, codeAmount);
     const [selectedSavedAddressId, setSelectedSavedAddressId] = react_default.useState(
       savedAddresses?.find((address) => address.isDefault)?.id ?? savedAddresses?.[0]?.id ?? null
     );
@@ -13651,24 +13851,35 @@
                 item.variantName ? ` \xB7 ${item.variantName}` : ""
               ] })
             ] }),
-            /* @__PURE__ */ jsxs("span", { className: "text-sm text-[var(--bokmoo-copy)]", children: [
-              "$",
-              Number(item.subtotal || 0).toFixed(2)
-            ] })
+            /* @__PURE__ */ jsx("span", { className: "text-sm text-[var(--bokmoo-copy)]", children: /* @__PURE__ */ jsx(SalePrice, { unitPrice: Number(item.price || 0), quantity: item.quantity, sale: saleFor(sales, item.productId) }) })
           ] }) }, item.id)) }),
           /* @__PURE__ */ jsxs("div", { className: "mt-5 space-y-3 border-t border-[var(--bokmoo-line)] pt-4 text-sm", children: [
             /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between text-[var(--bokmoo-copy)]", children: [
-              /* @__PURE__ */ jsx("span", { children: pickCopy(locale, { en: "Subtotal", hans: "\u5C0F\u8BA1", hant: "\u5C0F\u8A08" }) }),
+              /* @__PURE__ */ jsx("span", { children: pickCopy(locale, { en: "Subtotal", hans: "\u5C0F\u8BA1", hant: "\u5C0F\u8A08", ja: "\u5C0F\u8A08", ko: "\uC18C\uACC4", fr: "Sous-total", de: "Zwischensumme" }) }),
               /* @__PURE__ */ jsxs("span", { children: [
                 "$",
                 Number(cart.subtotal || 0).toFixed(2)
               ] })
             ] }),
+            salePricing.onSale ? /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between text-[var(--bokmoo-success)]", "data-purpose": "sale-discount-row", children: [
+              /* @__PURE__ */ jsx("span", { children: saleTitle(sales) }),
+              /* @__PURE__ */ jsxs("span", { children: [
+                "-$",
+                salePricing.saleDiscount.toFixed(2)
+              ] })
+            ] }) : null,
+            promoCode.state === "valid" && codeAmount > 0 ? /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between text-[var(--bokmoo-success)]", "data-purpose": "code-discount-row", children: [
+              /* @__PURE__ */ jsx("span", { children: promoCode.offer?.code }),
+              /* @__PURE__ */ jsxs("span", { children: [
+                "-$",
+                codeAmount.toFixed(2)
+              ] })
+            ] }) : null,
             /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between text-[var(--bokmoo-copy)]", children: [
-              /* @__PURE__ */ jsx("span", { children: pickCopy(locale, { en: "Total", hans: "\u603B\u8BA1", hant: "\u7E3D\u8A08" }) }),
-              /* @__PURE__ */ jsxs("span", { className: "font-semibold text-[var(--bokmoo-ink)]", children: [
+              /* @__PURE__ */ jsx("span", { children: pickCopy(locale, { en: "Total", hans: "\u603B\u8BA1", hant: "\u7E3D\u8A08", ja: "\u5408\u8A08", ko: "\uD569\uACC4", fr: "Total", de: "Gesamt" }) }),
+              /* @__PURE__ */ jsxs("span", { className: "font-semibold text-[var(--bokmoo-ink)]", "data-purpose": "checkout-total", children: [
                 "$",
-                Number(cart.total || 0).toFixed(2)
+                Number((cart.total || 0) - salePricing.saleDiscount - codeAmount).toFixed(2)
               ] })
             ] })
           ] })
@@ -13686,7 +13897,16 @@
                 className: "mt-2 h-12 w-full rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] px-4 text-sm font-semibold tracking-[0.08em] text-[var(--bokmoo-ink)] outline-none focus:border-[var(--bokmoo-gold)]"
               }
             ),
-            /* @__PURE__ */ jsx("p", { className: "mt-2 text-xs leading-5 text-[var(--bokmoo-copy-soft)]", children: pickCopy(locale, { en: "Have a referral code from a creator? Enter it \u2014 your discount is applied to the order total at payment.", hans: "\u6709\u521B\u4F5C\u8005\u7684\u63A8\u8350\u7801\uFF1F\u8F93\u5165\u540E\u4F18\u60E0\u4F1A\u5728\u652F\u4ED8\u65F6\u8BA1\u5165\u8BA2\u5355\u603B\u989D\u3002", hant: "\u6709\u5275\u4F5C\u8005\u7684\u63A8\u85A6\u78BC\uFF1F\u8F38\u5165\u5F8C\u512A\u60E0\u6703\u5728\u4ED8\u6B3E\u6642\u8A08\u5165\u8A02\u55AE\u7E3D\u984D\u3002" }) })
+            /* @__PURE__ */ jsx("p", { className: "mt-2 text-xs leading-5 text-[var(--bokmoo-copy-soft)]", children: pickCopy(locale, { en: "Have a creator code? Enter it: the discount shows here and is applied at payment.", hans: "\u6709\u521B\u4F5C\u8005\u7684\u6298\u6263\u7801\uFF1F\u8F93\u5165\u540E\u8FD9\u91CC\u4F1A\u663E\u793A\u4F18\u60E0\uFF0C\u4ED8\u6B3E\u65F6\u8BA1\u5165\u8BA2\u5355\u603B\u989D\u3002", hant: "\u6709\u5275\u4F5C\u8005\u7684\u6298\u6263\u78BC\uFF1F\u8F38\u5165\u5F8C\u9019\u88E1\u6703\u986F\u793A\u512A\u60E0\uFF0C\u4ED8\u6B3E\u6642\u8A08\u5165\u8A02\u55AE\u7E3D\u984D\u3002", ja: "\u30AF\u30EA\u30A8\u30A4\u30BF\u30FC\u30B3\u30FC\u30C9\u3092\u304A\u6301\u3061\u3067\u3059\u304B\uFF1F\u5165\u529B\u3059\u308B\u3068\u5272\u5F15\u304C\u3053\u3053\u306B\u8868\u793A\u3055\u308C\u3001\u652F\u6255\u3044\u6642\u306B\u9069\u7528\u3055\u308C\u307E\u3059\u3002", ko: "\uD06C\uB9AC\uC5D0\uC774\uD130 \uCF54\uB4DC\uAC00 \uC788\uB098\uC694? \uC785\uB825\uD558\uBA74 \uD560\uC778\uC774 \uC5EC\uAE30\uC5D0 \uD45C\uC2DC\uB418\uACE0 \uACB0\uC81C \uC2DC \uC801\uC6A9\uB429\uB2C8\uB2E4.", fr: "Un code cr\xE9ateur ? Saisissez-le : la r\xE9duction s\u2019affiche ici et s\u2019applique au paiement.", de: "Creator-Code zur Hand? Eingeben: Der Rabatt wird hier angezeigt und an der Kasse abgezogen." }) }),
+            codeMessage ? /* @__PURE__ */ jsx(
+              "p",
+              {
+                className: cn2("bokmoo-promo-code-message mt-2 text-xs leading-5", promoCode.state === "valid" ? "bokmoo-promo-code-valid" : "bokmoo-promo-code-invalid"),
+                "data-purpose": "promo-code-message",
+                role: "status",
+                children: codeMessage
+              }
+            ) : null
           ] }),
           /* @__PURE__ */ jsxs("div", { className: "rounded-[1.2rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] p-4", children: [
             /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3", children: [
@@ -14166,6 +14386,7 @@
     config,
     locale
   }) {
+    const sales = useActiveSales(locale);
     const [searchQuery, setSearchQuery] = react_default.useState("");
     const [activeSearch, setActiveSearch] = react_default.useState("");
     const [remoteProducts, setRemoteProducts] = react_default.useState([]);
@@ -14348,6 +14569,7 @@
             const variantSalePrices = (Array.isArray(product.variants) ? product.variants : []).map((variant) => Number(variant.salePrice ?? variant.price ?? 0)).filter((price) => price > 0);
             const listPrice = Number(product.price || 0);
             const displayPrice = variantSalePrices.length > 0 ? Math.min(listPrice > 0 ? listPrice : Number.POSITIVE_INFINITY, ...variantSalePrices) : listPrice;
+            const sale = saleFor(sales, product.id);
             return /* @__PURE__ */ jsxs(
               "article",
               {
@@ -14401,10 +14623,7 @@
                   ),
                   /* @__PURE__ */ jsx("div", { className: cn2(viewMode === "grid" ? "px-5 pb-5" : "md:w-[12rem]"), children: /* @__PURE__ */ jsxs("div", { className: "rounded-[1rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_90%,black)] p-4", children: [
                     /* @__PURE__ */ jsx("p", { className: "text-[10px] tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: t({ en: "Starting at", hans: "\u8D77\u4EF7", hant: "\u8D77\u50F9" }) }),
-                    /* @__PURE__ */ jsxs("p", { className: "mt-2 text-3xl font-semibold tracking-[-0.04em] text-[var(--bokmoo-ink)]", children: [
-                      "$",
-                      Number(Number.isFinite(displayPrice) ? displayPrice : 0).toFixed(2)
-                    ] }),
+                    /* @__PURE__ */ jsx("p", { className: "mt-2 text-3xl font-semibold tracking-[-0.04em] text-[var(--bokmoo-ink)]", children: /* @__PURE__ */ jsx(SalePrice, { unitPrice: Number(Number.isFinite(displayPrice) ? displayPrice : 0), sale }) }),
                     /* @__PURE__ */ jsx("p", { className: "mt-2 text-xs text-[var(--bokmoo-copy)]", children: profile.planBadge }),
                     /* @__PURE__ */ jsx(
                       "button",
@@ -15100,6 +15319,44 @@
     return /^(https?:)?\/\//.test(href);
   }
 
+  // src/components/PromoBar.tsx
+  var dismissedKey = (saleId) => `bokmoo:promo-bar-dismissed:${saleId}`;
+  function readDismissed(saleId) {
+    try {
+      return window.sessionStorage.getItem(dismissedKey(saleId)) === "1";
+    } catch {
+      return false;
+    }
+  }
+  var PromoBar = react_default.memo(function PromoBar2({ locale }) {
+    const sales = useActiveSales(locale);
+    const sale = sales.find((entry) => entry.activeNow && entry.banner) ?? null;
+    const [dismissed, setDismissed] = react_default.useState(null);
+    const [now2, setNow] = react_default.useState(() => Date.now());
+    react_default.useEffect(() => {
+      const timer = window.setInterval(() => setNow(Date.now()), 3e4);
+      return () => window.clearInterval(timer);
+    }, []);
+    if (!sale || !sale.banner) return null;
+    if (dismissed === sale.id || readDismissed(sale.id)) return null;
+    const remaining = countdown(sale.endsAt, now2);
+    const dismiss = () => {
+      setDismissed(sale.id);
+      try {
+        window.sessionStorage.setItem(dismissedKey(sale.id), "1");
+      } catch {
+      }
+    };
+    return /* @__PURE__ */ jsxs("div", { className: "bokmoo-promo-bar", "data-purpose": "promo-bar", role: "region", "aria-label": pickCopy(locale, { en: "Current offer", hans: "\u5F53\u524D\u4F18\u60E0", hant: "\u76EE\u524D\u512A\u60E0", ja: "\u73FE\u5728\u306E\u30AD\u30E3\u30F3\u30DA\u30FC\u30F3", ko: "\uC9C4\uD589 \uC911\uC778 \uD504\uB85C\uBAA8\uC158", fr: "Offre en cours", de: "Aktuelles Angebot" }), children: [
+      /* @__PURE__ */ jsxs("a", { className: "bokmoo-promo-bar-link", href: sale.rulesUrl ?? "#", children: [
+        /* @__PURE__ */ jsx("span", { className: "bokmoo-promo-bar-badge", children: sale.discountType === "percent" ? `-${Math.round(sale.discountValue)}%` : "DEAL" }),
+        /* @__PURE__ */ jsx("span", { children: sale.banner.title }),
+        remaining ? /* @__PURE__ */ jsx("span", { className: "bokmoo-promo-bar-timer", children: remaining }) : null
+      ] }),
+      /* @__PURE__ */ jsx("button", { className: "bokmoo-promo-bar-close", type: "button", onClick: dismiss, "aria-label": pickCopy(locale, { en: "Dismiss", hans: "\u5173\u95ED", hant: "\u95DC\u9589", ja: "\u9589\u3058\u308B", ko: "\uB2EB\uAE30", fr: "Fermer", de: "Schlie\xDFen" }), children: "\u2715" })
+    ] });
+  });
+
   // src/components/Header.tsx
   function BokmooLogoLockup2({ className }) {
     return /* @__PURE__ */ jsx(
@@ -15211,6 +15468,7 @@
       { label: pickCopy(locale, { en: "Affiliate Program", hans: "\u8054\u76DF\u8BA1\u5212", hant: "\u806F\u76DF\u8A08\u5283", ja: "\u30A2\u30D5\u30A3\u30EA\u30A8\u30A4\u30C8", ko: "\uC81C\uD734 \uD504\uB85C\uADF8\uB7A8", fr: "Affiliation", de: "Partnerprogramm" }), onClick: () => openHref("/affiliate") }
     ];
     return /* @__PURE__ */ jsxs("header", { className: "w-full border-b border-white/5 backdrop-blur-md sticky top-0 z-50 bg-[#0B0B0D]/80", children: [
+      /* @__PURE__ */ jsx(PromoBar, { locale }),
       /* @__PURE__ */ jsxs("div", { className: "bokmoo-header-bar w-full max-w-7xl mx-auto h-20 flex items-center justify-between flex-nowrap overflow-visible", children: [
         /* @__PURE__ */ jsx(
           "a",
@@ -15589,7 +15847,7 @@
     const site = resolveBokmooSiteConfig(config, locale);
     const [state, setState] = react_default.useState("loading");
     const [promo, setPromo] = react_default.useState(null);
-    const countdown = useCountdown(promo?.endsAt ?? null);
+    const countdown2 = useCountdown(promo?.endsAt ?? null);
     react_default.useEffect(() => {
       let cancelled = false;
       const apiLocale = promoApiLocale(locale);
@@ -15622,9 +15880,9 @@
           /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap items-center gap-x-4 gap-y-1", children: [
             /* @__PURE__ */ jsx("span", { className: "rounded-full bg-[var(--bokmoo-gold)] px-3 py-1 text-xs font-bold text-[#0b0c10]", children: promo.discountType === "percent" ? `-${Math.round(promo.discountValue)}%` : "DEAL" }),
             /* @__PURE__ */ jsx("span", { className: "text-base font-bold text-[var(--bokmoo-gold)]", children: promo.banner.title }),
-            countdown ? /* @__PURE__ */ jsxs("span", { className: "ml-auto text-xs font-semibold text-[color:color-mix(in_oklab,var(--bokmoo-gold)_70%,white)]", children: [
+            countdown2 ? /* @__PURE__ */ jsxs("span", { className: "ml-auto text-xs font-semibold text-[color:color-mix(in_oklab,var(--bokmoo-gold)_70%,white)]", children: [
               "\u23F3 ",
-              countdown
+              countdown2
             ] }) : null
           ] }),
           /* @__PURE__ */ jsx("p", { className: "mt-1.5 text-sm text-[color:color-mix(in_oklab,white_78%,transparent)]", children: promo.banner.body })
@@ -17774,6 +18032,9 @@
     }, [effectiveSelectedVariant, normalizedProduct]);
     const stockValue = Number(currentVariant?.inventory ?? normalizedProduct?.inventory?.available ?? 0);
     const priceValue = Number(currentVariant?.price ?? normalizedProduct?.price ?? 0);
+    const sales = useActiveSales(locale);
+    const sale = saleFor(sales, normalizedProduct?.id);
+    const unitPriceValue = sale ? saleUnitPrice(sale, priceValue) : priceValue;
     const maxQuantity = Math.max(1, Math.min(stockValue || 1, 10));
     const image = resolveBokmooMediaUrl(getProductImage2(normalizedProduct), site.apiBaseUrl);
     const [adding, setAdding] = react_default.useState(false);
@@ -17884,10 +18145,7 @@
               /* @__PURE__ */ jsx("h1", { className: "bokmoo-pdp-title font-semibold tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: normalizedProduct.name }),
               normalizedProduct.description ? /* @__PURE__ */ jsx("p", { className: "bokmoo-pdp-description", children: normalizedProduct.description }) : /* @__PURE__ */ jsx("p", { className: "mt-2 text-lg text-[var(--bokmoo-copy)]", children: isGoodsProduct ? pickCopy(locale, goodsSubtitle) : profile.networkLabel })
             ] }),
-            /* @__PURE__ */ jsx("div", { className: "sm:text-right", children: /* @__PURE__ */ jsxs("p", { className: "bokmoo-pdp-price font-semibold tracking-[-0.05em] text-[var(--bokmoo-gold)]", children: [
-              "$",
-              priceValue.toFixed(2)
-            ] }) })
+            /* @__PURE__ */ jsx("div", { className: "sm:text-right", children: /* @__PURE__ */ jsx("p", { className: "bokmoo-pdp-price font-semibold tracking-[-0.05em] text-[var(--bokmoo-gold)]", children: /* @__PURE__ */ jsx(SalePrice, { unitPrice: priceValue, sale }) }) })
           ] }),
           /* @__PURE__ */ jsx("div", { className: "mt-5 grid gap-3 sm:grid-cols-3", children: (isGoodsProduct ? goodsSpecCards : [
             { label: pickCopy(locale, { en: "Data", hans: "\u6570\u636E", hant: "\u6578\u64DA" }), value: profile.planLabel },
@@ -17991,13 +18249,13 @@
               type: "button",
               children: justAdded ? /* @__PURE__ */ jsxs(Fragment2, { children: [
                 /* @__PURE__ */ jsx(Check, { className: "h-4 w-4" }),
-                pickCopy(locale, { en: `Added to cart \u2014 $${priceValue.toFixed(2)}`, hans: `\u5DF2\u52A0\u5165\u8D2D\u7269\u8F66 \u2014 $${priceValue.toFixed(2)}`, hant: `\u5DF2\u52A0\u5165\u8CFC\u7269\u8ECA \u2014 $${priceValue.toFixed(2)}` })
+                pickCopy(locale, { en: `Added to cart \u2014 $${unitPriceValue.toFixed(2)}`, hans: `\u5DF2\u52A0\u5165\u8D2D\u7269\u8F66 \u2014 $${unitPriceValue.toFixed(2)}`, hant: `\u5DF2\u52A0\u5165\u8CFC\u7269\u8ECA \u2014 $${unitPriceValue.toFixed(2)}`, ja: `\u30AB\u30FC\u30C8\u306B\u8FFD\u52A0\u3057\u307E\u3057\u305F \u2014 $${unitPriceValue.toFixed(2)}`, ko: `\uC7A5\uBC14\uAD6C\uB2C8\uC5D0 \uCD94\uAC00\uB428 \u2014 $${unitPriceValue.toFixed(2)}`, fr: `Ajout\xE9 au panier \u2014 $${unitPriceValue.toFixed(2)}`, de: `Zum Warenkorb hinzugef\xFCgt \u2014 $${unitPriceValue.toFixed(2)}` })
               ] }) : adding ? /* @__PURE__ */ jsxs(Fragment2, { children: [
                 /* @__PURE__ */ jsx(ShoppingBag, { className: "h-4 w-4 animate-pulse" }),
                 pickCopy(locale, { en: "Adding\u2026", hans: "\u6DFB\u52A0\u4E2D\u2026", hant: "\u6DFB\u52A0\u4E2D\u2026" })
               ] }) : /* @__PURE__ */ jsxs(Fragment2, { children: [
                 /* @__PURE__ */ jsx(ShoppingBag, { className: "h-4 w-4" }),
-                pickCopy(locale, { en: `Add to Cart \u2014 $${priceValue.toFixed(2)}`, hans: `\u52A0\u5165\u8D2D\u7269\u8F66 \u2014 $${priceValue.toFixed(2)}`, hant: `\u52A0\u5165\u8CFC\u7269\u8ECA \u2014 $${priceValue.toFixed(2)}` })
+                pickCopy(locale, { en: `Add to Cart \u2014 $${unitPriceValue.toFixed(2)}`, hans: `\u52A0\u5165\u8D2D\u7269\u8F66 \u2014 $${unitPriceValue.toFixed(2)}`, hant: `\u52A0\u5165\u8CFC\u7269\u8ECA \u2014 $${unitPriceValue.toFixed(2)}`, ja: `\u30AB\u30FC\u30C8\u306B\u8FFD\u52A0 \u2014 $${unitPriceValue.toFixed(2)}`, ko: `\uC7A5\uBC14\uAD6C\uB2C8\uC5D0 \uCD94\uAC00 \u2014 $${unitPriceValue.toFixed(2)}`, fr: `Ajouter au panier \u2014 $${unitPriceValue.toFixed(2)}`, de: `In den Warenkorb \u2014 $${unitPriceValue.toFixed(2)}` })
               ] })
             }
           ),
@@ -18623,6 +18881,113 @@ body[data-theme='bokmoo'] ::selection {
 
 /* <<< Responsive chrome end */
 
+/* >>> Sale display (sale prices and the site-wide promo bar). Keep this block byte-identical
+   in src/tokens.css (embedded renderer) and theme-pack/tokens.css (remote runtime). */
+.bokmoo-sale-now {
+  color: var(--bokmoo-gold);
+  font-weight: 600;
+}
+
+.bokmoo-sale-was {
+  margin-left: 0.45rem;
+  font-size: 0.58em;
+  font-weight: 400;
+  color: var(--bokmoo-copy-soft);
+  text-decoration: line-through;
+  white-space: nowrap;
+}
+
+.bokmoo-sale-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.12em 0.55em;
+  border-radius: 999px;
+  background: var(--bokmoo-gold);
+  color: #0b0c10;
+  font-size: 0.5em;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  vertical-align: 0.12em;
+  white-space: nowrap;
+}
+
+.bokmoo-promo-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 2.75rem;
+  border-bottom: 1px solid rgba(229, 195, 101, 0.22);
+  background: linear-gradient(90deg, #17130a, #2b2210 50%, #17130a);
+  color: var(--bokmoo-gold);
+  font-size: 0.8rem;
+  line-height: 1.3;
+  text-align: center;
+}
+
+.bokmoo-promo-bar-link {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem 0.6rem;
+  color: inherit;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.bokmoo-promo-bar-badge {
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: var(--bokmoo-gold);
+  color: #0b0c10;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.bokmoo-promo-bar-timer {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.9;
+}
+
+.bokmoo-promo-bar-close {
+  position: absolute;
+  top: 50%;
+  right: 0.35rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font-size: 1rem;
+  opacity: 0.65;
+  cursor: pointer;
+}
+
+.bokmoo-promo-bar-close:hover,
+.bokmoo-promo-bar-close:focus-visible {
+  opacity: 1;
+  background: rgba(229, 195, 101, 0.14);
+}
+
+.bokmoo-promo-code-message {
+  font-weight: 600;
+}
+
+.bokmoo-promo-code-valid {
+  color: #4ade80;
+}
+
+.bokmoo-promo-code-invalid {
+  color: #f87171;
+}
+/* <<< Sale display end */
+
 /* \u2500\u2500 Landing stage: CSS-rendered SIM card pedestal (Obsidian Aurum hero) \u2500\u2500 */
 .bg-pedestal-top {
   background: radial-gradient(ellipse at center, #26262b 0%, #151518 70%, #0d0d0f 100%);
@@ -18665,7 +19030,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.62",
+      version: "1.1.63",
       target: "shop"
     }
   };
