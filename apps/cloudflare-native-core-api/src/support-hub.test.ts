@@ -158,19 +158,29 @@ describe('native support hub adapter', () => {
 });
 
 describe('native marketplace install of support-hub', () => {
-  it('allows support-hub to install natively now that the adapter exists', async () => {
+  // support-hub is member-priced on the platform: the adapter only enables it
+  // after the platform has confirmed this instance's membership.
+  it('allows support-hub to install natively once the platform confirms a membership', async () => {
     authenticateNativeAdmin.mockResolvedValue({ id: 'admin-1', role: 'ADMIN' });
-    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ data: { items: [
-      { slug: 'support-hub', kind: 'plugin', installable: true, sellableVersion: '0.0.9' },
-    ] } })));
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(Response.json({ data: { items: [
+        { slug: 'support-hub', kind: 'plugin', installable: true, sellableVersion: '0.0.9', pricingModel: 'member', packageAccess: 'license' },
+      ] } }))
+      .mockResolvedValueOnce(new Response(null, { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
     const run = vi.fn(async () => ({ success: true, meta: { changes: 1 } }));
-    const db = { prepare: vi.fn(() => ({ bind: vi.fn(() => ({ run })) })) };
+    const statement = {
+      bind: vi.fn(() => ({ first: vi.fn(async () => ({ settings: JSON.stringify({ platformLicenseKey: `JIF-${'C'.repeat(32)}` }) })), run })),
+      first: vi.fn(async () => null),
+    };
+    const db = { prepare: vi.fn(() => statement) };
     const response = await tryNativeMarketplace(new Request('https://api.example/api/v1/admin/market/extensions/support-hub/install', {
       method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'plugin' }),
     }), { DB: db } as never);
     expect(response?.status).toBe(200);
     await expect(response?.json()).resolves.toMatchObject({ success: true, data: { slug: 'support-hub', version: '0.0.9' } });
     expect(run).toHaveBeenCalledOnce();
+    expect((fetchMock.mock.calls[1]?.[0] as Request).url).toBe('https://platform-api.jiffoo.com/api/marketplace/official/package/plugin/support-hub/0.0.9');
   });
 });
 

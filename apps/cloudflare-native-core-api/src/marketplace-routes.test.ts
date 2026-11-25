@@ -12,7 +12,7 @@ describe('native marketplace install routes', () => {
   it('installs and enables a supported official plugin', async () => {
     authenticateNativeAdmin.mockResolvedValue(true);
     vi.stubGlobal('fetch', vi.fn(async () => Response.json({ data: { items: [{
-      slug: 'wallet', kind: 'plugin', installable: true, sellableVersion: '0.2.0',
+      slug: 'wallet', kind: 'plugin', installable: true, sellableVersion: '0.2.0', pricingModel: 'free',
     }] } })));
     const run = vi.fn(async () => ({ success: true, meta: { changes: 1 } }));
     const db = { prepare: vi.fn(() => ({ bind: vi.fn(() => ({ run })) })) };
@@ -26,7 +26,7 @@ describe('native marketplace install routes', () => {
 
   it('uses the Platform service binding when available', async () => {
     authenticateNativeAdmin.mockResolvedValue(true);
-    const platformFetch = vi.fn(async () => Response.json({ data: { items: [{ slug: 'affiliate', kind: 'plugin', installable: true, sellableVersion: '0.1.6' }] } }));
+    const platformFetch = vi.fn(async () => Response.json({ data: { items: [{ slug: 'affiliate', kind: 'plugin', installable: true, sellableVersion: '0.1.6', pricingModel: 'member', packageAccess: 'license' }] } }));
     const globalFetch = vi.fn(async () => Response.json({ data: { items: [] } }));
     vi.stubGlobal('fetch', globalFetch);
     const db = { prepare: vi.fn(() => ({ all: vi.fn(async () => ({ results: [] })) })) };
@@ -38,7 +38,7 @@ describe('native marketplace install routes', () => {
 
   it('installs the baseline affiliate and coupon adapters', async () => {
     authenticateNativeAdmin.mockResolvedValue(true);
-    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ data: { items: [{ slug: 'coupon', kind: 'plugin', installable: true, sellableVersion: '0.1.4' }] } })));
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ data: { items: [{ slug: 'coupon', kind: 'plugin', installable: true, sellableVersion: '0.1.4', pricingModel: 'free' }] } })));
     const run = vi.fn(async () => ({ success: true, meta: { changes: 1 } }));
     const db = { prepare: vi.fn(() => ({ bind: vi.fn(() => ({ run })) })) };
     const response = await tryNativeMarketplace(new Request('https://api.example/api/v1/admin/market/extensions/coupon/install', { method: 'POST', body: JSON.stringify({ kind: 'plugin' }) }), { DB: db } as never);
@@ -48,7 +48,7 @@ describe('native marketplace install routes', () => {
 
   it('allows the published Shipping adapter to install natively', async () => {
     authenticateNativeAdmin.mockResolvedValue(true);
-    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ data: { items: [{ slug: 'shipping', kind: 'plugin', installable: true, sellableVersion: '1.1.0' }] } })));
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ data: { items: [{ slug: 'shipping', kind: 'plugin', installable: true, sellableVersion: '1.1.0', pricingModel: 'free' }] } })));
     const run = vi.fn(async () => ({ success: true, meta: { changes: 1 } }));
     const db = { prepare: vi.fn(() => ({ bind: vi.fn(() => ({ run })) })) };
     const response = await tryNativeMarketplace(new Request('https://api.example/api/v1/admin/market/extensions/shipping/install', {
@@ -60,7 +60,7 @@ describe('native marketplace install routes', () => {
 
   it('allows the published Bokmoo Connect adapter to install natively', async () => {
     authenticateNativeAdmin.mockResolvedValue(true);
-    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ data: { items: [{ slug: 'bokmoo-connect', kind: 'plugin', installable: true, sellableVersion: '0.1.2' }] } })));
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ data: { items: [{ slug: 'bokmoo-connect', kind: 'plugin', installable: true, sellableVersion: '0.1.2', pricingModel: 'free' }] } })));
     const run = vi.fn(async () => ({ success: true, meta: { changes: 1 } }));
     const db = { prepare: vi.fn(() => ({ bind: vi.fn(() => ({ run })) })) };
     const response = await tryNativeMarketplace(new Request('https://api.example/api/v1/admin/market/extensions/bokmoo-connect/install', {
@@ -138,7 +138,7 @@ describe('native marketplace install routes', () => {
     zip.set(eocd, writeAt);
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(Response.json({ data: { items: [{
-        slug: 'bokmoo', kind: 'theme', installable: true, sellableVersion: '1.1.8',
+        slug: 'bokmoo', kind: 'theme', installable: true, sellableVersion: '1.1.8', pricingModel: 'free', packageAccess: 'public',
         versions: [{ version: '1.1.8', packageUrl: 'https://get.jiffoo.com/official-artifacts/themes/bokmoo/1.1.8.jtheme' }],
       }] } }))
       .mockResolvedValueOnce(new Response(zip as unknown as BodyInit, { status: 200 }));
@@ -154,5 +154,153 @@ describe('native marketplace install routes', () => {
     } as never);
     expect(response?.status).toBe(200);
     expect(objects.has('extensions/themes/shop/.versions/bokmoo/1.1.8/runtime/theme-runtime.js')).toBe(true);
+    // A free package still comes straight from its public URL.
+    const requested = fetchMock.mock.calls[1]?.[0];
+    expect(typeof requested === 'string' ? requested : (requested as Request).url).toBe('https://get.jiffoo.com/official-artifacts/themes/bokmoo/1.1.8.jtheme');
+  });
+});
+
+// Wallet is a member-priced official plugin: the platform must confirm an
+// entitlement before this instance enables it.
+const MEMBER_KEY = `JIF-${'A'.repeat(32)}`;
+const PACKAGE_ROUTE = 'https://platform-api.jiffoo.com/api/marketplace/official/package';
+
+function instanceDb(options: { settings?: unknown; connection?: unknown } = {}) {
+  const run = vi.fn(async () => ({ success: true, meta: { changes: 1 } }));
+  const statement = (sql: string) => {
+    const first = vi.fn(async () => {
+      if (sql.includes('native_settings')) return options.settings === undefined ? null : { settings: JSON.stringify(options.settings) };
+      if (sql.includes('platform_connection')) return options.connection === undefined ? null : { value: JSON.stringify(options.connection) };
+      return null;
+    });
+    return { bind: vi.fn(() => ({ first, all: vi.fn(async () => ({ results: [] })), run })), first, all: vi.fn(async () => ({ results: [] })), run };
+  };
+  return { db: { prepare: vi.fn((sql: string) => statement(sql)) }, run };
+}
+
+const memberConnection = {
+  instance: { instanceId: 'inst-1', instanceToken: 'tok-1' },
+  tenantBinding: { tenantBindingId: 'bind-1', localStoreId: 'store-1' },
+};
+
+describe('non-free official extensions need a platform entitlement', () => {
+  it('refuses to enable a member-priced plugin when the instance has no credentials', async () => {
+    authenticateNativeAdmin.mockResolvedValue(true);
+    const fetchMock = vi.fn(async () => Response.json({ data: { items: [{ slug: 'wallet', kind: 'plugin', installable: true, sellableVersion: '0.2.0', pricingModel: 'member', packageAccess: 'license' }] } }));
+    vi.stubGlobal('fetch', fetchMock);
+    const { db, run } = instanceDb();
+    const response = await tryNativeMarketplace(new Request('https://api.example/api/v1/admin/market/extensions/wallet/install', {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'plugin', version: '0.2.0' }),
+    }), { DB: db } as never);
+    expect(response?.status).toBe(402);
+    await expect(response?.json()).resolves.toMatchObject({ success: false, error: { code: 'MEMBERSHIP_REQUIRED', details: { purchaseUrl: 'https://platform-api.jiffoo.com/membership' } } });
+    expect(run).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it('enables a member-priced plugin after the platform confirms a membership license key', async () => {
+    authenticateNativeAdmin.mockResolvedValue(true);
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(Response.json({ data: { items: [{ slug: 'wallet', kind: 'plugin', installable: true, sellableVersion: '0.2.0', pricingModel: 'member', packageAccess: 'license' }] } }))
+      .mockResolvedValueOnce(new Response(null, { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const { db, run } = instanceDb({ settings: { platformLicenseKey: MEMBER_KEY, other: 1 } });
+    const response = await tryNativeMarketplace(new Request('https://api.example/api/v1/admin/market/extensions/wallet/install', {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'plugin', version: '0.2.0' }),
+    }), { DB: db } as never);
+    expect(response?.status).toBe(200);
+    expect(run).toHaveBeenCalledOnce();
+    const access = fetchMock.mock.calls[1]?.[0] as Request;
+    expect(access.url).toBe(`${PACKAGE_ROUTE}/plugin/wallet/0.2.0`);
+    expect(access.method).toBe('HEAD');
+    expect(access.headers.get('x-jiffoo-license-key')).toBe(MEMBER_KEY);
+    // the catalog itself is fetched without any credential
+    const catalogHeaders = new Headers((fetchMock.mock.calls[0]?.[1] as RequestInit | undefined)?.headers);
+    expect(catalogHeaders.has('x-jiffoo-license-key')).toBe(false);
+  });
+
+  it('reports the membership requirement when the platform rejects the credentials', async () => {
+    authenticateNativeAdmin.mockResolvedValue(true);
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(Response.json({ data: { items: [{ slug: 'wallet', kind: 'plugin', installable: true, sellableVersion: '0.2.0', pricingModel: 'member' }] } }))
+      .mockResolvedValueOnce(Response.json({ success: false, error: { code: 'MEMBERSHIP_REQUIRED', details: { purchaseUrl: 'https://platform-api.jiffoo.com/membership' } } }, { status: 402 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const { db, run } = instanceDb({ settings: { platformLicenseKey: MEMBER_KEY } });
+    const response = await tryNativeMarketplace(new Request('https://api.example/api/v1/admin/market/extensions/wallet/install', {
+      method: 'POST', body: JSON.stringify({ kind: 'plugin' }),
+    }), { DB: db } as never);
+    expect(response?.status).toBe(402);
+    expect(run).not.toHaveBeenCalled();
+  });
+
+  it('never fetches a member-priced theme from the public URL listed in the catalog', async () => {
+    authenticateNativeAdmin.mockResolvedValue(true);
+    const publicUrl = 'https://get.jiffoo.com/official-artifacts/themes/navtoai/0.2.8.jtheme';
+    const fetchMock = vi.fn(async () => Response.json({ data: { items: [{
+      slug: 'navtoai', kind: 'theme', installable: true, sellableVersion: '0.2.8', pricingModel: 'member', packageAccess: 'license',
+      versions: [{ version: '0.2.8', packageUrl: publicUrl }],
+    }] } }));
+    vi.stubGlobal('fetch', fetchMock);
+    const { db } = instanceDb();
+    const response = await tryNativeMarketplace(new Request('https://api.example/api/v1/admin/market/extensions/navtoai/install', {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'theme-shop', version: '0.2.8', activate: true }),
+    }), { DB: db, ASSETS: { put: vi.fn() } } as never);
+    expect(response?.status).toBe(402);
+    expect(fetchMock.mock.calls.map(([value]) => (value as Request).url)).not.toContain(publicUrl);
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it('installs a member-priced theme through the authorized route using the platform connection', async () => {
+    authenticateNativeAdmin.mockResolvedValue(true);
+    const encoder = new TextEncoder();
+    const themeJson = encoder.encode(JSON.stringify({ slug: 'navtoai', version: '0.2.8', defaultConfig: {} }));
+    const crcTable = (() => { const t: number[] = []; for (let n = 0; n < 256; n += 1) { let c = n; for (let k = 0; k < 8; k += 1) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+    const crcOf = (bytes: Uint8Array) => { let crc = 0xffffffff; for (const byte of bytes) crc = crcTable[(crc ^ byte) & 0xff]! ^ (crc >>> 8); return (crc ^ 0xffffffff) >>> 0; };
+    const entry = (name: string, bytes: Uint8Array, offset: number) => {
+      const nameBytes = encoder.encode(name);
+      const crc = crcOf(bytes);
+      const local = new Uint8Array(30 + nameBytes.length);
+      const lv = new DataView(local.buffer);
+      lv.setUint32(0, 0x04034b50, true); lv.setUint32(14, crc, true); lv.setUint32(18, bytes.length, true); lv.setUint32(22, bytes.length, true); lv.setUint16(26, nameBytes.length, true);
+      local.set(nameBytes, 30);
+      const cd = new Uint8Array(46 + nameBytes.length);
+      const cv = new DataView(cd.buffer);
+      cv.setUint32(0, 0x02014b50, true); cv.setUint32(16, crc, true); cv.setUint32(20, bytes.length, true); cv.setUint32(24, bytes.length, true); cv.setUint16(28, nameBytes.length, true); cv.setUint32(42, offset, true);
+      cd.set(nameBytes, 46);
+      return { local, cd, bytes };
+    };
+    const a = entry('theme.json', themeJson, 0);
+    const runtime = encoder.encode('/* runtime */');
+    const b = entry('runtime/theme-runtime.js', runtime, a.local.length + themeJson.length);
+    const centralSize = a.cd.length + b.cd.length;
+    const localSize = a.local.length + themeJson.length + b.local.length + runtime.length;
+    const eocd = new Uint8Array(22);
+    const ev = new DataView(eocd.buffer);
+    ev.setUint32(0, 0x06054b50, true); ev.setUint16(8, 2, true); ev.setUint16(10, 2, true); ev.setUint32(12, centralSize, true); ev.setUint32(16, localSize, true);
+    const zip = new Uint8Array([...a.local, ...themeJson, ...b.local, ...runtime, ...a.cd, ...b.cd, ...eocd]);
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(Response.json({ data: { items: [{
+        slug: 'navtoai', kind: 'theme', installable: true, sellableVersion: '0.2.8', pricingModel: 'member', packageAccess: 'license',
+        versions: [{ version: '0.2.8', packageUrl: null }],
+      }] } }))
+      .mockResolvedValueOnce(new Response(null, { status: 200 }))
+      .mockResolvedValueOnce(new Response(zip as unknown as BodyInit, { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const { db } = instanceDb({ connection: memberConnection });
+    const objects = new Map<string, Uint8Array>();
+    const response = await tryNativeMarketplace(new Request('https://api.example/api/v1/admin/market/extensions/navtoai/install', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ kind: 'theme-shop', version: '0.2.8', activate: true }),
+    }), {
+      DB: db,
+      ASSETS: { put: vi.fn(async (key: string, value: Uint8Array) => { objects.set(key, value); }) },
+    } as never);
+    expect(response?.status).toBe(200);
+    expect(objects.has('extensions/themes/shop/.versions/navtoai/0.2.8/runtime/theme-runtime.js')).toBe(true);
+    const requests = fetchMock.mock.calls.slice(1).map(([value]) => value as Request);
+    expect(requests.map((value) => value.url)).toEqual([`${PACKAGE_ROUTE}/theme/navtoai/0.2.8`, `${PACKAGE_ROUTE}/theme/navtoai/0.2.8`]);
+    expect(requests.map((value) => value.method)).toEqual(['HEAD', 'GET']);
+    expect(Object.fromEntries(requests[0]!.headers)).toMatchObject({ 'x-jiffoo-instance-id': 'inst-1', 'x-jiffoo-instance-token': 'tok-1', 'x-jiffoo-tenant-binding-id': 'bind-1', 'x-jiffoo-local-store-id': 'store-1' });
+    expect(requests[0]!.headers.has('x-jiffoo-license-key')).toBe(false);
   });
 });

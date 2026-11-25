@@ -604,7 +604,7 @@ export interface PluginServiceTokenStatus {
 
 export type OfficialCatalogInstallState = 'not_installed' | 'installed' | 'enabled' | 'active';
 export type OfficialCatalogReleaseStatus = 'published' | 'catalog-only' | 'offline';
-export type OfficialCatalogPricingModel = 'free' | 'one_time' | 'subscription';
+export type OfficialCatalogPricingModel = 'free' | 'one_time' | 'subscription' | 'member';
 
 export interface OfficialCatalogItem {
   slug: string;

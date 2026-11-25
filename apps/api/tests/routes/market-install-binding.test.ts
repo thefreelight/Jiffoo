@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   getOfficialCatalogEntry: vi.fn(),
   getMarketplaceBindingContext: vi.fn(),
   authorizeInstall: vi.fn(),
+  installOfficialMarketExtension: vi.fn(),
 }));
 
 vi.mock('@/core/auth/middleware', () => ({
@@ -67,7 +68,7 @@ vi.mock('@/core/admin/market/artifact-verification', () => ({
 }));
 
 vi.mock('@/core/admin/market/install-handoff', () => ({
-  installOfficialMarketExtension: vi.fn(),
+  installOfficialMarketExtension: mocks.installOfficialMarketExtension,
 }));
 
 vi.mock('@/core/admin/extension-installer/signature-verifier', () => ({
@@ -115,7 +116,25 @@ describe('market install binding guard', () => {
     });
   });
 
-  it('blocks official marketplace install when the instance is not platform-bound', async () => {
+  const denial = {
+    allowed: false,
+    slug: 'stripe',
+    kind: 'plugin',
+    deliveryMode: 'package-managed',
+    packageUrl: null,
+    checksumUrl: null,
+    entitlement: { required: true, status: 'denied', pricingModel: 'member', reason: 'Platform connection or a membership license key is required' },
+    reason: 'Platform connection or a membership license key is required',
+  };
+  const boundContext = {
+    status: { status: 'tenant_bound', instanceBound: true, tenantBound: true, marketplaceReady: true, requiresPlatformBinding: true },
+    context: {
+      instanceId: 'inst-1', instanceToken: 'tok-1', platformAccountId: 'acct-1', tenantBindingId: 'bind-1', localStoreId: 'store-1',
+    },
+  };
+
+  it('asks the platform to authorize an official install and tells an unbound instance to connect', async () => {
+    mocks.authorizeInstall.mockResolvedValue(denial);
     const response = await app.inject({
       method: 'POST',
       url: '/extensions/stripe/install',
@@ -131,7 +150,34 @@ describe('market install binding guard', () => {
         code: 'PLATFORM_CONNECTION_REQUIRED',
       },
     });
-    expect(mocks.authorizeInstall).not.toHaveBeenCalled();
+    expect(mocks.authorizeInstall).toHaveBeenCalledWith('stripe', { userId: 'admin_user_1', version: undefined });
+    expect(mocks.installOfficialMarketExtension).not.toHaveBeenCalled();
+  });
+
+  it('does not trust a static catalog entry that marks a paid item as free', async () => {
+    // 26 paid items were labelled free in the static catalog; the platform's answer wins.
+    mocks.getOfficialCatalogEntry.mockReturnValue({ slug: 'stripe', kind: 'plugin', defaultPricingModel: 'free' });
+    mocks.getMarketplaceBindingContext.mockResolvedValue(boundContext);
+    mocks.authorizeInstall.mockResolvedValue(denial);
+    const response = await app.inject({ method: 'POST', url: '/extensions/stripe/install', payload: { kind: 'plugin' } });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json()).toMatchObject({
+      success: false,
+      error: { code: 'OFFICIAL_EXTENSION_NOT_INSTALLABLE', details: { entitlement: { required: true, status: 'denied' } } },
+    });
+    expect(mocks.authorizeInstall).toHaveBeenCalledWith('stripe', expect.objectContaining({ instanceId: 'inst-1', instanceToken: 'tok-1', tenantBindingId: 'bind-1', localStoreId: 'store-1' }));
+    expect(mocks.installOfficialMarketExtension).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when the platform cannot be reached', async () => {
+    mocks.getOfficialCatalogEntry.mockReturnValue({ slug: 'stripe', kind: 'plugin', defaultPricingModel: 'free' });
+    mocks.authorizeInstall.mockRejectedValue(new Error('Official install authorization error: 502'));
+    const response = await app.inject({ method: 'POST', url: '/extensions/stripe/install', payload: { kind: 'plugin' } });
+
+    expect(response.statusCode).toBe(503);
+    expect(response.json()).toMatchObject({ success: false, error: { code: 'MARKET_UNAVAILABLE' } });
+    expect(mocks.installOfficialMarketExtension).not.toHaveBeenCalled();
   });
 
   it('allows free official installs to continue without a platform binding', async () => {
@@ -171,12 +217,11 @@ describe('market install binding guard', () => {
     });
 
     expect(response.statusCode).not.toBe(403);
-    // For free installs, the route uses buildFreeInstallAuthorization,
-    // not MarketClient.authorizeInstall. The key assertion is that the
-    // request is not blocked by the platform binding guard (no 403 with
-    // PLATFORM_CONNECTION_REQUIRED). The install itself may fail for
-    // other reasons (e.g. missing artifacts), which is acceptable for
-    // this binding guard test.
+    // The platform authorizes the install and answers "free" without any
+    // binding, so the request is not blocked with PLATFORM_CONNECTION_REQUIRED.
+    // The install itself may fail for other reasons (e.g. missing artifacts),
+    // which is acceptable for this binding guard test.
+    expect(mocks.authorizeInstall).toHaveBeenCalledWith('stripe', { userId: 'admin_user_1', version: undefined });
     if (response.statusCode === 403) {
       const body = response.json();
       expect(body.error?.code).not.toBe('PLATFORM_CONNECTION_REQUIRED');

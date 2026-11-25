@@ -18,7 +18,6 @@ import { cleanupDownloadedArtifact, downloadArtifactWithResume } from './resumab
 import { verifyEmbeddedOfficialArtifact, verifyOfficialArtifact } from './artifact-verification';
 import { assertOfficialArtifactReachable } from './official-artifact-health';
 import { getMarketBaseUrl } from './market-client';
-import { buildOfficialArtifactMap, fetchOfficialArtifactsIndex } from './official-artifacts-client';
 import { platformConnectionService } from '@/core/admin/platform-connection/service';
 import { managedPackageService } from '@/core/admin/managed-package/service';
 import { resolveEmbeddedOfficialArtifactPath } from './embedded-artifact-store';
@@ -31,61 +30,49 @@ const MARKET_INSTALL_KINDS: ExtensionKind[] = [
   'theme-app-admin',
 ];
 
-async function buildFreeInstallAuthorization(
+type MarketplaceBinding = Awaited<ReturnType<typeof platformConnectionService.getMarketplaceBindingContext>>;
+
+/**
+ * Every non-managed official install is authorized by the platform. It answers
+ * for free items without credentials and for non-free items only for an
+ * entitled account, so the static catalog — an offline display fallback — never
+ * decides whether an install is free.
+ */
+async function authorizeOfficialInstall(
   slug: string,
-  requestedVersion: string | undefined,
+  version: string | undefined,
+  userId: string,
+  binding: MarketplaceBinding,
 ) {
-  const seed = await resolveOfficialCatalogEntry(slug);
-  const [detail, artifactItems] = await Promise.all([
-    MarketClient.getOfficialDetail(slug).catch(() => null),
-    fetchOfficialArtifactsIndex().catch(() => []),
-  ]);
-  const artifactKind = detail?.kind || seed?.kind;
-  const artifactItem = artifactKind
-    ? buildOfficialArtifactMap(artifactItems).get(`${artifactKind}:${slug}`)
-    : null;
-  const resolvedVersion = requestedVersion ?? artifactItem?.version ?? detail?.sellableVersion ?? detail?.currentVersion;
-  const versionSummary = detail?.versions.find((item) => item.version === resolvedVersion);
-  // Guard artifactItem explicitly: when both sides are undefined the
-  // loose comparison would match and dereference undefined.
-  const packageUrl = artifactItem && artifactItem.version === resolvedVersion
-    ? artifactItem.packageUrl
-    : versionSummary?.packageUrl;
-
-  if (!resolvedVersion || !packageUrl || !artifactKind) {
-    throw Object.assign(new Error('Official artifact not found for requested version'), {
-      statusCode: 404,
-      code: 'ARTIFACT_NOT_FOUND',
+  let authorization: Awaited<ReturnType<typeof MarketClient.authorizeInstall>>;
+  try {
+    authorization = await MarketClient.authorizeInstall(slug, {
+      userId,
+      version,
+      ...(binding.context
+        ? {
+            instanceId: binding.context.instanceId,
+            instanceToken: binding.context.instanceToken,
+            platformAccountId: binding.context.platformAccountId,
+            tenantBindingId: binding.context.tenantBindingId,
+            localStoreId: binding.context.localStoreId,
+          }
+        : {}),
     });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw Object.assign(
+      new Error(`Jiffoo Platform must authorize official marketplace installs and could not be reached: ${message}`),
+      { statusCode: 503, code: 'MARKET_UNAVAILABLE', details: { platformConnection: binding.status } },
+    );
   }
-
-  return {
-    allowed: true,
-    slug: detail?.slug || seed?.slug || slug,
-    kind: detail?.kind || artifactKind,
-    listingDomain: detail?.listingDomain || seed?.listingDomain,
-    listingKind: detail?.listingKind || seed?.listingKind || artifactKind,
-    providerType: detail?.providerType || seed?.providerType,
-    deliveryMode: detail?.deliveryMode || seed?.deliveryMode || 'package-managed',
-    paymentMode: detail?.paymentMode || seed?.paymentMode,
-    settlementTargetType: detail?.settlementTargetType || seed?.settlementTargetType,
-    settlementTargetId: detail?.settlementTargetId ?? seed?.settlementTargetId ?? null,
-    artifactKind: artifactKind === 'theme' ? 'theme-package' : 'plugin-package',
-    version: resolvedVersion,
-    packageUrl,
-    checksumUrl: `${packageUrl}.sha256`,
-    signatureUrl: `${packageUrl}.sig`,
-    minCoreVersion: versionSummary?.minCoreVersion ?? seed?.minCoreVersion ?? null,
-    pricingModel: detail?.pricingModel || seed?.defaultPricingModel || 'free',
-    price: detail?.price ?? 0,
-    currency: detail?.currency || seed?.defaultCurrency || 'USD',
-    entitlement: {
-      required: false,
-      status: 'not_required' as const,
-      pricingModel: detail?.pricingModel || seed?.defaultPricingModel || 'free',
-    },
-    reason: undefined,
-  };
+  if (!authorization.allowed && authorization.entitlement.required && !binding.context) {
+    throw Object.assign(
+      new Error('Connect this instance to Jiffoo Platform and bind the default store before installing official marketplace extensions.'),
+      { statusCode: 403, code: 'PLATFORM_CONNECTION_REQUIRED', details: { platformConnection: binding.status } },
+    );
+  }
+  return authorization;
 }
 
 export async function marketRoutes(fastify: FastifyInstance) {
@@ -290,20 +277,6 @@ export async function marketRoutes(fastify: FastifyInstance) {
           ? { status: null, context: null }
           : await platformConnectionService.getMarketplaceBindingContext();
 
-        const requiresPlatformBinding = !isManagedAsset && officialEntry.defaultPricingModel !== 'free';
-
-        if (requiresPlatformBinding && !binding.context) {
-          return sendError(
-            reply,
-            403,
-            'PLATFORM_CONNECTION_REQUIRED',
-            'Connect this instance to Jiffoo Platform and bind the default store before installing official marketplace extensions.',
-            {
-              platformConnection: binding.status,
-            },
-          );
-        }
-
         const authorization = isManagedAsset
           ? await (async () => {
               const detail = await MarketClient.getOfficialDetail(slug);
@@ -349,21 +322,7 @@ export async function marketRoutes(fastify: FastifyInstance) {
                 reason: undefined,
               };
             })()
-          : officialEntry.defaultPricingModel === 'free'
-            ? await buildFreeInstallAuthorization(slug, version)
-          : await MarketClient.authorizeInstall(slug, {
-              userId: request.user.id,
-              version,
-              ...(binding.context
-                ? {
-                    instanceId: binding.context.instanceId,
-                    instanceToken: binding.context.instanceToken,
-                    platformAccountId: binding.context.platformAccountId,
-                    tenantBindingId: binding.context.tenantBindingId,
-                    localStoreId: binding.context.localStoreId,
-                  }
-                : {}),
-            });
+          : await authorizeOfficialInstall(slug, version, request.user.id, binding);
 
         if (!authorization.allowed) {
           return sendError(
