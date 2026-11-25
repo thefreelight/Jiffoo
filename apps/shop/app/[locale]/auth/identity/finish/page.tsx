@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
 import { accountApi } from '@/lib/api';
 import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
+import { useToast } from '@/hooks/use-toast';
 import { useShopTheme } from '@/lib/themes/provider';
 import { useT } from 'shared/src/i18n/react';
 
@@ -50,93 +51,162 @@ function describeError(code: string | null, fallback: string): string {
   }
 }
 
+type FinishResult =
+  | { kind: 'signed-in'; profile: unknown; announce: boolean }
+  | { kind: 'linked'; returnTo: string }
+  | { kind: 'failed'; message: string };
+
+function dropHandoffFromUrl(): void {
+  window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+}
+
+// Same storage contract as /auth/callback: the shared api client reads these
+// localStorage keys, so the session survives the redirect.
+async function loadProfile(): Promise<unknown> {
+  try {
+    const profileResponse = await accountApi.getProfile();
+    return profileResponse.success ? profileResponse.data : null;
+  } catch {
+    // The session is already stored; the profile refetches on the next page.
+    return null;
+  }
+}
+
+async function exchangeHandoff(code: string, getHref: (path: string) => string): Promise<FinishResult> {
+  const response = await fetch(`${(process.env.NEXT_PUBLIC_API_URL || '/api').replace(/\/+$/, '')}/v1/auth/identity/exchange`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', accept: 'application/json' },
+    cache: 'no-store',
+    body: JSON.stringify({ code }),
+  });
+  const payload = (await response.json().catch(() => null)) as {
+    success?: boolean;
+    data?: { user?: unknown; access_token?: string; refresh_token?: string; linked?: boolean; returnTo?: string };
+    error?: { code?: string; message?: string };
+  } | null;
+
+  if (!response.ok || payload?.success !== true) {
+    return { kind: 'failed', message: describeError(payload?.error?.code ?? null, payload?.error?.message || 'Sign-in could not be completed') };
+  }
+
+  // Link intent (started from account settings): the browser already holds a
+  // session, so the exchange only reports the completed link.
+  if (payload.data?.linked === true) {
+    // returnTo is already locale-prefixed and validated server-side
+    // (identityReturnPath), so it must not pass through getHref again.
+    const returnTo = typeof payload.data.returnTo === 'string' && payload.data.returnTo.startsWith('/')
+      ? payload.data.returnTo
+      : `${getHref('/profile/settings')}`;
+    dropHandoffFromUrl();
+    return { kind: 'linked', returnTo };
+  }
+
+  if (!payload.data?.access_token) {
+    return { kind: 'failed', message: describeError(payload?.error?.code ?? null, payload?.error?.message || 'Sign-in could not be completed') };
+  }
+
+  localStorage.setItem('auth_token', payload.data.access_token);
+  if (payload.data.refresh_token) {
+    localStorage.setItem('refresh_token', payload.data.refresh_token);
+  }
+  dropHandoffFromUrl();
+  return { kind: 'signed-in', profile: await loadProfile(), announce: true };
+}
+
+// The handoff code is single-use, and this page can be mounted more than once
+// for one code (hydration recovery, a provider swapping its render branch).
+// Every mount shares a single exchange per code, so a remount never posts the
+// same code twice and never turns a finished sign-in into an error.
+const exchanges = new Map<string, Promise<FinishResult>>();
+
+function finishSignIn(code: string, getHref: (path: string) => string): Promise<FinishResult> {
+  let running = exchanges.get(code);
+  if (!running) {
+    running = exchangeHandoff(code, getHref);
+    exchanges.set(code, running);
+  }
+  return running;
+}
+
+// First existing translation wins. The storefront dictionaries name this
+// success line differently per language (camelCase in the TS messages,
+// snake_case in the Chinese JSON), and useT answers a missing key with the
+// key itself.
+function translated(t: ReturnType<typeof useT>, keys: string[], fallback: string): string {
+  if (typeof t !== 'function') return fallback;
+  for (const key of keys) {
+    const value = t(key);
+    if (typeof value === 'string' && value && value !== key) return value;
+  }
+  return fallback;
+}
+
 export default function AuthIdentityFinishPage() {
   const router = useRouter();
   const { getHref, push, locale } = useLocalizedNavigation();
   const { theme, config } = useShopTheme();
   const { setUser, setAuthenticated, setLoading } = useAuthStore();
+  const { toast } = useToast();
   const t = useT();
   const [error, setError] = React.useState<string | null>(null);
   const [isCompleting, setIsCompleting] = React.useState(true);
+  // One attempt per mount. Translation and toast helpers are new functions on
+  // every render, so without this guard the effect would re-run once the
+  // sign-in has already been completed and the code dropped from the URL.
+  const startedRef = React.useRef(false);
 
   React.useEffect(() => {
+    if (startedRef.current) return;
+    startedRef.current = true;
     let cancelled = false;
 
     async function finishAuth() {
       setIsCompleting(true);
       setLoading(true);
 
-      try {
-        const { code, errorCode } = readHandoffCode();
-        if (errorCode) throw new Error(describeError(errorCode, 'Sign-in failed'));
+      let result: FinishResult;
+      const { code, errorCode } = readHandoffCode();
+      if (errorCode) {
+        result = { kind: 'failed', message: describeError(errorCode, 'Sign-in failed') };
+      } else if (code) {
+        result = await finishSignIn(code, getHref);
+      } else if (localStorage.getItem('auth_token')) {
+        // No handoff in the URL. After a successful sign-in the code has been
+        // dropped from it, so a signed-in visitor landing here just moves on.
+        result = { kind: 'signed-in', profile: await loadProfile(), announce: false };
+      } else {
+        result = { kind: 'failed', message: describeError(null, 'Missing sign-in handoff code') };
+      }
 
-        if (!code) throw new Error(describeError(null, 'Missing sign-in handoff code'));
+      setLoading(false);
+      // A later mount (or effect run) of this page owns the screen; this one
+      // only shared the exchange.
+      if (cancelled) return;
 
-        const response = await fetch(`${(process.env.NEXT_PUBLIC_API_URL || '/api').replace(/\/+$/, '')}/v1/auth/identity/exchange`, {
-          method: 'POST',
-          headers: { 'content-type': 'application/json', accept: 'application/json' },
-          cache: 'no-store',
-          body: JSON.stringify({ code }),
-        });
-        const payload = (await response.json().catch(() => null)) as {
-          success?: boolean;
-          data?: { user?: unknown; access_token?: string; refresh_token?: string; linked?: boolean; returnTo?: string };
-          error?: { code?: string; message?: string };
-        } | null;
+      if (result.kind === 'failed') {
+        setError(result.message);
+        setAuthenticated(false);
+        setIsCompleting(false);
+        return;
+      }
 
-        if (!response.ok || payload?.success !== true) {
-          throw new Error(describeError(payload?.error?.code ?? null, payload?.error?.message || 'Sign-in could not be completed'));
-        }
-
-        // Link intent (started from account settings): the browser already
-        // holds a session, so the exchange only reports the completed link.
-        // Drop the one-time handoff from the URL so a refresh cannot replay it.
-        if (payload.data?.linked === true) {
-          // returnTo is already locale-prefixed and validated server-side
-          // (identityReturnPath), so it must not pass through getHref again.
-          const returnTo = typeof payload.data.returnTo === 'string' && payload.data.returnTo.startsWith('/')
-            ? payload.data.returnTo
-            : `${getHref('/profile/settings')}`;
-          window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
-          if (!cancelled) {
-            router.replace(returnTo);
-          }
-          return;
-        }
-
-        if (!payload.data?.access_token) {
-          throw new Error(describeError(payload?.error?.code ?? null, payload?.error?.message || 'Sign-in could not be completed'));
-        }
-
-        // Same storage contract as /auth/callback: the shared api client reads
-        // these localStorage keys, so the session survives the redirect.
-        localStorage.setItem('auth_token', payload.data.access_token);
-        if (payload.data.refresh_token) {
-          localStorage.setItem('refresh_token', payload.data.refresh_token);
-        }
-
-        const profileResponse = await accountApi.getProfile();
-        if (profileResponse.success && profileResponse.data) {
-          setUser(profileResponse.data as any);
+      if (result.kind === 'signed-in') {
+        if (result.profile) {
+          // The profile endpoint answers with the store's user shape.
+          setUser(result.profile as Parameters<typeof setUser>[0]);
         }
         setAuthenticated(true);
-
-        if (!cancelled) {
-          const redirectPath = sessionStorage.getItem('redirectAfterLogin');
-          sessionStorage.removeItem('redirectAfterLogin');
-          router.replace(redirectPath || getHref('/profile'));
-        }
-      } catch (finishError: any) {
-        if (!cancelled) {
-          setError(finishError?.message || 'Sign-in could not be completed');
-          setAuthenticated(false);
-        }
-      } finally {
-        setLoading(false);
-        if (!cancelled) {
-          setIsCompleting(false);
+        if (result.announce) {
+          toast({ title: translated(t, ['shop.auth.login.success', 'shop.auth.login_success'], 'Login successful') });
         }
       }
+      setIsCompleting(false);
+
+      const redirectPath = result.kind === 'linked'
+        ? result.returnTo
+        : sessionStorage.getItem('redirectAfterLogin') || getHref('/profile');
+      sessionStorage.removeItem('redirectAfterLogin');
+      router.replace(redirectPath);
     }
 
     void finishAuth();
@@ -144,18 +214,36 @@ export default function AuthIdentityFinishPage() {
     return () => {
       cancelled = true;
     };
-  }, [getHref, router, setAuthenticated, setLoading, setUser]);
+  }, [getHref, router, setAuthenticated, setLoading, setUser, t, toast]);
 
   const FinishComponent = theme?.components?.AuthIdentityFinishPage;
   if (!FinishComponent) {
+    // Own colours on every element: a dark theme repaints the page background
+    // but not the shell's body text colour, which left this card unreadable.
     return (
-      <div className="flex min-h-screen items-center justify-center px-4 text-center">
-        <div>
-          <h1 className="text-xl font-semibold">{isCompleting ? 'Completing sign in' : error || 'Sign in finished'}</h1>
-          {!isCompleting && (
-            <button className="mt-4 underline" type="button" onClick={() => push('/auth/login')}>
-              Back to sign in
-            </button>
+      <div className="flex min-h-screen items-center justify-center bg-neutral-950 px-4 py-12">
+        <div className="w-full max-w-md rounded-2xl bg-white p-8 text-center text-neutral-900 shadow-xl">
+          {isCompleting ? (
+            <>
+              <span
+                aria-hidden
+                className="mx-auto block h-8 w-8 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-900"
+              />
+              <h1 className="mt-6 text-xl font-semibold">Completing sign in</h1>
+            </>
+          ) : error ? (
+            <>
+              <h1 className="text-xl font-semibold">{error}</h1>
+              <button
+                type="button"
+                onClick={() => push('/auth/login')}
+                className="mt-6 inline-flex items-center justify-center rounded-full bg-neutral-900 px-6 py-3 text-sm font-semibold text-white"
+              >
+                Back to sign in
+              </button>
+            </>
+          ) : (
+            <h1 className="text-xl font-semibold">Sign in finished</h1>
           )}
         </div>
       </div>
