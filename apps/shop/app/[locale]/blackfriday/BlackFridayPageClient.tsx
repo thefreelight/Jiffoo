@@ -1,8 +1,10 @@
 /**
  * Black Friday 2026 campaign page, in the seven storefront languages.
  *
- * Static content: the window, the automatic discount on the two BOKMOO cards,
- * how creator promo codes add to it, and the fine print. Self-styled in the
+ * Static content: the window, the automatic discount on the two BOKMOO cards
+ * with a way to reach each card, how creator promo codes add to it, and the
+ * fine print. The catalog listing only shows eSIM plans, so for the cards
+ * this page is the way in. Self-styled in the
  * bokmoo dark-gold look. Prices and dates here must match the promotion the
  * store runs (native_promotions) — change them together.
  */
@@ -77,6 +79,14 @@ const COPY = {
     fr: 'Aucune limite de commandes : le prix soldé s’applique à chaque commande passée pendant la période.',
     de: 'Keine Bestellbegrenzung: Der Sale-Preis gilt für jede Bestellung im Aktionszeitraum.',
   },
+  cardsTitle: {
+    en: 'The cards on sale', hans: '参与活动的实体卡', hant: '參與活動的實體卡', ja: 'セール対象のカード',
+    ko: '할인 대상 카드', fr: 'Les cartes en soldes', de: 'Die Karten im Sale',
+  },
+  viewCard: {
+    en: 'View card', hans: '查看卡片', hant: '查看卡片', ja: 'カードを見る', ko: '카드 보기',
+    fr: 'Voir la carte', de: 'Karte ansehen',
+  },
   codeTitle: {
     en: 'Creator codes', hans: '创作者折扣码', hant: '創作者折扣碼', ja: 'クリエイターコード',
     ko: '크리에이터 코드', fr: 'Codes créateurs', de: 'Creator-Codes',
@@ -150,6 +160,13 @@ const COPY = {
   },
 } satisfies Record<string, Copy>;
 
+// The two products the promotion covers. Keep in step with the promotion's
+// product ids and prices (native_promotions).
+const CARDS = [
+  { id: 'odoo-product-6', name: 'BOKMOO Card', listPrice: 20, salePrice: 16 },
+  { id: 'odoo-product-7', name: 'Bokmoo Bluetooth Card', listPrice: 40, salePrice: 32 },
+];
+
 function pick(locale: string | undefined, copy: Copy): string {
   if (locale === 'zh-Hant' || locale === 'zh-HK') return copy.hant;
   if (locale?.startsWith('zh')) return copy.hans;
@@ -176,7 +193,6 @@ function Section({ title, items, gold, muted = false }: { title: string; items: 
 export default function BlackFridayPageClient() {
   const nav = useLocalizedNavigation();
   const L = (copy: Copy) => pick(nav.locale, copy);
-  const shopHref = nav.getHref('/bestsellers');
   const gold = '#d8b45a';
 
   return (
@@ -189,13 +205,34 @@ export default function BlackFridayPageClient() {
           <p className="text-xs font-semibold uppercase tracking-wider text-white/60">{L(COPY.windowLabel)}</p>
           <p className="mt-1 text-lg font-bold">{L(COPY.window)}</p>
           <a
-            href={shopHref}
+            href="#bf-cards"
             className="mt-4 inline-block rounded-full px-5 py-2.5 text-sm font-bold text-[#0b0c10] transition hover:opacity-90"
             style={{ backgroundColor: gold }}
           >
             {L(COPY.shopCta)} →
           </a>
         </div>
+
+        <section className="mt-8" id="bf-cards">
+          <h2 className="text-lg font-bold" style={{ color: gold }}>{L(COPY.cardsTitle)}</h2>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            {CARDS.map((card) => (
+              <a
+                key={card.id}
+                href={nav.getHref(`/products/${card.id}`)}
+                className="block rounded-2xl border p-5 transition hover:bg-white/10"
+                style={{ borderColor: 'rgba(216, 180, 90, 0.4)' }}
+              >
+                <p className="text-base font-bold text-white">{card.name}</p>
+                <p className="mt-1 text-2xl font-black" style={{ color: gold }}>
+                  ${card.salePrice.toFixed(2)}
+                  <s className="ml-2 text-sm font-normal text-white/50">${card.listPrice.toFixed(2)}</s>
+                </p>
+                <span className="mt-3 inline-block text-sm font-bold" style={{ color: gold }}>{L(COPY.viewCard)} →</span>
+              </a>
+            ))}
+          </div>
+        </section>
 
         <section className="mt-8">
           <Section title={L(COPY.dealTitle)} items={[L(COPY.deal1), L(COPY.deal2), L(COPY.deal3)]} gold={gold} />

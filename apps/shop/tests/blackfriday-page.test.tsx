@@ -42,7 +42,10 @@ describe('Black Friday 2026 page', () => {
     expect(text).toMatch(/(?:\$16|16\s*\$)/);
     expect(text).toMatch(/(?:\$32|32\s*\$)/);
     expect(text).toContain('support@bokmoo.com');
-    expect(screen.getByRole('link').getAttribute('href')).toBe(`/${locale}/bestsellers`);
+    // the catalog listing only shows eSIM plans, so this page is the way in to the cards
+    expect(screen.getByRole('link', { name: /Black Friday deal|黑五价|黑五價|セールを見る|세일 보기|Black Friday|Angebot/ }).getAttribute('href')).toBe('#bf-cards');
+    expect(screen.getByRole('link', { name: /BOKMOO Card/ }).getAttribute('href')).toBe(`/${locale}/products/odoo-product-6`);
+    expect(screen.getByRole('link', { name: /Bluetooth Card/ }).getAttribute('href')).toBe(`/${locale}/products/odoo-product-7`);
   });
 
   it('does not send the withdrawn promises through search engines either', () => {
