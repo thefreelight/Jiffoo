@@ -100,12 +100,18 @@ export const useAuthStore = create<AuthState & AuthActions>()(
 
             await associateAffiliateVisitor();
 
-            // Sync guest cart after login
+            // Move the guest cart to the account
             if (typeof window !== 'undefined') {
               setTimeout(() => {
                 import('@/store/cart').then(({ useCartStore }) => {
                   const { mergeGuestCart } = useCartStore.getState();
-                  mergeGuestCart();
+                  return mergeGuestCart();
+                }).then((moved) => {
+                  // What could not be moved stays in the guest cart; the shopper would only see an empty cart
+                  if (moved) return;
+                  return import('@/lib/cart-merge-notice').then(({ notifyGuestItemsLeftBehind }) => {
+                    notifyGuestItemsLeftBehind();
+                  });
                 });
               }, 0);
             }

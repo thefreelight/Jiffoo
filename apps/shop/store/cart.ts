@@ -38,7 +38,7 @@ interface CartActions {
   closeCart: () => void;
   clearError: () => void;
   // Guest cart related
-  mergeGuestCart: () => Promise<void>; // Merge guest cart after login
+  mergeGuestCart: () => Promise<boolean>; // Move the guest cart to the account after login; false when items were left behind
   isLoggedIn: () => boolean; // Check if logged in
   // Background sync related
   processSyncQueue: () => Promise<void>; // Process pending sync operations
@@ -95,6 +95,104 @@ const localCartToDisplayCart = (localCart: LocalCartItem[]): Cart => {
     updatedAt: new Date().toISOString(),
   };
 };
+
+type CartStoreGet = () => CartState & CartActions;
+type CartStoreSet = (partial: Partial<CartState & CartActions>) => void;
+
+// Whether a cart request went through. The client answers a failed request with a result instead of
+// throwing, and the native cores answer the batch route with 405, so a resolved call proves nothing.
+const cartRequestWentThrough = (request: Promise<{ success?: boolean }>) =>
+  request.then(
+    (response) => response?.success === true,
+    () => false,
+  );
+
+// Move the guest's items to the signed-in account's cart. An item that could not be moved stays in the
+// guest cart, so a failed request never costs the shopper what they picked. False when items were left
+// behind.
+async function moveGuestCart(get: CartStoreGet, set: CartStoreSet): Promise<boolean> {
+  const { localCart } = get();
+
+  if (localCart.length === 0) {
+    console.debug('No local cart items to merge');
+    // Fetch user cart directly
+    await get().fetchCart();
+    return true;
+  }
+
+  console.log('🔄 Merging guest cart:', localCart.length, 'items');
+  set({ isLoading: true, error: null });
+
+  // Skip items without valid SKU
+  const items = localCart.filter(item => {
+    if (!item.variantId) {
+      console.warn('Skipping guest cart item without SKU:', item.productId);
+      return false;
+    }
+    return true;
+  });
+
+  let leftBehind: LocalCartItem[];
+  try {
+    // Batch add first for efficiency, one by one when the batch route did not take them
+    const batchWentThrough = await cartRequestWentThrough(
+      cartApi.batchAddToCart(
+        items.map(item => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          variantId: item.variantId,
+        }))
+      ),
+    );
+
+    leftBehind = [];
+    if (!batchWentThrough) {
+      console.warn('Batch add failed, falling back to individual adds');
+      for (const item of items) {
+        const wentThrough = await cartRequestWentThrough(
+          cartApi.addToCart(item.productId, item.quantity, item.variantId),
+        );
+        if (wentThrough) {
+          continue;
+        }
+        console.warn('Failed to merge cart item:', item.productId);
+        leftBehind.push(item);
+      }
+    }
+  } catch (error: unknown) {
+    // Nothing was moved for certain: leave the guest cart as it is
+    console.warn('Guest cart could not be merged:', error);
+    await get().fetchCart();
+    set({
+      isLoading: false,
+      error: (error as { message?: string }).message || 'Failed to merge cart',
+    });
+    return false;
+  }
+
+  // Get merged cart
+  await get().fetchCart();
+
+  // Only the items that reached the account leave the guest cart (set after the fetch, which clears the error)
+  set(
+    leftBehind.length === 0
+      ? { localCart: [], error: null }
+      : {
+          localCart: leftBehind,
+          error: 'Some items could not be moved to your cart. Please add them again.',
+        },
+  );
+
+  console.log(
+    leftBehind.length === 0
+      ? '✅ Guest cart merged successfully'
+      : `Guest cart merged, ${leftBehind.length} items left behind`,
+  );
+  return leftBehind.length === 0;
+}
+
+// One guest-cart merge at a time: the sign-in flow and a page that waits for it may both ask.
+let guestCartMerge: Promise<boolean> | null = null;
 
 export const useCartStore = create<CartState & CartActions>()(
   persist(
@@ -577,63 +675,15 @@ export const useCartStore = create<CartState & CartActions>()(
       },
 
       // Merge guest cart into user cart after login
-      mergeGuestCart: async () => {
-        const { localCart } = get();
-
-        if (localCart.length === 0) {
-          console.log('No local cart items to merge');
-          // Fetch user cart directly
-          await get().fetchCart();
-          return;
+      mergeGuestCart: () => {
+        if (guestCartMerge) {
+          return guestCartMerge;
         }
 
-        console.log('🔄 Merging guest cart:', localCart.length, 'items');
-
-        try {
-          set({ isLoading: true, error: null });
-
-          // Filter out items without valid SKU
-          const validItems = localCart.filter(item => {
-            if (!item.variantId) {
-              console.warn('Skipping guest cart item without SKU:', item.productId);
-              return false;
-            }
-            return true;
-          });
-
-          // Try batch add first for efficiency, fall back to one-by-one
-          try {
-            await cartApi.batchAddToCart(
-              validItems.map(item => ({
-                productId: item.productId,
-                quantity: item.quantity,
-                variantId: item.variantId,
-              }))
-            );
-          } catch (batchError) {
-            console.warn('Batch add failed, falling back to individual adds:', batchError);
-            for (const item of validItems) {
-              try {
-                await cartApi.addToCart(item.productId, item.quantity, item.variantId);
-              } catch (e) {
-                console.warn('Failed to merge cart item:', item.productId, e);
-              }
-            }
-          }
-
-          // Clear local cart
-          set({ localCart: [] });
-
-          // Get merged cart
-          await get().fetchCart();
-
-          console.log('✅ Guest cart merged successfully');
-        } catch (error: unknown) {
-          set({
-            isLoading: false,
-            error: (error as { message?: string }).message || 'Failed to merge cart',
-          });
-        }
+        guestCartMerge = moveGuestCart(get, set).finally(() => {
+          guestCartMerge = null;
+        });
+        return guestCartMerge;
       },
 
       // Local reset of cart (for tenant switching, no API call)
