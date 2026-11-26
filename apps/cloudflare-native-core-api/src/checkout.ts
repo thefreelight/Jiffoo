@@ -2,6 +2,7 @@ import { authenticateNativeUser, type NativeAuthEnv, type NativeSessionUser } fr
 import { resolveActivePromotion } from './bokmoo-promotions';
 import { priceOrderDiscounts, type AffiliateBuyerDiscount } from './order-discounts';
 import { getNativePluginConfig, getNativePluginSecret, getNativeStripeSecret } from './plugin-settings';
+import { stripeCustomerEmail } from './stripe-form';
 import { settleNativeWalletCheckout } from './native-wallet';
 import { allocateOrderNumber, type OrderNumberEnv } from './order-numbers';
 
@@ -488,7 +489,7 @@ export function stripeChargeLines(order: Record<string, unknown>): StripeChargeL
   return lines.reduce((sum, line) => sum + line.unitAmount * line.quantity, 0) > 0 ? lines : null;
 }
 
-function encodeStripeForm(order: Record<string, unknown>, successUrl: string, cancelUrl: string): URLSearchParams {
+function encodeStripeForm(order: Record<string, unknown>, successUrl: string, cancelUrl: string, customerEmail: unknown): URLSearchParams {
   const form = new URLSearchParams({ mode: 'payment', success_url: successUrl, cancel_url: cancelUrl });
   const currency = String(order.currency ?? 'USD').toLowerCase();
   (stripeChargeLines(order) ?? []).forEach((line, index) => {
@@ -499,6 +500,10 @@ function encodeStripeForm(order: Record<string, unknown>, successUrl: string, ca
   });
   form.set('metadata[orderId]', String(order.id));
   form.set('payment_intent_data[metadata][orderId]', String(order.id));
+  // The shopper gave their email with the order and is signed in: hand it to the
+  // hosted page, which asks every shopper for one when it is given none. It stays
+  // editable there.
+  for (const [key, value] of Object.entries(stripeCustomerEmail(customerEmail))) form.set(key, value);
   // The order already carries the delivery address (required for physical
   // goods at order creation), so bind it to the PaymentIntent instead of
   // making the shopper re-enter it on the hosted page. Digital orders have
@@ -603,7 +608,8 @@ async function createPaymentSession(request: Request, env: CheckoutEnv, user: Na
       'content-type': 'application/x-www-form-urlencoded',
       'idempotency-key': idempotencyKey,
     },
-    body: encodeStripeForm(order, successUrl, cancelUrl),
+    // the account's address as it is now, else the one the order was placed with
+    body: encodeStripeForm(order, successUrl, cancelUrl, user.email?.trim() ? user.email : order.customerEmail),
   });
   const payload = await stripe.json<{ id?: string; url?: string; expires_at?: number; payment_intent?: string; error?: { message?: string } }>();
   if (!stripe.ok || !payload.id || !payload.url) {

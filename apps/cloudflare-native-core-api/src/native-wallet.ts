@@ -1,5 +1,6 @@
 import { authenticateNativeUser, type NativeAuthEnv } from './auth';
 import { getNativePluginConfig, getNativeStripeSecret } from './plugin-settings';
+import { stripeCustomerEmail } from './stripe-form';
 
 type WalletEnv = Pick<Cloudflare.Env, 'DB'>;
 type WalletRouteEnv = WalletEnv & NativeAuthEnv & Pick<Cloudflare.Env, 'STRIPE_SECRET_KEY'>;
@@ -88,7 +89,7 @@ async function stripeSecret(env: WalletRouteEnv): Promise<{ mode: 'test' | 'live
   return secret;
 }
 
-async function createCheckout(request: Request, env: WalletRouteEnv, userId: string, packageId: string): Promise<Response> {
+async function createCheckout(request: Request, env: WalletRouteEnv, userId: string, packageId: string, customerEmail: unknown): Promise<Response> {
   const pack = packages.find((item) => item.id === packageId);
   if (!pack) return response({ code: 'PACKAGE_NOT_FOUND', message: 'Credit package was not found' }, 404);
   const body = await request.json().catch(() => ({})) as { successUrl?: unknown; cancelUrl?: unknown };
@@ -106,6 +107,8 @@ async function createCheckout(request: Request, env: WalletRouteEnv, userId: str
     'metadata[walletCheckoutId]': checkoutId, 'metadata[walletUserId]': userId,
     'metadata[walletPackageId]': pack.id, 'payment_intent_data[metadata][walletCheckoutId]': checkoutId,
     'metadata[stripeMode]': stripeConfig.mode,
+    // the signed-in shopper's address, so the hosted page does not ask for it again
+    ...stripeCustomerEmail(customerEmail),
   });
   const stripe = await fetch('https://api.stripe.com/v1/checkout/sessions', {
     method: 'POST', headers: { authorization: `Bearer ${secret}`, 'content-type': 'application/x-www-form-urlencoded', 'idempotency-key': checkoutId }, body: form,
@@ -698,7 +701,7 @@ export async function expireNativeCurrencyReservations(env: WalletEnv, limit = 1
   return { expired: Number(result.meta?.changes ?? 0) };
 }
 
-async function createCurrencyCheckout(request: Request, env: WalletRouteEnv, userId: string, packageId: string): Promise<Response> {
+async function createCurrencyCheckout(request: Request, env: WalletRouteEnv, userId: string, packageId: string, customerEmail: unknown): Promise<Response> {
   const { packages } = await currencyPackageConfig(env);
   const pack = packages.find((item) => item.id === packageId);
   if (!pack) return response({ code: 'PACKAGE_NOT_FOUND', message: 'Top-up package was not found' }, 404);
@@ -718,6 +721,7 @@ async function createCurrencyCheckout(request: Request, env: WalletRouteEnv, use
     'metadata[walletPackageId]': pack.id, 'payment_intent_data[metadata][walletCheckoutId]': checkoutId,
     'metadata[walletKind]': 'currency', 'metadata[walletCurrency]': pack.currency,
     'metadata[stripeMode]': stripeConfig.mode,
+    ...stripeCustomerEmail(customerEmail),
   });
   const stripe = await fetch('https://api.stripe.com/v1/checkout/sessions', {
     method: 'POST', headers: { authorization: `Bearer ${secret}`, 'content-type': 'application/x-www-form-urlencoded', 'idempotency-key': checkoutId }, body: form,
@@ -799,7 +803,7 @@ export async function tryNativeWallet(request: Request, env: WalletRouteEnv): Pr
   if (request.method === 'GET' && path === '/balance') return response(await nativeWalletBalance(env, user.id));
   if (request.method === 'GET' && path === '/packages') return response({ items: packages, total: packages.length });
   const checkout = path.match(/^\/packages\/([^/]+)\/checkout$/);
-  if (request.method === 'POST' && checkout) return createCheckout(request, env, user.id, decodeURIComponent(checkout[1]));
+  if (request.method === 'POST' && checkout) return createCheckout(request, env, user.id, decodeURIComponent(checkout[1]), user.email);
   if (request.method === 'POST' && path === '/checkout/verify') return verifyCheckout(request, env, user.id);
   if (path.startsWith('/currency')) {
     const currencyPath = path.slice('/currency'.length) || '/';
@@ -808,7 +812,7 @@ export async function tryNativeWallet(request: Request, env: WalletRouteEnv): Pr
       return response({ items: config.packages, total: config.packages.length, defaultCurrency: config.defaultCurrency });
     }
     const currencyCheckout = currencyPath.match(/^\/packages\/([^/]+)\/checkout$/);
-    if (request.method === 'POST' && currencyCheckout) return createCurrencyCheckout(request, env, user.id, decodeURIComponent(currencyCheckout[1]));
+    if (request.method === 'POST' && currencyCheckout) return createCurrencyCheckout(request, env, user.id, decodeURIComponent(currencyCheckout[1]), user.email);
     if (request.method === 'POST' && currencyPath === '/checkout/verify') return verifyCurrencyCheckout(request, env, user.id);
     const requestedCurrency = new URL(request.url).searchParams.get('currency');
     if (request.method === 'GET' && (currencyPath === '/balance' || currencyPath === '/balances')) {
