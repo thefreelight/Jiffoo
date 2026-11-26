@@ -3527,12 +3527,12 @@
     const regionTag = esim?.region || esim?.country || "Travel";
     const technology = buildTechnologyLabel(esim);
     const variantPrices = (product.variants || []).map((variant) => Number(variant.salePrice || 0)).filter((price) => price > 0);
-    const sellablePrice = variantPrices.length > 0 ? Math.min(...variantPrices) : Number(product.price || 0);
+    const sellablePrice2 = variantPrices.length > 0 ? Math.min(...variantPrices) : Number(product.price || 0);
     return {
       id: product.id,
       name: displayProductTitle(product.name),
       description: product.description ?? "",
-      price: sellablePrice,
+      price: sellablePrice2,
       currency: product.currency,
       typeData: product.typeData,
       sku: product.slug || product.id,
@@ -16643,19 +16643,74 @@
     price: { en: "Price", hans: "\u4EF7\u683C", hant: "\u50F9\u683C" },
     name: { en: "Name", hans: "\u540D\u79F0", hant: "\u540D\u7A31" }
   };
-  function productText(product) {
-    const esim = product.typeData?.esim;
-    return [product.name, product.description, esim?.country, esim?.region, esim?.carrier].filter(Boolean).join(" ").toLowerCase();
+  var PAGE_SIZE = 12;
+  var CATALOG_READ_SIZE = 250;
+  var SEARCH_LOCALES = ["en", "zh-Hans", "zh-Hant", "ja", "ko", "fr", "de"];
+  function toPlanEntry(raw) {
+    const source = raw;
+    return {
+      product: normalizeProductForTheme(raw),
+      esim: source.typeData?.esim || void 0,
+      currency: readProductCurrency(raw),
+      searchText: planSearchText(source),
+      scope: catalogScope(source)
+    };
   }
-  function matchesCatalogFilter(product, filter2) {
+  function sellablePrice(product) {
+    const variantSalePrices = (Array.isArray(product.variants) ? product.variants : []).map((variant) => Number(variant.salePrice ?? variant.price ?? 0)).filter((price) => price > 0);
+    const listPrice = Number(product.price || 0);
+    if (variantSalePrices.length === 0) return listPrice;
+    return Math.min(listPrice > 0 ? listPrice : Number.POSITIVE_INFINITY, ...variantSalePrices);
+  }
+  function catalogScope(product) {
     const esim = product.typeData?.esim;
+    const destinations = Array.isArray(esim?.destinations) ? esim.destinations : [];
+    const code = String(esim?.defaultCode || "").replace(/^boss-/i, "").toUpperCase();
+    if (destinations.length > 0) {
+      if (code.startsWith("GLOBAL")) return "global";
+      return destinations.length === 1 ? "local" : "regional";
+    }
     const region = (esim?.region || "").toLowerCase();
     const country = (esim?.country || "").toLowerCase();
+    if (region.includes("global") || country.includes("global")) return "global";
+    if (region && region !== country) return "regional";
+    if (country || region) return "local";
+    return "unknown";
+  }
+  function matchesCatalogFilter(entry, filter2) {
     if (filter2 === "All" || filter2 === "Popular") return true;
-    if (filter2 === "Global") return region.includes("global") || country.includes("global");
-    if (filter2 === "Regional") return Boolean(region && !region.includes("global") && region !== country);
-    if (filter2 === "Local") return Boolean(country && (!region || region === country || !region.includes("global")));
-    return true;
+    if (filter2 === "Global") return entry.scope === "global";
+    if (filter2 === "Regional") return entry.scope === "regional";
+    return entry.scope === "local";
+  }
+  function planSearchText(product) {
+    const esim = product.typeData?.esim;
+    const parts = [product.name || "", product.description || "", esim?.region || "", esim?.country || "", esim?.carrier || ""];
+    const code = String(esim?.defaultCode || "").replace(/^boss-/i, "").toUpperCase();
+    if (code) parts.push(code.split("-")[0]);
+    for (const destination2 of esim?.destinations || []) {
+      for (const language of SEARCH_LOCALES) parts.push(destinationLabel(destination2, language));
+    }
+    for (const language of SEARCH_LOCALES) {
+      const label = regionLabelOf(esim?.defaultCode || "", language);
+      if (label) parts.push(label);
+    }
+    return parts.filter(Boolean).join(" ").toLowerCase();
+  }
+  function matchesSearch(searchText, query) {
+    return query.toLowerCase().split(/\s+/).filter(Boolean).every((term) => searchText.includes(term));
+  }
+  function sortPlans(entries, sortBy, locale) {
+    if (sortBy === "price") return [...entries].sort((a, b) => sellablePrice(a.product) - sellablePrice(b.product));
+    if (sortBy === "name") {
+      const title = (entry) => planTitle(entry.esim?.defaultCode || entry.product.id, displayProductTitle(entry.product.name), locale);
+      return [...entries].sort((a, b) => title(a).localeCompare(title(b), locale, { sensitivity: "base", numeric: true }));
+    }
+    return entries;
+  }
+  function searchFromAddress() {
+    if (typeof window === "undefined") return "";
+    return new URLSearchParams(window.location.search).get("q")?.trim() ?? "";
   }
   var ProductsPage = react_default.memo(function ProductsPage2({
     products,
@@ -16674,42 +16729,71 @@
     config,
     locale
   }) {
-    const [searchQuery, setSearchQuery] = react_default.useState("");
-    const [activeSearch, setActiveSearch] = react_default.useState("");
+    const [searchQuery, setSearchQuery] = react_default.useState(searchFromAddress);
+    const [activeSearch, setActiveSearch] = react_default.useState(searchFromAddress);
     const [remoteProducts, setRemoteProducts] = react_default.useState([]);
-    const [remoteTotal, setRemoteTotal] = react_default.useState(0);
-    const [remoteTotalPages, setRemoteTotalPages] = react_default.useState(1);
     const [remoteLoading, setRemoteLoading] = react_default.useState(false);
     const [remoteError, setRemoteError] = react_default.useState("");
     const [selectedFilter, setSelectedFilter] = react_default.useState("All");
+    const [localSort, setLocalSort] = react_default.useState(null);
+    const [page, setPage] = react_default.useState(1);
+    const readId = react_default.useRef(0);
+    const listRef = react_default.useRef(null);
     const site = resolveEsimSiteConfig(config);
     const t = (copy) => pickCopy(locale, copy);
-    const normalizedProducts = react_default.useMemo(
-      () => (
-        // Host-provided fallback lists come from the shared instance catalog
-        // and may contain Bokmoo physical cards — the pure eSIM mall never
-        // shows them.
-        (remoteProducts.length > 0 ? remoteProducts : filterEsimPlans(products)).map((raw) => {
-          const esimAttrs = raw.typeData?.esim || void 0;
-          return {
-            product: normalizeProductForTheme(raw),
-            esim: esimAttrs,
-            currency: readProductCurrency(raw)
-          };
-        })
-      ),
-      [products, remoteProducts]
-    );
+    const serverPaged = products.length > 0 && Number(totalPages) > 1 && products.length < Number(totalProducts);
+    const hostEntries = react_default.useMemo(() => filterEsimPlans(products).map(toPlanEntry), [products]);
+    const remoteEntries = react_default.useMemo(() => filterEsimPlans(remoteProducts).map(toPlanEntry), [remoteProducts]);
+    const entries = hostEntries.length > 0 ? hostEntries : remoteEntries;
+    const sortKey = localSort ?? sortBy;
+    const appliedSearch = activeSearch && (!serverPaged || !onSearch) ? activeSearch : "";
+    const scoped = react_default.useMemo(() => {
+      const matching = entries.filter((entry) => matchesSearch(entry.searchText, appliedSearch) && matchesCatalogFilter(entry, selectedFilter));
+      return sortPlans(matching, serverPaged ? "" : sortKey, locale);
+    }, [entries, appliedSearch, selectedFilter, serverPaged, sortKey, locale]);
+    const narrowed = Boolean(appliedSearch) || selectedFilter !== "All";
+    const pageCount = serverPaged ? Math.max(1, Number(totalPages) || 1) : Math.max(1, Math.ceil(scoped.length / PAGE_SIZE));
+    const pageShown = serverPaged ? Math.max(1, Number(currentPage) || 1) : Math.min(page, pageCount);
+    const pageItems = serverPaged ? scoped : scoped.slice((pageShown - 1) * PAGE_SIZE, pageShown * PAGE_SIZE);
     const submitSearch = (event) => {
       event.preventDefault();
-      if (onSearch) {
-        onSearch(searchQuery.trim());
+      const next = searchQuery.trim();
+      setPage(1);
+      if (serverPaged && onSearch) {
+        onSearch(next);
         return;
       }
-      setActiveSearch(searchQuery.trim());
+      setActiveSearch(next);
     };
-    const loadRemoteProducts = react_default.useCallback(
-      async (search = "") => {
+    const changeFilter = (filter2) => {
+      setSelectedFilter(filter2);
+      setPage(1);
+    };
+    const changeSort = (next) => {
+      setPage(1);
+      if (serverPaged) {
+        onSortChange(next);
+        return;
+      }
+      setLocalSort(next);
+    };
+    const goToPage = (next) => {
+      const target = Math.max(1, Math.min(pageCount, next));
+      if (serverPaged) {
+        onPageChange(target);
+        return;
+      }
+      if (target === pageShown) return;
+      setPage(target);
+      const list = listRef.current;
+      if (!list) return;
+      const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
+      list.scrollIntoView?.({ block: "start", behavior: reducedMotion ? "auto" : "smooth" });
+      list.focus({ preventScroll: true });
+    };
+    const loadCatalog = react_default.useCallback(
+      async () => {
+        const id3 = ++readId.current;
         setRemoteLoading(true);
         setRemoteError("");
         try {
@@ -16718,40 +16802,34 @@
               baseUrl: site.apiBaseUrl
             },
             {
-              page: currentPage || 1,
-              limit: 12,
+              page: 1,
+              limit: CATALOG_READ_SIZE,
               locale: locale || "en",
               type: "esim"
             }
           );
-          const filteredItems = search ? response.items.filter(
-            (item) => productText(item).includes(search.toLowerCase())
-          ) : response.items;
-          const scopedItems = filteredItems.filter((item) => matchesCatalogFilter(item, selectedFilter));
-          const isLocalScope = Boolean(search || selectedFilter !== "All");
-          setRemoteTotal(isLocalScope ? scopedItems.length : Number(response.total || scopedItems.length || 0));
-          setRemoteTotalPages(Math.max(1, Math.ceil((isLocalScope ? scopedItems.length : Number(response.total || scopedItems.length || 0)) / 12)));
+          if (id3 !== readId.current) return;
+          setRemoteProducts(response.items);
         } catch (error) {
-          const message = error instanceof Error ? error.message : pickCopy(locale, { en: "Unable to load Bokmoo plans.", hans: "\u65E0\u6CD5\u52A0\u8F7D Bokmoo \u5957\u9910\u3002", hant: "\u7121\u6CD5\u8F09\u5165 Bokmoo \u65B9\u6848\u3002" });
+          if (id3 !== readId.current) return;
+          const message = error instanceof Error ? error.message : pickCopy(locale, { en: "Unable to load Bokmoo plans.", hans: "\u65E0\u6CD5\u52A0\u8F7D BOKMOO \u5957\u9910\u3002", hant: "\u7121\u6CD5\u8F09\u5165 BOKMOO \u65B9\u6848\u3002" });
           setRemoteError(message);
           setRemoteProducts([]);
-          setRemoteTotal(0);
-          setRemoteTotalPages(1);
         } finally {
-          setRemoteLoading(false);
+          if (id3 === readId.current) setRemoteLoading(false);
         }
       },
-      [currentPage, locale, selectedFilter, site.apiBaseUrl]
+      [locale, site.apiBaseUrl]
     );
     react_default.useEffect(() => {
-      if (products.length > 0) return;
-      void loadRemoteProducts(activeSearch);
-    }, [activeSearch, loadRemoteProducts, products.length]);
-    if (isLoading || remoteLoading && normalizedProducts.length === 0) {
+      if (isLoading || serverPaged || hostEntries.length > 0) return;
+      void loadCatalog();
+    }, [isLoading, serverPaged, hostEntries.length, loadCatalog]);
+    if (isLoading || remoteLoading && scoped.length === 0) {
       return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-[var(--esim-bg)]" });
     }
-    const displayTotal = remoteProducts.length > 0 ? remoteTotal : totalProducts;
-    const displayTotalPages = remoteProducts.length > 0 ? remoteTotalPages : totalPages;
+    const displayTotal = serverPaged && !narrowed ? totalProducts : scoped.length;
+    const displayTotalPages = pageCount;
     return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-[radial-gradient(circle_at_top_right,color-mix(in_oklab,var(--esim-gold)_10%,transparent),transparent_34%),var(--esim-bg)] px-4 pb-24 pt-16 sm:px-6 sm:pt-20 lg:px-8", children: /* @__PURE__ */ jsxs("div", { className: "mx-auto max-w-[1280px]", children: [
       /* @__PURE__ */ jsxs("section", { className: "rounded-[1.45rem] border border-[color:color-mix(in_oklab,var(--esim-gold)_20%,var(--esim-line))] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--esim-gold)_10%,transparent),transparent_34%),color-mix(in_oklab,var(--esim-bg-elevated)_76%,black)] p-5 shadow-[var(--esim-shadow)] sm:rounded-[var(--esim-radius-xl)] sm:p-8", children: [
         /* @__PURE__ */ jsxs("div", { className: "flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between", children: [
@@ -16772,6 +16850,7 @@
                   value: searchQuery,
                   onChange: (event) => setSearchQuery(event.target.value),
                   placeholder: t({ en: "Search destinations or bundles...", hans: "\u641C\u7D22\u76EE\u7684\u5730\u6216\u5957\u9910\u2026", hant: "\u641C\u5C0B\u76EE\u7684\u5730\u6216\u5957\u9910\u2026" }),
+                  "aria-label": t({ en: "Search destinations or bundles...", hans: "\u641C\u7D22\u76EE\u7684\u5730\u6216\u5957\u9910\u2026", hant: "\u641C\u5C0B\u76EE\u7684\u5730\u6216\u5957\u9910\u2026" }),
                   className: "h-12 w-full rounded-[0.95rem] border border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_88%,black)] pl-11 pr-4 text-sm text-[var(--esim-ink)] outline-none placeholder:text-[var(--esim-copy-soft)] sm:rounded-full"
                 }
               )
@@ -16779,8 +16858,8 @@
             /* @__PURE__ */ jsxs(
               "select",
               {
-                value: sortBy,
-                onChange: (event) => onSortChange(event.target.value),
+                value: sortKey,
+                onChange: (event) => changeSort(event.target.value),
                 className: "h-12 rounded-[0.95rem] border border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_88%,black)] px-4 text-sm font-medium text-[var(--esim-ink)] outline-none sm:rounded-full",
                 children: [
                   /* @__PURE__ */ jsx("option", { value: "createdAt", children: t(SORT_LABELS.createdAt) }),
@@ -16821,7 +16900,8 @@
           /* @__PURE__ */ jsx("div", { className: "flex flex-wrap gap-2", children: CATALOG_FILTERS.map((filter2) => /* @__PURE__ */ jsx(
             "button",
             {
-              onClick: () => setSelectedFilter(filter2),
+              onClick: () => changeFilter(filter2),
+              "aria-pressed": selectedFilter === filter2,
               className: cn(
                 "rounded-[0.8rem] border px-4 py-2 text-[11px] font-semibold transition-colors",
                 selectedFilter === filter2 ? "border-[var(--esim-line-strong)] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--esim-gold)_88%,white),color-mix(in_oklab,var(--esim-gold)_68%,black))] text-[var(--esim-bg)]" : "border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_88%,black)] text-[var(--esim-copy)]"
@@ -16832,7 +16912,7 @@
             filter2
           )) }),
           /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap gap-2", children: [
-            /* @__PURE__ */ jsxs("span", { className: "rounded-[0.8rem] border border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_88%,black)] px-4 py-2 text-[11px] font-semibold text-[var(--esim-copy)]", children: [
+            /* @__PURE__ */ jsxs("span", { "data-purpose": "catalog-count", className: "rounded-[0.8rem] border border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_88%,black)] px-4 py-2 text-[11px] font-semibold text-[var(--esim-copy)]", children: [
               displayTotal,
               " ",
               t({ en: "plans", hans: "\u4E2A\u5957\u9910", hant: "\u500B\u5957\u9910" })
@@ -16841,35 +16921,34 @@
           ] })
         ] })
       ] }),
-      /* @__PURE__ */ jsx("section", { className: "mt-8", children: remoteError && normalizedProducts.length === 0 ? /* @__PURE__ */ jsxs("div", { className: "rounded-[var(--esim-radius-xl)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-10 text-center shadow-[var(--esim-shadow)]", children: [
+      /* @__PURE__ */ jsx("section", { ref: listRef, tabIndex: -1, className: "mt-8 scroll-mt-24 focus:outline-none", children: remoteError && scoped.length === 0 ? /* @__PURE__ */ jsxs("div", { className: "rounded-[var(--esim-radius-xl)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-10 text-center shadow-[var(--esim-shadow)]", children: [
         /* @__PURE__ */ jsx("p", { className: "text-xl font-semibold text-[var(--esim-ink)]", children: t({ en: "Plans are unavailable right now.", hans: "\u5957\u9910\u6682\u65F6\u65E0\u6CD5\u83B7\u53D6\u3002", hant: "\u5957\u9910\u66AB\u6642\u7121\u6CD5\u7372\u53D6\u3002" }) }),
         /* @__PURE__ */ jsx("p", { className: "mx-auto mt-3 max-w-xl text-sm leading-6 text-[var(--esim-copy)]", children: remoteError }),
         /* @__PURE__ */ jsx(
           "button",
           {
-            onClick: () => void loadRemoteProducts(searchQuery.trim()),
+            onClick: () => void loadCatalog(),
             className: "mt-6 min-h-11 rounded-[0.9rem] bg-[var(--esim-gold)] px-5 text-sm font-semibold text-[var(--esim-bg)]",
             type: "button",
             children: t({ en: "Try Again", hans: "\u91CD\u8BD5", hant: "\u91CD\u8A66" })
           }
         )
-      ] }) : normalizedProducts.length === 0 ? /* @__PURE__ */ jsx("div", { className: "rounded-[var(--esim-radius-xl)] border border-dashed border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-16 text-center text-[var(--esim-copy)]", children: t({ en: "No plans matched the current search.", hans: "\u6CA1\u6709\u7B26\u5408\u5F53\u524D\u641C\u7D22\u7684\u5957\u9910\u3002", hant: "\u6C92\u6709\u7B26\u5408\u7576\u524D\u641C\u5C0B\u7684\u5957\u9910\u3002" }) }) : /* @__PURE__ */ jsx(
+      ] }) : scoped.length === 0 ? /* @__PURE__ */ jsx("div", { className: "rounded-[var(--esim-radius-xl)] border border-dashed border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-16 text-center text-[var(--esim-copy)]", children: t({ en: "No plans matched the current search.", hans: "\u6CA1\u6709\u7B26\u5408\u5F53\u524D\u641C\u7D22\u7684\u5957\u9910\u3002", hant: "\u6C92\u6709\u7B26\u5408\u7576\u524D\u641C\u5C0B\u7684\u5957\u9910\u3002" }) }) : /* @__PURE__ */ jsx(
         "div",
         {
+          "data-purpose": "catalog-grid",
           className: cn(
             "grid gap-3 sm:gap-4",
             viewMode === "grid" ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3" : "grid-cols-1"
           ),
-          children: normalizedProducts.map(({ product, esim, currency: rawCurrency }) => {
+          children: pageItems.map(({ product, esim, currency: rawCurrency }) => {
             const profile = getEsimTravelProfile(product, locale);
             const destinations = esim?.destinations || [];
             const regionName = regionLabelOf(esim?.defaultCode || "", locale);
             const isMultiCountry = destinations.length > 1;
             const coverageLine = destinations.length > 0 ? isMultiCountry ? `${regionName ? `${regionName} \xB7 ` : ""}${t({ en: `covers ${destinations.length} destinations`, hans: `\u8986\u76D6 ${destinations.length} \u4E2A\u76EE\u7684\u5730`, hant: `\u8986\u84CB ${destinations.length} \u500B\u76EE\u7684\u5730`, ja: `${destinations.length} \u306E\u76EE\u7684\u5730\u3092\u30AB\u30D0\u30FC`, ko: `${destinations.length}\uAC1C \uBAA9\uC801\uC9C0 \uCEE4\uBC84`, fr: `couvre ${destinations.length} destinations`, de: `deckt ${destinations.length} Ziele ab` })}` : `${t({ en: "Covers", hans: "\u8986\u76D6", hant: "\u8986\u84CB" })} ${destinations.map((code) => destinationLabel(code, locale)).join("/")}` : profile.coverageLabel;
             const eyebrowLabel = destinations.length > 1 ? regionName || t({ en: "Multi-country", hans: "\u591A\u56FD\u8054\u7A0B", hant: "\u591A\u570B\u806F\u7A0B" }) : regionName || profile.cardEyebrow;
-            const variantSalePrices = (Array.isArray(product.variants) ? product.variants : []).map((variant) => Number(variant.salePrice ?? variant.price ?? 0)).filter((price) => price > 0);
-            const listPrice = Number(product.price || 0);
-            const displayPrice = variantSalePrices.length > 0 ? Math.min(listPrice > 0 ? listPrice : Number.POSITIVE_INFINITY, ...variantSalePrices) : listPrice;
+            const displayPrice = sellablePrice(product);
             const planValidityDays2 = typeof esim?.validityDays === "number" && esim.validityDays > 0 ? esim.validityDays : null;
             const planCurrency = rawCurrency || readProductCurrency(product) || "USD";
             const currencySymbol = planCurrency === "CNY" ? "\xA5" : planCurrency === "USD" ? "$" : `${planCurrency} `;
@@ -16877,6 +16956,7 @@
             return /* @__PURE__ */ jsxs(
               "article",
               {
+                "data-purpose": "catalog-plan",
                 className: cn(
                   "relative flex flex-col overflow-hidden rounded-2xl border-2 border-[color:color-mix(in_oklab,var(--esim-gold)_26%,transparent)] bg-[linear-gradient(160deg,#23262d_via_40%,#1a1c22_to_75%,#121418)] shadow-[0_16px_50px_rgba(0,0,0,0.65)] ring-1 ring-[color:color-mix(in_oklab,var(--esim-gold)_14%,transparent)] transition-transform duration-300 hover:-translate-y-1",
                   viewMode === "list" && "md:flex-row md:items-stretch md:gap-6 md:p-6"
@@ -16961,29 +17041,31 @@
           })
         }
       ) }),
-      displayTotalPages > 1 ? /* @__PURE__ */ jsxs("nav", { className: "mt-10 flex items-center justify-center gap-2", children: [
+      displayTotalPages > 1 ? /* @__PURE__ */ jsxs("nav", { "data-purpose": "catalog-pager", className: "mt-10 flex items-center justify-center gap-2", children: [
         /* @__PURE__ */ jsx(
           "button",
           {
-            onClick: () => onPageChange(Math.max(1, currentPage - 1)),
-            disabled: currentPage <= 1,
+            onClick: () => goToPage(pageShown - 1),
+            disabled: pageShown <= 1,
+            "aria-label": t({ en: "Previous", hans: "\u4E0A\u4E00\u9875", hant: "\u4E0A\u4E00\u9801" }),
             className: "flex h-11 w-11 items-center justify-center rounded-full border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] text-[var(--esim-ink)] disabled:opacity-40",
             type: "button",
             children: /* @__PURE__ */ jsx(ChevronLeft, { className: "h-4 w-4" })
           }
         ),
-        /* @__PURE__ */ jsxs("span", { className: "rounded-full border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-5 py-3 text-[11px] font-semibold tracking-[0.18em] text-[var(--esim-copy)]", children: [
+        /* @__PURE__ */ jsxs("span", { "data-purpose": "catalog-page-label", className: "rounded-full border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-5 py-3 text-[11px] font-semibold tracking-[0.18em] text-[var(--esim-copy)]", children: [
           t({ en: "Page", hans: "\u7B2C", hant: "\u7B2C" }),
           " ",
-          currentPage,
+          pageShown,
           " / ",
           displayTotalPages
         ] }),
         /* @__PURE__ */ jsx(
           "button",
           {
-            onClick: () => onPageChange(Math.min(displayTotalPages, currentPage + 1)),
-            disabled: currentPage >= displayTotalPages,
+            onClick: () => goToPage(pageShown + 1),
+            disabled: pageShown >= displayTotalPages,
+            "aria-label": t({ en: "Next", hans: "\u4E0B\u4E00\u9875", hant: "\u4E0B\u4E00\u9801" }),
             className: "flex h-11 w-11 items-center justify-center rounded-full border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] text-[var(--esim-ink)] disabled:opacity-40",
             type: "button",
             children: /* @__PURE__ */ jsx(ChevronRight, { className: "h-4 w-4" })
@@ -22242,7 +22324,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "esim",
-      version: "0.0.26",
+      version: "0.0.27",
       target: "shop"
     }
   };
