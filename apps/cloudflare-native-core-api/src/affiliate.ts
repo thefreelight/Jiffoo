@@ -287,6 +287,17 @@ async function register(request: Request, env: AffiliateEnv, user: NativeSession
       'SELECT role FROM native_affiliate_org_members WHERE organization_id = ?1 AND user_id = ?2 AND status = \'active\'',
     ).bind(org.id, user.id).first<{ role: string }>();
     memberRole = membership?.role ?? 'OWNER';
+  } else {
+    // An account that already belongs to an organization — its owner, since the store approved the
+    // application, or a member the owner added — registers inside it without typing its code.
+    const own = await organizationOfUser(env, user.id);
+    if (own) {
+      organizationId = own.id;
+      const membership = await env.DB.prepare(
+        'SELECT role FROM native_affiliate_org_members WHERE organization_id = ?1 AND user_id = ?2 AND status = \'active\'',
+      ).bind(own.id, user.id).first<{ role: string }>();
+      memberRole = membership?.role ?? 'OWNER';
+    }
   }
   const existing = await me(env, user.id);
   if (existing) {
@@ -581,6 +592,8 @@ async function handleNativeAffiliate(request: Request, env: AffiliateEnv, _url: 
     if (updates.length === 0) return failure(400, 'VALIDATION_ERROR', 'Nothing to update');
     updates.push('updated_at = CURRENT_TIMESTAMP');
     bindings.push(adminPartnerMatch[1]!);
+    // The SET list is built from fragments with bare "?" placeholders, so the id is one too: a numbered
+    // "?1" here would be the first parameter again, and D1 refuses the extra binding.
     const partnerId = adminPartnerMatch[1]!;
     if (scope) {
       // the mode and its products move together
@@ -589,7 +602,7 @@ async function handleNativeAffiliate(request: Request, env: AffiliateEnv, _url: 
       }
       const now = new Date().toISOString();
       await env.DB.batch([
-        env.DB.prepare(`UPDATE native_affiliate_partners SET ${updates.join(', ')} WHERE id = ?1`).bind(...bindings),
+        env.DB.prepare(`UPDATE native_affiliate_partners SET ${updates.join(', ')} WHERE id = ?`).bind(...bindings),
         env.DB.prepare('DELETE FROM native_affiliate_partner_scope WHERE partner_id = ?1').bind(partnerId),
         ...(scope.mode === 'all' ? [] : scope.productIds.map((productId) => env.DB.prepare(
           `INSERT INTO native_affiliate_partner_scope (id, partner_id, product_id, created_at) VALUES (?1, ?2, ?3, ?4)`,
@@ -597,7 +610,7 @@ async function handleNativeAffiliate(request: Request, env: AffiliateEnv, _url: 
       ]);
     } else {
       const result = await env.DB.prepare(
-        `UPDATE native_affiliate_partners SET ${updates.join(', ')} WHERE id = ?1`,
+        `UPDATE native_affiliate_partners SET ${updates.join(', ')} WHERE id = ?`,
       ).bind(...bindings).run();
       if (!result.meta.changes) return failure(404, 'NOT_FOUND', 'Partner not found');
     }
@@ -663,7 +676,7 @@ async function handleNativeAffiliate(request: Request, env: AffiliateEnv, _url: 
     updates.push('updated_at = CURRENT_TIMESTAMP');
     bindings.push(adminOrgMatch[1]!);
     const result = await env.DB.prepare(
-      `UPDATE native_affiliate_organizations SET ${updates.join(', ')} WHERE id = ?1`,
+      `UPDATE native_affiliate_organizations SET ${updates.join(', ')} WHERE id = ?`,
     ).bind(...bindings).run();
     if (!result.meta.changes) return failure(404, 'NOT_FOUND', 'Organization not found');
     const row = await env.DB.prepare('SELECT * FROM native_affiliate_organizations WHERE id = ?1').bind(adminOrgMatch[1]!).first<Record<string, unknown>>();

@@ -60,6 +60,9 @@ function fakeDb(seed: { partners?: Row[]; scope?: Row[] } = {}) {
       if (sql.includes('SELECT id FROM native_users WHERE id')) return userBy('id', values[0]);
       if (sql.includes('SELECT id FROM native_users WHERE email')) return userBy('email', values[0]);
       if (sql.includes('LEFT JOIN native_affiliate_org_members members') && sql.includes('ORDER BY organizations.created_at DESC LIMIT 1')) return organizationOf(values[0]);
+      if (sql.includes('SELECT role FROM native_affiliate_org_members WHERE organization_id')) {
+        return state.members.find((row) => row.organization_id === values[0] && row.user_id === values[1] && row.status === 'active') ?? null;
+      }
       if (sql.includes('SELECT id FROM native_affiliate_org_applications WHERE user_id')) return state.applications.find((row) => row.user_id === values[0] && row.status === 'pending') ?? null;
       if (sql.includes('SELECT * FROM native_affiliate_org_applications WHERE user_id')) return [...state.applications].reverse().find((row) => row.user_id === values[0]) ?? null;
       if (sql.includes('SELECT * FROM native_affiliate_org_applications WHERE id')) return state.applications.find((row) => row.id === values[0]) ?? null;
@@ -115,6 +118,8 @@ function fakeDb(seed: { partners?: Row[]; scope?: Row[] } = {}) {
       } else if (sql.includes('UPDATE native_affiliate_org_applications')) {
         const row = state.applications.find((candidate) => candidate.id === values[0]);
         if (row) applySet(row, sql, values); else changes = 0;
+      } else if (sql.includes('INSERT INTO native_affiliate_partners')) {
+        state.partners.push({ id: values[0], user_id: values[1], code: values[2], status: 'active', display_name: values[3], email: values[4], commission_rate: values[5], currency: values[6], organization_id: values[7], member_role: values[8], created_at: values[9], updated_at: values[9] });
       } else if (sql.includes('INSERT INTO native_affiliate_organizations')) {
         state.orgs.push({ id: values[0], owner_user_id: values[1], code: values[2], name: values[3], status: 'active', commission_rate: values[4], currency: 'USD', created_at: values[5], updated_at: values[5] });
       } else if (sql.includes('INSERT INTO native_affiliate_org_members')) {
@@ -138,7 +143,12 @@ function fakeDb(seed: { partners?: Row[]; scope?: Row[] } = {}) {
   return {
     state,
     // a statement may be asked with or without bound values
-    prepare: (sql: string) => ({ ...statement(sql, []), bind: (...values: unknown[]) => statement(sql, values) }),
+    prepare: (sql: string) => {
+      // SQLite numbers a bare "?" one past the highest number assigned so far, so a statement that mixes the two
+      // styles has fewer parameters than bindings, and D1 refuses it. This is what the real database does.
+      if (/(?<![\w?])\?(?!\d)/.test(sql) && /\?\d+/.test(sql)) throw new Error(`a statement mixes "?" and "?1" placeholders: ${sql.slice(0, 90)}`);
+      return { ...statement(sql, []), bind: (...values: unknown[]) => statement(sql, values) };
+    },
     batch: async (statements: Array<{ run: () => Promise<unknown> }>) => { for (const bound of statements) await bound.run(); return statements; },
   };
 }
@@ -286,6 +296,34 @@ describe('the store opens organizations', () => {
     expect((await call(fakeDb(), 'POST', `${ADMIN}/organizations`, { name: 'Crew', ownerUserId: 'user-1' })).status).toBe(401);
     expect((await call(fakeDb(), 'POST', `${ADMIN}/applications/app-1/approve`)).status).toBe(401);
     expect((await call(fakeDb(), 'PATCH', `${ADMIN}/partners/partner-1`, { scope: { mode: 'all' } })).status).toBe(401);
+  });
+});
+
+describe('an account registers inside the organization it already belongs to', () => {
+  it('the owner approved by the store needs no code', async () => {
+    const db = fakeDb();
+    const applied = await call(db, 'POST', `${STORE}/organizations/applications`, { organizationName: 'Travel Crew' });
+    await call(db, 'POST', `${ADMIN}/applications/${applied.body.data?.id}/approve`);
+    const registered = await call(db, 'POST', `${STORE}/partners/register`, { displayName: 'Sam' });
+    expect(registered.status).toBe(201);
+    expect(registered.body.data).toMatchObject({ organizationId: expect.any(String), memberRole: 'OWNER' });
+    expect(registered.body.data.organizationId).toBe(db.state.orgs[0]!.id);
+  });
+
+  it('a member the owner added registers with the member’s role', async () => {
+    const db = fakeDb();
+    db.state.orgs.push({ id: 'org-1', owner_user_id: 'user-1', code: 'ORG-1', name: 'Existing', status: 'active', commission_rate: 2.5, currency: 'USD', created_at: '', updated_at: '' });
+    db.state.members.push({ id: 'm-1', organization_id: 'org-1', user_id: 'user-2', role: 'MANAGER', status: 'active', joined_at: '' });
+    const registered = await call(db, 'POST', `${STORE}/partners/register`, { displayName: 'Sam' });
+    expect(registered.body.data).toMatchObject({ organizationId: 'org-1', memberRole: 'MANAGER' });
+  });
+
+  it('an account outside every organization registers on its own; a code still asks for membership', async () => {
+    const onItsOwn = await call(fakeDb(), 'POST', `${STORE}/partners/register`, { displayName: 'Sam' });
+    expect(onItsOwn.body.data).toMatchObject({ organizationId: null, memberRole: null });
+    const outsider = await call(fakeDb(), 'POST', `${STORE}/partners/register`, { displayName: 'Sam', organizationCode: 'ORG-1' });
+    expect(outsider.status).toBe(403);
+    expect(outsider.body.error?.code).toBe('ORGANIZATION_MEMBERSHIP_REQUIRED');
   });
 });
 
