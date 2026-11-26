@@ -233,6 +233,7 @@ async function createOrder(
     })),
     promotion: promotion && promotion.discountAmount > 0 ? promotion.row : null,
     affiliate: affiliatePartner,
+    scope: affiliateScope,
   });
   const { promotionDiscount, affiliateDiscount } = pricing;
   const appliedPromotion = promotionDiscount > 0 ? promotion : null;

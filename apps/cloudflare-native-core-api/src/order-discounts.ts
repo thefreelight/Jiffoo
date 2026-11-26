@@ -83,40 +83,54 @@ export function promotionUnitPrice(row: PromotionRow, salePrice: number): number
  *
  * A promotion lands on the unit price of the items it covers, so the charge,
  * the order record and the apps always agree on the paid price. An affiliate
- * (creator) code is an order-level discount that stacks on top of the
- * promotion and is limited to the items the promotion covered. With no
- * promotion in play it applies to the whole order, as it always has. A code
- * the store limited to certain products (`eligible: false` on the others)
- * reaches those products only.
+ * (creator) code is an order-level discount on top of the promotion and is
+ * limited to the items the promotion covered. With no promotion in play it
+ * applies to the whole order, as it always has. A code the store limited
+ * (`eligible: false` on the other items) reaches those products only: pinned
+ * to picked products (`scope.mode === 'selected'`) it reaches them at their
+ * current price, sale or not, because the store chose them; any other code
+ * still only stacks on what the sale covered.
  */
-export function priceOrderDiscounts({ items, promotion, affiliate }: {
+export function priceOrderDiscounts({ items, promotion, affiliate, scope }: {
   items: DiscountableOrderItem[];
   promotion: PromotionRow | null;
   affiliate: AffiliateBuyerDiscount | null;
+  scope?: AffiliateScope | null;
 }): OrderDiscounts {
   const unitPrices = new Map<string, number>();
   let catalogSubtotal = 0;
   let coveredCatalogSubtotal = 0;
   let coveredSubtotal = 0;
-  // what the code may act on: every eligible item, and the eligible items the promotion covered
+  // what the code may act on: every eligible item, the eligible items the promotion covered,
+  // and the eligible items at their current price
   let eligibleSubtotal = 0;
   let eligibleCoveredSubtotal = 0;
+  let eligibleCurrentSubtotal = 0;
   for (const item of items) {
     const lineSubtotal = item.salePrice * item.quantity;
     catalogSubtotal += lineSubtotal;
     const eligible = item.eligible !== false;
     if (eligible) eligibleSubtotal += lineSubtotal;
-    if (!promotion || !promotionCovers(promotion, item.productId)) continue;
+    if (!promotion || !promotionCovers(promotion, item.productId)) {
+      if (eligible) eligibleCurrentSubtotal += lineSubtotal;
+      continue;
+    }
     const unitPrice = promotionUnitPrice(promotion, item.salePrice);
     unitPrices.set(item.variantId, unitPrice);
     coveredCatalogSubtotal += lineSubtotal;
     coveredSubtotal += unitPrice * item.quantity;
-    if (eligible) eligibleCoveredSubtotal += unitPrice * item.quantity;
+    if (eligible) {
+      eligibleCoveredSubtotal += unitPrice * item.quantity;
+      eligibleCurrentSubtotal += unitPrice * item.quantity;
+    }
   }
   const promotionDiscount = cents(coveredCatalogSubtotal - coveredSubtotal);
   // Only the part the promotion touched may be discounted again, so a code
-  // never reaches items the sale leaves out (e.g. resold eSIM plans).
-  const base = promotionDiscount > 0 ? eligibleCoveredSubtotal : eligibleSubtotal;
+  // never reaches items the sale leaves out (e.g. resold eSIM plans) — unless
+  // the store pinned the code to those very items.
+  const base = scope?.mode === 'selected'
+    ? eligibleCurrentSubtotal
+    : promotionDiscount > 0 ? eligibleCoveredSubtotal : eligibleSubtotal;
   let affiliateDiscount = 0;
   if (affiliate && base > 0) {
     affiliateDiscount = affiliateDiscountType(affiliate.discount_type) === 'fixed_amount'

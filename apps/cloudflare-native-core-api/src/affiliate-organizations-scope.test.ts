@@ -321,8 +321,25 @@ describe('a promo code applies to the products the store picked', () => {
     };
     // card $40 -> $32; the code takes 10% of the card, and nothing off the plan the sale leaves out
     expect(priceOrderDiscounts({ items: [item('card', 40), item('plan', 10)], promotion, affiliate: CREATOR })).toMatchObject({ promotionDiscount: 8, affiliateDiscount: 3.2 });
-    // limited to the plan, the code reaches nothing the promotion covered
-    expect(priceOrderDiscounts({ items: [item('card', 40, 1, false), item('plan', 10)], promotion, affiliate: CREATOR }).affiliateDiscount).toBe(0);
+    // "all but the card": while the sale runs, the plan the sale leaves out keeps its price
+    const exceptCard = { mode: 'except', productIds: ['card'] };
+    expect(priceOrderDiscounts({ items: [item('card', 40, 1, false), item('plan', 10)], promotion, affiliate: CREATOR, scope: exceptCard }).affiliateDiscount).toBe(0);
+    expect(priceOrderDiscounts({ items: [item('plan', 10, 1, false)], promotion, affiliate: CREATOR, scope: exceptCard }).affiliateDiscount).toBe(0);
+  });
+
+  it('a code pinned to products reaches them at their current price, sale or not', () => {
+    const promotion = {
+      id: 'promo', slug: 'bf', name: 'Black Friday', status: 'active', starts_at: '', ends_at: '',
+      discount_type: 'percent', discount_value: 20, product_ids_json: JSON.stringify(['card']), per_user_limit: 0, banner_json: null, rules_url: null, created_at: '', updated_at: '',
+    };
+    // pinned to the plan the sale leaves out: 10% of its $10
+    const pinnedToPlan = { mode: 'selected', productIds: ['plan'] };
+    expect(priceOrderDiscounts({ items: [item('card', 40, 1, false), item('plan', 10)], promotion, affiliate: CREATOR, scope: pinnedToPlan })).toMatchObject({ promotionDiscount: 8, affiliateDiscount: 1 });
+    // pinned to the card the sale covers: 10% of its sale price
+    const pinnedToCard = { mode: 'selected', productIds: ['card'] };
+    expect(priceOrderDiscounts({ items: [item('card', 40), item('plan', 10, 1, false)], promotion, affiliate: CREATOR, scope: pinnedToCard }).affiliateDiscount).toBe(3.2);
+    // pinned to both: the card at its sale price and the plan at its price
+    expect(priceOrderDiscounts({ items: [item('card', 40), item('plan', 10)], promotion, affiliate: CREATOR, scope: { mode: 'selected', productIds: ['card', 'plan'] } }).affiliateDiscount).toBe(4.2);
   });
 
   it('the public lookup tells the checkout which products the code reaches', async () => {
@@ -410,7 +427,7 @@ describe('the checkout prices a code on the products it reaches', () => {
   const BLUETOOTH = { id: 'odoo-product-7', name: 'Bokmoo Bluetooth Card', productKind: 'goods', currency: 'USD', stock: 94, variants: [{ id: 'odoo-variant-7', salePrice: 40, isActive: true }] };
   const CREATOR = { id: 'partner-1', code: 'CREATOR10', discount_rate: 10, discount_type: 'percentage' };
 
-  function checkoutDb({ partner = null as Row | null, scope = [] as string[] } = {}) {
+  function checkoutDb({ partner = null as Row | null, scope = [] as string[], promotions = [] as Row[] } = {}) {
     const metadataInserts: unknown[][] = [];
     return {
       metadataInserts,
@@ -423,7 +440,8 @@ describe('the checkout prices a code on the products it reaches', () => {
               if (sql.includes('native_order_number_sequences')) return { seq: 1 };
               return null;
             },
-            all: async () => ({ results: sql.includes('FROM native_affiliate_partner_scope') ? scope.map((product_id) => ({ product_id })) : [] }),
+            // the rows the promotion resolver would match are the ones given
+            all: async () => ({ results: sql.includes('FROM native_affiliate_partner_scope') ? scope.map((product_id) => ({ product_id })) : sql.includes('FROM native_promotions') ? promotions : [] }),
             run: async () => ({ success: true }),
           };
         },
@@ -477,6 +495,24 @@ describe('the checkout prices a code on the products it reaches', () => {
     expect(order.totalAmount).toBe(60);
     expect(order.appliedDiscounts).toEqual([]);
     expect(db.metadataInserts[0]!.slice(5)).toEqual([null, null]);
+  });
+
+  it('reaches the product it is pinned to at its current price, sale or not', async () => {
+    // the sale covers the $20 card only ($16); the code is pinned to the $40 card the sale leaves out
+    const sale = {
+      id: 'promo-bf', slug: 'black-friday-2026', name: 'Black Friday', status: 'active',
+      starts_at: '2026-11-01T00:00:00.000Z', ends_at: '2026-12-31T00:00:00.000Z',
+      discount_type: 'percent', discount_value: 20, product_ids_json: JSON.stringify([CARD.id]),
+      per_user_limit: 0, banner_json: null, rules_url: null, created_at: '', updated_at: '',
+    };
+    const db = checkoutDb({ partner: { ...CREATOR, scope_mode: 'selected' }, scope: [BLUETOOTH.id], promotions: [sale] });
+    const { order } = await place(db, 'CREATOR10');
+    expect(order.items.map((item) => item.unitPrice)).toEqual([16, 40]);
+    expect(order.appliedDiscounts).toEqual([
+      { kind: 'promotion', id: 'promo-bf', slug: 'black-friday-2026', amount: 4 },
+      { kind: 'affiliate', id: 'partner-1', amount: 4 },
+    ]);
+    expect(order.totalAmount).toBe(52);
   });
 
   it('still takes it off the whole cart when nothing was picked against it', async () => {
