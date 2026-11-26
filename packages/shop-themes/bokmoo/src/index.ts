@@ -97,6 +97,7 @@ export const theme: ThemePackage = {
       promoMutedVideo: '/extensions/media/promo/v3/bokmoo-promo-720p-muted.mp4',
       promoMutedVideoSmall: '/extensions/media/promo/v3/bokmoo-promo-540p-muted.mp4',
       promoSoundVideo: '/extensions/media/promo/v3/bokmoo-promo-720p.mp4',
+      catalogProducts: 'cards',
     },
   },
 };

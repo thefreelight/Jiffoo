@@ -63,8 +63,13 @@ export interface BokmooApiProduct {
   }>;
   typeData?: {
     esim?: BokmooEsimAttributes;
+    [key: string]: unknown;
   };
   variants?: BokmooApiVariant[];
+  isActive?: boolean;
+  requiresShipping?: boolean;
+  /** When the catalog source last changed the product; "Newest" sorts by it */
+  sourceUpdatedAt?: string;
 }
 
 export interface BokmooProductListResponse {
@@ -627,13 +632,14 @@ export function normalizeInstallSession(session: BokmooInstallSession | Record<s
 
 export async function getBokmooProducts(
   config: BokmooApiConfig,
-  params: { page?: number; limit?: number; locale?: string; country?: string; type?: string } = {}
+  // type: null asks for the whole catalog, with no type at all in the query
+  params: { page?: number; limit?: number; locale?: string; country?: string; type?: string | null } = {}
 ): Promise<BokmooProductListResponse> {
   const search = new URLSearchParams();
   search.set('page', String(params.page || 1));
   search.set('limit', String(params.limit || 12));
   search.set('locale', params.locale || 'en');
-  search.set('type', params.type || 'esim');
+  if (params.type !== null) search.set('type', params.type || 'esim');
   if (params.country) search.set('country', params.country);
   const envelope = await requestEnvelope<BokmooProductListResponse | BokmooApiProduct[]>(config, `/api/products?${search.toString()}`);
   const meta = envelope.meta || {};
@@ -650,6 +656,21 @@ export async function getBokmooProducts(
     limit,
     total,
   };
+}
+
+/** How many products the whole-catalog read asks for at once; the official store has well under that. */
+export const BOKMOO_CATALOG_READ_SIZE = 250;
+
+/**
+ * The whole catalog in one read, for assortments the store filters itself (cards only, or cards and
+ * plans). It asks for the first page without a `type`, the one request every deployment answers with
+ * every product: with a `type` the store answers from per-query snapshots that hold one assortment only.
+ */
+export async function getBokmooCatalog(
+  config: BokmooApiConfig,
+  params: { locale?: string } = {}
+): Promise<BokmooProductListResponse> {
+  return getBokmooProducts(config, { page: 1, limit: BOKMOO_CATALOG_READ_SIZE, locale: params.locale, type: null });
 }
 
 export async function getBokmooProduct(
