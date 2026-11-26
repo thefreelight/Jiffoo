@@ -18,27 +18,38 @@ function attempt(video: HTMLVideoElement, refused: () => void): void {
 }
 
 /**
- * The brand film on the home page. Nothing is fetched until the band comes near the viewport: the poster
+ * The brand film on the home page. Nothing is fetched until the band is well inside the viewport: the poster
  * is a lazy image and the video only gets its source then. It plays muted and loops — the one autoplay
  * every browser allows — and "Watch with sound" swaps in the version with the narration. A visitor who
  * asked for less motion or less data gets the poster and the button, and no autoplay.
  */
 export const PromoFilm = React.memo(function PromoFilm({ locale, config }: { locale?: string; config?: ThemeConfig }) {
-  const film = resolveBokmooSiteConfig(config, locale).promoFilm;
+  // The store hands the theme a new config object on every render. The film is the same film unless one
+  // of its addresses changed, so it is keyed by those: a new object every render would make the effects
+  // below run again and again, and each run handed the video its source afresh, cutting off the load
+  // that was under way — on the live store the film never buffered enough to start.
+  const resolved = resolveBokmooSiteConfig(config, locale).promoFilm;
+  const filmKey = resolved ? [resolved.poster, resolved.posterLarge, resolved.muted, resolved.mutedSmall, resolved.sound].join(' ') : '';
+  const film = React.useMemo(() => resolved, [filmKey]);
   const t = (copy: { en: string; hans?: string; hant?: string; ja?: string; ko?: string; fr?: string; de?: string }) => pickCopy(locale, copy);
   const frameRef = React.useRef<HTMLDivElement | null>(null);
   const videoRef = React.useRef<HTMLVideoElement | null>(null);
+  // Set once the band has been near the viewport; reset only when the film itself changes
+  const armed = React.useRef(false);
   const [state, setState] = React.useState<FilmState>('poster');
   // An instance that has no copy of the film in its bucket shows no band at all
   const [missing, setMissing] = React.useState(false);
 
-  // Near the viewport: hand the video its source
+  // Near the viewport: let the video be given its source
   React.useEffect(() => {
     const frame = frameRef.current;
+    armed.current = false;
     if (!film || !frame) return;
     let cancelled = false;
     const arm = () => {
-      if (!cancelled) setState('loading');
+      if (cancelled || armed.current) return;
+      armed.current = true;
+      setState('loading');
     };
     if (typeof IntersectionObserver === 'undefined') {
       arm();
@@ -46,13 +57,15 @@ export const PromoFilm = React.memo(function PromoFilm({ locale, config }: { loc
         cancelled = true;
       };
     }
+    // The band must be 120px inside the viewport: on a 900px-tall screen its top edge shows at the bottom
+    // of the first screen, and loading the film then would compete with the first screen for the network.
     const observer = new IntersectionObserver(
       (entries) => {
         if (!entries.some((entry) => entry.isIntersecting)) return;
         observer.disconnect();
         arm();
       },
-      { rootMargin: '280px' },
+      { rootMargin: '0px 0px -120px 0px' },
     );
     observer.observe(frame);
     return () => {
@@ -61,19 +74,23 @@ export const PromoFilm = React.memo(function PromoFilm({ locale, config }: { loc
     };
   }, [film]);
 
-  // With the source set, start — unless the visitor asked for less motion or less data
+  // Give the video its source and start — unless the visitor asked for less motion or less data: then
+  // it is not even given the source, so that nothing downloads until they ask for the film
   React.useEffect(() => {
     const video = videoRef.current;
     if (!film || !video || state !== 'loading') return;
     const narrow = window.matchMedia?.('(max-width: 768px)').matches ?? false;
     const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
     const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData === true;
-    video.src = narrow ? film.mutedSmall : film.muted;
-    video.load();
     if (reducedMotion || saveData) {
       setState('poster');
       return;
     }
+    const source = narrow ? film.mutedSmall : film.muted;
+    // Already holding it: giving it again would restart the load
+    if (video.getAttribute('src') === source) return;
+    video.src = source;
+    video.load();
     // A refused autoplay (or a browser without play()) leaves the poster and the button
     attempt(video, () => setState('poster'));
   }, [film, state]);

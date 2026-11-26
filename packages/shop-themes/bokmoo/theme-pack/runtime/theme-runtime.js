@@ -15943,18 +15943,24 @@
     if (playing && typeof playing.catch === "function") playing.catch(refused);
   }
   var PromoFilm = react_default.memo(function PromoFilm2({ locale, config }) {
-    const film = resolveBokmooSiteConfig(config, locale).promoFilm;
+    const resolved = resolveBokmooSiteConfig(config, locale).promoFilm;
+    const filmKey = resolved ? [resolved.poster, resolved.posterLarge, resolved.muted, resolved.mutedSmall, resolved.sound].join(" ") : "";
+    const film = react_default.useMemo(() => resolved, [filmKey]);
     const t = (copy) => pickCopy(locale, copy);
     const frameRef = react_default.useRef(null);
     const videoRef = react_default.useRef(null);
+    const armed = react_default.useRef(false);
     const [state, setState] = react_default.useState("poster");
     const [missing, setMissing] = react_default.useState(false);
     react_default.useEffect(() => {
       const frame2 = frameRef.current;
+      armed.current = false;
       if (!film || !frame2) return;
       let cancelled = false;
       const arm = () => {
-        if (!cancelled) setState("loading");
+        if (cancelled || armed.current) return;
+        armed.current = true;
+        setState("loading");
       };
       if (typeof IntersectionObserver === "undefined") {
         arm();
@@ -15968,7 +15974,7 @@
           observer.disconnect();
           arm();
         },
-        { rootMargin: "280px" }
+        { rootMargin: "0px 0px -120px 0px" }
       );
       observer.observe(frame2);
       return () => {
@@ -15982,12 +15988,14 @@
       const narrow = window.matchMedia?.("(max-width: 768px)").matches ?? false;
       const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
       const saveData = navigator.connection?.saveData === true;
-      video.src = narrow ? film.mutedSmall : film.muted;
-      video.load();
       if (reducedMotion || saveData) {
         setState("poster");
         return;
       }
+      const source = narrow ? film.mutedSmall : film.muted;
+      if (video.getAttribute("src") === source) return;
+      video.src = source;
+      video.load();
       attempt(video, () => setState("poster"));
     }, [film, state]);
     if (!film || missing) return null;
@@ -19274,7 +19282,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.65",
+      version: "1.1.66",
       target: "shop"
     }
   };
