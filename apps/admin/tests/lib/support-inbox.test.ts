@@ -144,7 +144,8 @@ describe('support inbox relative time', () => {
     const steps = [30, 5 * 60, 3 * 3600, 2 * 86400, 30 * 86400].map((seconds) => formatRelativeTime(new Date(now - seconds * 1000).toISOString(), 'en', now));
     expect(steps.slice(0, 4)).toEqual(['30 seconds ago', '5 minutes ago', '3 hours ago', '2 days ago']);
     // Older than a week shows the calendar date instead of a count.
-    expect(steps[4]).toMatch(/Feb( | )4/);
+    // Some locales separate the month from the day with a no-break space.
+    expect(steps[4]).toMatch(/Feb( |\u00a0)4/);
   });
 
   it('follows the UI language', () => {
