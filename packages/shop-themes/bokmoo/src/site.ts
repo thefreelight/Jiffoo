@@ -13,7 +13,13 @@ export interface BokmooSiteConfig {
   apiBaseUrl: string;
   /** The brand film on the home page, or null when the store owner turned it off. */
   promoFilm: BokmooPromoFilm | null;
+  /** What the catalog page lists. The official store carries cards only; plans live on the eSIM mall. */
+  catalogProducts: BokmooCatalogProducts;
 }
+
+export type BokmooCatalogProducts = 'cards' | 'plans' | 'all';
+
+const CATALOG_PRODUCTS: BokmooCatalogProducts[] = ['cards', 'plans', 'all'];
 
 export interface BokmooPromoFilm {
   /** Poster for narrow screens */
@@ -95,6 +101,9 @@ export function resolveBokmooSiteConfig(config?: ThemeConfig, locale?: string): 
           mutedSmall: siteConfig.promoMutedVideoSmall?.trim() || PROMO_FILM_DEFAULTS.mutedSmall,
           sound: siteConfig.promoSoundVideo?.trim() || PROMO_FILM_DEFAULTS.sound,
         };
+  // A setting the theme does not know falls back to cards, the official store's assortment
+  const catalogSetting = String(siteConfig.catalogProducts ?? '').trim().toLowerCase();
+  const catalogProducts = ((CATALOG_PRODUCTS as string[]).includes(catalogSetting) ? catalogSetting : 'cards') as BokmooCatalogProducts;
 
   return {
     brandName,
@@ -114,6 +123,7 @@ export function resolveBokmooSiteConfig(config?: ThemeConfig, locale?: string): 
     secondaryCtaHref: siteConfig.secondaryCtaHref?.trim() || '/#how-it-works',
     apiBaseUrl: siteConfig.apiBaseUrl?.trim() || 'https://api.bokmoo.com',
     promoFilm,
+    catalogProducts,
   };
 }
 

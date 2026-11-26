@@ -261,6 +261,8 @@ export interface ThemeConfig {
     promoMutedVideoSmall?: string;
     /** Promo film with its narration, loaded on request */
     promoSoundVideo?: string;
+    /** What the catalog page lists: physical cards, data plans, or both */
+    catalogProducts?: 'cards' | 'plans' | 'all';
   };
 }
 

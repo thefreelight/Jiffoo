@@ -11562,6 +11562,7 @@
   }
 
   // src/site.ts
+  var CATALOG_PRODUCTS = ["cards", "plans", "all"];
   var PROMO_FILM_PATH = "/extensions/media/promo/v3";
   var PROMO_FILM_DEFAULTS = {
     poster: `${PROMO_FILM_PATH}/bokmoo-promo-poster-1280.jpg`,
@@ -11607,6 +11608,8 @@
       mutedSmall: siteConfig.promoMutedVideoSmall?.trim() || PROMO_FILM_DEFAULTS.mutedSmall,
       sound: siteConfig.promoSoundVideo?.trim() || PROMO_FILM_DEFAULTS.sound
     };
+    const catalogSetting = String(siteConfig.catalogProducts ?? "").trim().toLowerCase();
+    const catalogProducts = CATALOG_PRODUCTS.includes(catalogSetting) ? catalogSetting : "cards";
     return {
       brandName,
       eyebrow: pickLocalized(siteConfig.eyebrow, "BOKMOO eSIM Card", "BOKMOO eSIM \u5361", "BOKMOO eSIM \u5361", mode),
@@ -11624,7 +11627,8 @@
       secondaryCtaLabel: pickLocalized(siteConfig.secondaryCtaLabel, "How it works", "\u4E86\u89E3\u4F7F\u7528\u65B9\u5F0F", "\u77AD\u89E3\u4F7F\u7528\u65B9\u5F0F", mode),
       secondaryCtaHref: siteConfig.secondaryCtaHref?.trim() || "/#how-it-works",
       apiBaseUrl: siteConfig.apiBaseUrl?.trim() || "https://api.bokmoo.com",
-      promoFilm
+      promoFilm,
+      catalogProducts
     };
   }
   function isExternalHref(href) {
@@ -12390,12 +12394,12 @@
     const regionTag = esim?.region || esim?.country || "Travel";
     const technology = buildTechnologyLabel(esim);
     const variantPrices = (product.variants || []).map((variant) => Number(variant.salePrice || 0)).filter((price) => price > 0);
-    const sellablePrice = variantPrices.length > 0 ? Math.min(...variantPrices) : Number(product.price || 0);
+    const sellablePrice2 = variantPrices.length > 0 ? Math.min(...variantPrices) : Number(product.price || 0);
     return {
       id: product.id,
       name: displayProductTitle(product.name),
       description: product.description ?? "",
-      price: sellablePrice,
+      price: sellablePrice2,
       sku: product.slug || product.id,
       productKind: product.productKind,
       category: {
@@ -12513,7 +12517,7 @@
     search.set("page", String(params.page || 1));
     search.set("limit", String(params.limit || 12));
     search.set("locale", params.locale || "en");
-    search.set("type", params.type || "esim");
+    if (params.type !== null) search.set("type", params.type || "esim");
     if (params.country) search.set("country", params.country);
     const envelope = await requestEnvelope(config, `/api/products?${search.toString()}`);
     const meta = envelope.meta || {};
@@ -12529,6 +12533,10 @@
       limit,
       total
     };
+  }
+  var BOKMOO_CATALOG_READ_SIZE = 250;
+  async function getBokmooCatalog(config, params = {}) {
+    return getBokmooProducts(config, { page: 1, limit: BOKMOO_CATALOG_READ_SIZE, locale: params.locale, type: null });
   }
   async function getBokmooProduct(config, productId, locale = "en") {
     return request(config, `/api/products/${productId}?locale=${locale}`);
@@ -14353,6 +14361,7 @@
   }
 
   // src/components/ProductsPage.tsx
+  var PAGE_SIZE = 12;
   var CATALOG_FILTERS = ["All", "Popular", "Local", "Regional", "Global"];
   var FILTER_LABELS = {
     All: { en: "All", hans: "\u5168\u90E8", hant: "\u5168\u90E8" },
@@ -14362,10 +14371,86 @@
     Global: { en: "Global", hans: "\u5168\u7403", hant: "\u5168\u7403" }
   };
   var SORT_LABELS = {
-    createdAt: { en: "Newest", hans: "\u6700\u65B0", hant: "\u6700\u65B0" },
-    price: { en: "Price", hans: "\u4EF7\u683C", hant: "\u50F9\u683C" },
-    name: { en: "Name", hans: "\u540D\u79F0", hant: "\u540D\u7A31" }
+    createdAt: { en: "Newest", hans: "\u6700\u65B0", hant: "\u6700\u65B0", ja: "\u65B0\u7740", ko: "\uCD5C\uC2E0\uC21C", fr: "R\xE9cents", de: "Neueste" },
+    price: { en: "Price", hans: "\u4EF7\u683C", hant: "\u50F9\u683C", ja: "\u4FA1\u683C", ko: "\uAC00\uACA9", fr: "Prix", de: "Preis" },
+    name: { en: "Name", hans: "\u540D\u79F0", hant: "\u540D\u7A31", ja: "\u540D\u524D", ko: "\uC774\uB984", fr: "Nom", de: "Name" }
   };
+  var ASSORTMENT_COPY = {
+    cards: {
+      eyebrow: { en: "Card collection", hans: "\u5361\u7247\u7CFB\u5217", hant: "\u5361\u7247\u7CFB\u5217", ja: "\u30AB\u30FC\u30C9\u30E9\u30A4\u30F3\u30CA\u30C3\u30D7", ko: "\uCE74\uB4DC \uB77C\uC778\uC5C5", fr: "Collection de cartes", de: "Kartenkollektion" },
+      heading: { en: "BOKMOO cards.", hans: "BOKMOO \u5B9E\u4F53\u5361\u3002", hant: "BOKMOO \u5BE6\u9AD4\u5361\u3002", ja: "BOKMOO \u30AB\u30FC\u30C9\u3002", ko: "BOKMOO \uCE74\uB4DC.", fr: "Les cartes BOKMOO.", de: "BOKMOO-Karten." },
+      lead: {
+        en: "Physical eSIM cards that work with the BOKMOO app: load your eSIM profiles on the card and carry them with you.",
+        hans: "\u4E0E BOKMOO App \u914D\u5408\u4F7F\u7528\u7684\u5B9E\u4F53 eSIM \u5361\uFF1A\u628A eSIM \u914D\u7F6E\u4E0B\u8F7D\u5230\u5361\u4E0A\uFF0C\u968F\u8EAB\u643A\u5E26\u3002",
+        hant: "\u8207 BOKMOO App \u914D\u5408\u4F7F\u7528\u7684\u5BE6\u9AD4 eSIM \u5361\uFF1A\u628A eSIM \u8A2D\u5B9A\u6A94\u4E0B\u8F09\u5230\u5361\u4E0A\uFF0C\u96A8\u8EAB\u651C\u5E36\u3002",
+        ja: "BOKMOO \u30A2\u30D7\u30EA\u3068\u9023\u643A\u3059\u308B\u7269\u7406 eSIM \u30AB\u30FC\u30C9\u3002eSIM \u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3092\u30AB\u30FC\u30C9\u306B\u66F8\u304D\u8FBC\u3093\u3067\u6301\u3061\u6B69\u3051\u307E\u3059\u3002",
+        ko: "BOKMOO \uC571\uACFC \uD568\uAED8 \uC4F0\uB294 \uBB3C\uB9AC eSIM \uCE74\uB4DC. eSIM \uD504\uB85C\uD544\uC744 \uCE74\uB4DC\uC5D0 \uB0B4\uB824\uBC1B\uC544 \uD734\uB300\uD558\uC138\uC694.",
+        fr: "Des cartes eSIM physiques qui fonctionnent avec l\u2019app BOKMOO : chargez vos profils eSIM sur la carte et emportez-les.",
+        de: "Physische eSIM-Karten f\xFCr die BOKMOO-App: eSIM-Profile auf die Karte laden und mitnehmen."
+      },
+      search: { en: "Search cards\u2026", hans: "\u641C\u7D22\u5361\u7247\u2026", hant: "\u641C\u5C0B\u5361\u7247\u2026", ja: "\u30AB\u30FC\u30C9\u3092\u691C\u7D22\u2026", ko: "\uCE74\uB4DC \uAC80\uC0C9\u2026", fr: "Rechercher une carte\u2026", de: "Karte suchen\u2026" },
+      unit: { en: "cards", hans: "\u6B3E\u5361\u7247", hant: "\u6B3E\u5361\u7247", ja: "\u679A\u306E\u30AB\u30FC\u30C9", ko: "\uAC1C\uC758 \uCE74\uB4DC", fr: "cartes", de: "Karten" },
+      empty: { en: "No cards matched the current search.", hans: "\u6CA1\u6709\u7B26\u5408\u5F53\u524D\u641C\u7D22\u7684\u5361\u7247\u3002", hant: "\u6C92\u6709\u7B26\u5408\u7576\u524D\u641C\u5C0B\u7684\u5361\u7247\u3002", ja: "\u691C\u7D22\u306B\u4E00\u81F4\u3059\u308B\u30AB\u30FC\u30C9\u306F\u3042\u308A\u307E\u305B\u3093\u3002", ko: "\uAC80\uC0C9\uC5B4\uC5D0 \uB9DE\uB294 \uCE74\uB4DC\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.", fr: "Aucune carte ne correspond \xE0 la recherche.", de: "Keine Karte entspricht der Suche." },
+      error: { en: "Cards are unavailable right now.", hans: "\u5361\u7247\u6682\u65F6\u65E0\u6CD5\u83B7\u53D6\u3002", hant: "\u5361\u7247\u66AB\u6642\u7121\u6CD5\u53D6\u5F97\u3002", ja: "\u30AB\u30FC\u30C9\u3092\u73FE\u5728\u8AAD\u307F\u8FBC\u3081\u307E\u305B\u3093\u3002", ko: "\uC9C0\uAE08\uC740 \uCE74\uB4DC\uB97C \uBD88\uB7EC\uC62C \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.", fr: "Les cartes sont indisponibles pour le moment.", de: "Karten sind derzeit nicht verf\xFCgbar." }
+    },
+    plans: {
+      eyebrow: { en: "Plan collection", hans: "\u5957\u9910\u96C6\u5408", hant: "\u5957\u9910\u96C6\u5408" },
+      heading: { en: "eSIM plans built for every journey.", hans: "\u4E3A\u6BCF\u4E00\u6BB5\u65C5\u7A0B\u800C\u751F\u7684 eSIM \u5957\u9910\u3002", hant: "\u70BA\u6BCF\u4E00\u6BB5\u65C5\u7A0B\u800C\u751F\u7684 eSIM \u5957\u9910\u3002" },
+      lead: {
+        en: "Explore destination-ready profiles, regional bundles, and premium data options with the clarity of a product catalog.",
+        hans: "\u63A2\u7D22\u76EE\u7684\u5730\u5957\u9910\u3001\u533A\u57DF\u7EC4\u5408\u4E0E\u9AD8\u7EA7\u6D41\u91CF\u9009\u9879\uFF0C\u50CF\u5546\u54C1\u76EE\u5F55\u4E00\u6837\u4E00\u76EE\u4E86\u7136\u3002",
+        hant: "\u63A2\u7D22\u76EE\u7684\u5730\u5957\u9910\u3001\u5340\u57DF\u7D44\u5408\u8207\u9AD8\u7D1A\u6D41\u91CF\u9078\u9805\uFF0C\u50CF\u5546\u54C1\u76EE\u9304\u4E00\u6A23\u4E00\u76EE\u4E86\u7136\u3002"
+      },
+      search: { en: "Search destinations or bundles...", hans: "\u641C\u7D22\u76EE\u7684\u5730\u6216\u5957\u9910\u2026", hant: "\u641C\u5C0B\u76EE\u7684\u5730\u6216\u5957\u9910\u2026" },
+      unit: { en: "plans", hans: "\u4E2A\u5957\u9910", hant: "\u500B\u5957\u9910" },
+      empty: { en: "No plans matched the current search.", hans: "\u6CA1\u6709\u7B26\u5408\u5F53\u524D\u641C\u7D22\u7684\u5957\u9910\u3002", hant: "\u6C92\u6709\u7B26\u5408\u7576\u524D\u641C\u5C0B\u7684\u5957\u9910\u3002" },
+      error: { en: "Plans are unavailable right now.", hans: "\u5957\u9910\u6682\u65F6\u65E0\u6CD5\u83B7\u53D6\u3002", hant: "\u5957\u9910\u66AB\u6642\u7121\u6CD5\u53D6\u5F97\u3002" }
+    },
+    all: {
+      eyebrow: { en: "Collection", hans: "\u5168\u90E8\u5546\u54C1", hant: "\u5168\u90E8\u5546\u54C1", ja: "\u30E9\u30A4\u30F3\u30CA\u30C3\u30D7", ko: "\uCEEC\uB809\uC158", fr: "Collection", de: "Kollektion" },
+      heading: { en: "The BOKMOO collection.", hans: "BOKMOO \u5168\u90E8\u5546\u54C1\u3002", hant: "BOKMOO \u5168\u90E8\u5546\u54C1\u3002", ja: "BOKMOO \u306E\u5168\u5546\u54C1\u3002", ko: "BOKMOO \uC804\uCCB4 \uC0C1\uD488.", fr: "La collection BOKMOO.", de: "Die BOKMOO-Kollektion." },
+      lead: {
+        en: "BOKMOO cards and the eSIM plans that run on them.",
+        hans: "BOKMOO \u5B9E\u4F53\u5361\uFF0C\u4EE5\u53CA\u53EF\u4EE5\u5728\u5361\u4E0A\u4F7F\u7528\u7684 eSIM \u5957\u9910\u3002",
+        hant: "BOKMOO \u5BE6\u9AD4\u5361\uFF0C\u4EE5\u53CA\u53EF\u4EE5\u5728\u5361\u4E0A\u4F7F\u7528\u7684 eSIM \u5957\u9910\u3002",
+        ja: "BOKMOO \u30AB\u30FC\u30C9\u3068\u3001\u30AB\u30FC\u30C9\u3067\u4F7F\u3048\u308B eSIM \u30D7\u30E9\u30F3\u3002",
+        ko: "BOKMOO \uCE74\uB4DC\uC640 \uCE74\uB4DC\uC5D0\uC11C \uC4F8 \uC218 \uC788\uB294 eSIM \uC694\uAE08\uC81C.",
+        fr: "Les cartes BOKMOO et les forfaits eSIM qui fonctionnent avec.",
+        de: "BOKMOO-Karten und die eSIM-Tarife, die darauf laufen."
+      },
+      search: { en: "Search cards or plans\u2026", hans: "\u641C\u7D22\u5361\u7247\u6216\u5957\u9910\u2026", hant: "\u641C\u5C0B\u5361\u7247\u6216\u5957\u9910\u2026", ja: "\u30AB\u30FC\u30C9\u307E\u305F\u306F\u30D7\u30E9\u30F3\u3092\u691C\u7D22\u2026", ko: "\uCE74\uB4DC \uB610\uB294 \uC694\uAE08\uC81C \uAC80\uC0C9\u2026", fr: "Rechercher une carte ou un forfait\u2026", de: "Karte oder Tarif suchen\u2026" },
+      unit: { en: "products", hans: "\u4EF6\u5546\u54C1", hant: "\u4EF6\u5546\u54C1", ja: "\u70B9\u306E\u5546\u54C1", ko: "\uAC1C\uC758 \uC0C1\uD488", fr: "produits", de: "Produkte" },
+      empty: { en: "No products matched the current search.", hans: "\u6CA1\u6709\u7B26\u5408\u5F53\u524D\u641C\u7D22\u7684\u5546\u54C1\u3002", hant: "\u6C92\u6709\u7B26\u5408\u7576\u524D\u641C\u5C0B\u7684\u5546\u54C1\u3002", ja: "\u691C\u7D22\u306B\u4E00\u81F4\u3059\u308B\u5546\u54C1\u306F\u3042\u308A\u307E\u305B\u3093\u3002", ko: "\uAC80\uC0C9\uC5B4\uC5D0 \uB9DE\uB294 \uC0C1\uD488\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.", fr: "Aucun produit ne correspond \xE0 la recherche.", de: "Kein Produkt entspricht der Suche." },
+      error: { en: "Products are unavailable right now.", hans: "\u5546\u54C1\u6682\u65F6\u65E0\u6CD5\u83B7\u53D6\u3002", hant: "\u5546\u54C1\u66AB\u6642\u7121\u6CD5\u53D6\u5F97\u3002", ja: "\u5546\u54C1\u3092\u73FE\u5728\u8AAD\u307F\u8FBC\u3081\u307E\u305B\u3093\u3002", ko: "\uC9C0\uAE08\uC740 \uC0C1\uD488\uC744 \uBD88\uB7EC\uC62C \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.", fr: "Les produits sont indisponibles pour le moment.", de: "Produkte sind derzeit nicht verf\xFCgbar." }
+    }
+  };
+  var PREVIOUS_PAGE = { en: "Previous page", hans: "\u4E0A\u4E00\u9875", hant: "\u4E0A\u4E00\u9801", ja: "\u524D\u306E\u30DA\u30FC\u30B8", ko: "\uC774\uC804 \uD398\uC774\uC9C0", fr: "Page pr\xE9c\xE9dente", de: "Vorherige Seite" };
+  var NEXT_PAGE = { en: "Next page", hans: "\u4E0B\u4E00\u9875", hant: "\u4E0B\u4E00\u9801", ja: "\u6B21\u306E\u30DA\u30FC\u30B8", ko: "\uB2E4\uC74C \uD398\uC774\uC9C0", fr: "Page suivante", de: "N\xE4chste Seite" };
+  var CARD_EYEBROW = { en: "Physical eSIM card", hans: "\u5B9E\u4F53 eSIM \u5361", hant: "\u5BE6\u9AD4 eSIM \u5361", ja: "\u7269\u7406 eSIM \u30AB\u30FC\u30C9", ko: "\uBB3C\uB9AC eSIM \uCE74\uB4DC", fr: "Carte eSIM physique", de: "Physische eSIM-Karte" };
+  var VIEW_CARD = { en: "View card", hans: "\u67E5\u770B\u5361\u7247", hant: "\u67E5\u770B\u5361\u7247", ja: "\u30AB\u30FC\u30C9\u3092\u898B\u308B", ko: "\uCE74\uB4DC \uBCF4\uAE30", fr: "Voir la carte", de: "Karte ansehen" };
+  function languageOf(locale) {
+    if (locale === "zh-Hans") return "hans";
+    if (locale === "zh-Hant") return "hant";
+    if (locale === "ja" || locale === "ko" || locale === "fr" || locale === "de") return locale;
+    return "en";
+  }
+  var PAGE_LABEL = {
+    en: (page, total) => `Page ${page} of ${total}`,
+    hans: (page, total) => `\u7B2C ${page} / ${total} \u9875`,
+    hant: (page, total) => `\u7B2C ${page} / ${total} \u9801`,
+    ja: (page, total) => `${page} / ${total} \u30DA\u30FC\u30B8`,
+    ko: (page, total) => `${page} / ${total} \uD398\uC774\uC9C0`,
+    fr: (page, total) => `Page ${page} sur ${total}`,
+    de: (page, total) => `Seite ${page} von ${total}`
+  };
+  function isCard(item) {
+    return item.productKind === "goods";
+  }
+  function inAssortment(item, assortment) {
+    if (assortment === "cards") return isCard(item);
+    if (assortment === "plans") return !isCard(item);
+    return true;
+  }
   function getProductImage(product) {
     if (!product?.images?.length) return null;
     const primary = product.images.find((image) => image.isMain) || product.images[0];
@@ -14385,30 +14470,55 @@
     if (filter2 === "Local") return Boolean(country && (!region || region === country || !region.includes("global")));
     return true;
   }
+  function sellablePrice(product) {
+    const prices = (product.variants || []).map((variant) => Number(variant.salePrice || variant.price || 0)).filter((price) => price > 0);
+    const listPrice = Number(product.price || 0);
+    return prices.length > 0 ? Math.min(listPrice > 0 ? listPrice : Number.POSITIVE_INFINITY, ...prices) : listPrice;
+  }
+  function sortProducts(products, sortBy, priceOf, changedAt) {
+    const sorted = [...products];
+    if (sortBy === "price") {
+      sorted.sort((a, b) => priceOf(a) - priceOf(b));
+    } else if (sortBy === "name") {
+      sorted.sort((a, b) => displayProductTitle(a.name).localeCompare(displayProductTitle(b.name)));
+    } else if (sortBy === "createdAt") {
+      sorted.sort((a, b) => changedAt(b).localeCompare(changedAt(a)));
+    }
+    return sorted;
+  }
+  function cardSummary(description) {
+    const paragraph = String(description || "").split(/\n\s*\n/)[0].replace(/\s+/g, " ").trim();
+    if (paragraph.length <= 150) return paragraph;
+    return `${paragraph.slice(0, 149).replace(/\s+\S*$/, "")}\u2026`;
+  }
   function ProductMedia({ product, apiBaseUrl }) {
     const image = resolveBokmooMediaUrl(getProductImage(product), apiBaseUrl);
     const profile = getBokmooTravelProfile(product);
+    const card = isCard(product);
     if (image) {
       return /* @__PURE__ */ jsx(
         "img",
         {
           src: image,
           alt: displayProductTitle(product.name),
-          className: "h-full w-full object-cover"
+          className: "h-full w-full object-cover",
+          loading: "lazy"
         }
       );
     }
-    return /* @__PURE__ */ jsxs("div", { className: "flex h-full w-full flex-col justify-between bg-[linear-gradient(160deg,color-mix(in_oklab,var(--bokmoo-gold)_12%,transparent),transparent_55%),linear-gradient(180deg,var(--bokmoo-bg-soft),var(--bokmoo-bg))] p-5", children: [
-      /* @__PURE__ */ jsxs("div", { className: "flex items-start justify-between gap-3", children: [
+    return /* @__PURE__ */ jsxs("div", { className: "flex h-full w-full flex-col justify-between bg-[linear-gradient(160deg,color-mix(in_oklab,var(--bokmoo-gold)_12%,transparent),transparent_55%),linear-gradient(180deg,var(--bokmoo-bg-elevated),var(--bokmoo-bg))] p-5", children: [
+      card ? null : /* @__PURE__ */ jsxs("div", { className: "flex items-start justify-between gap-3", children: [
         /* @__PURE__ */ jsx("span", { className: "rounded-full border border-[var(--bokmoo-line)] px-3 py-1 text-[10px] tracking-[0.2em] text-[var(--bokmoo-gold)]", children: profile.cardEyebrow }),
         /* @__PURE__ */ jsx("span", { className: "rounded-full border border-[var(--bokmoo-line)] px-3 py-1 text-[10px] tracking-[0.16em] text-[var(--bokmoo-copy)]", children: profile.planBadge })
       ] }),
       /* @__PURE__ */ jsxs("div", { children: [
         /* @__PURE__ */ jsx("p", { className: "text-sm tracking-[0.22em] text-[var(--bokmoo-copy-soft)]", children: "BOKMOO" }),
-        /* @__PURE__ */ jsx("p", { className: "mt-3 text-2xl leading-[0.98] tracking-[-0.04em] text-[var(--bokmoo-ink)]", children: profile.coverageLabel })
+        /* @__PURE__ */ jsx("p", { className: "mt-3 text-2xl leading-[0.98] tracking-[-0.04em] text-[var(--bokmoo-ink)]", children: card ? displayProductTitle(product.name) : profile.coverageLabel })
       ] })
     ] });
   }
+  var ARTICLE_CLASS = "overflow-hidden rounded-[1.35rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_14%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg-elevated)_82%,black)] shadow-[var(--bokmoo-shadow)] transition-transform duration-300 hover:-translate-y-1 sm:rounded-[var(--bokmoo-radius-xl)]";
+  var GOLD_BUTTON_CLASS = "mt-4 w-full rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_65%,black))] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-bg)]";
   var ProductsPage = react_default.memo(function ProductsPage2({
     products,
     isLoading,
@@ -14419,93 +14529,96 @@
     viewMode,
     onSortChange,
     onViewModeChange,
-    onPageChange,
     onAddToCart,
     onProductClick,
-    onSearch,
     config,
     locale
   }) {
     const sales = useActiveSales(locale);
-    const [searchQuery, setSearchQuery] = react_default.useState("");
-    const [activeSearch, setActiveSearch] = react_default.useState("");
-    const [remoteProducts, setRemoteProducts] = react_default.useState([]);
+    const assortment = resolveBokmooSiteConfig(config, locale).catalogProducts;
+    const wholeCatalog = assortment !== "plans";
+    const t = (copy2) => pickCopy(locale, copy2);
+    const copy = ASSORTMENT_COPY[assortment];
+    const apiBaseUrl = resolveBokmooSiteConfig(config, locale).apiBaseUrl;
+    const listRef = react_default.useRef(null);
+    const readId = react_default.useRef(0);
+    const [activeSearch, setActiveSearch] = react_default.useState(() => typeof window === "undefined" ? "" : new URLSearchParams(window.location.search).get("q")?.trim() ?? "");
+    const [searchQuery, setSearchQuery] = react_default.useState(activeSearch);
+    const [remoteItems, setRemoteItems] = react_default.useState([]);
     const [remoteTotal, setRemoteTotal] = react_default.useState(0);
-    const [remoteTotalPages, setRemoteTotalPages] = react_default.useState(1);
     const [remoteLoading, setRemoteLoading] = react_default.useState(false);
     const [remoteError, setRemoteError] = react_default.useState("");
     const [selectedFilter, setSelectedFilter] = react_default.useState("All");
-    const site = resolveBokmooSiteConfig(config);
-    const t = (copy) => pickCopy(locale, copy);
+    const [page, setPage] = react_default.useState(currentPage || 1);
+    const pageToRead = wholeCatalog ? 1 : page;
+    const load = react_default.useCallback(async () => {
+      const id3 = ++readId.current;
+      setRemoteLoading(true);
+      setRemoteError("");
+      try {
+        const response = wholeCatalog ? await getBokmooCatalog({ baseUrl: apiBaseUrl }, { locale: locale || "en" }) : await getBokmooProducts({ baseUrl: apiBaseUrl }, { page: pageToRead, limit: PAGE_SIZE, locale: locale || "en", type: "esim" });
+        if (id3 !== readId.current) return;
+        setRemoteItems(response.items.filter((item) => inAssortment(item, assortment)));
+        setRemoteTotal(Number(response.total || 0));
+      } catch (error) {
+        if (id3 !== readId.current) return;
+        setRemoteError(error instanceof Error ? error.message : t(copy.error));
+        setRemoteItems([]);
+        setRemoteTotal(0);
+      } finally {
+        if (id3 === readId.current) setRemoteLoading(false);
+      }
+    }, [apiBaseUrl, locale, wholeCatalog, assortment, pageToRead]);
+    react_default.useEffect(() => {
+      void load();
+    }, [load]);
+    const usingRemote = remoteItems.length > 0;
+    const need = activeSearch.trim().toLowerCase();
+    const scoped = react_default.useMemo(() => {
+      if (!usingRemote) {
+        return products.filter(
+          (product) => inAssortment(product, assortment) && (!need || productText(product).includes(need)) && (assortment === "cards" || matchesCatalogFilter(product, selectedFilter))
+        );
+      }
+      const items = remoteItems.filter(
+        (item) => (!need || productText(item).includes(need)) && (assortment === "cards" || matchesCatalogFilter(item, selectedFilter))
+      );
+      return sortProducts(items, sortBy, sellablePrice, (item) => String(item.sourceUpdatedAt || ""));
+    }, [usingRemote, products, remoteItems, need, selectedFilter, assortment, sortBy]);
+    const source = usingRemote ? "remote" : "host";
+    const displayTotal = source === "remote" ? wholeCatalog ? scoped.length : remoteTotal : totalProducts;
+    const displayTotalPages = Math.max(1, Math.ceil(displayTotal / PAGE_SIZE), source === "host" ? totalPages : 1);
+    const pageShown = Math.min(page, displayTotalPages);
+    const pageItems = wholeCatalog ? scoped.slice((pageShown - 1) * PAGE_SIZE, pageShown * PAGE_SIZE) : scoped;
     const normalizedProducts = react_default.useMemo(
-      () => (remoteProducts.length > 0 ? remoteProducts : products).map(
-        (product) => normalizeProductForTheme(product)
-      ),
-      [products, remoteProducts]
+      () => pageItems.map((item) => normalizeProductForTheme(usingRemote ? mapBokmooApiProductToThemeProduct(item) : item)),
+      [pageItems, usingRemote]
     );
     const submitSearch = (event) => {
       event.preventDefault();
-      if (onSearch) {
-        onSearch(searchQuery.trim());
-        return;
-      }
       setActiveSearch(searchQuery.trim());
+      setPage(1);
     };
-    const loadRemoteProducts = react_default.useCallback(
-      async (search = "") => {
-        setRemoteLoading(true);
-        setRemoteError("");
-        try {
-          const response = await getBokmooProducts(
-            {
-              baseUrl: site.apiBaseUrl
-            },
-            {
-              page: currentPage || 1,
-              limit: 12,
-              locale: locale || "en",
-              type: "esim"
-            }
-          );
-          const filteredItems = search ? response.items.filter(
-            (item) => productText(item).includes(search.toLowerCase())
-          ) : response.items;
-          const scopedItems = filteredItems.filter((item) => matchesCatalogFilter(item, selectedFilter));
-          const isLocalScope = Boolean(search || selectedFilter !== "All");
-          setRemoteProducts(scopedItems.map(mapBokmooApiProductToThemeProduct));
-          setRemoteTotal(isLocalScope ? scopedItems.length : Number(response.total || scopedItems.length || 0));
-          setRemoteTotalPages(Math.max(1, Math.ceil((isLocalScope ? scopedItems.length : Number(response.total || scopedItems.length || 0)) / 12)));
-        } catch (error) {
-          const message = error instanceof Error ? error.message : "Unable to load Bokmoo plans.";
-          setRemoteError(message);
-          setRemoteProducts([]);
-          setRemoteTotal(0);
-          setRemoteTotalPages(1);
-        } finally {
-          setRemoteLoading(false);
-        }
-      },
-      [currentPage, locale, selectedFilter, site.apiBaseUrl]
-    );
-    react_default.useEffect(() => {
-      if (products.length > 0) return;
-      void loadRemoteProducts(activeSearch);
-    }, [activeSearch, loadRemoteProducts, products.length]);
+    const goToPage = (next) => {
+      const target = Math.max(1, Math.min(displayTotalPages, next));
+      if (target === pageShown) return;
+      setPage(target);
+      const list = listRef.current;
+      if (list) window.scrollTo({ top: list.getBoundingClientRect().top + window.scrollY - 110, behavior: "smooth" });
+    };
     if (isLoading || remoteLoading && normalizedProducts.length === 0) {
       return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-[var(--bokmoo-bg)]" });
     }
-    const displayTotal = remoteProducts.length > 0 ? remoteTotal : totalProducts;
-    const displayTotalPages = remoteProducts.length > 0 ? remoteTotalPages : totalPages;
     return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-[radial-gradient(circle_at_top_right,color-mix(in_oklab,var(--bokmoo-gold)_10%,transparent),transparent_34%),var(--bokmoo-bg)] px-4 pb-24 pt-16 sm:px-6 sm:pt-20 lg:px-8", children: /* @__PURE__ */ jsxs("div", { className: "mx-auto max-w-[1280px]", children: [
       /* @__PURE__ */ jsxs("section", { className: "rounded-[1.45rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_20%,var(--bokmoo-line))] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_10%,transparent),transparent_34%),color-mix(in_oklab,var(--bokmoo-bg-elevated)_76%,black)] p-5 shadow-[var(--bokmoo-shadow)] sm:rounded-[var(--bokmoo-radius-xl)] sm:p-8", children: [
         /* @__PURE__ */ jsxs("div", { className: "flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between", children: [
           /* @__PURE__ */ jsxs("div", { className: "max-w-2xl", children: [
             /* @__PURE__ */ jsxs("div", { className: "inline-flex items-center gap-2 rounded-full border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--bokmoo-copy)]", children: [
               /* @__PURE__ */ jsx(ShieldCheck, { className: "h-4 w-4 text-[var(--bokmoo-gold)]" }),
-              t({ en: "Plan collection", hans: "\u5957\u9910\u96C6\u5408", hant: "\u5957\u9910\u96C6\u5408" })
+              t(copy.eyebrow)
             ] }),
-            /* @__PURE__ */ jsx("h1", { className: "mt-5 text-[clamp(2.3rem,5vw,4.6rem)] leading-[0.95] tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: t({ en: "eSIM plans built for every journey.", hans: "\u4E3A\u6BCF\u4E00\u6BB5\u65C5\u7A0B\u800C\u751F\u7684 eSIM \u5957\u9910\u3002", hant: "\u70BA\u6BCF\u4E00\u6BB5\u65C5\u7A0B\u800C\u751F\u7684 eSIM \u5957\u9910\u3002" }) }),
-            /* @__PURE__ */ jsx("p", { className: "mt-4 text-base leading-7 text-[var(--bokmoo-copy)]", children: t({ en: "Explore destination-ready profiles, regional bundles, and premium data options with the clarity of a product catalog.", hans: "\u63A2\u7D22\u76EE\u7684\u5730\u5957\u9910\u3001\u533A\u57DF\u7EC4\u5408\u4E0E\u9AD8\u7EA7\u6D41\u91CF\u9009\u9879\uFF0C\u50CF\u5546\u54C1\u76EE\u5F55\u4E00\u6837\u4E00\u76EE\u4E86\u7136\u3002", hant: "\u63A2\u7D22\u76EE\u7684\u5730\u5957\u9910\u3001\u5340\u57DF\u7D44\u5408\u8207\u9AD8\u7D1A\u6D41\u91CF\u9078\u9805\uFF0C\u50CF\u5546\u54C1\u76EE\u9304\u4E00\u6A23\u4E00\u76EE\u4E86\u7136\u3002" }) })
+            /* @__PURE__ */ jsx("h1", { className: "mt-5 text-[clamp(2.3rem,5vw,4.6rem)] leading-[0.95] tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: t(copy.heading) }),
+            /* @__PURE__ */ jsx("p", { className: "mt-4 text-base leading-7 text-[var(--bokmoo-copy)]", children: t(copy.lead) })
           ] }),
           /* @__PURE__ */ jsxs("div", { className: "grid gap-3 sm:grid-cols-[minmax(16rem,1fr)_auto_auto] lg:min-w-[34rem]", children: [
             /* @__PURE__ */ jsxs("form", { onSubmit: submitSearch, className: "relative", children: [
@@ -14515,7 +14628,8 @@
                 {
                   value: searchQuery,
                   onChange: (event) => setSearchQuery(event.target.value),
-                  placeholder: t({ en: "Search destinations or bundles...", hans: "\u641C\u7D22\u76EE\u7684\u5730\u6216\u5957\u9910\u2026", hant: "\u641C\u5C0B\u76EE\u7684\u5730\u6216\u5957\u9910\u2026" }),
+                  placeholder: t(copy.search),
+                  "aria-label": t(copy.search),
                   className: "h-12 w-full rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] pl-11 pr-4 text-sm text-[var(--bokmoo-ink)] outline-none placeholder:text-[var(--bokmoo-copy-soft)] sm:rounded-full"
                 }
               )
@@ -14525,6 +14639,7 @@
               {
                 value: sortBy,
                 onChange: (event) => onSortChange(event.target.value),
+                "aria-label": SORT_LABELS[sortBy] ? t(SORT_LABELS[sortBy]) : t(SORT_LABELS.createdAt),
                 className: "h-12 rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] px-4 text-sm font-medium text-[var(--bokmoo-ink)] outline-none sm:rounded-full",
                 children: [
                   /* @__PURE__ */ jsx("option", { value: "createdAt", children: t(SORT_LABELS.createdAt) }),
@@ -14562,10 +14677,13 @@
           ] })
         ] }),
         /* @__PURE__ */ jsxs("div", { className: "mt-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between", children: [
-          /* @__PURE__ */ jsx("div", { className: "flex flex-wrap gap-2", children: CATALOG_FILTERS.map((filter2) => /* @__PURE__ */ jsx(
+          assortment === "cards" ? /* @__PURE__ */ jsx("div", {}) : /* @__PURE__ */ jsx("div", { className: "flex flex-wrap gap-2", children: CATALOG_FILTERS.map((filter2) => /* @__PURE__ */ jsx(
             "button",
             {
-              onClick: () => setSelectedFilter(filter2),
+              onClick: () => {
+                setSelectedFilter(filter2);
+                setPage(1);
+              },
               className: cn2(
                 "rounded-[0.8rem] border px-4 py-2 text-[11px] font-semibold transition-colors",
                 selectedFilter === filter2 ? "border-[var(--bokmoo-line-strong)] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_88%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] text-[var(--bokmoo-bg)]" : "border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] text-[var(--bokmoo-copy)]"
@@ -14576,47 +14694,100 @@
             filter2
           )) }),
           /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap gap-2", children: [
-            /* @__PURE__ */ jsxs("span", { className: "rounded-[0.8rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] px-4 py-2 text-[11px] font-semibold text-[var(--bokmoo-copy)]", children: [
-              displayTotal,
-              " ",
-              t({ en: "plans", hans: "\u4E2A\u5957\u9910", hant: "\u500B\u5957\u9910" })
-            ] }),
-            /* @__PURE__ */ jsx("span", { className: "rounded-[0.8rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] px-4 py-2 text-[11px] font-semibold text-[var(--bokmoo-copy)]", children: t({ en: "Instant eSIM delivery", hans: "eSIM \u5373\u65F6\u9001\u8FBE", hant: "eSIM \u5373\u6642\u9001\u9054" }) })
+            /* @__PURE__ */ jsxs(
+              "span",
+              {
+                className: "rounded-[0.8rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] px-4 py-2 text-[11px] font-semibold text-[var(--bokmoo-copy)]",
+                "data-purpose": "catalog-count",
+                children: [
+                  displayTotal,
+                  " ",
+                  t(copy.unit)
+                ]
+              }
+            ),
+            assortment === "plans" || assortment === "all" ? /* @__PURE__ */ jsx("span", { className: "rounded-[0.8rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] px-4 py-2 text-[11px] font-semibold text-[var(--bokmoo-copy)]", children: t({ en: "Instant eSIM delivery", hans: "eSIM \u5373\u65F6\u9001\u8FBE", hant: "eSIM \u5373\u6642\u9001\u9054" }) }) : null
           ] })
         ] })
       ] }),
-      /* @__PURE__ */ jsx("section", { className: "mt-8", children: remoteError && normalizedProducts.length === 0 ? /* @__PURE__ */ jsxs("div", { className: "rounded-[var(--bokmoo-radius-xl)] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] p-10 text-center shadow-[var(--bokmoo-shadow)]", children: [
-        /* @__PURE__ */ jsx("p", { className: "text-xl font-semibold text-[var(--bokmoo-ink)]", children: t({ en: "Plans are unavailable right now.", hans: "\u5957\u9910\u6682\u65F6\u65E0\u6CD5\u83B7\u53D6\u3002", hant: "\u5957\u9910\u66AB\u6642\u7121\u6CD5\u7372\u53D6\u3002" }) }),
+      /* @__PURE__ */ jsx("section", { className: "mt-8", ref: listRef, children: remoteError && normalizedProducts.length === 0 ? /* @__PURE__ */ jsxs("div", { className: "rounded-[var(--bokmoo-radius-xl)] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] p-10 text-center shadow-[var(--bokmoo-shadow)]", children: [
+        /* @__PURE__ */ jsx("p", { className: "text-xl font-semibold text-[var(--bokmoo-ink)]", children: t(copy.error) }),
         /* @__PURE__ */ jsx("p", { className: "mx-auto mt-3 max-w-xl text-sm leading-6 text-[var(--bokmoo-copy)]", children: remoteError }),
         /* @__PURE__ */ jsx(
           "button",
           {
-            onClick: () => void loadRemoteProducts(searchQuery.trim()),
+            onClick: () => void load(),
             className: "mt-6 min-h-11 rounded-[0.9rem] bg-[var(--bokmoo-gold)] px-5 text-sm font-semibold text-[var(--bokmoo-bg)]",
             type: "button",
-            children: t({ en: "Try Again", hans: "\u91CD\u8BD5", hant: "\u91CD\u8A66" })
+            children: t({ en: "Try Again", hans: "\u91CD\u8BD5", hant: "\u91CD\u8A66", ja: "\u3082\u3046\u4E00\u5EA6\u8A66\u3059", ko: "\uB2E4\uC2DC \uC2DC\uB3C4", fr: "R\xE9essayer", de: "Erneut versuchen" })
           }
         )
-      ] }) : normalizedProducts.length === 0 ? /* @__PURE__ */ jsx("div", { className: "rounded-[var(--bokmoo-radius-xl)] border border-dashed border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] p-16 text-center text-[var(--bokmoo-copy)]", children: t({ en: "No plans matched the current search.", hans: "\u6CA1\u6709\u7B26\u5408\u5F53\u524D\u641C\u7D22\u7684\u5957\u9910\u3002", hant: "\u6C92\u6709\u7B26\u5408\u7576\u524D\u641C\u5C0B\u7684\u5957\u9910\u3002" }) }) : /* @__PURE__ */ jsx(
+      ] }) : normalizedProducts.length === 0 ? /* @__PURE__ */ jsx("div", { className: "rounded-[var(--bokmoo-radius-xl)] border border-dashed border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] p-16 text-center text-[var(--bokmoo-copy)]", children: t(copy.empty) }) : /* @__PURE__ */ jsx(
         "div",
         {
           className: cn2(
             "grid gap-3 sm:gap-4",
             viewMode === "grid" ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3" : "grid-cols-1"
           ),
+          "data-purpose": "catalog-grid",
           children: normalizedProducts.map((product) => {
-            const profile = getBokmooTravelProfile(product);
-            const variantSalePrices = (Array.isArray(product.variants) ? product.variants : []).map((variant) => Number(variant.salePrice ?? variant.price ?? 0)).filter((price) => price > 0);
-            const listPrice = Number(product.price || 0);
-            const displayPrice = variantSalePrices.length > 0 ? Math.min(listPrice > 0 ? listPrice : Number.POSITIVE_INFINITY, ...variantSalePrices) : listPrice;
+            const card = isCard(product);
+            const media = /* @__PURE__ */ jsx(
+              "div",
+              {
+                className: cn2(
+                  "overflow-hidden border-[var(--bokmoo-line)]",
+                  viewMode === "grid" ? "aspect-[1.28/1] border-b sm:aspect-[1.18/1]" : "aspect-[1.45/1] rounded-[1rem] border md:aspect-auto md:h-full md:rounded-[var(--bokmoo-radius-lg)]"
+                ),
+                children: /* @__PURE__ */ jsx(ProductMedia, { product, apiBaseUrl })
+              }
+            );
             const sale = saleFor(sales, product.id);
+            if (card) {
+              return /* @__PURE__ */ jsxs(
+                "article",
+                {
+                  className: cn2(
+                    ARTICLE_CLASS,
+                    viewMode === "list" && "grid gap-4 p-4 md:grid-cols-[14rem_minmax(0,1fr)_12rem] md:items-center md:gap-5 md:p-5"
+                  ),
+                  "data-purpose": "catalog-card",
+                  children: [
+                    /* @__PURE__ */ jsxs(
+                      "button",
+                      {
+                        onClick: () => onProductClick(product.id),
+                        className: cn2(viewMode === "grid" ? "block text-left" : "contents"),
+                        type: "button",
+                        children: [
+                          media,
+                          /* @__PURE__ */ jsxs("div", { className: cn2(viewMode === "grid" ? "p-5" : "min-w-0"), children: [
+                            /* @__PURE__ */ jsx("span", { className: "rounded-full border border-[var(--bokmoo-line)] px-3 py-1 text-[10px] tracking-[0.18em] text-[var(--bokmoo-gold)]", children: t(CARD_EYEBROW) }),
+                            /* @__PURE__ */ jsx("h2", { className: "mt-4 text-[clamp(1.7rem,2vw,2.4rem)] leading-[1] tracking-[-0.04em] text-[var(--bokmoo-ink)]", children: displayProductTitle(product.name) }),
+                            /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm leading-6 text-[var(--bokmoo-copy)]", children: cardSummary(product.description) })
+                          ] })
+                        ]
+                      }
+                    ),
+                    /* @__PURE__ */ jsx("div", { className: cn2(viewMode === "grid" ? "px-5 pb-5" : "md:w-[12rem]"), children: /* @__PURE__ */ jsxs("div", { className: "rounded-[1rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_90%,black)] p-4", children: [
+                      /* @__PURE__ */ jsx("p", { className: "text-3xl font-semibold tracking-[-0.04em] text-[var(--bokmoo-ink)]", children: /* @__PURE__ */ jsx(SalePrice, { unitPrice: Number(Number.isFinite(Number(product.price)) ? Number(product.price) : 0), sale }) }),
+                      /* @__PURE__ */ jsx("button", { onClick: () => onProductClick(product.id), className: GOLD_BUTTON_CLASS, type: "button", children: t(VIEW_CARD) })
+                    ] }) })
+                  ]
+                },
+                product.id
+              );
+            }
+            const profile = getBokmooTravelProfile(product);
+            const displayPrice = sellablePrice(product);
             return /* @__PURE__ */ jsxs(
               "article",
               {
                 className: cn2(
-                  "overflow-hidden rounded-[1.35rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_14%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg-elevated)_82%,black)] shadow-[var(--bokmoo-shadow)] transition-transform duration-300 hover:-translate-y-1 sm:rounded-[var(--bokmoo-radius-xl)]",
+                  ARTICLE_CLASS,
                   viewMode === "list" && "grid gap-4 p-4 md:grid-cols-[14rem_minmax(0,1fr)_12rem] md:items-center md:gap-5 md:p-5"
                 ),
+                "data-purpose": "catalog-plan",
                 children: [
                   /* @__PURE__ */ jsxs(
                     "button",
@@ -14625,16 +14796,7 @@
                       className: cn2(viewMode === "grid" ? "block text-left" : "contents"),
                       type: "button",
                       children: [
-                        /* @__PURE__ */ jsx(
-                          "div",
-                          {
-                            className: cn2(
-                              "overflow-hidden border-[var(--bokmoo-line)]",
-                              viewMode === "grid" ? "aspect-[1.28/1] border-b sm:aspect-[1.18/1]" : "aspect-[1.45/1] rounded-[1rem] border md:aspect-auto md:h-full md:rounded-[var(--bokmoo-radius-lg)]"
-                            ),
-                            children: /* @__PURE__ */ jsx(ProductMedia, { product, apiBaseUrl: site.apiBaseUrl })
-                          }
-                        ),
+                        media,
                         /* @__PURE__ */ jsxs("div", { className: cn2(viewMode === "grid" ? "p-5" : "min-w-0"), children: [
                           /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap items-center gap-2", children: [
                             /* @__PURE__ */ jsx("span", { className: "rounded-full border border-[var(--bokmoo-line)] px-3 py-1 text-[10px] tracking-[0.18em] text-[var(--bokmoo-gold)]", children: profile.cardEyebrow }),
@@ -14669,7 +14831,7 @@
                       "button",
                       {
                         onClick: () => onAddToCart(product.id),
-                        className: "mt-4 w-full rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_65%,black))] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-bg)]",
+                        className: GOLD_BUTTON_CLASS,
                         type: "button",
                         children: t({ en: "Buy Now", hans: "\u7ACB\u5373\u8D2D\u4E70", hant: "\u7ACB\u5373\u8CFC\u8CB7" })
                       }
@@ -14682,35 +14844,46 @@
           })
         }
       ) }),
-      displayTotalPages > 1 ? /* @__PURE__ */ jsxs("nav", { className: "mt-10 flex items-center justify-center gap-2", children: [
-        /* @__PURE__ */ jsx(
-          "button",
-          {
-            onClick: () => onPageChange(Math.max(1, currentPage - 1)),
-            disabled: currentPage <= 1,
-            className: "flex h-11 w-11 items-center justify-center rounded-full border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] text-[var(--bokmoo-ink)] disabled:opacity-40",
-            type: "button",
-            children: /* @__PURE__ */ jsx(ChevronLeft, { className: "h-4 w-4" })
-          }
-        ),
-        /* @__PURE__ */ jsxs("span", { className: "rounded-full border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] px-5 py-3 text-[11px] font-semibold tracking-[0.18em] text-[var(--bokmoo-copy)]", children: [
-          t({ en: "Page", hans: "\u7B2C", hant: "\u7B2C" }),
-          " ",
-          currentPage,
-          " / ",
-          displayTotalPages
-        ] }),
-        /* @__PURE__ */ jsx(
-          "button",
-          {
-            onClick: () => onPageChange(Math.min(displayTotalPages, currentPage + 1)),
-            disabled: currentPage >= displayTotalPages,
-            className: "flex h-11 w-11 items-center justify-center rounded-full border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] text-[var(--bokmoo-ink)] disabled:opacity-40",
-            type: "button",
-            children: /* @__PURE__ */ jsx(ChevronRight, { className: "h-4 w-4" })
-          }
-        )
-      ] }) : null
+      displayTotalPages > 1 ? /* @__PURE__ */ jsxs(
+        "nav",
+        {
+          className: "mt-10 flex items-center justify-center gap-2",
+          "aria-label": t({ en: "Catalog pages", hans: "\u76EE\u5F55\u9875\u7801", hant: "\u76EE\u9304\u9801\u78BC", ja: "\u30AB\u30BF\u30ED\u30B0\u306E\u30DA\u30FC\u30B8", ko: "\uCE74\uD0C8\uB85C\uADF8 \uD398\uC774\uC9C0", fr: "Pages du catalogue", de: "Katalogseiten" }),
+          "data-purpose": "catalog-pager",
+          children: [
+            /* @__PURE__ */ jsx(
+              "button",
+              {
+                onClick: () => goToPage(pageShown - 1),
+                disabled: pageShown <= 1,
+                "aria-label": t(PREVIOUS_PAGE),
+                className: "flex h-11 w-11 items-center justify-center rounded-full border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] text-[var(--bokmoo-ink)] disabled:opacity-40",
+                type: "button",
+                children: /* @__PURE__ */ jsx(ChevronLeft, { className: "h-4 w-4" })
+              }
+            ),
+            /* @__PURE__ */ jsx(
+              "span",
+              {
+                className: "rounded-full border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] px-5 py-3 text-[11px] font-semibold tracking-[0.18em] text-[var(--bokmoo-copy)]",
+                "data-purpose": "catalog-page-label",
+                children: PAGE_LABEL[languageOf(locale)](pageShown, displayTotalPages)
+              }
+            ),
+            /* @__PURE__ */ jsx(
+              "button",
+              {
+                onClick: () => goToPage(pageShown + 1),
+                disabled: pageShown >= displayTotalPages,
+                "aria-label": t(NEXT_PAGE),
+                className: "flex h-11 w-11 items-center justify-center rounded-full border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] text-[var(--bokmoo-ink)] disabled:opacity-40",
+                type: "button",
+                children: /* @__PURE__ */ jsx(ChevronRight, { className: "h-4 w-4" })
+              }
+            )
+          ]
+        }
+      ) : null
     ] }) });
   });
 
@@ -18558,7 +18731,8 @@
         promoPoster: "/extensions/media/promo/v3/bokmoo-promo-poster-1280.jpg",
         promoMutedVideo: "/extensions/media/promo/v3/bokmoo-promo-720p-muted.mp4",
         promoMutedVideoSmall: "/extensions/media/promo/v3/bokmoo-promo-540p-muted.mp4",
-        promoSoundVideo: "/extensions/media/promo/v3/bokmoo-promo-720p.mp4"
+        promoSoundVideo: "/extensions/media/promo/v3/bokmoo-promo-720p.mp4",
+        catalogProducts: "cards"
       }
     }
   };
@@ -19282,7 +19456,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.66",
+      version: "1.1.67",
       target: "shop"
     }
   };

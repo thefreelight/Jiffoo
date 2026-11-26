@@ -102,6 +102,13 @@
           "title": "Promo Film — Video with Sound (URL)",
           "description": "The home page film with its narration, loaded when the visitor asks for sound.",
           "default": "/extensions/media/promo/v3/bokmoo-promo-720p.mp4"
+        },
+        "catalogProducts": {
+          "type": "string",
+          "title": "Catalog Page Lists",
+          "description": "What the catalog page shows: cards (physical products only), plans (data plans only) or all.",
+          "enum": ["cards", "plans", "all"],
+          "default": "cards"
         }
       }
     }
