@@ -34,6 +34,8 @@ function adminDb(initial: Record<string, unknown>) {
           updates.push({ sql, values });
           return { success: true, meta: { changes: row ? 1 : 0 } };
         },
+        // no products picked for the code: it applies to everything
+        all: async () => ({ results: [] }),
       }),
       first: async () => null,
       run: async () => ({ success: true, meta: { changes: 0 } }),
@@ -114,6 +116,7 @@ describe('affiliate partner buyer discount', () => {
     expect(fixedPayload.data).toEqual({
       valid: true, code: 'CREATOR5', partnerName: 'Creator',
       discountType: 'fixed_amount', discountValue: 5, discountRate: 0,
+      scopeMode: 'all', scopeProductIds: [],
     });
 
     const percent = adminDb(partner);
