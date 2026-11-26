@@ -19,6 +19,7 @@ import { pickCopy } from '../site';
 import { getBokmooTravelProfile } from '../lib/digital-fulfillment';
 import { resolveBokmooSiteConfig } from '../site';
 import { saleFor, saleUnitPrice, useActiveSales } from '../lib/sale';
+import { cardDescription, cardKindOf, cardName } from '../lib/card-copy';
 import { SalePrice } from './SalePrice';
 
 function getProductImage(product: Product | null): string | null {
@@ -53,9 +54,14 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
   );
   const profile = React.useMemo(() => getBokmooTravelProfile(normalizedProduct), [normalizedProduct]);
   const isGoodsProduct = normalizedProduct?.productKind === 'goods';
-  // Only claim Bluetooth/app-profile management when the catalog copy itself
-  // describes it; the basic card ships with generic physical-card copy.
-  const isBluetoothCard = isGoodsProduct && /bluetooth|蓝牙/i.test(normalizedProduct?.description || '');
+  // Claim Bluetooth/app-profile management for the Bluetooth card — known by its id, so it still holds
+  // when the description is shown in another language — or when the catalog copy itself describes it;
+  // the basic card ships with generic physical-card copy.
+  const isBluetoothCard = isGoodsProduct
+    && (cardKindOf(normalizedProduct) === 'bluetooth' || /bluetooth|蓝牙/i.test(normalizedProduct?.description || ''));
+  // The card's name and description in the storefront language, where the catalog's English has a translation.
+  const shownName = (normalizedProduct && cardName(normalizedProduct, locale)) || normalizedProduct?.name;
+  const shownDescription = (normalizedProduct && cardDescription(normalizedProduct, locale)) || normalizedProduct?.description;
   const goodsSubtitle = isBluetoothCard
     ? { en: 'Physical Bluetooth card — manage multiple eSIM profiles with the BOKMOO app', hans: '实体蓝牙卡，搭配 BOKMOO App 管理多个 eSIM 套餐', hant: '實體藍牙卡，搭配 BOKMOO App 管理多個 eSIM 設定檔' }
     : { en: 'Physical card — works with the BOKMOO app', hans: '实体卡，搭配 BOKMOO App 使用', hant: '實體卡，搭配 BOKMOO App 使用' };
@@ -92,9 +98,9 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
   // SSR metadata still carries the raw catalog name until the next worker
   // deploy; keep the visible tab title on the cleaned storefront name.
   React.useEffect(() => {
-    if (!normalizedProduct?.name) return;
-    document.title = `${normalizedProduct.name} | ${site.brandName}`;
-  }, [normalizedProduct?.name, site.brandName]);
+    if (!shownName) return;
+    document.title = `${shownName} | ${site.brandName}`;
+  }, [shownName, site.brandName]);
   const effectiveSelectedVariant = selectedVariant || normalizedProduct?.variants?.[0]?.id || null;
   const currentVariant = React.useMemo(() => {
     if (!normalizedProduct?.variants?.length || !effectiveSelectedVariant) return null;
@@ -220,7 +226,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
                 {image ? (
                   <img
                     src={image}
-                    alt={normalizedProduct.name}
+                    alt={shownName}
                     className={cn(
                       'object-cover',
                       isGoodsProduct ? 'bokmoo-pdp-media-goods' : 'aspect-[1.28/1] h-full w-full sm:aspect-[1.6/1]',
@@ -234,10 +240,11 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
               <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                 <div>
                   <h1 className="bokmoo-pdp-title font-semibold tracking-[-0.05em] text-[var(--bokmoo-ink)]">
-                    {normalizedProduct.name}
+                    {shownName}
                   </h1>
-                  {normalizedProduct.description ? (
-                    <p className="bokmoo-pdp-description">{normalizedProduct.description}</p>
+                  {shownDescription ? (
+                    // the description is written in paragraphs; keep its line breaks
+                    <p className="bokmoo-pdp-description" style={{ whiteSpace: 'pre-line' }}>{shownDescription}</p>
                   ) : (
                     <p className="mt-2 text-lg text-[var(--bokmoo-copy)]">
                       {isGoodsProduct ? pickCopy(locale, goodsSubtitle) : profile.networkLabel}

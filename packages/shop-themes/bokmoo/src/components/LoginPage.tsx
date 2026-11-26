@@ -1,7 +1,7 @@
 import React from 'react';
 import { Eye, EyeOff, Loader2, LockKeyhole, Mail, ShieldCheck } from 'lucide-react';
 import type { LoginPageProps } from 'shared/src/types/theme';
-import { resolveBokmooSiteConfig } from '../site';
+import { AUTH, accountLabel, authBrand, authErrorText, authText, headlineStyle, pageLocale, withBrand, type AuthCopy } from '../lib/auth-copy';
 import { readySocialProviders, SocialAuthButtons } from './SocialAuthButtons';
 
 const FOCUS_VISIBLE_RING =
@@ -11,6 +11,7 @@ export function LoginPage({
   isLoading,
   error,
   config,
+  locale,
   onSubmit,
   onOAuthClick,
   onAppleOAuthClick,
@@ -19,7 +20,9 @@ export function LoginPage({
   onNavigateToRegister,
   onNavigateToForgotPassword,
 }: LoginPageProps) {
-  const site = resolveBokmooSiteConfig(config);
+  const brand = authBrand(config);
+  const language = pageLocale(locale);
+  const say = (copy: AuthCopy) => authText(language, copy);
   const socialProviders = readySocialProviders(socialAuthStatus, {
     google: onOAuthClick,
     apple: onAppleOAuthClick,
@@ -47,6 +50,13 @@ export function LoginPage({
     await onSubmit(emailValue, passwordValue);
   };
 
+  const errorText = authErrorText(language, error);
+  const features: Array<[AuthCopy, AuthCopy]> = [
+    [AUTH.featureOrdersTitle, AUTH.featureOrdersBody],
+    [AUTH.featureProfilesTitle, AUTH.featureProfilesBody],
+    [AUTH.featureSupportTitle, AUTH.featureSupportBody],
+  ];
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-[var(--bokmoo-bg)] px-4 py-12 text-[var(--bokmoo-ink)] sm:px-6 lg:px-8">
       <div className="pointer-events-none absolute inset-0">
@@ -58,26 +68,20 @@ export function LoginPage({
         <section className="hidden lg:block">
           <div className="inline-flex items-center gap-3 rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_24%,transparent)] bg-[color:oklch(0.065_0.007_75_/_0.72)] px-5 py-2.5 text-[0.72rem] font-bold uppercase tracking-[0.28em] text-[var(--bokmoo-gold)]">
             <ShieldCheck className="h-4 w-4" />
-            Secure account access
+            {say(AUTH.accountEyebrow)}
           </div>
-          <h1 className="mt-7 max-w-3xl text-[clamp(3.5rem,7vw,6.4rem)] font-semibold leading-[0.92] tracking-[-0.065em] text-[var(--bokmoo-ink)]">
-            Sign in before your next border.
+          <h1 className="mt-7 max-w-3xl text-[clamp(3.5rem,7vw,6.4rem)] font-semibold leading-[0.92] tracking-[-0.065em] text-[var(--bokmoo-ink)]" style={headlineStyle(language)}>
+            {say(AUTH.loginTitle)}
           </h1>
-          <p className="mt-7 max-w-2xl text-lg leading-8 text-[var(--bokmoo-copy)]">
-            Manage BOKMOO eSIM profiles, orders, and activation details from the same black-and-gold travel control surface.
-          </p>
+          <p className="mt-7 max-w-2xl text-lg leading-8 text-[var(--bokmoo-copy)]">{say(AUTH.loginLead)}</p>
           <div className="mt-10 grid max-w-2xl gap-3 sm:grid-cols-3">
-            {[
-              ['Orders', 'Track purchases'],
-              ['Profiles', 'Manage eSIMs'],
-              ['Support', 'Get help fast'],
-            ].map(([title, body]) => (
+            {features.map(([title, body]) => (
               <div
-                key={title}
+                key={title.en}
                 className="rounded-[1.15rem] border border-[var(--bokmoo-line)] bg-[color:oklch(0.07_0.008_75_/_0.76)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]"
               >
-                <p className="text-sm font-semibold text-[var(--bokmoo-gold)]">{title}</p>
-                <p className="mt-2 text-xs leading-5 text-[var(--bokmoo-copy-soft)]">{body}</p>
+                <p className="text-sm font-semibold text-[var(--bokmoo-gold)]">{say(title)}</p>
+                <p className="mt-2 text-xs leading-5 text-[var(--bokmoo-copy-soft)]">{say(body)}</p>
               </div>
             ))}
           </div>
@@ -86,15 +90,9 @@ export function LoginPage({
         <section className="mx-auto w-full max-w-[30rem] rounded-[1.45rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_22%,transparent)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_94%,white),var(--bokmoo-bg-elevated))] p-5 shadow-[var(--bokmoo-shadow)] sm:p-7">
           <div className="rounded-[1.1rem] border border-[var(--bokmoo-line)] bg-[color:oklch(0.055_0.006_75_/_0.78)] p-5 sm:p-6">
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[var(--bokmoo-gold)]">
-                {site.brandName.toUpperCase()} account
-              </p>
-              <h2 className="mt-3 text-3xl font-semibold leading-none tracking-[-0.05em] text-[var(--bokmoo-ink)]">
-                Welcome back
-              </h2>
-              <p className="mt-3 text-sm leading-6 text-[var(--bokmoo-copy)]">
-                Continue to your orders, profiles, and activation workspace.
-              </p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[var(--bokmoo-gold)]">{accountLabel(language, brand)}</p>
+              <h2 className="mt-3 text-3xl font-semibold leading-none tracking-[-0.05em] text-[var(--bokmoo-ink)]">{say(AUTH.welcomeBack)}</h2>
+              <p className="mt-3 text-sm leading-6 text-[var(--bokmoo-copy)]">{say(AUTH.loginSub)}</p>
             </div>
 
             {socialProviders.length > 0 ? (
@@ -109,25 +107,25 @@ export function LoginPage({
                 />
                 <div className="mt-6 flex items-center gap-3">
                   <div className="h-px flex-1 bg-[var(--bokmoo-line)]" />
-                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--bokmoo-copy-soft)]">
-                    or email
-                  </span>
+                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--bokmoo-copy-soft)]">{say(AUTH.orEmail)}</span>
                   <div className="h-px flex-1 bg-[var(--bokmoo-line)]" />
                 </div>
               </>
             ) : null}
 
             <form onSubmit={handleSubmit} className="mt-7 space-y-5">
-              {error ? (
-                <div className="rounded-[0.95rem] border border-[color:color-mix(in_oklab,var(--bokmoo-danger)_48%,transparent)] bg-[color:color-mix(in_oklab,var(--bokmoo-danger)_12%,transparent)] p-4 text-sm leading-6 text-[var(--bokmoo-ink)]">
-                  {error}
+              {errorText ? (
+                <div
+                  className="rounded-[0.95rem] border border-[color:color-mix(in_oklab,var(--bokmoo-danger)_48%,transparent)] bg-[color:color-mix(in_oklab,var(--bokmoo-danger)_12%,transparent)] p-4 text-sm leading-6 text-[var(--bokmoo-ink)]"
+                  role="alert"
+                  data-purpose="auth-error"
+                >
+                  {errorText}
                 </div>
               ) : null}
 
               <label className="block">
-                <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">
-                  Email
-                </span>
+                <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">{say(AUTH.email)}</span>
                 <span className="relative mt-2 block">
                   <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--bokmoo-copy-soft)]" />
                   <input
@@ -145,9 +143,7 @@ export function LoginPage({
               </label>
 
               <label className="block">
-                <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">
-                  Password
-                </span>
+                <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">{say(AUTH.password)}</span>
                 <span className="relative mt-2 block">
                   <LockKeyhole className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--bokmoo-copy-soft)]" />
                   <input
@@ -166,7 +162,7 @@ export function LoginPage({
                     onClick={() => setShowPassword((value) => !value)}
                     className={`absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-[0.8rem] text-[var(--bokmoo-copy-soft)] hover:text-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING}`}
                     disabled={isLoading}
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    aria-label={say(showPassword ? AUTH.hidePassword : AUTH.showPassword)}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -180,7 +176,7 @@ export function LoginPage({
                   className={`text-sm font-medium text-[var(--bokmoo-copy)] underline decoration-[var(--bokmoo-line)] underline-offset-4 hover:text-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING}`}
                   disabled={isLoading}
                 >
-                  Forgot password
+                  {say(AUTH.forgotPassword)}
                 </button>
               </div>
 
@@ -192,25 +188,23 @@ export function LoginPage({
                 {isLoading ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Signing in
+                    {say(AUTH.signingIn)}
                   </>
                 ) : (
-                  'Sign in'
+                  say(AUTH.signIn)
                 )}
               </button>
             </form>
 
             <div className="mt-7 border-t border-[var(--bokmoo-line)] pt-6 text-center">
-              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">
-                New to {site.brandName.toUpperCase()}?
-              </p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">{withBrand(say(AUTH.newToBrand), brand)}</p>
               <button
                 type="button"
                 onClick={onNavigateToRegister}
                 className={`mt-3 text-sm font-semibold text-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold-strong)] ${FOCUS_VISIBLE_RING}`}
                 disabled={isLoading}
               >
-                Create account
+                {say(AUTH.createAccount)}
               </button>
             </div>
           </div>

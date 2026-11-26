@@ -5,6 +5,7 @@ import type { OrderDetailPageProps } from 'shared/src/types/theme';
 import { getBokmooInstallSession, getBokmooOrder, getOrderIdFromLocation, mapBokmooApiOrderToThemeOrder, normalizeInstallSession, type BokmooInstallSession } from '../lib/api';
 import { InstallSessionPanel } from './InstallSessionPanel';
 import { extractDeliverySections, getDeliveredArtifactCount } from '../lib/digital-fulfillment';
+import { cardLineName } from '../lib/card-copy';
 import { resolveBokmooSiteConfig } from '../site';
 
 function copyToClipboard(value: string) {
@@ -36,6 +37,7 @@ export const OrderDetailPage = React.memo(function OrderDetailPage({
   order,
   isLoading,
   config,
+  locale,
   onBack,
   onBackToOrders,
   onCancelOrder,
@@ -242,7 +244,7 @@ export const OrderDetailPage = React.memo(function OrderDetailPage({
                         Item delivery
                       </p>
                       <h2 className="mt-3 text-2xl font-black tracking-[-0.04em] text-[var(--bokmoo-ink)]">
-                        {item.productName}
+                        {cardLineName(item, locale)}
                       </h2>
                       <p className="mt-2 text-sm text-[var(--bokmoo-copy)]">
                         Qty {item.quantity}{item.variantName ? ` · ${item.variantName}` : ''}

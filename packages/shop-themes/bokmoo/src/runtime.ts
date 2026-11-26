@@ -6,6 +6,8 @@ import { OrderCancelledPage } from '@shop-themes/default/src/components/OrderCan
 import { ProfilePage } from './components/ProfilePage';
 
 import { AuthCallbackPage } from './components/AuthCallbackPage';
+import { AuthIdentityFinishPage } from './components/AuthIdentityFinishPage';
+import { ForgotPasswordPage } from './components/ForgotPasswordPage';
 import { AffiliatePage } from './components/AffiliatePage';
 import { CartPage } from './components/CartPage';
 import { CategoriesPage } from './components/CategoriesPage';
@@ -56,6 +58,8 @@ export const theme: ThemePackage = {
     LoginPage,
     RegisterPage,
     AuthCallbackPage,
+    ForgotPasswordPage,
+    AuthIdentityFinishPage,
     Header,
     Footer,
   },

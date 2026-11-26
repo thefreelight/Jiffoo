@@ -1,7 +1,7 @@
 import React from 'react';
 import { AlertTriangle, Loader2, ShieldCheck } from 'lucide-react';
 import type { AuthCallbackPageProps } from 'shared/src/types/theme';
-import { resolveBokmooSiteConfig } from '../site';
+import { AUTH, accountLabel, authBrand, authText, pageLocale, type AuthCopy } from '../lib/auth-copy';
 
 const FOCUS_VISIBLE_RING =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bokmoo-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bokmoo-bg)]';
@@ -10,10 +10,13 @@ export function AuthCallbackPage({
   isLoading,
   error,
   config,
+  locale,
   onRetry,
   onNavigateToHome,
 }: AuthCallbackPageProps) {
-  const site = resolveBokmooSiteConfig(config);
+  const brand = authBrand(config);
+  const language = pageLocale(locale);
+  const say = (copy: AuthCopy) => authText(language, copy);
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[var(--bokmoo-bg)] px-4 py-12 text-[var(--bokmoo-ink)]">
@@ -27,14 +30,13 @@ export function AuthCallbackPage({
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[1rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_12%,transparent)] text-[var(--bokmoo-gold)]">
             {error ? <AlertTriangle className="h-7 w-7" /> : isLoading ? <Loader2 className="h-7 w-7 animate-spin" /> : <ShieldCheck className="h-7 w-7" />}
           </div>
-          <p className="mt-6 text-[11px] font-bold uppercase tracking-[0.24em] text-[var(--bokmoo-gold)]">
-            {site.brandName.toUpperCase()} account
-          </p>
+          <p className="mt-6 text-[11px] font-bold uppercase tracking-[0.24em] text-[var(--bokmoo-gold)]">{accountLabel(language, brand)}</p>
           <h1 className="mt-3 text-3xl font-semibold leading-none tracking-[-0.05em] text-[var(--bokmoo-ink)]">
-            {error ? 'Authentication failed' : 'Completing sign in'}
+            {say(error ? AUTH.authFailed : AUTH.completing)}
           </h1>
-          <p className="mt-4 text-sm leading-6 text-[var(--bokmoo-copy)]">
-            {error || 'Securing your session and returning you to the BOKMOO storefront.'}
+          {/* The reason the provider gave is English and meant for logs; the shopper gets it in their language. */}
+          <p className="mt-4 text-sm leading-6 text-[var(--bokmoo-copy)]" data-purpose="auth-callback-status">
+            {say(error ? AUTH.unknownSignInError : AUTH.completingLead)}
           </p>
 
           <div className="mt-7 grid gap-3 sm:grid-cols-2">
@@ -43,14 +45,14 @@ export function AuthCallbackPage({
               onClick={onRetry}
               className={`inline-flex min-h-12 items-center justify-center rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_86%,black)] px-4 text-sm font-semibold text-[var(--bokmoo-ink)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING}`}
             >
-              Back to sign in
+              {say(AUTH.backToSignIn)}
             </button>
             <button
               type="button"
               onClick={onNavigateToHome}
               className={`inline-flex min-h-12 items-center justify-center rounded-[0.95rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_88%,white),color-mix(in_oklab,var(--bokmoo-gold)_64%,black))] px-4 text-sm font-black uppercase tracking-[0.16em] text-[var(--bokmoo-bg)] ${FOCUS_VISIBLE_RING}`}
             >
-              Home
+              {say(AUTH.home)}
             </button>
           </div>
         </div>
