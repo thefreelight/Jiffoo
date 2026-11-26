@@ -3,7 +3,7 @@ import { ArrowRight, ChevronLeft, ChevronRight, Grid3X3, List, Search, ShieldChe
 import { cn } from '@jiffoo/ui';
 import type { Product } from 'shared/src/types/product';
 import type { ProductsPageProps } from 'shared/src/types/theme';
-import { displayProductTitle, getEsimProducts, mapEsimApiProductToThemeProduct, normalizeProductForTheme, readProductCurrency, resolveEsimMediaUrl, type EsimApiProduct } from '../lib/api';
+import { displayProductTitle, getEsimProducts, normalizeProductForTheme, readProductCurrency, resolveEsimMediaUrl, type EsimApiProduct } from '../lib/api';
 import { getEsimTravelProfile } from '../lib/digital-fulfillment';
 import { destinationLabel, planTitle, regionLabelOf, type EsimPlanAttributes } from '../lib/esim/catalog';
 import { type ThemeCopy, filterEsimPlans, pickCopy, resolveEsimSiteConfig } from '../site';
@@ -35,21 +35,106 @@ function getProductImage(product: Product): string | null {
   return primary?.url || null;
 }
 
-function productText(product: { name?: string; description?: string; typeData?: { esim?: { country?: string; region?: string; carrier?: string } } }): string {
-  const esim = product.typeData?.esim;
-  return [product.name, product.description, esim?.country, esim?.region, esim?.carrier].filter(Boolean).join(' ').toLowerCase();
+const PAGE_SIZE = 12;
+/** Large enough to read a whole catalog in one request. */
+const CATALOG_READ_SIZE = 250;
+/** A plan is searchable in every storefront language, whatever language the shopper reads. */
+const SEARCH_LOCALES = ['en', 'zh-Hans', 'zh-Hant', 'ja', 'ko', 'fr', 'de'];
+
+type PlanSource = { name?: string; description?: string; typeData?: { esim?: EsimPlanAttributes } };
+type PlanScope = 'local' | 'regional' | 'global' | 'unknown';
+
+/** One plan of the list: the product its card reads, its plan facts, and what a shopper can find it by. */
+interface PlanEntry {
+  product: Product;
+  esim?: EsimPlanAttributes;
+  currency: string | null;
+  searchText: string;
+  scope: PlanScope;
 }
 
-function matchesCatalogFilter(product: { typeData?: { esim?: { country?: string; region?: string } } }, filter: CatalogFilter): boolean {
+function toPlanEntry(raw: unknown): PlanEntry {
+  const source = raw as PlanSource;
+  return {
+    product: normalizeProductForTheme(raw as Product),
+    esim: source.typeData?.esim || undefined,
+    currency: readProductCurrency(raw),
+    searchText: planSearchText(source),
+    scope: catalogScope(source),
+  };
+}
+
+/** The cheapest figure a shopper can pay for a plan: a variant's sale price, else the list price. */
+function sellablePrice(product: Product): number {
+  const variantSalePrices = (Array.isArray(product.variants) ? product.variants : [])
+    .map((variant) => Number((variant as { salePrice?: number; price?: number }).salePrice ?? (variant as { price?: number }).price ?? 0))
+    .filter((price) => price > 0);
+  const listPrice = Number(product.price || 0);
+  if (variantSalePrices.length === 0) return listPrice;
+  return Math.min(listPrice > 0 ? listPrice : Number.POSITIVE_INFINITY, ...variantSalePrices);
+}
+
+/**
+ * Local, Regional or Global. Plans carry their coverage as a list of destination codes; the region and
+ * country text is read only where a catalog has no such list.
+ */
+function catalogScope(product: PlanSource): PlanScope {
   const esim = product.typeData?.esim;
+  const destinations = Array.isArray(esim?.destinations) ? esim.destinations : [];
+  const code = String(esim?.defaultCode || '').replace(/^boss-/i, '').toUpperCase();
+  if (destinations.length > 0) {
+    if (code.startsWith('GLOBAL')) return 'global';
+    return destinations.length === 1 ? 'local' : 'regional';
+  }
   const region = (esim?.region || '').toLowerCase();
   const country = (esim?.country || '').toLowerCase();
+  if (region.includes('global') || country.includes('global')) return 'global';
+  if (region && region !== country) return 'regional';
+  if (country || region) return 'local';
+  return 'unknown';
+}
 
+function matchesCatalogFilter(entry: PlanEntry, filter: CatalogFilter): boolean {
   if (filter === 'All' || filter === 'Popular') return true;
-  if (filter === 'Global') return region.includes('global') || country.includes('global');
-  if (filter === 'Regional') return Boolean(region && !region.includes('global') && region !== country);
-  if (filter === 'Local') return Boolean(country && (!region || region === country || !region.includes('global')));
-  return true;
+  if (filter === 'Global') return entry.scope === 'global';
+  if (filter === 'Regional') return entry.scope === 'regional';
+  return entry.scope === 'local';
+}
+
+/** Name, description, region code, and every destination and region name in every storefront language. */
+function planSearchText(product: PlanSource): string {
+  const esim = product.typeData?.esim;
+  const parts: string[] = [product.name || '', product.description || '', esim?.region || '', esim?.country || '', esim?.carrier || ''];
+  const code = String(esim?.defaultCode || '').replace(/^boss-/i, '').toUpperCase();
+  if (code) parts.push(code.split('-')[0]);
+  for (const destination of esim?.destinations || []) {
+    for (const language of SEARCH_LOCALES) parts.push(destinationLabel(destination, language));
+  }
+  for (const language of SEARCH_LOCALES) {
+    const label = regionLabelOf(esim?.defaultCode || '', language);
+    if (label) parts.push(label);
+  }
+  return parts.filter(Boolean).join(' ').toLowerCase();
+}
+
+/** Every word of the query has to appear in the plan's text. */
+function matchesSearch(searchText: string, query: string): boolean {
+  return query.toLowerCase().split(/\s+/).filter(Boolean).every((term) => searchText.includes(term));
+}
+
+function sortPlans(entries: PlanEntry[], sortBy: string, locale?: string): PlanEntry[] {
+  if (sortBy === 'price') return [...entries].sort((a, b) => sellablePrice(a.product) - sellablePrice(b.product));
+  if (sortBy === 'name') {
+    const title = (entry: PlanEntry) => planTitle(entry.esim?.defaultCode || entry.product.id, displayProductTitle(entry.product.name), locale);
+    return [...entries].sort((a, b) => title(a).localeCompare(title(b), locale, { sensitivity: 'base', numeric: true }));
+  }
+  return entries;
+}
+
+/** The search a shopper arrived with (`/search?q=…`), so the list starts narrowed and the box shows it. */
+function searchFromAddress(): string {
+  if (typeof window === 'undefined') return '';
+  return new URLSearchParams(window.location.search).get('q')?.trim() ?? '';
 }
 
 function ProductMedia({ product, apiBaseUrl }: { product: Product; apiBaseUrl?: string }) {
@@ -101,46 +186,86 @@ export const ProductsPage = React.memo(function ProductsPage({
   config,
   locale,
 }: ProductsPageProps) {
-  const [searchQuery, setSearchQuery] = React.useState('');
-  const [activeSearch, setActiveSearch] = React.useState('');
-  const [remoteProducts, setRemoteProducts] = React.useState<Product[]>([]);
-  const [remoteTotal, setRemoteTotal] = React.useState(0);
-  const [remoteTotalPages, setRemoteTotalPages] = React.useState(1);
+  const [searchQuery, setSearchQuery] = React.useState(searchFromAddress);
+  const [activeSearch, setActiveSearch] = React.useState(searchFromAddress);
+  const [remoteProducts, setRemoteProducts] = React.useState<EsimApiProduct[]>([]);
   const [remoteLoading, setRemoteLoading] = React.useState(false);
   const [remoteError, setRemoteError] = React.useState('');
   const [selectedFilter, setSelectedFilter] = React.useState<CatalogFilter>('All');
+  const [localSort, setLocalSort] = React.useState<string | null>(null);
+  const [page, setPage] = React.useState(1);
+  const readId = React.useRef(0);
+  const listRef = React.useRef<HTMLElement | null>(null);
   const site = resolveEsimSiteConfig(config);
   const t = (copy: ThemeCopy) => pickCopy(locale, copy);
-  const normalizedProducts = React.useMemo(
-    () =>
-      // Host-provided fallback lists come from the shared instance catalog
-      // and may contain Bokmoo physical cards — the pure eSIM mall never
-      // shows them.
-      (remoteProducts.length > 0
-        ? remoteProducts
-        : filterEsimPlans(products as unknown as EsimApiProduct[]) as unknown as EsimApiProduct[]).map((raw) => {
-        const esimAttrs = ((raw as EsimApiProduct).typeData?.esim || undefined) as EsimPlanAttributes | undefined;
-        return {
-          product: normalizeProductForTheme(raw as unknown as Product),
-          esim: esimAttrs,
-          currency: readProductCurrency(raw),
-        };
-      }),
-    [products, remoteProducts]
-  );
+
+  // A host that pages on its server hands over one page of a longer list, and the pages stay its job.
+  // Anything else — the whole catalog in one piece, or nothing to show — is handled here: this
+  // storefront's catalog always arrives whole, so search, filters, sort and pages are worked out on
+  // the full list. Host-provided lists may also carry Bokmoo physical cards; the pure eSIM mall never
+  // shows them.
+  const serverPaged = products.length > 0 && Number(totalPages) > 1 && products.length < Number(totalProducts);
+  const hostEntries = React.useMemo(() => filterEsimPlans(products as unknown as EsimApiProduct[]).map(toPlanEntry), [products]);
+  const remoteEntries = React.useMemo(() => filterEsimPlans(remoteProducts).map(toPlanEntry), [remoteProducts]);
+  const entries = hostEntries.length > 0 ? hostEntries : remoteEntries;
+  const sortKey = localSort ?? sortBy;
+  // Where the host runs the search itself, its list is already the answer to the search in the address.
+  const appliedSearch = activeSearch && (!serverPaged || !onSearch) ? activeSearch : '';
+  const scoped = React.useMemo(() => {
+    const matching = entries.filter((entry) => matchesSearch(entry.searchText, appliedSearch) && matchesCatalogFilter(entry, selectedFilter));
+    return sortPlans(matching, serverPaged ? '' : sortKey, locale);
+  }, [entries, appliedSearch, selectedFilter, serverPaged, sortKey, locale]);
+  const narrowed = Boolean(appliedSearch) || selectedFilter !== 'All';
+  const pageCount = serverPaged ? Math.max(1, Number(totalPages) || 1) : Math.max(1, Math.ceil(scoped.length / PAGE_SIZE));
+  const pageShown = serverPaged ? Math.max(1, Number(currentPage) || 1) : Math.min(page, pageCount);
+  const pageItems = serverPaged ? scoped : scoped.slice((pageShown - 1) * PAGE_SIZE, pageShown * PAGE_SIZE);
 
   const submitSearch = (event: React.FormEvent) => {
     event.preventDefault();
-    if (onSearch) {
-      onSearch(searchQuery.trim());
+    const next = searchQuery.trim();
+    setPage(1);
+    // Where the host searches its own pages it does the searching; here the list on show is searched.
+    if (serverPaged && onSearch) {
+      onSearch(next);
       return;
     }
 
-    setActiveSearch(searchQuery.trim());
+    setActiveSearch(next);
   };
 
-  const loadRemoteProducts = React.useCallback(
-    async (search: string = '') => {
+  const changeFilter = (filter: CatalogFilter) => {
+    setSelectedFilter(filter);
+    setPage(1);
+  };
+
+  const changeSort = (next: string) => {
+    setPage(1);
+    if (serverPaged) {
+      onSortChange(next);
+      return;
+    }
+    setLocalSort(next);
+  };
+
+  const goToPage = (next: number) => {
+    const target = Math.max(1, Math.min(pageCount, next));
+    if (serverPaged) {
+      onPageChange(target);
+      return;
+    }
+    if (target === pageShown) return;
+    setPage(target);
+    // The page that was on show may have been scrolled far down; bring the new page's first plans into view.
+    const list = listRef.current;
+    if (!list) return;
+    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
+    list.scrollIntoView?.({ block: 'start', behavior: reducedMotion ? 'auto' : 'smooth' });
+    list.focus({ preventScroll: true });
+  };
+
+  const loadCatalog = React.useCallback(
+    async () => {
+      const id = ++readId.current;
       setRemoteLoading(true);
       setRemoteError('');
       try {
@@ -149,50 +274,38 @@ export const ProductsPage = React.memo(function ProductsPage({
             baseUrl: site.apiBaseUrl,
           },
           {
-            page: currentPage || 1,
-            limit: 12,
+            page: 1,
+            limit: CATALOG_READ_SIZE,
             locale: locale || 'en',
             type: 'esim',
           }
         );
-
-        const filteredItems = search
-          ? response.items.filter((item) =>
-              productText(item).includes(search.toLowerCase())
-            )
-          : response.items;
-        const scopedItems = filteredItems.filter((item) => matchesCatalogFilter(item, selectedFilter));
-        const isLocalScope = Boolean(search || selectedFilter !== 'All');
-
-        // mapEsimApiProductToThemeProduct now carries typeData + currency
-        // through (typed on Product), so the structured BOSS facts survive
-        // for the plan cards.
-        setRemoteTotal(isLocalScope ? scopedItems.length : Number(response.total || scopedItems.length || 0));
-        setRemoteTotalPages(Math.max(1, Math.ceil((isLocalScope ? scopedItems.length : Number(response.total || scopedItems.length || 0)) / 12)));
+        if (id !== readId.current) return;
+        setRemoteProducts(response.items);
       } catch (error) {
-        const message = error instanceof Error ? error.message : pickCopy(locale, { en: 'Unable to load Bokmoo plans.', hans: '无法加载 Bokmoo 套餐。', hant: '無法載入 Bokmoo 方案。' });
+        if (id !== readId.current) return;
+        const message = error instanceof Error ? error.message : pickCopy(locale, { en: 'Unable to load Bokmoo plans.', hans: '无法加载 BOKMOO 套餐。', hant: '無法載入 BOKMOO 方案。' });
         setRemoteError(message);
         setRemoteProducts([]);
-        setRemoteTotal(0);
-        setRemoteTotalPages(1);
       } finally {
-        setRemoteLoading(false);
+        if (id === readId.current) setRemoteLoading(false);
       }
     },
-    [currentPage, locale, selectedFilter, site.apiBaseUrl]
+    [locale, site.apiBaseUrl]
   );
 
+  // The catalog is read here only when the host has nothing to show — an empty search answer, say.
   React.useEffect(() => {
-    if (products.length > 0) return;
-    void loadRemoteProducts(activeSearch);
-  }, [activeSearch, loadRemoteProducts, products.length]);
+    if (isLoading || serverPaged || hostEntries.length > 0) return;
+    void loadCatalog();
+  }, [isLoading, serverPaged, hostEntries.length, loadCatalog]);
 
-  if (isLoading || (remoteLoading && normalizedProducts.length === 0)) {
+  if (isLoading || (remoteLoading && scoped.length === 0)) {
     return <div className="min-h-screen bg-[var(--esim-bg)]" />;
   }
 
-  const displayTotal = remoteProducts.length > 0 ? remoteTotal : totalProducts;
-  const displayTotalPages = remoteProducts.length > 0 ? remoteTotalPages : totalPages;
+  const displayTotal = serverPaged && !narrowed ? totalProducts : scoped.length;
+  const displayTotalPages = pageCount;
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_right,color-mix(in_oklab,var(--esim-gold)_10%,transparent),transparent_34%),var(--esim-bg)] px-4 pb-24 pt-16 sm:px-6 sm:pt-20 lg:px-8">
@@ -219,13 +332,14 @@ export const ProductsPage = React.memo(function ProductsPage({
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
                   placeholder={t({ en: 'Search destinations or bundles...', hans: '搜索目的地或套餐…', hant: '搜尋目的地或套餐…' })}
+                  aria-label={t({ en: 'Search destinations or bundles...', hans: '搜索目的地或套餐…', hant: '搜尋目的地或套餐…' })}
                   className="h-12 w-full rounded-[0.95rem] border border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_88%,black)] pl-11 pr-4 text-sm text-[var(--esim-ink)] outline-none placeholder:text-[var(--esim-copy-soft)] sm:rounded-full"
                 />
               </form>
 
               <select
-                value={sortBy}
-                onChange={(event) => onSortChange(event.target.value)}
+                value={sortKey}
+                onChange={(event) => changeSort(event.target.value)}
                 className="h-12 rounded-[0.95rem] border border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_88%,black)] px-4 text-sm font-medium text-[var(--esim-ink)] outline-none sm:rounded-full"
               >
                 <option value="createdAt">{t(SORT_LABELS.createdAt)}</option>
@@ -267,7 +381,8 @@ export const ProductsPage = React.memo(function ProductsPage({
               {CATALOG_FILTERS.map((filter) => (
                 <button
                   key={filter}
-                  onClick={() => setSelectedFilter(filter)}
+                  onClick={() => changeFilter(filter)}
+                  aria-pressed={selectedFilter === filter}
                   className={cn(
                     'rounded-[0.8rem] border px-4 py-2 text-[11px] font-semibold transition-colors',
                     selectedFilter === filter
@@ -281,7 +396,7 @@ export const ProductsPage = React.memo(function ProductsPage({
               ))}
             </div>
             <div className="flex flex-wrap gap-2">
-              <span className="rounded-[0.8rem] border border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_88%,black)] px-4 py-2 text-[11px] font-semibold text-[var(--esim-copy)]">
+              <span data-purpose="catalog-count" className="rounded-[0.8rem] border border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_88%,black)] px-4 py-2 text-[11px] font-semibold text-[var(--esim-copy)]">
                 {displayTotal} {t({ en: 'plans', hans: '个套餐', hant: '個套餐' })}
               </span>
               <span className="rounded-[0.8rem] border border-[var(--esim-line)] bg-[color:color-mix(in_oklab,var(--esim-bg)_88%,black)] px-4 py-2 text-[11px] font-semibold text-[var(--esim-copy)]">
@@ -291,31 +406,32 @@ export const ProductsPage = React.memo(function ProductsPage({
           </div>
         </section>
 
-        <section className="mt-8">
-          {remoteError && normalizedProducts.length === 0 ? (
+        <section ref={listRef} tabIndex={-1} className="mt-8 scroll-mt-24 focus:outline-none">
+          {remoteError && scoped.length === 0 ? (
             <div className="rounded-[var(--esim-radius-xl)] border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-10 text-center shadow-[var(--esim-shadow)]">
               <p className="text-xl font-semibold text-[var(--esim-ink)]">{t({ en: 'Plans are unavailable right now.', hans: '套餐暂时无法获取。', hant: '套餐暫時無法獲取。' })}</p>
               <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-[var(--esim-copy)]">{remoteError}</p>
               <button
-                onClick={() => void loadRemoteProducts(searchQuery.trim())}
+                onClick={() => void loadCatalog()}
                 className="mt-6 min-h-11 rounded-[0.9rem] bg-[var(--esim-gold)] px-5 text-sm font-semibold text-[var(--esim-bg)]"
                 type="button"
               >
                 {t({ en: 'Try Again', hans: '重试', hant: '重試' })}
               </button>
             </div>
-          ) : normalizedProducts.length === 0 ? (
+          ) : scoped.length === 0 ? (
             <div className="rounded-[var(--esim-radius-xl)] border border-dashed border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] p-16 text-center text-[var(--esim-copy)]">
               {t({ en: 'No plans matched the current search.', hans: '没有符合当前搜索的套餐。', hant: '沒有符合當前搜尋的套餐。' })}
             </div>
           ) : (
             <div
+              data-purpose="catalog-grid"
               className={cn(
                 'grid gap-3 sm:gap-4',
                 viewMode === 'grid' ? 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3' : 'grid-cols-1'
               )}
             >
-              {normalizedProducts.map(({ product, esim, currency: rawCurrency }) => {
+              {pageItems.map(({ product, esim, currency: rawCurrency }) => {
                 const profile = getEsimTravelProfile(product, locale);
                 const destinations = esim?.destinations || [];
                 const regionName = regionLabelOf(esim?.defaultCode || '', locale);
@@ -330,16 +446,9 @@ export const ProductsPage = React.memo(function ProductsPage({
                 const eyebrowLabel = destinations.length > 1
                   ? (regionName || t({ en: 'Multi-country', hans: '多国联程', hant: '多國聯程' }))
                   : (regionName || profile.cardEyebrow);
-                // The core's product-level price is the odoo list price; the
-                // amount checkout bills is the variant sale price. Show the
-                // cheapest sellable figure so the card matches the cart.
-                const variantSalePrices = (Array.isArray(product.variants) ? product.variants : [])
-                  .map((variant: any) => Number(variant.salePrice ?? variant.price ?? 0))
-                  .filter((price: number) => price > 0);
-                const listPrice = Number(product.price || 0);
-                const displayPrice = variantSalePrices.length > 0
-                  ? Math.min(listPrice > 0 ? listPrice : Number.POSITIVE_INFINITY, ...variantSalePrices)
-                  : listPrice;
+                // The amount checkout bills is the variant sale price, not the
+                // product-level list price; the card shows what the cart will charge.
+                const displayPrice = sellablePrice(product);
 
                 // Design-spec plan card (套餐对比 spec): pure typographic —
                 // no product-image concept anywhere on this storefront.
@@ -353,6 +462,7 @@ export const ProductsPage = React.memo(function ProductsPage({
                 return (
                   <article
                     key={product.id}
+                    data-purpose="catalog-plan"
                     className={cn(
                       'relative flex flex-col overflow-hidden rounded-2xl border-2 border-[color:color-mix(in_oklab,var(--esim-gold)_26%,transparent)] bg-[linear-gradient(160deg,#23262d_via_40%,#1a1c22_to_75%,#121418)] shadow-[0_16px_50px_rgba(0,0,0,0.65)] ring-1 ring-[color:color-mix(in_oklab,var(--esim-gold)_14%,transparent)] transition-transform duration-300 hover:-translate-y-1',
                       viewMode === 'list' && 'md:flex-row md:items-stretch md:gap-6 md:p-6',
@@ -447,21 +557,23 @@ export const ProductsPage = React.memo(function ProductsPage({
         </section>
 
         {displayTotalPages > 1 ? (
-          <nav className="mt-10 flex items-center justify-center gap-2">
+          <nav data-purpose="catalog-pager" className="mt-10 flex items-center justify-center gap-2">
             <button
-              onClick={() => onPageChange(Math.max(1, currentPage - 1))}
-              disabled={currentPage <= 1}
+              onClick={() => goToPage(pageShown - 1)}
+              disabled={pageShown <= 1}
+              aria-label={t({ en: 'Previous', hans: '上一页', hant: '上一頁' })}
               className="flex h-11 w-11 items-center justify-center rounded-full border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] text-[var(--esim-ink)] disabled:opacity-40"
               type="button"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <span className="rounded-full border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-5 py-3 text-[11px] font-semibold tracking-[0.18em] text-[var(--esim-copy)]">
-              {t({ en: 'Page', hans: '第', hant: '第' })} {currentPage} / {displayTotalPages}
+            <span data-purpose="catalog-page-label" className="rounded-full border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-5 py-3 text-[11px] font-semibold tracking-[0.18em] text-[var(--esim-copy)]">
+              {t({ en: 'Page', hans: '第', hant: '第' })} {pageShown} / {displayTotalPages}
             </span>
             <button
-              onClick={() => onPageChange(Math.min(displayTotalPages, currentPage + 1))}
-              disabled={currentPage >= displayTotalPages}
+              onClick={() => goToPage(pageShown + 1)}
+              disabled={pageShown >= displayTotalPages}
+              aria-label={t({ en: 'Next', hans: '下一页', hant: '下一頁' })}
               className="flex h-11 w-11 items-center justify-center rounded-full border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] text-[var(--esim-ink)] disabled:opacity-40"
               type="button"
             >
