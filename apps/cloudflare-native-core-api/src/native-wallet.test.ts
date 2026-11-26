@@ -70,14 +70,33 @@ describe('native D1 wallet', () => {
     authenticateNativeUser.mockResolvedValue({ id: 'user-1', email: 'u@example.com' });
     const run = vi.fn(async () => ({ success: true, meta: { changes: 1 } }));
     const db = { prepare: vi.fn(() => ({ bind: vi.fn(() => ({ run })) })) };
-    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ id: 'cs_test_1', url: 'https://checkout.stripe.test/1' }), { status: 200 })));
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ id: 'cs_test_1', url: 'https://checkout.stripe.test/1' }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
     const result = await tryNativeWallet(new Request('https://api.example/api/v1/extensions/plugin/wallet/api/api/packages/starter/checkout', {
       method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ successUrl: 'https://imagic.art/en/pricing?ok=1', cancelUrl: 'https://imagic.art/en/pricing' }),
     }), { DB: db } as never);
     expect(result?.status).toBe(201);
     await expect(result?.json()).resolves.toMatchObject({ success: true, data: { sessionId: 'cs_test_1', checkoutUrl: 'https://checkout.stripe.test/1' } });
     expect(getNativeStripeSecret).toHaveBeenCalledWith(expect.anything(), 'secretKey', undefined);
+    // the signed-in shopper's email goes to the hosted page, which would otherwise ask for it
+    expect(new URLSearchParams(String(fetchMock.mock.calls[0]![1]!.body)).get('customer_email')).toBe('u@example.com');
     vi.unstubAllGlobals();
+  });
+
+  it('leaves the email to the hosted page when the account has none', async () => {
+    authenticateNativeUser.mockResolvedValue({ id: 'user-1', email: '' });
+    const db = { prepare: vi.fn(() => ({ bind: vi.fn(() => ({ run: vi.fn(async () => ({ success: true, meta: { changes: 1 } })) })) })) };
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ id: 'cs_test_2', url: 'https://checkout.stripe.test/2' }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      const result = await tryNativeWallet(new Request('https://api.example/api/v1/plugins/wallet/store/packages/starter/checkout', {
+        method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}',
+      }), { DB: db } as never);
+      expect(result?.status).toBe(201);
+      expect(new URLSearchParams(String(fetchMock.mock.calls[0]![1]!.body)).has('customer_email')).toBe(false);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it('exposes authenticated read routes but no public mutation route', async () => {
@@ -227,6 +246,7 @@ describe('native D1 currency wallet', () => {
       const stripeBody = decodeURIComponent(String(fetchMock.mock.calls[0]![1]!.body));
       expect(stripeBody).toContain('price_data][unit_amount]=1000');
       expect(stripeBody).toContain('metadata[walletKind]=currency');
+      expect(stripeBody).toContain('customer_email=u@example.com');
     } finally {
       vi.unstubAllGlobals();
     }

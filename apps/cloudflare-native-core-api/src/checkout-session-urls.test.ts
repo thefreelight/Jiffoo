@@ -38,6 +38,69 @@ function sessionDb() {
   } as never;
 }
 
+// The hosted Stripe page asks every shopper for an email address when the
+// session is created without one — signed-in shoppers who had just typed it
+// with the order included, on the web and in the apps alike (both open the
+// same hosted page).
+describe('the hosted page is given the shopper’s email', () => {
+  const formOf = async (accountEmail: string, orderEmail?: string) => {
+    authenticateNativeUser.mockResolvedValue({ id: 'user-1', email: accountEmail, username: 'u', role: 'USER' });
+    getNativeStripeSecret.mockResolvedValue({ mode: 'test', value: 'sk_test_example' });
+    const payload = JSON.stringify({ id: 'ord-test-1', userId: 'user-1', currency: 'USD', totalAmount: 39, ...(orderEmail === undefined ? {} : { customerEmail: orderEmail }), items: [{ productName: 'RemoteRadar Pro (Monthly)', unitPrice: 39, quantity: 1 }] });
+    const db = {
+      prepare: (sql: string) => ({
+        bind: (..._values: unknown[]) => ({
+          first: async () => (sql.includes('native_order_snapshots snapshots') ? { payload, total_amount: 39, currency: 'USD', payment_status: 'PENDING' } : null),
+          all: async () => ({ results: [] }),
+          run: async () => ({ success: true, meta: { changes: 1 } }),
+        }),
+        first: async () => null,
+        run: async () => ({ success: true }),
+      }),
+      batch: async (statements: unknown[]) => statements,
+    } as never;
+    const bodies: string[] = [];
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn(async (_input: unknown, init?: RequestInit) => {
+      bodies.push(String(init?.body ?? ''));
+      return Response.json({ id: 'cs_test_email', url: 'https://checkout.stripe.com/c/pay/cs_test_email' });
+    }) as unknown as typeof fetch;
+    try {
+      const response = await tryNativeCheckout(
+        new Request('https://api.example/api/v1/payments/sessions', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', origin: 'https://remoteradar.cc' },
+          body: JSON.stringify({ paymentMethod: 'stripe', orderId: 'ord-test-1', idempotencyKey: 'idem-email' }),
+        }),
+        { DB: db, NATIVE_CHECKOUT_ENABLED: 'true' } as never,
+        () => Promise.resolve(null),
+      );
+      expect(response?.status).toBe(201);
+      expect(bodies).toHaveLength(1);
+      return new URLSearchParams(bodies[0]);
+    } finally {
+      global.fetch = originalFetch;
+    }
+  };
+
+  it('hands over the account’s email, so the shopper is not asked for it again', async () => {
+    expect((await formOf(' shopper@example.com ')).get('customer_email')).toBe('shopper@example.com');
+  });
+
+  it('falls back to the email the order was placed with', async () => {
+    expect((await formOf('', 'buyer@example.com')).get('customer_email')).toBe('buyer@example.com');
+  });
+
+  it('sends none — and the payment still starts — when no usable address is known', async () => {
+    for (const accountEmail of ['', '   ', 'not-an-email']) {
+      const form = await formOf(accountEmail, 'also-broken');
+      expect(form.has('customer_email'), JSON.stringify(accountEmail)).toBe(false);
+      expect(form.get('mode')).toBe('payment');
+      expect(form.get('metadata[orderId]')).toBe('ord-test-1');
+    }
+  });
+});
+
 describe('storefront payment result defaults', () => {
   it('resolves the browser Origin and keeps the shared default for headless callers', () => {
     expect(storefrontOrigin(new Request('https://api.example/api/v1/payments/sessions', {
