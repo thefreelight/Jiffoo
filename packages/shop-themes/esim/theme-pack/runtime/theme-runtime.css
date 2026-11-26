@@ -438,3 +438,7 @@ details summary::-webkit-details-marker {
 details[open] summary .faq-icon {
   transform: rotate(45deg);
 }
+.esim-affiliate-textarea {
+  min-height: 7rem;
+  resize: vertical;
+}

@@ -2,11 +2,38 @@ import type { PromotionRow } from './bokmoo-promotions';
 
 export type AffiliateDiscountType = 'percentage' | 'fixed_amount';
 
+/** What a promo code applies to: everything, only the picked products, or everything but them. */
+export type AffiliateScopeMode = 'all' | 'selected' | 'except';
+
+export interface AffiliateScope {
+  mode: AffiliateScopeMode;
+  /** The picked products: the only ones the code reaches, or the ones it does not reach. */
+  productIds: string[];
+}
+
+/** Rows written before scopes existed apply to everything. */
+export function affiliateScopeMode(value: unknown): AffiliateScopeMode {
+  return value === 'selected' || value === 'except' ? value : 'all';
+}
+
+export function affiliateScopeOf(mode: unknown, productIds: string[]): AffiliateScope {
+  return { mode: affiliateScopeMode(mode), productIds };
+}
+
+/** Whether a code may act on a product. */
+export function affiliateScopeAllows(scope: AffiliateScope, productId: string): boolean {
+  if (scope.mode === 'all') return true;
+  const picked = scope.productIds.includes(productId);
+  return scope.mode === 'selected' ? picked : !picked;
+}
+
 export interface DiscountableOrderItem {
   productId: string;
   variantId: string;
   salePrice: number;
   quantity: number;
+  /** False when the affiliate code does not reach this item. */
+  eligible?: boolean;
 }
 
 /** The partner whose promo code the buyer entered. `discount_rate` holds the value for both types. */
@@ -56,32 +83,54 @@ export function promotionUnitPrice(row: PromotionRow, salePrice: number): number
  *
  * A promotion lands on the unit price of the items it covers, so the charge,
  * the order record and the apps always agree on the paid price. An affiliate
- * (creator) code is an order-level discount that stacks on top of the
- * promotion and is limited to the items the promotion covered. With no
- * promotion in play it applies to the whole order, as it always has.
+ * (creator) code is an order-level discount on top of the promotion and is
+ * limited to the items the promotion covered. With no promotion in play it
+ * applies to the whole order, as it always has. A code the store limited
+ * (`eligible: false` on the other items) reaches those products only: pinned
+ * to picked products (`scope.mode === 'selected'`) it reaches them at their
+ * current price, sale or not, because the store chose them; any other code
+ * still only stacks on what the sale covered.
  */
-export function priceOrderDiscounts({ items, promotion, affiliate }: {
+export function priceOrderDiscounts({ items, promotion, affiliate, scope }: {
   items: DiscountableOrderItem[];
   promotion: PromotionRow | null;
   affiliate: AffiliateBuyerDiscount | null;
+  scope?: AffiliateScope | null;
 }): OrderDiscounts {
   const unitPrices = new Map<string, number>();
   let catalogSubtotal = 0;
   let coveredCatalogSubtotal = 0;
   let coveredSubtotal = 0;
+  // what the code may act on: every eligible item, the eligible items the promotion covered,
+  // and the eligible items at their current price
+  let eligibleSubtotal = 0;
+  let eligibleCoveredSubtotal = 0;
+  let eligibleCurrentSubtotal = 0;
   for (const item of items) {
     const lineSubtotal = item.salePrice * item.quantity;
     catalogSubtotal += lineSubtotal;
-    if (!promotion || !promotionCovers(promotion, item.productId)) continue;
+    const eligible = item.eligible !== false;
+    if (eligible) eligibleSubtotal += lineSubtotal;
+    if (!promotion || !promotionCovers(promotion, item.productId)) {
+      if (eligible) eligibleCurrentSubtotal += lineSubtotal;
+      continue;
+    }
     const unitPrice = promotionUnitPrice(promotion, item.salePrice);
     unitPrices.set(item.variantId, unitPrice);
     coveredCatalogSubtotal += lineSubtotal;
     coveredSubtotal += unitPrice * item.quantity;
+    if (eligible) {
+      eligibleCoveredSubtotal += unitPrice * item.quantity;
+      eligibleCurrentSubtotal += unitPrice * item.quantity;
+    }
   }
   const promotionDiscount = cents(coveredCatalogSubtotal - coveredSubtotal);
   // Only the part the promotion touched may be discounted again, so a code
-  // never reaches items the sale leaves out (e.g. resold eSIM plans).
-  const base = promotionDiscount > 0 ? coveredSubtotal : catalogSubtotal;
+  // never reaches items the sale leaves out (e.g. resold eSIM plans) — unless
+  // the store pinned the code to those very items.
+  const base = scope?.mode === 'selected'
+    ? eligibleCurrentSubtotal
+    : promotionDiscount > 0 ? eligibleCoveredSubtotal : eligibleSubtotal;
   let affiliateDiscount = 0;
   if (affiliate && base > 0) {
     affiliateDiscount = affiliateDiscountType(affiliate.discount_type) === 'fixed_amount'

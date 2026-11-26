@@ -1,6 +1,6 @@
 import { authenticateNativeUser, type NativeAuthEnv, type NativeSessionUser } from './auth';
 import { resolveActivePromotion } from './bokmoo-promotions';
-import { priceOrderDiscounts, type AffiliateBuyerDiscount } from './order-discounts';
+import { affiliateScopeAllows, affiliateScopeMode as affiliateScopeModeOf, affiliateScopeOf, priceOrderDiscounts, type AffiliateBuyerDiscount } from './order-discounts';
 import { getNativePluginConfig, getNativePluginSecret, getNativeStripeSecret } from './plugin-settings';
 import { stripeCustomerEmail } from './stripe-form';
 import { settleNativeWalletCheckout } from './native-wallet';
@@ -204,10 +204,15 @@ async function createOrder(
   const affiliateCodeRaw = typeof body.affiliateCode === 'string' ? body.affiliateCode.trim().toUpperCase() : '';
   const affiliatePartner = affiliateCodeRaw
     ? await env.DB.prepare(
-      `SELECT id, discount_rate, discount_type FROM native_affiliate_partners
+      `SELECT id, discount_rate, discount_type, scope_mode FROM native_affiliate_partners
        WHERE code = ?1 AND status = 'active' AND discount_rate > 0`,
-    ).bind(affiliateCodeRaw).first<AffiliateBuyerDiscount>()
+    ).bind(affiliateCodeRaw).first<AffiliateBuyerDiscount & { scope_mode?: string | null }>()
     : null;
+  // A code the store limited to certain products takes nothing off the other items.
+  const affiliateScopeMode = affiliateScopeModeOf(affiliatePartner?.scope_mode);
+  const affiliateScope = affiliateScopeOf(affiliateScopeMode, affiliatePartner && affiliateScopeMode !== 'all'
+    ? (await env.DB.prepare('SELECT product_id FROM native_affiliate_partner_scope WHERE partner_id = ?1').bind(affiliatePartner.id).all<{ product_id: string }>()).results.map((row) => row.product_id)
+    : []);
   const catalogSubtotal = resolved.reduce(
     (sum, { input, variant }) => sum + variant.salePrice * input.quantity, 0,
   );
@@ -224,12 +229,16 @@ async function createOrder(
   const pricing = priceOrderDiscounts({
     items: resolved.map(({ input, product, variant }) => ({
       productId: product.id, variantId: variant.id, salePrice: variant.salePrice, quantity: input.quantity,
+      eligible: affiliateScopeAllows(affiliateScope, product.id),
     })),
     promotion: promotion && promotion.discountAmount > 0 ? promotion.row : null,
     affiliate: affiliatePartner,
+    scope: affiliateScope,
   });
   const { promotionDiscount, affiliateDiscount } = pricing;
-  const appliedPromotion = promotionDiscount > 0 && promotion ? promotion : null;
+  const appliedPromotion = promotionDiscount > 0 ? promotion : null;
+  // A code that takes nothing off this order (nothing in the cart is in its reach) is not the order's partner.
+  const appliedAffiliate = affiliatePartner && affiliateDiscount > 0 ? affiliatePartner : null;
   const discountAmount = Math.round((promotionDiscount + affiliateDiscount) * 100) / 100;
   const discountedUnit = pricing.unitPrices;
   // eSIM reuse: an authenticated buyer may pin the order to an already
@@ -302,8 +311,8 @@ async function createOrder(
       ...(appliedPromotion
         ? [{ kind: 'promotion', id: appliedPromotion.row.id, slug: appliedPromotion.row.slug, amount: promotionDiscount }]
         : []),
-      ...(affiliatePartner && affiliateDiscount > 0
-        ? [{ kind: 'affiliate', id: affiliatePartner.id, amount: affiliateDiscount }]
+      ...(appliedAffiliate
+        ? [{ kind: 'affiliate', id: appliedAffiliate.id, amount: affiliateDiscount }]
         : []),
     ],
     currency: orderCurrency,
@@ -337,7 +346,7 @@ async function createOrder(
       `INSERT INTO native_order_metadata
        (order_id, user_id, idempotency_key, payment_status, currency, total_amount, affiliate_partner_id, promotion_id)
        VALUES (?1, ?2, ?3, 'PENDING', ?4, ?5, ?6, ?7)`,
-    ).bind(orderId, user.id, idempotencyKey, orderCurrency, order.totalAmount, affiliatePartner?.id ?? null, appliedPromotion?.row.id ?? null),
+    ).bind(orderId, user.id, idempotencyKey, orderCurrency, order.totalAmount, appliedAffiliate?.id ?? null, appliedPromotion?.row.id ?? null),
   ];
   for (let index = 0; index < resolved.length; index += 1) {
     const { input, product, variant } = resolved[index]!;

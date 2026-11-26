@@ -129,6 +129,25 @@ export interface BokmooAffiliatePartner {
   organizationId?: string | null;
   memberRole?: string | null;
   currency: string;
+  /** What the promo code applies to. An older core sends neither: the code applies to everything. */
+  scopeMode?: 'all' | 'selected' | 'except';
+  scopeProductIds?: string[];
+}
+
+/** A shopper's request to open an organization. The store approves or declines it. */
+export interface BokmooAffiliateApplication {
+  id: string;
+  organizationName: string;
+  contactName: string | null;
+  email: string;
+  phone: string | null;
+  website: string | null;
+  message: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  reviewNote: string | null;
+  organizationId: string | null;
+  createdAt: string;
+  reviewedAt: string | null;
 }
 
 export interface BokmooAffiliateCommission {
@@ -744,11 +763,22 @@ export async function getBokmooAffiliateOrganization(config: BokmooApiConfig): P
   return request<BokmooAffiliateOrganization>(config, `${affiliateBase}/organizations/me`);
 }
 
-export async function createBokmooAffiliateOrganization(
+/** The shopper's latest application to open an organization, or null when they never applied. */
+export async function getBokmooAffiliateApplication(config: BokmooApiConfig): Promise<BokmooAffiliateApplication | null> {
+  try {
+    return await request<BokmooAffiliateApplication>(config, `${affiliateBase}/organizations/applications/mine`);
+  } catch (cause) {
+    if (cause instanceof BokmooApiError && cause.status === 404) return null;
+    throw cause;
+  }
+}
+
+/** Organizations are opened by the store: the shopper applies and waits for its answer. */
+export async function applyForBokmooAffiliateOrganization(
   config: BokmooApiConfig,
-  input: { name: string; commissionRate: number }
-): Promise<BokmooAffiliateOrganization> {
-  return request<BokmooAffiliateOrganization>(config, `${affiliateBase}/organizations`, 'POST', input);
+  input: { organizationName: string; contactName?: string; email?: string; phone?: string; website?: string; message?: string }
+): Promise<BokmooAffiliateApplication> {
+  return request<BokmooAffiliateApplication>(config, `${affiliateBase}/organizations/applications`, 'POST', input);
 }
 
 export async function addBokmooAffiliateMember(

@@ -47,7 +47,7 @@
     "EPAY_GATEWAY": "https://yzf.chfastpay.com",
     "EPAY_PID": "1002",
     "EPAY_USD_CNY_RATE": "7.20",
-    "EXPECTED_D1_SCHEMA_VERSION": "0085",
+    "EXPECTED_D1_SCHEMA_VERSION": "0086",
     "NATIVE_CHECKOUT_ENABLED": "true",
     "ORDER_NUMBER_PREFIX": "BM",
     "PUBLIC_API_BASE_URL": "https://api.bokmoo.com",

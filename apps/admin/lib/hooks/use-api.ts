@@ -1413,11 +1413,37 @@ export interface AffiliateNativeOverviewData {
     commissionCount?: number;
     commissionTotal?: number;
     commissionPending?: number;
+    applicationPending?: number;
   };
   partners?: Array<Record<string, unknown>>;
   organizations?: Array<Record<string, unknown>>;
   commissions?: Array<Record<string, unknown>>;
   attributions?: Array<Record<string, unknown>>;
+  applications?: AffiliateNativeApplication[];
+}
+
+/** A shopper's request, made on the storefront, to open an organization. The store decides. */
+export interface AffiliateNativeApplication {
+  id: string;
+  organization_name: string;
+  contact_name?: string | null;
+  email: string;
+  phone?: string | null;
+  website?: string | null;
+  message?: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  review_note?: string | null;
+  reviewed_at?: string | null;
+  organization_id?: string | null;
+  created_at: string;
+  username?: string | null;
+}
+
+/** What a partner's promo code applies to: every product, only the picked ones, or all but the picked ones. */
+export type AffiliateScopeMode = 'all' | 'selected' | 'except';
+export interface AffiliateScope {
+  mode: AffiliateScopeMode;
+  productIds: string[];
 }
 
 // Affiliate admin mutations — partner/organization rate + status edits and
@@ -1426,13 +1452,14 @@ export function useUpdateAffiliatePartner() {
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
   return useMutation({
-    mutationFn: async (input: { id: string; commissionRate?: number; status?: string; code?: string; discountRate?: number; discountType?: string }) => {
+    mutationFn: async (input: { id: string; commissionRate?: number; status?: string; code?: string; discountRate?: number; discountType?: string; scope?: AffiliateScope }) => {
       const response = await apiClient.patch(`/extensions/plugin/affiliate/api/admin/partners/${input.id}`, {
         ...(input.commissionRate !== undefined ? { commissionRate: input.commissionRate } : {}),
         ...(input.status !== undefined ? { status: input.status } : {}),
         ...(input.code !== undefined ? { code: input.code } : {}),
         ...(input.discountRate !== undefined ? { discountRate: input.discountRate } : {}),
         ...(input.discountType !== undefined ? { discountType: input.discountType } : {}),
+        ...(input.scope ? { scope: { mode: input.scope.mode, productIds: input.scope.productIds } } : {}),
       });
       if (!response.success) throw new Error(getErrorMessage(response) || 'Update failed');
       return response.data;
@@ -1473,6 +1500,66 @@ export function useUpdateAffiliateCommissionStatus() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: [...pluginQueryKeys.all, 'affiliate-native-overview', 'affiliate'] });
     },
+  });
+}
+
+/** Opens an organization with the given account as its owner. */
+export function useCreateAffiliateOrganization() {
+  const queryClient = useQueryClient();
+  const { getErrorMessage } = useLocalizedApiFeedback();
+  return useMutation({
+    mutationFn: async (input: { name: string; ownerUserId?: string; ownerEmail?: string; commissionRate?: number }) => {
+      const response = await apiClient.post('/extensions/plugin/affiliate/api/admin/organizations', {
+        name: input.name,
+        ...(input.ownerUserId ? { ownerUserId: input.ownerUserId } : {}),
+        ...(input.ownerEmail ? { ownerEmail: input.ownerEmail } : {}),
+        ...(input.commissionRate !== undefined ? { commissionRate: input.commissionRate } : {}),
+      });
+      if (!response.success) throw new Error(getErrorMessage(response) || 'Could not create the organization');
+      return response.data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: [...pluginQueryKeys.all, 'affiliate-native-overview', 'affiliate'] });
+    },
+  });
+}
+
+/** Approves a storefront application (opening the organization with the applicant as owner) or declines it. */
+export function useReviewAffiliateOrganizationApplication() {
+  const queryClient = useQueryClient();
+  const { getErrorMessage } = useLocalizedApiFeedback();
+  return useMutation({
+    mutationFn: async (input: { id: string; decision: 'approve' | 'reject'; commissionRate?: number; note?: string }) => {
+      const response = await apiClient.post(`/extensions/plugin/affiliate/api/admin/applications/${input.id}/${input.decision}`, {
+        ...(input.commissionRate !== undefined ? { commissionRate: input.commissionRate } : {}),
+        ...(input.note ? { note: input.note } : {}),
+      });
+      if (!response.success) throw new Error(getErrorMessage(response) || 'Could not review the application');
+      return response.data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: [...pluginQueryKeys.all, 'affiliate-native-overview', 'affiliate'] });
+    },
+  });
+}
+
+/** Every product of the catalog, for picking what a promo code applies to. Read page by page, a hundred at a time. */
+export function useAffiliateScopeProducts() {
+  return useQuery({
+    queryKey: [...pluginQueryKeys.all, 'affiliate-scope-products'] as const,
+    queryFn: async () => {
+      const products: Array<{ id: string; name: string; price?: number | null; productKind?: string | null; requiresShipping?: boolean }> = [];
+      for (let page = 1; page <= 50; page += 1) {
+        const response = await productsApi.getAll(page, 100);
+        if (!response.success) throw new Error('The product list could not be loaded');
+        const data = unwrapApiResponse(response);
+        const items = data.items || [];
+        products.push(...items);
+        if (items.length < 100 || page >= Number(data.totalPages || 1)) break;
+      }
+      return products;
+    },
+    staleTime: 5 * 60 * 1000,
   });
 }
 
