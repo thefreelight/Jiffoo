@@ -1,3 +1,4 @@
+import React from 'react';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -151,6 +152,7 @@ describe('who gets autoplay', () => {
     expect(played).toHaveLength(0);
     expect(band(container)?.dataset.state).toBe('poster');
     expect(buttonOf(container)?.textContent).toBe('Watch with sound');
+    expect(videoOf(container)?.getAttribute('src'), 'no source, so no file is fetched').toBeNull();
   });
 
   it('not a visitor who asked to save data', async () => {
@@ -161,6 +163,7 @@ describe('who gets autoplay', () => {
 
     expect(played).toHaveLength(0);
     expect(band(container)?.dataset.state).toBe('poster');
+    expect(videoOf(container)?.getAttribute('src'), 'no source, so no file is fetched').toBeNull();
   });
 
   it('nobody when the browser refuses: the band goes back to the poster', async () => {
@@ -203,6 +206,32 @@ describe('an instance without a copy of the film', () => {
     });
 
     expect(band(container)).toBeNull();
+  });
+});
+
+describe('a page that keeps re-rendering', () => {
+  // The store hands the theme a new config object on every render. Taking that for a new film made the
+  // band give the video its source again and again: each reload cut off the one before, so on the live
+  // store the film never buffered enough to start.
+  it('hands the video its source once, and plays it once', async () => {
+    let rerender = () => undefined as void;
+    const Host = () => {
+      const [, update] = React.useState(0);
+      rerender = () => update((count) => count + 1);
+      return <PromoFilm locale="en" config={{ site: {} } as unknown as ThemeConfig} />;
+    };
+    const { container } = render(<Host />);
+
+    await comeNear();
+    for (let render_ = 0; render_ < 5; render_ += 1) {
+      await act(async () => {
+        rerender();
+      });
+    }
+
+    expect(videoOf(container)?.getAttribute('src')).toBe(`${FILM}/bokmoo-promo-720p-muted.mp4`);
+    expect(HTMLMediaElement.prototype.load).toHaveBeenCalledTimes(1);
+    expect(played).toHaveLength(1);
   });
 });
 
