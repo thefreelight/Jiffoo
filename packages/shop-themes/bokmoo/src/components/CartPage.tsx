@@ -4,6 +4,7 @@ import { cn } from '@jiffoo/ui';
 import type { CartPageProps } from 'shared/src/types/theme';
 import { pickCopy } from '../site';
 import { priceSale, saleFor, saleTitle, useActiveSales } from '../lib/sale';
+import { cardLineName } from '../lib/card-copy';
 import { SalePrice } from './SalePrice';
 
 export const CartPage = React.memo(function CartPage({
@@ -153,7 +154,7 @@ export const CartPage = React.memo(function CartPage({
 
                   <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-[var(--bokmoo-radius-lg)] border border-[var(--bokmoo-line)] bg-[linear-gradient(155deg,color-mix(in_oklab,var(--bokmoo-gold)_10%,transparent),transparent_55%),var(--bokmoo-bg)]">
                     {item.productImage ? (
-                      <img src={item.productImage} alt={item.productName} className="h-full w-full object-cover" />
+                      <img src={item.productImage} alt={cardLineName(item, locale)} className="h-full w-full object-cover" />
                     ) : (
                       <div className="flex h-full items-end p-3 text-[10px] tracking-[0.16em] text-[var(--bokmoo-gold)]">
                         BOKMOO
@@ -162,7 +163,7 @@ export const CartPage = React.memo(function CartPage({
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <h2 className="text-lg font-medium text-[var(--bokmoo-ink)]">{item.productName}</h2>
+                    <h2 className="text-lg font-medium text-[var(--bokmoo-ink)]">{cardLineName(item, locale)}</h2>
                     {item.variantName ? (
                       <p className="mt-1 text-xs tracking-[0.16em] text-[var(--bokmoo-copy-soft)]">
                         {item.variantName}

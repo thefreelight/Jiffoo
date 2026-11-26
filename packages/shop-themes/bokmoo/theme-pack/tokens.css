@@ -486,6 +486,43 @@ h6 {
 }
 /* <<< Promo film end */
 
+/* >>> Catalog card tiles and the checkout address. The storefront's utility sheet is built together with
+   the shop worker, so a theme release carries these rules itself. Keep this block byte-identical in
+   src/tokens.css (embedded renderer) and theme-pack/tokens.css (remote runtime). */
+.bokmoo-card-media {
+  aspect-ratio: 4 / 5;
+  background: #ecebe9;
+}
+
+.bokmoo-card-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  min-height: 2.2em;
+  line-height: 1.1;
+}
+
+.bokmoo-card-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  min-height: 4.5rem;
+}
+
+.bokmoo-checkout-country {
+  -webkit-appearance: none;
+  appearance: none;
+  padding-right: 2.5rem;
+  color-scheme: dark;
+}
+
+.bokmoo-code-input {
+  letter-spacing: 0.5em;
+}
+/* <<< Catalog card tiles end */
+
 
 ::selection {
   background: color-mix(in oklab, var(--bokmoo-gold) 38%, transparent);

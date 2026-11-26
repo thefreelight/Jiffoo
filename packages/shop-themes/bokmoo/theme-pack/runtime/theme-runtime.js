@@ -324,6 +324,18 @@
     ]
   ]);
 
+  // ../../../node_modules/lucide-react/dist/esm/icons/key-round.js
+  var KeyRound = createLucideIcon("KeyRound", [
+    [
+      "path",
+      {
+        d: "M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z",
+        key: "1s6t7t"
+      }
+    ],
+    ["circle", { cx: "16.5", cy: "7.5", r: ".5", fill: "currentColor", key: "w0ekpg" }]
+  ]);
+
   // ../../../node_modules/lucide-react/dist/esm/icons/layout-grid.js
   var LayoutGrid = createLucideIcon("LayoutGrid", [
     ["rect", { width: "7", height: "7", x: "3", y: "3", rx: "1", key: "1g98yp" }],
@@ -12156,16 +12168,206 @@
     ] });
   });
 
+  // src/lib/auth-copy.ts
+  var authText = (locale, copy) => pickCopy(locale, copy);
+  var STOREFRONT_LOCALES = /* @__PURE__ */ new Set(["en", "zh-Hans", "zh-Hant", "ja", "ko", "fr", "de"]);
+  function pageLocale(locale) {
+    if (locale && STOREFRONT_LOCALES.has(locale)) return locale;
+    if (typeof window === "undefined") return locale || void 0;
+    const inAddress = window.location.pathname.split("/").find((part) => STOREFRONT_LOCALES.has(part));
+    return inAddress ?? locale ?? void 0;
+  }
+  var AUTH = {
+    accountEyebrow: { en: "Secure account access", hans: "\u5B89\u5168\u767B\u5F55", hant: "\u5B89\u5168\u767B\u5165", ja: "\u5B89\u5168\u306A\u30A2\u30AB\u30A6\u30F3\u30C8\u3078\u306E\u30A2\u30AF\u30BB\u30B9", ko: "\uC548\uC804\uD55C \uACC4\uC815 \uC561\uC138\uC2A4", fr: "Acc\xE8s s\xE9curis\xE9 au compte", de: "Sicherer Kontozugriff" },
+    loginTitle: { en: "Sign in before your next border.", hans: "\u4E0B\u4E00\u6BB5\u65C5\u7A0B\u51FA\u53D1\u524D\uFF0C\u5148\u767B\u5F55\u3002", hant: "\u4E0B\u4E00\u6BB5\u65C5\u7A0B\u51FA\u767C\u524D\uFF0C\u5148\u767B\u5165\u3002", ja: "\u6B21\u306E\u65C5\u306B\u51FA\u308B\u524D\u306B\u3001\u30B5\u30A4\u30F3\u30A4\u30F3\u3002", ko: "\uB2E4\uC74C \uC5EC\uD589\uC744 \uB5A0\uB098\uAE30 \uC804\uC5D0 \uB85C\uADF8\uC778\uD558\uC138\uC694.", fr: "Connectez-vous avant votre prochain d\xE9part.", de: "Melden Sie sich an, bevor Ihre n\xE4chste Reise beginnt." },
+    loginLead: {
+      en: "Manage BOKMOO eSIM profiles, orders, and activation details from the same black-and-gold travel control surface.",
+      hans: "\u5728\u540C\u4E00\u4E2A\u8D26\u6237\u91CC\u7BA1\u7406\u4F60\u7684 BOKMOO eSIM \u914D\u7F6E\u6587\u4EF6\u3001\u8BA2\u5355\u548C\u6FC0\u6D3B\u4FE1\u606F\u3002",
+      hant: "\u5728\u540C\u4E00\u500B\u5E33\u6236\u88E1\u7BA1\u7406\u4F60\u7684 BOKMOO eSIM \u8A2D\u5B9A\u6A94\u3001\u8A02\u55AE\u548C\u555F\u7528\u8CC7\u8A0A\u3002",
+      ja: "BOKMOO \u306E eSIM \u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3001\u6CE8\u6587\u3001\u30A2\u30AF\u30C6\u30A3\u30D9\u30FC\u30B7\u30E7\u30F3\u60C5\u5831\u3092\u3072\u3068\u3064\u306E\u5834\u6240\u3067\u7BA1\u7406\u3067\u304D\u307E\u3059\u3002",
+      ko: "BOKMOO eSIM \uD504\uB85C\uD544, \uC8FC\uBB38, \uD65C\uC131\uD654 \uC815\uBCF4\uB97C \uD55C \uACF3\uC5D0\uC11C \uAD00\uB9AC\uD558\uC138\uC694.",
+      fr: "G\xE9rez vos profils eSIM BOKMOO, vos commandes et vos d\xE9tails d\u2019activation au m\xEAme endroit.",
+      de: "Verwalten Sie Ihre BOKMOO-eSIM-Profile, Bestellungen und Aktivierungsdetails an einem Ort."
+    },
+    featureOrdersTitle: { en: "Orders", hans: "\u8BA2\u5355", hant: "\u8A02\u55AE", ja: "\u6CE8\u6587", ko: "\uC8FC\uBB38", fr: "Commandes", de: "Bestellungen" },
+    featureOrdersBody: { en: "Track purchases", hans: "\u67E5\u770B\u8D2D\u4E70\u8BB0\u5F55", hant: "\u67E5\u770B\u8CFC\u8CB7\u8A18\u9304", ja: "\u8CFC\u5165\u5C65\u6B74\u3092\u78BA\u8A8D", ko: "\uAD6C\uB9E4 \uB0B4\uC5ED \uD655\uC778", fr: "Suivre vos achats", de: "K\xE4ufe verfolgen" },
+    featureProfilesTitle: { en: "Profiles", hans: "eSIM \u914D\u7F6E\u6587\u4EF6", hant: "eSIM \u8A2D\u5B9A\u6A94", ja: "\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB", ko: "\uD504\uB85C\uD544", fr: "Profils", de: "Profile" },
+    featureProfilesBody: { en: "Manage eSIMs", hans: "\u7BA1\u7406\u4F60\u7684 eSIM", hant: "\u7BA1\u7406\u4F60\u7684 eSIM", ja: "eSIM \u3092\u7BA1\u7406", ko: "eSIM \uAD00\uB9AC", fr: "G\xE9rer vos eSIM", de: "eSIMs verwalten" },
+    featureSupportTitle: { en: "Support", hans: "\u5BA2\u670D", hant: "\u5BA2\u670D", ja: "\u30B5\u30DD\u30FC\u30C8", ko: "\uACE0\uAC1D \uC9C0\uC6D0", fr: "Assistance", de: "Support" },
+    featureSupportBody: { en: "Get help fast", hans: "\u5FEB\u901F\u83B7\u5F97\u5E2E\u52A9", hant: "\u5FEB\u901F\u7372\u5F97\u5354\u52A9", ja: "\u3059\u3050\u306B\u30B5\u30DD\u30FC\u30C8\u3092\u53D7\u3051\u3089\u308C\u308B", ko: "\uBE60\uB974\uAC8C \uB3C4\uC6C0 \uBC1B\uAE30", fr: "Obtenez de l\u2019aide rapidement", de: "Schnelle Hilfe" },
+    welcomeBack: { en: "Welcome back", hans: "\u6B22\u8FCE\u56DE\u6765", hant: "\u6B61\u8FCE\u56DE\u4F86", ja: "\u304A\u304B\u3048\u308A\u306A\u3055\u3044", ko: "\uB2E4\uC2DC \uC624\uC2E0 \uAC83\uC744 \uD658\uC601\uD569\uB2C8\uB2E4", fr: "Bon retour", de: "Willkommen zur\xFCck" },
+    loginSub: {
+      en: "Continue to your orders, profiles, and activation workspace.",
+      hans: "\u7EE7\u7EED\u524D\u5F80\u4F60\u7684\u8BA2\u5355\u3001eSIM \u914D\u7F6E\u6587\u4EF6\u548C\u6FC0\u6D3B\u4E2D\u5FC3\u3002",
+      hant: "\u7E7C\u7E8C\u524D\u5F80\u4F60\u7684\u8A02\u55AE\u3001eSIM \u8A2D\u5B9A\u6A94\u548C\u555F\u7528\u4E2D\u5FC3\u3002",
+      ja: "\u6CE8\u6587\u3001\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3001\u30A2\u30AF\u30C6\u30A3\u30D9\u30FC\u30B7\u30E7\u30F3\u753B\u9762\u306B\u9032\u307F\u307E\u3059\u3002",
+      ko: "\uC8FC\uBB38, \uD504\uB85C\uD544, \uD65C\uC131\uD654 \uD654\uBA74\uC73C\uB85C \uACC4\uC18D \uC9C4\uD589\uD569\uB2C8\uB2E4.",
+      fr: "Retrouvez vos commandes, vos profils et votre espace d\u2019activation.",
+      de: "Weiter zu Ihren Bestellungen, Profilen und zur Aktivierung."
+    },
+    orEmail: { en: "or email", hans: "\u6216\u4F7F\u7528\u90AE\u7BB1", hant: "\u6216\u4F7F\u7528\u96FB\u5B50\u90F5\u4EF6", ja: "\u307E\u305F\u306F\u30E1\u30FC\u30EB\u30A2\u30C9\u30EC\u30B9", ko: "\uB610\uB294 \uC774\uBA54\uC77C", fr: "ou par e-mail", de: "oder per E-Mail" },
+    email: { en: "Email", hans: "\u90AE\u7BB1", hant: "\u96FB\u5B50\u90F5\u4EF6", ja: "\u30E1\u30FC\u30EB\u30A2\u30C9\u30EC\u30B9", ko: "\uC774\uBA54\uC77C", fr: "E-mail", de: "E-Mail" },
+    password: { en: "Password", hans: "\u5BC6\u7801", hant: "\u5BC6\u78BC", ja: "\u30D1\u30B9\u30EF\u30FC\u30C9", ko: "\uBE44\uBC00\uBC88\uD638", fr: "Mot de passe", de: "Passwort" },
+    newPassword: { en: "New password", hans: "\u65B0\u5BC6\u7801", hant: "\u65B0\u5BC6\u78BC", ja: "\u65B0\u3057\u3044\u30D1\u30B9\u30EF\u30FC\u30C9", ko: "\uC0C8 \uBE44\uBC00\uBC88\uD638", fr: "Nouveau mot de passe", de: "Neues Passwort" },
+    confirmPassword: { en: "Confirm password", hans: "\u786E\u8BA4\u5BC6\u7801", hant: "\u78BA\u8A8D\u5BC6\u78BC", ja: "\u30D1\u30B9\u30EF\u30FC\u30C9\u306E\u78BA\u8A8D", ko: "\uBE44\uBC00\uBC88\uD638 \uD655\uC778", fr: "Confirmer le mot de passe", de: "Passwort best\xE4tigen" },
+    showPassword: { en: "Show password", hans: "\u663E\u793A\u5BC6\u7801", hant: "\u986F\u793A\u5BC6\u78BC", ja: "\u30D1\u30B9\u30EF\u30FC\u30C9\u3092\u8868\u793A", ko: "\uBE44\uBC00\uBC88\uD638 \uD45C\uC2DC", fr: "Afficher le mot de passe", de: "Passwort anzeigen" },
+    hidePassword: { en: "Hide password", hans: "\u9690\u85CF\u5BC6\u7801", hant: "\u96B1\u85CF\u5BC6\u78BC", ja: "\u30D1\u30B9\u30EF\u30FC\u30C9\u3092\u96A0\u3059", ko: "\uBE44\uBC00\uBC88\uD638 \uC228\uAE30\uAE30", fr: "Masquer le mot de passe", de: "Passwort verbergen" },
+    firstName: { en: "First name", hans: "\u540D", hant: "\u540D", ja: "\u540D", ko: "\uC774\uB984", fr: "Pr\xE9nom", de: "Vorname" },
+    lastName: { en: "Last name", hans: "\u59D3", hant: "\u59D3", ja: "\u59D3", ko: "\uC131", fr: "Nom", de: "Nachname" },
+    firstNameExample: { en: "Ada", hans: "\u4E09", hant: "\u4E09", ja: "\u82B1\u5B50", ko: "\uAE38\uB3D9", fr: "Ada", de: "Ada" },
+    lastNameExample: { en: "Lovelace", hans: "\u5F20", hant: "\u5F35", ja: "\u5C71\u7530", ko: "\uD64D", fr: "Lovelace", de: "Lovelace" },
+    forgotPassword: { en: "Forgot password", hans: "\u5FD8\u8BB0\u5BC6\u7801", hant: "\u5FD8\u8A18\u5BC6\u78BC", ja: "\u30D1\u30B9\u30EF\u30FC\u30C9\u3092\u304A\u5FD8\u308C\u3067\u3059\u304B", ko: "\uBE44\uBC00\uBC88\uD638\uB97C \uC78A\uC73C\uC168\uB098\uC694", fr: "Mot de passe oubli\xE9 ?", de: "Passwort vergessen" },
+    signingIn: { en: "Signing in", hans: "\u6B63\u5728\u767B\u5F55", hant: "\u6B63\u5728\u767B\u5165", ja: "\u30B5\u30A4\u30F3\u30A4\u30F3\u4E2D", ko: "\uB85C\uADF8\uC778 \uC911", fr: "Connexion", de: "Anmeldung" },
+    signIn: { en: "Sign in", hans: "\u767B\u5F55", hant: "\u767B\u5165", ja: "\u30B5\u30A4\u30F3\u30A4\u30F3", ko: "\uB85C\uADF8\uC778", fr: "Se connecter", de: "Anmelden" },
+    newToBrand: { en: "New to {brand}?", hans: "\u8FD8\u6CA1\u6709 {brand} \u8D26\u6237\uFF1F", hant: "\u9084\u6C92\u6709 {brand} \u5E33\u6236\uFF1F", ja: "{brand} \u306E\u30A2\u30AB\u30A6\u30F3\u30C8\u3092\u304A\u6301\u3061\u3067\u306A\u3044\u65B9", ko: "{brand} \uACC4\uC815\uC774 \uC5C6\uC73C\uC2E0\uAC00\uC694?", fr: "Nouveau sur {brand} ?", de: "Neu bei {brand}?" },
+    createAccount: { en: "Create account", hans: "\u521B\u5EFA\u8D26\u6237", hant: "\u5EFA\u7ACB\u5E33\u6236", ja: "\u30A2\u30AB\u30A6\u30F3\u30C8\u3092\u4F5C\u6210", ko: "\uACC4\uC815 \uB9CC\uB4E4\uAE30", fr: "Cr\xE9er un compte", de: "Konto erstellen" },
+    registerEyebrow: { en: "Protected traveler identity", hans: "\u65C5\u884C\u8005\u8EAB\u4EFD\u4FDD\u62A4", hant: "\u65C5\u884C\u8005\u8EAB\u5206\u4FDD\u8B77", ja: "\u65C5\u884C\u8005\u3092\u5B88\u308B\u672C\u4EBA\u78BA\u8A8D", ko: "\uC5EC\uD589\uC790\uB97C \uC704\uD55C \uBCF4\uD638\uB41C \uC2E0\uC6D0", fr: "Identit\xE9 de voyageur prot\xE9g\xE9e", de: "Gesch\xFCtzte Reisende-Identit\xE4t" },
+    registerTitle: {
+      en: "Create the account your eSIMs follow.",
+      hans: "\u4E3A\u4F60\u7684 eSIM \u521B\u5EFA\u4E00\u4E2A\u968F\u8EAB\u8D26\u6237\u3002",
+      hant: "\u70BA\u4F60\u7684 eSIM \u5EFA\u7ACB\u4E00\u500B\u96A8\u8EAB\u5E33\u6236\u3002",
+      ja: "\u3042\u306A\u305F\u306E eSIM \u3092\u3072\u3068\u3064\u306B\u307E\u3068\u3081\u308B\u30A2\u30AB\u30A6\u30F3\u30C8\u3092\u4F5C\u6210\u3002",
+      ko: "eSIM\uC744 \uD55C\uACF3\uC5D0 \uBAA8\uC544\uB450\uB294 \uACC4\uC815\uC744 \uB9CC\uB4DC\uC138\uC694.",
+      fr: "Cr\xE9ez le compte qui suit vos eSIM.",
+      de: "Erstellen Sie das Konto, das Ihre eSIMs begleitet."
+    },
+    registerLead: {
+      en: "Keep orders, activation codes, profile history, and support cases attached to one BOKMOO identity.",
+      hans: "\u8BA2\u5355\u3001\u6FC0\u6D3B\u7801\u3001\u914D\u7F6E\u6587\u4EF6\u8BB0\u5F55\u548C\u5BA2\u670D\u5DE5\u5355\uFF0C\u90FD\u5F52\u5728\u540C\u4E00\u4E2A BOKMOO \u8EAB\u4EFD\u4E0B\u3002",
+      hant: "\u8A02\u55AE\u3001\u555F\u7528\u78BC\u3001\u8A2D\u5B9A\u6A94\u8A18\u9304\u548C\u5BA2\u670D\u5DE5\u55AE\uFF0C\u90FD\u6B78\u5728\u540C\u4E00\u500B BOKMOO \u8EAB\u5206\u4E0B\u3002",
+      ja: "\u6CE8\u6587\u3001\u30A2\u30AF\u30C6\u30A3\u30D9\u30FC\u30B7\u30E7\u30F3\u30B3\u30FC\u30C9\u3001\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u5C65\u6B74\u3001\u30B5\u30DD\u30FC\u30C8\u5C65\u6B74\u3092\u3072\u3068\u3064\u306E BOKMOO ID \u306B\u307E\u3068\u3081\u307E\u3059\u3002",
+      ko: "\uC8FC\uBB38, \uD65C\uC131\uD654 \uCF54\uB4DC, \uD504\uB85C\uD544 \uAE30\uB85D, \uBB38\uC758 \uB0B4\uC5ED\uC744 \uD558\uB098\uC758 BOKMOO \uACC4\uC815\uC5D0\uC11C \uAD00\uB9AC\uD558\uC138\uC694.",
+      fr: "Commandes, codes d\u2019activation, historique de profils et demandes d\u2019assistance : tout est rattach\xE9 \xE0 une seule identit\xE9 BOKMOO.",
+      de: "Bestellungen, Aktivierungscodes, Profilhistorie und Supportf\xE4lle \u2013 alles an einer BOKMOO-Identit\xE4t."
+    },
+    registerSub: {
+      en: "Start with a secure profile for purchases and global activation support.",
+      hans: "\u5148\u521B\u5EFA\u4E00\u4E2A\u5B89\u5168\u6863\u6848\uFF0C\u7528\u4E8E\u8D2D\u4E70\u548C\u5168\u7403\u6FC0\u6D3B\u652F\u6301\u3002",
+      hant: "\u5148\u5EFA\u7ACB\u4E00\u500B\u5B89\u5168\u6A94\u6848\uFF0C\u7528\u65BC\u8CFC\u8CB7\u548C\u5168\u7403\u555F\u7528\u652F\u63F4\u3002",
+      ja: "\u8CFC\u5165\u3068\u4E16\u754C\u3067\u306E\u30A2\u30AF\u30C6\u30A3\u30D9\u30FC\u30B7\u30E7\u30F3\u30B5\u30DD\u30FC\u30C8\u306E\u305F\u3081\u306E\u5B89\u5168\u306A\u30D7\u30ED\u30D5\u30A3\u30FC\u30EB\u3092\u4F5C\u6210\u3057\u307E\u3057\u3087\u3046\u3002",
+      ko: "\uAD6C\uB9E4\uC640 \uAE00\uB85C\uBC8C \uD65C\uC131\uD654 \uC9C0\uC6D0\uC744 \uC704\uD55C \uC548\uC804\uD55C \uD504\uB85C\uD544\uC744 \uB9CC\uB4E4\uC5B4 \uBCF4\uC138\uC694.",
+      fr: "Commencez par un profil s\xE9curis\xE9 pour vos achats et l\u2019assistance \xE0 l\u2019activation dans le monde entier.",
+      de: "Beginnen Sie mit einem sicheren Profil f\xFCr Eink\xE4ufe und weltweite Aktivierungshilfe."
+    },
+    passwordsDiffer: {
+      en: "Passwords do not match",
+      hans: "\u4E24\u6B21\u8F93\u5165\u7684\u5BC6\u7801\u4E0D\u4E00\u81F4",
+      hant: "\u5169\u6B21\u8F38\u5165\u7684\u5BC6\u78BC\u4E0D\u4E00\u81F4",
+      ja: "\u30D1\u30B9\u30EF\u30FC\u30C9\u304C\u4E00\u81F4\u3057\u307E\u305B\u3093",
+      ko: "\uBE44\uBC00\uBC88\uD638\uAC00 \uC77C\uCE58\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4",
+      fr: "Les mots de passe ne correspondent pas",
+      de: "Passw\xF6rter stimmen nicht \xFCberein"
+    },
+    creating: { en: "Creating", hans: "\u6B63\u5728\u521B\u5EFA", hant: "\u6B63\u5728\u5EFA\u7ACB", ja: "\u4F5C\u6210\u4E2D", ko: "\uC0DD\uC131 \uC911", fr: "Cr\xE9ation", de: "Wird erstellt" },
+    haveAccount: { en: "Already have an account?", hans: "\u5DF2\u6709\u8D26\u6237\uFF1F", hant: "\u5DF2\u6709\u5E33\u6236\uFF1F", ja: "\u3059\u3067\u306B\u30A2\u30AB\u30A6\u30F3\u30C8\u3092\u304A\u6301\u3061\u3067\u3059\u304B\uFF1F", ko: "\uC774\uBBF8 \uACC4\uC815\uC774 \uC788\uC73C\uC2E0\uAC00\uC694?", fr: "Vous avez d\xE9j\xE0 un compte ?", de: "Sie haben bereits ein Konto?" },
+    // password reset
+    resetTitle: { en: "Reset your password", hans: "\u91CD\u7F6E\u5BC6\u7801", hant: "\u91CD\u8A2D\u5BC6\u78BC", ja: "\u30D1\u30B9\u30EF\u30FC\u30C9\u3092\u30EA\u30BB\u30C3\u30C8", ko: "\uBE44\uBC00\uBC88\uD638 \uC7AC\uC124\uC815", fr: "R\xE9initialiser votre mot de passe", de: "Passwort zur\xFCcksetzen" },
+    resetLead: {
+      en: "Enter your email and we send a six-digit code. Use it to set a new password.",
+      hans: "\u8F93\u5165\u90AE\u7BB1\uFF0C\u6211\u4EEC\u4F1A\u53D1\u9001\u4E00\u4E2A\u516D\u4F4D\u6570\u9A8C\u8BC1\u7801\uFF0C\u7528\u5B83\u8BBE\u7F6E\u65B0\u5BC6\u7801\u3002",
+      hant: "\u8F38\u5165\u96FB\u5B50\u90F5\u4EF6\uFF0C\u6211\u5011\u6703\u50B3\u9001\u4E00\u500B\u516D\u4F4D\u6578\u9A57\u8B49\u78BC\uFF0C\u7528\u5B83\u8A2D\u5B9A\u65B0\u5BC6\u78BC\u3002",
+      ja: "\u30E1\u30FC\u30EB\u30A2\u30C9\u30EC\u30B9\u3092\u5165\u529B\u3059\u308B\u3068 6 \u6841\u306E\u30B3\u30FC\u30C9\u3092\u304A\u9001\u308A\u3057\u307E\u3059\u3002\u305D\u306E\u30B3\u30FC\u30C9\u3067\u65B0\u3057\u3044\u30D1\u30B9\u30EF\u30FC\u30C9\u3092\u8A2D\u5B9A\u3067\u304D\u307E\u3059\u3002",
+      ko: "\uC774\uBA54\uC77C\uC744 \uC785\uB825\uD558\uBA74 6\uC790\uB9AC \uCF54\uB4DC\uB97C \uBCF4\uB0B4\uB4DC\uB9BD\uB2C8\uB2E4. \uCF54\uB4DC\uB85C \uC0C8 \uBE44\uBC00\uBC88\uD638\uB97C \uC124\uC815\uD558\uC138\uC694.",
+      fr: "Saisissez votre e-mail : nous vous envoyons un code \xE0 six chiffres pour d\xE9finir un nouveau mot de passe.",
+      de: "Geben Sie Ihre E-Mail ein \u2013 wir senden einen sechsstelligen Code, mit dem Sie ein neues Passwort festlegen."
+    },
+    sendCode: { en: "Send code", hans: "\u53D1\u9001\u9A8C\u8BC1\u7801", hant: "\u50B3\u9001\u9A57\u8B49\u78BC", ja: "\u30B3\u30FC\u30C9\u3092\u9001\u4FE1", ko: "\uCF54\uB4DC \uBCF4\uB0B4\uAE30", fr: "Envoyer le code", de: "Code senden" },
+    sending: { en: "Sending", hans: "\u6B63\u5728\u53D1\u9001", hant: "\u6B63\u5728\u50B3\u9001", ja: "\u9001\u4FE1\u4E2D", ko: "\uBCF4\uB0B4\uB294 \uC911", fr: "Envoi", de: "Wird gesendet" },
+    code: { en: "Six-digit code", hans: "\u516D\u4F4D\u6570\u9A8C\u8BC1\u7801", hant: "\u516D\u4F4D\u6578\u9A57\u8B49\u78BC", ja: "6 \u6841\u306E\u30B3\u30FC\u30C9", ko: "6\uC790\uB9AC \uCF54\uB4DC", fr: "Code \xE0 six chiffres", de: "Sechsstelliger Code" },
+    resetSentTo: { en: "We sent a code to {email}.", hans: "\u9A8C\u8BC1\u7801\u5DF2\u53D1\u9001\u5230 {email}\u3002", hant: "\u9A57\u8B49\u78BC\u5DF2\u50B3\u9001\u5230 {email}\u3002", ja: "{email} \u306B\u30B3\u30FC\u30C9\u3092\u9001\u4FE1\u3057\u307E\u3057\u305F\u3002", ko: "{email}(\uC73C)\uB85C \uCF54\uB4DC\uB97C \uBCF4\uB0C8\uC2B5\uB2C8\uB2E4.", fr: "Nous avons envoy\xE9 un code \xE0 {email}.", de: "Wir haben einen Code an {email} gesendet." },
+    resend: { en: "Resend code", hans: "\u91CD\u65B0\u53D1\u9001", hant: "\u91CD\u65B0\u50B3\u9001", ja: "\u30B3\u30FC\u30C9\u3092\u518D\u9001\u4FE1", ko: "\uCF54\uB4DC \uB2E4\uC2DC \uBCF4\uB0B4\uAE30", fr: "Renvoyer le code", de: "Code erneut senden" },
+    setNewPassword: { en: "Set new password", hans: "\u8BBE\u7F6E\u65B0\u5BC6\u7801", hant: "\u8A2D\u5B9A\u65B0\u5BC6\u78BC", ja: "\u65B0\u3057\u3044\u30D1\u30B9\u30EF\u30FC\u30C9\u3092\u8A2D\u5B9A", ko: "\uC0C8 \uBE44\uBC00\uBC88\uD638 \uC124\uC815", fr: "D\xE9finir le nouveau mot de passe", de: "Neues Passwort festlegen" },
+    saving: { en: "Saving", hans: "\u6B63\u5728\u4FDD\u5B58", hant: "\u6B63\u5728\u5132\u5B58", ja: "\u4FDD\u5B58\u4E2D", ko: "\uC800\uC7A5 \uC911", fr: "Enregistrement", de: "Wird gespeichert" },
+    resetDoneTitle: { en: "Password updated", hans: "\u5BC6\u7801\u5DF2\u66F4\u65B0", hant: "\u5BC6\u78BC\u5DF2\u66F4\u65B0", ja: "\u30D1\u30B9\u30EF\u30FC\u30C9\u3092\u66F4\u65B0\u3057\u307E\u3057\u305F", ko: "\uBE44\uBC00\uBC88\uD638\uAC00 \uBCC0\uACBD\uB418\uC5C8\uC2B5\uB2C8\uB2E4", fr: "Mot de passe mis \xE0 jour", de: "Passwort aktualisiert" },
+    resetDoneLead: {
+      en: "Sign in with your new password.",
+      hans: "\u8BF7\u4F7F\u7528\u65B0\u5BC6\u7801\u767B\u5F55\u3002",
+      hant: "\u8ACB\u4F7F\u7528\u65B0\u5BC6\u78BC\u767B\u5165\u3002",
+      ja: "\u65B0\u3057\u3044\u30D1\u30B9\u30EF\u30FC\u30C9\u3067\u30B5\u30A4\u30F3\u30A4\u30F3\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+      ko: "\uC0C8 \uBE44\uBC00\uBC88\uD638\uB85C \uB85C\uADF8\uC778\uD558\uC138\uC694.",
+      fr: "Connectez-vous avec votre nouveau mot de passe.",
+      de: "Melden Sie sich mit Ihrem neuen Passwort an."
+    },
+    changeEmail: { en: "Use a different email", hans: "\u6362\u4E00\u4E2A\u90AE\u7BB1", hant: "\u63DB\u4E00\u500B\u96FB\u5B50\u90F5\u4EF6", ja: "\u5225\u306E\u30E1\u30FC\u30EB\u30A2\u30C9\u30EC\u30B9\u3092\u4F7F\u3046", ko: "\uB2E4\uB978 \uC774\uBA54\uC77C \uC0AC\uC6A9", fr: "Utiliser un autre e-mail", de: "Andere E-Mail verwenden" },
+    // sign-in callback and finish
+    authFailed: { en: "Sign-in failed", hans: "\u767B\u5F55\u5931\u8D25", hant: "\u767B\u5165\u5931\u6557", ja: "\u30B5\u30A4\u30F3\u30A4\u30F3\u306B\u5931\u6557\u3057\u307E\u3057\u305F", ko: "\uB85C\uADF8\uC778\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4", fr: "\xC9chec de la connexion", de: "Anmeldung fehlgeschlagen" },
+    completing: { en: "Completing sign in", hans: "\u6B63\u5728\u5B8C\u6210\u767B\u5F55", hant: "\u6B63\u5728\u5B8C\u6210\u767B\u5165", ja: "\u30B5\u30A4\u30F3\u30A4\u30F3\u3092\u5B8C\u4E86\u3057\u3066\u3044\u307E\u3059", ko: "\uB85C\uADF8\uC778\uC744 \uC644\uB8CC\uD558\uB294 \uC911", fr: "Finalisation de la connexion", de: "Anmeldung wird abgeschlossen" },
+    completingLead: {
+      en: "Securing your session and returning you to the BOKMOO storefront.",
+      hans: "\u6B63\u5728\u4FDD\u62A4\u4F60\u7684\u767B\u5F55\u72B6\u6001\uFF0C\u5E76\u8FD4\u56DE BOKMOO \u5546\u5E97\u3002",
+      hant: "\u6B63\u5728\u4FDD\u8B77\u4F60\u7684\u767B\u5165\u72C0\u614B\uFF0C\u4E26\u8FD4\u56DE BOKMOO \u5546\u5E97\u3002",
+      ja: "\u30BB\u30C3\u30B7\u30E7\u30F3\u3092\u4FDD\u8B77\u3057\u3066 BOKMOO \u30B9\u30C8\u30A2\u306B\u623B\u308A\u307E\u3059\u3002",
+      ko: "\uC138\uC158\uC744 \uBCF4\uD638\uD558\uACE0 BOKMOO \uC2A4\uD1A0\uC5B4\uB85C \uB3CC\uC544\uAC11\uB2C8\uB2E4.",
+      fr: "S\xE9curisation de votre session et retour vers la boutique BOKMOO.",
+      de: "Ihre Sitzung wird gesichert und Sie kehren zum BOKMOO-Shop zur\xFCck."
+    },
+    backToSignIn: { en: "Back to sign in", hans: "\u8FD4\u56DE\u767B\u5F55", hant: "\u8FD4\u56DE\u767B\u5165", ja: "\u30B5\u30A4\u30F3\u30A4\u30F3\u306B\u623B\u308B", ko: "\uB85C\uADF8\uC778\uC73C\uB85C \uB3CC\uC544\uAC00\uAE30", fr: "Retour \xE0 la connexion", de: "Zur\xFCck zur Anmeldung" },
+    home: { en: "Home", hans: "\u9996\u9875", hant: "\u9996\u9801", ja: "\u30DB\u30FC\u30E0", ko: "\uD648", fr: "Accueil", de: "Startseite" },
+    tryAgain: { en: "Try again", hans: "\u91CD\u8BD5", hant: "\u91CD\u8A66", ja: "\u3082\u3046\u4E00\u5EA6\u8A66\u3059", ko: "\uB2E4\uC2DC \uC2DC\uB3C4", fr: "R\xE9essayer", de: "Erneut versuchen" },
+    unknownSignInError: {
+      en: "We could not finish signing you in. Try again, or sign in with your email.",
+      hans: "\u6CA1\u80FD\u5B8C\u6210\u767B\u5F55\u3002\u8BF7\u91CD\u8BD5\uFF0C\u6216\u6539\u7528\u90AE\u7BB1\u767B\u5F55\u3002",
+      hant: "\u6C92\u80FD\u5B8C\u6210\u767B\u5165\u3002\u8ACB\u91CD\u8A66\uFF0C\u6216\u6539\u7528\u96FB\u5B50\u90F5\u4EF6\u767B\u5165\u3002",
+      ja: "\u30B5\u30A4\u30F3\u30A4\u30F3\u3092\u5B8C\u4E86\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u3082\u3046\u4E00\u5EA6\u8A66\u3059\u304B\u3001\u30E1\u30FC\u30EB\u30A2\u30C9\u30EC\u30B9\u3067\u30B5\u30A4\u30F3\u30A4\u30F3\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+      ko: "\uB85C\uADF8\uC778\uC744 \uC644\uB8CC\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4. \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uAC70\uB098 \uC774\uBA54\uC77C\uB85C \uB85C\uADF8\uC778\uD558\uC138\uC694.",
+      fr: "Nous n\u2019avons pas pu finaliser votre connexion. R\xE9essayez ou connectez-vous avec votre e-mail.",
+      de: "Die Anmeldung konnte nicht abgeschlossen werden. Versuchen Sie es erneut oder melden Sie sich mit E-Mail an."
+    }
+  };
+  function accountLabel(locale, brand) {
+    const name = brand.toUpperCase();
+    return pickCopy(locale, {
+      en: `${name} account`,
+      hans: `${name} \u8D26\u6237`,
+      hant: `${name} \u5E33\u6236`,
+      ja: `${name} \u30A2\u30AB\u30A6\u30F3\u30C8`,
+      ko: `${name} \uACC4\uC815`,
+      fr: `Compte ${name}`,
+      de: `${name}-Konto`
+    });
+  }
+  function headlineStyle(locale) {
+    return /^(en|fr|de)$/.test(locale || "en") ? void 0 : { letterSpacing: "-0.01em", fontSize: "clamp(2.6rem, 5vw, 4.6rem)" };
+  }
+  function withBrand(text, brand) {
+    return text.replace("{brand}", brand);
+  }
+  function authErrorText(locale, message) {
+    const text = String(message || "").trim();
+    if (!text) return "";
+    const known = [
+      [/invalid credentials|incorrect (e-?mail or )?password|wrong password/i, { en: "Incorrect email or password.", hans: "\u90AE\u7BB1\u6216\u5BC6\u7801\u4E0D\u6B63\u786E\u3002", hant: "\u90F5\u7BB1\u6216\u5BC6\u78BC\u4E0D\u6B63\u78BA\u3002", ja: "\u30E1\u30FC\u30EB\u30A2\u30C9\u30EC\u30B9\u307E\u305F\u306F\u30D1\u30B9\u30EF\u30FC\u30C9\u304C\u6B63\u3057\u304F\u3042\u308A\u307E\u305B\u3093\u3002", ko: "\uC774\uBA54\uC77C \uB610\uB294 \uBE44\uBC00\uBC88\uD638\uAC00 \uC62C\uBC14\uB974\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.", fr: "E-mail ou mot de passe incorrect.", de: "E-Mail oder Passwort ist falsch." }],
+      [/already exists/i, { en: "An account already exists for this email. Sign in instead.", hans: "\u8BE5\u90AE\u7BB1\u5DF2\u6CE8\u518C\uFF0C\u8BF7\u76F4\u63A5\u767B\u5F55\u3002", hant: "\u8A72\u90F5\u7BB1\u5DF2\u8A3B\u518A\uFF0C\u8ACB\u76F4\u63A5\u767B\u5165\u3002", ja: "\u3053\u306E\u30E1\u30FC\u30EB\u30A2\u30C9\u30EC\u30B9\u306E\u30A2\u30AB\u30A6\u30F3\u30C8\u306F\u3059\u3067\u306B\u5B58\u5728\u3057\u307E\u3059\u3002\u30B5\u30A4\u30F3\u30A4\u30F3\u3057\u3066\u304F\u3060\u3055\u3044\u3002", ko: "\uC774 \uC774\uBA54\uC77C\uB85C \uB4F1\uB85D\uB41C \uACC4\uC815\uC774 \uC774\uBBF8 \uC788\uC2B5\uB2C8\uB2E4. \uB85C\uADF8\uC778\uD574 \uC8FC\uC138\uC694.", fr: "Un compte existe d\xE9j\xE0 pour cet e-mail. Connectez-vous.", de: "F\xFCr diese E-Mail gibt es bereits ein Konto. Melden Sie sich an." }],
+      [/too many|rate limit/i, { en: "Too many attempts. Wait a moment and try again.", hans: "\u5C1D\u8BD5\u6B21\u6570\u8FC7\u591A\uFF0C\u8BF7\u7A0D\u540E\u518D\u8BD5\u3002", hant: "\u5617\u8A66\u6B21\u6578\u904E\u591A\uFF0C\u8ACB\u7A0D\u5F8C\u518D\u8A66\u3002", ja: "\u8A66\u884C\u56DE\u6570\u304C\u591A\u3059\u304E\u307E\u3059\u3002\u3057\u3070\u3089\u304F\u3057\u3066\u304B\u3089\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002", ko: "\uC2DC\uB3C4 \uD69F\uC218\uAC00 \uB108\uBB34 \uB9CE\uC2B5\uB2C8\uB2E4. \uC7A0\uC2DC \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.", fr: "Trop de tentatives. Patientez un instant puis r\xE9essayez.", de: "Zu viele Versuche. Warten Sie einen Moment und versuchen Sie es erneut." }],
+      [/required|valid e-?mail/i, { en: "Enter a valid email and a password.", hans: "\u8BF7\u8F93\u5165\u6709\u6548\u7684\u90AE\u7BB1\u548C\u5BC6\u7801\u3002", hant: "\u8ACB\u8F38\u5165\u6709\u6548\u7684\u96FB\u5B50\u90F5\u4EF6\u548C\u5BC6\u78BC\u3002", ja: "\u6709\u52B9\u306A\u30E1\u30FC\u30EB\u30A2\u30C9\u30EC\u30B9\u3068\u30D1\u30B9\u30EF\u30FC\u30C9\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044\u3002", ko: "\uC62C\uBC14\uB978 \uC774\uBA54\uC77C\uACFC \uBE44\uBC00\uBC88\uD638\uB97C \uC785\uB825\uD558\uC138\uC694.", fr: "Saisissez un e-mail valide et un mot de passe.", de: "Geben Sie eine g\xFCltige E-Mail und ein Passwort ein." }],
+      [/at least \d+ characters|password must/i, { en: "Use a password of at least 8 characters.", hans: "\u5BC6\u7801\u81F3\u5C11\u9700\u8981 8 \u4E2A\u5B57\u7B26\u3002", hant: "\u5BC6\u78BC\u81F3\u5C11\u9700\u8981 8 \u500B\u5B57\u5143\u3002", ja: "\u30D1\u30B9\u30EF\u30FC\u30C9\u306F 8 \u6587\u5B57\u4EE5\u4E0A\u306B\u3057\u3066\u304F\u3060\u3055\u3044\u3002", ko: "\uBE44\uBC00\uBC88\uD638\uB294 8\uC790 \uC774\uC0C1\uC774\uC5B4\uC57C \uD569\uB2C8\uB2E4.", fr: "Utilisez un mot de passe d\u2019au moins 8 caract\xE8res.", de: "Verwenden Sie ein Passwort mit mindestens 8 Zeichen." }],
+      [/network|failed to fetch|offline|timeout|load failed/i, { en: "Could not reach the server. Check your connection and try again.", hans: "\u65E0\u6CD5\u8FDE\u63A5\u670D\u52A1\u5668\uFF0C\u8BF7\u68C0\u67E5\u7F51\u7EDC\u540E\u91CD\u8BD5\u3002", hant: "\u7121\u6CD5\u9023\u7DDA\u81F3\u4F3A\u670D\u5668\uFF0C\u8ACB\u6AA2\u67E5\u7DB2\u8DEF\u5F8C\u91CD\u8A66\u3002", ja: "\u30B5\u30FC\u30D0\u30FC\u306B\u63A5\u7D9A\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u901A\u4FE1\u72B6\u6CC1\u3092\u78BA\u8A8D\u3057\u3066\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002", ko: "\uC11C\uBC84\uC5D0 \uC5F0\uACB0\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4. \uC5F0\uACB0\uC744 \uD655\uC778\uD558\uACE0 \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.", fr: "Impossible de joindre le serveur. V\xE9rifiez votre connexion et r\xE9essayez.", de: "Server nicht erreichbar. Pr\xFCfen Sie Ihre Verbindung und versuchen Sie es erneut." }],
+      [/check the code|invalid code|incorrect code|wrong code|expired/i, { en: "That code is not right. Check it and try again.", hans: "\u9A8C\u8BC1\u7801\u4E0D\u6B63\u786E\uFF0C\u8BF7\u68C0\u67E5\u540E\u91CD\u8BD5\u3002", hant: "\u9A57\u8B49\u78BC\u4E0D\u6B63\u78BA\uFF0C\u8ACB\u6AA2\u67E5\u5F8C\u91CD\u8A66\u3002", ja: "\u30B3\u30FC\u30C9\u304C\u6B63\u3057\u304F\u3042\u308A\u307E\u305B\u3093\u3002\u78BA\u8A8D\u3057\u3066\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002", ko: "\uCF54\uB4DC\uAC00 \uC62C\uBC14\uB974\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4. \uD655\uC778\uD558\uACE0 \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.", fr: "Ce code n\u2019est pas le bon. V\xE9rifiez-le et r\xE9essayez.", de: "Dieser Code stimmt nicht. Pr\xFCfen Sie ihn und versuchen Sie es erneut." }],
+      [/could not (send|reset)|too many (resend|verification|password reset)/i, { en: "The code could not be sent. Try again in a moment.", hans: "\u9A8C\u8BC1\u7801\u6CA1\u80FD\u53D1\u51FA\u53BB\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5\u3002", hant: "\u9A57\u8B49\u78BC\u6C92\u80FD\u767C\u51FA\u53BB\uFF0C\u8ACB\u7A0D\u5F8C\u91CD\u8A66\u3002", ja: "\u30B3\u30FC\u30C9\u3092\u9001\u4FE1\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u3057\u3070\u3089\u304F\u3057\u3066\u304B\u3089\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002", ko: "\uCF54\uB4DC\uB97C \uBCF4\uB0B4\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4. \uC7A0\uC2DC \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.", fr: "Le code n\u2019a pas pu \xEAtre envoy\xE9. R\xE9essayez dans un instant.", de: "Der Code konnte nicht gesendet werden. Versuchen Sie es gleich noch einmal." }],
+      [/could not (send|reset)|check the code|invalid code|expired/i, { en: "That did not work. Check the code and try again.", hans: "\u64CD\u4F5C\u6CA1\u6709\u6210\u529F\uFF0C\u8BF7\u68C0\u67E5\u9A8C\u8BC1\u7801\u540E\u91CD\u8BD5\u3002", hant: "\u64CD\u4F5C\u6C92\u6709\u6210\u529F\uFF0C\u8ACB\u6AA2\u67E5\u9A57\u8B49\u78BC\u5F8C\u91CD\u8A66\u3002", ja: "\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u30B3\u30FC\u30C9\u3092\u78BA\u8A8D\u3057\u3066\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002", ko: "\uC9C4\uD589\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4. \uCF54\uB4DC\uB97C \uD655\uC778\uD558\uACE0 \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.", fr: "Cela n\u2019a pas fonctionn\xE9. V\xE9rifiez le code et r\xE9essayez.", de: "Das hat nicht geklappt. Pr\xFCfen Sie den Code und versuchen Sie es erneut." }]
+    ];
+    for (const [pattern, copy] of known) {
+      if (pattern.test(text)) return typeof copy === "function" ? copy() : pickCopy(locale, copy);
+    }
+    return text;
+  }
+  function authBrand(config) {
+    return resolveBokmooSiteConfig(config).brandName;
+  }
+
   // src/components/AuthCallbackPage.tsx
   var FOCUS_VISIBLE_RING = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bokmoo-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bokmoo-bg)]";
   function AuthCallbackPage({
     isLoading,
     error,
     config,
+    locale,
     onRetry,
     onNavigateToHome
   }) {
-    const site = resolveBokmooSiteConfig(config);
+    const brand = authBrand(config);
+    const language = pageLocale(locale);
+    const say = (copy) => authText(language, copy);
     return /* @__PURE__ */ jsxs("div", { className: "relative flex min-h-screen items-center justify-center overflow-hidden bg-[var(--bokmoo-bg)] px-4 py-12 text-[var(--bokmoo-ink)]", children: [
       /* @__PURE__ */ jsxs("div", { className: "pointer-events-none absolute inset-0", children: [
         /* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent),transparent_26%),linear-gradient(180deg,var(--bokmoo-bg),color-mix(in_oklab,var(--bokmoo-bg)_84%,black))]" }),
@@ -12173,12 +12375,9 @@
       ] }),
       /* @__PURE__ */ jsx("section", { className: "relative w-full max-w-[30rem] rounded-[1.45rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_22%,transparent)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_94%,white),var(--bokmoo-bg-elevated))] p-5 shadow-[var(--bokmoo-shadow)] sm:p-7", children: /* @__PURE__ */ jsxs("div", { className: "rounded-[1.1rem] border border-[var(--bokmoo-line)] bg-[color:oklch(0.055_0.006_75_/_0.78)] p-6 text-center", children: [
         /* @__PURE__ */ jsx("div", { className: "mx-auto flex h-16 w-16 items-center justify-center rounded-[1rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_12%,transparent)] text-[var(--bokmoo-gold)]", children: error ? /* @__PURE__ */ jsx(TriangleAlert, { className: "h-7 w-7" }) : isLoading ? /* @__PURE__ */ jsx(LoaderCircle, { className: "h-7 w-7 animate-spin" }) : /* @__PURE__ */ jsx(ShieldCheck, { className: "h-7 w-7" }) }),
-        /* @__PURE__ */ jsxs("p", { className: "mt-6 text-[11px] font-bold uppercase tracking-[0.24em] text-[var(--bokmoo-gold)]", children: [
-          site.brandName.toUpperCase(),
-          " account"
-        ] }),
-        /* @__PURE__ */ jsx("h1", { className: "mt-3 text-3xl font-semibold leading-none tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: error ? "Authentication failed" : "Completing sign in" }),
-        /* @__PURE__ */ jsx("p", { className: "mt-4 text-sm leading-6 text-[var(--bokmoo-copy)]", children: error || "Securing your session and returning you to the BOKMOO storefront." }),
+        /* @__PURE__ */ jsx("p", { className: "mt-6 text-[11px] font-bold uppercase tracking-[0.24em] text-[var(--bokmoo-gold)]", children: accountLabel(language, brand) }),
+        /* @__PURE__ */ jsx("h1", { className: "mt-3 text-3xl font-semibold leading-none tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: say(error ? AUTH.authFailed : AUTH.completing) }),
+        /* @__PURE__ */ jsx("p", { className: "mt-4 text-sm leading-6 text-[var(--bokmoo-copy)]", "data-purpose": "auth-callback-status", children: say(error ? AUTH.unknownSignInError : AUTH.completingLead) }),
         /* @__PURE__ */ jsxs("div", { className: "mt-7 grid gap-3 sm:grid-cols-2", children: [
           /* @__PURE__ */ jsx(
             "button",
@@ -12186,7 +12385,7 @@
               type: "button",
               onClick: onRetry,
               className: `inline-flex min-h-12 items-center justify-center rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_86%,black)] px-4 text-sm font-semibold text-[var(--bokmoo-ink)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING}`,
-              children: "Back to sign in"
+              children: say(AUTH.backToSignIn)
             }
           ),
           /* @__PURE__ */ jsx(
@@ -12195,11 +12394,262 @@
               type: "button",
               onClick: onNavigateToHome,
               className: `inline-flex min-h-12 items-center justify-center rounded-[0.95rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_88%,white),color-mix(in_oklab,var(--bokmoo-gold)_64%,black))] px-4 text-sm font-black uppercase tracking-[0.16em] text-[var(--bokmoo-bg)] ${FOCUS_VISIBLE_RING}`,
-              children: "Home"
+              children: say(AUTH.home)
             }
           )
         ] })
       ] }) })
+    ] });
+  }
+
+  // src/components/AuthIdentityFinishPage.tsx
+  var FOCUS_VISIBLE_RING2 = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bokmoo-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bokmoo-bg)]";
+  function AuthIdentityFinishPage({
+    isLoading,
+    error,
+    config,
+    locale,
+    onRetry,
+    onNavigateToHome
+  }) {
+    const brand = authBrand(config);
+    const language = pageLocale(locale);
+    const say = (copy) => authText(language, copy);
+    return /* @__PURE__ */ jsxs("div", { className: "relative flex min-h-screen items-center justify-center overflow-hidden bg-[var(--bokmoo-bg)] px-4 py-12 text-[var(--bokmoo-ink)]", children: [
+      /* @__PURE__ */ jsxs("div", { className: "pointer-events-none absolute inset-0", children: [
+        /* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent),transparent_26%),linear-gradient(180deg,var(--bokmoo-bg),color-mix(in_oklab,var(--bokmoo-bg)_86%,black))]" }),
+        /* @__PURE__ */ jsx("div", { className: "absolute inset-0 opacity-40 [background-image:var(--bokmoo-grid)] [background-size:72px_72px]" })
+      ] }),
+      /* @__PURE__ */ jsx(
+        "section",
+        {
+          className: "relative w-full max-w-[30rem] rounded-[1.45rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_22%,transparent)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_94%,white),var(--bokmoo-bg-elevated))] p-5 shadow-[var(--bokmoo-shadow)] sm:p-7",
+          "data-purpose": "identity-finish",
+          children: /* @__PURE__ */ jsxs("div", { className: "rounded-[1.1rem] border border-[var(--bokmoo-line)] bg-[color:oklch(0.055_0.006_75_/_0.78)] p-6 text-center", children: [
+            /* @__PURE__ */ jsx("div", { className: "mx-auto flex h-16 w-16 items-center justify-center rounded-[1rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_12%,transparent)] text-[var(--bokmoo-gold)]", children: isLoading ? /* @__PURE__ */ jsx(LoaderCircle, { className: "h-7 w-7 animate-spin" }) : /* @__PURE__ */ jsx(ShieldCheck, { className: "h-7 w-7" }) }),
+            /* @__PURE__ */ jsx("p", { className: "mt-6 text-[11px] font-bold uppercase tracking-[0.24em] text-[var(--bokmoo-gold)]", children: accountLabel(language, brand) }),
+            /* @__PURE__ */ jsx("h1", { className: "mt-3 text-3xl font-semibold leading-none tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: say(AUTH.completing) }),
+            /* @__PURE__ */ jsx("p", { className: "mt-4 text-sm leading-6 text-[var(--bokmoo-copy)]", children: say(AUTH.completingLead) }),
+            error ? /* @__PURE__ */ jsx(
+              "div",
+              {
+                className: "mt-5 rounded-[0.95rem] border border-[color:color-mix(in_oklab,var(--bokmoo-danger)_48%,transparent)] bg-[color:color-mix(in_oklab,var(--bokmoo-danger)_12%,transparent)] p-4 text-sm leading-6 text-[var(--bokmoo-ink)]",
+                role: "alert",
+                "data-purpose": "auth-error",
+                children: say(AUTH.unknownSignInError)
+              }
+            ) : null,
+            /* @__PURE__ */ jsxs("div", { className: "mt-7 grid gap-3 sm:grid-cols-2", children: [
+              /* @__PURE__ */ jsx(
+                "button",
+                {
+                  type: "button",
+                  onClick: onRetry,
+                  disabled: isLoading,
+                  className: `inline-flex min-h-12 items-center justify-center rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_86%,black)] px-4 text-sm font-semibold text-[var(--bokmoo-ink)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)] disabled:opacity-60 ${FOCUS_VISIBLE_RING2}`,
+                  children: say(AUTH.tryAgain)
+                }
+              ),
+              /* @__PURE__ */ jsx(
+                "button",
+                {
+                  type: "button",
+                  onClick: onNavigateToHome,
+                  className: `inline-flex min-h-12 items-center justify-center rounded-[0.95rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_88%,white),color-mix(in_oklab,var(--bokmoo-gold)_64%,black))] px-4 text-sm font-black uppercase tracking-[0.16em] text-[var(--bokmoo-bg)] ${FOCUS_VISIBLE_RING2}`,
+                  children: say(AUTH.home)
+                }
+              )
+            ] })
+          ] })
+        }
+      )
+    ] });
+  }
+
+  // src/components/ForgotPasswordPage.tsx
+  var FOCUS_VISIBLE_RING3 = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bokmoo-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bokmoo-bg)]";
+  var INPUT_CLASS = "h-12 w-full rounded-[1rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_34%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_62%,#1a1720)] py-3 pl-11 pr-4 text-sm font-medium text-[var(--bokmoo-ink)] outline-none placeholder:text-[color:color-mix(in_oklab,var(--bokmoo-copy)_80%,transparent)] transition-colors focus:border-[var(--bokmoo-gold)]";
+  var PRIMARY_BUTTON = "inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-[1rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_88%,white),color-mix(in_oklab,var(--bokmoo-gold)_64%,black))] px-5 text-sm font-black uppercase tracking-[0.2em] text-[var(--bokmoo-bg)] shadow-[0_18px_42px_color-mix(in_oklab,var(--bokmoo-gold)_16%,transparent)] transition-transform duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60";
+  var LABEL = "text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]";
+  var TEXT_BUTTON = "font-medium text-[var(--bokmoo-copy)] underline decoration-[var(--bokmoo-line)] underline-offset-4 hover:text-[var(--bokmoo-gold)] disabled:opacity-60";
+  var messageOf = (cause) => cause instanceof Error && cause.message ? cause.message : String(cause || "");
+  function ForgotPasswordPage({
+    isLoading,
+    error,
+    config,
+    locale,
+    initialEmail,
+    onRequestCode,
+    onResetPassword,
+    onNavigateToLogin
+  }) {
+    const brand = authBrand(config);
+    const language = pageLocale(locale);
+    const say = (copy) => authText(language, copy);
+    const [step, setStep] = react_default.useState("email");
+    const [email, setEmail] = react_default.useState(String(initialEmail || "").trim());
+    const [code, setCode] = react_default.useState("");
+    const [password, setPassword] = react_default.useState("");
+    const [failure, setFailure] = react_default.useState("");
+    const sendCode = async () => {
+      if (!email || isLoading) return;
+      setFailure("");
+      try {
+        await onRequestCode(email);
+        setStep("code");
+      } catch (cause) {
+        setFailure(messageOf(cause));
+      }
+    };
+    const submitNewPassword = async () => {
+      if (!code || !password || isLoading) return;
+      setFailure("");
+      try {
+        await onResetPassword({ email, code, password });
+        setStep("done");
+      } catch (cause) {
+        setFailure(messageOf(cause));
+      }
+    };
+    const errorText = authErrorText(language, failure || error);
+    return /* @__PURE__ */ jsxs("div", { className: "relative flex min-h-screen items-center justify-center overflow-hidden bg-[var(--bokmoo-bg)] px-4 py-12 text-[var(--bokmoo-ink)]", children: [
+      /* @__PURE__ */ jsxs("div", { className: "pointer-events-none absolute inset-0", children: [
+        /* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent),transparent_26%),linear-gradient(180deg,var(--bokmoo-bg),color-mix(in_oklab,var(--bokmoo-bg)_86%,black))]" }),
+        /* @__PURE__ */ jsx("div", { className: "absolute inset-0 opacity-40 [background-image:var(--bokmoo-grid)] [background-size:72px_72px]" })
+      ] }),
+      /* @__PURE__ */ jsx(
+        "section",
+        {
+          className: "relative w-full max-w-[30rem] rounded-[1.45rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_22%,transparent)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_94%,white),var(--bokmoo-bg-elevated))] p-5 shadow-[var(--bokmoo-shadow)] sm:p-7",
+          "data-purpose": "forgot-password",
+          "data-step": step,
+          children: /* @__PURE__ */ jsxs("div", { className: "rounded-[1.1rem] border border-[var(--bokmoo-line)] bg-[color:oklch(0.055_0.006_75_/_0.78)] p-5 sm:p-6", children: [
+            /* @__PURE__ */ jsx("p", { className: "text-[11px] font-bold uppercase tracking-[0.24em] text-[var(--bokmoo-gold)]", children: accountLabel(language, brand) }),
+            /* @__PURE__ */ jsx("h1", { className: "mt-3 text-3xl font-semibold leading-none tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: say(step === "done" ? AUTH.resetDoneTitle : AUTH.resetTitle) }),
+            /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm leading-6 text-[var(--bokmoo-copy)]", children: step === "done" ? say(AUTH.resetDoneLead) : step === "code" ? authText(language, AUTH.resetSentTo).replace("{email}", email) : say(AUTH.resetLead) }),
+            errorText ? /* @__PURE__ */ jsx(
+              "div",
+              {
+                className: "mt-5 rounded-[0.95rem] border border-[color:color-mix(in_oklab,var(--bokmoo-danger)_48%,transparent)] bg-[color:color-mix(in_oklab,var(--bokmoo-danger)_12%,transparent)] p-4 text-sm leading-6 text-[var(--bokmoo-ink)]",
+                role: "alert",
+                "data-purpose": "auth-error",
+                children: errorText
+              }
+            ) : null,
+            step === "email" ? /* @__PURE__ */ jsxs(
+              "form",
+              {
+                onSubmit: (event) => {
+                  event.preventDefault();
+                  void sendCode();
+                },
+                className: "mt-6 space-y-5",
+                "data-purpose": "forgot-password-email",
+                children: [
+                  /* @__PURE__ */ jsxs("label", { className: "block", children: [
+                    /* @__PURE__ */ jsx("span", { className: LABEL, children: say(AUTH.email) }),
+                    /* @__PURE__ */ jsxs("span", { className: "relative mt-2 block", children: [
+                      /* @__PURE__ */ jsx(Mail, { className: "pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--bokmoo-copy-soft)]" }),
+                      /* @__PURE__ */ jsx(
+                        "input",
+                        {
+                          type: "email",
+                          value: email,
+                          onChange: (event) => setEmail(event.target.value),
+                          placeholder: "you@example.com",
+                          className: `${INPUT_CLASS} ${FOCUS_VISIBLE_RING3}`,
+                          disabled: isLoading,
+                          autoComplete: "email",
+                          required: true
+                        }
+                      )
+                    ] })
+                  ] }),
+                  /* @__PURE__ */ jsx("button", { type: "submit", disabled: isLoading || !email, className: `${PRIMARY_BUTTON} ${FOCUS_VISIBLE_RING3}`, children: isLoading ? /* @__PURE__ */ jsxs(Fragment2, { children: [
+                    /* @__PURE__ */ jsx(LoaderCircle, { className: "h-4 w-4 animate-spin" }),
+                    say(AUTH.sending)
+                  ] }) : say(AUTH.sendCode) })
+                ]
+              }
+            ) : null,
+            step === "code" ? /* @__PURE__ */ jsxs(
+              "form",
+              {
+                onSubmit: (event) => {
+                  event.preventDefault();
+                  void submitNewPassword();
+                },
+                className: "mt-6 space-y-5",
+                "data-purpose": "forgot-password-code",
+                children: [
+                  /* @__PURE__ */ jsxs("label", { className: "block", children: [
+                    /* @__PURE__ */ jsx("span", { className: LABEL, children: say(AUTH.code) }),
+                    /* @__PURE__ */ jsxs("span", { className: "relative mt-2 block", children: [
+                      /* @__PURE__ */ jsx(KeyRound, { className: "pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--bokmoo-copy-soft)]" }),
+                      /* @__PURE__ */ jsx(
+                        "input",
+                        {
+                          type: "text",
+                          inputMode: "numeric",
+                          autoComplete: "one-time-code",
+                          maxLength: 6,
+                          value: code,
+                          onChange: (event) => setCode(event.target.value.replace(/\D/g, "")),
+                          placeholder: "000000",
+                          className: `${INPUT_CLASS} bokmoo-code-input ${FOCUS_VISIBLE_RING3}`,
+                          disabled: isLoading,
+                          required: true
+                        }
+                      )
+                    ] })
+                  ] }),
+                  /* @__PURE__ */ jsxs("label", { className: "block", children: [
+                    /* @__PURE__ */ jsx("span", { className: LABEL, children: say(AUTH.newPassword) }),
+                    /* @__PURE__ */ jsxs("span", { className: "relative mt-2 block", children: [
+                      /* @__PURE__ */ jsx(KeyRound, { className: "pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--bokmoo-copy-soft)]" }),
+                      /* @__PURE__ */ jsx(
+                        "input",
+                        {
+                          type: "password",
+                          value: password,
+                          onChange: (event) => setPassword(event.target.value),
+                          placeholder: "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022",
+                          className: `${INPUT_CLASS} ${FOCUS_VISIBLE_RING3}`,
+                          disabled: isLoading,
+                          autoComplete: "new-password",
+                          minLength: 8,
+                          required: true
+                        }
+                      )
+                    ] })
+                  ] }),
+                  /* @__PURE__ */ jsx("button", { type: "submit", disabled: isLoading || !code || !password, className: `${PRIMARY_BUTTON} ${FOCUS_VISIBLE_RING3}`, children: isLoading ? /* @__PURE__ */ jsxs(Fragment2, { children: [
+                    /* @__PURE__ */ jsx(LoaderCircle, { className: "h-4 w-4 animate-spin" }),
+                    say(AUTH.saving)
+                  ] }) : say(AUTH.setNewPassword) }),
+                  /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between gap-4 text-sm", children: [
+                    /* @__PURE__ */ jsx("button", { type: "button", disabled: isLoading, onClick: () => void sendCode(), className: `${TEXT_BUTTON} ${FOCUS_VISIBLE_RING3}`, children: say(AUTH.resend) }),
+                    /* @__PURE__ */ jsx(
+                      "button",
+                      {
+                        type: "button",
+                        disabled: isLoading,
+                        onClick: () => {
+                          setFailure("");
+                          setStep("email");
+                        },
+                        className: `${TEXT_BUTTON} ${FOCUS_VISIBLE_RING3}`,
+                        children: say(AUTH.changeEmail)
+                      }
+                    )
+                  ] })
+                ]
+              }
+            ) : null,
+            step === "done" ? /* @__PURE__ */ jsx("button", { type: "button", onClick: onNavigateToLogin, className: `mt-6 ${PRIMARY_BUTTON} ${FOCUS_VISIBLE_RING3}`, children: say(AUTH.signIn) }) : null
+          ] })
+        }
+      )
     ] });
   }
 
@@ -13424,6 +13874,79 @@
     return sale?.banner?.title || sale?.name || null;
   }
 
+  // src/lib/card-copy.ts
+  var CARDS = [
+    {
+      kind: "bluetooth",
+      keys: ["odoo-product-7", "bokmoo-ble-v1"],
+      sourceDescription: "Bokmoo Bluetooth Card \u2014 manage multiple eSIM profiles wirelessly. Enable, switch, and organize eSIM plans in the BOKMOO app. No tray tools needed.\n\nThe card connects to your phone over Bluetooth, so you can carry several eSIM profiles on one physical card and move between them in seconds \u2014 ideal for travel, separate work and personal lines, or keeping a backup plan ready. Pair it with the BOKMOO app, pick a profile, and it applies over the air.",
+      name: {
+        en: "Bokmoo Bluetooth Card",
+        hans: "Bokmoo \u84DD\u7259\u5361",
+        hant: "Bokmoo \u85CD\u7259\u5361",
+        ja: "Bokmoo Bluetooth \u30AB\u30FC\u30C9",
+        ko: "Bokmoo \uBE14\uB8E8\uD22C\uC2A4 \uCE74\uB4DC",
+        fr: "Carte Bokmoo Bluetooth",
+        de: "Bokmoo Bluetooth-Karte"
+      },
+      description: {
+        en: "Bokmoo Bluetooth Card \u2014 manage multiple eSIM profiles wirelessly. Enable, switch, and organize eSIM plans in the BOKMOO app. No tray tools needed.\n\nThe card connects to your phone over Bluetooth, so you can carry several eSIM profiles on one physical card and move between them in seconds \u2014 ideal for travel, separate work and personal lines, or keeping a backup plan ready. Pair it with the BOKMOO app, pick a profile, and it applies over the air.",
+        hans: "Bokmoo \u84DD\u7259\u5361\u2014\u2014\u65E0\u7EBF\u7BA1\u7406\u591A\u4E2A eSIM \u914D\u7F6E\u6587\u4EF6\u3002\u5728 BOKMOO App \u91CC\u542F\u7528\u3001\u5207\u6362\u548C\u6574\u7406 eSIM \u5957\u9910\uFF0C\u65E0\u9700\u53D6\u5361\u9488\u3002\n\n\u5361\u7247\u901A\u8FC7\u84DD\u7259\u8FDE\u63A5\u624B\u673A\uFF0C\u4E00\u5F20\u5B9E\u4F53\u5361\u4E0A\u53EF\u4EE5\u643A\u5E26\u591A\u4E2A eSIM \u914D\u7F6E\u6587\u4EF6\uFF0C\u51E0\u79D2\u5185\u5373\u53EF\u5207\u6362\u2014\u2014\u9002\u5408\u65C5\u884C\u3001\u5DE5\u4F5C\u4E0E\u4E2A\u4EBA\u53F7\u7801\u5206\u5F00\u4F7F\u7528\uFF0C\u6216\u968F\u65F6\u5907\u4E00\u4E2A\u5907\u7528\u5957\u9910\u3002\u914D\u5BF9 BOKMOO App\uFF0C\u9009\u4E00\u4E2A\u914D\u7F6E\u6587\u4EF6\uFF0C\u5373\u53EF\u7A7A\u4E2D\u5199\u5165\u3002",
+        hant: "Bokmoo \u85CD\u7259\u5361\u2014\u2014\u7121\u7DDA\u7BA1\u7406\u591A\u500B eSIM \u8A2D\u5B9A\u6A94\u3002\u5728 BOKMOO App \u88E1\u555F\u7528\u3001\u5207\u63DB\u548C\u6574\u7406 eSIM \u5957\u9910\uFF0C\u7121\u9700\u9000\u5361\u91DD\u3002\n\n\u5361\u7247\u900F\u904E\u85CD\u7259\u9023\u63A5\u624B\u6A5F\uFF0C\u4E00\u5F35\u5BE6\u9AD4\u5361\u4E0A\u53EF\u4EE5\u651C\u5E36\u591A\u500B eSIM \u8A2D\u5B9A\u6A94\uFF0C\u5E7E\u79D2\u5167\u5373\u53EF\u5207\u63DB\u2014\u2014\u9069\u5408\u65C5\u884C\u3001\u5DE5\u4F5C\u8207\u500B\u4EBA\u9580\u865F\u5206\u958B\u4F7F\u7528\uFF0C\u6216\u96A8\u6642\u5099\u4E00\u500B\u5099\u7528\u65B9\u6848\u3002\u914D\u5C0D BOKMOO App\uFF0C\u9078\u4E00\u500B\u8A2D\u5B9A\u6A94\uFF0C\u5373\u53EF\u900F\u904E\u7A7A\u4E2D\u4E0B\u8F09\u5BEB\u5165\u3002",
+        ja: "Bokmoo Bluetooth \u30AB\u30FC\u30C9\u2014\u2014\u8907\u6570\u306E eSIM \u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3092\u30EF\u30A4\u30E4\u30EC\u30B9\u3067\u7BA1\u7406\u3002BOKMOO \u30A2\u30D7\u30EA\u3067 eSIM \u30D7\u30E9\u30F3\u306E\u6709\u52B9\u5316\u30FB\u5207\u308A\u66FF\u3048\u30FB\u6574\u7406\u304C\u3067\u304D\u3001\u30D4\u30F3\u306F\u4E0D\u8981\u3067\u3059\u3002\n\n\u30AB\u30FC\u30C9\u306F Bluetooth \u3067\u30B9\u30DE\u30FC\u30C8\u30D5\u30A9\u30F3\u306B\u63A5\u7D9A\u3059\u308B\u305F\u3081\u30011 \u679A\u306E\u7269\u7406\u30AB\u30FC\u30C9\u306B\u8907\u6570\u306E eSIM \u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3092\u6301\u3061\u3001\u6570\u79D2\u3067\u5207\u308A\u66FF\u3048\u3089\u308C\u307E\u3059\u3002\u65C5\u884C\u3001\u4ED5\u4E8B\u7528\u3068\u500B\u4EBA\u7528\u306E\u56DE\u7DDA\u306E\u4F7F\u3044\u5206\u3051\u3001\u4E88\u5099\u30D7\u30E9\u30F3\u306E\u4FDD\u6301\u306B\u6700\u9069\u3067\u3059\u3002BOKMOO \u30A2\u30D7\u30EA\u3068\u30DA\u30A2\u30EA\u30F3\u30B0\u3057\u3066\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3092\u9078\u3076\u3060\u3051\u3067\u3001\u7121\u7DDA\u3067\u66F8\u304D\u8FBC\u307E\u308C\u307E\u3059\u3002",
+        ko: "Bokmoo \uBE14\uB8E8\uD22C\uC2A4 \uCE74\uB4DC \u2014 \uC5EC\uB7EC eSIM \uD504\uB85C\uD544\uC744 \uBB34\uC120\uC73C\uB85C \uAD00\uB9AC\uD558\uC138\uC694. BOKMOO \uC571\uC5D0\uC11C eSIM \uC694\uAE08\uC81C\uB97C \uD65C\uC131\uD654\uD558\uACE0 \uC804\uD658\uD558\uACE0 \uC815\uB9AC\uD560 \uC218 \uC788\uC73C\uBA70, \uD540 \uB3C4\uAD6C\uAC00 \uD544\uC694 \uC5C6\uC2B5\uB2C8\uB2E4.\n\n\uCE74\uB4DC\uAC00 \uBE14\uB8E8\uD22C\uC2A4\uB85C \uD734\uB300\uD3F0\uC5D0 \uC5F0\uACB0\uB418\uBBC0\uB85C \uC2E4\uC81C \uCE74\uB4DC \uD55C \uC7A5\uC5D0 \uC5EC\uB7EC eSIM \uD504\uB85C\uD544\uC744 \uB2F4\uACE0 \uBA87 \uCD08 \uB9CC\uC5D0 \uC804\uD658\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4. \uC5EC\uD589, \uC5C5\uBB34\uC6A9\xB7\uAC1C\uC778\uC6A9 \uD68C\uC120 \uBD84\uB9AC, \uC608\uBE44 \uC694\uAE08\uC81C \uC900\uBE44\uC5D0 \uC801\uD569\uD569\uB2C8\uB2E4. BOKMOO \uC571\uACFC \uD398\uC5B4\uB9C1\uD558\uACE0 \uD504\uB85C\uD544\uC744 \uC120\uD0DD\uD558\uBA74 \uBB34\uC120\uC73C\uB85C \uC801\uC6A9\uB429\uB2C8\uB2E4.",
+        fr: "Carte Bokmoo Bluetooth \u2014 g\xE9rez plusieurs profils eSIM sans fil. Activez, changez et organisez vos forfaits eSIM dans l\u2019application BOKMOO, sans outil d\u2019\xE9jection.\n\nLa carte se connecte \xE0 votre t\xE9l\xE9phone en Bluetooth : vous pouvez garder plusieurs profils eSIM sur une seule carte physique et passer de l\u2019un \xE0 l\u2019autre en quelques secondes \u2014 id\xE9al pour voyager, s\xE9parer lignes pro et perso, ou garder un forfait de rechange pr\xEAt. Jumelez-la avec l\u2019application BOKMOO, choisissez un profil, et il s\u2019applique \xE0 distance.",
+        de: "Bokmoo Bluetooth-Karte \u2013 mehrere eSIM-Profile drahtlos verwalten. eSIM-Tarife in der BOKMOO-App aktivieren, wechseln und ordnen \u2013 ohne Simnad.\n\nDie Karte verbindet sich per Bluetooth mit Ihrem Smartphone, sodass Sie mehrere eSIM-Profile auf einer physischen Karte tragen und in Sekunden wechseln k\xF6nnen \u2013 ideal zum Reisen, f\xFCr getrennte Gesch\xE4fts- und Privatanschl\xFCsse oder einen bereiten Ersatztarif. Mit der BOKMOO-App koppeln, Profil w\xE4hlen \u2013 und er wird drahtlos aufgespielt."
+      }
+    },
+    {
+      kind: "plug-in",
+      keys: ["odoo-product-6", "bokmoo-card-v1"],
+      sourceDescription: "Bokmoo Card V1 \u2014 plug-in smart card that installs eSIM profiles directly on your phone. Works with the BOKMOO app; eSIM plan service is rolling out soon.\n\nInsert the card, open the BOKMOO app, and load your eSIM profile straight onto the card \u2014 a simple way to carry a second line or keep a backup of your main eSIM. No Bluetooth pairing required.",
+      name: {
+        en: "Bokmoo Card",
+        hans: "Bokmoo \u5B9E\u4F53\u5361",
+        hant: "Bokmoo \u5BE6\u9AD4\u5361",
+        ja: "Bokmoo \u30AB\u30FC\u30C9",
+        ko: "Bokmoo \uCE74\uB4DC",
+        fr: "Carte Bokmoo",
+        de: "Bokmoo Karte"
+      },
+      description: {
+        en: "Bokmoo Card V1 \u2014 plug-in smart card that installs eSIM profiles directly on your phone. Works with the BOKMOO app; eSIM plan service is rolling out soon.\n\nInsert the card, open the BOKMOO app, and load your eSIM profile straight onto the card \u2014 a simple way to carry a second line or keep a backup of your main eSIM. No Bluetooth pairing required.",
+        hans: "Bokmoo \u5B9E\u4F53\u5361\u2014\u2014\u5373\u63D2\u5373\u7528\u7684\u667A\u80FD\u5361\uFF0C\u628A eSIM \u914D\u7F6E\u6587\u4EF6\u76F4\u63A5\u88C5\u8FDB\u624B\u673A\u3002\u914D\u5408 BOKMOO App \u4F7F\u7528\u3002\n\n\u63D2\u5165\u5361\u7247\uFF0C\u6253\u5F00 BOKMOO App\uFF0C\u5373\u53EF\u628A eSIM \u914D\u7F6E\u6587\u4EF6\u76F4\u63A5\u5199\u5165\u5361\u4E2D\u2014\u2014\u8F7B\u677E\u5E26\u4E0A\u7B2C\u4E8C\u4E2A\u53F7\u7801\uFF0C\u6216\u4E3A\u4E3B eSIM \u7559\u4E00\u4EFD\u5907\u4EFD\u3002\u65E0\u9700\u84DD\u7259\u914D\u5BF9\u3002",
+        hant: "Bokmoo \u5BE6\u9AD4\u5361\u2014\u2014\u5373\u63D2\u5373\u7528\u7684\u667A\u6167\u5361\uFF0C\u628A eSIM \u8A2D\u5B9A\u6A94\u76F4\u63A5\u5B89\u88DD\u5230\u624B\u6A5F\u3002\u642D\u914D BOKMOO App \u4F7F\u7528\u3002\n\n\u63D2\u5165\u5361\u7247\uFF0C\u958B\u555F BOKMOO App\uFF0C\u5373\u53EF\u628A eSIM \u8A2D\u5B9A\u6A94\u76F4\u63A5\u5BEB\u5165\u5361\u4E2D\u2014\u2014\u8F15\u9B06\u651C\u5E36\u7B2C\u4E8C\u500B\u9580\u865F\uFF0C\u6216\u70BA\u4E3B\u8981 eSIM \u4FDD\u7559\u4E00\u4EFD\u5099\u4EFD\u3002\u7121\u9700\u85CD\u7259\u914D\u5C0D\u3002",
+        ja: "Bokmoo \u30AB\u30FC\u30C9\u2014\u2014eSIM \u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3092\u30B9\u30DE\u30FC\u30C8\u30D5\u30A9\u30F3\u306B\u76F4\u63A5\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3059\u308B\u3001\u5DEE\u3057\u8FBC\u3080\u3060\u3051\u306E\u30B9\u30DE\u30FC\u30C8\u30AB\u30FC\u30C9\u3002BOKMOO \u30A2\u30D7\u30EA\u3068\u4F75\u7528\u3057\u307E\u3059\u3002\n\n\u30AB\u30FC\u30C9\u3092\u5DEE\u3057\u8FBC\u307F\u3001BOKMOO \u30A2\u30D7\u30EA\u3092\u958B\u3044\u3066\u3001eSIM \u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3092\u30AB\u30FC\u30C9\u306B\u76F4\u63A5\u66F8\u304D\u8FBC\u307F\u307E\u3059\u30022 \u756A\u76EE\u306E\u56DE\u7DDA\u3092\u6301\u3063\u305F\u308A\u3001\u30E1\u30A4\u30F3\u306E eSIM \u306E\u30D0\u30C3\u30AF\u30A2\u30C3\u30D7\u3092\u53D6\u3063\u305F\u308A\u3059\u308B\u7C21\u5358\u306A\u65B9\u6CD5\u3067\u3059\u3002Bluetooth \u306E\u30DA\u30A2\u30EA\u30F3\u30B0\u306F\u4E0D\u8981\u3067\u3059\u3002",
+        ko: "Bokmoo \uCE74\uB4DC \u2014 eSIM \uD504\uB85C\uD544\uC744 \uD734\uB300\uD3F0\uC5D0 \uBC14\uB85C \uC124\uCE58\uD558\uB294 \uAF42\uAE30\uB9CC \uD558\uBA74 \uB418\uB294 \uC2A4\uB9C8\uD2B8 \uCE74\uB4DC. BOKMOO \uC571\uACFC \uD568\uAED8 \uC0AC\uC6A9\uD569\uB2C8\uB2E4.\n\n\uCE74\uB4DC\uB97C \uAF42\uACE0 BOKMOO \uC571\uC744 \uC5F0 \uB2E4\uC74C eSIM \uD504\uB85C\uD544\uC744 \uCE74\uB4DC\uC5D0 \uBC14\uB85C \uBD88\uB7EC\uC624\uC138\uC694. \uB450 \uBC88\uC9F8 \uD68C\uC120\uC744 \uB4E4\uACE0 \uB2E4\uB2C8\uAC70\uB098 \uC8FC eSIM\uC758 \uBC31\uC5C5\uC744 \uC720\uC9C0\uD558\uB294 \uAC04\uB2E8\uD55C \uBC29\uBC95\uC785\uB2C8\uB2E4. \uBE14\uB8E8\uD22C\uC2A4 \uD398\uC5B4\uB9C1\uC740 \uD544\uC694 \uC5C6\uC2B5\uB2C8\uB2E4.",
+        fr: "Carte Bokmoo \u2014 une carte \xE0 puce \xE0 ins\xE9rer qui installe vos profils eSIM directement sur votre t\xE9l\xE9phone. S\u2019utilise avec l\u2019application BOKMOO.\n\nIns\xE9rez la carte, ouvrez l\u2019application BOKMOO et chargez votre profil eSIM directement sur la carte \u2014 une fa\xE7on simple de transporter une seconde ligne ou de garder une sauvegarde de votre eSIM principale. Aucun jumelage Bluetooth requis.",
+        de: "Bokmoo Karte \u2013 eine einzusteckende Smartcard, die eSIM-Profile direkt auf Ihrem Smartphone installiert. Funktioniert mit der BOKMOO-App.\n\nKarte einstecken, BOKMOO-App \xF6ffnen und Ihr eSIM-Profil direkt auf die Karte laden \u2013 ein einfacher Weg, einen zweiten Anschluss dabei zu haben oder eine Sicherung Ihrer Haupt-eSIM zu behalten. Kein Bluetooth-Koppeln n\xF6tig."
+      }
+    }
+  ];
+  var squash = (value) => String(value ?? "").replace(/\s+/g, " ").trim();
+  function knownCardOf(product) {
+    if (!product) return null;
+    const keys = [product.id, product.sku, product.slug].map((key) => String(key ?? "").toLowerCase());
+    return CARDS.find((card) => card.keys.some((key) => keys.includes(key))) ?? null;
+  }
+  function cardKindOf(product) {
+    return knownCardOf(product)?.kind ?? null;
+  }
+  function cardName(product, locale) {
+    const card = knownCardOf(product);
+    if (!card) return null;
+    return pickCopy(locale, card.name);
+  }
+  function cardDescription(product, locale) {
+    const card = knownCardOf(product);
+    if (!card) return null;
+    if (squash(product.description) !== squash(card.sourceDescription)) return null;
+    return pickCopy(locale, card.description);
+  }
+  function cardLineName(item, locale) {
+    return cardName({ id: item.productId, sku: item.sku }, locale) ?? String(item.productName ?? "");
+  }
+
   // src/components/SalePrice.tsx
   var SalePrice = react_default.memo(function SalePrice2({ unitPrice, quantity, sale }) {
     const count = Math.max(1, Math.floor(Number(quantity) || 1));
@@ -13562,9 +14085,9 @@
                   children: /* @__PURE__ */ jsx(Check, { className: "h-3.5 w-3.5" })
                 }
               ) : null,
-              /* @__PURE__ */ jsx("div", { className: "relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-[var(--bokmoo-radius-lg)] border border-[var(--bokmoo-line)] bg-[linear-gradient(155deg,color-mix(in_oklab,var(--bokmoo-gold)_10%,transparent),transparent_55%),var(--bokmoo-bg)]", children: item.productImage ? /* @__PURE__ */ jsx("img", { src: item.productImage, alt: item.productName, className: "h-full w-full object-cover" }) : /* @__PURE__ */ jsx("div", { className: "flex h-full items-end p-3 text-[10px] tracking-[0.16em] text-[var(--bokmoo-gold)]", children: "BOKMOO" }) }),
+              /* @__PURE__ */ jsx("div", { className: "relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-[var(--bokmoo-radius-lg)] border border-[var(--bokmoo-line)] bg-[linear-gradient(155deg,color-mix(in_oklab,var(--bokmoo-gold)_10%,transparent),transparent_55%),var(--bokmoo-bg)]", children: item.productImage ? /* @__PURE__ */ jsx("img", { src: item.productImage, alt: cardLineName(item, locale), className: "h-full w-full object-cover" }) : /* @__PURE__ */ jsx("div", { className: "flex h-full items-end p-3 text-[10px] tracking-[0.16em] text-[var(--bokmoo-gold)]", children: "BOKMOO" }) }),
               /* @__PURE__ */ jsxs("div", { className: "min-w-0 flex-1", children: [
-                /* @__PURE__ */ jsx("h2", { className: "text-lg font-medium text-[var(--bokmoo-ink)]", children: item.productName }),
+                /* @__PURE__ */ jsx("h2", { className: "text-lg font-medium text-[var(--bokmoo-ink)]", children: cardLineName(item, locale) }),
                 item.variantName ? /* @__PURE__ */ jsx("p", { className: "mt-1 text-xs tracking-[0.16em] text-[var(--bokmoo-copy-soft)]", children: item.variantName }) : null,
                 /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm text-[var(--bokmoo-copy)]", children: t({ en: "Instant eSIM delivery with activation instructions included.", hans: "\u5373\u65F6\u9001\u8FBE eSIM\uFF0C\u542B\u6FC0\u6D3B\u8BF4\u660E\u3002", hant: "\u5373\u6642\u9001\u9054 eSIM\uFF0C\u542B\u555F\u7528\u8AAA\u660E\u3002" }) }),
                 /* @__PURE__ */ jsxs("div", { className: "mt-4 flex items-center gap-3", children: [
@@ -13734,6 +14257,669 @@
     ] }) });
   });
 
+  // src/lib/address.ts
+  var COUNTRY_CODES = [
+    "AF",
+    "AX",
+    "AL",
+    "DZ",
+    "AS",
+    "AD",
+    "AO",
+    "AI",
+    "AQ",
+    "AG",
+    "AR",
+    "AM",
+    "AW",
+    "AU",
+    "AT",
+    "AZ",
+    "BS",
+    "BH",
+    "BD",
+    "BB",
+    "BY",
+    "BE",
+    "BZ",
+    "BJ",
+    "BM",
+    "BT",
+    "BO",
+    "BQ",
+    "BA",
+    "BW",
+    "BV",
+    "BR",
+    "IO",
+    "BN",
+    "BG",
+    "BF",
+    "BI",
+    "CV",
+    "KH",
+    "CM",
+    "CA",
+    "KY",
+    "CF",
+    "TD",
+    "CL",
+    "CN",
+    "CX",
+    "CC",
+    "CO",
+    "KM",
+    "CG",
+    "CD",
+    "CK",
+    "CR",
+    "CI",
+    "HR",
+    "CU",
+    "CW",
+    "CY",
+    "CZ",
+    "DK",
+    "DJ",
+    "DM",
+    "DO",
+    "EC",
+    "EG",
+    "SV",
+    "GQ",
+    "ER",
+    "EE",
+    "SZ",
+    "ET",
+    "FK",
+    "FO",
+    "FJ",
+    "FI",
+    "FR",
+    "GF",
+    "PF",
+    "TF",
+    "GA",
+    "GM",
+    "GE",
+    "DE",
+    "GH",
+    "GI",
+    "GR",
+    "GL",
+    "GD",
+    "GP",
+    "GU",
+    "GT",
+    "GG",
+    "GN",
+    "GW",
+    "GY",
+    "HT",
+    "HM",
+    "VA",
+    "HN",
+    "HK",
+    "HU",
+    "IS",
+    "IN",
+    "ID",
+    "IR",
+    "IQ",
+    "IE",
+    "IM",
+    "IL",
+    "IT",
+    "JM",
+    "JP",
+    "JE",
+    "JO",
+    "KZ",
+    "KE",
+    "KI",
+    "KP",
+    "KR",
+    "KW",
+    "KG",
+    "LA",
+    "LV",
+    "LB",
+    "LS",
+    "LR",
+    "LY",
+    "LI",
+    "LT",
+    "LU",
+    "MO",
+    "MG",
+    "MW",
+    "MY",
+    "MV",
+    "ML",
+    "MT",
+    "MH",
+    "MQ",
+    "MR",
+    "MU",
+    "YT",
+    "MX",
+    "FM",
+    "MD",
+    "MC",
+    "MN",
+    "ME",
+    "MS",
+    "MA",
+    "MZ",
+    "MM",
+    "NA",
+    "NR",
+    "NP",
+    "NL",
+    "NC",
+    "NZ",
+    "NI",
+    "NE",
+    "NG",
+    "NU",
+    "NF",
+    "MK",
+    "MP",
+    "NO",
+    "OM",
+    "PK",
+    "PW",
+    "PS",
+    "PA",
+    "PG",
+    "PY",
+    "PE",
+    "PH",
+    "PN",
+    "PL",
+    "PT",
+    "PR",
+    "QA",
+    "RE",
+    "RO",
+    "RU",
+    "RW",
+    "BL",
+    "SH",
+    "KN",
+    "LC",
+    "MF",
+    "PM",
+    "VC",
+    "WS",
+    "SM",
+    "ST",
+    "SA",
+    "SN",
+    "RS",
+    "SC",
+    "SL",
+    "SG",
+    "SX",
+    "SK",
+    "SI",
+    "SB",
+    "SO",
+    "ZA",
+    "GS",
+    "SS",
+    "ES",
+    "LK",
+    "SD",
+    "SR",
+    "SJ",
+    "SE",
+    "CH",
+    "SY",
+    "TW",
+    "TJ",
+    "TZ",
+    "TH",
+    "TL",
+    "TG",
+    "TK",
+    "TO",
+    "TT",
+    "TN",
+    "TR",
+    "TM",
+    "TC",
+    "TV",
+    "UG",
+    "UA",
+    "AE",
+    "GB",
+    "US",
+    "UM",
+    "UY",
+    "UZ",
+    "VU",
+    "VE",
+    "VN",
+    "VG",
+    "VI",
+    "WF",
+    "EH",
+    "YE",
+    "ZM",
+    "ZW"
+  ];
+  var COUNTRY_ALIASES = { UK: "GB", EL: "GR", "P.R. CHINA": "CN", "P.R. OF CHINA": "CN", "PRC": "CN", "PEOPLES REPUBLIC OF CHINA": "CN" };
+  var CODES = new Set(COUNTRY_CODES);
+  function normalizeCountryCode(value) {
+    const raw = String(value ?? "").trim().toUpperCase();
+    if (!raw) return "";
+    if (CODES.has(raw)) return raw;
+    return COUNTRY_ALIASES[raw] ?? raw;
+  }
+  var displayNamesCache = /* @__PURE__ */ new Map();
+  function regionNames(locale) {
+    const key = locale || "en";
+    if (!displayNamesCache.has(key)) {
+      let names = null;
+      try {
+        names = typeof Intl !== "undefined" && typeof Intl.DisplayNames === "function" ? new Intl.DisplayNames([key], { type: "region" }) : null;
+      } catch {
+        names = null;
+      }
+      displayNamesCache.set(key, names);
+    }
+    return displayNamesCache.get(key) ?? null;
+  }
+  function countryName(code, locale) {
+    const names = regionNames(locale || "en");
+    if (!names) return code;
+    try {
+      const name = names.of(code);
+      return typeof name === "string" && name ? name : code;
+    } catch {
+      return code;
+    }
+  }
+  function countryOptions(locale) {
+    let collator = null;
+    try {
+      collator = typeof Intl !== "undefined" && typeof Intl.Collator === "function" ? new Intl.Collator(locale || "en") : null;
+    } catch {
+      collator = null;
+    }
+    return COUNTRY_CODES.map((code) => ({ code, name: countryName(code, locale) })).sort((left, right) => (collator ? collator.compare(left.name, right.name) : left.name.localeCompare(right.name)) || left.code.localeCompare(right.code));
+  }
+  function countryCodeOf(value, locale) {
+    const code = normalizeCountryCode(value);
+    if (!code) return "";
+    if (CODES.has(code)) return code;
+    for (const candidate of COUNTRY_CODES) {
+      if (countryName(candidate, "en").toUpperCase() === code || countryName(candidate, locale || "en").toUpperCase() === code) return candidate;
+    }
+    return "";
+  }
+  var ZONE_COUNTRY = {
+    "Africa/Abidjan": "CI",
+    "Africa/Accra": "GH",
+    "Africa/Addis_Ababa": "ET",
+    "Africa/Algiers": "DZ",
+    "Africa/Bissau": "GW",
+    "Africa/Cairo": "EG",
+    "Africa/Casablanca": "MA",
+    "Africa/El_Aaiun": "EH",
+    "Africa/Johannesburg": "ZA",
+    "Africa/Juba": "SS",
+    "Africa/Kampala": "UG",
+    "Africa/Khartoum": "SD",
+    "Africa/Kigali": "RW",
+    "Africa/Luanda": "AO",
+    "Africa/Lubumbashi": "CD",
+    "Africa/Lusaka": "ZM",
+    "Africa/Malabo": "GQ",
+    "Africa/Mogadishu": "SO",
+    "Africa/Nairobi": "KE",
+    "Africa/Ndjamena": "TD",
+    "Africa/Tripoli": "LY",
+    "Africa/Tunis": "TN",
+    "Africa/Windhoek": "NA",
+    "America/Anguilla": "AI",
+    "America/Araguaina": "BR",
+    "America/Argentina/Buenos_Aires": "AR",
+    "America/Aruba": "AW",
+    "America/Asuncion": "PY",
+    "America/Bahia": "BR",
+    "America/Bogota": "CO",
+    "America/Campo_Grande": "BR",
+    "America/Cancun": "MX",
+    "America/Caracas": "VE",
+    "America/Cayenne": "GF",
+    "America/Cayman": "KY",
+    "America/Chicago": "US",
+    "America/Costa_Rica": "CR",
+    "America/Cuiaba": "BR",
+    "America/Curacao": "CW",
+    "America/Danmarkshavn": "GL",
+    "America/Denver": "US",
+    "America/Detroit": "US",
+    "America/Dominica": "DM",
+    "America/Edmonton": "CA",
+    "America/Eirunepe": "BR",
+    "America/El_Salvador": "SV",
+    "America/Fort_Nelson": "CA",
+    "America/Fortaleza": "BR",
+    "America/Glace_Bay": "CA",
+    "America/Goose_Bay": "CA",
+    "America/Grand_Turk": "TC",
+    "America/Grenada": "GD",
+    "America/Guadeloupe": "GP",
+    "America/Guatemala": "GT",
+    "America/Guayaquil": "EC",
+    "America/Guyana": "GY",
+    "America/Halifax": "CA",
+    "America/Havana": "CU",
+    "America/Hermosillo": "MX",
+    "America/Indiana/Indianapolis": "US",
+    "America/Indiana/Knox": "US",
+    "America/Jamaica": "JM",
+    "America/Juneau": "US",
+    "America/La_Paz": "BO",
+    "America/Lima": "PE",
+    "America/Los_Angeles": "US",
+    "America/Lower_Princes": "SX",
+    "America/Maceio": "BR",
+    "America/Managua": "NI",
+    "America/Manaus": "BR",
+    "America/Marigot": "MF",
+    "America/Martinique": "MQ",
+    "America/Matamoros": "MX",
+    "America/Mazatlan": "MX",
+    "America/Menominee": "US",
+    "America/Merida": "MX",
+    "America/Metlakatla": "US",
+    "America/Mexico_City": "MX",
+    "America/Miquelon": "PM",
+    "America/Moncton": "CA",
+    "America/Monterrey": "MX",
+    "America/Montevideo": "UY",
+    "America/Montserrat": "MS",
+    "America/Nassau": "BS",
+    "America/New_York": "US",
+    "America/Nome": "US",
+    "America/Noronha": "BR",
+    "America/North_Dakota/Beulah": "US",
+    "America/North_Dakota/Center": "US",
+    "America/North_Dakota/New_Salem": "US",
+    "America/Nuuk": "GL",
+    "America/Ojinaga": "MX",
+    "America/Panama": "PA",
+    "America/Paramaribo": "SR",
+    "America/Phoenix": "US",
+    "America/Port-au-Prince": "HT",
+    "America/Port_of_Spain": "TT",
+    "America/Porto_Velho": "BR",
+    "America/Puerto_Rico": "PR",
+    "America/Punta_Arenas": "CL",
+    "America/Rankin_Inlet": "CA",
+    "America/Recife": "BR",
+    "America/Regina": "CA",
+    "America/Resolute": "CA",
+    "America/Rio_Branco": "BR",
+    "America/Santarem": "BR",
+    "America/Santiago": "CL",
+    "America/Santo_Domingo": "DO",
+    "America/Sao_Paulo": "BR",
+    "America/Scoresbysund": "GL",
+    "America/Sitka": "US",
+    "America/St_Barthelemy": "BL",
+    "America/St_Johns": "CA",
+    "America/St_Kitts": "KN",
+    "America/St_Lucia": "LC",
+    "America/St_Thomas": "VI",
+    "America/St_Vincent": "VC",
+    "America/Swift_Current": "CA",
+    "America/Tegucigalpa": "HN",
+    "America/Thule": "GL",
+    "America/Tijuana": "MX",
+    "America/Toronto": "CA",
+    "America/Tortola": "VG",
+    "America/Vancouver": "CA",
+    "America/Whitehorse": "CA",
+    "America/Winnipeg": "CA",
+    "America/Yakutat": "US",
+    "Antarctica/Casey": "AQ",
+    "Antarctica/Davis": "AQ",
+    "Antarctica/DumontDUrville": "AQ",
+    "Antarctica/Macquarie": "AU",
+    "Antarctica/Mawson": "AQ",
+    "Antarctica/McMurdo": "AQ",
+    "Antarctica/Palmer": "AQ",
+    "Antarctica/Rothera": "AQ",
+    "Antarctica/Syowa": "AQ",
+    "Antarctica/Troll": "AQ",
+    "Antarctica/Vostok": "AQ",
+    "Arctic/Longyearbyen": "SJ",
+    "Asia/Aden": "YE",
+    "Asia/Almaty": "KZ",
+    "Asia/Amman": "JO",
+    "Asia/Anadyr": "RU",
+    "Asia/Aqtau": "KZ",
+    "Asia/Aqtobe": "KZ",
+    "Asia/Ashgabat": "TM",
+    "Asia/Atyrau": "KZ",
+    "Asia/Baghdad": "IQ",
+    "Asia/Bahrain": "BH",
+    "Asia/Baku": "AZ",
+    "Asia/Bangkok": "TH",
+    "Asia/Barnaul": "RU",
+    "Asia/Beirut": "LB",
+    "Asia/Bishkek": "KG",
+    "Asia/Brunei": "BN",
+    "Asia/Chita": "RU",
+    "Asia/Colombo": "LK",
+    "Asia/Damascus": "SY",
+    "Asia/Dhaka": "BD",
+    "Asia/Dili": "TL",
+    "Asia/Dubai": "AE",
+    "Asia/Dushanbe": "TJ",
+    "Asia/Famagusta": "CY",
+    "Asia/Gaza": "PS",
+    "Asia/Hebron": "PS",
+    "Asia/Ho_Chi_Minh": "VN",
+    "Asia/Hong_Kong": "HK",
+    "Asia/Hovd": "MN",
+    "Asia/Irkutsk": "RU",
+    "Asia/Jakarta": "ID",
+    "Asia/Jayapura": "ID",
+    "Asia/Jerusalem": "IL",
+    "Asia/Kabul": "AF",
+    "Asia/Kamchatka": "RU",
+    "Asia/Karachi": "PK",
+    "Asia/Kathmandu": "NP",
+    "Asia/Khandyga": "RU",
+    "Asia/Kolkata": "IN",
+    "Asia/Krasnoyarsk": "RU",
+    "Asia/Kuala_Lumpur": "MY",
+    "Asia/Kuching": "MY",
+    "Asia/Kuwait": "KW",
+    "Asia/Macau": "MO",
+    "Asia/Magadan": "RU",
+    "Asia/Makassar": "ID",
+    "Asia/Manila": "PH",
+    "Asia/Muscat": "OM",
+    "Asia/Nicosia": "CY",
+    "Asia/Novokuznetsk": "RU",
+    "Asia/Novosibirsk": "RU",
+    "Asia/Omsk": "RU",
+    "Asia/Oral": "KZ",
+    "Asia/Phnom_Penh": "KH",
+    "Asia/Pontianak": "ID",
+    "Asia/Pyongyang": "KP",
+    "Asia/Qatar": "QA",
+    "Asia/Qostanay": "KZ",
+    "Asia/Qyzylorda": "KZ",
+    "Asia/Riyadh": "SA",
+    "Asia/Sakhalin": "RU",
+    "Asia/Samarkand": "UZ",
+    "Asia/Seoul": "KR",
+    "Asia/Shanghai": "CN",
+    "Asia/Singapore": "SG",
+    "Asia/Srednekolymsk": "RU",
+    "Asia/Taipei": "TW",
+    "Asia/Tashkent": "UZ",
+    "Asia/Tbilisi": "GE",
+    "Asia/Tehran": "IR",
+    "Asia/Thimphu": "BT",
+    "Asia/Tokyo": "JP",
+    "Asia/Tomsk": "RU",
+    "Asia/Ulaanbaatar": "MN",
+    "Asia/Urumqi": "CN",
+    "Asia/Ust-Nera": "RU",
+    "Asia/Vientiane": "LA",
+    "Asia/Vladivostok": "RU",
+    "Asia/Yakutsk": "RU",
+    "Asia/Yangon": "MM",
+    "Asia/Yekaterinburg": "RU",
+    "Asia/Yerevan": "AM",
+    "Atlantic/Azores": "PT",
+    "Atlantic/Bermuda": "BM",
+    "Atlantic/Canary": "ES",
+    "Atlantic/Cape_Verde": "CV",
+    "Atlantic/Faroe": "FO",
+    "Atlantic/Madeira": "PT",
+    "Atlantic/Reykjavik": "IS",
+    "Atlantic/South_Georgia": "GS",
+    "Atlantic/St_Helena": "SH",
+    "Atlantic/Stanley": "FK",
+    "Australia/Adelaide": "AU",
+    "Australia/Brisbane": "AU",
+    "Australia/Broken_Hill": "AU",
+    "Australia/Darwin": "AU",
+    "Australia/Eucla": "AU",
+    "Australia/Hobart": "AU",
+    "Australia/Lindeman": "AU",
+    "Australia/Lord_Howe": "AU",
+    "Australia/Melbourne": "AU",
+    "Australia/Perth": "AU",
+    "Australia/Sydney": "AU",
+    "Europe/Amsterdam": "NL",
+    "Europe/Andorra": "AD",
+    "Europe/Astrakhan": "RU",
+    "Europe/Athens": "GR",
+    "Europe/Belgrade": "RS",
+    "Europe/Berlin": "DE",
+    "Europe/Bratislava": "SK",
+    "Europe/Brussels": "BE",
+    "Europe/Bucharest": "RO",
+    "Europe/Budapest": "HU",
+    "Europe/Busingen": "DE",
+    "Europe/Chisinau": "MD",
+    "Europe/Copenhagen": "DK",
+    "Europe/Dublin": "IE",
+    "Europe/Gibraltar": "GI",
+    "Europe/Guernsey": "GG",
+    "Europe/Helsinki": "FI",
+    "Europe/Isle_of_Man": "IM",
+    "Europe/Istanbul": "TR",
+    "Europe/Jersey": "JE",
+    "Europe/Kaliningrad": "RU",
+    "Europe/Kirov": "RU",
+    "Europe/Kyiv": "UA",
+    "Europe/Lisbon": "PT",
+    "Europe/Ljubljana": "SI",
+    "Europe/London": "GB",
+    "Europe/Luxembourg": "LU",
+    "Europe/Madrid": "ES",
+    "Europe/Malta": "MT",
+    "Europe/Mariehamn": "AX",
+    "Europe/Minsk": "BY",
+    "Europe/Monaco": "MC",
+    "Europe/Moscow": "RU",
+    "Europe/Oslo": "NO",
+    "Europe/Paris": "FR",
+    "Europe/Podgorica": "ME",
+    "Europe/Prague": "CZ",
+    "Europe/Riga": "LV",
+    "Europe/Rome": "IT",
+    "Europe/Samara": "RU",
+    "Europe/San_Marino": "SM",
+    "Europe/Sarajevo": "BA",
+    "Europe/Saratov": "RU",
+    "Europe/Simferopol": "UA",
+    "Europe/Skopje": "MK",
+    "Europe/Sofia": "BG",
+    "Europe/Stockholm": "SE",
+    "Europe/Tallinn": "EE",
+    "Europe/Tirane": "AL",
+    "Europe/Ulyanovsk": "RU",
+    "Europe/Vaduz": "LI",
+    "Europe/Vatican": "VA",
+    "Europe/Vienna": "AT",
+    "Europe/Vilnius": "LT",
+    "Europe/Volgograd": "RU",
+    "Europe/Warsaw": "PL",
+    "Europe/Zagreb": "HR",
+    "Europe/Zurich": "CH",
+    "Indian/Antananarivo": "MG",
+    "Indian/Chagos": "IO",
+    "Indian/Christmas": "CX",
+    "Indian/Cocos": "CC",
+    "Indian/Comoro": "KM",
+    "Indian/Kerguelen": "TF",
+    "Indian/Mahe": "SC",
+    "Indian/Maldives": "MV",
+    "Indian/Mauritius": "MU",
+    "Indian/Mayotte": "YT",
+    "Indian/Reunion": "RE",
+    "Pacific/Apia": "WS",
+    "Pacific/Auckland": "NZ",
+    "Pacific/Bougainville": "PG",
+    "Pacific/Chatham": "NZ",
+    "Pacific/Easter": "CL",
+    "Pacific/Efate": "VU",
+    "Pacific/Fakaofo": "TK",
+    "Pacific/Fiji": "FJ",
+    "Pacific/Funafuti": "TV",
+    "Pacific/Galapagos": "EC",
+    "Pacific/Gambier": "PF",
+    "Pacific/Guadalcanal": "SB",
+    "Pacific/Guam": "GU",
+    "Pacific/Honolulu": "US",
+    "Pacific/Kanton": "KI",
+    "Pacific/Kiritimati": "KI",
+    "Pacific/Kosrae": "FM",
+    "Pacific/Kwajalein": "MH",
+    "Pacific/Majuro": "MH",
+    "Pacific/Marquesas": "PF",
+    "Pacific/Midway": "UM",
+    "Pacific/Nauru": "NR",
+    "Pacific/Niue": "NU",
+    "Pacific/Norfolk": "NF",
+    "Pacific/Noumea": "NC",
+    "Pacific/Pago_Pago": "AS",
+    "Pacific/Palau": "PW",
+    "Pacific/Pitcairn": "PN",
+    "Pacific/Pohnpei": "FM",
+    "Pacific/Port_Moresby": "PG",
+    "Pacific/Rarotonga": "CK",
+    "Pacific/Saipan": "MP",
+    "Pacific/Tahiti": "PF",
+    "Pacific/Tarawa": "KI",
+    "Pacific/Tongatapu": "TO",
+    "Pacific/Wake": "UM",
+    "Pacific/Wallis": "WF"
+  };
+  var LANGUAGE_COUNTRY = { ja: "JP", ko: "KR", fr: "FR", de: "DE", "zh-hans": "CN" };
+  function detectShopperCountry(locale) {
+    if (typeof Intl === "undefined" || typeof Intl.DateTimeFormat !== "function") return "";
+    try {
+      const zone = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+      if (zone && ZONE_COUNTRY[zone]) return ZONE_COUNTRY[zone];
+    } catch {
+    }
+    return LANGUAGE_COUNTRY[String(locale || "").toLowerCase()] ?? "";
+  }
+
   // src/components/CheckoutPage.tsx
   var CheckoutPage = react_default.memo(function CheckoutPage2({
     cart,
@@ -13755,6 +14941,9 @@
       return new Set(source.map((item) => item.trim().toUpperCase()));
     }, [countriesRequireStatePostal]);
     const paymentMethods = react_default.useMemo(() => availablePaymentMethods || [], [availablePaymentMethods]);
+    const detectedCountry = react_default.useMemo(() => detectShopperCountry(locale), [locale]);
+    const countryChosen = react_default.useRef(false);
+    const countries = react_default.useMemo(() => countryOptions(locale), [locale]);
     const [formData, setFormData] = react_default.useState({
       email: savedAddress?.email || currentUserEmail || "",
       firstName: savedAddress?.firstName || "",
@@ -13763,7 +14952,7 @@
       city: savedAddress?.city || "",
       state: savedAddress?.state || "",
       postalCode: savedAddress?.postalCode || "",
-      country: savedAddress?.country || "",
+      country: countryCodeOf(savedAddress?.country, locale) || savedAddress?.country || detectedCountry,
       phone: savedAddress?.phone || "",
       paymentMethod: paymentMethods[0]?.name || "",
       promoCode: ""
@@ -13792,7 +14981,8 @@
         city: prev.city || savedAddress.city || "",
         state: prev.state || savedAddress.state || "",
         postalCode: prev.postalCode || savedAddress.postalCode || "",
-        country: prev.country || savedAddress.country || ""
+        // a saved address brings its own country, unless the shopper has already picked one
+        country: countryChosen.current ? prev.country : countryCodeOf(savedAddress.country, locale) || savedAddress.country || prev.country
       }));
     }, [savedAddress]);
     react_default.useEffect(() => {
@@ -13804,6 +14994,7 @@
       if (paymentMethods.some((item) => item.name === formData.paymentMethod)) return;
       setFormData((prev) => ({ ...prev, paymentMethod: paymentMethods[0].name }));
     }, [formData.paymentMethod, paymentMethods]);
+    const countryTyped = countryChosen.current || formData.country !== detectedCountry;
     const hasShippingInput = react_default.useMemo(
       () => [
         formData.firstName,
@@ -13813,12 +15004,12 @@
         formData.city,
         formData.state,
         formData.postalCode,
-        formData.country
+        countryTyped ? formData.country : ""
       ].some((value) => value.trim()),
       [formData]
     );
     const shouldCollectShipping = Boolean(requireShippingAddress || hasShippingInput);
-    const normalizedCountry = formData.country.trim().toUpperCase() === "UK" ? "GB" : formData.country.trim().toUpperCase();
+    const normalizedCountry = normalizeCountryCode(formData.country);
     const statePostalRequired = shouldCollectShipping && countriesRequireStatePostalSet.has(normalizedCountry);
     const inputClassName = (field) => cn2(
       "h-12 w-full rounded-[0.95rem] border bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] px-4 text-sm text-[var(--bokmoo-ink)] outline-none placeholder:text-[var(--bokmoo-copy-soft)]",
@@ -13826,6 +15017,7 @@
     );
     const handleChange = (event) => {
       const { name, value } = event.target;
+      if (name === "country") countryChosen.current = true;
       setFormData((prev) => ({ ...prev, [name]: value }));
       setErrors((prev) => {
         if (!prev[name]) return prev;
@@ -13885,7 +15077,7 @@
             return /* @__PURE__ */ jsx("div", { className: "rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_84%,black)] p-3", children: /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-3", children: [
               /* @__PURE__ */ jsx("div", { className: "h-14 w-16 overflow-hidden rounded-[0.8rem] bg-[linear-gradient(160deg,#924a57_0%,#261922_44%,#0f1115_100%)]" }),
               /* @__PURE__ */ jsxs("div", { className: "min-w-0 flex-1", children: [
-                /* @__PURE__ */ jsx("p", { className: "text-sm font-medium text-[var(--bokmoo-ink)]", children: item.productName }),
+                /* @__PURE__ */ jsx("p", { className: "text-sm font-medium text-[var(--bokmoo-ink)]", children: cardLineName(item, locale) }),
                 /* @__PURE__ */ jsxs("p", { className: "mt-1 text-xs text-[var(--bokmoo-copy-soft)]", children: [
                   pickCopy(locale, { en: "Qty", hans: "\u6570\u91CF", hant: "\u6578\u91CF" }),
                   " ",
@@ -13967,6 +15159,7 @@
                 {
                   name: "email",
                   type: "email",
+                  autoComplete: "email",
                   value: formData.email,
                   onChange: handleChange,
                   className: inputClassName("email"),
@@ -13980,6 +15173,7 @@
                     "input",
                     {
                       name: "firstName",
+                      autoComplete: "shipping given-name",
                       value: formData.firstName,
                       onChange: handleChange,
                       className: inputClassName("firstName"),
@@ -13993,6 +15187,7 @@
                     "input",
                     {
                       name: "lastName",
+                      autoComplete: "shipping family-name",
                       value: formData.lastName,
                       onChange: handleChange,
                       className: inputClassName("lastName"),
@@ -14080,6 +15275,7 @@
                   {
                     name: "phone",
                     type: "tel",
+                    autoComplete: "shipping tel",
                     value: formData.phone,
                     onChange: handleChange,
                     className: inputClassName("phone"),
@@ -14092,6 +15288,7 @@
                 "input",
                 {
                   name: "addressLine1",
+                  autoComplete: "shipping street-address",
                   value: formData.addressLine1,
                   onChange: handleChange,
                   className: inputClassName("addressLine1"),
@@ -14102,26 +15299,48 @@
                 "input",
                 {
                   name: "city",
+                  autoComplete: "shipping address-level2",
                   value: formData.city,
                   onChange: handleChange,
                   className: inputClassName("city"),
                   placeholder: pickCopy(locale, { en: "City", hans: "\u57CE\u5E02", hant: "\u57CE\u5E02" })
                 }
               ),
-              /* @__PURE__ */ jsx(
-                "input",
-                {
-                  name: "country",
-                  value: formData.country,
-                  onChange: handleChange,
-                  className: inputClassName("country"),
-                  placeholder: pickCopy(locale, { en: "Country", hans: "\u56FD\u5BB6/\u5730\u533A", hant: "\u570B\u5BB6/\u5730\u5340" })
-                }
-              ),
+              /* @__PURE__ */ jsxs("div", { className: "relative", children: [
+                /* @__PURE__ */ jsxs(
+                  "select",
+                  {
+                    name: "country",
+                    autoComplete: "shipping country",
+                    value: formData.country,
+                    onChange: handleChange,
+                    className: cn2(inputClassName("country"), "bokmoo-checkout-country"),
+                    "aria-label": pickCopy(locale, { en: "Country", hans: "\u56FD\u5BB6/\u5730\u533A", hant: "\u570B\u5BB6/\u5730\u5340" }),
+                    "data-purpose": "checkout-country",
+                    "data-detected": formData.country === detectedCountry && !countryChosen.current ? "true" : "false",
+                    children: [
+                      /* @__PURE__ */ jsx("option", { value: "", children: pickCopy(locale, { en: "Country / Region", hans: "\u56FD\u5BB6/\u5730\u533A", hant: "\u570B\u5BB6/\u5730\u5340" }) }),
+                      formData.country && !countries.some((option) => option.code === formData.country) ? /* @__PURE__ */ jsx("option", { value: formData.country, children: formData.country }) : null,
+                      countries.map((option) => /* @__PURE__ */ jsx("option", { value: option.code, children: option.name }, option.code))
+                    ]
+                  }
+                ),
+                /* @__PURE__ */ jsx("span", { className: "pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[var(--bokmoo-copy-soft)]", "aria-hidden": "true", children: "\u25BE" }),
+                formData.country === detectedCountry && !countryChosen.current ? /* @__PURE__ */ jsx("p", { className: "mt-2 text-xs text-[var(--bokmoo-copy-soft)]", "data-purpose": "country-detected", children: pickCopy(locale, {
+                  en: "Picked from this device. Change it if it should be another country.",
+                  hans: "\u5DF2\u6839\u636E\u4F60\u7684\u8BBE\u5907\u81EA\u52A8\u9009\u62E9\uFF0C\u5982\u4E0D\u5BF9\u53EF\u4EE5\u4FEE\u6539\u3002",
+                  hant: "\u5DF2\u4F9D\u4F60\u7684\u88DD\u7F6E\u81EA\u52D5\u9078\u64C7\uFF0C\u5982\u4E0D\u6B63\u78BA\u53EF\u4EE5\u4FEE\u6539\u3002",
+                  ja: "\u3053\u306E\u7AEF\u672B\u306E\u8A2D\u5B9A\u304B\u3089\u9078\u3073\u307E\u3057\u305F\u3002\u9055\u3046\u5834\u5408\u306F\u5909\u66F4\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+                  ko: "\uC774 \uAE30\uAE30\uC758 \uC124\uC815\uC5D0\uC11C \uC120\uD0DD\uD588\uC2B5\uB2C8\uB2E4. \uB2E4\uB974\uBA74 \uBCC0\uACBD\uD558\uC138\uC694.",
+                  fr: "Choisi d\u2019apr\xE8s cet appareil. Modifiez-le si n\xE9cessaire.",
+                  de: "Von diesem Ger\xE4t \xFCbernommen. \xC4ndern Sie es, falls n\xF6tig."
+                }) }) : null
+              ] }),
               /* @__PURE__ */ jsx(
                 "input",
                 {
                   name: "state",
+                  autoComplete: "shipping address-level1",
                   value: formData.state,
                   onChange: handleChange,
                   className: inputClassName("state"),
@@ -14132,6 +15351,7 @@
                 "input",
                 {
                   name: "postalCode",
+                  autoComplete: "shipping postal-code",
                   value: formData.postalCode,
                   onChange: handleChange,
                   className: inputClassName("postalCode"),
@@ -14491,7 +15711,7 @@
     if (paragraph.length <= 150) return paragraph;
     return `${paragraph.slice(0, 149).replace(/\s+\S*$/, "")}\u2026`;
   }
-  function ProductMedia({ product, apiBaseUrl }) {
+  function ProductMedia({ product, apiBaseUrl, locale }) {
     const image = resolveBokmooMediaUrl(getProductImage(product), apiBaseUrl);
     const profile = getBokmooTravelProfile(product);
     const card = isCard(product);
@@ -14500,7 +15720,7 @@
         "img",
         {
           src: image,
-          alt: displayProductTitle(product.name),
+          alt: cardName(product, locale) ?? displayProductTitle(product.name),
           className: "h-full w-full object-cover",
           loading: "lazy"
         }
@@ -14513,9 +15733,15 @@
       ] }),
       /* @__PURE__ */ jsxs("div", { children: [
         /* @__PURE__ */ jsx("p", { className: "text-sm tracking-[0.22em] text-[var(--bokmoo-copy-soft)]", children: "BOKMOO" }),
-        /* @__PURE__ */ jsx("p", { className: "mt-3 text-2xl leading-[0.98] tracking-[-0.04em] text-[var(--bokmoo-ink)]", children: card ? displayProductTitle(product.name) : profile.coverageLabel })
+        /* @__PURE__ */ jsx("p", { className: "mt-3 text-2xl leading-[0.98] tracking-[-0.04em] text-[var(--bokmoo-ink)]", children: card ? cardName(product, locale) ?? displayProductTitle(product.name) : profile.coverageLabel })
       ] })
     ] });
+  }
+  function cardTileText(product, locale) {
+    return {
+      title: cardName(product, locale) ?? displayProductTitle(product.name),
+      summary: cardSummary(cardDescription(product, locale) ?? product.description)
+    };
   }
   var ARTICLE_CLASS = "overflow-hidden rounded-[1.35rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_14%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg-elevated)_82%,black)] shadow-[var(--bokmoo-shadow)] transition-transform duration-300 hover:-translate-y-1 sm:rounded-[var(--bokmoo-radius-xl)]";
   var GOLD_BUTTON_CLASS = "mt-4 w-full rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_65%,black))] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-bg)]";
@@ -14737,18 +15963,20 @@
               {
                 className: cn2(
                   "overflow-hidden border-[var(--bokmoo-line)]",
-                  viewMode === "grid" ? "aspect-[1.28/1] border-b sm:aspect-[1.18/1]" : "aspect-[1.45/1] rounded-[1rem] border md:aspect-auto md:h-full md:rounded-[var(--bokmoo-radius-lg)]"
+                  viewMode === "grid" ? "bokmoo-card-media border-b" : "aspect-[1.45/1] rounded-[1rem] border md:aspect-auto md:h-full md:rounded-[var(--bokmoo-radius-lg)]"
                 ),
-                children: /* @__PURE__ */ jsx(ProductMedia, { product, apiBaseUrl })
+                children: /* @__PURE__ */ jsx(ProductMedia, { product, apiBaseUrl, locale })
               }
             );
             const sale = saleFor(sales, product.id);
+            const tileText = card ? cardTileText(product, locale) : null;
             if (card) {
               return /* @__PURE__ */ jsxs(
                 "article",
                 {
                   className: cn2(
                     ARTICLE_CLASS,
+                    viewMode === "grid" && "flex flex-col",
                     viewMode === "list" && "grid gap-4 p-4 md:grid-cols-[14rem_minmax(0,1fr)_12rem] md:items-center md:gap-5 md:p-5"
                   ),
                   "data-purpose": "catalog-card",
@@ -14757,19 +15985,19 @@
                       "button",
                       {
                         onClick: () => onProductClick(product.id),
-                        className: cn2(viewMode === "grid" ? "block text-left" : "contents"),
+                        className: cn2(viewMode === "grid" ? "block w-full text-left" : "contents"),
                         type: "button",
                         children: [
                           media,
-                          /* @__PURE__ */ jsxs("div", { className: cn2(viewMode === "grid" ? "p-5" : "min-w-0"), children: [
-                            /* @__PURE__ */ jsx("span", { className: "rounded-full border border-[var(--bokmoo-line)] px-3 py-1 text-[10px] tracking-[0.18em] text-[var(--bokmoo-gold)]", children: t(CARD_EYEBROW) }),
-                            /* @__PURE__ */ jsx("h2", { className: "mt-4 text-[clamp(1.7rem,2vw,2.4rem)] leading-[1] tracking-[-0.04em] text-[var(--bokmoo-ink)]", children: displayProductTitle(product.name) }),
-                            /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm leading-6 text-[var(--bokmoo-copy)]", children: cardSummary(product.description) })
+                          /* @__PURE__ */ jsxs("div", { className: cn2(viewMode === "grid" ? "flex flex-col p-5" : "min-w-0"), children: [
+                            /* @__PURE__ */ jsx("div", { children: /* @__PURE__ */ jsx("span", { className: "rounded-full border border-[var(--bokmoo-line)] px-3 py-1 text-[10px] tracking-[0.18em] text-[var(--bokmoo-gold)]", children: t(CARD_EYEBROW) }) }),
+                            /* @__PURE__ */ jsx("h2", { className: "bokmoo-card-title mt-4 text-[clamp(1.7rem,2vw,2.4rem)] tracking-[-0.04em] text-[var(--bokmoo-ink)]", children: tileText?.title }),
+                            /* @__PURE__ */ jsx("p", { className: "bokmoo-card-text mt-3 text-sm leading-6 text-[var(--bokmoo-copy)]", children: tileText?.summary })
                           ] })
                         ]
                       }
                     ),
-                    /* @__PURE__ */ jsx("div", { className: cn2(viewMode === "grid" ? "px-5 pb-5" : "md:w-[12rem]"), children: /* @__PURE__ */ jsxs("div", { className: "rounded-[1rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_90%,black)] p-4", children: [
+                    /* @__PURE__ */ jsx("div", { className: cn2(viewMode === "grid" ? "mt-auto px-5 pb-5" : "md:w-[12rem]"), children: /* @__PURE__ */ jsxs("div", { className: "rounded-[1rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_90%,black)] p-4", children: [
                       /* @__PURE__ */ jsx("p", { className: "text-3xl font-semibold tracking-[-0.04em] text-[var(--bokmoo-ink)]", children: /* @__PURE__ */ jsx(SalePrice, { unitPrice: Number(Number.isFinite(Number(product.price)) ? Number(product.price) : 0), sale }) }),
                       /* @__PURE__ */ jsx("button", { onClick: () => onProductClick(product.id), className: GOLD_BUTTON_CLASS, type: "button", children: t(VIEW_CARD) })
                     ] }) })
@@ -15599,7 +16827,7 @@
       }
     );
   }
-  var FOCUS_VISIBLE_RING2 = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bokmoo-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bokmoo-bg)]";
+  var FOCUS_VISIBLE_RING4 = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bokmoo-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bokmoo-bg)]";
   var Header = react_default.memo(function Header2({
     locale,
     isAuthenticated,
@@ -15686,7 +16914,7 @@
         /* @__PURE__ */ jsx(
           "a",
           {
-            className: `flex items-center gap-3 shrink-0 group py-1 select-none ${FOCUS_VISIBLE_RING2}`,
+            className: `flex items-center gap-3 shrink-0 group py-1 select-none ${FOCUS_VISIBLE_RING4}`,
             "data-purpose": "brand-logo",
             href: "#read",
             onClick: (event) => {
@@ -15699,7 +16927,7 @@
         /* @__PURE__ */ jsx("nav", { className: "bokmoo-header-nav items-center flex-nowrap shrink-0 text-sm tracking-wide text-neutral-300 font-medium whitespace-nowrap", children: navItems.map((item) => /* @__PURE__ */ jsx(
           "a",
           {
-            className: `hover:text-[#E5C365] transition-colors whitespace-nowrap ${FOCUS_VISIBLE_RING2}`,
+            className: `hover:text-[#E5C365] transition-colors whitespace-nowrap ${FOCUS_VISIBLE_RING4}`,
             href: "#",
             onClick: (event) => {
               event.preventDefault();
@@ -15718,7 +16946,7 @@
                 "aria-expanded": isLocaleOpen,
                 "aria-haspopup": "true",
                 "aria-label": pickCopy(locale, { en: "Language", hans: "\u8BED\u8A00", hant: "\u8A9E\u8A00", ja: "\u8A00\u8A9E", ko: "\uC5B8\uC5B4", fr: "Langue", de: "Sprache" }),
-                className: `text-xs md:text-sm font-medium text-neutral-300 hover:text-[#E5C365] transition-all px-2.5 md:px-3 py-1.5 flex items-center gap-1.5 rounded-full border border-white/10 hover:border-[#E5C365]/40 bg-white/[0.03] hover:bg-white/[0.08] backdrop-blur-md cursor-pointer select-none whitespace-nowrap ${FOCUS_VISIBLE_RING2}`,
+                className: `text-xs md:text-sm font-medium text-neutral-300 hover:text-[#E5C365] transition-all px-2.5 md:px-3 py-1.5 flex items-center gap-1.5 rounded-full border border-white/10 hover:border-[#E5C365]/40 bg-white/[0.03] hover:bg-white/[0.08] backdrop-blur-md cursor-pointer select-none whitespace-nowrap ${FOCUS_VISIBLE_RING4}`,
                 onClick: () => setIsLocaleOpen((open) => !open),
                 type: "button",
                 children: [
@@ -15750,7 +16978,7 @@
                 "aria-haspopup": "menu",
                 "aria-expanded": accountMenuOpen,
                 "aria-label": pickCopy(locale, { en: "My Account", hans: "\u6211\u7684\u5E10\u6237", hant: "\u6211\u7684\u5E33\u6236", ja: "\u30DE\u30A4\u30A2\u30AB\u30A6\u30F3\u30C8", ko: "\uB0B4 \uACC4\uC815", fr: "Mon compte", de: "Mein Konto" }),
-                className: `bokmoo-header-signin items-center gap-2 rounded-full border border-[rgba(212,175,55,0.3)] bg-white/[0.03] pl-1 pr-3 py-1 text-sm font-medium text-[var(--bokmoo-ink)] transition-colors hover:border-[#E5C365]/50 ${FOCUS_VISIBLE_RING2}`,
+                className: `bokmoo-header-signin items-center gap-2 rounded-full border border-[rgba(212,175,55,0.3)] bg-white/[0.03] pl-1 pr-3 py-1 text-sm font-medium text-[var(--bokmoo-ink)] transition-colors hover:border-[#E5C365]/50 ${FOCUS_VISIBLE_RING4}`,
                 type: "button",
                 children: [
                   /* @__PURE__ */ jsx("span", { className: "flex h-7 w-7 items-center justify-center rounded-full bg-[#E5C365] text-[0.72rem] font-bold text-[#0d0d0d]", children: accountInitial }),
@@ -15798,7 +17026,7 @@
           ] }) : /* @__PURE__ */ jsxs(
             "a",
             {
-              className: `bokmoo-header-signin text-xs md:text-sm font-medium text-neutral-300 hover:text-[#E5C365] transition-colors px-2 md:px-3 py-1.5 items-center gap-1.5 rounded-full hover:bg-white/[0.04] whitespace-nowrap ${FOCUS_VISIBLE_RING2}`,
+              className: `bokmoo-header-signin text-xs md:text-sm font-medium text-neutral-300 hover:text-[#E5C365] transition-colors px-2 md:px-3 py-1.5 items-center gap-1.5 rounded-full hover:bg-white/[0.04] whitespace-nowrap ${FOCUS_VISIBLE_RING4}`,
               href: "#login",
               onClick: (event) => {
                 event.preventDefault();
@@ -15815,7 +17043,7 @@
             "button",
             {
               "aria-label": pickCopy(locale, { en: "Shopping Cart", hans: "\u8D2D\u7269\u8F66", hant: "\u8CFC\u7269\u8ECA", ja: "\u30AB\u30FC\u30C8\u3092\u958B\u304F", ko: "\uC7A5\uBC14\uAD6C\uB2C8 \uC5F4\uAE30", fr: "Ouvrir le panier", de: "Warenkorb \xF6ffnen" }),
-              className: `relative p-2 text-neutral-300 hover:text-[#E5C365] hover:bg-white/[0.04] rounded-full transition-all flex items-center justify-center shrink-0 ${FOCUS_VISIBLE_RING2}`,
+              className: `relative p-2 text-neutral-300 hover:text-[#E5C365] hover:bg-white/[0.04] rounded-full transition-all flex items-center justify-center shrink-0 ${FOCUS_VISIBLE_RING4}`,
               onClick: onNavigateToCart,
               type: "button",
               children: [
@@ -15827,7 +17055,7 @@
           /* @__PURE__ */ jsxs(
             "a",
             {
-              className: `px-4 md:px-5 py-2 rounded-full bg-[#E5C365] hover:bg-[#F3D482] text-[#111113] text-xs md:text-sm font-semibold transition-all shadow-[0_2px_12px_rgba(229,195,101,0.25)] hover:shadow-[0_4px_16px_rgba(229,195,101,0.4)] bokmoo-header-cta items-center gap-1.5 shrink-0 whitespace-nowrap ${FOCUS_VISIBLE_RING2}`,
+              className: `px-4 md:px-5 py-2 rounded-full bg-[#E5C365] hover:bg-[#F3D482] text-[#111113] text-xs md:text-sm font-semibold transition-all shadow-[0_2px_12px_rgba(229,195,101,0.25)] hover:shadow-[0_4px_16px_rgba(229,195,101,0.4)] bokmoo-header-cta items-center gap-1.5 shrink-0 whitespace-nowrap ${FOCUS_VISIBLE_RING4}`,
               href: "https://bokmoo.com/products",
               onClick: (event) => {
                 if (!window.location.host.includes("bokmoo.com")) {
@@ -15846,7 +17074,7 @@
           "button",
           {
             onClick: () => setIsMenuOpen((value) => !value),
-            className: `bokmoo-header-burger h-11 items-center justify-center rounded-[0.8rem] border border-white/10 text-[var(--bokmoo-ink)] ${FOCUS_VISIBLE_RING2}`,
+            className: `bokmoo-header-burger h-11 items-center justify-center rounded-[0.8rem] border border-white/10 text-[var(--bokmoo-ink)] ${FOCUS_VISIBLE_RING4}`,
             "aria-controls": mobileMenuId,
             "aria-expanded": isMenuOpen,
             "aria-label": isMenuOpen ? pickCopy(locale, { en: "Close menu", hans: "\u5173\u95ED\u9009\u5355", hant: "\u95DC\u9589\u9078\u55AE", ja: "\u30E1\u30CB\u30E5\u30FC\u3092\u9589\u3058\u308B", ko: "\uBA54\uB274 \uB2EB\uAE30", fr: "Fermer le menu", de: "Men\xFC schlie\xDFen" }) : pickCopy(locale, { en: "Open menu", hans: "\u5F00\u542F\u9009\u5355", hant: "\u958B\u555F\u9078\u55AE", ja: "\u30E1\u30CB\u30E5\u30FC\u3092\u958B\u304F", ko: "\uBA54\uB274 \uC5F4\uAE30", fr: "Ouvrir le menu", de: "Men\xFC \xF6ffnen" }),
@@ -15863,7 +17091,7 @@
               item.onClick();
               setIsMenuOpen(false);
             },
-            className: `rounded-[0.9rem] border border-white/10 bg-[#141414] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-ink)] ${FOCUS_VISIBLE_RING2}`,
+            className: `rounded-[0.9rem] border border-white/10 bg-[#141414] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-ink)] ${FOCUS_VISIBLE_RING4}`,
             type: "button",
             children: item.label
           },
@@ -15876,7 +17104,7 @@
               onNavigateToCart();
               setIsMenuOpen(false);
             },
-            className: `rounded-[0.9rem] border border-white/10 bg-[#141414] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-ink)] ${FOCUS_VISIBLE_RING2}`,
+            className: `rounded-[0.9rem] border border-white/10 bg-[#141414] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-ink)] ${FOCUS_VISIBLE_RING4}`,
             type: "button",
             children: pickCopy(locale, { en: "Cart", hans: "\u8D2D\u7269\u8F66", hant: "\u8CFC\u7269\u8ECA", ja: "\u30AB\u30FC\u30C8", ko: "\uC7A5\uBC14\uAD6C\uB2C8", fr: "Panier", de: "Warenkorb" })
           }
@@ -15889,7 +17117,7 @@
                 onNavigateToProfile();
                 setIsMenuOpen(false);
               },
-              className: `rounded-[0.9rem] border border-white/10 bg-[#141414] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-ink)] ${FOCUS_VISIBLE_RING2}`,
+              className: `rounded-[0.9rem] border border-white/10 bg-[#141414] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-ink)] ${FOCUS_VISIBLE_RING4}`,
               type: "button",
               children: pickCopy(locale, { en: "My Account", hans: "\u6211\u7684\u5E10\u6237", hant: "\u6211\u7684\u5E33\u6236", ja: "\u30DE\u30A4\u30A2\u30AB\u30A6\u30F3\u30C8", ko: "\uB0B4 \uACC4\uC815", fr: "Mon compte", de: "Mein Konto" })
             }
@@ -15901,7 +17129,7 @@
                 onLogout();
                 setIsMenuOpen(false);
               },
-              className: `rounded-[0.9rem] border border-white/10 bg-[#141414] px-4 py-3 text-left text-sm text-[var(--bokmoo-copy)] ${FOCUS_VISIBLE_RING2}`,
+              className: `rounded-[0.9rem] border border-white/10 bg-[#141414] px-4 py-3 text-left text-sm text-[var(--bokmoo-copy)] ${FOCUS_VISIBLE_RING4}`,
               type: "button",
               children: pickCopy(locale, { en: "Log Out", hans: "\u767B\u51FA", hant: "\u767B\u51FA", ja: "\u30ED\u30B0\u30A2\u30A6\u30C8", ko: "\uB85C\uADF8\uC544\uC6C3", fr: "Se d\xE9connecter", de: "Abmelden" })
             }
@@ -15914,7 +17142,7 @@
                 onNavigateToLogin();
                 setIsMenuOpen(false);
               },
-              className: `rounded-[0.9rem] border border-white/10 bg-[#141414] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-ink)] ${FOCUS_VISIBLE_RING2}`,
+              className: `rounded-[0.9rem] border border-white/10 bg-[#141414] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-ink)] ${FOCUS_VISIBLE_RING4}`,
               type: "button",
               children: pickCopy(locale, { en: "Sign In", hans: "\u767B\u5165", hant: "\u767B\u5165", ja: "\u30B5\u30A4\u30F3\u30A4\u30F3", ko: "\uB85C\uADF8\uC778", fr: "Connexion", de: "Anmelden" })
             }
@@ -15926,7 +17154,7 @@
                 onNavigateToRegister();
                 setIsMenuOpen(false);
               },
-              className: `rounded-[0.9rem] bg-[#E5C365] px-4 py-3 text-left text-sm font-semibold text-[#0d0d0d] ${FOCUS_VISIBLE_RING2}`,
+              className: `rounded-[0.9rem] bg-[#E5C365] px-4 py-3 text-left text-sm font-semibold text-[#0d0d0d] ${FOCUS_VISIBLE_RING4}`,
               type: "button",
               children: pickCopy(locale, { en: "Get Started", hans: "\u7ACB\u5373\u5F00\u59CB", hant: "\u7ACB\u5373\u958B\u59CB", ja: "\u306F\u3058\u3081\u308B", ko: "\uC2DC\uC791\uD558\uAE30", fr: "Commencer", de: "Los geht es" })
             }
@@ -16795,11 +18023,12 @@
   }
 
   // src/components/LoginPage.tsx
-  var FOCUS_VISIBLE_RING3 = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bokmoo-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bokmoo-bg)]";
+  var FOCUS_VISIBLE_RING5 = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bokmoo-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bokmoo-bg)]";
   function LoginPage({
     isLoading,
     error,
     config,
+    locale,
     onSubmit,
     onOAuthClick,
     onAppleOAuthClick,
@@ -16808,7 +18037,9 @@
     onNavigateToRegister,
     onNavigateToForgotPassword
   }) {
-    const site = resolveBokmooSiteConfig(config);
+    const brand = authBrand(config);
+    const language = pageLocale(locale);
+    const say = (copy) => authText(language, copy);
     const socialProviders = readySocialProviders(socialAuthStatus, {
       google: onOAuthClick,
       apple: onAppleOAuthClick,
@@ -16831,6 +18062,12 @@
       if (!emailValue || !passwordValue) return;
       await onSubmit(emailValue, passwordValue);
     };
+    const errorText = authErrorText(language, error);
+    const features = [
+      [AUTH.featureOrdersTitle, AUTH.featureOrdersBody],
+      [AUTH.featureProfilesTitle, AUTH.featureProfilesBody],
+      [AUTH.featureSupportTitle, AUTH.featureSupportBody]
+    ];
     return /* @__PURE__ */ jsxs("div", { className: "relative min-h-screen overflow-hidden bg-[var(--bokmoo-bg)] px-4 py-12 text-[var(--bokmoo-ink)] sm:px-6 lg:px-8", children: [
       /* @__PURE__ */ jsxs("div", { className: "pointer-events-none absolute inset-0", children: [
         /* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-[radial-gradient(circle_at_78%_12%,color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent),transparent_24%),radial-gradient(circle_at_16%_78%,color-mix(in_oklab,var(--bokmoo-gold)_8%,transparent),transparent_24%),linear-gradient(180deg,var(--bokmoo-bg),color-mix(in_oklab,var(--bokmoo-bg)_86%,black))]" }),
@@ -16840,34 +18077,27 @@
         /* @__PURE__ */ jsxs("section", { className: "hidden lg:block", children: [
           /* @__PURE__ */ jsxs("div", { className: "inline-flex items-center gap-3 rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_24%,transparent)] bg-[color:oklch(0.065_0.007_75_/_0.72)] px-5 py-2.5 text-[0.72rem] font-bold uppercase tracking-[0.28em] text-[var(--bokmoo-gold)]", children: [
             /* @__PURE__ */ jsx(ShieldCheck, { className: "h-4 w-4" }),
-            "Secure account access"
+            say(AUTH.accountEyebrow)
           ] }),
-          /* @__PURE__ */ jsx("h1", { className: "mt-7 max-w-3xl text-[clamp(3.5rem,7vw,6.4rem)] font-semibold leading-[0.92] tracking-[-0.065em] text-[var(--bokmoo-ink)]", children: "Sign in before your next border." }),
-          /* @__PURE__ */ jsx("p", { className: "mt-7 max-w-2xl text-lg leading-8 text-[var(--bokmoo-copy)]", children: "Manage BOKMOO eSIM profiles, orders, and activation details from the same black-and-gold travel control surface." }),
-          /* @__PURE__ */ jsx("div", { className: "mt-10 grid max-w-2xl gap-3 sm:grid-cols-3", children: [
-            ["Orders", "Track purchases"],
-            ["Profiles", "Manage eSIMs"],
-            ["Support", "Get help fast"]
-          ].map(([title, body]) => /* @__PURE__ */ jsxs(
+          /* @__PURE__ */ jsx("h1", { className: "mt-7 max-w-3xl text-[clamp(3.5rem,7vw,6.4rem)] font-semibold leading-[0.92] tracking-[-0.065em] text-[var(--bokmoo-ink)]", style: headlineStyle(language), children: say(AUTH.loginTitle) }),
+          /* @__PURE__ */ jsx("p", { className: "mt-7 max-w-2xl text-lg leading-8 text-[var(--bokmoo-copy)]", children: say(AUTH.loginLead) }),
+          /* @__PURE__ */ jsx("div", { className: "mt-10 grid max-w-2xl gap-3 sm:grid-cols-3", children: features.map(([title, body]) => /* @__PURE__ */ jsxs(
             "div",
             {
               className: "rounded-[1.15rem] border border-[var(--bokmoo-line)] bg-[color:oklch(0.07_0.008_75_/_0.76)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]",
               children: [
-                /* @__PURE__ */ jsx("p", { className: "text-sm font-semibold text-[var(--bokmoo-gold)]", children: title }),
-                /* @__PURE__ */ jsx("p", { className: "mt-2 text-xs leading-5 text-[var(--bokmoo-copy-soft)]", children: body })
+                /* @__PURE__ */ jsx("p", { className: "text-sm font-semibold text-[var(--bokmoo-gold)]", children: say(title) }),
+                /* @__PURE__ */ jsx("p", { className: "mt-2 text-xs leading-5 text-[var(--bokmoo-copy-soft)]", children: say(body) })
               ]
             },
-            title
+            title.en
           )) })
         ] }),
         /* @__PURE__ */ jsx("section", { className: "mx-auto w-full max-w-[30rem] rounded-[1.45rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_22%,transparent)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_94%,white),var(--bokmoo-bg-elevated))] p-5 shadow-[var(--bokmoo-shadow)] sm:p-7", children: /* @__PURE__ */ jsxs("div", { className: "rounded-[1.1rem] border border-[var(--bokmoo-line)] bg-[color:oklch(0.055_0.006_75_/_0.78)] p-5 sm:p-6", children: [
           /* @__PURE__ */ jsxs("div", { children: [
-            /* @__PURE__ */ jsxs("p", { className: "text-[11px] font-bold uppercase tracking-[0.24em] text-[var(--bokmoo-gold)]", children: [
-              site.brandName.toUpperCase(),
-              " account"
-            ] }),
-            /* @__PURE__ */ jsx("h2", { className: "mt-3 text-3xl font-semibold leading-none tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: "Welcome back" }),
-            /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm leading-6 text-[var(--bokmoo-copy)]", children: "Continue to your orders, profiles, and activation workspace." })
+            /* @__PURE__ */ jsx("p", { className: "text-[11px] font-bold uppercase tracking-[0.24em] text-[var(--bokmoo-gold)]", children: accountLabel(language, brand) }),
+            /* @__PURE__ */ jsx("h2", { className: "mt-3 text-3xl font-semibold leading-none tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: say(AUTH.welcomeBack) }),
+            /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm leading-6 text-[var(--bokmoo-copy)]", children: say(AUTH.loginSub) })
           ] }),
           socialProviders.length > 0 ? /* @__PURE__ */ jsxs(Fragment2, { children: [
             /* @__PURE__ */ jsx(
@@ -16883,14 +18113,22 @@
             ),
             /* @__PURE__ */ jsxs("div", { className: "mt-6 flex items-center gap-3", children: [
               /* @__PURE__ */ jsx("div", { className: "h-px flex-1 bg-[var(--bokmoo-line)]" }),
-              /* @__PURE__ */ jsx("span", { className: "text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--bokmoo-copy-soft)]", children: "or email" }),
+              /* @__PURE__ */ jsx("span", { className: "text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--bokmoo-copy-soft)]", children: say(AUTH.orEmail) }),
               /* @__PURE__ */ jsx("div", { className: "h-px flex-1 bg-[var(--bokmoo-line)]" })
             ] })
           ] }) : null,
           /* @__PURE__ */ jsxs("form", { onSubmit: handleSubmit, className: "mt-7 space-y-5", children: [
-            error ? /* @__PURE__ */ jsx("div", { className: "rounded-[0.95rem] border border-[color:color-mix(in_oklab,var(--bokmoo-danger)_48%,transparent)] bg-[color:color-mix(in_oklab,var(--bokmoo-danger)_12%,transparent)] p-4 text-sm leading-6 text-[var(--bokmoo-ink)]", children: error }) : null,
+            errorText ? /* @__PURE__ */ jsx(
+              "div",
+              {
+                className: "rounded-[0.95rem] border border-[color:color-mix(in_oklab,var(--bokmoo-danger)_48%,transparent)] bg-[color:color-mix(in_oklab,var(--bokmoo-danger)_12%,transparent)] p-4 text-sm leading-6 text-[var(--bokmoo-ink)]",
+                role: "alert",
+                "data-purpose": "auth-error",
+                children: errorText
+              }
+            ) : null,
             /* @__PURE__ */ jsxs("label", { className: "block", children: [
-              /* @__PURE__ */ jsx("span", { className: "text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: "Email" }),
+              /* @__PURE__ */ jsx("span", { className: "text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: say(AUTH.email) }),
               /* @__PURE__ */ jsxs("span", { className: "relative mt-2 block", children: [
                 /* @__PURE__ */ jsx(Mail, { className: "pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--bokmoo-copy-soft)]" }),
                 /* @__PURE__ */ jsx(
@@ -16902,7 +18140,7 @@
                     onChange: (event) => setEmail(event.target.value),
                     onAnimationStart: handleAutofill(setEmail),
                     placeholder: "you@example.com",
-                    className: `h-12 w-full rounded-[1rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_34%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_62%,#1a1720)] py-3 pl-11 pr-4 text-sm font-medium text-[var(--bokmoo-ink)] outline-none placeholder:text-[color:color-mix(in_oklab,var(--bokmoo-copy)_80%,transparent)] transition-colors focus:border-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING3}`,
+                    className: `h-12 w-full rounded-[1rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_34%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_62%,#1a1720)] py-3 pl-11 pr-4 text-sm font-medium text-[var(--bokmoo-ink)] outline-none placeholder:text-[color:color-mix(in_oklab,var(--bokmoo-copy)_80%,transparent)] transition-colors focus:border-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING5}`,
                     disabled: isLoading,
                     autoComplete: "email"
                   }
@@ -16910,7 +18148,7 @@
               ] })
             ] }),
             /* @__PURE__ */ jsxs("label", { className: "block", children: [
-              /* @__PURE__ */ jsx("span", { className: "text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: "Password" }),
+              /* @__PURE__ */ jsx("span", { className: "text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: say(AUTH.password) }),
               /* @__PURE__ */ jsxs("span", { className: "relative mt-2 block", children: [
                 /* @__PURE__ */ jsx(LockKeyhole, { className: "pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--bokmoo-copy-soft)]" }),
                 /* @__PURE__ */ jsx(
@@ -16922,7 +18160,7 @@
                     onChange: (event) => setPassword(event.target.value),
                     onAnimationStart: handleAutofill(setPassword),
                     placeholder: "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022",
-                    className: `h-12 w-full rounded-[1rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] py-3 pl-11 pr-12 text-sm font-medium text-[var(--bokmoo-ink)] outline-none placeholder:text-[var(--bokmoo-copy-soft)] transition-colors focus:border-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING3}`,
+                    className: `h-12 w-full rounded-[1rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] py-3 pl-11 pr-12 text-sm font-medium text-[var(--bokmoo-ink)] outline-none placeholder:text-[var(--bokmoo-copy-soft)] transition-colors focus:border-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING5}`,
                     disabled: isLoading,
                     autoComplete: "current-password"
                   }
@@ -16932,9 +18170,9 @@
                   {
                     type: "button",
                     onClick: () => setShowPassword((value) => !value),
-                    className: `absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-[0.8rem] text-[var(--bokmoo-copy-soft)] hover:text-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING3}`,
+                    className: `absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-[0.8rem] text-[var(--bokmoo-copy-soft)] hover:text-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING5}`,
                     disabled: isLoading,
-                    "aria-label": showPassword ? "Hide password" : "Show password",
+                    "aria-label": say(showPassword ? AUTH.hidePassword : AUTH.showPassword),
                     children: showPassword ? /* @__PURE__ */ jsx(EyeOff, { className: "h-4 w-4" }) : /* @__PURE__ */ jsx(Eye, { className: "h-4 w-4" })
                   }
                 )
@@ -16945,9 +18183,9 @@
               {
                 type: "button",
                 onClick: onNavigateToForgotPassword,
-                className: `text-sm font-medium text-[var(--bokmoo-copy)] underline decoration-[var(--bokmoo-line)] underline-offset-4 hover:text-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING3}`,
+                className: `text-sm font-medium text-[var(--bokmoo-copy)] underline decoration-[var(--bokmoo-line)] underline-offset-4 hover:text-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING5}`,
                 disabled: isLoading,
-                children: "Forgot password"
+                children: say(AUTH.forgotPassword)
               }
             ) }),
             /* @__PURE__ */ jsx(
@@ -16955,28 +18193,24 @@
               {
                 type: "submit",
                 disabled: isLoading,
-                className: `inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-[1rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_88%,white),color-mix(in_oklab,var(--bokmoo-gold)_64%,black))] px-5 text-sm font-black uppercase tracking-[0.2em] text-[var(--bokmoo-bg)] shadow-[0_18px_42px_color-mix(in_oklab,var(--bokmoo-gold)_16%,transparent)] transition-transform duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING3}`,
+                className: `inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-[1rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_88%,white),color-mix(in_oklab,var(--bokmoo-gold)_64%,black))] px-5 text-sm font-black uppercase tracking-[0.2em] text-[var(--bokmoo-bg)] shadow-[0_18px_42px_color-mix(in_oklab,var(--bokmoo-gold)_16%,transparent)] transition-transform duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING5}`,
                 children: isLoading ? /* @__PURE__ */ jsxs(Fragment2, { children: [
                   /* @__PURE__ */ jsx(LoaderCircle, { className: "h-4 w-4 animate-spin" }),
-                  "Signing in"
-                ] }) : "Sign in"
+                  say(AUTH.signingIn)
+                ] }) : say(AUTH.signIn)
               }
             )
           ] }),
           /* @__PURE__ */ jsxs("div", { className: "mt-7 border-t border-[var(--bokmoo-line)] pt-6 text-center", children: [
-            /* @__PURE__ */ jsxs("p", { className: "text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: [
-              "New to ",
-              site.brandName.toUpperCase(),
-              "?"
-            ] }),
+            /* @__PURE__ */ jsx("p", { className: "text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: withBrand(say(AUTH.newToBrand), brand) }),
             /* @__PURE__ */ jsx(
               "button",
               {
                 type: "button",
                 onClick: onNavigateToRegister,
-                className: `mt-3 text-sm font-semibold text-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold-strong)] ${FOCUS_VISIBLE_RING3}`,
+                className: `mt-3 text-sm font-semibold text-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold-strong)] ${FOCUS_VISIBLE_RING5}`,
                 disabled: isLoading,
-                children: "Create account"
+                children: say(AUTH.createAccount)
               }
             )
           ] })
@@ -17128,6 +18362,7 @@
     order,
     isLoading,
     config,
+    locale,
     onBack,
     onBackToOrders,
     onCancelOrder
@@ -17316,7 +18551,7 @@
                   /* @__PURE__ */ jsxs("div", { className: "flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between", children: [
                     /* @__PURE__ */ jsxs("div", { children: [
                       /* @__PURE__ */ jsx("p", { className: "text-[11px] font-semibold tracking-[0.16em] text-[var(--bokmoo-copy-soft)]", children: "Item delivery" }),
-                      /* @__PURE__ */ jsx("h2", { className: "mt-3 text-2xl font-black tracking-[-0.04em] text-[var(--bokmoo-ink)]", children: item.productName }),
+                      /* @__PURE__ */ jsx("h2", { className: "mt-3 text-2xl font-black tracking-[-0.04em] text-[var(--bokmoo-ink)]", children: cardLineName(item, locale) }),
                       /* @__PURE__ */ jsxs("p", { className: "mt-2 text-sm text-[var(--bokmoo-copy)]", children: [
                         "Qty ",
                         item.quantity,
@@ -17838,7 +19073,7 @@
   });
 
   // src/components/ProfileSettingsPage.tsx
-  var FOCUS_VISIBLE_RING4 = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bokmoo-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bokmoo-bg)]";
+  var FOCUS_VISIBLE_RING6 = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bokmoo-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bokmoo-bg)]";
   var PROVIDER_ICONS = {
     "google-auth": Chrome,
     "facebook-auth": Facebook,
@@ -17911,7 +19146,7 @@
         "button",
         {
           onClick: onNavigateBack,
-          className: FOCUS_VISIBLE_RING4 + " inline-flex items-center gap-2 rounded-full border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy)]",
+          className: FOCUS_VISIBLE_RING6 + " inline-flex items-center gap-2 rounded-full border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy)]",
           type: "button",
           children: [
             /* @__PURE__ */ jsx(ArrowLeft, { className: "h-4 w-4" }),
@@ -18102,11 +19337,12 @@
   });
 
   // src/components/RegisterPage.tsx
-  var FOCUS_VISIBLE_RING5 = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bokmoo-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bokmoo-bg)]";
+  var FOCUS_VISIBLE_RING7 = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bokmoo-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bokmoo-bg)]";
   function RegisterPage({
     isLoading,
     error,
     config,
+    locale,
     onSubmit,
     onOAuthClick,
     onAppleOAuthClick,
@@ -18114,7 +19350,9 @@
     socialAuthStatus,
     onNavigateToLogin
   }) {
-    const site = resolveBokmooSiteConfig(config);
+    const brand = authBrand(config);
+    const language = pageLocale(locale);
+    const say = (copy) => authText(language, copy);
     const socialProviders = readySocialProviders(socialAuthStatus, {
       google: onOAuthClick,
       apple: onAppleOAuthClick,
@@ -18137,7 +19375,13 @@
       if (!canSubmit) return;
       await onSubmit(formData);
     };
-    const inputClassName = `h-12 w-full rounded-[1rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_34%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_62%,#1a1720)] py-3 pl-11 pr-4 text-sm font-medium text-[var(--bokmoo-ink)] outline-none placeholder:text-[color:color-mix(in_oklab,var(--bokmoo-copy)_80%,transparent)] transition-colors focus:border-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING5}`;
+    const errorText = authErrorText(language, error);
+    const nameFields = [
+      ["firstName", AUTH.firstName, AUTH.firstNameExample],
+      ["lastName", AUTH.lastName, AUTH.lastNameExample]
+    ];
+    const inputClassName = `h-12 w-full rounded-[1rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_34%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_62%,#1a1720)] py-3 pl-11 pr-4 text-sm font-medium text-[var(--bokmoo-ink)] outline-none placeholder:text-[color:color-mix(in_oklab,var(--bokmoo-copy)_80%,transparent)] transition-colors focus:border-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING7}`;
+    const submitClassName = `inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-[1rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_88%,white),color-mix(in_oklab,var(--bokmoo-gold)_64%,black))] px-5 text-sm font-black uppercase tracking-[0.2em] text-[var(--bokmoo-bg)] shadow-[0_18px_42px_color-mix(in_oklab,var(--bokmoo-gold)_16%,transparent)] transition-transform duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING7}`;
     return /* @__PURE__ */ jsxs("div", { className: "relative min-h-screen overflow-hidden bg-[var(--bokmoo-bg)] px-4 py-12 text-[var(--bokmoo-ink)] sm:px-6 lg:px-8", children: [
       /* @__PURE__ */ jsxs("div", { className: "pointer-events-none absolute inset-0", children: [
         /* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-[radial-gradient(circle_at_80%_18%,color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent),transparent_25%),radial-gradient(circle_at_12%_76%,color-mix(in_oklab,var(--bokmoo-gold)_8%,transparent),transparent_26%),linear-gradient(180deg,var(--bokmoo-bg),color-mix(in_oklab,var(--bokmoo-bg)_86%,black))]" }),
@@ -18147,18 +19391,15 @@
         /* @__PURE__ */ jsxs("section", { className: "hidden lg:block", children: [
           /* @__PURE__ */ jsxs("div", { className: "inline-flex items-center gap-3 rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_24%,transparent)] bg-[color:oklch(0.065_0.007_75_/_0.72)] px-5 py-2.5 text-[0.72rem] font-bold uppercase tracking-[0.28em] text-[var(--bokmoo-gold)]", children: [
             /* @__PURE__ */ jsx(ShieldCheck, { className: "h-4 w-4" }),
-            "Protected traveler identity"
+            say(AUTH.registerEyebrow)
           ] }),
-          /* @__PURE__ */ jsx("h1", { className: "mt-7 max-w-3xl text-[clamp(3.4rem,7vw,6.1rem)] font-semibold leading-[0.92] tracking-[-0.065em] text-[var(--bokmoo-ink)]", children: "Create the account your eSIMs follow." }),
-          /* @__PURE__ */ jsx("p", { className: "mt-7 max-w-2xl text-lg leading-8 text-[var(--bokmoo-copy)]", children: "Keep orders, activation codes, profile history, and support cases attached to one BOKMOO identity." })
+          /* @__PURE__ */ jsx("h1", { className: "mt-7 max-w-3xl text-[clamp(3.4rem,7vw,6.1rem)] font-semibold leading-[0.92] tracking-[-0.065em] text-[var(--bokmoo-ink)]", style: headlineStyle(language), children: say(AUTH.registerTitle) }),
+          /* @__PURE__ */ jsx("p", { className: "mt-7 max-w-2xl text-lg leading-8 text-[var(--bokmoo-copy)]", children: say(AUTH.registerLead) })
         ] }),
         /* @__PURE__ */ jsx("section", { className: "mx-auto w-full max-w-[32rem] rounded-[1.45rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_22%,transparent)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_94%,white),var(--bokmoo-bg-elevated))] p-5 shadow-[var(--bokmoo-shadow)] sm:p-7", children: /* @__PURE__ */ jsxs("div", { className: "rounded-[1.1rem] border border-[var(--bokmoo-line)] bg-[color:oklch(0.055_0.006_75_/_0.78)] p-5 sm:p-6", children: [
-          /* @__PURE__ */ jsxs("p", { className: "text-[11px] font-bold uppercase tracking-[0.24em] text-[var(--bokmoo-gold)]", children: [
-            site.brandName.toUpperCase(),
-            " account"
-          ] }),
-          /* @__PURE__ */ jsx("h2", { className: "mt-3 text-3xl font-semibold leading-none tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: "Create account" }),
-          /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm leading-6 text-[var(--bokmoo-copy)]", children: "Start with a secure profile for purchases and global activation support." }),
+          /* @__PURE__ */ jsx("p", { className: "text-[11px] font-bold uppercase tracking-[0.24em] text-[var(--bokmoo-gold)]", children: accountLabel(language, brand) }),
+          /* @__PURE__ */ jsx("h2", { className: "mt-3 text-3xl font-semibold leading-none tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: say(AUTH.createAccount) }),
+          /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm leading-6 text-[var(--bokmoo-copy)]", children: say(AUTH.registerSub) }),
           socialProviders.length > 0 ? /* @__PURE__ */ jsxs(Fragment2, { children: [
             /* @__PURE__ */ jsx(
               SocialAuthButtons,
@@ -18173,14 +19414,22 @@
             ),
             /* @__PURE__ */ jsxs("div", { className: "mt-6 flex items-center gap-3", children: [
               /* @__PURE__ */ jsx("div", { className: "h-px flex-1 bg-[var(--bokmoo-line)]" }),
-              /* @__PURE__ */ jsx("span", { className: "text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--bokmoo-copy-soft)]", children: "or email" }),
+              /* @__PURE__ */ jsx("span", { className: "text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--bokmoo-copy-soft)]", children: say(AUTH.orEmail) }),
               /* @__PURE__ */ jsx("div", { className: "h-px flex-1 bg-[var(--bokmoo-line)]" })
             ] })
           ] }) : null,
-          /* @__PURE__ */ jsxs("form", { onSubmit: handleSubmit, className: "mt-7 space-y-5", children: [
-            error ? /* @__PURE__ */ jsx("div", { className: "rounded-[0.95rem] border border-[color:color-mix(in_oklab,var(--bokmoo-danger)_48%,transparent)] bg-[color:color-mix(in_oklab,var(--bokmoo-danger)_12%,transparent)] p-4 text-sm leading-6 text-[var(--bokmoo-ink)]", children: error }) : null,
-            /* @__PURE__ */ jsx("div", { className: "grid gap-4 sm:grid-cols-2", children: ["firstName", "lastName"].map((field) => /* @__PURE__ */ jsxs("label", { className: "block", children: [
-              /* @__PURE__ */ jsx("span", { className: "text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: field === "firstName" ? "First name" : "Last name" }),
+          /* @__PURE__ */ jsxs("form", { onSubmit: handleSubmit, className: "mt-7 space-y-5", "data-purpose": "auth-form", lang: language, children: [
+            errorText ? /* @__PURE__ */ jsx(
+              "div",
+              {
+                className: "rounded-[0.95rem] border border-[color:color-mix(in_oklab,var(--bokmoo-danger)_48%,transparent)] bg-[color:color-mix(in_oklab,var(--bokmoo-danger)_12%,transparent)] p-4 text-sm leading-6 text-[var(--bokmoo-ink)]",
+                role: "alert",
+                "data-purpose": "auth-error",
+                children: errorText
+              }
+            ) : null,
+            /* @__PURE__ */ jsx("div", { className: "grid gap-4 sm:grid-cols-2", children: nameFields.map(([field, label, example]) => /* @__PURE__ */ jsxs("label", { className: "block", children: [
+              /* @__PURE__ */ jsx("span", { className: "text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: say(label) }),
               /* @__PURE__ */ jsxs("span", { className: "relative mt-2 block", children: [
                 /* @__PURE__ */ jsx(UserRound, { className: "pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--bokmoo-copy-soft)]" }),
                 /* @__PURE__ */ jsx(
@@ -18189,7 +19438,7 @@
                     type: "text",
                     value: formData[field],
                     onChange: updateField(field),
-                    placeholder: field === "firstName" ? "Ada" : "Lovelace",
+                    placeholder: say(example),
                     className: inputClassName,
                     disabled: isLoading,
                     autoComplete: field === "firstName" ? "given-name" : "family-name"
@@ -18198,7 +19447,7 @@
               ] })
             ] }, field)) }),
             /* @__PURE__ */ jsxs("label", { className: "block", children: [
-              /* @__PURE__ */ jsx("span", { className: "text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: "Email" }),
+              /* @__PURE__ */ jsx("span", { className: "text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: say(AUTH.email) }),
               /* @__PURE__ */ jsxs("span", { className: "relative mt-2 block", children: [
                 /* @__PURE__ */ jsx(Mail, { className: "pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--bokmoo-copy-soft)]" }),
                 /* @__PURE__ */ jsx(
@@ -18217,7 +19466,7 @@
             ] }),
             /* @__PURE__ */ jsxs("div", { className: "grid gap-4 sm:grid-cols-2", children: [
               /* @__PURE__ */ jsxs("label", { className: "block", children: [
-                /* @__PURE__ */ jsx("span", { className: "text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: "Password" }),
+                /* @__PURE__ */ jsx("span", { className: "text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: say(AUTH.password) }),
                 /* @__PURE__ */ jsxs("span", { className: "relative mt-2 block", children: [
                   /* @__PURE__ */ jsx(LockKeyhole, { className: "pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--bokmoo-copy-soft)]" }),
                   /* @__PURE__ */ jsx(
@@ -18226,7 +19475,7 @@
                       type: showPassword ? "text" : "password",
                       value: formData.password,
                       onChange: updateField("password"),
-                      placeholder: "........",
+                      placeholder: "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022",
                       className: `${inputClassName} pr-12`,
                       disabled: isLoading,
                       autoComplete: "new-password"
@@ -18237,16 +19486,16 @@
                     {
                       type: "button",
                       onClick: () => setShowPassword((value) => !value),
-                      className: `absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-[0.8rem] text-[var(--bokmoo-copy-soft)] hover:text-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING5}`,
+                      className: `absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-[0.8rem] text-[var(--bokmoo-copy-soft)] hover:text-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING7}`,
                       disabled: isLoading,
-                      "aria-label": showPassword ? "Hide password" : "Show password",
+                      "aria-label": say(showPassword ? AUTH.hidePassword : AUTH.showPassword),
                       children: showPassword ? /* @__PURE__ */ jsx(EyeOff, { className: "h-4 w-4" }) : /* @__PURE__ */ jsx(Eye, { className: "h-4 w-4" })
                     }
                   )
                 ] })
               ] }),
               /* @__PURE__ */ jsxs("label", { className: "block", children: [
-                /* @__PURE__ */ jsx("span", { className: "text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: "Confirm" }),
+                /* @__PURE__ */ jsx("span", { className: "text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: say(AUTH.confirmPassword) }),
                 /* @__PURE__ */ jsxs("span", { className: "relative mt-2 block", children: [
                   /* @__PURE__ */ jsx(LockKeyhole, { className: "pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--bokmoo-copy-soft)]" }),
                   /* @__PURE__ */ jsx(
@@ -18255,7 +19504,7 @@
                       type: showConfirmPassword ? "text" : "password",
                       value: formData.confirmPassword,
                       onChange: updateField("confirmPassword"),
-                      placeholder: "........",
+                      placeholder: "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022",
                       className: `${inputClassName} pr-12 ${formData.confirmPassword && !passwordsMatch ? "border-[var(--bokmoo-danger)]" : ""}`,
                       disabled: isLoading,
                       autoComplete: "new-password"
@@ -18266,39 +19515,31 @@
                     {
                       type: "button",
                       onClick: () => setShowConfirmPassword((value) => !value),
-                      className: `absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-[0.8rem] text-[var(--bokmoo-copy-soft)] hover:text-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING5}`,
+                      className: `absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-[0.8rem] text-[var(--bokmoo-copy-soft)] hover:text-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING7}`,
                       disabled: isLoading,
-                      "aria-label": showConfirmPassword ? "Hide password" : "Show password",
+                      "aria-label": say(showConfirmPassword ? AUTH.hidePassword : AUTH.showPassword),
                       children: showConfirmPassword ? /* @__PURE__ */ jsx(EyeOff, { className: "h-4 w-4" }) : /* @__PURE__ */ jsx(Eye, { className: "h-4 w-4" })
                     }
                   )
                 ] }),
-                formData.confirmPassword && !passwordsMatch ? /* @__PURE__ */ jsx("span", { className: "mt-2 block text-xs text-[var(--bokmoo-danger)]", children: "Passwords do not match" }) : null
+                formData.confirmPassword && !passwordsMatch ? /* @__PURE__ */ jsx("span", { className: "mt-2 block text-xs text-[var(--bokmoo-danger)]", children: say(AUTH.passwordsDiffer) }) : null
               ] })
             ] }),
-            /* @__PURE__ */ jsx(
-              "button",
-              {
-                type: "submit",
-                disabled: isLoading || !canSubmit,
-                className: `inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-[1rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_88%,white),color-mix(in_oklab,var(--bokmoo-gold)_64%,black))] px-5 text-sm font-black uppercase tracking-[0.2em] text-[var(--bokmoo-bg)] shadow-[0_18px_42px_color-mix(in_oklab,var(--bokmoo-gold)_16%,transparent)] transition-transform duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING5}`,
-                children: isLoading ? /* @__PURE__ */ jsxs(Fragment2, { children: [
-                  /* @__PURE__ */ jsx(LoaderCircle, { className: "h-4 w-4 animate-spin" }),
-                  "Creating"
-                ] }) : "Create account"
-              }
-            )
+            /* @__PURE__ */ jsx("button", { type: "submit", disabled: isLoading || !canSubmit, className: submitClassName, children: isLoading ? /* @__PURE__ */ jsxs(Fragment2, { children: [
+              /* @__PURE__ */ jsx(LoaderCircle, { className: "h-4 w-4 animate-spin" }),
+              say(AUTH.creating)
+            ] }) : say(AUTH.createAccount) })
           ] }),
           /* @__PURE__ */ jsxs("div", { className: "mt-7 border-t border-[var(--bokmoo-line)] pt-6 text-center", children: [
-            /* @__PURE__ */ jsx("p", { className: "text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: "Already have an account?" }),
+            /* @__PURE__ */ jsx("p", { className: "text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: say(AUTH.haveAccount) }),
             /* @__PURE__ */ jsx(
               "button",
               {
                 type: "button",
                 onClick: onNavigateToLogin,
-                className: `mt-3 text-sm font-semibold text-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold-strong)] ${FOCUS_VISIBLE_RING5}`,
+                className: `mt-3 text-sm font-semibold text-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold-strong)] ${FOCUS_VISIBLE_RING7}`,
                 disabled: isLoading,
-                children: "Sign in"
+                children: say(AUTH.signIn)
               }
             )
           ] })
@@ -18338,7 +19579,9 @@
     );
     const profile = react_default.useMemo(() => getBokmooTravelProfile(normalizedProduct), [normalizedProduct]);
     const isGoodsProduct = normalizedProduct?.productKind === "goods";
-    const isBluetoothCard = isGoodsProduct && /bluetooth|蓝牙/i.test(normalizedProduct?.description || "");
+    const isBluetoothCard = isGoodsProduct && (cardKindOf(normalizedProduct) === "bluetooth" || /bluetooth|蓝牙/i.test(normalizedProduct?.description || ""));
+    const shownName = normalizedProduct && cardName(normalizedProduct, locale) || normalizedProduct?.name;
+    const shownDescription = normalizedProduct && cardDescription(normalizedProduct, locale) || normalizedProduct?.description;
     const goodsSubtitle = isBluetoothCard ? { en: "Physical Bluetooth card \u2014 manage multiple eSIM profiles with the BOKMOO app", hans: "\u5B9E\u4F53\u84DD\u7259\u5361\uFF0C\u642D\u914D BOKMOO App \u7BA1\u7406\u591A\u4E2A eSIM \u5957\u9910", hant: "\u5BE6\u9AD4\u85CD\u7259\u5361\uFF0C\u642D\u914D BOKMOO App \u7BA1\u7406\u591A\u500B eSIM \u8A2D\u5B9A\u6A94" } : { en: "Physical card \u2014 works with the BOKMOO app", hans: "\u5B9E\u4F53\u5361\uFF0C\u642D\u914D BOKMOO App \u4F7F\u7528", hant: "\u5BE6\u9AD4\u5361\uFF0C\u642D\u914D BOKMOO App \u4F7F\u7528" };
     const goodsSpecCards = isBluetoothCard ? [
       { label: pickCopy(locale, { en: "Type", hans: "\u7C7B\u578B", hant: "\u985E\u578B" }), value: pickCopy(locale, { en: "Physical eSIM card", hans: "eSIM \u5B9E\u4F53\u5361", hant: "eSIM \u5BE6\u9AD4\u5361" }) },
@@ -18359,9 +19602,9 @@
     const goodsSetupValue = isBluetoothCard ? pickCopy(locale, { en: "Connects to the BOKMOO app over Bluetooth", hans: "\u84DD\u7259\u8FDE\u63A5 BOKMOO App \u7BA1\u7406", hant: "\u85CD\u7259\u9023\u7DDA BOKMOO App \u7BA1\u7406" }) : pickCopy(locale, { en: "Works with the BOKMOO app", hans: "\u642D\u914D BOKMOO App \u4F7F\u7528", hant: "\u642D\u914D BOKMOO App \u4F7F\u7528" });
     const goodsCompatValue = isBluetoothCard ? pickCopy(locale, { en: "iPhone and Android devices with eSIM support", hans: "\u652F\u6301 eSIM \u7684 iPhone \u4E0E Android \u8BBE\u5907", hant: "\u652F\u63F4 eSIM \u7684 iPhone \u8207 Android \u88DD\u7F6E" }) : pickCopy(locale, { en: "iPhone and Android devices", hans: "iPhone \u4E0E Android \u8BBE\u5907", hant: "iPhone \u8207 Android \u88DD\u7F6E" });
     react_default.useEffect(() => {
-      if (!normalizedProduct?.name) return;
-      document.title = `${normalizedProduct.name} | ${site.brandName}`;
-    }, [normalizedProduct?.name, site.brandName]);
+      if (!shownName) return;
+      document.title = `${shownName} | ${site.brandName}`;
+    }, [shownName, site.brandName]);
     const effectiveSelectedVariant = selectedVariant || normalizedProduct?.variants?.[0]?.id || null;
     const currentVariant = react_default.useMemo(() => {
       if (!normalizedProduct?.variants?.length || !effectiveSelectedVariant) return null;
@@ -18470,7 +19713,7 @@
             "img",
             {
               src: image,
-              alt: normalizedProduct.name,
+              alt: shownName,
               className: cn2(
                 "object-cover",
                 isGoodsProduct ? "bokmoo-pdp-media-goods" : "aspect-[1.28/1] h-full w-full sm:aspect-[1.6/1]"
@@ -18479,8 +19722,11 @@
           ) : /* @__PURE__ */ jsx("div", { className: "aspect-[1.28/1] bg-[linear-gradient(160deg,#924a57_0%,#261922_44%,#0f1115_100%)] sm:aspect-[1.6/1]" }) }),
           /* @__PURE__ */ jsxs("div", { className: "mt-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4", children: [
             /* @__PURE__ */ jsxs("div", { children: [
-              /* @__PURE__ */ jsx("h1", { className: "bokmoo-pdp-title font-semibold tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: normalizedProduct.name }),
-              normalizedProduct.description ? /* @__PURE__ */ jsx("p", { className: "bokmoo-pdp-description", children: normalizedProduct.description }) : /* @__PURE__ */ jsx("p", { className: "mt-2 text-lg text-[var(--bokmoo-copy)]", children: isGoodsProduct ? pickCopy(locale, goodsSubtitle) : profile.networkLabel })
+              /* @__PURE__ */ jsx("h1", { className: "bokmoo-pdp-title font-semibold tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: shownName }),
+              shownDescription ? (
+                // the description is written in paragraphs; keep its line breaks
+                /* @__PURE__ */ jsx("p", { className: "bokmoo-pdp-description", style: { whiteSpace: "pre-line" }, children: shownDescription })
+              ) : /* @__PURE__ */ jsx("p", { className: "mt-2 text-lg text-[var(--bokmoo-copy)]", children: isGoodsProduct ? pickCopy(locale, goodsSubtitle) : profile.networkLabel })
             ] }),
             /* @__PURE__ */ jsx("div", { className: "sm:text-right", children: /* @__PURE__ */ jsx("p", { className: "bokmoo-pdp-price font-semibold tracking-[-0.05em] text-[var(--bokmoo-gold)]", children: /* @__PURE__ */ jsx(SalePrice, { unitPrice: priceValue, sale }) }) })
           ] }),
@@ -18696,6 +19942,8 @@
       LoginPage,
       RegisterPage,
       AuthCallbackPage,
+      ForgotPasswordPage,
+      AuthIdentityFinishPage,
       Header,
       Footer
     },
@@ -19413,6 +20661,43 @@ body[data-theme='bokmoo'] ::selection {
 }
 /* <<< Promo film end */
 
+/* >>> Catalog card tiles and the checkout address. The storefront's utility sheet is built together with
+   the shop worker, so a theme release carries these rules itself. Keep this block byte-identical in
+   src/tokens.css (embedded renderer) and theme-pack/tokens.css (remote runtime). */
+.bokmoo-card-media {
+  aspect-ratio: 4 / 5;
+  background: #ecebe9;
+}
+
+.bokmoo-card-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  min-height: 2.2em;
+  line-height: 1.1;
+}
+
+.bokmoo-card-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  min-height: 4.5rem;
+}
+
+.bokmoo-checkout-country {
+  -webkit-appearance: none;
+  appearance: none;
+  padding-right: 2.5rem;
+  color-scheme: dark;
+}
+
+.bokmoo-code-input {
+  letter-spacing: 0.5em;
+}
+/* <<< Catalog card tiles end */
+
 
 /* \u2500\u2500 Landing stage: CSS-rendered SIM card pedestal (Obsidian Aurum hero) \u2500\u2500 */
 .bg-pedestal-top {
@@ -19456,7 +20741,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.67",
+      version: "1.1.68",
       target: "shop"
     }
   };

@@ -652,6 +652,34 @@ body[data-theme=bokmoo] ::selection {
     padding: 0 1.5rem;
   }
 }
+.bokmoo-card-media {
+  aspect-ratio: 4 / 5;
+  background: #ecebe9;
+}
+.bokmoo-card-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  min-height: 2.2em;
+  line-height: 1.1;
+}
+.bokmoo-card-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  min-height: 4.5rem;
+}
+.bokmoo-checkout-country {
+  -webkit-appearance: none;
+  appearance: none;
+  padding-right: 2.5rem;
+  color-scheme: dark;
+}
+.bokmoo-code-input {
+  letter-spacing: 0.5em;
+}
 .bg-pedestal-top {
   background:
     radial-gradient(

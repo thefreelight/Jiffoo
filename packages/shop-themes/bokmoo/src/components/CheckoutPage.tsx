@@ -3,6 +3,8 @@ import { ArrowLeft, CreditCard, Mail, ShieldCheck, Wallet } from 'lucide-react';
 import { cn } from '@jiffoo/ui';
 import { pickCopy } from '../site';
 import { codeDiscount, priceSale, promoCodeMessage, saleFor, saleTitle, useActiveSales, usePromoCode } from '../lib/sale';
+import { cardLineName } from '../lib/card-copy';
+import { countryCodeOf, countryOptions, detectShopperCountry, normalizeCountryCode } from '../lib/address';
 import { SalePrice } from './SalePrice';
 import type { CheckoutPageProps, SavedAddress } from 'shared/src/types/theme';
 
@@ -29,6 +31,11 @@ export const CheckoutPage = React.memo(function CheckoutPage({
   }, [countriesRequireStatePostal]);
 
   const paymentMethods = React.useMemo(() => availablePaymentMethods || [], [availablePaymentMethods]);
+  // The shopper's country, from their device: a first choice for the country list until they pick one
+  // or a saved address brings its own.
+  const detectedCountry = React.useMemo(() => detectShopperCountry(locale), [locale]);
+  const countryChosen = React.useRef(false);
+  const countries = React.useMemo(() => countryOptions(locale), [locale]);
   const [formData, setFormData] = React.useState({
     email: savedAddress?.email || currentUserEmail || '',
     firstName: savedAddress?.firstName || '',
@@ -37,7 +44,7 @@ export const CheckoutPage = React.memo(function CheckoutPage({
     city: savedAddress?.city || '',
     state: savedAddress?.state || '',
     postalCode: savedAddress?.postalCode || '',
-    country: savedAddress?.country || '',
+    country: countryCodeOf(savedAddress?.country, locale) || savedAddress?.country || detectedCountry,
     phone: savedAddress?.phone || '',
     paymentMethod: paymentMethods[0]?.name || '',
     promoCode: '',
@@ -73,7 +80,10 @@ export const CheckoutPage = React.memo(function CheckoutPage({
       city: prev.city || savedAddress.city || '',
       state: prev.state || savedAddress.state || '',
       postalCode: prev.postalCode || savedAddress.postalCode || '',
-      country: prev.country || savedAddress.country || '',
+      // a saved address brings its own country, unless the shopper has already picked one
+      country: countryChosen.current
+        ? prev.country
+        : countryCodeOf(savedAddress.country, locale) || savedAddress.country || prev.country,
     }));
   }, [savedAddress]);
 
@@ -88,6 +98,8 @@ export const CheckoutPage = React.memo(function CheckoutPage({
     setFormData((prev) => ({ ...prev, paymentMethod: paymentMethods[0].name }));
   }, [formData.paymentMethod, paymentMethods]);
 
+  // The country picked from the device alone does not count as an address the shopper typed.
+  const countryTyped = countryChosen.current || formData.country !== detectedCountry;
   const hasShippingInput = React.useMemo(
     () => [
       formData.firstName,
@@ -97,15 +109,13 @@ export const CheckoutPage = React.memo(function CheckoutPage({
       formData.city,
       formData.state,
       formData.postalCode,
-      formData.country,
+      countryTyped ? formData.country : '',
     ].some((value) => value.trim()),
     [formData]
   );
 
   const shouldCollectShipping = Boolean(requireShippingAddress || hasShippingInput);
-  const normalizedCountry = formData.country.trim().toUpperCase() === 'UK'
-    ? 'GB'
-    : formData.country.trim().toUpperCase();
+  const normalizedCountry = normalizeCountryCode(formData.country);
   const statePostalRequired = shouldCollectShipping && countriesRequireStatePostalSet.has(normalizedCountry);
 
   const inputClassName = (field: string) =>
@@ -114,8 +124,9 @@ export const CheckoutPage = React.memo(function CheckoutPage({
       errors[field] ? 'border-[var(--bokmoo-danger)]' : 'border-[var(--bokmoo-line)]'
     );
 
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = event.target;
+    if (name === 'country') countryChosen.current = true;
     setFormData((prev) => ({ ...prev, [name]: value }));
     setErrors((prev) => {
       if (!prev[name]) return prev;
@@ -188,7 +199,7 @@ export const CheckoutPage = React.memo(function CheckoutPage({
                       <div className="flex items-start gap-3">
                         <div className="h-14 w-16 overflow-hidden rounded-[0.8rem] bg-[linear-gradient(160deg,#924a57_0%,#261922_44%,#0f1115_100%)]" />
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-[var(--bokmoo-ink)]">{item.productName}</p>
+                          <p className="text-sm font-medium text-[var(--bokmoo-ink)]">{cardLineName(item, locale)}</p>
                           <p className="mt-1 text-xs text-[var(--bokmoo-copy-soft)]">
                             {pickCopy(locale, { en: 'Qty', hans: '数量', hant: '數量' })} {item.quantity}{item.variantName ? ` · ${item.variantName}` : ''}
                           </p>
@@ -275,6 +286,7 @@ export const CheckoutPage = React.memo(function CheckoutPage({
                   <input
                     name="email"
                     type="email"
+                    autoComplete="email"
                     value={formData.email}
                     onChange={handleChange}
                     className={inputClassName('email')}
@@ -286,6 +298,7 @@ export const CheckoutPage = React.memo(function CheckoutPage({
                     <div>
                       <input
                         name="firstName"
+                        autoComplete="shipping given-name"
                         value={formData.firstName}
                         onChange={handleChange}
                         className={inputClassName('firstName')}
@@ -296,6 +309,7 @@ export const CheckoutPage = React.memo(function CheckoutPage({
                     <div>
                       <input
                         name="lastName"
+                        autoComplete="shipping family-name"
                         value={formData.lastName}
                         onChange={handleChange}
                         className={inputClassName('lastName')}
@@ -395,6 +409,7 @@ export const CheckoutPage = React.memo(function CheckoutPage({
                       <input
                         name="phone"
                         type="tel"
+                        autoComplete="shipping tel"
                         value={formData.phone}
                         onChange={handleChange}
                         className={inputClassName('phone')}
@@ -405,6 +420,7 @@ export const CheckoutPage = React.memo(function CheckoutPage({
                     <div className="sm:col-span-2">
                       <input
                         name="addressLine1"
+                        autoComplete="shipping street-address"
                         value={formData.addressLine1}
                         onChange={handleChange}
                         className={inputClassName('addressLine1')}
@@ -413,20 +429,51 @@ export const CheckoutPage = React.memo(function CheckoutPage({
                     </div>
                     <input
                       name="city"
+                      autoComplete="shipping address-level2"
                       value={formData.city}
                       onChange={handleChange}
                       className={inputClassName('city')}
                       placeholder={pickCopy(locale, { en: 'City', hans: '城市', hant: '城市' })}
                     />
-                    <input
-                      name="country"
-                      value={formData.country}
-                      onChange={handleChange}
-                      className={inputClassName('country')}
-                      placeholder={pickCopy(locale, { en: 'Country', hans: '国家/地区', hant: '國家/地區' })}
-                    />
+                    {/* A list, not a box to type a country into: it opens on the shopper's own country. */}
+                    <div className="relative">
+                      <select
+                        name="country"
+                        autoComplete="shipping country"
+                        value={formData.country}
+                        onChange={handleChange}
+                        className={cn(inputClassName('country'), 'bokmoo-checkout-country')}
+                        aria-label={pickCopy(locale, { en: 'Country', hans: '国家/地区', hant: '國家/地區' })}
+                        data-purpose="checkout-country"
+                        data-detected={formData.country === detectedCountry && !countryChosen.current ? 'true' : 'false'}
+                      >
+                        <option value="">{pickCopy(locale, { en: 'Country / Region', hans: '国家/地区', hant: '國家/地區' })}</option>
+                        {/* an address book entry may name its country in a way the list does not know */}
+                        {formData.country && !countries.some((option) => option.code === formData.country) ? (
+                          <option value={formData.country}>{formData.country}</option>
+                        ) : null}
+                        {countries.map((option) => (
+                          <option key={option.code} value={option.code}>{option.name}</option>
+                        ))}
+                      </select>
+                      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[var(--bokmoo-copy-soft)]" aria-hidden="true">▾</span>
+                      {formData.country === detectedCountry && !countryChosen.current ? (
+                        <p className="mt-2 text-xs text-[var(--bokmoo-copy-soft)]" data-purpose="country-detected">
+                          {pickCopy(locale, {
+                            en: 'Picked from this device. Change it if it should be another country.',
+                            hans: '已根据你的设备自动选择，如不对可以修改。',
+                            hant: '已依你的裝置自動選擇，如不正確可以修改。',
+                            ja: 'この端末の設定から選びました。違う場合は変更してください。',
+                            ko: '이 기기의 설정에서 선택했습니다. 다르면 변경하세요.',
+                            fr: 'Choisi d’après cet appareil. Modifiez-le si nécessaire.',
+                            de: 'Von diesem Gerät übernommen. Ändern Sie es, falls nötig.',
+                          })}
+                        </p>
+                      ) : null}
+                    </div>
                     <input
                       name="state"
+                      autoComplete="shipping address-level1"
                       value={formData.state}
                       onChange={handleChange}
                       className={inputClassName('state')}
@@ -434,6 +481,7 @@ export const CheckoutPage = React.memo(function CheckoutPage({
                     />
                     <input
                       name="postalCode"
+                      autoComplete="shipping postal-code"
                       value={formData.postalCode}
                       onChange={handleChange}
                       className={inputClassName('postalCode')}

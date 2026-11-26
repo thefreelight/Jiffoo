@@ -13,6 +13,7 @@ import {
   type BokmooApiProduct,
 } from '../lib/api';
 import { getBokmooTravelProfile } from '../lib/digital-fulfillment';
+import { cardDescription, cardName } from '../lib/card-copy';
 import { pickCopy, resolveBokmooSiteConfig, type BokmooCatalogProducts } from '../site';
 import { saleFor, useActiveSales } from '../lib/sale';
 import { SalePrice } from './SalePrice';
@@ -180,7 +181,7 @@ function cardSummary(description: string | undefined): string {
   return `${paragraph.slice(0, 149).replace(/\s+\S*$/, '')}…`;
 }
 
-function ProductMedia({ product, apiBaseUrl }: { product: Product; apiBaseUrl?: string }) {
+function ProductMedia({ product, apiBaseUrl, locale }: { product: Product; apiBaseUrl?: string; locale?: string }) {
   const image = resolveBokmooMediaUrl(getProductImage(product), apiBaseUrl);
   const profile = getBokmooTravelProfile(product);
   const card = isCard(product);
@@ -189,7 +190,7 @@ function ProductMedia({ product, apiBaseUrl }: { product: Product; apiBaseUrl?: 
     return (
       <img
         src={image}
-        alt={displayProductTitle(product.name)}
+        alt={cardName(product, locale) ?? displayProductTitle(product.name)}
         className="h-full w-full object-cover"
         loading="lazy"
       />
@@ -211,11 +212,19 @@ function ProductMedia({ product, apiBaseUrl }: { product: Product; apiBaseUrl?: 
       <div>
         <p className="text-sm tracking-[0.22em] text-[var(--bokmoo-copy-soft)]">BOKMOO</p>
         <p className="mt-3 text-2xl leading-[0.98] tracking-[-0.04em] text-[var(--bokmoo-ink)]">
-          {card ? displayProductTitle(product.name) : profile.coverageLabel}
+          {card ? (cardName(product, locale) ?? displayProductTitle(product.name)) : profile.coverageLabel}
         </p>
       </div>
     </div>
   );
+}
+
+/** The card's text in the storefront language, or the catalog's own when nothing stands in for it. */
+function cardTileText(product: Product, locale: string | undefined): { title: string; summary: string } {
+  return {
+    title: cardName(product, locale) ?? displayProductTitle(product.name),
+    summary: cardSummary(cardDescription(product, locale) ?? product.description),
+  };
 }
 
 const ARTICLE_CLASS =
@@ -473,19 +482,22 @@ export const ProductsPage = React.memo(function ProductsPage({
             >
               {normalizedProducts.map((product) => {
                 const card = isCard(product);
+                // A portrait frame: the card pictures are portrait, and it shows both products at the
+                // same size where a wide crop cut them differently.
                 const media = (
                   <div
                     className={cn(
                       'overflow-hidden border-[var(--bokmoo-line)]',
                       viewMode === 'grid'
-                        ? 'aspect-[1.28/1] border-b sm:aspect-[1.18/1]'
+                        ? 'bokmoo-card-media border-b'
                         : 'aspect-[1.45/1] rounded-[1rem] border md:aspect-auto md:h-full md:rounded-[var(--bokmoo-radius-lg)]'
                     )}
                   >
-                    <ProductMedia product={product} apiBaseUrl={apiBaseUrl} />
+                    <ProductMedia product={product} apiBaseUrl={apiBaseUrl} locale={locale} />
                   </div>
                 );
                 const sale = saleFor(sales, product.id);
+                const tileText = card ? cardTileText(product, locale) : null;
 
                 if (card) {
                   return (
@@ -493,28 +505,34 @@ export const ProductsPage = React.memo(function ProductsPage({
                       key={product.id}
                       className={cn(
                         ARTICLE_CLASS,
+                        viewMode === 'grid' && 'flex flex-col',
                         viewMode === 'list' && 'grid gap-4 p-4 md:grid-cols-[14rem_minmax(0,1fr)_12rem] md:items-center md:gap-5 md:p-5'
                       )}
                       data-purpose="catalog-card"
                     >
                       <button
                         onClick={() => onProductClick(product.id)}
-                        className={cn(viewMode === 'grid' ? 'block text-left' : 'contents')}
+                        className={cn(viewMode === 'grid' ? 'block w-full text-left' : 'contents')}
                         type="button"
                       >
                         {media}
-                        <div className={cn(viewMode === 'grid' ? 'p-5' : 'min-w-0')}>
-                          <span className="rounded-full border border-[var(--bokmoo-line)] px-3 py-1 text-[10px] tracking-[0.18em] text-[var(--bokmoo-gold)]">
-                            {t(CARD_EYEBROW)}
-                          </span>
-                          <h2 className="mt-4 text-[clamp(1.7rem,2vw,2.4rem)] leading-[1] tracking-[-0.04em] text-[var(--bokmoo-ink)]">
-                            {displayProductTitle(product.name)}
+                        <div className={cn(viewMode === 'grid' ? 'flex flex-col p-5' : 'min-w-0')}>
+                          {/* the pill keeps its own width inside the column */}
+                          <div>
+                            <span className="rounded-full border border-[var(--bokmoo-line)] px-3 py-1 text-[10px] tracking-[0.18em] text-[var(--bokmoo-gold)]">
+                              {t(CARD_EYEBROW)}
+                            </span>
+                          </div>
+                          {/* Room for two lines of title and three of text, so the price and the button
+                              of every card sit at the same height whatever the copy. */}
+                          <h2 className="bokmoo-card-title mt-4 text-[clamp(1.7rem,2vw,2.4rem)] tracking-[-0.04em] text-[var(--bokmoo-ink)]">
+                            {tileText?.title}
                           </h2>
-                          <p className="mt-3 text-sm leading-6 text-[var(--bokmoo-copy)]">{cardSummary(product.description)}</p>
+                          <p className="bokmoo-card-text mt-3 text-sm leading-6 text-[var(--bokmoo-copy)]">{tileText?.summary}</p>
                         </div>
                       </button>
 
-                      <div className={cn(viewMode === 'grid' ? 'px-5 pb-5' : 'md:w-[12rem]')}>
+                      <div className={cn(viewMode === 'grid' ? 'mt-auto px-5 pb-5' : 'md:w-[12rem]')}>
                         <div className="rounded-[1rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_90%,black)] p-4">
                           <p className="text-3xl font-semibold tracking-[-0.04em] text-[var(--bokmoo-ink)]">
                             <SalePrice unitPrice={Number(Number.isFinite(Number(product.price)) ? Number(product.price) : 0)} sale={sale} />
