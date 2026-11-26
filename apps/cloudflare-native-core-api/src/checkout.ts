@@ -410,14 +410,92 @@ async function cancelOrder(request: Request, env: CheckoutEnv, user: NativeSessi
   return success(order);
 }
 
+const minorUnits = (amount: unknown): number => {
+  const value = Number(amount);
+  return Number.isFinite(value) ? Math.round(value * 100) : 0;
+};
+
+export interface StripeChargeLine {
+  name: string;
+  /** In the currency's minor unit, the way Stripe takes it. */
+  unitAmount: number;
+  quantity: number;
+}
+
+/**
+ * Splits an amount over weights in whole minor units: the floor of each
+ * proportional share, then the leftover units one each to the largest
+ * remainders. The shares always add up to the amount.
+ */
+function splitByWeight(amount: number, weights: number[]): number[] {
+  const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+  if (totalWeight <= 0) return weights.map(() => 0);
+  const exact = weights.map((weight) => (amount * weight) / totalWeight);
+  const shares = exact.map((share) => Math.floor(share));
+  let left = amount - shares.reduce((sum, share) => sum + share, 0);
+  exact
+    .map((share, index) => ({ index, remainder: share - Math.floor(share) }))
+    .sort((a, b) => b.remainder - a.remainder || weights[b.index] - weights[a.index])
+    .forEach(({ index }) => {
+      if (left <= 0) return;
+      shares[index]! += 1;
+      left -= 1;
+    });
+  return shares;
+}
+
+/**
+ * What the hosted Stripe page collects for an order: its total.
+ *
+ * A promotion already sits on the item unit prices. A promo (affiliate) code
+ * is an order-level discount and a shipping fee stands beside the items, so
+ * neither is in those unit prices; both are brought in here. Where an
+ * order-level amount has to be spread, each item is one line that carries its
+ * share in exact minor units ("Name × 2" for several of one item), so the
+ * lines add up to the total whatever the quantities. Returns null for an
+ * order whose total cannot be collected.
+ */
+export function stripeChargeLines(order: Record<string, unknown>): StripeChargeLine[] | null {
+  const items = Array.isArray(order.items) ? order.items as Array<Record<string, unknown>> : [];
+  const listed = items.map((item) => ({
+    name: String(item.productName ?? 'Jiffoo item'),
+    quantity: Math.max(1, Math.round(Number(item.quantity) || 1)),
+    unitAmount: Math.max(1, minorUnits(item.unitPrice)),
+  }));
+  const listedAmount = listed.reduce((sum, line) => sum + line.unitAmount * line.quantity, 0);
+  const shipping = Math.max(0, minorUnits(order.shippingAmount));
+  const total = Number(order.totalAmount);
+  // Orders recorded before a total was kept on the order are collected item by item, as they always were.
+  const payableItems = Number.isFinite(total) ? Math.max(0, minorUnits(total) - shipping) : listedAmount;
+
+  const lines: StripeChargeLine[] = [];
+  if (payableItems === listedAmount) {
+    listed.forEach(({ name, unitAmount, quantity }) => lines.push({ name, unitAmount, quantity }));
+  } else if (payableItems > 0) {
+    const shares = splitByWeight(payableItems, listed.map((line) => line.unitAmount * line.quantity));
+    if (shares.some((share) => (share ?? 0) <= 0)) {
+      // A total too small to give every item a unit is collected as one line.
+      lines.push({ name: `Order ${String(order.orderNumber ?? order.id)}`, unitAmount: payableItems, quantity: 1 });
+    } else {
+      listed.forEach(({ name, quantity }, index) => {
+        lines.push({ name: quantity > 1 ? `${name} × ${quantity}` : name, unitAmount: shares[index]!, quantity: 1 });
+      });
+    }
+  }
+  if (shipping > 0) {
+    lines.push({ name: String(order.shippingMethod || 'Shipping'), unitAmount: shipping, quantity: 1 });
+  }
+  return lines.reduce((sum, line) => sum + line.unitAmount * line.quantity, 0) > 0 ? lines : null;
+}
+
 function encodeStripeForm(order: Record<string, unknown>, successUrl: string, cancelUrl: string): URLSearchParams {
   const form = new URLSearchParams({ mode: 'payment', success_url: successUrl, cancel_url: cancelUrl });
-  const items = Array.isArray(order.items) ? order.items as Array<Record<string, unknown>> : [];
-  items.forEach((item, index) => {
-    form.set(`line_items[${index}][price_data][currency]`, String(order.currency ?? 'USD').toLowerCase());
-    form.set(`line_items[${index}][price_data][product_data][name]`, String(item.productName ?? 'Jiffoo item'));
-    form.set(`line_items[${index}][price_data][unit_amount]`, String(Math.round(Number(item.unitPrice) * 100)));
-    form.set(`line_items[${index}][quantity]`, String(item.quantity));
+  const currency = String(order.currency ?? 'USD').toLowerCase();
+  (stripeChargeLines(order) ?? []).forEach((line, index) => {
+    form.set(`line_items[${index}][price_data][currency]`, currency);
+    form.set(`line_items[${index}][price_data][product_data][name]`, line.name);
+    form.set(`line_items[${index}][price_data][unit_amount]`, String(line.unitAmount));
+    form.set(`line_items[${index}][quantity]`, String(line.quantity));
   });
   form.set('metadata[orderId]', String(order.id));
   form.set('payment_intent_data[metadata][orderId]', String(order.id));
@@ -506,6 +584,9 @@ async function createPaymentSession(request: Request, env: CheckoutEnv, user: Na
   ).bind(idempotencyKey).first<PaymentSessionRow>();
   if (existing) return success({ sessionId: existing.id, url: existing.session_url, expiresAt: existing.expires_at }, 200);
   const order = JSON.parse(row.payload) as Record<string, unknown>;
+  // The hosted page collects the order total, as the in-page intent and the
+  // Alipay / WeChat channels do; a total of nothing has nothing to collect.
+  if (!stripeChargeLines(order)) return failure(409, 'INVALID_ORDER_TOTAL', 'Order total is not chargeable');
   const storefront = storefrontOrigin(request);
   // The order id rides along on the default return URL so the payment-result
   // page can locate the order straight from the address bar, even if its
