@@ -673,6 +673,19 @@
     ["path", { d: "M16 3.13a4 4 0 0 1 0 7.75", key: "1da9ce" }]
   ]);
 
+  // ../../../node_modules/lucide-react/dist/esm/icons/volume-2.js
+  var Volume2 = createLucideIcon("Volume2", [
+    [
+      "path",
+      {
+        d: "M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z",
+        key: "uqj9uw"
+      }
+    ],
+    ["path", { d: "M16 9a5 5 0 0 1 0 6", key: "1q6k2b" }],
+    ["path", { d: "M19.364 18.364a9 9 0 0 0 0-12.728", key: "ijwkga" }]
+  ]);
+
   // ../../../node_modules/lucide-react/dist/esm/icons/wallet-cards.js
   var WalletCards = createLucideIcon("WalletCards", [
     ["rect", { width: "18", height: "18", x: "3", y: "3", rx: "2", key: "afitv7" }],
@@ -11549,6 +11562,14 @@
   }
 
   // src/site.ts
+  var PROMO_FILM_PATH = "/extensions/media/promo/v3";
+  var PROMO_FILM_DEFAULTS = {
+    poster: `${PROMO_FILM_PATH}/bokmoo-promo-poster-1280.jpg`,
+    posterLarge: `${PROMO_FILM_PATH}/bokmoo-promo-poster-1920.jpg`,
+    muted: `${PROMO_FILM_PATH}/bokmoo-promo-720p-muted.mp4`,
+    mutedSmall: `${PROMO_FILM_PATH}/bokmoo-promo-540p-muted.mp4`,
+    sound: `${PROMO_FILM_PATH}/bokmoo-promo-720p.mp4`
+  };
   function zhModeOf(locale) {
     if (locale === "zh-Hant") return "zh-Hant";
     if (locale === "zh-Hans") return "zh-Hans";
@@ -11576,6 +11597,16 @@
     const siteConfig = config?.site || {};
     const mode = zhModeOf(locale);
     const englishSubheadline = `Use multiple eSIM profiles on your ${brandName} card. Stay connected in 200+ countries.`;
+    const posterSetting = siteConfig.promoPoster?.trim();
+    const poster = posterSetting || PROMO_FILM_DEFAULTS.poster;
+    const posterLarge = posterSetting && posterSetting !== PROMO_FILM_DEFAULTS.poster ? poster : PROMO_FILM_DEFAULTS.posterLarge;
+    const promoFilm = posterSetting?.toLowerCase() === "none" || siteConfig.promoPoster === "" ? null : {
+      poster,
+      posterLarge,
+      muted: siteConfig.promoMutedVideo?.trim() || PROMO_FILM_DEFAULTS.muted,
+      mutedSmall: siteConfig.promoMutedVideoSmall?.trim() || PROMO_FILM_DEFAULTS.mutedSmall,
+      sound: siteConfig.promoSoundVideo?.trim() || PROMO_FILM_DEFAULTS.sound
+    };
     return {
       brandName,
       eyebrow: pickLocalized(siteConfig.eyebrow, "BOKMOO eSIM Card", "BOKMOO eSIM \u5361", "BOKMOO eSIM \u5361", mode),
@@ -11592,7 +11623,8 @@
       primaryCtaHref: siteConfig.primaryCtaHref?.trim() || "/products",
       secondaryCtaLabel: pickLocalized(siteConfig.secondaryCtaLabel, "How it works", "\u4E86\u89E3\u4F7F\u7528\u65B9\u5F0F", "\u77AD\u89E3\u4F7F\u7528\u65B9\u5F0F", mode),
       secondaryCtaHref: siteConfig.secondaryCtaHref?.trim() || "/#how-it-works",
-      apiBaseUrl: siteConfig.apiBaseUrl?.trim() || "https://api.bokmoo.com"
+      apiBaseUrl: siteConfig.apiBaseUrl?.trim() || "https://api.bokmoo.com",
+      promoFilm
     };
   }
   function isExternalHref(href) {
@@ -15899,6 +15931,121 @@
     ) });
   });
 
+  // src/components/PromoFilm.tsx
+  function attempt(video, refused) {
+    let playing;
+    try {
+      playing = typeof video.play === "function" ? video.play() : void 0;
+    } catch {
+      refused();
+      return;
+    }
+    if (playing && typeof playing.catch === "function") playing.catch(refused);
+  }
+  var PromoFilm = react_default.memo(function PromoFilm2({ locale, config }) {
+    const film = resolveBokmooSiteConfig(config, locale).promoFilm;
+    const t = (copy) => pickCopy(locale, copy);
+    const frameRef = react_default.useRef(null);
+    const videoRef = react_default.useRef(null);
+    const [state, setState] = react_default.useState("poster");
+    const [missing, setMissing] = react_default.useState(false);
+    react_default.useEffect(() => {
+      const frame2 = frameRef.current;
+      if (!film || !frame2) return;
+      let cancelled = false;
+      const arm = () => {
+        if (!cancelled) setState("loading");
+      };
+      if (typeof IntersectionObserver === "undefined") {
+        arm();
+        return () => {
+          cancelled = true;
+        };
+      }
+      const observer = new IntersectionObserver(
+        (entries) => {
+          if (!entries.some((entry) => entry.isIntersecting)) return;
+          observer.disconnect();
+          arm();
+        },
+        { rootMargin: "280px" }
+      );
+      observer.observe(frame2);
+      return () => {
+        cancelled = true;
+        observer.disconnect();
+      };
+    }, [film]);
+    react_default.useEffect(() => {
+      const video = videoRef.current;
+      if (!film || !video || state !== "loading") return;
+      const narrow = window.matchMedia?.("(max-width: 768px)").matches ?? false;
+      const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+      const saveData = navigator.connection?.saveData === true;
+      video.src = narrow ? film.mutedSmall : film.muted;
+      video.load();
+      if (reducedMotion || saveData) {
+        setState("poster");
+        return;
+      }
+      attempt(video, () => setState("poster"));
+    }, [film, state]);
+    if (!film || missing) return null;
+    const watchWithSound = () => {
+      const video = videoRef.current;
+      if (!video) return;
+      video.src = film.sound;
+      setState("sound");
+      video.load();
+      attempt(video, () => setState("poster"));
+    };
+    return /* @__PURE__ */ jsxs("section", { className: "bokmoo-film", "data-purpose": "promo-film", "data-state": state, "aria-labelledby": "bokmoo-promo-film-heading", children: [
+      /* @__PURE__ */ jsx("h2", { className: "bokmoo-film-heading", id: "bokmoo-promo-film-heading", children: t({ en: "Watch the BOKMOO film", hans: "\u89C2\u770B BOKMOO \u5BA3\u4F20\u7247", hant: "\u89C0\u770B BOKMOO \u5BA3\u50B3\u7247", ja: "BOKMOO \u306E\u7D39\u4ECB\u52D5\u753B\u3092\u898B\u308B", ko: "BOKMOO \uC18C\uAC1C \uC601\uC0C1 \uBCF4\uAE30", fr: "Voir le film BOKMOO", de: "Den BOKMOO-Film ansehen" }) }),
+      /* @__PURE__ */ jsxs("div", { className: "bokmoo-film-frame", ref: frameRef, children: [
+        /* @__PURE__ */ jsx(
+          "video",
+          {
+            ref: videoRef,
+            className: "bokmoo-film-video",
+            loop: state !== "sound",
+            muted: state !== "sound",
+            controls: state === "sound",
+            playsInline: true,
+            preload: "none",
+            "aria-label": t({
+              en: "BOKMOO \u2014 One Card, One World. A 50-second film with captions.",
+              hans: "BOKMOO\u2014\u2014\u4E00\u5F20\u5361\uFF0C\u8FDE\u4E16\u754C\u300250 \u79D2\u5BA3\u4F20\u7247\uFF0C\u5E26\u5B57\u5E55\u3002",
+              hant: "BOKMOO\u2014\u2014\u4E00\u5F35\u5361\uFF0C\u9023\u4E16\u754C\u300250 \u79D2\u5BA3\u50B3\u7247\uFF0C\u5E36\u5B57\u5E55\u3002",
+              ja: "BOKMOO \u2014 \u4E00\u679A\u306E\u30AB\u30FC\u30C9\u3067\u3001\u4E16\u754C\u3092\u3064\u306A\u3050\u3002\u5B57\u5E55\u4ED8\u304D\u306E 50 \u79D2\u306E\u7D39\u4ECB\u52D5\u753B\u3002",
+              ko: "BOKMOO \u2014 \uD558\uB098\uC758 \uCE74\uB4DC, \uD558\uB098\uC758 \uC138\uACC4. \uC790\uB9C9\uC774 \uC788\uB294 50\uCD08 \uC601\uC0C1.",
+              fr: "BOKMOO \u2014 Une carte, un monde. Un film de 50 secondes, sous-titr\xE9.",
+              de: "BOKMOO \u2014 Eine Karte, eine Welt. Ein 50-Sekunden-Film mit Untertiteln."
+            }),
+            onPlaying: () => setState((current) => current === "loading" ? "playing" : current),
+            onError: () => setState("poster")
+          }
+        ),
+        /* @__PURE__ */ jsx(
+          "img",
+          {
+            className: "bokmoo-film-poster",
+            src: film.poster,
+            srcSet: film.posterLarge ? `${film.poster} 1280w, ${film.posterLarge} 1920w` : void 0,
+            sizes: "(min-width: 1152px) 1104px, (min-width: 640px) calc(100vw - 3rem), calc(100vw - 2rem)",
+            alt: "",
+            loading: "lazy",
+            decoding: "async",
+            onError: () => setMissing(true)
+          }
+        ),
+        state === "sound" ? null : /* @__PURE__ */ jsxs("button", { className: "bokmoo-film-sound", type: "button", onClick: watchWithSound, children: [
+          /* @__PURE__ */ jsx(Volume2, { className: "h-4 w-4", "aria-hidden": "true" }),
+          /* @__PURE__ */ jsx("span", { children: t({ en: "Watch with sound", hans: "\u5E26\u58F0\u97F3\u89C2\u770B", hant: "\u5E36\u8072\u97F3\u89C0\u770B", ja: "\u97F3\u58F0\u3042\u308A\u3067\u898B\u308B", ko: "\uC18C\uB9AC \uCF1C\uC11C \uBCF4\uAE30", fr: "Voir avec le son", de: "Mit Ton ansehen" }) })
+        ] })
+      ] })
+    ] });
+  });
+
   // src/components/HomePage.tsx
   function AppleIcon2() {
     return /* @__PURE__ */ jsx("svg", { viewBox: "0 0 24 24", fill: "currentColor", className: "h-5 w-5", "aria-hidden": "true", children: /* @__PURE__ */ jsx("path", { d: "M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" }) });
@@ -16079,6 +16226,7 @@
           ] })
         ] })
       ] }),
+      /* @__PURE__ */ jsx(PromoFilm, { locale, config }),
       /* @__PURE__ */ jsxs(
         "section",
         {
@@ -17312,9 +17460,9 @@
     if (!value || typeof navigator === "undefined" || !navigator.clipboard?.writeText) return;
     navigator.clipboard.writeText(value).catch(() => void 0);
   }
-  function getPollDelay(attempt) {
-    if (attempt < 10) return 3e3;
-    if (attempt < 22) return 1e4;
+  function getPollDelay(attempt2) {
+    if (attempt2 < 10) return 3e3;
+    if (attempt2 < 22) return 1e4;
     return 0;
   }
   var OrderSuccessPage = react_default.memo(function OrderSuccessPage2({
@@ -17332,7 +17480,7 @@
       isVerifying ? "processing" : "idle"
     );
     const [errorMessage, setErrorMessage] = react_default.useState("");
-    const [attempt, setAttempt] = react_default.useState(0);
+    const [attempt2, setAttempt] = react_default.useState(0);
     const [orderKind, setOrderKind] = react_default.useState(
       orderId2 ? "checking" : "esim"
     );
@@ -17379,7 +17527,7 @@
     react_default.useEffect(() => {
       if (!orderId2 || orderKind !== "esim") return;
       if (status !== "processing" && status !== "idle") return;
-      const delay2 = getPollDelay(attempt);
+      const delay2 = getPollDelay(attempt2);
       if (delay2 <= 0) {
         setErrorMessage("Fulfillment is taking longer than expected. Please refresh or contact support.");
         return;
@@ -17389,7 +17537,7 @@
         void loadInstallSession();
       }, delay2);
       return () => window.clearTimeout(timer);
-    }, [attempt, loadInstallSession, orderId2, orderKind, status]);
+    }, [attempt2, loadInstallSession, orderId2, orderKind, status]);
     const isReady = status === "ready" || status === "installed";
     const isPendingPayment = status === "pending_payment";
     const supportEmail = installSession?.support?.email || site.supportEmail;
@@ -18398,7 +18546,11 @@
         secondaryCtaHref: "/#how-it-works",
         demoHref: "/products",
         docsHref: "/help",
-        supportEmail: "support@bokmoo.com"
+        supportEmail: "support@bokmoo.com",
+        promoPoster: "/extensions/media/promo/v3/bokmoo-promo-poster-1280.jpg",
+        promoMutedVideo: "/extensions/media/promo/v3/bokmoo-promo-720p-muted.mp4",
+        promoMutedVideoSmall: "/extensions/media/promo/v3/bokmoo-promo-540p-muted.mp4",
+        promoSoundVideo: "/extensions/media/promo/v3/bokmoo-promo-720p.mp4"
       }
     }
   };
@@ -18996,6 +19148,90 @@ body[data-theme='bokmoo'] ::selection {
 }
 /* <<< Sale display end */
 
+/* >>> Promo film (the brand film band on the home page). Keep this block byte-identical
+   in src/tokens.css (embedded renderer) and theme-pack/tokens.css (remote runtime). */
+.bokmoo-film {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.bokmoo-film-frame {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  border: 1px solid rgba(229, 195, 101, 0.24);
+  border-radius: 1.25rem;
+  background: #0a0a0a;
+  box-shadow: 0 28px 64px -28px rgba(0, 0, 0, 0.95);
+}
+
+.bokmoo-film-video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.bokmoo-film-poster {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: opacity 0.45s ease;
+}
+
+.bokmoo-film[data-state="playing"] .bokmoo-film-poster,
+.bokmoo-film[data-state="sound"] .bokmoo-film-poster {
+  opacity: 0;
+}
+
+.bokmoo-film-sound {
+  position: absolute;
+  right: 1rem;
+  bottom: 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1rem;
+  border: 1px solid rgba(229, 195, 101, 0.55);
+  border-radius: 999px;
+  background: rgba(13, 13, 13, 0.78);
+  color: #f4efe6;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+.bokmoo-film-sound:hover,
+.bokmoo-film-sound:focus-visible {
+  border-color: #e5c365;
+  color: #e5c365;
+}
+
+.bokmoo-film-heading {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (min-width: 640px) {
+  .bokmoo-film {
+    padding: 0 1.5rem;
+  }
+}
+/* <<< Promo film end */
+
+
 /* \u2500\u2500 Landing stage: CSS-rendered SIM card pedestal (Obsidian Aurum hero) \u2500\u2500 */
 .bg-pedestal-top {
   background: radial-gradient(ellipse at center, #26262b 0%, #151518 70%, #0d0d0f 100%);
@@ -19038,7 +19274,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.64",
+      version: "1.1.65",
       target: "shop"
     }
   };

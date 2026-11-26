@@ -78,6 +78,30 @@
           "type": "string",
           "title": "Support Email",
           "default": "support@bokmoo.com"
+        },
+        "promoPoster": {
+          "type": "string",
+          "title": "Promo Film Poster (URL)",
+          "description": "Poster image of the home page film, for narrow screens. Set to \"none\" to hide the film.",
+          "default": "/extensions/media/promo/v3/bokmoo-promo-poster-1280.jpg"
+        },
+        "promoMutedVideo": {
+          "type": "string",
+          "title": "Promo Film — Muted Video (URL)",
+          "description": "The home page film without sound, played in a loop on wide screens.",
+          "default": "/extensions/media/promo/v3/bokmoo-promo-720p-muted.mp4"
+        },
+        "promoMutedVideoSmall": {
+          "type": "string",
+          "title": "Promo Film — Muted Video for Phones (URL)",
+          "description": "The home page film without sound, played in a loop on narrow screens.",
+          "default": "/extensions/media/promo/v3/bokmoo-promo-540p-muted.mp4"
+        },
+        "promoSoundVideo": {
+          "type": "string",
+          "title": "Promo Film — Video with Sound (URL)",
+          "description": "The home page film with its narration, loaded when the visitor asks for sound.",
+          "default": "/extensions/media/promo/v3/bokmoo-promo-720p.mp4"
         }
       }
     }

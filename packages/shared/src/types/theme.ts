@@ -253,6 +253,14 @@ export interface ThemeConfig {
     downloadChecksum?: string;
     downloadQrUrl?: string;
     appScreenshotUrl?: string;
+    /** Poster of the home page promo film; "none" turns the film off */
+    promoPoster?: string;
+    /** Promo film without sound, looped on wide screens */
+    promoMutedVideo?: string;
+    /** Promo film without sound, looped on narrow screens */
+    promoMutedVideoSmall?: string;
+    /** Promo film with its narration, loaded on request */
+    promoSoundVideo?: string;
   };
 }
 
