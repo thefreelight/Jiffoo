@@ -115,6 +115,13 @@ export const common = {
   },
 
   // Error messages
+  // Shell chrome: heard by screen readers, seen on keyboard focus or when the network drops.
+  shell: {
+    skipToMain: '跳到主要内容',
+    offline: '你当前处于离线状态，部分功能可能无法使用。',
+    backOnline: '网络已恢复',
+    dismissNotice: '关闭提示',
+  },
   errors: {
     general: '发生错误，请重试。',
     notFound: '找不到资料',
@@ -133,6 +140,7 @@ export const common = {
     validation: '验证错误',
     tryAgain: '请重试',
     error: '错误',
+    loginUnavailable: '登录表单暂时无法加载，请重试。',
   },
 
   // Empty states

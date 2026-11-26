@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { authApi } from '@/lib/api';
 import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
 import { useShopTheme } from '@/lib/themes/provider';
+import { useT } from 'shared/src/i18n/react';
 
 type Step = 'email' | 'reset' | 'done';
 
@@ -20,6 +21,7 @@ function ForgotPasswordContent() {
   const searchParams = useSearchParams();
   const nav = useLocalizedNavigation();
   const { theme, config } = useShopTheme();
+  const t = useT();
   const presetEmail = searchParams.get('email')?.trim().toLowerCase() || '';
 
   const [step, setStep] = useState<Step>(presetEmail ? 'reset' : 'email');
@@ -81,6 +83,8 @@ function ForgotPasswordContent() {
         isLoading={busy}
         error={error || null}
         config={config}
+        locale={nav.locale}
+        t={t}
         initialEmail={presetEmail}
         onRequestCode={requestCode}
         onResetPassword={resetPassword}

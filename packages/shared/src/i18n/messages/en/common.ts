@@ -115,6 +115,13 @@ export const common = {
   },
 
   // Error messages
+  // Shell chrome: heard by screen readers, seen on keyboard focus or when the network drops.
+  shell: {
+    skipToMain: 'Skip to main content',
+    offline: 'You are currently offline. Some features may be unavailable.',
+    backOnline: 'Network restored',
+    dismissNotice: 'Dismiss notice',
+  },
   errors: {
     general: 'Something went wrong. Please try again.',
     notFound: 'Not found',
@@ -133,6 +140,7 @@ export const common = {
     validation: 'Validation Error',
     tryAgain: 'Please try again',
     error: 'Error',
+    loginUnavailable: 'The sign-in form could not be loaded. Please try again.',
   },
 
   // Empty states

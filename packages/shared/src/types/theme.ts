@@ -41,6 +41,37 @@ export type ThemeSeoLocaleEntries = Partial<Record<string, ThemePageSeo>>;
 export type ThemeSeoPages = Record<string, ThemeSeoLocaleEntries>;
 
 /**
+ * Detail pages a theme renders from its own data feed instead of the product
+ * catalog — a game catalog, say. The host lists them in the sitemap and gives
+ * each its own title and description, so thousands of pages need no per-page
+ * code. Declared in the pack's `theme.json` under `x-jiffoo-seo.dynamicPages`.
+ */
+export interface ThemeDynamicPage {
+  /** Path shape, `:name` for a segment read from an item: `/games/:id`. */
+  path: string;
+  /** JSON documents holding the items. */
+  sources: string[];
+  /** Dot path to the item array inside a document; the document itself when omitted. */
+  items?: string;
+  /** Item field holding the value used in the URL. */
+  idField: string;
+  /** Item fields the page title, description and social image are read from (title and description default to those names). */
+  titleField?: string;
+  descriptionField?: string;
+  /** Item field holding the image shown with the page when it is shared. */
+  imageField?: string;
+  changeFrequency?: 'always' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'never';
+  priority?: number;
+}
+
+/** What a theme pack declares under `x-jiffoo-seo`. */
+export interface ThemeSeoDeclaration {
+  default?: ThemeSeoLocaleEntries;
+  pages?: ThemeSeoPages;
+  dynamicPages?: ThemeDynamicPage[];
+}
+
+/**
  * Theme Metadata (for registry)
  */
 export interface ThemeMeta {
@@ -148,6 +179,12 @@ export interface ThemePackage {
     ContactPage: React.ComponentType<ContactPageProps>;
     HelpPage: React.ComponentType<HelpPageProps>;
     HowItWorksPage?: React.ComponentType<HowItWorksPageProps>;
+    /** A catalogue of items the theme feeds itself (games, articles), at `/games`. */
+    GamesPage?: React.ComponentType<GamesPageProps>;
+    /** One item of that catalogue, at `/games/[id]`. */
+    GameDetailPage?: React.ComponentType<GameDetailPageProps>;
+    /** Acknowledgements page at `/credits` (sources, licences, thanks). */
+    CreditsPage?: React.ComponentType<CreditsPageProps>;
     PrivacyPage: React.ComponentType<PrivacyPageProps>;
     TermsPage: React.ComponentType<TermsPageProps>;
     DownloadAppPage?: React.ComponentType<DownloadAppPageProps>;
@@ -596,6 +633,28 @@ export interface ContactPageProps extends ThemeI18nProps {
 /**
  * Help Page Component Props
  */
+/**
+ * A catalogue the theme feeds from its own data (see `ThemeDynamicPage`). The
+ * host passes only the route; the theme reads its feed itself.
+ */
+export interface GamesPageProps extends ThemeI18nProps {
+  config?: ThemeConfig;
+  onNavigate?: (path: string) => void;
+}
+
+/** One item of the theme's own catalogue; `gameId` is the `id` segment of `/games/[id]`. */
+export interface GameDetailPageProps extends ThemeI18nProps {
+  config?: ThemeConfig;
+  gameId?: string;
+  onNavigate?: (path: string) => void;
+}
+
+/** Acknowledgements: where the theme's content comes from and under what terms. */
+export interface CreditsPageProps extends ThemeI18nProps {
+  config?: ThemeConfig;
+  onNavigate?: (path: string) => void;
+}
+
 export interface HelpPageProps extends ThemeI18nProps {
   config?: ThemeConfig;
   onNavigateToCategory?: (categoryId: string) => void;

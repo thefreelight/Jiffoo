@@ -11,6 +11,7 @@
 import type { MetadataRoute } from 'next';
 import { resolvePublicOrigin } from '@/lib/server-api-url';
 import { storeLocales } from '@/lib/store-locales';
+import { storefrontIsNoindex } from '@/lib/seo/indexing';
 
 /** Framework prefixes that never belong in an index. */
 const GLOBAL_DISALLOW = [
@@ -40,6 +41,11 @@ const LOCALE_PRIVATE_ROUTES = [
 
 export default async function robots(): Promise<MetadataRoute.Robots> {
   const origin = await resolvePublicOrigin();
+
+  // A noindex deployment names no sitemap and lets nothing be crawled.
+  if (storefrontIsNoindex()) {
+    return { rules: { userAgent: '*', disallow: '/' } };
+  }
   const localeDisallow = storeLocales().flatMap((locale) =>
     LOCALE_PRIVATE_ROUTES.map((route) => `/${locale}/${route}`)
   );

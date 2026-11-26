@@ -32,6 +32,8 @@ import type {
   AddToCartRequestDTO,
 } from 'shared';
 
+import { parentDomainAuthCookieEnabled } from '@/lib/auth-cookie-policy';
+
 /**
  * Lazy initialize API client to avoid environment variable issues during module loading
  * Uses OAuth2 SPA standard storage (localStorage)
@@ -42,6 +44,7 @@ const getApiClient = () => {
   if (!_apiClient) {
     _apiClient = createShopClient({
       storageType: 'browser', // OAuth2 SPA standard: using localStorage for tokens
+      mirrorToParentCookie: parentDomainAuthCookieEnabled(),
       customConfig: {
         timeout: 10000,
         loginPath: '/auth/login', // Shop frontend login path

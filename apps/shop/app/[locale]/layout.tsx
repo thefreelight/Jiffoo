@@ -26,6 +26,7 @@ import { SkipToMain } from '@/components/skip-to-main';
 import { ThemeMessagesRegistrar } from '@/components/theme-messages-registrar';
 import { getThemeMessages } from '@/lib/theme-i18n-server';
 import { generateThemeDefaultMetadata } from '@/lib/seo/theme-page-copy';
+import { DocumentLanguage } from '@/components/document-language';
 
 interface Props extends Omit<LocaleLayoutProps, 'params'> {
   params: Promise<{ locale: string }>;
@@ -84,6 +85,7 @@ export default async function LocaleLayout({ children, params }: Props) {
     <I18nProvider locale={locale as Locale} messages={messages}>
       <ThemeMessagesRegistrar locale={locale} messages={themeMessages}>
         <Suspense fallback={<div className="min-h-screen" />}>
+          <DocumentLanguage locale={locale} />
           <SkipToMain />
           <OfflineDetector position="top" />
           <PageTracker />

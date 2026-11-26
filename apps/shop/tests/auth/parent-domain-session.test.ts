@@ -1,5 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { BrowserStorageAdapter, parentCookieDomain, writeParentDomainCookie } from '../../../../packages/shared/api/storage-adapters';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { BrowserStorageAdapter, OAuth2SPAAdapter, parentCookieDomain, writeParentDomainCookie } from '../../../../packages/shared/api/storage-adapters';
+import { createShopClient } from '../../../../packages/shared/api/create-client';
 import { createBrowserTokenProvider } from '@jiffoo/theme-api-sdk';
 
 /**
@@ -78,6 +79,48 @@ describe('BrowserStorageAdapter auth_token mirroring', () => {
     const adapter = new BrowserStorageAdapter();
     adapter.removeItem('auth_token');
     expect(document.cookie).not.toContain('stale');
+  });
+});
+
+describe('BrowserStorageAdapter parent-domain cookie opt-out', () => {
+  // jsdom pins location.hostname to localhost, where no Domain cookie can
+  // exist, so the adapter is pointed at a subdomain host through a window
+  // stub and the cookie writes are read from the document.cookie setter.
+  let writes: string[];
+
+  beforeEach(() => {
+    writes = [];
+    vi.stubGlobal('window', { location: { hostname: 'portal.example.com' }, localStorage: window.localStorage });
+    vi.spyOn(document, 'cookie', 'set').mockImplementation((value: string) => { writes.push(value); });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+    window.localStorage.removeItem('auth_token');
+  });
+
+  it('mirrors the access token into the family cookie by default', () => {
+    new BrowserStorageAdapter().setItem('auth_token', 'jwt.shared');
+    expect(writes.some((write) => write.startsWith('auth_token=jwt.shared') && write.includes('Domain=example.com'))).toBe(true);
+  });
+
+  it('keeps the token in localStorage alone once the mirror is turned off', () => {
+    const adapter = new BrowserStorageAdapter({ mirrorToParentCookie: false });
+    adapter.setItem('auth_token', 'jwt.private');
+    expect(window.localStorage.getItem('auth_token')).toBe('jwt.private');
+    adapter.removeItem('auth_token');
+    adapter.setItem('auth_token', 'jwt.private');
+    adapter.clear();
+    expect(writes).toEqual([]);
+    expect(window.localStorage.getItem('auth_token')).toBeNull();
+  });
+
+  it('carries the setting through the SPA adapter and the client factory', () => {
+    new OAuth2SPAAdapter({ mirrorToParentCookie: false }).setItem('auth_token', 'jwt.one');
+    const client = createShopClient({ storageType: 'browser', mirrorToParentCookie: false, customConfig: { baseURL: '/api' } }) as unknown as { storage: { setItem(key: string, value: string): void } };
+    client.storage.setItem('auth_token', 'jwt.two');
+    expect(writes).toEqual([]);
   });
 });
 

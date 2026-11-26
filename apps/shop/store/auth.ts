@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { type UserProfile } from 'shared';
 import { authApi, accountApi, apiClient } from '@/lib/api';
+import { parentDomainAuthCookieEnabled } from '@/lib/auth-cookie-policy';
 
 export async function associateAffiliateVisitor(): Promise<void> {
   if (typeof document === 'undefined') return;
@@ -291,7 +292,8 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         } catch {
           hasToken = false;
         }
-        if (!hasToken && typeof document !== 'undefined') {
+        const sharedCookie = parentDomainAuthCookieEnabled();
+        if (!hasToken && sharedCookie && typeof document !== 'undefined') {
           hasToken = /(?:^|; )auth_token=([^;]+)/.test(document.cookie);
         }
         if (!hasToken) return;
@@ -317,7 +319,10 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         } catch {
           // Storage unavailable.
         }
-        if (typeof document !== 'undefined') {
+        // A storefront that does not share the family cookie never wrote one
+        // and must not delete a sibling's: a token that belongs to another host
+        // of the same family is not this store's to clear.
+        if (sharedCookie && typeof document !== 'undefined') {
           const labels = window.location.hostname.split('.').filter(Boolean);
           const domain = labels.length >= 2 ? labels.slice(-2).join('.') : null;
           const maxAge = 'Path=/; Max-Age=0';

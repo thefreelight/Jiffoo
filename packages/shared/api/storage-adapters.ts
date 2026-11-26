@@ -33,6 +33,18 @@ export function parentCookieDomain(hostname: string): string | null {
   return labels.slice(-2).join('.');
 }
 
+export interface BrowserStorageOptions {
+  /**
+   * Mirror auth keys into the parent-domain cookie so sibling subdomains of
+   * the same storefront family share the session (the default). A storefront
+   * that runs third-party code on a sibling subdomain — a game portal, say —
+   * turns this off: that cookie is script-readable from every host under the
+   * parent domain, so it would hand the session to code the storefront does
+   * not control.
+   */
+  mirrorToParentCookie?: boolean;
+}
+
 export function writeParentDomainCookie(key: string, value: string | null, hostname?: string): void {
   if (typeof document === 'undefined') return;
   const domain = parentCookieDomain(hostname ?? window.location.hostname);
@@ -54,6 +66,12 @@ export function writeParentDomainCookie(key: string, value: string | null, hostn
  * Suitable for client-side rendering environments
  */
 export class BrowserStorageAdapter implements StorageAdapter {
+  constructor(private readonly options: BrowserStorageOptions = {}) {}
+
+  private get mirrorsParentCookie(): boolean {
+    return this.options.mirrorToParentCookie !== false;
+  }
+
   getItem(key: string): string | null {
     if (typeof window === 'undefined') return null;
     try {
@@ -71,7 +89,7 @@ export class BrowserStorageAdapter implements StorageAdapter {
     } catch (error) {
       console.warn('localStorage write failed:', error);
     }
-    if (PARENT_DOMAIN_COOKIE_KEYS.has(key)) {
+    if (this.mirrorsParentCookie && PARENT_DOMAIN_COOKIE_KEYS.has(key)) {
       try {
         writeParentDomainCookie(key, value);
       } catch {
@@ -87,7 +105,7 @@ export class BrowserStorageAdapter implements StorageAdapter {
     } catch (error) {
       console.warn('localStorage remove failed:', error);
     }
-    if (PARENT_DOMAIN_COOKIE_KEYS.has(key)) {
+    if (this.mirrorsParentCookie && PARENT_DOMAIN_COOKIE_KEYS.has(key)) {
       try {
         writeParentDomainCookie(key, null);
       } catch {
@@ -103,6 +121,7 @@ export class BrowserStorageAdapter implements StorageAdapter {
     } catch (error) {
       console.warn('localStorage clear failed:', error);
     }
+    if (!this.mirrorsParentCookie) return;
     for (const key of PARENT_DOMAIN_COOKIE_KEYS) {
       try {
         writeParentDomainCookie(key, null);
@@ -178,8 +197,8 @@ export class NextCookieAdapter implements StorageAdapter {
 export class OAuth2SPAAdapter implements StorageAdapter {
   private browserAdapter: BrowserStorageAdapter;
 
-  constructor() {
-    this.browserAdapter = new BrowserStorageAdapter();
+  constructor(options: BrowserStorageOptions = {}) {
+    this.browserAdapter = new BrowserStorageAdapter(options);
   }
 
   getItem(key: string): string | null {
@@ -210,9 +229,9 @@ export class OAuth2SPAAdapter implements StorageAdapter {
 export class HybridAdapter implements StorageAdapter {
   private oauth2Adapter: OAuth2SPAAdapter;
 
-  constructor(cookies?: any) {
+  constructor(_cookies?: any, options: BrowserStorageOptions = {}) {
     // Ignore cookies param, consolidate to OAuth2 SPA standard
-    this.oauth2Adapter = new OAuth2SPAAdapter();
+    this.oauth2Adapter = new OAuth2SPAAdapter(options);
   }
 
   getItem(key: string): string | null {
@@ -263,18 +282,22 @@ export class MemoryStorageAdapter implements StorageAdapter {
  * OAuth2 SPA Standard: Defaults to localStorage for tokens
  */
 export class StorageAdapterFactory {
-  static create(type?: 'browser' | 'cookie' | 'hybrid' | 'memory' | 'oauth2-spa', cookies?: any): StorageAdapter {
+  static create(
+    type?: 'browser' | 'cookie' | 'hybrid' | 'memory' | 'oauth2-spa',
+    cookies?: any,
+    options: BrowserStorageOptions = {},
+  ): StorageAdapter {
     if (type) {
       switch (type) {
         case 'browser':
-          return new BrowserStorageAdapter();
+          return new BrowserStorageAdapter(options);
         case 'cookie':
           return new NextCookieAdapter(cookies);
         case 'hybrid':
           // hybrid is deprecated, redirect to oauth2-spa
-          return new OAuth2SPAAdapter();
+          return new OAuth2SPAAdapter(options);
         case 'oauth2-spa':
-          return new OAuth2SPAAdapter();
+          return new OAuth2SPAAdapter(options);
         case 'memory':
           return new MemoryStorageAdapter();
       }

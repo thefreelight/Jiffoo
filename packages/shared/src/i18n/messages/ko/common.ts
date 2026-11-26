@@ -115,6 +115,13 @@ export const common = {
   },
 
   // Error messages
+  // Shell chrome: heard by screen readers, seen on keyboard focus or when the network drops.
+  shell: {
+    skipToMain: '본문으로 건너뛰기',
+    offline: '현재 오프라인 상태입니다. 일부 기능을 사용할 수 없습니다.',
+    backOnline: '네트워크가 복구되었습니다',
+    dismissNotice: '알림 닫기',
+  },
   errors: {
     general: 'Something went wrong. Please try again.',
     notFound: 'Not found',
@@ -122,7 +129,7 @@ export const common = {
     forbidden: 'Access forbidden',
     serverError: 'Server error. Please try again later.',
     networkError: 'Network error. Please check your connection.',
-    rateLimited: 'Too many requests. Please try again later.',
+    rateLimited: '요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.',
     timeout: 'Request timed out. Please try again.',
     unknown: 'An unknown error occurred',
     themeUnavailable: 'Theme Component Unavailable',
@@ -133,6 +140,7 @@ export const common = {
     validation: 'Validation Error',
     tryAgain: 'Please try again',
     error: 'Error',
+    loginUnavailable: '로그인 양식을 불러오지 못했습니다. 다시 시도해 주세요.',
   },
 
   // Empty states

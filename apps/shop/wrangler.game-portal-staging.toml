@@ -1,0 +1,53 @@
+# PLAYGROUND game portal — preview of the next release of game.jiffoo.com.
+# Same build and same core API as production; kept out of search indexes.
+name = "game-portal-shop-staging"
+main = "cloudflare-entry.ts"
+compatibility_date = "2026-07-13"
+compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
+workers_dev = true
+preview_urls = true
+
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
+
+[vars]
+NEXT_PUBLIC_API_URL = "/api"
+# The game portal's own core API instance (users, play counts); the storefront
+# worker differs from other deployments by theme pin, data and CSP only.
+API_SERVICE_URL = "https://game-api.jiffoo.com"
+SERVER_STORE_CONTEXT_TIMEOUT_MS = "2000"
+THEME_APP_PROXY_DISABLED = "1"
+THEME_APP_PROXY_TIMEOUT_MS = "1000"
+# Deployment theme pin: serve the game-portal theme from the theme asset
+# library regardless of the instance's themes/active row.
+THEME_SLUG_PIN = "game-portal"
+THEME_VERSION_PIN = "0.0.4"
+# Outage fallback keeps the same theme so a core API blip cannot flip the
+# storefront to another look. The site is Chinese only.
+NEXT_PUBLIC_FALLBACK_STORE_NAME = "PLAYGROUND"
+NEXT_PUBLIC_FALLBACK_THEME_SLUG = "game-portal"
+NEXT_PUBLIC_FALLBACK_THEME_VERSION = "0.0.4"
+NEXT_PUBLIC_FALLBACK_DEFAULT_LOCALE = "zh-Hans"
+NEXT_PUBLIC_FALLBACK_SUPPORTED_LOCALES = "zh-Hans"
+NEXT_PUBLIC_FALLBACK_POWERED_BY_JIFFOO = "0"
+# The site moved from /game/<id> (and a few list paths) to /games/<id>; the
+# old addresses stay indexed, so they answer with one 301.
+SHOP_LEGACY_REDIRECTS = "/game/:id=/games/:id;/all=/games;/picks=/games;/category/:id=/games?category=:id"
+# The theme's x-jiffoo-seo declaration, copied from its theme.json by the
+# deployer: the theme is served as a packaged runtime and is not part of this
+# build, so its manifest cannot be imported for metadata.
+SHOP_THEME_SEO = '{"slug":"game-portal","default":{"en":{"title":"Free browser games","description":"{brand}: free puzzle, arcade and casual games that play instantly in your browser. No download, no sign-up."},"zh-Hans":{"title":"免费网页游戏","description":"{brand} 免费网页游戏大厅：解谜、街机、休闲游戏即点即玩，无需下载注册。"}},"pages":{"home":{"en":{"title":"Free browser games, instantly","description":"Play free games in your browser: puzzle, arcade, action, casual. No download, no sign-up."},"zh-Hans":{"title":"免费网页游戏大厅，即点即玩","description":"免费网页游戏大厅：解谜、街机、动作、休闲小游戏打开就能玩，无需下载注册。"}},"games":{"en":{"title":"All games","description":"Every game on {brand}, with search and category filters."},"zh-Hans":{"title":"全部游戏","description":"{brand} 上的全部游戏，支持搜索与分类筛选，即点即玩。"}},"credits":{"en":{"title":"Game sources and credits","description":"Where the games on {brand} come from, under which licences, and our thanks."},"zh-Hans":{"title":"游戏来源与致谢","description":"{brand} 收录的游戏从哪里来、依据什么许可证，以及我们的致谢。"}},"help":{"en":{"title":"Help","description":"Answers to the questions players ask about {brand}."},"zh-Hans":{"title":"帮助","description":"关于 {brand} 的常见问题。"}},"contact":{"en":{"title":"Contact us","description":"Reach the people behind {brand}."},"zh-Hans":{"title":"联系我们","description":"联系 {brand}。"}},"privacy":{"en":{"title":"Privacy policy","description":"What {brand} stores, what stays in your browser, and how play counts stay anonymous."},"zh-Hans":{"title":"隐私政策","description":"{brand} 保存什么、什么只留在你的浏览器里，以及游玩统计如何保持匿名。"}},"terms":{"en":{"title":"Terms of service","description":"The terms of using {brand}."},"zh-Hans":{"title":"服务条款","description":"使用 {brand} 的条款。"}}},"dynamicPages":[{"path":"/games/:id","sources":["/extensions/themes/shop/game-portal/data/games.json","/extensions/themes/shop/game-portal/data/games-gm.json"],"items":"games","idField":"id","titleField":"title","descriptionField":"desc","imageField":"thumb","changeFrequency":"weekly","priority":0.6}]}'
+SHOP_NOINDEX = "1"
+
+[[services]]
+binding = "WORKER_SELF_REFERENCE"
+service = "game-portal-shop-staging"
+
+[[r2_buckets]]
+binding = "THEME_ASSETS"
+bucket_name = "jiffoo-game-assets"
+
+[[routes]]
+pattern = "game-staging.jiffoo.com"
+custom_domain = true

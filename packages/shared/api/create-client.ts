@@ -18,6 +18,8 @@ export interface CreateClientOptions {
   storageType?: 'browser' | 'cookie' | 'hybrid' | 'memory';
   cookies?: any; // Next.js cookies object
   customConfig?: Partial<ApiClientConfig>;
+  /** See `BrowserStorageOptions.mirrorToParentCookie`. Defaults to the shared behavior. */
+  mirrorToParentCookie?: boolean;
 }
 
 /**
@@ -36,7 +38,7 @@ export function normalizeAdminApiBaseUrl(baseUrl: string): string {
  * Create unified API client for different applications
  */
 export function createApiClient(options: CreateClientOptions): AuthClient {
-  const { appId, basePath, storageType, cookies, customConfig = {} } = options;
+  const { appId, basePath, storageType, cookies, customConfig = {}, mirrorToParentCookie } = options;
 
   // Determine base config based on app type
   const appConfigs: Record<AppType, Partial<ApiClientConfig>> = {
@@ -76,7 +78,7 @@ export function createApiClient(options: CreateClientOptions): AuthClient {
   }
 
   // Create storage adapter
-  const storage = StorageAdapterFactory.create(storageType, cookies);
+  const storage = StorageAdapterFactory.create(storageType, cookies, { mirrorToParentCookie });
 
   // Create and return AuthClient instance
   return new AuthClient(config, storage);

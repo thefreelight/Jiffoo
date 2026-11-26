@@ -115,6 +115,13 @@ export const common = {
   },
 
   // Error messages
+  // Shell chrome: heard by screen readers, seen on keyboard focus or when the network drops.
+  shell: {
+    skipToMain: '跳至主要內容',
+    offline: '你目前處於離線狀態，部分功能可能無法使用。',
+    backOnline: '網路已恢復',
+    dismissNotice: '關閉提示',
+  },
   errors: {
     general: '發生錯誤，請重試。',
     notFound: '找不到資料',
@@ -133,6 +140,7 @@ export const common = {
     validation: '驗證錯誤',
     tryAgain: '請重試',
     error: '錯誤',
+    loginUnavailable: '登入表單暫時無法載入，請重試。',
   },
 
   // Empty states

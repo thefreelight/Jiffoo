@@ -1,6 +1,7 @@
 const { createNextConfig } = require('../../packages/shared/config/next.config.base');
 const path = require('path');
 const withPWA = require('@ducanh2912/next-pwa').default;
+const { buildContentSecurityPolicy } = require('./config/content-security-policy');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = createNextConfig({
@@ -115,18 +116,21 @@ const nextConfig = createNextConfig({
     ];
   },
   async headers() {
-    // react-scan (dev-only perf overlay) loads from unpkg and spawns a blob:
-    // worker; allow both only in development — prod CSP stays strict.
-    const isDevCsp = process.env.NODE_ENV === 'development';
-    const devScriptSrc = isDevCsp ? ' https://unpkg.com' : '';
-    const devWorkerSrc = isDevCsp ? " worker-src 'self' blob:;" : '';
+    // Deployments that embed third-party content (an ad network, an iframe
+    // game host) declare the extra origins at build time; see
+    // config/content-security-policy.js.
+    const contentSecurityPolicy = buildContentSecurityPolicy({
+      development: process.env.NODE_ENV === 'development',
+      extraScriptSrc: process.env.SHOP_CSP_EXTRA_SCRIPT_SRC,
+      extraFrameSrc: process.env.SHOP_CSP_EXTRA_FRAME_SRC,
+    });
     return [
       {
         source: '/:path*',
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: `default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com${devScriptSrc}; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https: http:; frame-src 'self' https://js.stripe.com https://hooks.stripe.com;${devWorkerSrc} frame-ancestors 'none';`,
+            value: contentSecurityPolicy,
           },
         ],
       },

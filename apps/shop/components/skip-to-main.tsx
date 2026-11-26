@@ -1,12 +1,19 @@
 "use client"
 
 import * as React from "react"
+import { useT } from 'shared/src/i18n/react'
 import { cn } from "@/lib/utils"
+
+// Read by screen readers and shown on keyboard focus: it speaks the storefront's language.
+const SKIP_TO_MAIN = 'common.shell.skipToMain'
 
 const SkipToMain = React.forwardRef<
   HTMLAnchorElement,
   React.AnchorHTMLAttributes<HTMLAnchorElement>
 >(({ className, ...props }, ref) => {
+  const t = useT()
+  const translated = t?.(SKIP_TO_MAIN)
+
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault()
     const mainElement = document.getElementById("main")
@@ -28,7 +35,7 @@ const SkipToMain = React.forwardRef<
       )}
       {...props}
     >
-      Skip to main content
+      {translated && translated !== SKIP_TO_MAIN ? translated : "Skip to main content"}
     </a>
   )
 })

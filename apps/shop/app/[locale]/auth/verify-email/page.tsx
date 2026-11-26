@@ -8,6 +8,7 @@ import { apiClient, authApi } from '@/lib/api';
 import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
 import { associateAffiliateVisitor, useAuthStore } from '@/store/auth';
 import { useT } from 'shared/src/i18n/react';
+import { verificationCall, type VerificationFailure } from '@/lib/auth/verification-outcome';
 
 type VerificationState = 'idle' | 'loading' | 'success' | 'error';
 
@@ -24,10 +25,26 @@ function VerifyEmailContent() {
   const [code, setCode] = useState('');
   const [resending, setResending] = useState(false);
 
-  const getText = (key: string, fallback: string): string => {
+  const getText = (key: string, fallback: string, params?: Record<string, string>): string => {
     if (!t) return fallback;
-    const translated = t(key);
+    const translated = t(key, params);
     return translated === key ? fallback : translated;
+  };
+
+  // The service answers in English; the visitor is told what went wrong in
+  // the storefront's language, and the caller's generic copy stands in for
+  // every reason that has no wording of its own.
+  const failureText = (failure: VerificationFailure, fallbackKey: string, fallback: string): string => {
+    switch (failure.kind) {
+      case 'emailUnavailable':
+        return getText('shop.auth.verifyEmail.emailUnavailable', 'The verification email cannot be sent right now. Please try again later.');
+      case 'rateLimited':
+        return getText('common.errors.rateLimited', 'Too many requests. Please try again later.');
+      case 'codeRejected':
+        return getText('shop.auth.verifyEmail.codeRejected', 'That code is wrong or has expired. Request a new one.');
+      default:
+        return getText(fallbackKey, fallback);
+    }
   };
 
   useEffect(() => {
@@ -37,21 +54,24 @@ function VerifyEmailContent() {
       if (!token) {
         setState(email ? 'idle' : 'error');
         setMessage(email
-          ? getText('shop.auth.verifyEmail.codePrompt', `Enter the code sent to ${email}.`)
+          ? getText('shop.auth.verifyEmail.codePrompt', `Enter the code sent to ${email}.`, { email })
           : getText('shop.auth.verifyEmail.missingToken', 'Verification email is missing.'));
         return;
       }
 
-      try {
-        await authApi.verifyEmail(token);
-        if (cancelled) return;
-        setState('success');
-        setMessage(getText('shop.auth.verifyEmail.successMessage', 'Your email has been verified. You can now sign in.'));
-      } catch (error: any) {
-        if (cancelled) return;
-        setState('error');
-        setMessage(error?.message || getText('shop.auth.verifyEmail.failedMessage', 'Email verification failed.'));
+      const { failure: failed } = await verificationCall(authApi.verifyEmail(token));
+      if (cancelled) return;
+      if (failed) {
+        setState(failed.kind === 'alreadyVerified' ? 'success' : 'error');
+        setMessage(
+          failed.kind === 'alreadyVerified'
+            ? getText('shop.auth.verifyEmail.successMessage', 'Your email has been verified. You can now sign in.')
+            : failureText(failed, 'shop.auth.verifyEmail.failedMessage', 'Email verification failed.'),
+        );
+        return;
       }
+      setState('success');
+      setMessage(getText('shop.auth.verifyEmail.successMessage', 'Your email has been verified. You can now sign in.'));
     }
 
     verifyEmail();
@@ -66,48 +86,51 @@ function VerifyEmailContent() {
     if (!email || !/^\d{6}$/.test(code)) return;
     setState('loading');
     setMessage(getText('shop.auth.verifyEmail.loadingMessage', 'Checking your verification code.'));
-    try {
-      const response = await authApi.verifyEmailCode(email, code);
-      // The native API returns the shop session on success, so a verified
-      // user lands directly in the workspace instead of signing in again.
-      const session = response?.data as { access_token?: string; refresh_token?: string } | undefined;
-      if (response.success && session?.access_token) {
-        apiClient.setToken(session.access_token);
-        if (session.refresh_token) {
-          (apiClient as unknown as { setRefreshToken: (token: string) => void }).setRefreshToken(session.refresh_token);
-        }
-        await getProfile();
-        useAuthStore.setState({ isAuthenticated: true });
-        // The code-verification path signs the user in without the login
-        // action, so the referral attribution has to be associated here too.
-        await associateAffiliateVisitor();
-        setState('success');
-        setMessage(getText('shop.auth.verifyEmail.successMessage', 'Your email has been verified. You can now sign in.'));
-        nav.push('/profile');
-        return;
-      }
-      setState('success');
-      setMessage(getText('shop.auth.verifyEmail.successMessage', 'Your email has been verified. You can now sign in.'));
-    } catch (error: any) {
-      setState('error');
-      setMessage(error?.message || getText('shop.auth.verifyEmail.failedMessage', 'Email verification failed.'));
+    const { response, failure } = await verificationCall(authApi.verifyEmailCode(email, code));
+    if (failure) {
+      // A code checked again after it went through is the successful end state.
+      const settled = failure.kind === 'alreadyVerified';
+      setState(settled ? 'success' : 'error');
+      setMessage(settled
+        ? getText('shop.auth.verifyEmail.successMessage', 'Your email has been verified. You can now sign in.')
+        : failureText(failure, 'shop.auth.verifyEmail.failedMessage', 'Email verification failed.'));
+      return;
     }
+    // The native API returns the shop session on success, so a verified
+    // user lands directly in the workspace instead of signing in again.
+    const session = response.data as { access_token?: string; refresh_token?: string } | undefined;
+    setState('success');
+    setMessage(getText('shop.auth.verifyEmail.successMessage', 'Your email has been verified. You can now sign in.'));
+    if (!session?.access_token) return;
+    apiClient.setToken(session.access_token);
+    if (session.refresh_token) {
+      (apiClient as unknown as { setRefreshToken: (token: string) => void }).setRefreshToken(session.refresh_token);
+    }
+    await getProfile();
+    useAuthStore.setState({ isAuthenticated: true });
+    // The code-verification path signs the user in without the login
+    // action, so the referral attribution has to be associated here too.
+    await associateAffiliateVisitor();
+    nav.push('/profile');
   };
 
   const resendCode = async () => {
     if (!email || resending) return;
     setResending(true);
-    try {
-      await authApi.resendVerification(email);
+    const { failure } = await verificationCall(authApi.resendVerification(email));
+    if (failure?.kind === 'alreadyVerified') {
+      setState('success');
+      setMessage(getText('shop.auth.verifyEmail.successMessage', 'Your email has been verified. You can now sign in.'));
+    } else if (failure) {
+      // The code form stays up: the copy says what to do about it.
+      setState('idle');
+      setMessage(failureText(failure, 'shop.auth.verifyEmail.resendFailed', 'Could not resend the code.'));
+    } else {
       setState('idle');
       setCode('');
-      setMessage(getText('shop.auth.verifyEmail.resent', `A new code was sent to ${email}.`));
-    } catch (error: any) {
-      setState('error');
-      setMessage(error?.message || getText('shop.auth.verifyEmail.resendFailed', 'Could not resend the code.'));
-    } finally {
-      setResending(false);
+      setMessage(getText('shop.auth.verifyEmail.resent', `A new code was sent to ${email}.`, { email }));
     }
+    setResending(false);
   };
 
   const isSuccess = state === 'success';
