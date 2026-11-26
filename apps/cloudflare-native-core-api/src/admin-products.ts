@@ -186,6 +186,8 @@ export async function tryNativeAdminProducts(request: Request, env: ProductEnv):
       isActive: item.isActive ?? true,
       variantsCount: item.variants?.length ?? 0,
       status: item.isActive === false ? 'DRAFT' : 'ACTIVE',
+      productKind: item.productKind ?? null,
+      requiresShipping: item.requiresShipping === true,
       createdAt: updatedAt,
       updatedAt,
     };

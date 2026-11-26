@@ -1,21 +1,51 @@
 'use client';
 
 /**
- * Native affiliate workspace: partners, organizations, commissions, and
- * attributions served by the Cloudflare-native core. Each table row saves on
- * its own because every row is an independent record, not a page setting.
+ * Native affiliate workspace: partners, organizations, storefront applications,
+ * commissions, and attributions served by the Cloudflare-native core. Each table
+ * row saves on its own because every row is an independent record, not a page setting.
  */
 
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
+  useAffiliateScopeProducts,
+  useCreateAffiliateOrganization,
+  useReviewAffiliateOrganizationApplication,
   useUpdateAffiliateCommissionStatus,
   useUpdateAffiliateOrganization,
   useUpdateAffiliatePartner,
+  type AffiliateNativeApplication,
   type AffiliateNativeOverviewData,
+  type AffiliateScopeMode,
 } from '@/lib/hooks/use-api';
+import {
+  affiliateScopeMode,
+  affiliateScopeSummary,
+  isPhysicalProduct,
+  newOrganizationPayload,
+  partnerScopeChange,
+  scopeProductIdsOf,
+  toggleGroup,
+  type AffiliateScopeProduct,
+} from '@/lib/plugins/affiliate-admin';
+
+type PartnerEdit = {
+  rate: string;
+  status: string;
+  code: string;
+  discount: string;
+  discountType: string;
+  scopeMode: AffiliateScopeMode;
+  scopeProductIds: string[];
+};
+type OrgEdit = { rate: string; status: string };
+type ApplicationEdit = { rate: string; note: string };
+
+/** The organization's share of its members' commissions, when the store does not choose one. */
+const DEFAULT_ORGANIZATION_RATE = 2.5;
 
 function affiliateText(value: unknown, fallback = '—'): string {
   if (value === null || value === undefined || value === '') return fallback;
@@ -27,38 +57,67 @@ function affiliateMoney(value: unknown, currency: unknown): string {
   return `${affiliateText(currency, 'USD')} ${amount.toFixed(2)}`;
 }
 
+/** "2026-11-27 08:30", in UTC, as the core records its timestamps. */
+function affiliateDate(value: unknown): string {
+  if (value === null || value === undefined || value === '') return '—';
+  const date = new Date(String(value));
+  return Number.isNaN(date.getTime()) ? String(value) : date.toISOString().slice(0, 16).replace('T', ' ');
+}
+
 export function AffiliateNativeWorkspace({ data }: { data: AffiliateNativeOverviewData }) {
   const partners = data.partners || [];
   const organizations = data.organizations || [];
   const commissions = data.commissions || [];
   const attributions = data.attributions || [];
+  const applications = data.applications || [];
+  const pendingApplications = applications.filter((row) => row.status === 'pending');
+  const reviewedApplications = applications.filter((row) => row.status !== 'pending');
   const totals = data.totals || {};
 
   const partnerMutation = useUpdateAffiliatePartner();
   const organizationMutation = useUpdateAffiliateOrganization();
   const commissionMutation = useUpdateAffiliateCommissionStatus();
+  const createOrganizationMutation = useCreateAffiliateOrganization();
+  const reviewApplicationMutation = useReviewAffiliateOrganizationApplication();
+  const scopeProductsQuery = useAffiliateScopeProducts();
+  const scopeProducts = scopeProductsQuery.data || [];
 
-  const [partnerEdits, setPartnerEdits] = useState<Record<string, { rate: string; status: string; code: string; discount: string; discountType: string }>>({});
-  const [orgEdits, setOrgEdits] = useState<Record<string, { rate: string; status: string }>>({});
+  const [partnerEdits, setPartnerEdits] = useState<Record<string, PartnerEdit>>({});
+  const [orgEdits, setOrgEdits] = useState<Record<string, OrgEdit>>({});
+  const [applicationEdits, setApplicationEdits] = useState<Record<string, ApplicationEdit>>({});
+  const [newOrganization, setNewOrganization] = useState({ name: '', owner: '', rate: String(DEFAULT_ORGANIZATION_RATE) });
+  const [scopeOpen, setScopeOpen] = useState<string | null>(null);
+  const [scopeSearch, setScopeSearch] = useState('');
   const [actionError, setActionError] = useState('');
 
-  const partnerEdit = (id: string) =>
-    partnerEdits[id] || {
-      rate: String(Number(partners.find((row) => row.id === id)?.commission_rate ?? 0)),
-      status: String(partners.find((row) => row.id === id)?.status ?? 'active'),
-      code: String(partners.find((row) => row.id === id)?.code ?? ''),
-      discount: String(Number(partners.find((row) => row.id === id)?.discount_rate ?? 0)),
-      discountType: String(partners.find((row) => row.id === id)?.discount_type || 'percentage'),
+  const partnerById = (id: string) => partners.find((row) => String(row.id) === id);
+  const partnerEdit = (id: string): PartnerEdit => {
+    const saved = partnerById(id);
+    return partnerEdits[id] || {
+      rate: String(Number(saved?.commission_rate ?? 0)),
+      status: String(saved?.status ?? 'active'),
+      code: String(saved?.code ?? ''),
+      discount: String(Number(saved?.discount_rate ?? 0)),
+      discountType: String(saved?.discount_type || 'percentage'),
+      scopeMode: affiliateScopeMode(saved?.scope_mode),
+      scopeProductIds: scopeProductIdsOf(saved?.scope_product_ids),
     };
-  const orgEdit = (id: string) =>
+  };
+  const orgEdit = (id: string): OrgEdit =>
     orgEdits[id] || {
       rate: String(Number(organizations.find((row) => row.id === id)?.commission_rate ?? 0)),
       status: String(organizations.find((row) => row.id === id)?.status ?? 'active'),
     };
+  const applicationEdit = (id: string): ApplicationEdit => applicationEdits[id] || { rate: String(DEFAULT_ORGANIZATION_RATE), note: '' };
 
   const savePartner = async (id: string) => {
     setActionError('');
     const edit = partnerEdit(id);
+    const scope = partnerScopeChange(edit, partnerById(id));
+    if (scope.invalid) {
+      setActionError('Pick at least one product for a code that does not apply to everything.');
+      return;
+    }
     try {
       await partnerMutation.mutateAsync({
         id,
@@ -67,7 +126,10 @@ export function AffiliateNativeWorkspace({ data }: { data: AffiliateNativeOvervi
         code: edit.code,
         discountRate: Number(edit.discount),
         discountType: edit.discountType,
+        // the scope is sent when it changed: the core then replaces the picked products in one step
+        ...(scope.scope ? { scope: scope.scope } : {}),
       });
+      setScopeOpen((open) => (open === id ? null : open));
     } catch (cause: any) {
       setActionError(cause?.message || 'Could not update the partner.');
     }
@@ -89,11 +151,45 @@ export function AffiliateNativeWorkspace({ data }: { data: AffiliateNativeOvervi
       setActionError(cause?.message || 'Could not update the commission.');
     }
   };
+  const createOrganization = async () => {
+    setActionError('');
+    const request = newOrganizationPayload(newOrganization);
+    if ('error' in request) {
+      setActionError(request.error);
+      return;
+    }
+    try {
+      await createOrganizationMutation.mutateAsync(request.payload);
+      setNewOrganization({ name: '', owner: '', rate: String(DEFAULT_ORGANIZATION_RATE) });
+    } catch (cause: any) {
+      setActionError(cause?.message || 'Could not create the organization.');
+    }
+  };
+  const reviewApplication = async (id: string, decision: 'approve' | 'reject') => {
+    setActionError('');
+    const edit = applicationEdit(id);
+    const rate = edit.rate.trim();
+    // an emptied field is not a rate of zero
+    if (decision === 'approve' && (!rate || !Number.isFinite(Number(rate)) || Number(rate) < 0 || Number(rate) > 90)) {
+      setActionError('The organization rate must be between 0 and 90.');
+      return;
+    }
+    try {
+      await reviewApplicationMutation.mutateAsync({
+        id,
+        decision,
+        ...(decision === 'approve' ? { commissionRate: Number(rate) } : {}),
+        ...(edit.note.trim() ? { note: edit.note.trim() } : {}),
+      });
+    } catch (cause: any) {
+      setActionError(cause?.message || 'Could not review the application.');
+    }
+  };
 
   return (
     <div className="space-y-6">
       <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
-        <div className="grid gap-3 sm:grid-cols-5">
+        <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
           <div className="rounded-2xl border border-gray-100 bg-gray-50/30 p-4">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Partners</p>
             <p className="mt-1 text-xl font-semibold">{Number(totals.partnerCount || 0)}</p>
@@ -101,6 +197,10 @@ export function AffiliateNativeWorkspace({ data }: { data: AffiliateNativeOvervi
           <div className="rounded-2xl border border-gray-100 bg-gray-50/30 p-4">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Organizations</p>
             <p className="mt-1 text-xl font-semibold">{Number(totals.organizationCount || 0)}</p>
+          </div>
+          <div className="rounded-2xl border border-gray-100 bg-gray-50/30 p-4">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Applications waiting</p>
+            <p className="mt-1 text-xl font-semibold">{Number(totals.applicationPending ?? pendingApplications.length)}</p>
           </div>
           <div className="rounded-2xl border border-gray-100 bg-gray-50/30 p-4">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Commission entries</p>
@@ -121,10 +221,60 @@ export function AffiliateNativeWorkspace({ data }: { data: AffiliateNativeOvervi
       </div>
 
       <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-base font-semibold">Applications</h2>
+          {pendingApplications.length > 0 ? <Badge>{pendingApplications.length} waiting</Badge> : null}
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Shoppers ask to open an organization on the storefront. Approve to open it with the applicant as its owner, or decline with a reason they will see.
+        </p>
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
+                <th className="py-2 pr-4">Organization</th>
+                <th className="py-2 pr-4">Contact</th>
+                <th className="py-2 pr-4">Submitted</th>
+                <th className="py-2 pr-4">Decision</th>
+                <th className="py-2 pr-4">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pendingApplications.map((application) => (
+                <ApplicationRow
+                  key={application.id}
+                  application={application}
+                  edit={applicationEdit(application.id)}
+                  onEdit={(next) => setApplicationEdits((previous) => ({ ...previous, [application.id]: next }))}
+                  busy={reviewApplicationMutation.isPending}
+                  onReview={reviewApplication}
+                />
+              ))}
+              {reviewedApplications.map((application) => (
+                <tr key={application.id} className="border-b text-xs text-muted-foreground">
+                  <td className="py-2 pr-4">{affiliateText(application.organization_name)}</td>
+                  <td className="py-2 pr-4">{affiliateText(application.email)}</td>
+                  <td className="py-2 pr-4">{affiliateDate(application.created_at)}</td>
+                  <td className="py-2 pr-4">
+                    <Badge variant="outline">{application.status}</Badge>
+                    {application.review_note ? <span className="ml-2">{application.review_note}</span> : null}
+                  </td>
+                  <td className="py-2 pr-4">{affiliateDate(application.reviewed_at)}</td>
+                </tr>
+              ))}
+              {applications.length === 0 ? (
+                <tr><td colSpan={5} className="py-4 text-center text-muted-foreground">No applications yet.</td></tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
         <h2 className="text-base font-semibold">Partners</h2>
         <p className="mt-1 text-xs text-muted-foreground">
           Set each partner&apos;s commission rate (%), the buyer discount of their promo code (a percentage that stacks on a running
-          promotion, or a fixed amount off) or suspend them.
+          promotion, or a fixed amount off), which products the code applies to, or suspend them.
         </p>
         <div className="mt-3 overflow-x-auto">
           <table className="w-full text-sm">
@@ -135,6 +285,7 @@ export function AffiliateNativeWorkspace({ data }: { data: AffiliateNativeOvervi
                 <th className="py-2 pr-4">Commissions</th>
                 <th className="py-2 pr-4">Rate (%)</th>
                 <th className="py-2 pr-4">Buyer discount</th>
+                <th className="py-2 pr-4">Applies to</th>
                 <th className="py-2 pr-4">Status</th>
                 <th className="py-2 pr-4">Actions</th>
               </tr>
@@ -144,84 +295,109 @@ export function AffiliateNativeWorkspace({ data }: { data: AffiliateNativeOvervi
                 const id = String(partner.id || '');
                 const edit = partnerEdit(id);
                 return (
-                  <tr key={id} className="border-b align-middle">
-                    <td className="py-2 pr-4">
-                      <Input
-                        value={edit.code}
-                        onChange={(event) =>
-                          setPartnerEdits((previous) => ({ ...previous, [id]: { ...edit, code: event.target.value.toUpperCase() } }))
-                        }
-                        className="h-8 w-28 font-mono text-xs"
-                      />
-                    </td>
-                    <td className="py-2 pr-4">{String(partner.display_name || partner.email || '—')}</td>
-                    <td className="py-2 pr-4">
-                      {affiliateMoney(partner.commission_total, partner.currency)}
-                      <span className="ml-1 text-xs text-muted-foreground">
-                        ({Number(partner.commission_count || 0)})
-                      </span>
-                    </td>
-                    <td className="py-2 pr-4">
-                      <Input
-                        type="number"
-                        min={0}
-                        max={90}
-                        step="0.5"
-                        value={edit.rate}
-                        onChange={(event) =>
-                          setPartnerEdits((previous) => ({ ...previous, [id]: { ...edit, rate: event.target.value } }))
-                        }
-                        className="h-8 w-20"
-                      />
-                    </td>
-                    <td className="py-2 pr-4">
-                      <div className="flex items-center gap-1">
+                  <Fragment key={id}>
+                    <tr className="border-b align-middle">
+                      <td className="py-2 pr-4">
+                        <Input
+                          value={edit.code}
+                          onChange={(event) =>
+                            setPartnerEdits((previous) => ({ ...previous, [id]: { ...edit, code: event.target.value.toUpperCase() } }))
+                          }
+                          className="h-8 w-28 font-mono text-xs"
+                        />
+                      </td>
+                      <td className="py-2 pr-4">{String(partner.display_name || partner.email || '—')}</td>
+                      <td className="py-2 pr-4">
+                        {affiliateMoney(partner.commission_total, partner.currency)}
+                        <span className="ml-1 text-xs text-muted-foreground">
+                          ({Number(partner.commission_count || 0)})
+                        </span>
+                      </td>
+                      <td className="py-2 pr-4">
                         <Input
                           type="number"
                           min={0}
-                          max={edit.discountType === 'fixed_amount' ? 1000 : 90}
-                          step="1"
-                          value={edit.discount}
+                          max={90}
+                          step="0.5"
+                          value={edit.rate}
                           onChange={(event) =>
-                            setPartnerEdits((previous) => ({ ...previous, [id]: { ...edit, discount: event.target.value } }))
+                            setPartnerEdits((previous) => ({ ...previous, [id]: { ...edit, rate: event.target.value } }))
                           }
-                          className="h-8 w-16"
+                          className="h-8 w-20"
                         />
+                      </td>
+                      <td className="py-2 pr-4">
+                        <div className="flex items-center gap-1">
+                          <Input
+                            type="number"
+                            min={0}
+                            max={edit.discountType === 'fixed_amount' ? 1000 : 90}
+                            step="1"
+                            value={edit.discount}
+                            onChange={(event) =>
+                              setPartnerEdits((previous) => ({ ...previous, [id]: { ...edit, discount: event.target.value } }))
+                            }
+                            className="h-8 w-16"
+                          />
+                          <select
+                            aria-label="Buyer discount type"
+                            value={edit.discountType}
+                            onChange={(event) =>
+                              setPartnerEdits((previous) => ({ ...previous, [id]: { ...edit, discountType: event.target.value } }))
+                            }
+                            className="h-8 rounded-md border bg-background px-1 text-sm"
+                          >
+                            <option value="percentage">% off</option>
+                            <option value="fixed_amount">{String(partner.currency || 'USD')} off</option>
+                          </select>
+                        </div>
+                      </td>
+                      <td className="py-2 pr-4">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs">{affiliateScopeSummary(edit.scopeMode, edit.scopeProductIds)}</span>
+                          <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => { setScopeSearch(''); setScopeOpen((open) => (open === id ? null : id)); }}>
+                            {scopeOpen === id ? 'Close' : 'Change'}
+                          </Button>
+                        </div>
+                      </td>
+                      <td className="py-2 pr-4">
                         <select
-                          aria-label="Buyer discount type"
-                          value={edit.discountType}
+                          value={edit.status}
                           onChange={(event) =>
-                            setPartnerEdits((previous) => ({ ...previous, [id]: { ...edit, discountType: event.target.value } }))
+                            setPartnerEdits((previous) => ({ ...previous, [id]: { ...edit, status: event.target.value } }))
                           }
-                          className="h-8 rounded-md border bg-background px-1 text-sm"
+                          className="h-8 rounded-md border bg-background px-2 text-sm"
                         >
-                          <option value="percentage">% off</option>
-                          <option value="fixed_amount">{String(partner.currency || 'USD')} off</option>
+                          <option value="active">active</option>
+                          <option value="suspended">suspended</option>
                         </select>
-                      </div>
-                    </td>
-                    <td className="py-2 pr-4">
-                      <select
-                        value={edit.status}
-                        onChange={(event) =>
-                          setPartnerEdits((previous) => ({ ...previous, [id]: { ...edit, status: event.target.value } }))
-                        }
-                        className="h-8 rounded-md border bg-background px-2 text-sm"
-                      >
-                        <option value="active">active</option>
-                        <option value="suspended">suspended</option>
-                      </select>
-                    </td>
-                    <td className="py-2 pr-4">
-                      <Button size="sm" variant="outline" disabled={partnerMutation.isPending} onClick={() => void savePartner(id)}>
-                        Save
-                      </Button>
-                    </td>
-                  </tr>
+                      </td>
+                      <td className="py-2 pr-4">
+                        <Button size="sm" variant="outline" disabled={partnerMutation.isPending} onClick={() => void savePartner(id)}>
+                          Save
+                        </Button>
+                      </td>
+                    </tr>
+                    {scopeOpen === id ? (
+                      <tr className="border-b bg-gray-50/40">
+                        <td colSpan={8} className="py-3 pr-4">
+                          <ScopeEditor
+                            edit={edit}
+                            products={scopeProducts}
+                            loading={scopeProductsQuery.isLoading}
+                            failed={scopeProductsQuery.isError}
+                            search={scopeSearch}
+                            onSearch={setScopeSearch}
+                            onChange={(next) => setPartnerEdits((previous) => ({ ...previous, [id]: next }))}
+                          />
+                        </td>
+                      </tr>
+                    ) : null}
+                  </Fragment>
                 );
               })}
               {partners.length === 0 ? (
-                <tr><td colSpan={7} className="py-4 text-center text-muted-foreground">No partners yet.</td></tr>
+                <tr><td colSpan={8} className="py-4 text-center text-muted-foreground">No partners yet.</td></tr>
               ) : null}
             </tbody>
           </table>
@@ -231,12 +407,31 @@ export function AffiliateNativeWorkspace({ data }: { data: AffiliateNativeOvervi
       <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
         <h2 className="text-base font-semibold">Organizations</h2>
         <p className="mt-1 text-xs text-muted-foreground">Organization-wide commission rate and lifecycle status.</p>
+        <div className="mt-3 flex flex-wrap items-end gap-2 rounded-2xl border border-gray-100 bg-gray-50/40 p-3">
+          <label className="text-xs text-muted-foreground">
+            Name
+            <Input value={newOrganization.name} onChange={(event) => setNewOrganization({ ...newOrganization, name: event.target.value })} placeholder="Organization name" className="mt-1 h-8 w-56 text-sm" />
+          </label>
+          <label className="text-xs text-muted-foreground">
+            Owner (account id or e-mail)
+            <Input value={newOrganization.owner} onChange={(event) => setNewOrganization({ ...newOrganization, owner: event.target.value })} placeholder="owner@example.com" className="mt-1 h-8 w-64 text-sm" />
+          </label>
+          <label className="text-xs text-muted-foreground">
+            Rate (%)
+            <Input type="number" min={0} max={90} step="0.5" value={newOrganization.rate} onChange={(event) => setNewOrganization({ ...newOrganization, rate: event.target.value })} className="mt-1 h-8 w-20 text-sm" />
+          </label>
+          <Button size="sm" disabled={createOrganizationMutation.isPending} onClick={() => void createOrganization()}>
+            Create organization
+          </Button>
+          <p className="basis-full text-xs text-muted-foreground">The owner must already have a storefront account, and cannot belong to another organization.</p>
+        </div>
         <div className="mt-3 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
                 <th className="py-2 pr-4">Code</th>
                 <th className="py-2 pr-4">Name</th>
+                <th className="py-2 pr-4">Owner</th>
                 <th className="py-2 pr-4">Members</th>
                 <th className="py-2 pr-4">Rate (%)</th>
                 <th className="py-2 pr-4">Status</th>
@@ -251,6 +446,7 @@ export function AffiliateNativeWorkspace({ data }: { data: AffiliateNativeOvervi
                   <tr key={id} className="border-b align-middle">
                     <td className="py-2 pr-4 font-mono text-xs">{String(organization.code || '—')}</td>
                     <td className="py-2 pr-4">{String(organization.name || '—')}</td>
+                    <td className="py-2 pr-4 text-xs">{affiliateText(organization.owner_email || organization.owner_username)}</td>
                     <td className="py-2 pr-4">{Number(organization.member_count || 0)}</td>
                     <td className="py-2 pr-4">
                       <Input
@@ -287,7 +483,7 @@ export function AffiliateNativeWorkspace({ data }: { data: AffiliateNativeOvervi
                 );
               })}
               {organizations.length === 0 ? (
-                <tr><td colSpan={6} className="py-4 text-center text-muted-foreground">No organizations yet.</td></tr>
+                <tr><td colSpan={7} className="py-4 text-center text-muted-foreground">No organizations yet.</td></tr>
               ) : null}
             </tbody>
           </table>
@@ -375,6 +571,159 @@ export function AffiliateNativeWorkspace({ data }: { data: AffiliateNativeOvervi
           </table>
         </div>
       </div>
+    </div>
+  );
+}
+
+/** A storefront application waiting for the store's answer. */
+function ApplicationRow({
+  application,
+  edit,
+  onEdit,
+  busy,
+  onReview,
+}: {
+  application: AffiliateNativeApplication;
+  edit: ApplicationEdit;
+  onEdit: (next: ApplicationEdit) => void;
+  busy: boolean;
+  onReview: (id: string, decision: 'approve' | 'reject') => Promise<void>;
+}) {
+  const website = typeof application.website === 'string' && /^https?:\/\//i.test(application.website) ? application.website : null;
+  return (
+    <tr className="border-b align-top">
+      <td className="py-2 pr-4">
+        <p className="font-medium">{affiliateText(application.organization_name)}</p>
+        {application.message ? <p className="mt-1 max-w-xs whitespace-pre-wrap text-xs text-muted-foreground">{application.message}</p> : null}
+      </td>
+      <td className="py-2 pr-4 text-xs">
+        <p>{affiliateText(application.contact_name)}</p>
+        <p className="text-muted-foreground">{affiliateText(application.email)}</p>
+        {application.phone ? <p className="text-muted-foreground">{application.phone}</p> : null}
+        {website ? <a href={website} target="_blank" rel="noreferrer" className="text-muted-foreground underline-offset-2 hover:underline">{website}</a> : null}
+        {application.username ? <p className="mt-1 text-muted-foreground">Account: {application.username}</p> : null}
+      </td>
+      <td className="py-2 pr-4 text-xs">{affiliateDate(application.created_at)}</td>
+      <td className="py-2 pr-4">
+        <div className="flex flex-col gap-2">
+          <label className="flex items-center gap-2 text-xs text-muted-foreground">
+            Organization rate (%)
+            <Input
+              type="number"
+              min={0}
+              max={90}
+              step="0.5"
+              value={edit.rate}
+              onChange={(event) => onEdit({ ...edit, rate: event.target.value })}
+              className="h-8 w-20"
+            />
+          </label>
+          <Input
+            value={edit.note}
+            onChange={(event) => onEdit({ ...edit, note: event.target.value })}
+            placeholder="Note to the applicant (optional)"
+            className="h-8 w-60 text-xs"
+          />
+        </div>
+      </td>
+      <td className="py-2 pr-4">
+        <div className="flex gap-2">
+          <Button size="sm" disabled={busy} onClick={() => void onReview(application.id, 'approve')}>
+            Approve
+          </Button>
+          <Button size="sm" variant="ghost" disabled={busy} onClick={() => void onReview(application.id, 'reject')}>
+            Decline
+          </Button>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+/** Which products a promo code applies to. `edit` changes as the admin picks; "Save" on the partner row sends it. */
+function ScopeEditor({
+  edit,
+  products,
+  loading,
+  failed,
+  search,
+  onSearch,
+  onChange,
+}: {
+  edit: PartnerEdit;
+  products: AffiliateScopeProduct[];
+  loading: boolean;
+  failed: boolean;
+  search: string;
+  onSearch: (value: string) => void;
+  onChange: (next: PartnerEdit) => void;
+}) {
+  const limited = edit.scopeMode !== 'all';
+  const needle = search.trim().toLowerCase();
+  const visible = products.filter((product) => !needle || product.name.toLowerCase().includes(needle) || product.id.toLowerCase().includes(needle));
+  const toggle = (id: string) => {
+    const picked = edit.scopeProductIds.includes(id);
+    onChange({ ...edit, scopeProductIds: picked ? edit.scopeProductIds.filter((value) => value !== id) : [...edit.scopeProductIds, id] });
+  };
+  const pickGroup = (match: (product: AffiliateScopeProduct) => boolean) => {
+    onChange({ ...edit, scopeProductIds: toggleGroup(edit.scopeProductIds, products, match) });
+  };
+  return (
+    <div className="rounded-2xl border border-gray-100 bg-white p-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <label className="flex items-center gap-2 text-xs text-muted-foreground">
+          Applies to
+          <select
+            aria-label="What the promo code applies to"
+            value={edit.scopeMode}
+            onChange={(event) => onChange({ ...edit, scopeMode: event.target.value as AffiliateScopeMode })}
+            className="h-8 rounded-md border bg-background px-2 text-sm"
+          >
+            <option value="all">Every product</option>
+            <option value="selected">Only the products picked below</option>
+            <option value="except">Every product except the ones picked below</option>
+          </select>
+        </label>
+        {limited ? (
+          <>
+            <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => pickGroup(isPhysicalProduct)}>All physical cards</Button>
+            <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => pickGroup((product) => !isPhysicalProduct(product))}>All eSIM plans and digital products</Button>
+            <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => onChange({ ...edit, scopeProductIds: [] })}>Clear</Button>
+            <span className="text-xs text-muted-foreground">{edit.scopeProductIds.length} picked</span>
+            <Input value={search} onChange={(event) => onSearch(event.target.value)} placeholder="Search products" className="h-8 w-48 text-xs" />
+          </>
+        ) : null}
+      </div>
+      {limited ? (
+        loading ? (
+          <p className="mt-3 text-xs text-muted-foreground">Loading the catalog…</p>
+        ) : failed ? (
+          <p className="mt-3 text-xs text-red-700">The product list could not be loaded. Reload the page and try again.</p>
+        ) : (
+          <ul className="mt-3 max-h-64 divide-y divide-gray-100 overflow-y-auto rounded-xl border border-gray-100">
+            {visible.map((product) => {
+              // a product the catalog no longer has, but the code still names, is listed so it can be unticked
+              const checked = edit.scopeProductIds.includes(product.id);
+              return (
+                <li key={product.id}>
+                  <label className="flex cursor-pointer items-center gap-3 px-3 py-2 text-sm hover:bg-gray-50">
+                    <input type="checkbox" checked={checked} onChange={() => toggle(product.id)} className="h-4 w-4" />
+                    <span className="min-w-0 flex-1 truncate">{product.name}</span>
+                    <span className="text-xs text-muted-foreground">{product.price !== null && product.price !== undefined ? `$${Number(product.price).toFixed(2)}` : ''}</span>
+                    <Badge variant="outline" className="text-[10px]">{isPhysicalProduct(product) ? 'Physical' : 'Digital'}</Badge>
+                  </label>
+                </li>
+              );
+            })}
+            {visible.length === 0 ? <li className="px-3 py-4 text-center text-xs text-muted-foreground">No product matches.</li> : null}
+          </ul>
+        )
+      ) : null}
+      <p className="mt-3 text-xs text-muted-foreground">
+        A code pinned to picked products takes its discount off those products at their current price and earns on them alone.
+        Any other code takes nothing off, and earns nothing on, products outside what it applies to.
+        &ldquo;Save&rdquo; on the partner&apos;s row keeps the change.
+      </p>
     </div>
   );
 }

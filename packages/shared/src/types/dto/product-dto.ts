@@ -49,6 +49,9 @@ export interface AdminProductListItemDTO {
   variantsCount?: number; // Variant count, not returning full variants
   status?: string;
   isFeatured?: boolean;
+  /** `goods` for physical products, `digital` for the rest: lets the admin group products without a detail call. */
+  productKind?: string | null;
+  requiresShipping?: boolean;
   createdAt: string;
   updatedAt: string;
 }

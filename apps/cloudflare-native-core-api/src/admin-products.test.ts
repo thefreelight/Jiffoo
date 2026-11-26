@@ -101,6 +101,14 @@ describe('tryNativeAdminProducts', () => {
     expect(body.data.items[1]).toMatchObject({ id: 'odoo-product-7', status: 'DRAFT', stock: 0 });
   });
 
+  it('says in the list what each product is, so the admin can group them without a detail call', async () => {
+    const env = fakeEnv({ catalog: CATALOG_SNAPSHOT });
+    const response = await tryNativeAdminProducts(request('/api/v1/admin/products'), env);
+    const body = await response.json() as { data: { items: Array<{ productKind?: string | null; requiresShipping?: boolean }> } };
+    // the catalog snapshot names the kind; shipping is only known where the catalog says so
+    expect(body.data.items.map((item) => [item.productKind, item.requiresShipping])).toEqual([['goods', false], ['goods', false]]);
+  });
+
   it('filters by search across name and sku', async () => {
     const env = fakeEnv({ catalog: CATALOG_SNAPSHOT });
     const response = await tryNativeAdminProducts(request('/api/v1/admin/products?search=bokmoo-card-v2'), env);
