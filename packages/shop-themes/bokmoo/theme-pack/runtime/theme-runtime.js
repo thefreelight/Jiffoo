@@ -13032,8 +13032,16 @@
   async function getBokmooAffiliateOrganization(config) {
     return request(config, `${affiliateBase}/organizations/me`);
   }
-  async function createBokmooAffiliateOrganization(config, input) {
-    return request(config, `${affiliateBase}/organizations`, "POST", input);
+  async function getBokmooAffiliateApplication(config) {
+    try {
+      return await request(config, `${affiliateBase}/organizations/applications/mine`);
+    } catch (cause) {
+      if (cause instanceof BokmooApiError && cause.status === 404) return null;
+      throw cause;
+    }
+  }
+  async function applyForBokmooAffiliateOrganization(config, input) {
+    return request(config, `${affiliateBase}/organizations/applications`, "POST", input);
   }
   async function addBokmooAffiliateMember(config, organizationId, input) {
     return request(config, `${affiliateBase}/organizations/${encodeURIComponent(organizationId)}/members`, "POST", input);
@@ -13043,7 +13051,254 @@
     return result.items || [];
   }
 
+  // src/lib/card-copy.ts
+  var CARDS = [
+    {
+      kind: "bluetooth",
+      keys: ["odoo-product-7", "bokmoo-ble-v1"],
+      sourceDescription: "Bokmoo Bluetooth Card \u2014 manage multiple eSIM profiles wirelessly. Enable, switch, and organize eSIM plans in the BOKMOO app. No tray tools needed.\n\nThe card connects to your phone over Bluetooth, so you can carry several eSIM profiles on one physical card and move between them in seconds \u2014 ideal for travel, separate work and personal lines, or keeping a backup plan ready. Pair it with the BOKMOO app, pick a profile, and it applies over the air.",
+      name: {
+        en: "Bokmoo Bluetooth Card",
+        hans: "Bokmoo \u84DD\u7259\u5361",
+        hant: "Bokmoo \u85CD\u7259\u5361",
+        ja: "Bokmoo Bluetooth \u30AB\u30FC\u30C9",
+        ko: "Bokmoo \uBE14\uB8E8\uD22C\uC2A4 \uCE74\uB4DC",
+        fr: "Carte Bokmoo Bluetooth",
+        de: "Bokmoo Bluetooth-Karte"
+      },
+      description: {
+        en: "Bokmoo Bluetooth Card \u2014 manage multiple eSIM profiles wirelessly. Enable, switch, and organize eSIM plans in the BOKMOO app. No tray tools needed.\n\nThe card connects to your phone over Bluetooth, so you can carry several eSIM profiles on one physical card and move between them in seconds \u2014 ideal for travel, separate work and personal lines, or keeping a backup plan ready. Pair it with the BOKMOO app, pick a profile, and it applies over the air.",
+        hans: "Bokmoo \u84DD\u7259\u5361\u2014\u2014\u65E0\u7EBF\u7BA1\u7406\u591A\u4E2A eSIM \u914D\u7F6E\u6587\u4EF6\u3002\u5728 BOKMOO App \u91CC\u542F\u7528\u3001\u5207\u6362\u548C\u6574\u7406 eSIM \u5957\u9910\uFF0C\u65E0\u9700\u53D6\u5361\u9488\u3002\n\n\u5361\u7247\u901A\u8FC7\u84DD\u7259\u8FDE\u63A5\u624B\u673A\uFF0C\u4E00\u5F20\u5B9E\u4F53\u5361\u4E0A\u53EF\u4EE5\u643A\u5E26\u591A\u4E2A eSIM \u914D\u7F6E\u6587\u4EF6\uFF0C\u51E0\u79D2\u5185\u5373\u53EF\u5207\u6362\u2014\u2014\u9002\u5408\u65C5\u884C\u3001\u5DE5\u4F5C\u4E0E\u4E2A\u4EBA\u53F7\u7801\u5206\u5F00\u4F7F\u7528\uFF0C\u6216\u968F\u65F6\u5907\u4E00\u4E2A\u5907\u7528\u5957\u9910\u3002\u914D\u5BF9 BOKMOO App\uFF0C\u9009\u4E00\u4E2A\u914D\u7F6E\u6587\u4EF6\uFF0C\u5373\u53EF\u7A7A\u4E2D\u5199\u5165\u3002",
+        hant: "Bokmoo \u85CD\u7259\u5361\u2014\u2014\u7121\u7DDA\u7BA1\u7406\u591A\u500B eSIM \u8A2D\u5B9A\u6A94\u3002\u5728 BOKMOO App \u88E1\u555F\u7528\u3001\u5207\u63DB\u548C\u6574\u7406 eSIM \u5957\u9910\uFF0C\u7121\u9700\u9000\u5361\u91DD\u3002\n\n\u5361\u7247\u900F\u904E\u85CD\u7259\u9023\u63A5\u624B\u6A5F\uFF0C\u4E00\u5F35\u5BE6\u9AD4\u5361\u4E0A\u53EF\u4EE5\u651C\u5E36\u591A\u500B eSIM \u8A2D\u5B9A\u6A94\uFF0C\u5E7E\u79D2\u5167\u5373\u53EF\u5207\u63DB\u2014\u2014\u9069\u5408\u65C5\u884C\u3001\u5DE5\u4F5C\u8207\u500B\u4EBA\u9580\u865F\u5206\u958B\u4F7F\u7528\uFF0C\u6216\u96A8\u6642\u5099\u4E00\u500B\u5099\u7528\u65B9\u6848\u3002\u914D\u5C0D BOKMOO App\uFF0C\u9078\u4E00\u500B\u8A2D\u5B9A\u6A94\uFF0C\u5373\u53EF\u900F\u904E\u7A7A\u4E2D\u4E0B\u8F09\u5BEB\u5165\u3002",
+        ja: "Bokmoo Bluetooth \u30AB\u30FC\u30C9\u2014\u2014\u8907\u6570\u306E eSIM \u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3092\u30EF\u30A4\u30E4\u30EC\u30B9\u3067\u7BA1\u7406\u3002BOKMOO \u30A2\u30D7\u30EA\u3067 eSIM \u30D7\u30E9\u30F3\u306E\u6709\u52B9\u5316\u30FB\u5207\u308A\u66FF\u3048\u30FB\u6574\u7406\u304C\u3067\u304D\u3001\u30D4\u30F3\u306F\u4E0D\u8981\u3067\u3059\u3002\n\n\u30AB\u30FC\u30C9\u306F Bluetooth \u3067\u30B9\u30DE\u30FC\u30C8\u30D5\u30A9\u30F3\u306B\u63A5\u7D9A\u3059\u308B\u305F\u3081\u30011 \u679A\u306E\u7269\u7406\u30AB\u30FC\u30C9\u306B\u8907\u6570\u306E eSIM \u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3092\u6301\u3061\u3001\u6570\u79D2\u3067\u5207\u308A\u66FF\u3048\u3089\u308C\u307E\u3059\u3002\u65C5\u884C\u3001\u4ED5\u4E8B\u7528\u3068\u500B\u4EBA\u7528\u306E\u56DE\u7DDA\u306E\u4F7F\u3044\u5206\u3051\u3001\u4E88\u5099\u30D7\u30E9\u30F3\u306E\u4FDD\u6301\u306B\u6700\u9069\u3067\u3059\u3002BOKMOO \u30A2\u30D7\u30EA\u3068\u30DA\u30A2\u30EA\u30F3\u30B0\u3057\u3066\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3092\u9078\u3076\u3060\u3051\u3067\u3001\u7121\u7DDA\u3067\u66F8\u304D\u8FBC\u307E\u308C\u307E\u3059\u3002",
+        ko: "Bokmoo \uBE14\uB8E8\uD22C\uC2A4 \uCE74\uB4DC \u2014 \uC5EC\uB7EC eSIM \uD504\uB85C\uD544\uC744 \uBB34\uC120\uC73C\uB85C \uAD00\uB9AC\uD558\uC138\uC694. BOKMOO \uC571\uC5D0\uC11C eSIM \uC694\uAE08\uC81C\uB97C \uD65C\uC131\uD654\uD558\uACE0 \uC804\uD658\uD558\uACE0 \uC815\uB9AC\uD560 \uC218 \uC788\uC73C\uBA70, \uD540 \uB3C4\uAD6C\uAC00 \uD544\uC694 \uC5C6\uC2B5\uB2C8\uB2E4.\n\n\uCE74\uB4DC\uAC00 \uBE14\uB8E8\uD22C\uC2A4\uB85C \uD734\uB300\uD3F0\uC5D0 \uC5F0\uACB0\uB418\uBBC0\uB85C \uC2E4\uC81C \uCE74\uB4DC \uD55C \uC7A5\uC5D0 \uC5EC\uB7EC eSIM \uD504\uB85C\uD544\uC744 \uB2F4\uACE0 \uBA87 \uCD08 \uB9CC\uC5D0 \uC804\uD658\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4. \uC5EC\uD589, \uC5C5\uBB34\uC6A9\xB7\uAC1C\uC778\uC6A9 \uD68C\uC120 \uBD84\uB9AC, \uC608\uBE44 \uC694\uAE08\uC81C \uC900\uBE44\uC5D0 \uC801\uD569\uD569\uB2C8\uB2E4. BOKMOO \uC571\uACFC \uD398\uC5B4\uB9C1\uD558\uACE0 \uD504\uB85C\uD544\uC744 \uC120\uD0DD\uD558\uBA74 \uBB34\uC120\uC73C\uB85C \uC801\uC6A9\uB429\uB2C8\uB2E4.",
+        fr: "Carte Bokmoo Bluetooth \u2014 g\xE9rez plusieurs profils eSIM sans fil. Activez, changez et organisez vos forfaits eSIM dans l\u2019application BOKMOO, sans outil d\u2019\xE9jection.\n\nLa carte se connecte \xE0 votre t\xE9l\xE9phone en Bluetooth : vous pouvez garder plusieurs profils eSIM sur une seule carte physique et passer de l\u2019un \xE0 l\u2019autre en quelques secondes \u2014 id\xE9al pour voyager, s\xE9parer lignes pro et perso, ou garder un forfait de rechange pr\xEAt. Jumelez-la avec l\u2019application BOKMOO, choisissez un profil, et il s\u2019applique \xE0 distance.",
+        de: "Bokmoo Bluetooth-Karte \u2013 mehrere eSIM-Profile drahtlos verwalten. eSIM-Tarife in der BOKMOO-App aktivieren, wechseln und ordnen \u2013 ohne Simnad.\n\nDie Karte verbindet sich per Bluetooth mit Ihrem Smartphone, sodass Sie mehrere eSIM-Profile auf einer physischen Karte tragen und in Sekunden wechseln k\xF6nnen \u2013 ideal zum Reisen, f\xFCr getrennte Gesch\xE4fts- und Privatanschl\xFCsse oder einen bereiten Ersatztarif. Mit der BOKMOO-App koppeln, Profil w\xE4hlen \u2013 und er wird drahtlos aufgespielt."
+      }
+    },
+    {
+      kind: "plug-in",
+      keys: ["odoo-product-6", "bokmoo-card-v1"],
+      sourceDescription: "Bokmoo Card V1 \u2014 plug-in smart card that installs eSIM profiles directly on your phone. Works with the BOKMOO app; eSIM plan service is rolling out soon.\n\nInsert the card, open the BOKMOO app, and load your eSIM profile straight onto the card \u2014 a simple way to carry a second line or keep a backup of your main eSIM. No Bluetooth pairing required.",
+      name: {
+        en: "Bokmoo Card",
+        hans: "Bokmoo \u5B9E\u4F53\u5361",
+        hant: "Bokmoo \u5BE6\u9AD4\u5361",
+        ja: "Bokmoo \u30AB\u30FC\u30C9",
+        ko: "Bokmoo \uCE74\uB4DC",
+        fr: "Carte Bokmoo",
+        de: "Bokmoo Karte"
+      },
+      description: {
+        en: "Bokmoo Card V1 \u2014 plug-in smart card that installs eSIM profiles directly on your phone. Works with the BOKMOO app; eSIM plan service is rolling out soon.\n\nInsert the card, open the BOKMOO app, and load your eSIM profile straight onto the card \u2014 a simple way to carry a second line or keep a backup of your main eSIM. No Bluetooth pairing required.",
+        hans: "Bokmoo \u5B9E\u4F53\u5361\u2014\u2014\u5373\u63D2\u5373\u7528\u7684\u667A\u80FD\u5361\uFF0C\u628A eSIM \u914D\u7F6E\u6587\u4EF6\u76F4\u63A5\u88C5\u8FDB\u624B\u673A\u3002\u914D\u5408 BOKMOO App \u4F7F\u7528\u3002\n\n\u63D2\u5165\u5361\u7247\uFF0C\u6253\u5F00 BOKMOO App\uFF0C\u5373\u53EF\u628A eSIM \u914D\u7F6E\u6587\u4EF6\u76F4\u63A5\u5199\u5165\u5361\u4E2D\u2014\u2014\u8F7B\u677E\u5E26\u4E0A\u7B2C\u4E8C\u4E2A\u53F7\u7801\uFF0C\u6216\u4E3A\u4E3B eSIM \u7559\u4E00\u4EFD\u5907\u4EFD\u3002\u65E0\u9700\u84DD\u7259\u914D\u5BF9\u3002",
+        hant: "Bokmoo \u5BE6\u9AD4\u5361\u2014\u2014\u5373\u63D2\u5373\u7528\u7684\u667A\u6167\u5361\uFF0C\u628A eSIM \u8A2D\u5B9A\u6A94\u76F4\u63A5\u5B89\u88DD\u5230\u624B\u6A5F\u3002\u642D\u914D BOKMOO App \u4F7F\u7528\u3002\n\n\u63D2\u5165\u5361\u7247\uFF0C\u958B\u555F BOKMOO App\uFF0C\u5373\u53EF\u628A eSIM \u8A2D\u5B9A\u6A94\u76F4\u63A5\u5BEB\u5165\u5361\u4E2D\u2014\u2014\u8F15\u9B06\u651C\u5E36\u7B2C\u4E8C\u500B\u9580\u865F\uFF0C\u6216\u70BA\u4E3B\u8981 eSIM \u4FDD\u7559\u4E00\u4EFD\u5099\u4EFD\u3002\u7121\u9700\u85CD\u7259\u914D\u5C0D\u3002",
+        ja: "Bokmoo \u30AB\u30FC\u30C9\u2014\u2014eSIM \u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3092\u30B9\u30DE\u30FC\u30C8\u30D5\u30A9\u30F3\u306B\u76F4\u63A5\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3059\u308B\u3001\u5DEE\u3057\u8FBC\u3080\u3060\u3051\u306E\u30B9\u30DE\u30FC\u30C8\u30AB\u30FC\u30C9\u3002BOKMOO \u30A2\u30D7\u30EA\u3068\u4F75\u7528\u3057\u307E\u3059\u3002\n\n\u30AB\u30FC\u30C9\u3092\u5DEE\u3057\u8FBC\u307F\u3001BOKMOO \u30A2\u30D7\u30EA\u3092\u958B\u3044\u3066\u3001eSIM \u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3092\u30AB\u30FC\u30C9\u306B\u76F4\u63A5\u66F8\u304D\u8FBC\u307F\u307E\u3059\u30022 \u756A\u76EE\u306E\u56DE\u7DDA\u3092\u6301\u3063\u305F\u308A\u3001\u30E1\u30A4\u30F3\u306E eSIM \u306E\u30D0\u30C3\u30AF\u30A2\u30C3\u30D7\u3092\u53D6\u3063\u305F\u308A\u3059\u308B\u7C21\u5358\u306A\u65B9\u6CD5\u3067\u3059\u3002Bluetooth \u306E\u30DA\u30A2\u30EA\u30F3\u30B0\u306F\u4E0D\u8981\u3067\u3059\u3002",
+        ko: "Bokmoo \uCE74\uB4DC \u2014 eSIM \uD504\uB85C\uD544\uC744 \uD734\uB300\uD3F0\uC5D0 \uBC14\uB85C \uC124\uCE58\uD558\uB294 \uAF42\uAE30\uB9CC \uD558\uBA74 \uB418\uB294 \uC2A4\uB9C8\uD2B8 \uCE74\uB4DC. BOKMOO \uC571\uACFC \uD568\uAED8 \uC0AC\uC6A9\uD569\uB2C8\uB2E4.\n\n\uCE74\uB4DC\uB97C \uAF42\uACE0 BOKMOO \uC571\uC744 \uC5F0 \uB2E4\uC74C eSIM \uD504\uB85C\uD544\uC744 \uCE74\uB4DC\uC5D0 \uBC14\uB85C \uBD88\uB7EC\uC624\uC138\uC694. \uB450 \uBC88\uC9F8 \uD68C\uC120\uC744 \uB4E4\uACE0 \uB2E4\uB2C8\uAC70\uB098 \uC8FC eSIM\uC758 \uBC31\uC5C5\uC744 \uC720\uC9C0\uD558\uB294 \uAC04\uB2E8\uD55C \uBC29\uBC95\uC785\uB2C8\uB2E4. \uBE14\uB8E8\uD22C\uC2A4 \uD398\uC5B4\uB9C1\uC740 \uD544\uC694 \uC5C6\uC2B5\uB2C8\uB2E4.",
+        fr: "Carte Bokmoo \u2014 une carte \xE0 puce \xE0 ins\xE9rer qui installe vos profils eSIM directement sur votre t\xE9l\xE9phone. S\u2019utilise avec l\u2019application BOKMOO.\n\nIns\xE9rez la carte, ouvrez l\u2019application BOKMOO et chargez votre profil eSIM directement sur la carte \u2014 une fa\xE7on simple de transporter une seconde ligne ou de garder une sauvegarde de votre eSIM principale. Aucun jumelage Bluetooth requis.",
+        de: "Bokmoo Karte \u2013 eine einzusteckende Smartcard, die eSIM-Profile direkt auf Ihrem Smartphone installiert. Funktioniert mit der BOKMOO-App.\n\nKarte einstecken, BOKMOO-App \xF6ffnen und Ihr eSIM-Profil direkt auf die Karte laden \u2013 ein einfacher Weg, einen zweiten Anschluss dabei zu haben oder eine Sicherung Ihrer Haupt-eSIM zu behalten. Kein Bluetooth-Koppeln n\xF6tig."
+      }
+    }
+  ];
+  var squash = (value) => String(value ?? "").replace(/\s+/g, " ").trim();
+  function knownCardOf(product) {
+    if (!product) return null;
+    const keys = [product.id, product.sku, product.slug].map((key) => String(key ?? "").toLowerCase());
+    return CARDS.find((card) => card.keys.some((key) => keys.includes(key))) ?? null;
+  }
+  function cardKindOf(product) {
+    return knownCardOf(product)?.kind ?? null;
+  }
+  function cardName(product, locale) {
+    const card = knownCardOf(product);
+    if (!card) return null;
+    return pickCopy(locale, card.name);
+  }
+  function cardDescription(product, locale) {
+    const card = knownCardOf(product);
+    if (!card) return null;
+    if (squash(product.description) !== squash(card.sourceDescription)) return null;
+    return pickCopy(locale, card.description);
+  }
+  function cardLineName(item, locale) {
+    return cardName({ id: item.productId, sku: item.sku }, locale) ?? String(item.productName ?? "");
+  }
+
+  // src/lib/affiliate-copy.ts
+  var affiliateText = (locale, copy) => pickCopy(locale, copy);
+  function fill(text, values) {
+    let filled = text;
+    for (const [key, value] of Object.entries(values)) filled = filled.split(`{${key}}`).join(String(value));
+    return filled;
+  }
+  var AFFILIATE = {
+    back: { en: "Back", hans: "\u8FD4\u56DE", hant: "\u8FD4\u56DE", ja: "\u623B\u308B", ko: "\uB4A4\uB85C", fr: "Retour", de: "Zur\xFCck" },
+    refresh: { en: "Refresh", hans: "\u5237\u65B0", hant: "\u91CD\u65B0\u6574\u7406", ja: "\u66F4\u65B0", ko: "\uC0C8\uB85C\uACE0\uCE68", fr: "Actualiser", de: "Aktualisieren" },
+    signInTitle: { en: "Affiliate workspace", hans: "\u63A8\u5E7F\u4E2D\u5FC3", hant: "\u63A8\u5EE3\u4E2D\u5FC3", ja: "\u30A2\u30D5\u30A3\u30EA\u30A8\u30A4\u30C8\u753B\u9762", ko: "\uC81C\uD734 \uC13C\uD130", fr: "Espace d\u2019affiliation", de: "Partnerbereich" },
+    tabPartner: { en: "Partner", hans: "\u63A8\u5E7F\u4F19\u4F34", hant: "\u63A8\u5EE3\u5925\u4F34", ja: "\u30D1\u30FC\u30C8\u30CA\u30FC", ko: "\uD30C\uD2B8\uB108", fr: "Partenaire", de: "Partner" },
+    tabOrganization: { en: "Organization", hans: "\u673A\u6784", hant: "\u6A5F\u69CB", ja: "\u7D44\u7E54", ko: "\uC870\uC9C1", fr: "Organisation", de: "Organisation" },
+    partnerEyebrow: { en: "Personal affiliate", hans: "\u4E2A\u4EBA\u63A8\u5E7F", hant: "\u500B\u4EBA\u63A8\u5EE3", ja: "\u500B\u4EBA\u30A2\u30D5\u30A3\u30EA\u30A8\u30A4\u30C8", ko: "\uAC1C\uC778 \uC81C\uD734", fr: "Affiliation personnelle", de: "Pers\xF6nliche Partnerschaft" },
+    partnerTitle: { en: "Your referral earnings.", hans: "\u4F60\u7684\u63A8\u8350\u6536\u76CA\u3002", hant: "\u4F60\u7684\u63A8\u85A6\u6536\u76CA\u3002", ja: "\u3042\u306A\u305F\u306E\u7D39\u4ECB\u5831\u916C\u3002", ko: "\uB098\uC758 \uCD94\uCC9C \uC218\uC775.", fr: "Vos gains de parrainage.", de: "Ihre Empfehlungserl\xF6se." },
+    copyLink: { en: "Copy link", hans: "\u590D\u5236\u94FE\u63A5", hant: "\u8907\u88FD\u9023\u7D50", ja: "\u30EA\u30F3\u30AF\u3092\u30B3\u30D4\u30FC", ko: "\uB9C1\uD06C \uBCF5\uC0AC", fr: "Copier le lien", de: "Link kopieren" },
+    copied: { en: "Copied", hans: "\u5DF2\u590D\u5236", hant: "\u5DF2\u8907\u88FD", ja: "\u30B3\u30D4\u30FC\u3057\u307E\u3057\u305F", ko: "\uBCF5\uC0AC\uB428", fr: "Copi\xE9", de: "Kopiert" },
+    earned: { en: "earned", hans: "\u7D2F\u8BA1\u6536\u76CA", hant: "\u7D2F\u8A08\u6536\u76CA", ja: "\u7372\u5F97\u6E08\u307F", ko: "\uD68D\uB4DD", fr: "gagn\xE9s", de: "verdient" },
+    rate: { en: "rate", hans: "\u4F63\u91D1\u6BD4\u4F8B", hant: "\u4F63\u91D1\u6BD4\u4F8B", ja: "\u5831\u916C\u7387", ko: "\uC218\uC218\uB8CC\uC728", fr: "taux", de: "Satz" },
+    orders: { en: "orders", hans: "\u8BA2\u5355", hant: "\u8A02\u55AE", ja: "\u6CE8\u6587", ko: "\uC8FC\uBB38", fr: "commandes", de: "Bestellungen" },
+    appliesToAll: {
+      en: "Your code applies to every product.",
+      hans: "\u4F60\u7684\u63A8\u5E7F\u7801\u9002\u7528\u4E8E\u5168\u90E8\u5546\u54C1\u3002",
+      hant: "\u4F60\u7684\u63A8\u5EE3\u78BC\u9069\u7528\u65BC\u5168\u90E8\u5546\u54C1\u3002",
+      ja: "\u3042\u306A\u305F\u306E\u30B3\u30FC\u30C9\u306F\u3059\u3079\u3066\u306E\u5546\u54C1\u306B\u4F7F\u3048\u307E\u3059\u3002",
+      ko: "\uB0B4 \uCF54\uB4DC\uB294 \uBAA8\uB4E0 \uC0C1\uD488\uC5D0 \uC801\uC6A9\uB429\uB2C8\uB2E4.",
+      fr: "Votre code s\u2019applique \xE0 tous les produits.",
+      de: "Ihr Code gilt f\xFCr alle Produkte."
+    },
+    appliesToSelected: {
+      en: "Your code applies to {products} only.",
+      hans: "\u4F60\u7684\u63A8\u5E7F\u7801\u4EC5\u9002\u7528\u4E8E{products}\u3002",
+      hant: "\u4F60\u7684\u63A8\u5EE3\u78BC\u50C5\u9069\u7528\u65BC{products}\u3002",
+      ja: "\u3042\u306A\u305F\u306E\u30B3\u30FC\u30C9\u306F{products}\u306B\u306E\u307F\u4F7F\u3048\u307E\u3059\u3002",
+      ko: "\uB0B4 \uCF54\uB4DC\uB294 {products}\uC5D0\uB9CC \uC801\uC6A9\uB429\uB2C8\uB2E4.",
+      fr: "Votre code ne s\u2019applique qu\u2019\xE0 : {products}.",
+      de: "Ihr Code gilt nur f\xFCr: {products}."
+    },
+    appliesToExcept: {
+      en: "Your code applies to every product except {products}.",
+      hans: "\u4F60\u7684\u63A8\u5E7F\u7801\u9002\u7528\u4E8E\u5168\u90E8\u5546\u54C1\uFF0C{products}\u9664\u5916\u3002",
+      hant: "\u4F60\u7684\u63A8\u5EE3\u78BC\u9069\u7528\u65BC\u5168\u90E8\u5546\u54C1\uFF0C{products}\u9664\u5916\u3002",
+      ja: "\u3042\u306A\u305F\u306E\u30B3\u30FC\u30C9\u306F{products}\u3092\u9664\u304F\u3059\u3079\u3066\u306E\u5546\u54C1\u306B\u4F7F\u3048\u307E\u3059\u3002",
+      ko: "\uB0B4 \uCF54\uB4DC\uB294 {products}\uC744(\uB97C) \uC81C\uC678\uD55C \uBAA8\uB4E0 \uC0C1\uD488\uC5D0 \uC801\uC6A9\uB429\uB2C8\uB2E4.",
+      fr: "Votre code s\u2019applique \xE0 tous les produits, sauf : {products}.",
+      de: "Ihr Code gilt f\xFCr alle Produkte au\xDFer: {products}."
+    },
+    productOne: { en: "1 product", hans: "1 \u4EF6\u5546\u54C1", hant: "1 \u4EF6\u5546\u54C1", ja: "1 \u70B9\u306E\u5546\u54C1", ko: "\uC0C1\uD488 1\uAC1C", fr: "1 produit", de: "1 Produkt" },
+    productCount: { en: "{count} products", hans: "{count} \u4EF6\u5546\u54C1", hant: "{count} \u4EF6\u5546\u54C1", ja: "{count} \u70B9\u306E\u5546\u54C1", ko: "\uC0C1\uD488 {count}\uAC1C", fr: "{count} produits", de: "{count} Produkte" },
+    displayName: { en: "Display name", hans: "\u663E\u793A\u540D\u79F0", hant: "\u986F\u793A\u540D\u7A31", ja: "\u8868\u793A\u540D", ko: "\uD45C\uC2DC \uC774\uB984", fr: "Nom affich\xE9", de: "Anzeigename" },
+    organizationCode: { en: "Organization code (optional)", hans: "\u673A\u6784\u4EE3\u7801\uFF08\u9009\u586B\uFF09", hant: "\u6A5F\u69CB\u4EE3\u78BC\uFF08\u9078\u586B\uFF09", ja: "\u7D44\u7E54\u30B3\u30FC\u30C9\uFF08\u4EFB\u610F\uFF09", ko: "\uC870\uC9C1 \uCF54\uB4DC(\uC120\uD0DD)", fr: "Code de l\u2019organisation (facultatif)", de: "Organisationscode (optional)" },
+    createAccount: { en: "Create affiliate account", hans: "\u521B\u5EFA\u63A8\u5E7F\u8D26\u53F7", hant: "\u5EFA\u7ACB\u63A8\u5EE3\u5E33\u865F", ja: "\u30A2\u30D5\u30A3\u30EA\u30A8\u30A4\u30C8\u30A2\u30AB\u30A6\u30F3\u30C8\u3092\u4F5C\u6210", ko: "\uC81C\uD734 \uACC4\uC815 \uB9CC\uB4E4\uAE30", fr: "Cr\xE9er un compte d\u2019affiliation", de: "Affiliate-Konto erstellen" },
+    partnerCommissions: { en: "Partner commissions", hans: "\u63A8\u5E7F\u4F63\u91D1", hant: "\u63A8\u5EE3\u4F63\u91D1", ja: "\u30D1\u30FC\u30C8\u30CA\u30FC\u5831\u916C", ko: "\uD30C\uD2B8\uB108 \uC218\uC218\uB8CC", fr: "Commissions du partenaire", de: "Partnerprovisionen" },
+    organizationCommissions: { en: "Organization commissions", hans: "\u673A\u6784\u4F63\u91D1", hant: "\u6A5F\u69CB\u4F63\u91D1", ja: "\u7D44\u7E54\u306E\u5831\u916C", ko: "\uC870\uC9C1 \uC218\uC218\uB8CC", fr: "Commissions de l\u2019organisation", de: "Organisationsprovisionen" },
+    noCommissions: { en: "No commissions yet", hans: "\u6682\u65E0\u4F63\u91D1", hant: "\u66AB\u7121\u4F63\u91D1", ja: "\u5831\u916C\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093", ko: "\uC544\uC9C1 \uC218\uC218\uB8CC\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4", fr: "Aucune commission pour l\u2019instant", de: "Noch keine Provisionen" },
+    loadFailed: { en: "Affiliate data could not be loaded.", hans: "\u63A8\u5E7F\u6570\u636E\u52A0\u8F7D\u5931\u8D25\u3002", hant: "\u63A8\u5EE3\u8CC7\u6599\u8F09\u5165\u5931\u6557\u3002", ja: "\u30A2\u30D5\u30A3\u30EA\u30A8\u30A4\u30C8\u60C5\u5831\u3092\u8AAD\u307F\u8FBC\u3081\u307E\u305B\u3093\u3067\u3057\u305F\u3002", ko: "\uC81C\uD734 \uC815\uBCF4\uB97C \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.", fr: "Les donn\xE9es d\u2019affiliation n\u2019ont pas pu \xEAtre charg\xE9es.", de: "Die Partnerdaten konnten nicht geladen werden." },
+    registerFailed: { en: "The account could not be created.", hans: "\u8D26\u53F7\u521B\u5EFA\u5931\u8D25\u3002", hant: "\u5E33\u865F\u5EFA\u7ACB\u5931\u6557\u3002", ja: "\u30A2\u30AB\u30A6\u30F3\u30C8\u3092\u4F5C\u6210\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002", ko: "\uACC4\uC815\uC744 \uB9CC\uB4E4\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.", fr: "Le compte n\u2019a pas pu \xEAtre cr\xE9\xE9.", de: "Das Konto konnte nicht erstellt werden." },
+    // the application to open an organization
+    organizationEyebrow: { en: "Organization affiliate", hans: "\u673A\u6784\u63A8\u5E7F", hant: "\u6A5F\u69CB\u63A8\u5EE3", ja: "\u7D44\u7E54\u30A2\u30D5\u30A3\u30EA\u30A8\u30A4\u30C8", ko: "\uC870\uC9C1 \uC81C\uD734", fr: "Affiliation d\u2019organisation", de: "Organisations-Partnerschaft" },
+    organizationTitle: { en: "Creator network.", hans: "\u521B\u4F5C\u8005\u7F51\u7EDC\u3002", hant: "\u5275\u4F5C\u8005\u7DB2\u7D61\u3002", ja: "\u30AF\u30EA\u30A8\u30A4\u30BF\u30FC\u30CD\u30C3\u30C8\u30EF\u30FC\u30AF\u3002", ko: "\uD06C\uB9AC\uC5D0\uC774\uD130 \uB124\uD2B8\uC6CC\uD06C.", fr: "R\xE9seau de cr\xE9ateurs.", de: "Creator-Netzwerk." },
+    applyIntro: {
+      en: "Run a channel, an agency or a creator team? Tell us about it and we will get back to you. Once approved, you add members and earn on their sales.",
+      hans: "\u4F60\u6709\u9891\u9053\u3001\u7ECF\u7EAA\u56E2\u961F\u6216\u521B\u4F5C\u8005\u56E2\u961F\uFF1F\u7559\u4E0B\u4FE1\u606F\uFF0C\u6211\u4EEC\u4F1A\u5C3D\u5FEB\u8054\u7CFB\u4F60\u3002\u901A\u8FC7\u540E\u5373\u53EF\u6DFB\u52A0\u6210\u5458\uFF0C\u5E76\u83B7\u5F97\u4ED6\u4EEC\u5E26\u6765\u7684\u9500\u552E\u4F63\u91D1\u3002",
+      hant: "\u4F60\u6709\u983B\u9053\u3001\u7D93\u7D00\u5718\u968A\u6216\u5275\u4F5C\u8005\u5718\u968A\uFF1F\u7559\u4E0B\u8CC7\u8A0A\uFF0C\u6211\u5011\u6703\u76E1\u5FEB\u806F\u7D61\u4F60\u3002\u901A\u904E\u5F8C\u5373\u53EF\u65B0\u589E\u6210\u54E1\uFF0C\u4E26\u7372\u5F97\u4ED6\u5011\u5E36\u4F86\u7684\u92B7\u552E\u4F63\u91D1\u3002",
+      ja: "\u30C1\u30E3\u30F3\u30CD\u30EB\u3001\u30A8\u30FC\u30B8\u30A7\u30F3\u30B7\u30FC\u3001\u30AF\u30EA\u30A8\u30A4\u30BF\u30FC\u30C1\u30FC\u30E0\u3092\u904B\u55B6\u3057\u3066\u3044\u307E\u3059\u304B\uFF1F\u60C5\u5831\u3092\u304A\u9001\u308A\u304F\u3060\u3055\u3044\u3002\u627F\u8A8D\u5F8C\u306B\u30E1\u30F3\u30D0\u30FC\u3092\u8FFD\u52A0\u3057\u3001\u305D\u306E\u58F2\u4E0A\u306B\u5BFE\u3059\u308B\u5831\u916C\u3092\u5F97\u3089\u308C\u307E\u3059\u3002",
+      ko: "\uCC44\uB110, \uC5D0\uC774\uC804\uC2DC \uB610\uB294 \uD06C\uB9AC\uC5D0\uC774\uD130 \uD300\uC744 \uC6B4\uC601\uD558\uB098\uC694? \uC815\uBCF4\uB97C \uB0A8\uACA8 \uC8FC\uC2DC\uBA74 \uC5F0\uB77D\uB4DC\uB9AC\uACA0\uC2B5\uB2C8\uB2E4. \uC2B9\uC778 \uD6C4 \uBA64\uBC84\uB97C \uCD94\uAC00\uD558\uACE0 \uBA64\uBC84\uC758 \uD310\uB9E4\uC5D0 \uB300\uD55C \uC218\uC218\uB8CC\uB97C \uBC1B\uC744 \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
+      fr: "Vous animez une cha\xEEne, une agence ou une \xE9quipe de cr\xE9ateurs ? Parlez-nous de votre projet : nous vous recontactons. Une fois approuv\xE9, vous ajoutez des membres et touchez une commission sur leurs ventes.",
+      de: "Sie betreiben einen Kanal, eine Agentur oder ein Creator-Team? Erz\xE4hlen Sie uns davon \u2013 wir melden uns. Nach der Freischaltung f\xFCgen Sie Mitglieder hinzu und verdienen an deren Verk\xE4ufen."
+    },
+    organizationName: { en: "Organization name", hans: "\u673A\u6784\u540D\u79F0", hant: "\u6A5F\u69CB\u540D\u7A31", ja: "\u7D44\u7E54\u540D", ko: "\uC870\uC9C1 \uC774\uB984", fr: "Nom de l\u2019organisation", de: "Name der Organisation" },
+    contactName: { en: "Contact name", hans: "\u8054\u7CFB\u4EBA", hant: "\u806F\u7D61\u4EBA", ja: "\u62C5\u5F53\u8005\u540D", ko: "\uB2F4\uB2F9\uC790 \uC774\uB984", fr: "Nom du contact", de: "Kontaktperson" },
+    phone: { en: "Phone or WhatsApp", hans: "\u7535\u8BDD\u6216 WhatsApp", hant: "\u96FB\u8A71\u6216 WhatsApp", ja: "\u96FB\u8A71\u756A\u53F7\u307E\u305F\u306F WhatsApp", ko: "\uC804\uD654\uBC88\uD638 \uB610\uB294 WhatsApp", fr: "T\xE9l\xE9phone ou WhatsApp", de: "Telefon oder WhatsApp" },
+    website: { en: "Website or social media", hans: "\u7F51\u7AD9\u6216\u793E\u4EA4\u5A92\u4F53\u4E3B\u9875", hant: "\u7DB2\u7AD9\u6216\u793E\u7FA4\u5A92\u9AD4\u9996\u9801", ja: "\u30A6\u30A7\u30D6\u30B5\u30A4\u30C8\u307E\u305F\u306F SNS", ko: "\uC6F9\uC0AC\uC774\uD2B8 \uB610\uB294 \uC18C\uC15C \uBBF8\uB514\uC5B4", fr: "Site web ou r\xE9seau social", de: "Website oder Social Media" },
+    message: { en: "About your organization", hans: "\u673A\u6784\u4ECB\u7ECD", hant: "\u6A5F\u69CB\u4ECB\u7D39", ja: "\u7D44\u7E54\u306E\u7D39\u4ECB", ko: "\uC870\uC9C1 \uC18C\uAC1C", fr: "\xC0 propos de votre organisation", de: "\xDCber Ihre Organisation" },
+    submitApplication: { en: "Submit application", hans: "\u63D0\u4EA4\u7533\u8BF7", hant: "\u9001\u51FA\u7533\u8ACB", ja: "\u7533\u3057\u8FBC\u3080", ko: "\uC2E0\uCCAD \uC81C\uCD9C", fr: "Envoyer la demande", de: "Antrag senden" },
+    submitting: { en: "Submitting", hans: "\u6B63\u5728\u63D0\u4EA4", hant: "\u6B63\u5728\u9001\u51FA", ja: "\u9001\u4FE1\u4E2D", ko: "\uC81C\uCD9C \uC911", fr: "Envoi", de: "Wird gesendet" },
+    applyFailed: { en: "The application could not be sent.", hans: "\u7533\u8BF7\u63D0\u4EA4\u5931\u8D25\u3002", hant: "\u7533\u8ACB\u9001\u51FA\u5931\u6557\u3002", ja: "\u7533\u3057\u8FBC\u307F\u3092\u9001\u4FE1\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002", ko: "\uC2E0\uCCAD\uC744 \uC81C\uCD9C\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.", fr: "La demande n\u2019a pas pu \xEAtre envoy\xE9e.", de: "Der Antrag konnte nicht gesendet werden." },
+    pendingTitle: { en: "Application under review", hans: "\u7533\u8BF7\u5BA1\u6838\u4E2D", hant: "\u7533\u8ACB\u5BE9\u6838\u4E2D", ja: "\u7533\u8ACB\u3092\u5BE9\u67FB\u4E2D\u3067\u3059", ko: "\uC2E0\uCCAD \uAC80\uD1A0 \uC911", fr: "Demande en cours d\u2019examen", de: "Antrag in Pr\xFCfung" },
+    pendingBody: {
+      en: "We received your application for \u201C{name}\u201D and will get back to you at {email}.",
+      hans: "\u6211\u4EEC\u5DF2\u6536\u5230\u300C{name}\u300D\u7684\u7533\u8BF7\uFF0C\u4F1A\u901A\u8FC7 {email} \u4E0E\u4F60\u8054\u7CFB\u3002",
+      hant: "\u6211\u5011\u5DF2\u6536\u5230\u300C{name}\u300D\u7684\u7533\u8ACB\uFF0C\u6703\u900F\u904E {email} \u8207\u4F60\u806F\u7D61\u3002",
+      ja: "\u300C{name}\u300D\u306E\u7533\u8ACB\u3092\u53D7\u3051\u4ED8\u3051\u307E\u3057\u305F\u3002{email} \u306B\u3054\u9023\u7D61\u3057\u307E\u3059\u3002",
+      ko: "\u300C{name}\u300D \uC2E0\uCCAD\uC744 \uC811\uC218\uD588\uC2B5\uB2C8\uB2E4. {email}(\uC73C)\uB85C \uC5F0\uB77D\uB4DC\uB9AC\uACA0\uC2B5\uB2C8\uB2E4.",
+      fr: "Nous avons bien re\xE7u votre demande pour \xAB {name} \xBB et vous r\xE9pondrons \xE0 {email}.",
+      de: "Wir haben Ihren Antrag f\xFCr \u201E{name}\u201C erhalten und melden uns unter {email}."
+    },
+    rejectedTitle: { en: "Application not approved", hans: "\u7533\u8BF7\u672A\u901A\u8FC7", hant: "\u7533\u8ACB\u672A\u901A\u904E", ja: "\u7533\u8ACB\u306F\u627F\u8A8D\u3055\u308C\u307E\u305B\u3093\u3067\u3057\u305F", ko: "\uC2E0\uCCAD\uC774 \uC2B9\uC778\uB418\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4", fr: "Demande non approuv\xE9e", de: "Antrag nicht genehmigt" },
+    reviewNote: {
+      en: "Note from us: {note}",
+      hans: "\u6211\u4EEC\u7684\u56DE\u590D\uFF1A{note}",
+      hant: "\u6211\u5011\u7684\u56DE\u8986\uFF1A{note}",
+      ja: "\u3053\u3061\u3089\u304B\u3089\u306E\u30E1\u30C3\u30BB\u30FC\u30B8\uFF1A{note}",
+      ko: "\uB2F5\uBCC0: {note}",
+      fr: "Notre r\xE9ponse : {note}",
+      de: "Unsere R\xFCckmeldung: {note}"
+    },
+    applyAgain: { en: "Apply again", hans: "\u91CD\u65B0\u7533\u8BF7", hant: "\u91CD\u65B0\u7533\u8ACB", ja: "\u3082\u3046\u4E00\u5EA6\u7533\u3057\u8FBC\u3080", ko: "\uB2E4\uC2DC \uC2E0\uCCAD", fr: "Faire une nouvelle demande", de: "Erneut beantragen" },
+    statusPending: { en: "Pending", hans: "\u5BA1\u6838\u4E2D", hant: "\u5BE9\u6838\u4E2D", ja: "\u5BE9\u67FB\u4E2D", ko: "\uAC80\uD1A0 \uC911", fr: "En attente", de: "Offen" },
+    statusApproved: { en: "Approved", hans: "\u5DF2\u901A\u8FC7", hant: "\u5DF2\u901A\u904E", ja: "\u627F\u8A8D\u6E08\u307F", ko: "\uC2B9\uC778\uB428", fr: "Approuv\xE9e", de: "Genehmigt" },
+    submittedAt: { en: "Submitted", hans: "\u63D0\u4EA4\u65F6\u95F4", hant: "\u63D0\u4EA4\u6642\u9593", ja: "\u7533\u8ACB\u65E5\u6642", ko: "\uC2E0\uCCAD\uC77C", fr: "Envoy\xE9e le", de: "Eingereicht am" },
+    rejectedBody: {
+      en: "You can send a new application whenever you like.",
+      hans: "\u4F60\u53EF\u4EE5\u968F\u65F6\u91CD\u65B0\u63D0\u4EA4\u7533\u8BF7\u3002",
+      hant: "\u4F60\u53EF\u4EE5\u96A8\u6642\u91CD\u65B0\u9001\u51FA\u7533\u8ACB\u3002",
+      ja: "\u3044\u3064\u3067\u3082\u3082\u3046\u4E00\u5EA6\u7533\u3057\u8FBC\u3081\u307E\u3059\u3002",
+      ko: "\uC5B8\uC81C\uB4E0\uC9C0 \uB2E4\uC2DC \uC2E0\uCCAD\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
+      fr: "Vous pouvez envoyer une nouvelle demande quand vous le souhaitez.",
+      de: "Sie k\xF6nnen jederzeit einen neuen Antrag stellen."
+    },
+    // the organization itself
+    organizationRate: { en: "{rate}% organization rate", hans: "\u673A\u6784\u4F63\u91D1\u6BD4\u4F8B {rate}%", hant: "\u6A5F\u69CB\u4F63\u91D1\u6BD4\u4F8B {rate}%", ja: "\u7D44\u7E54\u306E\u5831\u916C\u7387 {rate}%", ko: "\uC870\uC9C1 \uC218\uC218\uB8CC\uC728 {rate}%", fr: "Taux de l\u2019organisation : {rate} %", de: "Organisationssatz: {rate} %" },
+    members: { en: "Members", hans: "\u6210\u5458", hant: "\u6210\u54E1", ja: "\u30E1\u30F3\u30D0\u30FC", ko: "\uBA64\uBC84", fr: "Membres", de: "Mitglieder" },
+    memberEmail: { en: "Member email", hans: "\u6210\u5458\u90AE\u7BB1", hant: "\u6210\u54E1\u96FB\u5B50\u90F5\u4EF6", ja: "\u30E1\u30F3\u30D0\u30FC\u306E\u30E1\u30FC\u30EB\u30A2\u30C9\u30EC\u30B9", ko: "\uBA64\uBC84 \uC774\uBA54\uC77C", fr: "E-mail du membre", de: "E-Mail des Mitglieds" },
+    roleOwner: { en: "Owner", hans: "\u6240\u6709\u8005", hant: "\u64C1\u6709\u8005", ja: "\u30AA\u30FC\u30CA\u30FC", ko: "\uC18C\uC720\uC790", fr: "Propri\xE9taire", de: "Inhaber" },
+    roleInfluencer: { en: "Creator", hans: "\u521B\u4F5C\u8005", hant: "\u5275\u4F5C\u8005", ja: "\u30AF\u30EA\u30A8\u30A4\u30BF\u30FC", ko: "\uD06C\uB9AC\uC5D0\uC774\uD130", fr: "Cr\xE9ateur", de: "Creator" },
+    roleManager: { en: "Manager", hans: "\u7BA1\u7406\u5458", hant: "\u7BA1\u7406\u54E1", ja: "\u30DE\u30CD\u30FC\u30B8\u30E3\u30FC", ko: "\uAD00\uB9AC\uC790", fr: "Gestionnaire", de: "Manager" },
+    addMember: { en: "Add", hans: "\u6DFB\u52A0", hant: "\u65B0\u589E", ja: "\u8FFD\u52A0", ko: "\uCD94\uAC00", fr: "Ajouter", de: "Hinzuf\xFCgen" },
+    memberFailed: { en: "The member could not be added.", hans: "\u6210\u5458\u6DFB\u52A0\u5931\u8D25\u3002", hant: "\u6210\u54E1\u65B0\u589E\u5931\u6557\u3002", ja: "\u30E1\u30F3\u30D0\u30FC\u3092\u8FFD\u52A0\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002", ko: "\uBA64\uBC84\uB97C \uCD94\uAC00\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.", fr: "Le membre n\u2019a pas pu \xEAtre ajout\xE9.", de: "Das Mitglied konnte nicht hinzugef\xFCgt werden." },
+    commissionPending: { en: "Pending", hans: "\u5F85\u7ED3\u7B97", hant: "\u5F85\u7D50\u7B97", ja: "\u78BA\u5B9A\u5F85\u3061", ko: "\uC9C0\uAE09 \uB300\uAE30", fr: "En attente", de: "Offen" },
+    commissionPaid: { en: "Paid", hans: "\u5DF2\u652F\u4ED8", hant: "\u5DF2\u652F\u4ED8", ja: "\u652F\u6255\u6E08\u307F", ko: "\uC9C0\uAE09 \uC644\uB8CC", fr: "Pay\xE9e", de: "Ausgezahlt" },
+    commissionReversed: { en: "Reversed", hans: "\u5DF2\u64A4\u9500", hant: "\u5DF2\u64A4\u92B7", ja: "\u53D6\u308A\u6D88\u3057", ko: "\uCDE8\uC18C\uB428", fr: "Annul\xE9e", de: "Storniert" }
+  };
+  function scopeText(locale, partner) {
+    const mode = partner?.scopeMode === "selected" || partner?.scopeMode === "except" ? partner.scopeMode : "all";
+    if (mode === "all") return affiliateText(locale, AFFILIATE.appliesToAll);
+    const ids = partner?.scopeProductIds ?? [];
+    const names = ids.map((id3) => cardName({ id: id3 }, locale));
+    const separator = /^(zh|ja|ko)/.test(locale || "en") ? "\u3001" : ", ";
+    const list = names.length && names.every((name) => Boolean(name)) ? names.join(separator) : ids.length === 1 ? affiliateText(locale, AFFILIATE.productOne) : affiliateText(locale, AFFILIATE.productCount).replace("{count}", String(ids.length));
+    return fill(affiliateText(locale, mode === "selected" ? AFFILIATE.appliesToSelected : AFFILIATE.appliesToExcept), { products: list });
+  }
+  function memberRoleText(locale, role) {
+    const value = String(role || "").toUpperCase();
+    if (value === "OWNER") return affiliateText(locale, AFFILIATE.roleOwner);
+    if (value === "MANAGER") return affiliateText(locale, AFFILIATE.roleManager);
+    return affiliateText(locale, AFFILIATE.roleInfluencer);
+  }
+  function commissionStatusText(locale, status) {
+    const value = String(status || "").toLowerCase();
+    if (value === "paid") return affiliateText(locale, AFFILIATE.commissionPaid);
+    if (value === "reversed") return affiliateText(locale, AFFILIATE.commissionReversed);
+    return affiliateText(locale, AFFILIATE.commissionPending);
+  }
+  function affiliateErrorText(locale, cause) {
+    const code = String(cause?.code || "").toUpperCase();
+    const text = String(cause?.message || "").trim();
+    const say = (copy) => affiliateText(locale, copy);
+    if (code === "USER_ALREADY_ORGANIZED") {
+      return say({ en: "This account already belongs to an organization.", hans: "\u8BE5\u8D26\u6237\u5DF2\u5C5E\u4E8E\u4E00\u4E2A\u673A\u6784\u3002", hant: "\u8A72\u5E33\u6236\u5DF2\u5C6C\u65BC\u4E00\u500B\u6A5F\u69CB\u3002", ja: "\u3053\u306E\u30A2\u30AB\u30A6\u30F3\u30C8\u306F\u3059\u3067\u306B\u7D44\u7E54\u306B\u6240\u5C5E\u3057\u3066\u3044\u307E\u3059\u3002", ko: "\uC774 \uACC4\uC815\uC740 \uC774\uBBF8 \uC870\uC9C1\uC5D0 \uC18D\uD574 \uC788\uC2B5\uB2C8\uB2E4.", fr: "Ce compte appartient d\xE9j\xE0 \xE0 une organisation.", de: "Dieses Konto geh\xF6rt bereits zu einer Organisation." });
+    }
+    if (code === "APPLICATION_PENDING") return say(AFFILIATE.pendingTitle);
+    if (code === "OWNER_ROLE_IMMUTABLE") {
+      return say({ en: "The owner is already a member of the organization.", hans: "\u6240\u6709\u8005\u5DF2\u7ECF\u662F\u673A\u6784\u6210\u5458\u3002", hant: "\u64C1\u6709\u8005\u5DF2\u7D93\u662F\u6A5F\u69CB\u6210\u54E1\u3002", ja: "\u30AA\u30FC\u30CA\u30FC\u306F\u3059\u3067\u306B\u7D44\u7E54\u306E\u30E1\u30F3\u30D0\u30FC\u3067\u3059\u3002", ko: "\uC18C\uC720\uC790\uB294 \uC774\uBBF8 \uC870\uC9C1\uC758 \uBA64\uBC84\uC785\uB2C8\uB2E4.", fr: "Le propri\xE9taire est d\xE9j\xE0 membre de l\u2019organisation.", de: "Der Inhaber ist bereits Mitglied der Organisation." });
+    }
+    if (code === "USER_NOT_FOUND") {
+      return say({ en: "No account matches that email. An account is needed before joining.", hans: "\u6CA1\u6709\u627E\u5230\u4F7F\u7528\u8BE5\u90AE\u7BB1\u7684\u8D26\u6237\u3002\u5BF9\u65B9\u9700\u8981\u5148\u6CE8\u518C\u8D26\u6237\u3002", hant: "\u627E\u4E0D\u5230\u4F7F\u7528\u8A72\u96FB\u5B50\u90F5\u4EF6\u7684\u5E33\u6236\u3002\u5C0D\u65B9\u9700\u8981\u5148\u8A3B\u518A\u5E33\u6236\u3002", ja: "\u305D\u306E\u30E1\u30FC\u30EB\u30A2\u30C9\u30EC\u30B9\u306E\u30A2\u30AB\u30A6\u30F3\u30C8\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093\u3002\u53C2\u52A0\u3059\u308B\u306B\u306F\u5148\u306B\u30A2\u30AB\u30A6\u30F3\u30C8\u304C\u5FC5\u8981\u3067\u3059\u3002", ko: "\uD574\uB2F9 \uC774\uBA54\uC77C\uC758 \uACC4\uC815\uC744 \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4. \uBA3C\uC800 \uACC4\uC815\uC744 \uB9CC\uB4E4\uC5B4\uC57C \uD569\uB2C8\uB2E4.", fr: "Aucun compte ne correspond \xE0 cet e-mail. Un compte est n\xE9cessaire pour rejoindre l\u2019organisation.", de: "Zu dieser E-Mail gibt es kein Konto. Zum Beitritt wird ein Konto ben\xF6tigt." });
+    }
+    if (code === "ORGANIZATION_MEMBERSHIP_REQUIRED") {
+      return say({ en: "Join the organization before registering as its affiliate.", hans: "\u52A0\u5165\u673A\u6784\u540E\uFF0C\u624D\u80FD\u767B\u8BB0\u4E3A\u8BE5\u673A\u6784\u7684\u63A8\u5E7F\u4F19\u4F34\u3002", hant: "\u52A0\u5165\u6A5F\u69CB\u5F8C\uFF0C\u624D\u80FD\u767B\u8A18\u70BA\u8A72\u6A5F\u69CB\u7684\u63A8\u5EE3\u5925\u4F34\u3002", ja: "\u305D\u306E\u7D44\u7E54\u306E\u30A2\u30D5\u30A3\u30EA\u30A8\u30A4\u30C8\u3068\u3057\u3066\u767B\u9332\u3059\u308B\u306B\u306F\u3001\u5148\u306B\u7D44\u7E54\u306B\u53C2\u52A0\u3057\u3066\u304F\u3060\u3055\u3044\u3002", ko: "\uD574\uB2F9 \uC870\uC9C1\uC758 \uC81C\uD734 \uD30C\uD2B8\uB108\uB85C \uB4F1\uB85D\uD558\uB824\uBA74 \uBA3C\uC800 \uC870\uC9C1\uC5D0 \uCC38\uC5EC\uD558\uC138\uC694.", fr: "Rejoignez l\u2019organisation avant de vous inscrire comme son affili\xE9.", de: "Treten Sie der Organisation bei, bevor Sie sich als ihr Partner registrieren." });
+    }
+    if (code === "VALIDATION_ERROR") {
+      if (/organization name/i.test(text)) {
+        return say({ en: "Enter the organization\u2019s name.", hans: "\u8BF7\u586B\u5199\u673A\u6784\u540D\u79F0\u3002", hant: "\u8ACB\u586B\u5BEB\u6A5F\u69CB\u540D\u7A31\u3002", ja: "\u7D44\u7E54\u540D\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044\u3002", ko: "\uC870\uC9C1 \uC774\uB984\uC744 \uC785\uB825\uD558\uC138\uC694.", fr: "Saisissez le nom de l\u2019organisation.", de: "Geben Sie den Namen der Organisation ein." });
+      }
+      if (/e-?mail/i.test(text)) {
+        return say({ en: "Enter a valid email.", hans: "\u8BF7\u8F93\u5165\u6709\u6548\u7684\u90AE\u7BB1\u3002", hant: "\u8ACB\u8F38\u5165\u6709\u6548\u7684\u96FB\u5B50\u90F5\u4EF6\u3002", ja: "\u6709\u52B9\u306A\u30E1\u30FC\u30EB\u30A2\u30C9\u30EC\u30B9\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044\u3002", ko: "\uC62C\uBC14\uB978 \uC774\uBA54\uC77C\uC744 \uC785\uB825\uD558\uC138\uC694.", fr: "Saisissez un e-mail valide.", de: "Geben Sie eine g\xFCltige E-Mail ein." });
+      }
+      return say({ en: "Check what you entered and try again.", hans: "\u8BF7\u68C0\u67E5\u586B\u5199\u7684\u5185\u5BB9\u540E\u91CD\u8BD5\u3002", hant: "\u8ACB\u6AA2\u67E5\u586B\u5BEB\u7684\u5167\u5BB9\u5F8C\u91CD\u8A66\u3002", ja: "\u5165\u529B\u5185\u5BB9\u3092\u78BA\u8A8D\u3057\u3066\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002", ko: "\uC785\uB825\uD55C \uB0B4\uC6A9\uC744 \uD655\uC778\uD558\uACE0 \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.", fr: "V\xE9rifiez ce que vous avez saisi et r\xE9essayez.", de: "Pr\xFCfen Sie Ihre Eingaben und versuchen Sie es erneut." });
+    }
+    return text;
+  }
+
   // src/components/AffiliatePage.tsx
+  var EMPTY_APPLICATION = { organizationName: "", contactName: "", email: "", phone: "", website: "", message: "" };
   function money(items) {
     const total = items.reduce((sum, item) => sum + Number(item.amount || 0), 0);
     return `${items[0]?.currency || "USD"} ${total.toFixed(2)}`;
@@ -13064,25 +13319,28 @@
   }) {
     const site = resolveBokmooSiteConfig(config);
     const api = react_default.useMemo(() => ({ baseUrl: site.apiBaseUrl }), [site.apiBaseUrl]);
+    const lang = pageLocale(locale);
+    const t = (copy) => affiliateText(lang, copy);
     const [view2, setView] = react_default.useState("partner");
     const [partner, setPartner] = react_default.useState(null);
     const [commissions, setCommissions] = react_default.useState([]);
     const [organization, setOrganization] = react_default.useState(null);
     const [organizationCommissions, setOrganizationCommissions] = react_default.useState([]);
+    const [application, setApplication] = react_default.useState(null);
+    const [applicationForm, setApplicationForm] = react_default.useState(EMPTY_APPLICATION);
+    const [applyAgain, setApplyAgain] = react_default.useState(false);
     const [loading, setLoading] = react_default.useState(false);
     const [error, setError] = react_default.useState("");
     const [copied, setCopied] = react_default.useState(false);
     const [displayName, setDisplayName] = react_default.useState("");
     const [organizationCode, setOrganizationCode] = react_default.useState("");
-    const [organizationName, setOrganizationName] = react_default.useState("");
-    const [organizationRate, setOrganizationRate] = react_default.useState("2.5");
     const [memberEmail, setMemberEmail] = react_default.useState("");
     const [memberRole, setMemberRole] = react_default.useState("INFLUENCER");
     const refresh = react_default.useCallback(async () => {
       if (!isAuthenticated) return;
       setLoading(true);
       setError("");
-      const [partnerResult, organizationResult] = await Promise.allSettled([
+      const [partnerResult, organizationResult, applicationResult] = await Promise.allSettled([
         Promise.all([getBokmooAffiliatePartner(api), getBokmooAffiliateCommissions(api)]),
         Promise.all([
           getBokmooAffiliateOrganization(api),
@@ -13090,48 +13348,70 @@
             if (cause instanceof BokmooApiError && cause.status === 404) return [];
             throw cause;
           })
-        ])
+        ]),
+        getBokmooAffiliateApplication(api)
       ]);
       if (partnerResult.status === "fulfilled") {
         setPartner(partnerResult.value[0]);
         setCommissions(partnerResult.value[1]);
       } else if (!(partnerResult.reason instanceof BokmooApiError && partnerResult.reason.status === 404)) {
-        setError(partnerResult.reason instanceof Error ? partnerResult.reason.message : "Affiliate data could not be loaded");
+        setError(partnerResult.reason instanceof BokmooApiError ? affiliateErrorText(lang, partnerResult.reason) : t(AFFILIATE.loadFailed));
       }
       if (organizationResult.status === "fulfilled") {
         setOrganization(organizationResult.value[0]);
         setOrganizationCommissions(organizationResult.value[1]);
       } else if (!(organizationResult.reason instanceof BokmooApiError && organizationResult.reason.status === 404)) {
-        setError(organizationResult.reason instanceof Error ? organizationResult.reason.message : "Organization data could not be loaded");
+        setError(organizationResult.reason instanceof BokmooApiError ? affiliateErrorText(lang, organizationResult.reason) : t(AFFILIATE.loadFailed));
       }
+      if (applicationResult.status === "fulfilled") setApplication(applicationResult.value);
       setLoading(false);
-    }, [api, isAuthenticated]);
+    }, [api, isAuthenticated, lang]);
     react_default.useEffect(() => {
       void refresh();
     }, [refresh]);
+    const sayError = (cause, fallback) => {
+      if (cause instanceof BokmooApiError) setError(affiliateErrorText(lang, cause));
+      else setError(fallback);
+    };
     if (isLoading) return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-[var(--bokmoo-bg)]" });
     if (!isAuthenticated) {
       return /* @__PURE__ */ jsx("div", { className: "flex min-h-screen items-center justify-center bg-[var(--bokmoo-bg)] px-5", children: /* @__PURE__ */ jsxs("div", { className: "max-w-md border-y border-[var(--bokmoo-line)] py-10 text-center", children: [
         /* @__PURE__ */ jsx(WalletCards, { className: "mx-auto h-7 w-7 text-[var(--bokmoo-gold)]" }),
-        /* @__PURE__ */ jsx("h1", { className: "mt-5 text-3xl text-[var(--bokmoo-ink)]", children: "Affiliate workspace" }),
-        /* @__PURE__ */ jsx("button", { onClick: onNavigateToLogin, className: "mt-7 min-h-11 bg-[var(--bokmoo-gold)] px-6 text-sm font-semibold text-[var(--bokmoo-bg)]", type: "button", children: "Sign in" })
+        /* @__PURE__ */ jsx("h1", { className: "mt-5 text-3xl text-[var(--bokmoo-ink)]", children: t(AFFILIATE.signInTitle) }),
+        /* @__PURE__ */ jsx("button", { onClick: onNavigateToLogin, className: "mt-7 min-h-11 bg-[var(--bokmoo-gold)] px-6 text-sm font-semibold text-[var(--bokmoo-bg)]", type: "button", children: t(AUTH.signIn) })
       ] }) });
     }
     const shareUrl = partner && typeof window !== "undefined" ? `${window.location.origin}/${locale || "en"}/r/${encodeURIComponent(partner.code)}` : "";
+    const submitApplication = async (event) => {
+      event.preventDefault();
+      setLoading(true);
+      setError("");
+      try {
+        const sent = await applyForBokmooAffiliateOrganization(api, applicationForm);
+        setApplication(sent);
+        setApplyAgain(false);
+      } catch (cause) {
+        sayError(cause, t(AFFILIATE.applyFailed));
+      } finally {
+        setLoading(false);
+      }
+    };
+    const inputClassName = "h-12 w-full border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] px-4 text-sm text-[var(--bokmoo-ink)] outline-none";
+    const labelClassName = "mb-2 block text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--bokmoo-copy-soft)]";
     return /* @__PURE__ */ jsx("main", { className: "min-h-screen bg-[var(--bokmoo-bg)] px-4 pb-20 pt-20 sm:px-6 lg:px-8", children: /* @__PURE__ */ jsxs("div", { className: "mx-auto max-w-6xl", children: [
       /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap items-center justify-between gap-4 border-b border-[var(--bokmoo-line)] pb-6", children: [
-        /* @__PURE__ */ jsx("button", { onClick: onNavigateBack, className: "inline-flex h-10 w-10 items-center justify-center border border-[var(--bokmoo-line)] text-[var(--bokmoo-copy)]", "aria-label": "Back", type: "button", children: /* @__PURE__ */ jsx(ArrowLeft, { className: "h-4 w-4" }) }),
-        /* @__PURE__ */ jsxs("div", { className: "flex border border-[var(--bokmoo-line)] p-1", role: "tablist", "aria-label": "Affiliate view", children: [
-          /* @__PURE__ */ jsx("button", { onClick: () => setView("partner"), className: `min-h-9 px-4 text-xs font-semibold ${view2 === "partner" ? "bg-[var(--bokmoo-gold)] text-[var(--bokmoo-bg)]" : "text-[var(--bokmoo-copy)]"}`, type: "button", children: "Partner" }),
-          /* @__PURE__ */ jsx("button", { onClick: () => setView("organization"), className: `min-h-9 px-4 text-xs font-semibold ${view2 === "organization" ? "bg-[var(--bokmoo-gold)] text-[var(--bokmoo-bg)]" : "text-[var(--bokmoo-copy)]"}`, type: "button", children: "Organization" })
+        /* @__PURE__ */ jsx("button", { onClick: onNavigateBack, className: "inline-flex h-10 w-10 items-center justify-center border border-[var(--bokmoo-line)] text-[var(--bokmoo-copy)]", "aria-label": t(AFFILIATE.back), type: "button", children: /* @__PURE__ */ jsx(ArrowLeft, { className: "h-4 w-4" }) }),
+        /* @__PURE__ */ jsxs("div", { className: "flex border border-[var(--bokmoo-line)] p-1", role: "tablist", "aria-label": t(AFFILIATE.signInTitle), children: [
+          /* @__PURE__ */ jsx("button", { onClick: () => setView("partner"), className: `min-h-9 px-4 text-xs font-semibold ${view2 === "partner" ? "bg-[var(--bokmoo-gold)] text-[var(--bokmoo-bg)]" : "text-[var(--bokmoo-copy)]"}`, type: "button", children: t(AFFILIATE.tabPartner) }),
+          /* @__PURE__ */ jsx("button", { onClick: () => setView("organization"), className: `min-h-9 px-4 text-xs font-semibold ${view2 === "organization" ? "bg-[var(--bokmoo-gold)] text-[var(--bokmoo-bg)]" : "text-[var(--bokmoo-copy)]"}`, type: "button", children: t(AFFILIATE.tabOrganization) })
         ] }),
-        /* @__PURE__ */ jsx("button", { onClick: () => void refresh(), className: "inline-flex h-10 w-10 items-center justify-center border border-[var(--bokmoo-line)] text-[var(--bokmoo-copy)]", "aria-label": "Refresh", type: "button", children: /* @__PURE__ */ jsx(RefreshCw, { className: `h-4 w-4 ${loading ? "animate-spin" : ""}` }) })
+        /* @__PURE__ */ jsx("button", { onClick: () => void refresh(), className: "inline-flex h-10 w-10 items-center justify-center border border-[var(--bokmoo-line)] text-[var(--bokmoo-copy)]", "aria-label": t(AFFILIATE.refresh), type: "button", children: /* @__PURE__ */ jsx(RefreshCw, { className: `h-4 w-4 ${loading ? "animate-spin" : ""}` }) })
       ] }),
-      error ? /* @__PURE__ */ jsx("div", { className: "mt-5 border border-[color:color-mix(in_oklab,var(--bokmoo-danger)_55%,transparent)] bg-[color:color-mix(in_oklab,var(--bokmoo-danger)_10%,transparent)] px-4 py-3 text-sm text-[var(--bokmoo-ink)]", children: error }) : null,
+      error ? /* @__PURE__ */ jsx("div", { role: "alert", className: "mt-5 border border-[color:color-mix(in_oklab,var(--bokmoo-danger)_55%,transparent)] bg-[color:color-mix(in_oklab,var(--bokmoo-danger)_10%,transparent)] px-4 py-3 text-sm text-[var(--bokmoo-ink)]", children: error }) : null,
       view2 === "partner" ? /* @__PURE__ */ jsx("section", { className: "pt-10", children: /* @__PURE__ */ jsxs("div", { className: "grid gap-8 lg:grid-cols-[1.1fr_0.9fr]", children: [
         /* @__PURE__ */ jsxs("div", { children: [
-          /* @__PURE__ */ jsx("p", { className: "text-xs font-semibold uppercase text-[var(--bokmoo-copy-soft)]", children: "Personal affiliate" }),
-          /* @__PURE__ */ jsx("h1", { className: "mt-3 max-w-2xl text-4xl text-[var(--bokmoo-ink)] sm:text-5xl", children: "Your referral ledger." }),
+          /* @__PURE__ */ jsx("p", { className: "text-xs font-semibold uppercase text-[var(--bokmoo-copy-soft)]", children: t(AFFILIATE.partnerEyebrow) }),
+          /* @__PURE__ */ jsx("h1", { className: "mt-3 max-w-2xl text-4xl text-[var(--bokmoo-ink)] sm:text-5xl", style: headlineStyle(lang), children: t(AFFILIATE.partnerTitle) }),
           partner ? /* @__PURE__ */ jsxs("div", { className: "mt-10 border-y border-[var(--bokmoo-line)] py-6", children: [
             /* @__PURE__ */ jsxs("div", { className: "flex flex-col gap-3 sm:flex-row", children: [
               /* @__PURE__ */ jsx("div", { className: "min-w-0 flex-1 border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] px-4 py-3 text-sm text-[var(--bokmoo-copy)]", children: /* @__PURE__ */ jsx("span", { className: "block truncate", children: shareUrl }) }),
@@ -13141,27 +13421,28 @@
                 window.setTimeout(() => setCopied(false), 1600);
               }, className: "inline-flex min-h-11 items-center justify-center gap-2 bg-[var(--bokmoo-gold)] px-5 text-sm font-semibold text-[var(--bokmoo-bg)]", type: "button", children: [
                 copied ? /* @__PURE__ */ jsx(Check, { className: "h-4 w-4" }) : /* @__PURE__ */ jsx(Copy, { className: "h-4 w-4" }),
-                copied ? "Copied" : "Copy link"
+                copied ? t(AFFILIATE.copied) : t(AFFILIATE.copyLink)
               ] })
             ] }),
             /* @__PURE__ */ jsxs("div", { className: "mt-5 flex flex-wrap gap-x-10 gap-y-4 text-sm", children: [
               /* @__PURE__ */ jsxs("span", { children: [
                 /* @__PURE__ */ jsx("b", { className: "text-2xl text-[var(--bokmoo-ink)]", children: money(commissions) }),
-                /* @__PURE__ */ jsx("small", { className: "ml-2 text-[var(--bokmoo-copy-soft)]", children: "earned" })
+                /* @__PURE__ */ jsx("small", { className: "ml-2 text-[var(--bokmoo-copy-soft)]", children: t(AFFILIATE.earned) })
               ] }),
               /* @__PURE__ */ jsxs("span", { children: [
                 /* @__PURE__ */ jsxs("b", { className: "text-2xl text-[var(--bokmoo-ink)]", children: [
                   partner.commissionRate,
                   "%"
                 ] }),
-                /* @__PURE__ */ jsx("small", { className: "ml-2 text-[var(--bokmoo-copy-soft)]", children: "rate" })
+                /* @__PURE__ */ jsx("small", { className: "ml-2 text-[var(--bokmoo-copy-soft)]", children: t(AFFILIATE.rate) })
               ] }),
               /* @__PURE__ */ jsxs("span", { children: [
                 /* @__PURE__ */ jsx("b", { className: "text-2xl text-[var(--bokmoo-ink)]", children: commissions.length }),
-                /* @__PURE__ */ jsx("small", { className: "ml-2 text-[var(--bokmoo-copy-soft)]", children: "orders" })
+                /* @__PURE__ */ jsx("small", { className: "ml-2 text-[var(--bokmoo-copy-soft)]", children: t(AFFILIATE.orders) })
               ] })
-            ] })
-          ] }) : /* @__PURE__ */ jsxs("form", { onSubmit: async (event) => {
+            ] }),
+            /* @__PURE__ */ jsx("p", { "data-purpose": "partner-scope", className: "mt-5 text-sm text-[var(--bokmoo-copy-soft)]", children: scopeText(lang, partner) })
+          ] }) : /* @__PURE__ */ jsxs("form", { "data-purpose": "affiliate-register-form", onSubmit: async (event) => {
             event.preventDefault();
             setLoading(true);
             setError("");
@@ -13169,22 +13450,22 @@
               await registerBokmooAffiliatePartner(api, { displayName, organizationCode: organizationCode || void 0 });
               await refresh();
             } catch (cause) {
-              setError(cause instanceof Error ? cause.message : "Registration failed");
+              sayError(cause, t(AFFILIATE.registerFailed));
             } finally {
               setLoading(false);
             }
           }, className: "mt-10 grid max-w-xl gap-4 border-y border-[var(--bokmoo-line)] py-7", children: [
-            /* @__PURE__ */ jsx("input", { value: displayName, onChange: (event) => setDisplayName(event.target.value), placeholder: "Display name", required: true, className: "h-12 border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] px-4 text-sm text-[var(--bokmoo-ink)] outline-none" }),
-            /* @__PURE__ */ jsx("input", { value: organizationCode, onChange: (event) => setOrganizationCode(event.target.value.toUpperCase()), placeholder: "Organization code (optional)", className: "h-12 border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] px-4 text-sm text-[var(--bokmoo-ink)] outline-none" }),
-            /* @__PURE__ */ jsx("button", { disabled: loading, className: "min-h-12 bg-[var(--bokmoo-gold)] px-5 text-sm font-semibold text-[var(--bokmoo-bg)] disabled:opacity-50", type: "submit", children: "Create affiliate account" })
+            /* @__PURE__ */ jsx("input", { value: displayName, onChange: (event) => setDisplayName(event.target.value), placeholder: t(AFFILIATE.displayName), "aria-label": t(AFFILIATE.displayName), required: true, className: inputClassName }),
+            /* @__PURE__ */ jsx("input", { value: organizationCode, onChange: (event) => setOrganizationCode(event.target.value.toUpperCase()), placeholder: t(AFFILIATE.organizationCode), "aria-label": t(AFFILIATE.organizationCode), className: inputClassName }),
+            /* @__PURE__ */ jsx("button", { disabled: loading, className: "min-h-12 bg-[var(--bokmoo-gold)] px-5 text-sm font-semibold text-[var(--bokmoo-bg)] disabled:opacity-50", type: "submit", children: t(AFFILIATE.createAccount) })
           ] })
         ] }),
-        /* @__PURE__ */ jsx(CommissionList, { items: commissions, title: "Partner commissions" })
+        /* @__PURE__ */ jsx(CommissionList, { items: commissions, title: t(AFFILIATE.partnerCommissions), lang, locale })
       ] }) }) : /* @__PURE__ */ jsx("section", { className: "pt-10", children: /* @__PURE__ */ jsxs("div", { className: "grid gap-8 lg:grid-cols-[1.1fr_0.9fr]", children: [
         /* @__PURE__ */ jsxs("div", { children: [
-          /* @__PURE__ */ jsx("p", { className: "text-xs font-semibold uppercase text-[var(--bokmoo-copy-soft)]", children: "Organization affiliate" }),
-          /* @__PURE__ */ jsx("h1", { className: "mt-3 max-w-2xl text-4xl text-[var(--bokmoo-ink)] sm:text-5xl", children: "Creator network." }),
-          organization ? /* @__PURE__ */ jsxs("div", { className: "mt-9", children: [
+          /* @__PURE__ */ jsx("p", { className: "text-xs font-semibold uppercase text-[var(--bokmoo-copy-soft)]", children: t(AFFILIATE.organizationEyebrow) }),
+          /* @__PURE__ */ jsx("h1", { className: "mt-3 max-w-2xl text-4xl text-[var(--bokmoo-ink)] sm:text-5xl", style: headlineStyle(lang), children: t(AFFILIATE.organizationTitle) }),
+          organization ? /* @__PURE__ */ jsxs("div", { "data-purpose": "affiliate-organization", className: "mt-9", children: [
             /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap items-end justify-between gap-5 border-y border-[var(--bokmoo-line)] py-6", children: [
               /* @__PURE__ */ jsxs("div", { children: [
                 /* @__PURE__ */ jsx("p", { className: "text-sm text-[var(--bokmoo-copy-soft)]", children: organization.code }),
@@ -13192,10 +13473,7 @@
               ] }),
               /* @__PURE__ */ jsxs("div", { className: "text-right", children: [
                 /* @__PURE__ */ jsx("p", { className: "text-2xl font-semibold text-[var(--bokmoo-ink)]", children: money(organizationCommissions) }),
-                /* @__PURE__ */ jsxs("p", { className: "text-xs text-[var(--bokmoo-copy-soft)]", children: [
-                  organization.commissionRate,
-                  "% organization rate"
-                ] })
+                /* @__PURE__ */ jsx("p", { className: "text-xs text-[var(--bokmoo-copy-soft)]", children: fill(t(AFFILIATE.organizationRate), { rate: organization.commissionRate }) })
               ] })
             ] }),
             /* @__PURE__ */ jsxs("form", { onSubmit: async (event) => {
@@ -13207,57 +13485,99 @@
                 setMemberEmail("");
                 await refresh();
               } catch (cause) {
-                setError(cause instanceof Error ? cause.message : "Member could not be added");
+                sayError(cause, t(AFFILIATE.memberFailed));
               } finally {
                 setLoading(false);
               }
             }, className: "mt-7 flex flex-col gap-3 sm:flex-row", children: [
-              /* @__PURE__ */ jsx("input", { type: "email", value: memberEmail, onChange: (event) => setMemberEmail(event.target.value), placeholder: "Member email", required: true, className: "h-11 min-w-0 flex-1 border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] px-4 text-sm text-[var(--bokmoo-ink)] outline-none" }),
-              /* @__PURE__ */ jsxs("select", { value: memberRole, onChange: (event) => setMemberRole(event.target.value), className: "h-11 border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] px-3 text-sm text-[var(--bokmoo-ink)]", children: [
-                /* @__PURE__ */ jsx("option", { value: "INFLUENCER", children: "Influencer" }),
-                /* @__PURE__ */ jsx("option", { value: "MANAGER", children: "Manager" })
+              /* @__PURE__ */ jsx("input", { type: "email", value: memberEmail, onChange: (event) => setMemberEmail(event.target.value), placeholder: t(AFFILIATE.memberEmail), "aria-label": t(AFFILIATE.memberEmail), required: true, className: "h-11 min-w-0 flex-1 border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] px-4 text-sm text-[var(--bokmoo-ink)] outline-none" }),
+              /* @__PURE__ */ jsxs("select", { value: memberRole, onChange: (event) => setMemberRole(event.target.value), "aria-label": t(AFFILIATE.members), className: "h-11 border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] px-3 text-sm text-[var(--bokmoo-ink)]", children: [
+                /* @__PURE__ */ jsx("option", { value: "INFLUENCER", children: t(AFFILIATE.roleInfluencer) }),
+                /* @__PURE__ */ jsx("option", { value: "MANAGER", children: t(AFFILIATE.roleManager) })
               ] }),
               /* @__PURE__ */ jsxs("button", { className: "inline-flex h-11 items-center justify-center gap-2 bg-[var(--bokmoo-gold)] px-5 text-sm font-semibold text-[var(--bokmoo-bg)]", type: "submit", children: [
                 /* @__PURE__ */ jsx(UserPlus, { className: "h-4 w-4" }),
-                "Add"
+                t(AFFILIATE.addMember)
               ] })
             ] }),
-            /* @__PURE__ */ jsx("div", { className: "mt-7 divide-y divide-[var(--bokmoo-line)] border-y border-[var(--bokmoo-line)]", children: organization.members.map((member) => /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between gap-4 py-4", children: [
+            /* @__PURE__ */ jsx("h3", { className: "mt-7 text-xs font-semibold uppercase text-[var(--bokmoo-copy-soft)]", children: t(AFFILIATE.members) }),
+            /* @__PURE__ */ jsx("div", { className: "mt-3 divide-y divide-[var(--bokmoo-line)] border-y border-[var(--bokmoo-line)]", children: organization.members.map((member) => /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between gap-4 py-4", children: [
               /* @__PURE__ */ jsxs("div", { className: "min-w-0", children: [
                 /* @__PURE__ */ jsx("p", { className: "truncate text-sm font-semibold text-[var(--bokmoo-ink)]", children: member.username || member.email }),
                 /* @__PURE__ */ jsx("p", { className: "mt-1 truncate text-xs text-[var(--bokmoo-copy-soft)]", children: member.email })
               ] }),
-              /* @__PURE__ */ jsx("span", { className: "text-xs font-semibold text-[var(--bokmoo-gold)]", children: member.role })
+              /* @__PURE__ */ jsx("span", { className: "text-xs font-semibold text-[var(--bokmoo-gold)]", children: memberRoleText(lang, member.role) })
             ] }, member.id)) })
-          ] }) : /* @__PURE__ */ jsxs("form", { onSubmit: async (event) => {
-            event.preventDefault();
-            setLoading(true);
-            setError("");
-            try {
-              await createBokmooAffiliateOrganization(api, { name: organizationName, commissionRate: Number(organizationRate) });
-              await refresh();
-            } catch (cause) {
-              setError(cause instanceof Error ? cause.message : "Organization could not be created");
-            } finally {
-              setLoading(false);
-            }
-          }, className: "mt-10 grid max-w-xl gap-4 border-y border-[var(--bokmoo-line)] py-7", children: [
-            /* @__PURE__ */ jsx("input", { value: organizationName, onChange: (event) => setOrganizationName(event.target.value), placeholder: "Organization name", required: true, className: "h-12 border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] px-4 text-sm text-[var(--bokmoo-ink)] outline-none" }),
-            /* @__PURE__ */ jsxs("label", { className: "flex items-center gap-4", children: [
-              /* @__PURE__ */ jsx("span", { className: "text-sm text-[var(--bokmoo-copy)]", children: "Commission rate" }),
-              /* @__PURE__ */ jsx("input", { type: "number", min: "0", max: "90", step: "0.1", value: organizationRate, onChange: (event) => setOrganizationRate(event.target.value), className: "h-12 w-28 border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] px-4 text-sm text-[var(--bokmoo-ink)] outline-none" })
+          ] }) : application && !applyAgain ? (
+            // sent, waiting for the store's answer — or answered
+            /* @__PURE__ */ jsxs("div", { "data-purpose": "application-status", "data-status": application.status, className: "mt-10 border-y border-[var(--bokmoo-line)] py-8", children: [
+              /* @__PURE__ */ jsx("p", { className: "text-xs font-semibold uppercase text-[var(--bokmoo-gold)]", children: t(application.status === "rejected" ? AFFILIATE.rejectedTitle : application.status === "approved" ? AFFILIATE.statusApproved : AFFILIATE.statusPending) }),
+              /* @__PURE__ */ jsx("h2", { className: "mt-3 text-2xl text-[var(--bokmoo-ink)]", children: t(application.status === "rejected" ? AFFILIATE.rejectedTitle : application.status === "approved" ? AFFILIATE.statusApproved : AFFILIATE.pendingTitle) }),
+              /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm text-[var(--bokmoo-copy)]", children: application.status === "pending" ? fill(t(AFFILIATE.pendingBody), { name: application.organizationName, email: application.email }) : application.status !== "rejected" ? "" : application.reviewNote ? fill(t(AFFILIATE.reviewNote), { note: application.reviewNote }) : t(AFFILIATE.rejectedBody) }),
+              /* @__PURE__ */ jsxs("dl", { className: "mt-6 divide-y divide-[var(--bokmoo-line)] border border-[var(--bokmoo-line)]", children: [
+                /* @__PURE__ */ jsx(Detail, { label: t(AFFILIATE.organizationName), value: application.organizationName }),
+                /* @__PURE__ */ jsx(Detail, { label: t(AFFILIATE.contactName), value: application.contactName }),
+                /* @__PURE__ */ jsx(Detail, { label: t(AUTH.email), value: application.email }),
+                /* @__PURE__ */ jsx(Detail, { label: t(AFFILIATE.phone), value: application.phone }),
+                /* @__PURE__ */ jsx(Detail, { label: t(AFFILIATE.website), value: application.website }),
+                /* @__PURE__ */ jsx(Detail, { label: t(AFFILIATE.message), value: application.message }),
+                application.createdAt ? /* @__PURE__ */ jsx(Detail, { label: t(AFFILIATE.submittedAt), value: new Date(application.createdAt).toLocaleDateString(locale) }) : null
+              ] }),
+              application.status === "rejected" ? /* @__PURE__ */ jsxs("button", { onClick: () => {
+                setApplicationForm({ ...applicationForm, organizationName: application.organizationName });
+                setApplyAgain(true);
+                setError("");
+              }, className: "mt-7 inline-flex min-h-12 items-center justify-center gap-2 bg-[var(--bokmoo-gold)] px-5 text-sm font-semibold text-[var(--bokmoo-bg)]", type: "button", children: [
+                /* @__PURE__ */ jsx(Plus, { className: "h-4 w-4" }),
+                t(AFFILIATE.applyAgain)
+              ] }) : null
+            ] })
+          ) : /* @__PURE__ */ jsxs("form", { "data-purpose": "application-form", onSubmit: submitApplication, className: "mt-10 grid max-w-xl gap-4 border-y border-[var(--bokmoo-line)] py-7", children: [
+            /* @__PURE__ */ jsx("p", { className: "text-sm leading-6 text-[var(--bokmoo-copy)]", children: t(AFFILIATE.applyIntro) }),
+            /* @__PURE__ */ jsxs("div", { children: [
+              /* @__PURE__ */ jsx("label", { className: labelClassName, htmlFor: "bokmoo-affiliate-organization-name", children: t(AFFILIATE.organizationName) }),
+              /* @__PURE__ */ jsx("input", { id: "bokmoo-affiliate-organization-name", name: "organizationName", value: applicationForm.organizationName, onChange: (event) => setApplicationForm({ ...applicationForm, organizationName: event.target.value }), required: true, minLength: 2, maxLength: 120, className: inputClassName })
+            ] }),
+            /* @__PURE__ */ jsxs("div", { className: "grid gap-4 sm:grid-cols-2", children: [
+              /* @__PURE__ */ jsxs("div", { children: [
+                /* @__PURE__ */ jsx("label", { className: labelClassName, htmlFor: "bokmoo-affiliate-contact-name", children: t(AFFILIATE.contactName) }),
+                /* @__PURE__ */ jsx("input", { id: "bokmoo-affiliate-contact-name", name: "contactName", value: applicationForm.contactName, onChange: (event) => setApplicationForm({ ...applicationForm, contactName: event.target.value }), required: true, maxLength: 120, autoComplete: "name", className: inputClassName })
+              ] }),
+              /* @__PURE__ */ jsxs("div", { children: [
+                /* @__PURE__ */ jsx("label", { className: labelClassName, htmlFor: "bokmoo-affiliate-email", children: t(AUTH.email) }),
+                /* @__PURE__ */ jsx("input", { id: "bokmoo-affiliate-email", name: "email", type: "email", value: applicationForm.email, onChange: (event) => setApplicationForm({ ...applicationForm, email: event.target.value }), required: true, maxLength: 160, autoComplete: "email", className: inputClassName })
+              ] }),
+              /* @__PURE__ */ jsxs("div", { children: [
+                /* @__PURE__ */ jsx("label", { className: labelClassName, htmlFor: "bokmoo-affiliate-phone", children: t(AFFILIATE.phone) }),
+                /* @__PURE__ */ jsx("input", { id: "bokmoo-affiliate-phone", name: "phone", type: "tel", value: applicationForm.phone, onChange: (event) => setApplicationForm({ ...applicationForm, phone: event.target.value }), maxLength: 40, autoComplete: "tel", className: inputClassName })
+              ] }),
+              /* @__PURE__ */ jsxs("div", { children: [
+                /* @__PURE__ */ jsx("label", { className: labelClassName, htmlFor: "bokmoo-affiliate-website", children: t(AFFILIATE.website) }),
+                /* @__PURE__ */ jsx("input", { id: "bokmoo-affiliate-website", name: "website", type: "url", value: applicationForm.website, onChange: (event) => setApplicationForm({ ...applicationForm, website: event.target.value }), maxLength: 200, inputMode: "url", className: inputClassName })
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxs("div", { children: [
+              /* @__PURE__ */ jsx("label", { className: labelClassName, htmlFor: "bokmoo-affiliate-message", children: t(AFFILIATE.message) }),
+              /* @__PURE__ */ jsx("textarea", { id: "bokmoo-affiliate-message", name: "message", value: applicationForm.message, onChange: (event) => setApplicationForm({ ...applicationForm, message: event.target.value }), maxLength: 1e3, rows: 4, className: "bokmoo-affiliate-textarea w-full border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] px-4 py-3 text-sm text-[var(--bokmoo-ink)] outline-none" })
             ] }),
             /* @__PURE__ */ jsxs("button", { disabled: loading, className: "inline-flex min-h-12 items-center justify-center gap-2 bg-[var(--bokmoo-gold)] px-5 text-sm font-semibold text-[var(--bokmoo-bg)] disabled:opacity-50", type: "submit", children: [
               /* @__PURE__ */ jsx(Plus, { className: "h-4 w-4" }),
-              "Create organization"
+              loading ? t(AFFILIATE.submitting) : t(AFFILIATE.submitApplication)
             ] })
           ] })
         ] }),
-        /* @__PURE__ */ jsx(CommissionList, { items: organizationCommissions, title: "Organization commissions" })
+        /* @__PURE__ */ jsx(CommissionList, { items: organizationCommissions, title: t(AFFILIATE.organizationCommissions), lang, locale })
       ] }) })
     ] }) });
   });
-  function CommissionList({ items, title }) {
+  function Detail({ label, value }) {
+    if (!value) return null;
+    return /* @__PURE__ */ jsxs("div", { className: "flex justify-between gap-4 px-4 py-3 text-sm", children: [
+      /* @__PURE__ */ jsx("dt", { className: "text-[var(--bokmoo-copy-soft)]", children: label }),
+      /* @__PURE__ */ jsx("dd", { className: "min-w-0 text-right text-[var(--bokmoo-ink)]", children: value })
+    ] });
+  }
+  function CommissionList({ items, title, lang, locale }) {
     return /* @__PURE__ */ jsxs("aside", { className: "border-l border-[var(--bokmoo-line)] pl-0 lg:pl-8", children: [
       /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3", children: [
         /* @__PURE__ */ jsx(Link2, { className: "h-4 w-4 text-[var(--bokmoo-gold)]" }),
@@ -13266,7 +13586,7 @@
       /* @__PURE__ */ jsx("div", { className: "mt-5 divide-y divide-[var(--bokmoo-line)] border-y border-[var(--bokmoo-line)]", children: items.length ? items.map((item) => /* @__PURE__ */ jsxs("div", { className: "grid grid-cols-[1fr_auto] gap-4 py-4", children: [
         /* @__PURE__ */ jsxs("div", { className: "min-w-0", children: [
           /* @__PURE__ */ jsx("p", { className: "truncate text-sm text-[var(--bokmoo-ink)]", children: orderId(item) }),
-          /* @__PURE__ */ jsx("p", { className: "mt-1 text-xs text-[var(--bokmoo-copy-soft)]", children: createdAt(item) ? new Date(createdAt(item)).toLocaleDateString() : item.status })
+          /* @__PURE__ */ jsx("p", { className: "mt-1 text-xs text-[var(--bokmoo-copy-soft)]", children: createdAt(item) ? new Date(createdAt(item)).toLocaleDateString(locale) : commissionStatusText(lang, item.status) })
         ] }),
         /* @__PURE__ */ jsxs("div", { className: "text-right", children: [
           /* @__PURE__ */ jsxs("p", { className: "text-sm font-semibold text-[var(--bokmoo-ink)]", children: [
@@ -13274,11 +13594,11 @@
             " ",
             Number(item.amount).toFixed(2)
           ] }),
-          /* @__PURE__ */ jsx("p", { className: "mt-1 text-xs uppercase text-[var(--bokmoo-copy-soft)]", children: item.status })
+          /* @__PURE__ */ jsx("p", { className: "mt-1 text-xs text-[var(--bokmoo-copy-soft)]", children: commissionStatusText(lang, item.status) })
         ] })
       ] }, item.id)) : /* @__PURE__ */ jsxs("div", { className: "py-10 text-center", children: [
         /* @__PURE__ */ jsx(UsersRound, { className: "mx-auto h-5 w-5 text-[var(--bokmoo-copy-soft)]" }),
-        /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm text-[var(--bokmoo-copy-soft)]", children: "No commissions yet" })
+        /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm text-[var(--bokmoo-copy-soft)]", children: affiliateText(lang, AFFILIATE.noCommissions) })
       ] }) })
     ] });
   }
@@ -13777,11 +14097,16 @@
     const data = await fetchSameOrigin(`/api/v1/plugins/affiliate/store/promo/${encodeURIComponent(code)}`);
     if (!data || data.valid !== true || typeof data.discountType !== "string" || typeof data.discountValue !== "number") return null;
     const discountType = data.discountType === "fixed_amount" ? "fixed_amount" : "percentage";
+    const scopeMode = data.scopeMode === "selected" || data.scopeMode === "except" ? data.scopeMode : void 0;
     return {
       code: typeof data.code === "string" ? data.code : code,
       partnerName: typeof data.partnerName === "string" ? data.partnerName : null,
       discountType,
-      discountValue: data.discountValue
+      discountValue: data.discountValue,
+      ...scopeMode ? {
+        scopeMode,
+        scopeProductIds: Array.isArray(data.scopeProductIds) ? data.scopeProductIds.filter((id3) => typeof id3 === "string") : []
+      } : {}
     };
   }
   function usePromoCode(code) {
@@ -13826,22 +14151,45 @@
     const raw = offer.discountType === "fixed_amount" ? Math.min(offer.discountValue, base) : Math.min(base, Math.round(base * offer.discountValue) / 100);
     return cents(Math.max(raw, 0));
   }
-  function priceSale(lines, sales) {
+  function scopeOf(offer) {
+    const mode = offer?.scopeMode === "selected" || offer?.scopeMode === "except" ? offer.scopeMode : "all";
+    return { mode, productIds: mode === "all" ? [] : offer?.scopeProductIds ?? [] };
+  }
+  function scopeAllows(scope, productId) {
+    if (scope.mode === "all") return true;
+    const picked = scope.productIds.includes(productId);
+    return scope.mode === "selected" ? picked : !picked;
+  }
+  function priceSale(lines, sales, offer) {
+    const scope = scopeOf(offer);
     let listSubtotal = 0;
-    let promotedSubtotal = 0;
     let saleDiscount = 0;
+    let reachedList = 0;
+    let reachedCovered = 0;
+    let reachedCurrent = 0;
     for (const line of lines) {
-      listSubtotal += line.unitPrice * line.quantity;
+      const subtotal = line.unitPrice * line.quantity;
+      listSubtotal += subtotal;
+      const reached = scopeAllows(scope, line.productId);
+      if (reached) reachedList += subtotal;
       const sale = saleFor(sales, line.productId);
-      if (!sale) continue;
+      if (!sale) {
+        if (reached) reachedCurrent += subtotal;
+        continue;
+      }
       const unit = saleUnitPrice(sale, line.unitPrice);
-      saleDiscount += line.unitPrice * line.quantity - unit * line.quantity;
-      promotedSubtotal += unit * line.quantity;
+      saleDiscount += subtotal - unit * line.quantity;
+      if (reached) {
+        reachedCovered += unit * line.quantity;
+        reachedCurrent += unit * line.quantity;
+      }
     }
     saleDiscount = cents(saleDiscount);
     return {
       saleDiscount,
-      saleBase: saleDiscount > 0 ? cents(promotedSubtotal) : cents(listSubtotal),
+      // A code pinned to products the store picked reaches them at their current price, sale or not.
+      // Any other code only stacks on what the sale covered while a sale runs.
+      saleBase: scope.mode === "selected" ? cents(reachedCurrent) : saleDiscount > 0 ? cents(reachedCovered) : cents(reachedList),
       onSale: saleDiscount > 0
     };
   }
@@ -13862,6 +14210,17 @@
     };
     if (state === "valid" && offer) {
       const values = { code: offer.code, rate: offer.discountValue, amount: money2(amount) };
+      if (!(amount > 0)) {
+        return pick({
+          en: "{code} doesn\u2019t apply to the items in your cart.",
+          hans: "{code} \u4E0D\u9002\u7528\u4E8E\u8D2D\u7269\u8F66\u91CC\u7684\u5546\u54C1\u3002",
+          hant: "{code} \u4E0D\u9069\u7528\u65BC\u8CFC\u7269\u8ECA\u88E1\u7684\u5546\u54C1\u3002",
+          ja: "{code} \u306F\u30AB\u30FC\u30C8\u5185\u306E\u5546\u54C1\u306B\u306F\u4F7F\u3048\u307E\u305B\u3093\u3002",
+          ko: "{code}\uC740(\uB294) \uC7A5\uBC14\uAD6C\uB2C8 \uC0C1\uD488\uC5D0 \uC801\uC6A9\uB418\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
+          fr: "{code} ne s\u2019applique pas aux articles de votre panier.",
+          de: "{code} gilt nicht f\xFCr die Artikel in Ihrem Warenkorb."
+        }, values);
+      }
       return offer.discountType === "fixed_amount" ? pick({ en: "{code}: {amount} off this order.", hans: "{code}\uFF1A\u672C\u5355\u7ACB\u51CF {amount}\u3002", hant: "{code}\uFF1A\u672C\u55AE\u7ACB\u6E1B {amount}\u3002", ja: "{code}\uFF1A\u3053\u306E\u6CE8\u6587\u304B\u3089{amount}\u5F15\u304D\u3002", ko: "{code}: \uC774 \uC8FC\uBB38\uC5D0\uC11C {amount} \uD560\uC778.", fr: "{code} : {amount} de r\xE9duction sur cette commande.", de: "{code}: {amount} Rabatt auf diese Bestellung." }, values) : pick({ en: "{code}: {rate}% off the sale price ({amount} off).", hans: "{code}\uFF1A\u6D3B\u52A8\u4EF7\u518D\u51CF {rate}%\uFF08\u5171\u51CF {amount}\uFF09\u3002", hant: "{code}\uFF1A\u6D3B\u52D5\u50F9\u518D\u6E1B {rate}%\uFF08\u5171\u6E1B {amount}\uFF09\u3002", ja: "{code}\uFF1A\u30BB\u30FC\u30EB\u4FA1\u683C\u304B\u3089\u3055\u3089\u306B{rate}%\u30AA\u30D5\uFF08{amount}\u5F15\u304D\uFF09\u3002", ko: "{code}: \uC138\uC77C \uAC00\uACA9\uC5D0\uC11C \uCD94\uAC00 {rate}% \uD560\uC778({amount} \uD560\uC778).", fr: "{code} : {rate} % de r\xE9duction suppl\xE9mentaire sur le prix sold\xE9 ({amount} de moins).", de: "{code}: {rate} % Extra-Rabatt auf den Sale-Preis ({amount} weniger)." }, values);
     }
     if (state === "invalid") {
@@ -13872,79 +14231,6 @@
   function saleTitle(sales) {
     const sale = sales?.find((entry) => entry.activeNow);
     return sale?.banner?.title || sale?.name || null;
-  }
-
-  // src/lib/card-copy.ts
-  var CARDS = [
-    {
-      kind: "bluetooth",
-      keys: ["odoo-product-7", "bokmoo-ble-v1"],
-      sourceDescription: "Bokmoo Bluetooth Card \u2014 manage multiple eSIM profiles wirelessly. Enable, switch, and organize eSIM plans in the BOKMOO app. No tray tools needed.\n\nThe card connects to your phone over Bluetooth, so you can carry several eSIM profiles on one physical card and move between them in seconds \u2014 ideal for travel, separate work and personal lines, or keeping a backup plan ready. Pair it with the BOKMOO app, pick a profile, and it applies over the air.",
-      name: {
-        en: "Bokmoo Bluetooth Card",
-        hans: "Bokmoo \u84DD\u7259\u5361",
-        hant: "Bokmoo \u85CD\u7259\u5361",
-        ja: "Bokmoo Bluetooth \u30AB\u30FC\u30C9",
-        ko: "Bokmoo \uBE14\uB8E8\uD22C\uC2A4 \uCE74\uB4DC",
-        fr: "Carte Bokmoo Bluetooth",
-        de: "Bokmoo Bluetooth-Karte"
-      },
-      description: {
-        en: "Bokmoo Bluetooth Card \u2014 manage multiple eSIM profiles wirelessly. Enable, switch, and organize eSIM plans in the BOKMOO app. No tray tools needed.\n\nThe card connects to your phone over Bluetooth, so you can carry several eSIM profiles on one physical card and move between them in seconds \u2014 ideal for travel, separate work and personal lines, or keeping a backup plan ready. Pair it with the BOKMOO app, pick a profile, and it applies over the air.",
-        hans: "Bokmoo \u84DD\u7259\u5361\u2014\u2014\u65E0\u7EBF\u7BA1\u7406\u591A\u4E2A eSIM \u914D\u7F6E\u6587\u4EF6\u3002\u5728 BOKMOO App \u91CC\u542F\u7528\u3001\u5207\u6362\u548C\u6574\u7406 eSIM \u5957\u9910\uFF0C\u65E0\u9700\u53D6\u5361\u9488\u3002\n\n\u5361\u7247\u901A\u8FC7\u84DD\u7259\u8FDE\u63A5\u624B\u673A\uFF0C\u4E00\u5F20\u5B9E\u4F53\u5361\u4E0A\u53EF\u4EE5\u643A\u5E26\u591A\u4E2A eSIM \u914D\u7F6E\u6587\u4EF6\uFF0C\u51E0\u79D2\u5185\u5373\u53EF\u5207\u6362\u2014\u2014\u9002\u5408\u65C5\u884C\u3001\u5DE5\u4F5C\u4E0E\u4E2A\u4EBA\u53F7\u7801\u5206\u5F00\u4F7F\u7528\uFF0C\u6216\u968F\u65F6\u5907\u4E00\u4E2A\u5907\u7528\u5957\u9910\u3002\u914D\u5BF9 BOKMOO App\uFF0C\u9009\u4E00\u4E2A\u914D\u7F6E\u6587\u4EF6\uFF0C\u5373\u53EF\u7A7A\u4E2D\u5199\u5165\u3002",
-        hant: "Bokmoo \u85CD\u7259\u5361\u2014\u2014\u7121\u7DDA\u7BA1\u7406\u591A\u500B eSIM \u8A2D\u5B9A\u6A94\u3002\u5728 BOKMOO App \u88E1\u555F\u7528\u3001\u5207\u63DB\u548C\u6574\u7406 eSIM \u5957\u9910\uFF0C\u7121\u9700\u9000\u5361\u91DD\u3002\n\n\u5361\u7247\u900F\u904E\u85CD\u7259\u9023\u63A5\u624B\u6A5F\uFF0C\u4E00\u5F35\u5BE6\u9AD4\u5361\u4E0A\u53EF\u4EE5\u651C\u5E36\u591A\u500B eSIM \u8A2D\u5B9A\u6A94\uFF0C\u5E7E\u79D2\u5167\u5373\u53EF\u5207\u63DB\u2014\u2014\u9069\u5408\u65C5\u884C\u3001\u5DE5\u4F5C\u8207\u500B\u4EBA\u9580\u865F\u5206\u958B\u4F7F\u7528\uFF0C\u6216\u96A8\u6642\u5099\u4E00\u500B\u5099\u7528\u65B9\u6848\u3002\u914D\u5C0D BOKMOO App\uFF0C\u9078\u4E00\u500B\u8A2D\u5B9A\u6A94\uFF0C\u5373\u53EF\u900F\u904E\u7A7A\u4E2D\u4E0B\u8F09\u5BEB\u5165\u3002",
-        ja: "Bokmoo Bluetooth \u30AB\u30FC\u30C9\u2014\u2014\u8907\u6570\u306E eSIM \u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3092\u30EF\u30A4\u30E4\u30EC\u30B9\u3067\u7BA1\u7406\u3002BOKMOO \u30A2\u30D7\u30EA\u3067 eSIM \u30D7\u30E9\u30F3\u306E\u6709\u52B9\u5316\u30FB\u5207\u308A\u66FF\u3048\u30FB\u6574\u7406\u304C\u3067\u304D\u3001\u30D4\u30F3\u306F\u4E0D\u8981\u3067\u3059\u3002\n\n\u30AB\u30FC\u30C9\u306F Bluetooth \u3067\u30B9\u30DE\u30FC\u30C8\u30D5\u30A9\u30F3\u306B\u63A5\u7D9A\u3059\u308B\u305F\u3081\u30011 \u679A\u306E\u7269\u7406\u30AB\u30FC\u30C9\u306B\u8907\u6570\u306E eSIM \u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3092\u6301\u3061\u3001\u6570\u79D2\u3067\u5207\u308A\u66FF\u3048\u3089\u308C\u307E\u3059\u3002\u65C5\u884C\u3001\u4ED5\u4E8B\u7528\u3068\u500B\u4EBA\u7528\u306E\u56DE\u7DDA\u306E\u4F7F\u3044\u5206\u3051\u3001\u4E88\u5099\u30D7\u30E9\u30F3\u306E\u4FDD\u6301\u306B\u6700\u9069\u3067\u3059\u3002BOKMOO \u30A2\u30D7\u30EA\u3068\u30DA\u30A2\u30EA\u30F3\u30B0\u3057\u3066\u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3092\u9078\u3076\u3060\u3051\u3067\u3001\u7121\u7DDA\u3067\u66F8\u304D\u8FBC\u307E\u308C\u307E\u3059\u3002",
-        ko: "Bokmoo \uBE14\uB8E8\uD22C\uC2A4 \uCE74\uB4DC \u2014 \uC5EC\uB7EC eSIM \uD504\uB85C\uD544\uC744 \uBB34\uC120\uC73C\uB85C \uAD00\uB9AC\uD558\uC138\uC694. BOKMOO \uC571\uC5D0\uC11C eSIM \uC694\uAE08\uC81C\uB97C \uD65C\uC131\uD654\uD558\uACE0 \uC804\uD658\uD558\uACE0 \uC815\uB9AC\uD560 \uC218 \uC788\uC73C\uBA70, \uD540 \uB3C4\uAD6C\uAC00 \uD544\uC694 \uC5C6\uC2B5\uB2C8\uB2E4.\n\n\uCE74\uB4DC\uAC00 \uBE14\uB8E8\uD22C\uC2A4\uB85C \uD734\uB300\uD3F0\uC5D0 \uC5F0\uACB0\uB418\uBBC0\uB85C \uC2E4\uC81C \uCE74\uB4DC \uD55C \uC7A5\uC5D0 \uC5EC\uB7EC eSIM \uD504\uB85C\uD544\uC744 \uB2F4\uACE0 \uBA87 \uCD08 \uB9CC\uC5D0 \uC804\uD658\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4. \uC5EC\uD589, \uC5C5\uBB34\uC6A9\xB7\uAC1C\uC778\uC6A9 \uD68C\uC120 \uBD84\uB9AC, \uC608\uBE44 \uC694\uAE08\uC81C \uC900\uBE44\uC5D0 \uC801\uD569\uD569\uB2C8\uB2E4. BOKMOO \uC571\uACFC \uD398\uC5B4\uB9C1\uD558\uACE0 \uD504\uB85C\uD544\uC744 \uC120\uD0DD\uD558\uBA74 \uBB34\uC120\uC73C\uB85C \uC801\uC6A9\uB429\uB2C8\uB2E4.",
-        fr: "Carte Bokmoo Bluetooth \u2014 g\xE9rez plusieurs profils eSIM sans fil. Activez, changez et organisez vos forfaits eSIM dans l\u2019application BOKMOO, sans outil d\u2019\xE9jection.\n\nLa carte se connecte \xE0 votre t\xE9l\xE9phone en Bluetooth : vous pouvez garder plusieurs profils eSIM sur une seule carte physique et passer de l\u2019un \xE0 l\u2019autre en quelques secondes \u2014 id\xE9al pour voyager, s\xE9parer lignes pro et perso, ou garder un forfait de rechange pr\xEAt. Jumelez-la avec l\u2019application BOKMOO, choisissez un profil, et il s\u2019applique \xE0 distance.",
-        de: "Bokmoo Bluetooth-Karte \u2013 mehrere eSIM-Profile drahtlos verwalten. eSIM-Tarife in der BOKMOO-App aktivieren, wechseln und ordnen \u2013 ohne Simnad.\n\nDie Karte verbindet sich per Bluetooth mit Ihrem Smartphone, sodass Sie mehrere eSIM-Profile auf einer physischen Karte tragen und in Sekunden wechseln k\xF6nnen \u2013 ideal zum Reisen, f\xFCr getrennte Gesch\xE4fts- und Privatanschl\xFCsse oder einen bereiten Ersatztarif. Mit der BOKMOO-App koppeln, Profil w\xE4hlen \u2013 und er wird drahtlos aufgespielt."
-      }
-    },
-    {
-      kind: "plug-in",
-      keys: ["odoo-product-6", "bokmoo-card-v1"],
-      sourceDescription: "Bokmoo Card V1 \u2014 plug-in smart card that installs eSIM profiles directly on your phone. Works with the BOKMOO app; eSIM plan service is rolling out soon.\n\nInsert the card, open the BOKMOO app, and load your eSIM profile straight onto the card \u2014 a simple way to carry a second line or keep a backup of your main eSIM. No Bluetooth pairing required.",
-      name: {
-        en: "Bokmoo Card",
-        hans: "Bokmoo \u5B9E\u4F53\u5361",
-        hant: "Bokmoo \u5BE6\u9AD4\u5361",
-        ja: "Bokmoo \u30AB\u30FC\u30C9",
-        ko: "Bokmoo \uCE74\uB4DC",
-        fr: "Carte Bokmoo",
-        de: "Bokmoo Karte"
-      },
-      description: {
-        en: "Bokmoo Card V1 \u2014 plug-in smart card that installs eSIM profiles directly on your phone. Works with the BOKMOO app; eSIM plan service is rolling out soon.\n\nInsert the card, open the BOKMOO app, and load your eSIM profile straight onto the card \u2014 a simple way to carry a second line or keep a backup of your main eSIM. No Bluetooth pairing required.",
-        hans: "Bokmoo \u5B9E\u4F53\u5361\u2014\u2014\u5373\u63D2\u5373\u7528\u7684\u667A\u80FD\u5361\uFF0C\u628A eSIM \u914D\u7F6E\u6587\u4EF6\u76F4\u63A5\u88C5\u8FDB\u624B\u673A\u3002\u914D\u5408 BOKMOO App \u4F7F\u7528\u3002\n\n\u63D2\u5165\u5361\u7247\uFF0C\u6253\u5F00 BOKMOO App\uFF0C\u5373\u53EF\u628A eSIM \u914D\u7F6E\u6587\u4EF6\u76F4\u63A5\u5199\u5165\u5361\u4E2D\u2014\u2014\u8F7B\u677E\u5E26\u4E0A\u7B2C\u4E8C\u4E2A\u53F7\u7801\uFF0C\u6216\u4E3A\u4E3B eSIM \u7559\u4E00\u4EFD\u5907\u4EFD\u3002\u65E0\u9700\u84DD\u7259\u914D\u5BF9\u3002",
-        hant: "Bokmoo \u5BE6\u9AD4\u5361\u2014\u2014\u5373\u63D2\u5373\u7528\u7684\u667A\u6167\u5361\uFF0C\u628A eSIM \u8A2D\u5B9A\u6A94\u76F4\u63A5\u5B89\u88DD\u5230\u624B\u6A5F\u3002\u642D\u914D BOKMOO App \u4F7F\u7528\u3002\n\n\u63D2\u5165\u5361\u7247\uFF0C\u958B\u555F BOKMOO App\uFF0C\u5373\u53EF\u628A eSIM \u8A2D\u5B9A\u6A94\u76F4\u63A5\u5BEB\u5165\u5361\u4E2D\u2014\u2014\u8F15\u9B06\u651C\u5E36\u7B2C\u4E8C\u500B\u9580\u865F\uFF0C\u6216\u70BA\u4E3B\u8981 eSIM \u4FDD\u7559\u4E00\u4EFD\u5099\u4EFD\u3002\u7121\u9700\u85CD\u7259\u914D\u5C0D\u3002",
-        ja: "Bokmoo \u30AB\u30FC\u30C9\u2014\u2014eSIM \u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3092\u30B9\u30DE\u30FC\u30C8\u30D5\u30A9\u30F3\u306B\u76F4\u63A5\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3059\u308B\u3001\u5DEE\u3057\u8FBC\u3080\u3060\u3051\u306E\u30B9\u30DE\u30FC\u30C8\u30AB\u30FC\u30C9\u3002BOKMOO \u30A2\u30D7\u30EA\u3068\u4F75\u7528\u3057\u307E\u3059\u3002\n\n\u30AB\u30FC\u30C9\u3092\u5DEE\u3057\u8FBC\u307F\u3001BOKMOO \u30A2\u30D7\u30EA\u3092\u958B\u3044\u3066\u3001eSIM \u30D7\u30ED\u30D5\u30A1\u30A4\u30EB\u3092\u30AB\u30FC\u30C9\u306B\u76F4\u63A5\u66F8\u304D\u8FBC\u307F\u307E\u3059\u30022 \u756A\u76EE\u306E\u56DE\u7DDA\u3092\u6301\u3063\u305F\u308A\u3001\u30E1\u30A4\u30F3\u306E eSIM \u306E\u30D0\u30C3\u30AF\u30A2\u30C3\u30D7\u3092\u53D6\u3063\u305F\u308A\u3059\u308B\u7C21\u5358\u306A\u65B9\u6CD5\u3067\u3059\u3002Bluetooth \u306E\u30DA\u30A2\u30EA\u30F3\u30B0\u306F\u4E0D\u8981\u3067\u3059\u3002",
-        ko: "Bokmoo \uCE74\uB4DC \u2014 eSIM \uD504\uB85C\uD544\uC744 \uD734\uB300\uD3F0\uC5D0 \uBC14\uB85C \uC124\uCE58\uD558\uB294 \uAF42\uAE30\uB9CC \uD558\uBA74 \uB418\uB294 \uC2A4\uB9C8\uD2B8 \uCE74\uB4DC. BOKMOO \uC571\uACFC \uD568\uAED8 \uC0AC\uC6A9\uD569\uB2C8\uB2E4.\n\n\uCE74\uB4DC\uB97C \uAF42\uACE0 BOKMOO \uC571\uC744 \uC5F0 \uB2E4\uC74C eSIM \uD504\uB85C\uD544\uC744 \uCE74\uB4DC\uC5D0 \uBC14\uB85C \uBD88\uB7EC\uC624\uC138\uC694. \uB450 \uBC88\uC9F8 \uD68C\uC120\uC744 \uB4E4\uACE0 \uB2E4\uB2C8\uAC70\uB098 \uC8FC eSIM\uC758 \uBC31\uC5C5\uC744 \uC720\uC9C0\uD558\uB294 \uAC04\uB2E8\uD55C \uBC29\uBC95\uC785\uB2C8\uB2E4. \uBE14\uB8E8\uD22C\uC2A4 \uD398\uC5B4\uB9C1\uC740 \uD544\uC694 \uC5C6\uC2B5\uB2C8\uB2E4.",
-        fr: "Carte Bokmoo \u2014 une carte \xE0 puce \xE0 ins\xE9rer qui installe vos profils eSIM directement sur votre t\xE9l\xE9phone. S\u2019utilise avec l\u2019application BOKMOO.\n\nIns\xE9rez la carte, ouvrez l\u2019application BOKMOO et chargez votre profil eSIM directement sur la carte \u2014 une fa\xE7on simple de transporter une seconde ligne ou de garder une sauvegarde de votre eSIM principale. Aucun jumelage Bluetooth requis.",
-        de: "Bokmoo Karte \u2013 eine einzusteckende Smartcard, die eSIM-Profile direkt auf Ihrem Smartphone installiert. Funktioniert mit der BOKMOO-App.\n\nKarte einstecken, BOKMOO-App \xF6ffnen und Ihr eSIM-Profil direkt auf die Karte laden \u2013 ein einfacher Weg, einen zweiten Anschluss dabei zu haben oder eine Sicherung Ihrer Haupt-eSIM zu behalten. Kein Bluetooth-Koppeln n\xF6tig."
-      }
-    }
-  ];
-  var squash = (value) => String(value ?? "").replace(/\s+/g, " ").trim();
-  function knownCardOf(product) {
-    if (!product) return null;
-    const keys = [product.id, product.sku, product.slug].map((key) => String(key ?? "").toLowerCase());
-    return CARDS.find((card) => card.keys.some((key) => keys.includes(key))) ?? null;
-  }
-  function cardKindOf(product) {
-    return knownCardOf(product)?.kind ?? null;
-  }
-  function cardName(product, locale) {
-    const card = knownCardOf(product);
-    if (!card) return null;
-    return pickCopy(locale, card.name);
-  }
-  function cardDescription(product, locale) {
-    const card = knownCardOf(product);
-    if (!card) return null;
-    if (squash(product.description) !== squash(card.sourceDescription)) return null;
-    return pickCopy(locale, card.description);
-  }
-  function cardLineName(item, locale) {
-    return cardName({ id: item.productId, sku: item.sku }, locale) ?? String(item.productName ?? "");
   }
 
   // src/components/SalePrice.tsx
@@ -14959,11 +15245,12 @@
     });
     const [errors, setErrors] = react_default.useState({});
     const sales = useActiveSales(locale);
+    const promoCode = usePromoCode(formData.promoCode);
     const salePricing = priceSale(
       cart.items.map((item) => ({ productId: item.productId, unitPrice: Number(item.price || 0), quantity: item.quantity })),
-      sales
+      sales,
+      promoCode.offer
     );
-    const promoCode = usePromoCode(formData.promoCode);
     const codeAmount = codeDiscount(promoCode.offer, salePricing.saleBase);
     const codeMessage = promoCodeMessage(locale, promoCode.state, promoCode.offer, codeAmount);
     const [selectedSavedAddressId, setSelectedSavedAddressId] = react_default.useState(
@@ -15126,14 +15413,14 @@
         ] }),
         /* @__PURE__ */ jsxs("form", { id: "bokmoo-checkout-form", onSubmit: handleSubmit, className: "space-y-4", children: [
           /* @__PURE__ */ jsxs("div", { className: "rounded-[1rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_22%,var(--bokmoo-line))] bg-[var(--bokmoo-bg)] p-4", children: [
-            /* @__PURE__ */ jsx("label", { className: "text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--bokmoo-copy-soft)]", htmlFor: "bokmoo-promo-code", children: pickCopy(locale, { en: "Promo / referral code", hans: "\u4F18\u60E0\u7801 / \u63A8\u8350\u7801", hant: "\u512A\u60E0\u78BC / \u63A8\u85A6\u78BC" }) }),
+            /* @__PURE__ */ jsx("label", { className: "text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--bokmoo-copy-soft)]", htmlFor: "bokmoo-promo-code", children: pickCopy(locale, { en: "Promo / referral code", hans: "\u4F18\u60E0\u7801 / \u63A8\u8350\u7801", hant: "\u512A\u60E0\u78BC / \u63A8\u85A6\u78BC", ja: "\u30D7\u30ED\u30E2\u30B3\u30FC\u30C9 / \u7D39\u4ECB\u30B3\u30FC\u30C9", ko: "\uD504\uB85C\uBAA8 / \uCD94\uCC9C \uCF54\uB4DC", fr: "Code promo / de parrainage", de: "Promo- / Empfehlungscode" }) }),
             /* @__PURE__ */ jsx(
               "input",
               {
                 id: "bokmoo-promo-code",
                 value: formData.promoCode,
                 onChange: (event) => setFormData((prev) => ({ ...prev, promoCode: event.target.value.toUpperCase() })),
-                placeholder: pickCopy(locale, { en: "e.g. BOKMOO10", hans: "\u5982 BOKMOO10", hant: "\u5982 BOKMOO10" }),
+                placeholder: pickCopy(locale, { en: "e.g. BOKMOO10", hans: "\u5982 BOKMOO10", hant: "\u5982 BOKMOO10", ja: "\u4F8B\uFF1ABOKMOO10", ko: "\uC608: BOKMOO10", fr: "ex. BOKMOO10", de: "z. B. BOKMOO10" }),
                 className: "mt-2 h-12 w-full rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] px-4 text-sm font-semibold tracking-[0.08em] text-[var(--bokmoo-ink)] outline-none focus:border-[var(--bokmoo-gold)]"
               }
             ),
@@ -15141,7 +15428,7 @@
             codeMessage ? /* @__PURE__ */ jsx(
               "p",
               {
-                className: cn2("bokmoo-promo-code-message mt-2 text-xs leading-5", promoCode.state === "valid" ? "bokmoo-promo-code-valid" : "bokmoo-promo-code-invalid"),
+                className: cn2("bokmoo-promo-code-message mt-2 text-xs leading-5", promoCode.state === "valid" && codeAmount > 0 ? "bokmoo-promo-code-valid" : "bokmoo-promo-code-invalid"),
                 "data-purpose": "promo-code-message",
                 role: "status",
                 children: codeMessage
@@ -20698,6 +20985,15 @@ body[data-theme='bokmoo'] ::selection {
 }
 /* <<< Catalog card tiles end */
 
+/* >>> Affiliate workspace. Same reason as the block above: the storefront's utility sheet is built together
+   with the shop worker, so a theme release carries these rules itself. Keep this block byte-identical in
+   src/tokens.css (embedded renderer) and theme-pack/tokens.css (remote runtime). */
+.bokmoo-affiliate-textarea {
+  min-height: 7rem;
+  resize: vertical;
+}
+/* <<< Affiliate workspace end */
+
 
 /* \u2500\u2500 Landing stage: CSS-rendered SIM card pedestal (Obsidian Aurum hero) \u2500\u2500 */
 .bg-pedestal-top {
@@ -20741,7 +21037,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.68",
+      version: "1.1.69",
       target: "shop"
     }
   };

@@ -680,6 +680,10 @@ body[data-theme=bokmoo] ::selection {
 .bokmoo-code-input {
   letter-spacing: 0.5em;
 }
+.bokmoo-affiliate-textarea {
+  min-height: 7rem;
+  resize: vertical;
+}
 .bg-pedestal-top {
   background:
     radial-gradient(

@@ -330,3 +330,9 @@ body[data-theme='esim'] ::selection {
 /* FAQ native disclosure (design: plus icon rotates into a close cross) */
 details summary::-webkit-details-marker { display: none; }
 details[open] summary .faq-icon { transform: rotate(45deg); }
+
+/* Affiliate workspace: the "about your organization" field of the application form. Kept in both copies (embedded renderer and remote runtime). */
+.esim-affiliate-textarea {
+  min-height: 7rem;
+  resize: vertical;
+}

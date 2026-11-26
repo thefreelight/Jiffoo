@@ -2,23 +2,27 @@ import React from 'react';
 import { ArrowLeft, Check, Copy, Link2, Plus, RefreshCw, UserPlus, UsersRound, WalletCards } from 'lucide-react';
 import type { AffiliatePageProps } from 'shared/src/types/theme';
 import { formatOrderDate } from '../lib/esim/order-copy';
-import { pickCopy, type ThemeCopy } from '../site';
 import {
   addEsimAffiliateMember,
+  applyForEsimAffiliateOrganization,
   EsimApiError,
-  createEsimAffiliateOrganization,
+  getEsimAffiliateApplication,
   getEsimAffiliateCommissions,
   getEsimAffiliateOrganization,
   getEsimAffiliatePartner,
   getEsimOrganizationCommissions,
   registerEsimAffiliatePartner,
+  type EsimAffiliateApplication,
   type EsimAffiliateCommission,
   type EsimAffiliateOrganization,
   type EsimAffiliatePartner,
 } from '../lib/api';
+import { AFFILIATE, affiliateErrorText, affiliateText, commissionStatusText, fill, headlineStyle, memberRoleText, pageLocale, scopeText, type AffiliateCopy } from '../lib/esim/affiliate-copy';
 import { resolveEsimSiteConfig } from '../site';
 
 type View = 'partner' | 'organization';
+
+const EMPTY_APPLICATION = { organizationName: '', contactName: '', email: '', phone: '', website: '', message: '' };
 
 function money(items: EsimAffiliateCommission[]): string {
   const total = items.reduce((sum, item) => sum + Number(item.amount || 0), 0);
@@ -41,30 +45,32 @@ export const AffiliatePage = React.memo(function AffiliatePage({
   onNavigateBack,
   onNavigateToLogin,
 }: AffiliatePageProps) {
-  const site = resolveEsimSiteConfig(config, locale);
+  const site = resolveEsimSiteConfig(config, pageLocale(locale));
   const api = React.useMemo(() => ({ baseUrl: site.apiBaseUrl }), [site.apiBaseUrl]);
+  const lang = pageLocale(locale);
+  const t = (copy: AffiliateCopy) => affiliateText(lang, copy);
   const [view, setView] = React.useState<View>('partner');
   const [partner, setPartner] = React.useState<EsimAffiliatePartner | null>(null);
   const [commissions, setCommissions] = React.useState<EsimAffiliateCommission[]>([]);
   const [organization, setOrganization] = React.useState<EsimAffiliateOrganization | null>(null);
   const [organizationCommissions, setOrganizationCommissions] = React.useState<EsimAffiliateCommission[]>([]);
+  // The shopper's request to open an organization. The store answers it.
+  const [application, setApplication] = React.useState<EsimAffiliateApplication | null>(null);
+  const [applicationForm, setApplicationForm] = React.useState(EMPTY_APPLICATION);
+  const [applyAgain, setApplyAgain] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState('');
   const [copied, setCopied] = React.useState(false);
   const [displayName, setDisplayName] = React.useState('');
   const [organizationCode, setOrganizationCode] = React.useState('');
-  const [organizationName, setOrganizationName] = React.useState('');
-  const [organizationRate, setOrganizationRate] = React.useState('2.5');
   const [memberEmail, setMemberEmail] = React.useState('');
   const [memberRole, setMemberRole] = React.useState<'INFLUENCER' | 'MANAGER'>('INFLUENCER');
-
-  const t = (copy: ThemeCopy) => pickCopy(locale, copy);
 
   const refresh = React.useCallback(async () => {
     if (!isAuthenticated) return;
     setLoading(true);
     setError('');
-    const [partnerResult, organizationResult] = await Promise.allSettled([
+    const [partnerResult, organizationResult, applicationResult] = await Promise.allSettled([
       Promise.all([getEsimAffiliatePartner(api), getEsimAffiliateCommissions(api)]),
       Promise.all([
         getEsimAffiliateOrganization(api),
@@ -73,23 +79,32 @@ export const AffiliatePage = React.memo(function AffiliatePage({
           throw cause;
         }),
       ]),
+      getEsimAffiliateApplication(api),
     ]);
     if (partnerResult.status === 'fulfilled') {
       setPartner(partnerResult.value[0]);
       setCommissions(partnerResult.value[1]);
     } else if (!(partnerResult.reason instanceof EsimApiError && partnerResult.reason.status === 404)) {
-      setError(partnerResult.reason instanceof Error ? partnerResult.reason.message : pickCopy(locale, { en: 'Affiliate data could not be loaded', hans: '联盟推广数据加载失败', hant: '聯盟推廣資料載入失敗' }));
+      setError(partnerResult.reason instanceof EsimApiError ? affiliateErrorText(lang, partnerResult.reason) : t(AFFILIATE.loadFailed));
     }
     if (organizationResult.status === 'fulfilled') {
       setOrganization(organizationResult.value[0]);
       setOrganizationCommissions(organizationResult.value[1]);
     } else if (!(organizationResult.reason instanceof EsimApiError && organizationResult.reason.status === 404)) {
-      setError(organizationResult.reason instanceof Error ? organizationResult.reason.message : pickCopy(locale, { en: 'Organization data could not be loaded', hans: '组织数据加载失败', hant: '組織資料載入失敗' }));
+      setError(organizationResult.reason instanceof EsimApiError ? affiliateErrorText(lang, organizationResult.reason) : t(AFFILIATE.loadFailed));
     }
+    // An older core knows no applications: the form is then shown, and its answer explains.
+    if (applicationResult.status === 'fulfilled') setApplication(applicationResult.value);
     setLoading(false);
-  }, [api, isAuthenticated, locale]);
+  }, [api, isAuthenticated, lang]);
 
   React.useEffect(() => { void refresh(); }, [refresh]);
+
+  // What the server said, in the shopper's language.
+  const sayError = (cause: unknown, fallback: string) => {
+    if (cause instanceof EsimApiError) setError(affiliateErrorText(lang, cause));
+    else setError(fallback);
+  };
 
   if (isLoading) return <div className="min-h-screen bg-[var(--esim-bg)]" />;
   if (!isAuthenticated) {
@@ -97,8 +112,8 @@ export const AffiliatePage = React.memo(function AffiliatePage({
       <div className="flex min-h-screen items-center justify-center bg-[var(--esim-bg)] px-5">
         <div className="max-w-md border-y border-[var(--esim-line)] py-10 text-center">
           <WalletCards className="mx-auto h-7 w-7 text-[var(--esim-gold)]" />
-          <h1 className="mt-5 text-3xl text-[var(--esim-ink)]">{t({ en: 'Affiliate workspace', hans: '联盟推广工作台', hant: '聯盟推廣工作台' })}</h1>
-          <button onClick={onNavigateToLogin} className="mt-7 min-h-11 bg-[var(--esim-gold)] px-6 text-sm font-semibold text-[var(--esim-bg)]" type="button">{t({ en: 'Sign In', hans: '登入', hant: '登入' })}</button>
+          <h1 className="mt-5 text-3xl text-[var(--esim-ink)]">{t(AFFILIATE.signInTitle)}</h1>
+          <button onClick={onNavigateToLogin} className="mt-7 min-h-11 bg-[var(--esim-gold)] px-6 text-sm font-semibold text-[var(--esim-bg)]" type="button">{t(AFFILIATE.signIn)}</button>
         </div>
       </div>
     );
@@ -108,79 +123,152 @@ export const AffiliatePage = React.memo(function AffiliatePage({
     ? `${window.location.origin}/${locale || 'en'}/r/${encodeURIComponent(partner.code)}`
     : '';
 
+  const submitApplication = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setLoading(true);
+    setError('');
+    try {
+      const sent = await applyForEsimAffiliateOrganization(api, applicationForm);
+      setApplication(sent);
+      setApplyAgain(false);
+    } catch (cause) {
+      sayError(cause, t(AFFILIATE.applyFailed));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const inputClassName = 'h-12 w-full border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-4 text-sm text-[var(--esim-ink)] outline-none';
+  const labelClassName = 'mb-2 block text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--esim-copy-soft)]';
+
   return (
     <main className="min-h-screen bg-[var(--esim-bg)] px-4 pb-20 pt-20 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-6xl">
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--esim-line)] pb-6">
-          <button onClick={onNavigateBack} className="inline-flex h-10 w-10 items-center justify-center border border-[var(--esim-line)] text-[var(--esim-copy)]" aria-label={t({ en: 'Back', hans: '返回', hant: '返回' })} type="button"><ArrowLeft className="h-4 w-4" /></button>
-          <div className="flex border border-[var(--esim-line)] p-1" role="tablist" aria-label={t({ en: 'Affiliate view', hans: '联盟视图', hant: '聯盟檢視' })}>
-            <button onClick={() => setView('partner')} className={`min-h-9 px-4 text-xs font-semibold ${view === 'partner' ? 'bg-[var(--esim-gold)] text-[var(--esim-bg)]' : 'text-[var(--esim-copy)]'}`} type="button">{t({ en: 'Partner', hans: '个人推广', hant: '個人推廣' })}</button>
-            <button onClick={() => setView('organization')} className={`min-h-9 px-4 text-xs font-semibold ${view === 'organization' ? 'bg-[var(--esim-gold)] text-[var(--esim-bg)]' : 'text-[var(--esim-copy)]'}`} type="button">{t({ en: 'Organization', hans: '组织', hant: '組織' })}</button>
+          <button onClick={onNavigateBack} className="inline-flex h-10 w-10 items-center justify-center border border-[var(--esim-line)] text-[var(--esim-copy)]" aria-label={t(AFFILIATE.back)} type="button"><ArrowLeft className="h-4 w-4" /></button>
+          <div className="flex border border-[var(--esim-line)] p-1" role="tablist" aria-label={t(AFFILIATE.signInTitle)}>
+            <button onClick={() => setView('partner')} className={`min-h-9 px-4 text-xs font-semibold ${view === 'partner' ? 'bg-[var(--esim-gold)] text-[var(--esim-bg)]' : 'text-[var(--esim-copy)]'}`} type="button">{t(AFFILIATE.tabPartner)}</button>
+            <button onClick={() => setView('organization')} className={`min-h-9 px-4 text-xs font-semibold ${view === 'organization' ? 'bg-[var(--esim-gold)] text-[var(--esim-bg)]' : 'text-[var(--esim-copy)]'}`} type="button">{t(AFFILIATE.tabOrganization)}</button>
           </div>
-          <button onClick={() => void refresh()} className="inline-flex h-10 w-10 items-center justify-center border border-[var(--esim-line)] text-[var(--esim-copy)]" aria-label={t({ en: 'Refresh', hans: '刷新', hant: '重新整理' })} type="button"><RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /></button>
+          <button onClick={() => void refresh()} className="inline-flex h-10 w-10 items-center justify-center border border-[var(--esim-line)] text-[var(--esim-copy)]" aria-label={t(AFFILIATE.refresh)} type="button"><RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /></button>
         </div>
 
-        {error ? <div className="mt-5 border border-[color:color-mix(in_oklab,var(--esim-danger)_55%,transparent)] bg-[color:color-mix(in_oklab,var(--esim-danger)_10%,transparent)] px-4 py-3 text-sm text-[var(--esim-ink)]">{error}</div> : null}
+        {error ? <div role="alert" className="mt-5 border border-[color:color-mix(in_oklab,var(--esim-danger)_55%,transparent)] bg-[color:color-mix(in_oklab,var(--esim-danger)_10%,transparent)] px-4 py-3 text-sm text-[var(--esim-ink)]">{error}</div> : null}
 
         {view === 'partner' ? (
           <section className="pt-10">
             <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
               <div>
-                <p className="text-xs font-semibold uppercase text-[var(--esim-copy-soft)]">{t({ en: 'Personal affiliate', hans: '个人推广', hant: '個人推廣' })}</p>
-                <h1 className="mt-3 max-w-2xl text-4xl text-[var(--esim-ink)] sm:text-5xl">{t({ en: 'Your referral ledger.', hans: '你的推广佣金账本。', hant: '你的推廣佣金帳本。' })}</h1>
+                <p className="text-xs font-semibold uppercase text-[var(--esim-copy-soft)]">{t(AFFILIATE.partnerEyebrow)}</p>
+                <h1 className="mt-3 max-w-2xl text-4xl text-[var(--esim-ink)] sm:text-5xl" style={headlineStyle(lang)}>{t(AFFILIATE.partnerTitle)}</h1>
                 {partner ? (
                   <div className="mt-10 border-y border-[var(--esim-line)] py-6">
                     <div className="flex flex-col gap-3 sm:flex-row">
                       <div className="min-w-0 flex-1 border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-4 py-3 text-sm text-[var(--esim-copy)]"><span className="block truncate">{shareUrl}</span></div>
-                      <button onClick={async () => { await navigator.clipboard.writeText(shareUrl); setCopied(true); window.setTimeout(() => setCopied(false), 1600); }} className="inline-flex min-h-11 items-center justify-center gap-2 bg-[var(--esim-gold)] px-5 text-sm font-semibold text-[var(--esim-bg)]" type="button">{copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}{copied ? t({ en: 'Copied', hans: '已复制', hant: '已複製' }) : t({ en: 'Copy link', hans: '复制链接', hant: '複製連結' })}</button>
+                      <button onClick={async () => { await navigator.clipboard.writeText(shareUrl); setCopied(true); window.setTimeout(() => setCopied(false), 1600); }} className="inline-flex min-h-11 items-center justify-center gap-2 bg-[var(--esim-gold)] px-5 text-sm font-semibold text-[var(--esim-bg)]" type="button">{copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}{copied ? t(AFFILIATE.copied) : t(AFFILIATE.copyLink)}</button>
                     </div>
                     <div className="mt-5 flex flex-wrap gap-x-10 gap-y-4 text-sm">
-                      <span><b className="text-2xl text-[var(--esim-ink)]">{money(commissions)}</b><small className="ml-2 text-[var(--esim-copy-soft)]">{t({ en: 'Earned', hans: '累计收益', hant: '累計收益' })}</small></span>
-                      <span><b className="text-2xl text-[var(--esim-ink)]">{partner.commissionRate}%</b><small className="ml-2 text-[var(--esim-copy-soft)]">{t({ en: 'Rate', hans: '佣金比例', hant: '佣金比例' })}</small></span>
-                      <span><b className="text-2xl text-[var(--esim-ink)]">{commissions.length}</b><small className="ml-2 text-[var(--esim-copy-soft)]">{t({ en: 'Orders', hans: '订单', hant: '訂單' })}</small></span>
+                      <span><b className="text-2xl text-[var(--esim-ink)]">{money(commissions)}</b><small className="ml-2 text-[var(--esim-copy-soft)]">{t(AFFILIATE.earned)}</small></span>
+                      <span><b className="text-2xl text-[var(--esim-ink)]">{partner.commissionRate}%</b><small className="ml-2 text-[var(--esim-copy-soft)]">{t(AFFILIATE.rate)}</small></span>
+                      <span><b className="text-2xl text-[var(--esim-ink)]">{commissions.length}</b><small className="ml-2 text-[var(--esim-copy-soft)]">{t(AFFILIATE.orders)}</small></span>
                     </div>
+                    {/* which products the store let this code reach */}
+                    <p data-purpose="partner-scope" className="mt-5 text-sm text-[var(--esim-copy-soft)]">{scopeText(lang, partner)}</p>
                   </div>
                 ) : (
-                  <form onSubmit={async (event) => { event.preventDefault(); setLoading(true); setError(''); try { await registerEsimAffiliatePartner(api, { displayName, organizationCode: organizationCode || undefined }); await refresh(); } catch (cause) { setError(cause instanceof Error ? cause.message : t({ en: 'Registration failed', hans: '注册失败', hant: '註冊失敗' })); } finally { setLoading(false); } }} className="mt-10 grid max-w-xl gap-4 border-y border-[var(--esim-line)] py-7">
-                    <input value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder={t({ en: 'Display name', hans: '显示名称', hant: '顯示名稱' })} required className="h-12 border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-4 text-sm text-[var(--esim-ink)] outline-none" />
-                    <input value={organizationCode} onChange={(event) => setOrganizationCode(event.target.value.toUpperCase())} placeholder={t({ en: 'Organization code (optional)', hans: '组织编码（可选）', hant: '組織編碼（選填）' })} className="h-12 border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-4 text-sm text-[var(--esim-ink)] outline-none" />
-                    <button disabled={loading} className="min-h-12 bg-[var(--esim-gold)] px-5 text-sm font-semibold text-[var(--esim-bg)] disabled:opacity-50" type="submit">{t({ en: 'Create affiliate account', hans: '创建推广账号', hant: '建立推廣帳號' })}</button>
+                  <form data-purpose="affiliate-register-form" onSubmit={async (event) => { event.preventDefault(); setLoading(true); setError(''); try { await registerEsimAffiliatePartner(api, { displayName, organizationCode: organizationCode || undefined }); await refresh(); } catch (cause) { sayError(cause, t(AFFILIATE.registerFailed)); } finally { setLoading(false); } }} className="mt-10 grid max-w-xl gap-4 border-y border-[var(--esim-line)] py-7">
+                    <input value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder={t(AFFILIATE.displayName)} aria-label={t(AFFILIATE.displayName)} required className={inputClassName} />
+                    <input value={organizationCode} onChange={(event) => setOrganizationCode(event.target.value.toUpperCase())} placeholder={t(AFFILIATE.organizationCode)} aria-label={t(AFFILIATE.organizationCode)} className={inputClassName} />
+                    <button disabled={loading} className="min-h-12 bg-[var(--esim-gold)] px-5 text-sm font-semibold text-[var(--esim-bg)] disabled:opacity-50" type="submit">{t(AFFILIATE.createAccount)}</button>
                   </form>
                 )}
               </div>
-              <CommissionList items={commissions} title={t({ en: 'Partner commissions', hans: '个人推广佣金', hant: '個人推廣佣金' })} locale={locale} />
+              <CommissionList items={commissions} title={t(AFFILIATE.partnerCommissions)} lang={lang} locale={locale} />
             </div>
           </section>
         ) : (
           <section className="pt-10">
             <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
               <div>
-                <p className="text-xs font-semibold uppercase text-[var(--esim-copy-soft)]">{t({ en: 'Organization affiliate', hans: '组织推广', hant: '組織推廣' })}</p>
-                <h1 className="mt-3 max-w-2xl text-4xl text-[var(--esim-ink)] sm:text-5xl">{t({ en: 'Creator network.', hans: '创作者网络。', hant: '創作者網絡。' })}</h1>
+                <p className="text-xs font-semibold uppercase text-[var(--esim-copy-soft)]">{t(AFFILIATE.organizationEyebrow)}</p>
+                <h1 className="mt-3 max-w-2xl text-4xl text-[var(--esim-ink)] sm:text-5xl" style={headlineStyle(lang)}>{t(AFFILIATE.organizationTitle)}</h1>
                 {organization ? (
-                  <div className="mt-9">
+                  <div data-purpose="affiliate-organization" className="mt-9">
                     <div className="flex flex-wrap items-end justify-between gap-5 border-y border-[var(--esim-line)] py-6">
                       <div><p className="text-sm text-[var(--esim-copy-soft)]">{organization.code}</p><h2 className="mt-2 text-2xl text-[var(--esim-ink)]">{organization.name}</h2></div>
-                      <div className="text-right"><p className="text-2xl font-semibold text-[var(--esim-ink)]">{money(organizationCommissions)}</p><p className="text-xs text-[var(--esim-copy-soft)]">{organization.commissionRate}% {t({ en: 'organization rate', hans: '组织佣金比例', hant: '組織佣金比例' })}</p></div>
+                      <div className="text-right"><p className="text-2xl font-semibold text-[var(--esim-ink)]">{money(organizationCommissions)}</p><p className="text-xs text-[var(--esim-copy-soft)]">{fill(t(AFFILIATE.organizationRate), { rate: organization.commissionRate })}</p></div>
                     </div>
-                    <form onSubmit={async (event) => { event.preventDefault(); setLoading(true); setError(''); try { await addEsimAffiliateMember(api, organization.id, { email: memberEmail, role: memberRole }); setMemberEmail(''); await refresh(); } catch (cause) { setError(cause instanceof Error ? cause.message : t({ en: 'Member could not be added', hans: '成员添加失败', hant: '成員新增失敗' })); } finally { setLoading(false); } }} className="mt-7 flex flex-col gap-3 sm:flex-row">
-                      <input type="email" value={memberEmail} onChange={(event) => setMemberEmail(event.target.value)} placeholder={t({ en: 'Member email', hans: '成员邮箱', hant: '成員信箱' })} required className="h-11 min-w-0 flex-1 border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-4 text-sm text-[var(--esim-ink)] outline-none" />
-                      <select value={memberRole} onChange={(event) => setMemberRole(event.target.value as 'INFLUENCER' | 'MANAGER')} className="h-11 border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-3 text-sm text-[var(--esim-ink)]"><option value="INFLUENCER">{t({ en: 'Influencer', hans: '达人', hant: '達人' })}</option><option value="MANAGER">{t({ en: 'Manager', hans: '管理员', hant: '管理員' })}</option></select>
-                      <button className="inline-flex h-11 items-center justify-center gap-2 bg-[var(--esim-gold)] px-5 text-sm font-semibold text-[var(--esim-bg)]" type="submit"><UserPlus className="h-4 w-4" />{t({ en: 'Add', hans: '添加', hant: '新增' })}</button>
+                    <form onSubmit={async (event) => { event.preventDefault(); setLoading(true); setError(''); try { await addEsimAffiliateMember(api, organization.id, { email: memberEmail, role: memberRole }); setMemberEmail(''); await refresh(); } catch (cause) { sayError(cause, t(AFFILIATE.memberFailed)); } finally { setLoading(false); } }} className="mt-7 flex flex-col gap-3 sm:flex-row">
+                      <input type="email" value={memberEmail} onChange={(event) => setMemberEmail(event.target.value)} placeholder={t(AFFILIATE.memberEmail)} aria-label={t(AFFILIATE.memberEmail)} required className="h-11 min-w-0 flex-1 border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-4 text-sm text-[var(--esim-ink)] outline-none" />
+                      <select value={memberRole} onChange={(event) => setMemberRole(event.target.value as 'INFLUENCER' | 'MANAGER')} aria-label={t(AFFILIATE.members)} className="h-11 border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-3 text-sm text-[var(--esim-ink)]"><option value="INFLUENCER">{t(AFFILIATE.roleInfluencer)}</option><option value="MANAGER">{t(AFFILIATE.roleManager)}</option></select>
+                      <button className="inline-flex h-11 items-center justify-center gap-2 bg-[var(--esim-gold)] px-5 text-sm font-semibold text-[var(--esim-bg)]" type="submit"><UserPlus className="h-4 w-4" />{t(AFFILIATE.addMember)}</button>
                     </form>
-                    <div className="mt-7 divide-y divide-[var(--esim-line)] border-y border-[var(--esim-line)]">
-                      {organization.members.map((member) => <div key={member.id} className="flex items-center justify-between gap-4 py-4"><div className="min-w-0"><p className="truncate text-sm font-semibold text-[var(--esim-ink)]">{member.username || member.email}</p><p className="mt-1 truncate text-xs text-[var(--esim-copy-soft)]">{member.email}</p></div><span className="text-xs font-semibold text-[var(--esim-gold)]">{member.role === 'MANAGER' ? t({ en: 'Manager', hans: '管理员', hant: '管理員' }) : t({ en: 'Influencer', hans: '达人', hant: '達人' })}</span></div>)}
+                    <h3 className="mt-7 text-xs font-semibold uppercase text-[var(--esim-copy-soft)]">{t(AFFILIATE.members)}</h3>
+                    <div className="mt-3 divide-y divide-[var(--esim-line)] border-y border-[var(--esim-line)]">
+                      {organization.members.map((member) => <div key={member.id} className="flex items-center justify-between gap-4 py-4"><div className="min-w-0"><p className="truncate text-sm font-semibold text-[var(--esim-ink)]">{member.username || member.email}</p><p className="mt-1 truncate text-xs text-[var(--esim-copy-soft)]">{member.email}</p></div><span className="text-xs font-semibold text-[var(--esim-gold)]">{memberRoleText(lang, member.role)}</span></div>)}
                     </div>
                   </div>
+                ) : application && !applyAgain ? (
+                  // sent, waiting for the store's answer — or answered
+                  <div data-purpose="application-status" data-status={application.status} className="mt-10 border-y border-[var(--esim-line)] py-8">
+                    <p className="text-xs font-semibold uppercase text-[var(--esim-gold)]">{t(application.status === 'rejected' ? AFFILIATE.rejectedTitle : application.status === 'approved' ? AFFILIATE.statusApproved : AFFILIATE.statusPending)}</p>
+                    <h2 className="mt-3 text-2xl text-[var(--esim-ink)]">{t(application.status === 'rejected' ? AFFILIATE.rejectedTitle : application.status === 'approved' ? AFFILIATE.statusApproved : AFFILIATE.pendingTitle)}</h2>
+                    <p className="mt-3 text-sm text-[var(--esim-copy)]">
+                      {application.status === 'pending'
+                        ? fill(t(AFFILIATE.pendingBody), { name: application.organizationName, email: application.email })
+                        : application.status !== 'rejected'
+                          ? ''
+                          : application.reviewNote
+                            ? fill(t(AFFILIATE.reviewNote), { note: application.reviewNote })
+                            : t(AFFILIATE.rejectedBody)}
+                    </p>
+                    <dl className="mt-6 divide-y divide-[var(--esim-line)] border border-[var(--esim-line)]">
+                      <Detail label={t(AFFILIATE.organizationName)} value={application.organizationName} />
+                      <Detail label={t(AFFILIATE.contactName)} value={application.contactName} />
+                      <Detail label={t(AFFILIATE.email)} value={application.email} />
+                      <Detail label={t(AFFILIATE.phone)} value={application.phone} />
+                      <Detail label={t(AFFILIATE.website)} value={application.website} />
+                      <Detail label={t(AFFILIATE.message)} value={application.message} />
+                      {application.createdAt ? <Detail label={t(AFFILIATE.submittedAt)} value={formatOrderDate(application.createdAt, locale, false)} /> : null}
+                    </dl>
+                    {application.status === 'rejected' ? (
+                      <button onClick={() => { setApplicationForm({ ...applicationForm, organizationName: application.organizationName }); setApplyAgain(true); setError(''); }} className="mt-7 inline-flex min-h-12 items-center justify-center gap-2 bg-[var(--esim-gold)] px-5 text-sm font-semibold text-[var(--esim-bg)]" type="button"><Plus className="h-4 w-4" />{t(AFFILIATE.applyAgain)}</button>
+                    ) : null}
+                  </div>
                 ) : (
-                  <form onSubmit={async (event) => { event.preventDefault(); setLoading(true); setError(''); try { await createEsimAffiliateOrganization(api, { name: organizationName, commissionRate: Number(organizationRate) }); await refresh(); } catch (cause) { setError(cause instanceof Error ? cause.message : t({ en: 'Organization could not be created', hans: '组织创建失败', hant: '組織建立失敗' })); } finally { setLoading(false); } }} className="mt-10 grid max-w-xl gap-4 border-y border-[var(--esim-line)] py-7">
-                    <input value={organizationName} onChange={(event) => setOrganizationName(event.target.value)} placeholder={t({ en: 'Organization name', hans: '组织名称', hant: '組織名稱' })} required className="h-12 border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-4 text-sm text-[var(--esim-ink)] outline-none" />
-                    <label className="flex items-center gap-4"><span className="text-sm text-[var(--esim-copy)]">{t({ en: 'Commission rate', hans: '佣金比例', hant: '佣金比例' })}</span><input type="number" min="0" max="90" step="0.1" value={organizationRate} onChange={(event) => setOrganizationRate(event.target.value)} className="h-12 w-28 border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-4 text-sm text-[var(--esim-ink)] outline-none" /></label>
-                    <button disabled={loading} className="inline-flex min-h-12 items-center justify-center gap-2 bg-[var(--esim-gold)] px-5 text-sm font-semibold text-[var(--esim-bg)] disabled:opacity-50" type="submit"><Plus className="h-4 w-4" />{t({ en: 'Create organization', hans: '创建组织', hant: '建立組織' })}</button>
+                  <form data-purpose="application-form" onSubmit={submitApplication} className="mt-10 grid max-w-xl gap-4 border-y border-[var(--esim-line)] py-7">
+                    <p className="text-sm leading-6 text-[var(--esim-copy)]">{t(AFFILIATE.applyIntro)}</p>
+                    <div>
+                      <label className={labelClassName} htmlFor="esim-affiliate-organization-name">{t(AFFILIATE.organizationName)}</label>
+                      <input id="esim-affiliate-organization-name" name="organizationName" value={applicationForm.organizationName} onChange={(event) => setApplicationForm({ ...applicationForm, organizationName: event.target.value })} required minLength={2} maxLength={120} className={inputClassName} />
+                    </div>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div>
+                        <label className={labelClassName} htmlFor="esim-affiliate-contact-name">{t(AFFILIATE.contactName)}</label>
+                        <input id="esim-affiliate-contact-name" name="contactName" value={applicationForm.contactName} onChange={(event) => setApplicationForm({ ...applicationForm, contactName: event.target.value })} required maxLength={120} autoComplete="name" className={inputClassName} />
+                      </div>
+                      <div>
+                        <label className={labelClassName} htmlFor="esim-affiliate-email">{t(AFFILIATE.email)}</label>
+                        <input id="esim-affiliate-email" name="email" type="email" value={applicationForm.email} onChange={(event) => setApplicationForm({ ...applicationForm, email: event.target.value })} required maxLength={160} autoComplete="email" className={inputClassName} />
+                      </div>
+                      <div>
+                        <label className={labelClassName} htmlFor="esim-affiliate-phone">{t(AFFILIATE.phone)}</label>
+                        <input id="esim-affiliate-phone" name="phone" type="tel" value={applicationForm.phone} onChange={(event) => setApplicationForm({ ...applicationForm, phone: event.target.value })} maxLength={40} autoComplete="tel" className={inputClassName} />
+                      </div>
+                      <div>
+                        <label className={labelClassName} htmlFor="esim-affiliate-website">{t(AFFILIATE.website)}</label>
+                        <input id="esim-affiliate-website" name="website" type="url" value={applicationForm.website} onChange={(event) => setApplicationForm({ ...applicationForm, website: event.target.value })} maxLength={200} inputMode="url" className={inputClassName} />
+                      </div>
+                    </div>
+                    <div>
+                      <label className={labelClassName} htmlFor="esim-affiliate-message">{t(AFFILIATE.message)}</label>
+                      <textarea id="esim-affiliate-message" name="message" value={applicationForm.message} onChange={(event) => setApplicationForm({ ...applicationForm, message: event.target.value })} maxLength={1000} rows={4} className="esim-affiliate-textarea w-full border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-4 py-3 text-sm text-[var(--esim-ink)] outline-none" />
+                    </div>
+                    <button disabled={loading} className="inline-flex min-h-12 items-center justify-center gap-2 bg-[var(--esim-gold)] px-5 text-sm font-semibold text-[var(--esim-bg)] disabled:opacity-50" type="submit"><Plus className="h-4 w-4" />{loading ? t(AFFILIATE.submitting) : t(AFFILIATE.submitApplication)}</button>
                   </form>
                 )}
               </div>
-              <CommissionList items={organizationCommissions} title={t({ en: 'Organization commissions', hans: '组织佣金', hant: '組織佣金' })} locale={locale} />
+              <CommissionList items={organizationCommissions} title={t(AFFILIATE.organizationCommissions)} lang={lang} locale={locale} />
             </div>
           </section>
         )}
@@ -189,17 +277,16 @@ export const AffiliatePage = React.memo(function AffiliatePage({
   );
 });
 
-function commissionStatus(status: string, locale?: string): string {
-  const copy: Record<string, ThemeCopy> = {
-    pending: { en: 'Pending', hans: '待结算', hant: '待結算' },
-    approved: { en: 'Approved', hans: '已批准', hant: '已批准' },
-    paid: { en: 'Paid', hans: '已结算', hant: '已結算' },
-    cancelled: { en: 'Cancelled', hans: '已取消', hant: '已取消' },
-  };
-  return copy[String(status).toLowerCase()] ? pickCopy(locale, copy[String(status).toLowerCase()]) : String(status);
+function Detail({ label, value }: { label: string; value: string | null }) {
+  if (!value) return null;
+  return (
+    <div className="flex justify-between gap-4 px-4 py-3 text-sm">
+      <dt className="text-[var(--esim-copy-soft)]">{label}</dt>
+      <dd className="min-w-0 text-right text-[var(--esim-ink)]">{value}</dd>
+    </div>
+  );
 }
 
-function CommissionList({ items, title, locale }: { items: EsimAffiliateCommission[]; title: string; locale?: string }) {
-  const t = (copy: ThemeCopy) => pickCopy(locale, copy);
-  return <aside className="border-l border-[var(--esim-line)] pl-0 lg:pl-8"><div className="flex items-center gap-3"><Link2 className="h-4 w-4 text-[var(--esim-gold)]" /><h2 className="text-sm font-semibold text-[var(--esim-ink)]">{title}</h2></div><div className="mt-5 divide-y divide-[var(--esim-line)] border-y border-[var(--esim-line)]">{items.length ? items.map((item) => <div key={item.id} className="grid grid-cols-[1fr_auto] gap-4 py-4"><div className="min-w-0"><p className="truncate text-sm text-[var(--esim-ink)]">{orderId(item)}</p><p className="mt-1 text-xs text-[var(--esim-copy-soft)]">{createdAt(item) ? formatOrderDate(createdAt(item), locale, false) : commissionStatus(item.status, locale)}</p></div><div className="text-right"><p className="text-sm font-semibold text-[var(--esim-ink)]">{item.currency} {Number(item.amount).toFixed(2)}</p><p className="mt-1 text-xs uppercase text-[var(--esim-copy-soft)]">{commissionStatus(item.status, locale)}</p></div></div>) : <div className="py-10 text-center"><UsersRound className="mx-auto h-5 w-5 text-[var(--esim-copy-soft)]" /><p className="mt-3 text-sm text-[var(--esim-copy-soft)]">{t({ en: 'No commissions yet', hans: '暂无佣金', hant: '暫無佣金' })}</p></div>}</div></aside>;
+function CommissionList({ items, title, lang, locale }: { items: EsimAffiliateCommission[]; title: string; lang: string | undefined; locale?: string }) {
+  return <aside className="border-l border-[var(--esim-line)] pl-0 lg:pl-8"><div className="flex items-center gap-3"><Link2 className="h-4 w-4 text-[var(--esim-gold)]" /><h2 className="text-sm font-semibold text-[var(--esim-ink)]">{title}</h2></div><div className="mt-5 divide-y divide-[var(--esim-line)] border-y border-[var(--esim-line)]">{items.length ? items.map((item) => <div key={item.id} className="grid grid-cols-[1fr_auto] gap-4 py-4"><div className="min-w-0"><p className="truncate text-sm text-[var(--esim-ink)]">{orderId(item)}</p><p className="mt-1 text-xs text-[var(--esim-copy-soft)]">{createdAt(item) ? formatOrderDate(createdAt(item), locale, false) : commissionStatusText(lang, item.status)}</p></div><div className="text-right"><p className="text-sm font-semibold text-[var(--esim-ink)]">{item.currency} {Number(item.amount).toFixed(2)}</p><p className="mt-1 text-xs text-[var(--esim-copy-soft)]">{commissionStatusText(lang, item.status)}</p></div></div>) : <div className="py-10 text-center"><UsersRound className="mx-auto h-5 w-5 text-[var(--esim-copy-soft)]" /><p className="mt-3 text-sm text-[var(--esim-copy-soft)]">{affiliateText(lang, AFFILIATE.noCommissions)}</p></div>}</div></aside>;
 }
