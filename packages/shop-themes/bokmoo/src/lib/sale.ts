@@ -8,7 +8,10 @@ import { pickCopy } from '../site';
  * - a promotion lands on the unit price of the items it covers;
  * - a creator (affiliate) promo code is an order-level discount on top of it,
  *   limited to what the promotion covered; with no promotion in play it
- *   applies to the whole order.
+ *   applies to the whole order;
+ * - a code reaches the products the store let it reach (`scopeMode`): every
+ *   product, only the ones picked for it, or all but the excluded ones. One
+ *   pinned to picked products reaches them at their current price, sale or not.
  */
 
 /** An automatic promotion the store is running right now. */
@@ -27,12 +30,21 @@ export interface Sale {
   activeNow: boolean;
 }
 
+/** What a creator promo code applies to: everything, only the products the store picked, or everything but them. */
+export interface PromoCodeScope {
+  mode: 'all' | 'selected' | 'except';
+  productIds: string[];
+}
+
 /** What a creator promo code is worth. */
 export interface PromoCodeOffer {
   code: string;
   partnerName: string | null;
   discountType: 'percentage' | 'fixed_amount';
   discountValue: number;
+  /** What the code applies to. A core that predates scopes sends neither: the code applies to everything. */
+  scopeMode?: 'all' | 'selected' | 'except';
+  scopeProductIds?: string[];
 }
 
 export type PromoCodeState = 'empty' | 'checking' | 'valid' | 'invalid' | 'unavailable';
@@ -46,7 +58,7 @@ export interface SaleLine {
 export interface SalePricing {
   /** Taken off by the promotion across the lines. */
   saleDiscount: number;
-  /** What a promo code may be applied to: the promoted lines, or the whole order without a promotion. */
+  /** What a promo code may be applied to: the lines the code reaches, at the price the checkout sells them. */
   saleBase: number;
   onSale: boolean;
 }
@@ -138,11 +150,16 @@ async function lookupPromoCode(code: string): Promise<PromoCodeOffer | null> {
   const data = await fetchSameOrigin<Partial<PromoCodeOffer> & { valid?: unknown }>(`/api/v1/plugins/affiliate/store/promo/${encodeURIComponent(code)}`);
   if (!data || data.valid !== true || typeof data.discountType !== 'string' || typeof data.discountValue !== 'number') return null;
   const discountType = data.discountType === 'fixed_amount' ? 'fixed_amount' : 'percentage';
+  const scopeMode = data.scopeMode === 'selected' || data.scopeMode === 'except' ? data.scopeMode : undefined;
   return {
     code: typeof data.code === 'string' ? data.code : code,
     partnerName: typeof data.partnerName === 'string' ? data.partnerName : null,
     discountType,
     discountValue: data.discountValue,
+    ...(scopeMode ? {
+      scopeMode,
+      scopeProductIds: Array.isArray(data.scopeProductIds) ? data.scopeProductIds.filter((id): id is string => typeof id === 'string') : [],
+    } : {}),
   };
 }
 
@@ -205,22 +222,54 @@ export function codeDiscount(offer: PromoCodeOffer | null | undefined, base: num
   return cents(Math.max(raw, 0));
 }
 
-export function priceSale(lines: SaleLine[], sales: Sale[] | null | undefined): SalePricing {
+export function scopeOf(offer: PromoCodeOffer | null | undefined): PromoCodeScope {
+  const mode = offer?.scopeMode === 'selected' || offer?.scopeMode === 'except' ? offer.scopeMode : 'all';
+  return { mode, productIds: mode === 'all' ? [] : offer?.scopeProductIds ?? [] };
+}
+
+/** Whether a code may act on a product. */
+export function scopeAllows(scope: PromoCodeScope, productId: string): boolean {
+  if (scope.mode === 'all') return true;
+  const picked = scope.productIds.includes(productId);
+  return scope.mode === 'selected' ? picked : !picked;
+}
+
+/**
+ * `offer` is the promo code in the field, when it resolved: the code reaches the products the store
+ * let it reach, and `saleBase` is those lines alone — as the checkout prices the order.
+ */
+export function priceSale(lines: SaleLine[], sales: Sale[] | null | undefined, offer?: PromoCodeOffer | null): SalePricing {
+  const scope = scopeOf(offer);
   let listSubtotal = 0;
-  let promotedSubtotal = 0;
   let saleDiscount = 0;
+  let reachedList = 0;
+  let reachedCovered = 0;
+  let reachedCurrent = 0;
   for (const line of lines) {
-    listSubtotal += line.unitPrice * line.quantity;
+    const subtotal = line.unitPrice * line.quantity;
+    listSubtotal += subtotal;
+    const reached = scopeAllows(scope, line.productId);
+    if (reached) reachedList += subtotal;
     const sale = saleFor(sales, line.productId);
-    if (!sale) continue;
+    if (!sale) {
+      if (reached) reachedCurrent += subtotal;
+      continue;
+    }
     const unit = saleUnitPrice(sale, line.unitPrice);
-    saleDiscount += line.unitPrice * line.quantity - unit * line.quantity;
-    promotedSubtotal += unit * line.quantity;
+    saleDiscount += subtotal - unit * line.quantity;
+    if (reached) {
+      reachedCovered += unit * line.quantity;
+      reachedCurrent += unit * line.quantity;
+    }
   }
   saleDiscount = cents(saleDiscount);
   return {
     saleDiscount,
-    saleBase: saleDiscount > 0 ? cents(promotedSubtotal) : cents(listSubtotal),
+    // A code pinned to products the store picked reaches them at their current price, sale or not.
+    // Any other code only stacks on what the sale covered while a sale runs.
+    saleBase: scope.mode === 'selected'
+      ? cents(reachedCurrent)
+      : saleDiscount > 0 ? cents(reachedCovered) : cents(reachedList),
     onSale: saleDiscount > 0,
   };
 }
@@ -247,6 +296,18 @@ export function promoCodeMessage(locale: string | undefined, state: PromoCodeSta
   };
   if (state === 'valid' && offer) {
     const values = { code: offer.code, rate: offer.discountValue, amount: money(amount) };
+    // a code the store limited to products that are not in this cart
+    if (!(amount > 0)) {
+      return pick({
+        en: '{code} doesn’t apply to the items in your cart.',
+        hans: '{code} 不适用于购物车里的商品。',
+        hant: '{code} 不適用於購物車裡的商品。',
+        ja: '{code} はカート内の商品には使えません。',
+        ko: '{code}은(는) 장바구니 상품에 적용되지 않습니다.',
+        fr: '{code} ne s’applique pas aux articles de votre panier.',
+        de: '{code} gilt nicht für die Artikel in Ihrem Warenkorb.',
+      }, values);
+    }
     return offer.discountType === 'fixed_amount'
       ? pick({ en: '{code}: {amount} off this order.', hans: '{code}：本单立减 {amount}。', hant: '{code}：本單立減 {amount}。', ja: '{code}：この注文から{amount}引き。', ko: '{code}: 이 주문에서 {amount} 할인.', fr: '{code} : {amount} de réduction sur cette commande.', de: '{code}: {amount} Rabatt auf diese Bestellung.' }, values)
       : pick({ en: '{code}: {rate}% off the sale price ({amount} off).', hans: '{code}：活动价再减 {rate}%（共减 {amount}）。', hant: '{code}：活動價再減 {rate}%（共減 {amount}）。', ja: '{code}：セール価格からさらに{rate}%オフ（{amount}引き）。', ko: '{code}: 세일 가격에서 추가 {rate}% 할인({amount} 할인).', fr: '{code} : {rate} % de réduction supplémentaire sur le prix soldé ({amount} de moins).', de: '{code}: {rate} % Extra-Rabatt auf den Sale-Preis ({amount} weniger).' }, values);

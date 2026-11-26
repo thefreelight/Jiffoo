@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CartPage } from '@shop-themes/bokmoo/src/components/CartPage';
 import { CheckoutPage } from '@shop-themes/bokmoo/src/components/CheckoutPage';
@@ -10,7 +10,7 @@ import { Header } from '@shop-themes/bokmoo/src/components/Header';
 import { PromoBar } from '@shop-themes/bokmoo/src/components/PromoBar';
 import { SalePrice } from '@shop-themes/bokmoo/src/components/SalePrice';
 import {
-  codeDiscount, countdown, priceSale, resetSaleCachesForTests, saleFor, saleUnitPrice, type Sale,
+  codeDiscount, countdown, priceSale, resetSaleCachesForTests, saleFor, saleUnitPrice, type PromoCodeOffer, type Sale,
 } from '@shop-themes/bokmoo/src/lib/sale';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -369,5 +369,143 @@ describe('sale stylesheet', () => {
     }
     expect(used.size).toBeGreaterThan(8);
     for (const name of used) expect(blocks[0], `${name} is styled`).toMatch(new RegExp(`\\.${name}[\\s.{,]`));
+  });
+});
+
+// The store limits a creator code to products ("后台要设置可以适用的推广产品"): the checkout shows what
+// such a code takes off before payment, on the lines it reaches, as the core prices the order.
+describe('a promo code reaches the products the store let it reach', () => {
+  const CARD_LINE = { productId: CARD, unitPrice: 20, quantity: 1 };
+  const PLAN_LINE = { productId: PLAN, unitPrice: 4.9, quantity: 1 };
+  const offer = (scopeMode: PromoCodeOffer['scopeMode'], scopeProductIds: string[]): PromoCodeOffer => ({
+    code: 'CREATOR10', partnerName: 'Creator', discountType: 'percentage', discountValue: 10, scopeMode, scopeProductIds,
+  });
+  // what the public lookup answers for a limited code
+  const code = (scopeMode: 'all' | 'selected' | 'except', scopeProductIds: string[]) => ({
+    valid: true, code: 'CREATOR10', partnerName: 'Creator', discountType: 'percentage', discountValue: 10, scopeMode, scopeProductIds,
+  });
+  // what a core that predates scopes answers
+  const ANY_CODE: PromoCodeOffer = { code: 'CREATOR10', partnerName: 'Creator', discountType: 'percentage', discountValue: 10 };
+
+  it('prices what the code may touch on the lines it reaches, as the checkout does', () => {
+    // the sale covers the card only ($20 -> $16)
+    expect(priceSale([CARD_LINE, PLAN_LINE], [CARD_SALE], offer('selected', [CARD]))).toMatchObject({ saleBase: 16, saleDiscount: 4 });
+    // pinned to the plan the sale leaves out: the plan at its current price
+    expect(priceSale([CARD_LINE, PLAN_LINE], [CARD_SALE], offer('selected', [PLAN]))).toMatchObject({ saleBase: 4.9, saleDiscount: 4 });
+    // all but the plan: the sale price of the card, as for any code while the sale runs
+    expect(priceSale([CARD_LINE, PLAN_LINE], [CARD_SALE], offer('except', [PLAN]))).toMatchObject({ saleBase: 16 });
+    // all but the card: the plan is in reach, but nothing in reach is on sale
+    expect(priceSale([CARD_LINE, PLAN_LINE], [CARD_SALE], offer('except', [CARD]))).toMatchObject({ saleBase: 0 });
+    // no sale running: every line the code reaches
+    expect(priceSale([CARD_LINE, PLAN_LINE], [], offer('except', [CARD]))).toMatchObject({ saleBase: 4.9, saleDiscount: 0, onSale: false });
+    // a core that predates scopes sends neither field: the code reaches everything, as before
+    expect(priceSale([CARD_LINE, PLAN_LINE], [CARD_SALE], ANY_CODE)).toMatchObject({ saleBase: 16 });
+    expect(codeDiscount(offer('selected', [CARD]), priceSale([CARD_LINE, PLAN_LINE], [CARD_SALE], offer('selected', [CARD])).saleBase)).toBe(1.6);
+  });
+
+  const OUT_OF_REACH = 'CREATOR10 doesn’t apply to the items in your cart.';
+  const renderCheckout = (lines: ReturnType<typeof line>[]) => render(
+    <CheckoutPage
+      cart={cartWith(...lines) as never}
+      isLoading={false}
+      isProcessing={false}
+      availablePaymentMethods={[{ name: 'stripe', displayName: 'Card' }]}
+      onSubmit={vi.fn(async () => undefined)}
+      onBack={vi.fn()}
+      locale="en"
+    />,
+  );
+  const enterCode = async (value: string) => {
+    await flush();
+    fireEvent.change(document.getElementById('bokmoo-promo-code')!, { target: { value } });
+    await act(async () => { await vi.advanceTimersByTimeAsync(600); });
+  };
+
+  it('says so, and takes nothing off, when a valid code reaches nothing in the cart', async () => {
+    vi.useFakeTimers();
+    stubStorefront({ sales: [API_SALE], codes: { CREATOR10: code('selected', [PLAN]) } });
+    const { container } = renderCheckout([line(CARD, 20, 1)]);
+    await enterCode('CREATOR10');
+
+    const message = document.querySelector('[data-purpose="promo-code-message"]');
+    expect(message?.textContent).toBe(OUT_OF_REACH);
+    // a code that gives nothing here is not dressed up as a discount
+    expect(message?.classList.contains('bokmoo-promo-code-valid')).toBe(false);
+    expect(container.querySelector('[data-purpose="code-discount-row"]')).toBeNull();
+    expect(container.querySelector('[data-purpose="checkout-total"]')?.textContent.trim()).toBe('$16.00');
+  });
+
+  it.each([
+    ['zh-Hans', 'CREATOR10 不适用于购物车里的商品。'],
+    ['zh-Hant', 'CREATOR10 不適用於購物車裡的商品。'],
+    ['ja', 'CREATOR10 はカート内の商品には使えません。'],
+    ['ko', 'CREATOR10은(는) 장바구니 상품에 적용되지 않습니다.'],
+    ['fr', 'CREATOR10 ne s’applique pas aux articles de votre panier.'],
+    ['de', 'CREATOR10 gilt nicht für die Artikel in Ihrem Warenkorb.'],
+  ])('says it in the shopper’s language (%s)', async (locale, message) => {
+    vi.useFakeTimers();
+    stubStorefront({ sales: [API_SALE], codes: { CREATOR10: code('selected', [PLAN]) } });
+    render(
+      <CheckoutPage
+        cart={cartWith(line(CARD, 20, 1)) as never}
+        isLoading={false}
+        isProcessing={false}
+        availablePaymentMethods={[{ name: 'stripe', displayName: 'Card' }]}
+        onSubmit={vi.fn(async () => undefined)}
+        onBack={vi.fn()}
+        locale={locale as never}
+      />,
+    );
+    await enterCode('CREATOR10');
+    expect(document.querySelector('[data-purpose="promo-code-message"]')?.textContent).toBe(message);
+  });
+
+  it('takes the code off the line it reaches and leaves the other one alone', async () => {
+    vi.useFakeTimers();
+    stubStorefront({ sales: [API_SALE], codes: { CREATOR10: code('except', [PLAN]) } });
+    const { container } = renderCheckout([line(CARD, 20, 1), line(PLAN, 4.9, 1)]);
+    await enterCode('CREATOR10');
+    // $24.90 - $4.00 sale - 10% of the $16.00 card
+    expect(container.querySelector('[data-purpose="code-discount-row"]')?.textContent).toBe('CREATOR10-$1.60');
+    expect(container.querySelector('[data-purpose="checkout-total"]')?.textContent.trim()).toBe('$19.30');
+    expect(document.querySelector('[data-purpose="promo-code-message"]')?.textContent).toBe('CREATOR10: 10% off the sale price ($1.60 off).');
+  });
+
+  it('reaches a product the sale leaves out when the store pinned the code to it', async () => {
+    vi.useFakeTimers();
+    stubStorefront({ sales: [API_SALE], codes: { CREATOR10: code('selected', [PLAN]) } });
+    const { container } = renderCheckout([line(CARD, 20, 1), line(PLAN, 4.9, 1)]);
+    await enterCode('CREATOR10');
+    // 10% of the plan's own price
+    expect(container.querySelector('[data-purpose="code-discount-row"]')?.textContent).toBe('CREATOR10-$0.49');
+    expect(container.querySelector('[data-purpose="checkout-total"]')?.textContent.trim()).toBe('$20.41');
+  });
+
+  it('names the promo-code field in every storefront language', async () => {
+    stubStorefront({ sales: [] });
+    const { container } = renderCheckout([line(CARD, 20, 1)]);
+    await flush();
+    expect(container.textContent).toContain('Promo / referral code');
+    expect(container.textContent).toContain('Have a creator code?');
+    cleanup();
+    for (const [locale, label] of [
+      ['ja', 'プロモコード / 紹介コード'], ['ko', '프로모 / 추천 코드'], ['fr', 'Code promo / de parrainage'], ['de', 'Promo- / Empfehlungscode'],
+    ] as const) {
+      const page = render(
+        <CheckoutPage
+          cart={cartWith(line(CARD, 20, 1)) as never}
+          isLoading={false}
+          isProcessing={false}
+          availablePaymentMethods={[{ name: 'stripe', displayName: 'Card' }]}
+          onSubmit={vi.fn(async () => undefined)}
+          onBack={vi.fn()}
+          locale={locale as never}
+        />,
+      );
+      await flush();
+      expect(page.container.textContent, locale).toContain(label);
+      expect(document.getElementById('bokmoo-promo-code')?.getAttribute('placeholder'), locale).not.toBe('e.g. BOKMOO10');
+      cleanup();
+    }
   });
 });

@@ -523,6 +523,15 @@ h6 {
 }
 /* <<< Catalog card tiles end */
 
+/* >>> Affiliate workspace. Same reason as the block above: the storefront's utility sheet is built together
+   with the shop worker, so a theme release carries these rules itself. Keep this block byte-identical in
+   src/tokens.css (embedded renderer) and theme-pack/tokens.css (remote runtime). */
+.bokmoo-affiliate-textarea {
+  min-height: 7rem;
+  resize: vertical;
+}
+/* <<< Affiliate workspace end */
+
 
 ::selection {
   background: color-mix(in oklab, var(--bokmoo-gold) 38%, transparent);
