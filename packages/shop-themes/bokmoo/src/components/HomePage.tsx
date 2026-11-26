@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import type { HomePageProps } from 'shared/src/types/theme';
 import { PromoBanner } from './PromoBanner';
+import { PromoFilm } from './PromoFilm';
 import { isExternalHref, pickCopy, resolveBokmooSiteConfig } from '../site';
 
 function AppleIcon() {
@@ -223,6 +224,9 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
           </div>
         </div>
       </section>
+
+      {/* The brand film: between the hero and the app section it is the film of */}
+      <PromoFilm locale={locale} config={config} />
 
       {/* App */}
       <section

@@ -582,6 +582,90 @@ body[data-theme='bokmoo'] ::selection {
 }
 /* <<< Sale display end */
 
+/* >>> Promo film (the brand film band on the home page). Keep this block byte-identical
+   in src/tokens.css (embedded renderer) and theme-pack/tokens.css (remote runtime). */
+.bokmoo-film {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.bokmoo-film-frame {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  border: 1px solid rgba(229, 195, 101, 0.24);
+  border-radius: 1.25rem;
+  background: #0a0a0a;
+  box-shadow: 0 28px 64px -28px rgba(0, 0, 0, 0.95);
+}
+
+.bokmoo-film-video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.bokmoo-film-poster {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: opacity 0.45s ease;
+}
+
+.bokmoo-film[data-state="playing"] .bokmoo-film-poster,
+.bokmoo-film[data-state="sound"] .bokmoo-film-poster {
+  opacity: 0;
+}
+
+.bokmoo-film-sound {
+  position: absolute;
+  right: 1rem;
+  bottom: 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1rem;
+  border: 1px solid rgba(229, 195, 101, 0.55);
+  border-radius: 999px;
+  background: rgba(13, 13, 13, 0.78);
+  color: #f4efe6;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+.bokmoo-film-sound:hover,
+.bokmoo-film-sound:focus-visible {
+  border-color: #e5c365;
+  color: #e5c365;
+}
+
+.bokmoo-film-heading {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (min-width: 640px) {
+  .bokmoo-film {
+    padding: 0 1.5rem;
+  }
+}
+/* <<< Promo film end */
+
+
 /* ── Landing stage: CSS-rendered SIM card pedestal (Obsidian Aurum hero) ── */
 .bg-pedestal-top {
   background: radial-gradient(ellipse at center, #26262b 0%, #151518 70%, #0d0d0f 100%);

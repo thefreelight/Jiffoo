@@ -11,7 +11,33 @@ export interface BokmooSiteConfig {
   secondaryCtaLabel: string;
   secondaryCtaHref: string;
   apiBaseUrl: string;
+  /** The brand film on the home page, or null when the store owner turned it off. */
+  promoFilm: BokmooPromoFilm | null;
 }
+
+export interface BokmooPromoFilm {
+  /** Poster for narrow screens */
+  poster: string;
+  /** A sharper poster for large screens; equal to `poster` when there is none */
+  posterLarge: string;
+  /** Muted loop for wide screens */
+  muted: string;
+  /** Muted loop for narrow screens */
+  mutedSmall: string;
+  /** The full film with its narration */
+  sound: string;
+}
+
+// The film lives in the store's own asset bucket, under a path that carries its cut: the service worker
+// keeps video files for a day, so a new cut must come under a new path to reach returning visitors.
+const PROMO_FILM_PATH = '/extensions/media/promo/v3';
+const PROMO_FILM_DEFAULTS = {
+  poster: `${PROMO_FILM_PATH}/bokmoo-promo-poster-1280.jpg`,
+  posterLarge: `${PROMO_FILM_PATH}/bokmoo-promo-poster-1920.jpg`,
+  muted: `${PROMO_FILM_PATH}/bokmoo-promo-720p-muted.mp4`,
+  mutedSmall: `${PROMO_FILM_PATH}/bokmoo-promo-540p-muted.mp4`,
+  sound: `${PROMO_FILM_PATH}/bokmoo-promo-720p.mp4`,
+};
 
 // The theme's English defaultConfig is deep-merged into the store config
 // before it reaches components, so those fields always carry a value. Treat
@@ -55,6 +81,21 @@ export function resolveBokmooSiteConfig(config?: ThemeConfig, locale?: string): 
   const mode = zhModeOf(locale);
   const englishSubheadline = `Use multiple eSIM profiles on your ${brandName} card. Stay connected in 200+ countries.`;
 
+  // "none" (or nothing at all) in the poster setting turns the film off
+  const posterSetting = siteConfig.promoPoster?.trim();
+  const poster = posterSetting || PROMO_FILM_DEFAULTS.poster;
+  const posterLarge = posterSetting && posterSetting !== PROMO_FILM_DEFAULTS.poster ? poster : PROMO_FILM_DEFAULTS.posterLarge;
+  const promoFilm =
+    posterSetting?.toLowerCase() === 'none' || siteConfig.promoPoster === ''
+      ? null
+      : {
+          poster,
+          posterLarge,
+          muted: siteConfig.promoMutedVideo?.trim() || PROMO_FILM_DEFAULTS.muted,
+          mutedSmall: siteConfig.promoMutedVideoSmall?.trim() || PROMO_FILM_DEFAULTS.mutedSmall,
+          sound: siteConfig.promoSoundVideo?.trim() || PROMO_FILM_DEFAULTS.sound,
+        };
+
   return {
     brandName,
     eyebrow: pickLocalized(siteConfig.eyebrow, 'BOKMOO eSIM Card', 'BOKMOO eSIM 卡', 'BOKMOO eSIM 卡', mode),
@@ -72,6 +113,7 @@ export function resolveBokmooSiteConfig(config?: ThemeConfig, locale?: string): 
     secondaryCtaLabel: pickLocalized(siteConfig.secondaryCtaLabel, 'How it works', '了解使用方式', '瞭解使用方式', mode),
     secondaryCtaHref: siteConfig.secondaryCtaHref?.trim() || '/#how-it-works',
     apiBaseUrl: siteConfig.apiBaseUrl?.trim() || 'https://api.bokmoo.com',
+    promoFilm,
   };
 }
 

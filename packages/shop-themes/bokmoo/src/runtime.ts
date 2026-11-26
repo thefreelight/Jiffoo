@@ -89,6 +89,10 @@ export const theme: ThemePackage = {
       demoHref: '/products',
       docsHref: '/help',
       supportEmail: 'support@bokmoo.com',
+      promoPoster: '/extensions/media/promo/v3/bokmoo-promo-poster-1280.jpg',
+      promoMutedVideo: '/extensions/media/promo/v3/bokmoo-promo-720p-muted.mp4',
+      promoMutedVideoSmall: '/extensions/media/promo/v3/bokmoo-promo-540p-muted.mp4',
+      promoSoundVideo: '/extensions/media/promo/v3/bokmoo-promo-720p.mp4',
     },
   },
 };
