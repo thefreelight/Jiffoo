@@ -1,6 +1,7 @@
 import { authenticateNativeAdmin, authenticateNativeUser, type NativeAuthEnv, type NativeSessionUser } from './auth';
 import { isNativePluginEnabled } from './plugin-enabled';
 import { affiliateDiscountType, affiliateScopeAllows, affiliateScopeMode, affiliateScopeOf, MAX_FIXED_BUYER_DISCOUNT } from './order-discounts';
+import { DEFAULT_ORGANIZATION_COMMISSION, joinReferrerOrganization, newAffiliateCode, openNativeAffiliatePartner } from './affiliate-open';
 
 interface AffiliateEnv extends NativeAuthEnv { DB: D1Database }
 type AffiliateDataEnv = Pick<Cloudflare.Env, 'DB'>;
@@ -92,10 +93,6 @@ async function scopeProductIds(env: Pick<AffiliateEnv, 'DB'>, partnerId: string)
   return rows.results.map((row) => row.product_id);
 }
 
-function code(): string {
-  return crypto.randomUUID().replaceAll('-', '').slice(0, 10).toUpperCase();
-}
-
 function organizationCode(): string {
   return `ORG-${crypto.randomUUID().replaceAll('-', '').slice(0, 8).toUpperCase()}`;
 }
@@ -131,7 +128,7 @@ async function organizationOfUser(env: AffiliateEnv, userId: string): Promise<Or
 async function openOrganization(env: AffiliateEnv, input: { name: string; ownerId: string; commissionRate: number | undefined }): Promise<{ error: Response } | { row: OrganizationRow }> {
   const name = input.name.trim().slice(0, 120);
   if (name.length < 2) return { error: failure(400, 'VALIDATION_ERROR', 'Organization name is required') };
-  const rate = input.commissionRate === undefined ? 2.5 : Number(input.commissionRate);
+  const rate = input.commissionRate === undefined ? DEFAULT_ORGANIZATION_COMMISSION : Number(input.commissionRate);
   if (!Number.isFinite(rate) || rate < 0 || rate > 90) return { error: failure(400, 'VALIDATION_ERROR', 'commissionRate must be between 0 and 90') };
   const owner = await env.DB.prepare('SELECT id FROM native_users WHERE id = ?1').bind(input.ownerId).first<{ id: string }>();
   if (!owner) return { error: failure(404, 'USER_NOT_FOUND', 'No account matches the owner given') };
@@ -311,7 +308,7 @@ async function register(request: Request, env: AffiliateEnv, user: NativeSession
   }
   const now = new Date().toISOString();
   const row: PartnerRow = {
-    id: crypto.randomUUID(), user_id: user.id, code: code(), status: 'active',
+    id: crypto.randomUUID(), user_id: user.id, code: newAffiliateCode(), status: 'active',
     display_name: typeof body?.displayName === 'string' ? body.displayName.trim().slice(0, 120) || null : user.username,
     email: typeof body?.email === 'string' ? body.email.trim().toLowerCase() || user.email : user.email,
     commission_rate: 10, currency: 'USD', organization_id: organizationId, member_role: memberRole, created_at: now, updated_at: now,
@@ -357,7 +354,13 @@ async function associate(request: Request, env: AffiliateEnv, user: NativeSessio
        AND expires_at > CURRENT_TIMESTAMP AND user_id IS NULL ORDER BY created_at DESC LIMIT 1)`,
   ).bind(user.id, suppliedVisitorId).run();
   if (!updated.meta.changes) return failure(404, 'ATTRIBUTION_NOT_FOUND', 'Attribution not found');
-  return success({ visitorId: suppliedVisitorId, userId: user.id });
+  // The link the shopper arrived through was a partner's: when that partner belongs to an organization,
+  // the shopper joins it, and the organization earns its share on the shopper's own sales from then on.
+  const referrer = await env.DB.prepare(
+    'SELECT partner_id FROM native_affiliate_attributions WHERE visitor_id = ?1 AND user_id = ?2 ORDER BY associated_at DESC LIMIT 1',
+  ).bind(suppliedVisitorId, user.id).first<{ partner_id: string }>();
+  const organization = referrer ? await joinReferrerOrganization(env, { user, referrerPartnerId: referrer.partner_id }) : 'none';
+  return success({ visitorId: suppliedVisitorId, userId: user.id, organization });
 }
 
 async function commissions(request: Request, env: AffiliateEnv, user: NativeSessionUser): Promise<Response> {
@@ -746,8 +749,11 @@ async function handleNativeAffiliate(request: Request, env: AffiliateEnv, _url: 
   if (request.method === 'GET' && path === '/api/v1/plugins/affiliate/store/organizations/commissions') return organizationCommissions(request, env, user);
   if (request.method === 'POST' && path.endsWith('/partners/register')) return register(request, env, user);
   if (request.method === 'GET' && path.endsWith('/partners/me')) {
-    const row = await me(env, user.id);
-    return row ? success(partner(row, await scopeProductIds(env, row.id))) : failure(404, 'AFFILIATE_PARTNER_NOT_FOUND', 'Affiliate partner not found');
+    // An account is a partner by default: one that has no partner account yet (it registered before
+    // accounts were opened by default) gets it here.
+    const opened = await openNativeAffiliatePartner(env, user);
+    const row = opened ? await me(env, user.id) : null;
+    return row ? success(partner(row, await scopeProductIds(env, row.id))) : failure(503, 'AFFILIATE_UNAVAILABLE', 'The partner account could not be opened');
   }
   if (request.method === 'POST' && path.endsWith('/attributions/associate')) return associate(request, env, user);
   if (request.method === 'GET' && path.endsWith('/commissions')) return commissions(request, env, user);
@@ -798,12 +804,12 @@ export async function createNativeAffiliateCommission(env: AffiliateDataEnv, ord
     'SELECT id, partner_id, amount, currency FROM native_affiliate_commissions WHERE order_id = ?1',
   ).bind(orderId).first<{ id: string; partner_id: string; amount: number; currency: string }>();
   const row = await env.DB.prepare(
-    `SELECT partners.commission_rate, partners.currency, partners.organization_id, partners.scope_mode,
+    `SELECT partners.commission_rate, partners.currency, partners.organization_id, partners.scope_mode, partners.user_id AS partner_user_id,
             organizations.owner_user_id, organizations.commission_rate AS organization_rate, organizations.currency AS organization_currency
      FROM native_affiliate_partners partners
      LEFT JOIN native_affiliate_organizations organizations ON organizations.id = partners.organization_id AND organizations.status = 'active'
      WHERE partners.id = ?1 AND partners.status = 'active'`,
-  ).bind(attribution.partner_id).first<{ commission_rate: number; currency: string; organization_id: string | null; owner_user_id: string | null; organization_rate: number | null; organization_currency: string | null; scope_mode?: string | null }>();
+  ).bind(attribution.partner_id).first<{ commission_rate: number; currency: string; organization_id: string | null; owner_user_id: string | null; organization_rate: number | null; organization_currency: string | null; scope_mode?: string | null; partner_user_id?: string | null }>();
   if (!row) return null;
   // A code that is limited to certain products earns on those products alone: what they sold for
   // after the promotion, less the discount the code itself gave. Everything else earns on the order.
@@ -836,7 +842,10 @@ export async function createNativeAffiliateCommission(env: AffiliateDataEnv, ord
     .bind(partnerCommission.commissionId, attribution.partner_id, orderId, amount, row.commission_rate, partnerCommission.amount, row.currency));
   statements.push(env.DB.prepare(`UPDATE native_affiliate_attributions SET status = 'converted' WHERE user_id = ?1 AND status = 'associated'`).bind(userId));
   let organizationCommission: NativeOrganizationCommissionResult | null = null;
-  if (row.organization_id && row.owner_user_id && row.organization_rate !== null) {
+  // The organization's share is for the sales of its members. The owner's own sales pay the owner's own
+  // commission and nothing beside it: the owner is not a member of their own organization.
+  const partnerIsOwner = row.owner_user_id != null && row.owner_user_id === row.partner_user_id;
+  if (row.organization_id && row.owner_user_id && row.organization_rate !== null && !partnerIsOwner) {
     const orgExisting = await env.DB.prepare(
       'SELECT id, amount, currency, beneficiary_user_id FROM native_affiliate_org_commissions WHERE organization_id = ?1 AND order_id = ?2',
     ).bind(row.organization_id, orderId).first<{ id: string; amount: number; currency: string; beneficiary_user_id: string }>();

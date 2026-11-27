@@ -5,6 +5,7 @@ import {
   type NativeAuthEnv,
   type PublicUser,
 } from './auth';
+import { openNativeAffiliatePartner } from './affiliate-open';
 import {
   identityChallenge,
   identityHash,
@@ -718,6 +719,9 @@ async function loginWithIdentity(env: IdentityEnv, request: Request, identity: V
     }
   }
   user = await requireCustomerUser(env, user);
+  // A storefront account is a partner by default: an account made by signing in with a provider
+  // is verified from the start, so it gets its partner account now.
+  await openNativeAffiliatePartner(env, user);
   await recordNativeLoginSuccess(env, {
     email: user.email,
     userId: user.id,
