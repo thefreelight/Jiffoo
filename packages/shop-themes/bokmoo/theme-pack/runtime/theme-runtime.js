@@ -17879,94 +17879,6 @@
     ] }) }) });
   });
 
-  // src/components/PromoBanner.tsx
-  var PROMO_LOCALE = {
-    en: "en",
-    "zh-Hans": "zh-Hans",
-    "zh-Hant": "zh-Hant",
-    "zh-HK": "zh-Hant",
-    hans: "zh-Hans",
-    hant: "zh-Hant",
-    ja: "ja",
-    ko: "ko",
-    fr: "fr",
-    de: "de"
-  };
-  function promoApiLocale(locale) {
-    if (!locale) return "en";
-    return PROMO_LOCALE[locale] ?? (locale.startsWith("zh-Hant") || locale.startsWith("zh-HK") ? "zh-Hant" : locale.startsWith("zh") ? "zh-Hans" : locale.split("-")[0] ?? "en");
-  }
-  function useCountdown(endsAt) {
-    const [label, setLabel] = react_default.useState(null);
-    react_default.useEffect(() => {
-      if (!endsAt) return;
-      const target = Date.parse(endsAt);
-      if (Number.isNaN(target)) return;
-      const tick = () => {
-        const diff = target - Date.now();
-        if (diff <= 0) {
-          setLabel(null);
-          return;
-        }
-        const days = Math.floor(diff / 864e5);
-        const hours = Math.floor(diff % 864e5 / 36e5);
-        const minutes = Math.floor(diff % 36e5 / 6e4);
-        setLabel(days > 0 ? `${days}d ${hours}h` : `${hours}h ${minutes}m`);
-      };
-      tick();
-      const timer = window.setInterval(tick, 3e4);
-      return () => window.clearInterval(timer);
-    }, [endsAt]);
-    return label;
-  }
-  var PromoBanner = react_default.memo(function PromoBanner2({ locale, config }) {
-    const site = resolveBokmooSiteConfig(config, locale);
-    const [state, setState] = react_default.useState("loading");
-    const [promo, setPromo] = react_default.useState(null);
-    const countdown2 = useCountdown(promo?.endsAt ?? null);
-    react_default.useEffect(() => {
-      let cancelled = false;
-      const apiLocale = promoApiLocale(locale);
-      fetch(`${site.apiBaseUrl}/api/v1/promotions/active?locale=${encodeURIComponent(apiLocale)}`).then((response) => response.ok ? response.json() : null).then((payload) => {
-        if (cancelled) return;
-        const entry = payload?.data?.items?.[0] ?? null;
-        if (entry?.banner) {
-          setPromo(entry);
-          setState("ready");
-        } else {
-          setState("idle");
-        }
-      }).catch(() => {
-        if (!cancelled) setState("idle");
-      });
-      return () => {
-        cancelled = true;
-      };
-    }, [locale, site.apiBaseUrl]);
-    if (state !== "ready" || !promo?.banner) return null;
-    return /* @__PURE__ */ jsx("div", { className: "mx-auto w-full max-w-6xl px-4 pt-4", children: /* @__PURE__ */ jsxs(
-      "a",
-      {
-        href: promo.rulesUrl ?? "#",
-        onClick: (event) => {
-          if (!promo.rulesUrl) event.preventDefault();
-        },
-        className: "block rounded-2xl border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_38%,transparent)] bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_10%,#0b0c10)] px-5 py-4 transition hover:border-[var(--bokmoo-gold)]",
-        children: [
-          /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap items-center gap-x-4 gap-y-1", children: [
-            /* @__PURE__ */ jsx("span", { className: "rounded-full bg-[var(--bokmoo-gold)] px-3 py-1 text-xs font-bold text-[#0b0c10]", children: promo.discountType === "percent" ? `-${Math.round(promo.discountValue)}%` : "DEAL" }),
-            /* @__PURE__ */ jsx("span", { className: "text-base font-bold text-[var(--bokmoo-gold)]", children: promo.banner.title }),
-            countdown2 ? /* @__PURE__ */ jsxs("span", { className: "ml-auto text-xs font-semibold text-[color:color-mix(in_oklab,var(--bokmoo-gold)_70%,white)]", children: [
-              "\u23F3 ",
-              countdown2
-            ] }) : null
-          ] }),
-          /* @__PURE__ */ jsx("p", { className: "mt-1.5 text-sm text-[color:color-mix(in_oklab,white_78%,transparent)]", children: promo.banner.body })
-        ]
-      }
-    ) });
-  });
-
   // src/components/PromoFilm.tsx
   function attempt(video, refused) {
     let playing;
@@ -18121,7 +18033,6 @@
       window.location.assign(value ? `${mallSearchUrl}?q=${encodeURIComponent(value)}` : mallSearchUrl);
     };
     return /* @__PURE__ */ jsxs("div", { className: "min-h-screen bg-[#0d0d0d] text-[var(--bokmoo-ink)]", children: [
-      /* @__PURE__ */ jsx(PromoBanner, { locale, config }),
       /* @__PURE__ */ jsxs("section", { className: "relative overflow-hidden", children: [
         /* @__PURE__ */ jsx("div", { className: "pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_72%_30%,rgba(212,175,55,0.1),transparent_58%)]" }),
         /* @__PURE__ */ jsx("div", { "aria-hidden": "true", className: "absolute top-0 h-px w-full bg-[rgba(255,255,255,0.08)]" }),
@@ -21698,7 +21609,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.74",
+      version: "1.1.75",
       target: "shop"
     }
   };

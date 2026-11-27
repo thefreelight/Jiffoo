@@ -11,7 +11,6 @@ import {
   Zap,
 } from 'lucide-react';
 import type { HomePageProps } from 'shared/src/types/theme';
-import { PromoBanner } from './PromoBanner';
 import { PromoFilm } from './PromoFilm';
 import { isExternalHref, pickCopy, resolveBokmooSiteConfig } from '../site';
 
@@ -69,8 +68,6 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
 
   return (
     <div className="min-h-screen bg-[#0d0d0d] text-[var(--bokmoo-ink)]">
-      <PromoBanner locale={locale} config={config} />
-
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_72%_30%,rgba(212,175,55,0.1),transparent_58%)]" />
