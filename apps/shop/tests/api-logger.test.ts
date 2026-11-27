@@ -44,6 +44,19 @@ describe('the request monitor', () => {
     await expect(window.fetch('/api/v1/upload', { method: 'POST', body: form })).rejects.toThrow('Failed to fetch');
     expect(logger.warn).toHaveBeenCalledTimes(1);
   });
+
+  it('sends a page-view beacon on without logging it', async () => {
+    const answer = { status: 204 } as unknown as Response;
+    const sent = vi.fn(async () => answer);
+    window.fetch = sent;
+    createApiInterceptor();
+    await expect(
+      window.fetch('/api/v1/traffic/collect', { method: 'POST', body: '{"v":1,"p":"/en"}', keepalive: true }),
+    ).resolves.toBe(answer);
+    expect(sent).toHaveBeenCalledTimes(1);
+    expect(logger.info).not.toHaveBeenCalled();
+    expect(logger.warn).not.toHaveBeenCalled();
+  });
 });
 
 describe('what a request carried, for the log', () => {

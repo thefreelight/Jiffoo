@@ -69,6 +69,13 @@ export function describeRequestBody(body: BodyInit | null | undefined): unknown 
 }
 
 /**
+ * Page-view beacons are telemetry themselves: logging every one would add a
+ * record per page view to the log (and, with remote logs on, to every batch)
+ * and say nothing an API log is for.
+ */
+const TRAFFIC_BEACON_PATH = '/v1/traffic/collect';
+
+/**
  * Create API interceptor
  */
 export function createApiInterceptor() {
@@ -79,6 +86,8 @@ export function createApiInterceptor() {
     const startTime = Date.now();
     const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
     const method = init?.method || 'GET';
+
+    if (url.includes(TRAFFIC_BEACON_PATH)) return originalFetch(input, init);
 
     try {
       const response = await originalFetch(input, init);
