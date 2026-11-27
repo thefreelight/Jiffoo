@@ -265,32 +265,43 @@ function chatFakeDb() {
         }).length,
       }), all: async () => ({ results: [] as FakeRow[] }) };
     }
-    if (sql.includes('FROM native_support_hub_messages') && sql.includes('ORDER BY created_at ASC')) {
+    // A newest-first page of one conversation (the AI's context, the visitor's own
+    // history, the agent's transcript), ordered the way SQLite returns it.
+    if (sql.includes('FROM native_support_hub_messages') && sql.includes('ORDER BY created_at DESC, rowid DESC LIMIT')) {
+      const limit = Number(/LIMIT (\d+)/.exec(sql)?.[1] ?? 0);
       return { all: async () => ({
+        // Messages are pushed chronologically; the stable sort keeps entries that
+        // share a millisecond in that order.
         results: messages
           .filter((message) => message.conversation_id === String(args[0]))
-          .sort((a, b) => a.created_at.localeCompare(b.created_at)) as unknown as FakeRow[],
+          .sort((a, b) => a.created_at.localeCompare(b.created_at))
+          .slice(-limit)
+          .reverse() as unknown as FakeRow[],
       }), first: async () => null };
     }
-    if (sql.includes('FROM native_support_hub_messages') && sql.includes('ORDER BY created_at DESC LIMIT 1')) {
-      return { first: async () => {
-        // Messages are pushed chronologically; the last matching entry is the
-        // newest even when ISO timestamps collide within the same millisecond.
-        let latest: { content: string } | null = null;
-        for (const message of messages) {
-          if (message.conversation_id === String(args[0])) latest = { content: message.content };
-        }
-        return latest;
-      }, all: async () => ({ results: [] as FakeRow[] }) };
-    }
     if (sql.includes('FROM native_support_hub_conversations c')) {
+      // The outer LIMIT is the last one in the statement; the subqueries have their own.
+      const limit = Number(/LIMIT (\d+)\s*$/.exec(sql)?.[1] ?? 0);
+      const adminId = String(args[0]);
       return { all: async () => ({
         results: [...conversations.values()]
           .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
-          .map((conversation) => ({
-            id: conversation.id, visitorToken: conversation.visitor_token, status: conversation.status,
-            messageCount: conversation.message_count, createdAt: conversation.created_at, updatedAt: conversation.updated_at,
-          })) as unknown as FakeRow[],
+          .slice(0, limit)
+          .map((conversation) => {
+            let lastMessage: string | null = null;
+            let unreadVisitorCount = 0;
+            const lastRead = reads.get(`${adminId}__${conversation.id}`);
+            for (const message of messages) {
+              if (message.conversation_id !== conversation.id) continue;
+              lastMessage = message.content;
+              if (message.role === 'visitor' && (!lastRead || message.created_at > lastRead)) unreadVisitorCount += 1;
+            }
+            return {
+              id: conversation.id, visitorToken: conversation.visitor_token, status: conversation.status,
+              messageCount: conversation.message_count, createdAt: conversation.created_at, updatedAt: conversation.updated_at,
+              lastMessage, unreadVisitorCount,
+            };
+          }) as unknown as FakeRow[],
       }), first: async () => null };
     }
     if (sql.includes('FROM native_support_hub_conversations') && sql.includes('WHERE id = ?1 AND installation_id = ?2 AND visitor_token = ?3')) {
@@ -378,6 +389,23 @@ function stubFetch(options: { aiStatus?: number; aiBody?: unknown; fail?: boolea
   });
   vi.stubGlobal('fetch', fetchMock);
   return { calls, fetchMock };
+}
+
+/** Puts a conversation with `count` alternating messages straight into the fake store, one second apart. */
+function seedLongConversation(db: ReturnType<typeof chatFakeDb>, conversationId: string, visitorToken: string, count: number) {
+  const at = (second: number) => new Date(Date.UTC(2026, 10, 1, 0, 0, second)).toISOString();
+  db.conversations.set(conversationId, {
+    id: conversationId, installation_id: 'default', visitor_token: visitorToken, status: 'open',
+    message_count: count, created_at: at(1), updated_at: at(count),
+  });
+  for (let n = 1; n <= count; n += 1) {
+    const visitor = n % 2 === 1;
+    db.messages.push({
+      id: `msg_${conversationId}_${n}`, conversation_id: conversationId, installation_id: 'default',
+      role: visitor ? 'visitor' : 'assistant', content: `message ${n}`,
+      actions_json: null, sender: visitor ? null : 'ai', created_at: at(n),
+    });
+  }
 }
 
 const chatPost = (db: unknown, body: unknown, scheduleBackground?: (promise: Promise<unknown>) => void) =>
@@ -513,6 +541,7 @@ describe('native support hub 0.0.4 chat', () => {
     expect(listBody.data.conversations).toHaveLength(1);
     expect(listBody.data.conversations[0]).toMatchObject({
       id: conversationId, visitorToken: 'visitor_12345678', messageCount: 2, lastMessage: 'Native AI reply',
+      unreadVisitorCount: 1,
     });
 
     const transcript = await tryNativeSupportHub(gatewayRequest(`/admin/conversations/${conversationId}/messages`), { DB: db } as never);
@@ -613,6 +642,10 @@ describe('native support hub 0.0.5 agent takeover', () => {
 
     const conversationList = await tryNativeSupportHub(gatewayRequest('/admin/conversations'), { DB: db } as never);
     const conversationId = (await must(conversationList, 'response').json()).data.conversations[0].id;
+    // The list tells the same story per conversation, so an inbox can mark each row.
+    const unreadOf = async () => (await must(await tryNativeSupportHub(gatewayRequest('/admin/conversations'), { DB: db } as never), 'response').json())
+      .data.conversations.find((conversation: { id: string }) => conversation.id === conversationId).unreadVisitorCount;
+    expect(await unreadOf()).toBe(1);
 
     const marked = await tryNativeSupportHub(gatewayRequest('/admin/conversations/mark-read', {
       method: 'POST', body: JSON.stringify({ conversationId }),
@@ -621,12 +654,79 @@ describe('native support hub 0.0.5 agent takeover', () => {
 
     const after = await tryNativeSupportHub(gatewayRequest('/admin/conversations/unread-count'), { DB: db } as never);
     expect((await must(after, 'response').json()).data.unread).toBe(0);
+    expect(await unreadOf()).toBe(0);
 
     // let the clock advance past the read timestamp (same-millisecond writes compare equal)
     await new Promise((resolve) => setTimeout(resolve, 5));
     await chatPost(db, { visitorToken: 'visitor_unread_e2e', message: 'one more' });
     const reflagged = await tryNativeSupportHub(gatewayRequest('/admin/conversations/unread-count'), { DB: db } as never);
     expect((await must(reflagged, 'response').json()).data.unread).toBe(1);
+    expect(await unreadOf()).toBe(1);
+  });
+
+  it('a long conversation shows its newest messages to the agent and to the visitor', async () => {
+    const db = chatFakeDb();
+    seedLongConversation(db, 'shconv_longconv0001', 'visitor_longconv01', 205);
+    await tryNativeSupportHub(gatewayRequest('/admin/settings', {
+      method: 'PUT', body: JSON.stringify({ chatEnabled: true }),
+    }), { DB: db } as never);
+
+    const transcript = await must(await tryNativeSupportHub(
+      gatewayRequest('/admin/conversations/shconv_longconv0001/messages'), { DB: db } as never), 'response').json();
+    expect(transcript.data.messages).toHaveLength(200);
+    expect(transcript.data.messages[0].content).toBe('message 6');
+    expect(transcript.data.messages[199].content).toBe('message 205');
+
+    const history = await must(await tryNativeSupportHub(
+      storeRequest('/chat/history?visitorToken=visitor_longconv01&conversationId=shconv_longconv0001'), { DB: db } as never), 'response').json();
+    expect(history.data.messages).toHaveLength(100);
+    expect(history.data.messages[0].content).toBe('message 106');
+    expect(history.data.messages[99].content).toBe('message 205');
+  });
+
+  it('the AI is given the newest messages as context, not the start of a long conversation', async () => {
+    const db = chatFakeDb();
+    seedLongConversation(db, 'shconv_longconv0002', 'visitor_longconv02', 205);
+    await tryNativeSupportHub(gatewayRequest('/admin/settings', {
+      method: 'PUT',
+      body: JSON.stringify({
+        chatEnabled: true, aiEnabled: true, aiBaseUrl: 'https://ai.example.test/v1', aiApiKey: 'sk-native', aiModel: 'glm-5.3-flash',
+      }),
+    }), { DB: db } as never);
+    const { calls } = stubFetch();
+
+    const sent = await chatPost(db, { visitorToken: 'visitor_longconv02', message: 'and one more thing' });
+    expect(sent?.status).toBe(200);
+
+    const aiCalls = calls.filter((call) => call.url === AI_URL);
+    expect(aiCalls).toHaveLength(1);
+    const payload = JSON.parse(String(aiCalls[0]?.init?.body)) as { messages: Array<{ role: string; content: string }> };
+    // The message just sent is stored before the reply is composed, so it also
+    // closes the history: the context is the system prompt, the ten newest
+    // stored messages, then the message itself.
+    expect(payload.messages.map((message) => message.content)).toEqual([
+      payload.messages[0].content,
+      'message 197', 'message 198', 'message 199', 'message 200',
+      'message 201', 'message 202', 'message 203', 'message 204', 'message 205',
+      'and one more thing', 'and one more thing',
+    ]);
+  });
+
+  it('lists at most 200 conversations, newest activity first', async () => {
+    const db = chatFakeDb();
+    for (let n = 1; n <= 205; n += 1) {
+      const id = `shconv_list_${String(n).padStart(6, '0')}`;
+      const at = new Date(Date.UTC(2026, 10, 1, 0, 0, n)).toISOString();
+      db.conversations.set(id, {
+        id, installation_id: 'default', visitor_token: `visitor_list_${String(n).padStart(5, '0')}`,
+        status: 'open', message_count: 0, created_at: at, updated_at: at,
+      });
+    }
+
+    const listed = await must(await tryNativeSupportHub(gatewayRequest('/admin/conversations'), { DB: db } as never), 'response').json();
+    expect(listed.data.conversations).toHaveLength(200);
+    expect(listed.data.conversations[0]).toMatchObject({ id: 'shconv_list_000205', lastMessage: null, unreadVisitorCount: 0 });
+    expect(listed.data.conversations[199].id).toBe('shconv_list_000006');
   });
 
   it('rejects invalid reply payloads and unknown conversations', async () => {

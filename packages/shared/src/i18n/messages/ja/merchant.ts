@@ -1138,7 +1138,7 @@ export const merchant = {
         startedAt: '開始：{time}',
         notTakenOver: 'まだ担当者が返信していません',
         autoRefresh: '自動的に更新されます',
-        showEarlierLimit: 'この会話の最初の {count} 件を表示しています。',
+        showEarlierLimit: 'この会話の最新 {count} 件を表示しています。',
         newMessages: '新着 {count} 件',
         composerPlaceholder: '返信を入力…',
         send: '送信',

@@ -18,6 +18,8 @@ export interface SupportConversation {
   /** 'open' until an agent replies, then 'agent'. */
   status: string;
   messageCount: number;
+  /** Visitor messages this account has not read, counted by the server; absent on an older core. */
+  unreadVisitorCount?: number;
   lastMessage: string | null;
   createdAt: string;
   updatedAt: string;
@@ -151,8 +153,18 @@ export function writeSeenMap(seen: SeenMap, storage: Pick<Storage, 'setItem'> | 
   }
 }
 
-export function isConversationUnread(conversation: Pick<SupportConversation, 'id' | 'messageCount'>, seen: SeenMap): boolean {
-  return conversation.messageCount > (seen[conversation.id] ?? 0);
+/**
+ * Unread while the server still counts unread visitor messages for this account
+ * and this browser has not shown the conversation since. The server's count
+ * covers the same account on other devices; the browser's marker covers the
+ * moment between showing a message and the next list refresh.
+ */
+export function isConversationUnread(
+  conversation: Pick<SupportConversation, 'id' | 'messageCount' | 'unreadVisitorCount'>,
+  seen: SeenMap,
+): boolean {
+  const unreadOnServer = conversation.unreadVisitorCount === undefined || conversation.unreadVisitorCount > 0;
+  return unreadOnServer && conversation.messageCount > (seen[conversation.id] ?? 0);
 }
 
 // ---------------------------------------------------------------------------

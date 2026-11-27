@@ -1138,7 +1138,7 @@ export const merchant = {
         startedAt: 'Gestartet {time}',
         notTakenOver: 'Noch keine Agent-Antwort',
         autoRefresh: 'Aktualisiert automatisch',
-        showEarlierLimit: 'Zeigt die ersten {count} Nachrichten dieser Konversation.',
+        showEarlierLimit: 'Zeigt die letzten {count} Nachrichten dieser Konversation.',
         newMessages: '{count} neue Nachrichten',
         composerPlaceholder: 'Antwort schreiben…',
         send: 'Senden',

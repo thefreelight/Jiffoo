@@ -1283,7 +1283,7 @@ export const merchant = {
         startedAt: '開始於 {time}',
         notTakenOver: '尚未人工接管',
         autoRefresh: '自動重新整理',
-        showEarlierLimit: '目前顯示此對話的前 {count} 則訊息。',
+        showEarlierLimit: '目前顯示此對話最近的 {count} 則訊息。',
         newMessages: '{count} 則新訊息',
         composerPlaceholder: '輸入回覆內容…',
         send: '傳送',

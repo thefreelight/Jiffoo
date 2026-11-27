@@ -52,6 +52,17 @@ describe('support inbox read markers', () => {
     expect(isConversationUnread(conversation('c', { messageCount: 0 }), seen)).toBe(false);
   });
 
+  it('lets the server say what this account has not read, whichever device it was read on', () => {
+    // Read on another device: no marker in this browser, and the server counts nothing unread.
+    expect(isConversationUnread(conversation('a', { unreadVisitorCount: 0 }), {})).toBe(false);
+    // The server still counts a visitor message, but this browser has just shown everything.
+    expect(isConversationUnread(conversation('b', { messageCount: 7, unreadVisitorCount: 1 }), { b: 7 })).toBe(false);
+    // Shown up to an older message only: the newer one is still unread.
+    expect(isConversationUnread(conversation('b', { messageCount: 8, unreadVisitorCount: 1 }), { b: 7 })).toBe(true);
+    // Without the server's count (an older core) the browser's own marker decides.
+    expect(isConversationUnread(conversation('c', { messageCount: 2 }), {})).toBe(true);
+  });
+
   it('keeps only well-formed counts and survives a damaged marker file', () => {
     const storage = memoryStorage();
     const seen: SeenMap = { a: 3, b: 12 };

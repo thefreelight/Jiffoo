@@ -108,6 +108,12 @@ const MESSAGE_MAX_LENGTH = 2000;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_VISITOR_MESSAGES = 20;
 const AI_HISTORY_LIMIT = 10;
+/** Messages kept in view for one conversation: the agent's transcript and the AI's context. */
+const TRANSCRIPT_LIMIT = 200;
+/** Messages a visitor sees again when they return to a conversation. */
+const VISITOR_HISTORY_LIMIT = 100;
+/** Conversations listed for the agent, newest activity first. */
+const CONVERSATION_LIST_LIMIT = 200;
 const AI_TIMEOUT_MS = 12_000;
 const WEBHOOK_TIMEOUT_MS = 5_000;
 
@@ -517,15 +523,24 @@ async function insertChatMessage(
   };
 }
 
+/**
+ * The newest messages of a conversation, oldest first. A conversation can
+ * outgrow the limit; what is left out then has to be its start, never its end.
+ * (The limit is a constant of this file, so it goes into the SQL as text.)
+ */
+async function newestMessages(env: SupportHubEnv, conversationId: string, limit: number): Promise<MessageRecord[]> {
+  const result = await env.DB.prepare(
+    `SELECT id, role, content, actions_json, created_at FROM native_support_hub_messages
+     WHERE conversation_id = ?1 ORDER BY created_at DESC, rowid DESC LIMIT ${limit}`,
+  ).bind(conversationId).all<MessageRecord>();
+  return (result.results ?? []).reverse();
+}
+
 async function conversationHistory(
   env: SupportHubEnv,
   conversationId: string,
 ): Promise<Array<{ role: 'visitor' | 'assistant'; content: string }>> {
-  const result = await env.DB.prepare(
-    `SELECT id, role, content, actions_json, created_at FROM native_support_hub_messages
-     WHERE conversation_id = ?1 ORDER BY created_at ASC LIMIT 200`,
-  ).bind(conversationId).all<MessageRecord>();
-  return (result.results ?? [])
+  return (await newestMessages(env, conversationId, TRANSCRIPT_LIMIT))
     .filter((row) => !row.actions_json)
     .slice(-AI_HISTORY_LIMIT)
     .map((row) => ({
@@ -661,12 +676,9 @@ export async function tryNativeSupportHub(
     if (!conversation) {
       return success({ conversationId: null, messages: [] });
     }
-    const result = await env.DB.prepare(
-      `SELECT id, role, content, actions_json, created_at FROM native_support_hub_messages
-       WHERE conversation_id = ?1 ORDER BY created_at ASC LIMIT 100`,
-    ).bind(conversation.id).all<MessageRecord>();
+    const rows = await newestMessages(env, conversation.id, VISITOR_HISTORY_LIMIT);
     const cutoff = Date.now() - settings.retentionDays * 24 * 60 * 60 * 1000;
-    const messages = (result.results ?? [])
+    const messages = rows
       .map(toChatMessage)
       .filter((entry) => new Date(entry.createdAt).getTime() >= cutoff);
     return success({ conversationId: conversation.id, messages });
@@ -758,28 +770,33 @@ export async function tryNativeSupportHub(
     }
 
     if (request.method === 'GET' && path === '/admin/conversations') {
+      // One query for the list: each row carries its last message and how many
+      // visitor messages this admin has not read yet.
       const result = await env.DB.prepare(
         `SELECT c.id, c.visitor_token AS visitorToken, c.status, c.message_count AS messageCount,
-                c.created_at AS createdAt, c.updated_at AS updatedAt
+                c.created_at AS createdAt, c.updated_at AS updatedAt,
+                (SELECT m.content FROM native_support_hub_messages m
+                  WHERE m.conversation_id = c.id ORDER BY m.created_at DESC, m.rowid DESC LIMIT 1) AS lastMessage,
+                (SELECT COUNT(*) FROM native_support_hub_messages m
+                  LEFT JOIN native_support_hub_admin_reads r
+                    ON r.conversation_id = c.id AND r.admin_user_id = ?1
+                  WHERE m.conversation_id = c.id AND m.role = 'visitor'
+                    AND (r.last_read_at IS NULL OR m.created_at > r.last_read_at)) AS unreadVisitorCount
          FROM native_support_hub_conversations c
          WHERE c.installation_id = 'default'
-         ORDER BY c.updated_at DESC LIMIT 50`,
-      ).all<Record<string, unknown>>();
+         ORDER BY c.updated_at DESC
+         LIMIT ${CONVERSATION_LIST_LIMIT}`,
+      ).bind(admin.id).all<Record<string, unknown>>();
       const conversations = (result.results ?? []).map((row) => ({
         id: String(row.id),
         visitorToken: String(row.visitorToken),
         status: String(row.status),
         messageCount: Number(row.messageCount ?? 0),
-        lastMessage: null as string | null,
+        lastMessage: row.lastMessage === null || row.lastMessage === undefined ? null : String(row.lastMessage),
+        unreadVisitorCount: Number(row.unreadVisitorCount ?? 0),
         createdAt: String(row.createdAt),
         updatedAt: String(row.updatedAt),
       }));
-      for (const conversation of conversations) {
-        const last = await env.DB.prepare(
-          'SELECT content FROM native_support_hub_messages WHERE conversation_id = ?1 ORDER BY created_at DESC LIMIT 1',
-        ).bind(conversation.id).first<{ content: string }>();
-        conversation.lastMessage = last?.content ?? null;
-      }
       return success({ conversations });
     }
 
@@ -793,14 +810,11 @@ export async function tryNativeSupportHub(
       if (!conversation) {
         return failure(404, 'CONVERSATION_NOT_FOUND', 'Conversation not found');
       }
-      const result = await env.DB.prepare(
-        `SELECT id, role, content, actions_json, created_at FROM native_support_hub_messages
-         WHERE conversation_id = ?1 ORDER BY created_at ASC LIMIT 200`,
-      ).bind(conversationId).all<MessageRecord>();
+      const rows = await newestMessages(env, conversationId, TRANSCRIPT_LIMIT);
       return success({
         conversationId,
         visitorToken: conversation.visitor_token,
-        messages: (result.results ?? []).map(toChatMessage),
+        messages: rows.map(toChatMessage),
       });
     }
   }
