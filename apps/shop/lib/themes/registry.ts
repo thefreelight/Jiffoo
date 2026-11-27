@@ -90,7 +90,7 @@ export const BUILTIN_THEMES: ThemeRegistry = {
     meta: {
       slug: 'bokmoo',
       name: 'Bokmoo',
-      version: '1.1.73',
+      version: '1.1.74',
       description: 'Premium black-and-gold storefront renderer for Bokmoo eSIM products.',
       category: 'esim',
       author: 'Jiffoo',
@@ -106,7 +106,7 @@ export const BUILTIN_THEMES: ThemeRegistry = {
     meta: {
       slug: 'esim',
       name: 'eSIM Route Mall',
-      version: '0.0.30',
+      version: '0.0.31',
       description: 'Route-first eSIM mall storefront (One trip, one eSIM) on the black-and-gold Bokmoo design language.',
       category: 'esim',
       author: 'Jiffoo',

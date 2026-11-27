@@ -30,7 +30,7 @@ function buildContentSecurityPolicy({ development = false, extraScriptSrc = '', 
   // react-scan (dev-only perf overlay) spawns a blob: worker; allowed only in
   // development — prod CSP stays strict.
   const workerSrc = development ? " worker-src 'self' blob:;" : '';
-  return `default-src 'self'; ${scriptSrc}; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https: http:; ${frameSrc};${workerSrc} frame-ancestors 'none';`;
+  return `default-src 'self'; ${scriptSrc}; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https: http:; ${frameSrc};${workerSrc} frame-ancestors 'none';`;
 }
 
 module.exports = { buildContentSecurityPolicy, cspOrigins };

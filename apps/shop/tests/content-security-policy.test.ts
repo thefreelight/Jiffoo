@@ -8,8 +8,8 @@ const { buildContentSecurityPolicy, cspOrigins } = require('../config/content-se
 };
 
 // The policy every storefront shipped before deployments could extend it.
-const PRODUCTION_POLICY = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https: http:; frame-src 'self' https://js.stripe.com https://hooks.stripe.com; frame-ancestors 'none';";
-const DEVELOPMENT_POLICY = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://unpkg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https: http:; frame-src 'self' https://js.stripe.com https://hooks.stripe.com; worker-src 'self' blob:; frame-ancestors 'none';";
+const PRODUCTION_POLICY = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https: http:; frame-src 'self' https://js.stripe.com https://hooks.stripe.com; frame-ancestors 'none';";
+const DEVELOPMENT_POLICY = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://unpkg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https: http:; frame-src 'self' https://js.stripe.com https://hooks.stripe.com; worker-src 'self' blob:; frame-ancestors 'none';";
 
 describe('cspOrigins', () => {
   it('accepts bare https origins only, once each', () => {
@@ -40,7 +40,7 @@ describe('buildContentSecurityPolicy', () => {
       extraFrameSrc: 'https://html5.gamemonetize.co https://googleads.g.doubleclick.net',
     });
     expect(policy).toBe(
-      "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://pagead2.googlesyndication.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https: http:; frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://html5.gamemonetize.co https://googleads.g.doubleclick.net; frame-ancestors 'none';",
+      "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://pagead2.googlesyndication.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https: http:; frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://html5.gamemonetize.co https://googleads.g.doubleclick.net; frame-ancestors 'none';",
     );
   });
 

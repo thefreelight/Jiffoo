@@ -3778,13 +3778,21 @@
     const json = JSON.parse(answered.body);
     throw new EsimApiError(answered.status, json?.error?.code || "API_ERROR", json?.error?.message || `Request failed with status ${answered.status}`, json?.error?.requestId);
   }
+  function imageDataUrl(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(reader.error ?? new Error("The image could not be read"));
+      reader.readAsDataURL(blob);
+    });
+  }
   async function getEsimAffiliateScreenshot(config) {
     const response = await fetch(`${storefrontSameOriginBase(config.baseUrl.replace(/\/$/, ""))}${affiliateBase}/organizations/applications/screenshot`, {
       headers: { ...affiliateSession(config), Accept: "image/*" },
       cache: "no-store"
     });
     if (response.status === 404) return null;
-    if (response.ok) return response.blob();
+    if (response.ok) return imageDataUrl(await response.blob());
     const json = await response.json().catch(() => ({}));
     throw new EsimApiError(response.status, json?.error?.code || "API_ERROR", json?.error?.message || `Request failed with status ${response.status}`, json?.error?.requestId);
   }
@@ -4826,9 +4834,9 @@
       if (applicationResult.status === "fulfilled") setApplication(applicationResult.value);
       const partnerCause = partnerResult.status === "rejected" ? partnerResult.reason : null;
       setSignInRequired(partnerCause instanceof EsimApiError && partnerCause.status === 403 && partnerCause.code === "SIGN_IN_REQUIRED");
-      const attached = partnerResult.status === "fulfilled" ? await getEsimAffiliateScreenshot(api).then((blob) => blob ? URL.createObjectURL(blob) : null).catch(() => null) : null;
-      setScreenshotAttached(attached);
-      setScreenshotSent(attached !== null);
+      const attached = partnerResult.status === "fulfilled" ? await getEsimAffiliateScreenshot(api).catch(() => null) : null;
+      setScreenshotAttached((current) => current ?? attached);
+      setScreenshotSent((current) => current || attached !== null);
       setLoading(false);
     }, [api, isAuthenticated, lang]);
     react_default.useEffect(() => {
@@ -4854,7 +4862,7 @@
         await uploadEsimAffiliateScreenshot(api, file);
         setScreenshotSent(true);
         setScreenshotAttached(null);
-        setScreenshotPreview(URL.createObjectURL(file));
+        setScreenshotPreview(await imageDataUrl(file));
       } catch (cause) {
         setScreenshotError(cause instanceof EsimApiError && ["INVALID_FILE_TYPE", "FILE_TOO_LARGE", "VALIDATION_ERROR", "SIGN_IN_REQUIRED"].includes(cause.code) ? affiliateErrorText(lang, cause) : t(AFFILIATE.screenshotFailed));
       } finally {
@@ -5084,7 +5092,7 @@
               ] }),
               screenshotError ? /* @__PURE__ */ jsx("p", { role: "alert", "data-purpose": "screenshot-error", className: "mt-2 text-xs leading-5 text-[var(--esim-danger)]", children: screenshotError }) : null
             ] }),
-            /* @__PURE__ */ jsxs("button", { disabled: loading, className: "inline-flex min-h-12 items-center justify-center gap-2 bg-[var(--esim-gold)] px-5 text-sm font-semibold text-[var(--esim-bg)] disabled:opacity-50", type: "submit", children: [
+            /* @__PURE__ */ jsxs("button", { disabled: loading || screenshotUploading, className: "inline-flex min-h-12 items-center justify-center gap-2 bg-[var(--esim-gold)] px-5 text-sm font-semibold text-[var(--esim-bg)] disabled:opacity-50", type: "submit", children: [
               /* @__PURE__ */ jsx(Plus, { className: "h-4 w-4" }),
               loading ? t(AFFILIATE.submitting) : t(AFFILIATE.submitApplication)
             ] })
@@ -22695,7 +22703,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "esim",
-      version: "0.0.30",
+      version: "0.0.31",
       target: "shop"
     }
   };
