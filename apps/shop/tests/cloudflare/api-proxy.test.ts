@@ -64,6 +64,34 @@ describe('proxyApiRequest', () => {
     expect(forwarded.url).toBe('https://api.bokmoo.com/media/odoo-product-6?v=2026-08-24%2010%3A13%3A56');
   });
 
+  it('passes the visitor’s address and country on to the Core API', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await proxyApiRequest(
+      new Request('https://bokmoo.com/api/v1/traffic/collect', {
+        method: 'POST',
+        headers: { 'cf-connecting-ip': '203.0.113.7', 'cf-ipcountry': 'CN' },
+      }),
+      'https://api.bokmoo.com',
+    );
+
+    const forwarded = fetchMock.mock.calls[0]?.[0] as Request;
+    expect(forwarded.headers.get('x-jiffoo-client-ip')).toBe('203.0.113.7');
+    expect(forwarded.headers.get('x-jiffoo-client-country')).toBe('CN');
+  });
+
+  it('does not invent an address the edge did not provide', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await proxyApiRequest(new Request('https://bokmoo.com/api/v1/traffic/collect', { method: 'POST' }), 'https://api.bokmoo.com');
+
+    const forwarded = fetchMock.mock.calls[0]?.[0] as Request;
+    expect(forwarded.headers.has('x-jiffoo-client-ip')).toBe(false);
+    expect(forwarded.headers.has('x-jiffoo-client-country')).toBe(false);
+  });
+
   it('does not intercept non-API requests', async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
