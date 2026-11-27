@@ -41,6 +41,34 @@ export function logApiCall(data: ApiLogData) {
 }
 
 /**
+ * What a request carried, for the log: a JSON body as it was parsed; anything else only described — a form's
+ * field and file names, a blob's size and type, a body's length. Never the contents. Before this, every body was
+ * read as JSON, so a form upload (a screenshot sent with an application, a picture with a review) reached the
+ * server and was then reported to the page as failed.
+ */
+export function describeRequestBody(body: BodyInit | null | undefined): unknown {
+  if (body === undefined || body === null) return undefined;
+  if (typeof body === 'string') {
+    try {
+      return JSON.parse(body);
+    } catch {
+      return body.slice(0, 500);
+    }
+  }
+  if (typeof FormData !== 'undefined' && body instanceof FormData) {
+    return {
+      form: [...body.entries()].map(([name, value]) => (
+        typeof File !== 'undefined' && value instanceof File ? { name, file: value.name, size: value.size, type: value.type } : { name }
+      )),
+    };
+  }
+  if (typeof URLSearchParams !== 'undefined' && body instanceof URLSearchParams) return Object.fromEntries(body);
+  if (typeof Blob !== 'undefined' && body instanceof Blob) return { blob: { size: body.size, type: body.type } };
+  if (body instanceof ArrayBuffer || ArrayBuffer.isView(body)) return { bytes: body.byteLength };
+  return { stream: true };
+}
+
+/**
  * Create API interceptor
  */
 export function createApiInterceptor() {
@@ -62,7 +90,7 @@ export function createApiInterceptor() {
         method,
         status: response.status,
         duration,
-        requestData: init?.body ? JSON.parse(init.body as string) : undefined
+        requestData: describeRequestBody(init?.body)
       });
 
       return response;
@@ -75,7 +103,7 @@ export function createApiInterceptor() {
         method,
         duration,
         error,
-        requestData: init?.body ? JSON.parse(init.body as string) : undefined
+        requestData: describeRequestBody(init?.body)
       });
 
       throw error;

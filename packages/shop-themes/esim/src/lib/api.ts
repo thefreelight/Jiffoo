@@ -866,16 +866,32 @@ function affiliateSession(config: EsimApiConfig): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+/**
+ * A form POST, sent with XMLHttpRequest on purpose. Storefront builds wrap window.fetch in a request monitor, and an
+ * older build reads every request body as JSON: a form upload reached the store and was then reported to the page
+ * as failed. This way does not go through that wrapper.
+ */
+function postForm(url: string, headers: Record<string, string>, form: FormData): Promise<{ status: number; body: string }> {
+  return new Promise((resolve, reject) => {
+    const request = new XMLHttpRequest();
+    request.open('POST', url, true);
+    for (const [name, value] of Object.entries(headers)) request.setRequestHeader(name, value);
+    request.timeout = 60000;
+    request.onload = () => resolve({ status: request.status, body: request.responseText });
+    request.onerror = () => reject(new Error('The form could not be sent'));
+    request.ontimeout = () => reject(new Error('The form could not be sent'));
+    request.send(form);
+  });
+}
+
 /** Sends the screenshot of the follower counts that goes with an application to open an organization. One per account. */
 export async function uploadEsimAffiliateScreenshot(config: EsimApiConfig, file: Blob): Promise<void> {
   const form = new FormData();
   form.append('file', file, 'followers');
-  const response = await fetch(`${storefrontSameOriginBase(config.baseUrl.replace(/\/$/, ''))}${affiliateBase}/organizations/applications/screenshot`, {
-    method: 'POST', headers: affiliateSession(config), body: form, cache: 'no-store',
-  });
-  if (response.ok) return;
-  const json = await response.json().catch(() => ({}));
-  throw new EsimApiError(response.status, json?.error?.code || 'API_ERROR', json?.error?.message || `Request failed with status ${response.status}`, json?.error?.requestId);
+  const answered = await postForm(`${storefrontSameOriginBase(config.baseUrl.replace(/\/$/, ''))}${affiliateBase}/organizations/applications/screenshot`, affiliateSession(config), form);
+  if (answered.status >= 200 && answered.status < 300) return;
+  const json = JSON.parse(answered.body) as { error?: { code?: string; message?: string; requestId?: string } } | null;
+  throw new EsimApiError(answered.status, json?.error?.code || 'API_ERROR', json?.error?.message || `Request failed with status ${answered.status}`, json?.error?.requestId);
 }
 
 /** The screenshot the account sent, or null when they sent none. */
