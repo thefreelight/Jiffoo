@@ -2,6 +2,7 @@ import { clearNativePasswordResetCode, deliverNativePasswordResetCode, sendNativ
 import { consumeVerificationRateLimit, requestIp } from './auth-rate-limit';
 import { recordNativeSecurityEvent, recordLoginAudit, recordNativeLoginSuccess } from './security-audit';
 import { resolveNativeAdminAccess } from './admin-access';
+import { openNativeAffiliatePartner } from './affiliate-open';
 
 export interface NativeSmtpEnv {
   SITE_NAME?: string;
@@ -605,6 +606,9 @@ export async function tryNativeAuth(
     // credential prompt.
     const verified = body.email ? await findNativeUserByEmail(env, body.email) : null;
     if (verified && verified.is_active) {
+      // A storefront account is a partner by default: the account is real now, so it gets its partner account.
+      // (The partner account is not opened at sign-up: an account whose e-mail never verifies is deleted again.)
+      await openNativeAffiliatePartner(env, verified);
       const session = await createNativeSession(env, nativePublicUser(verified));
       return new Response(JSON.stringify({
         ...session.body,

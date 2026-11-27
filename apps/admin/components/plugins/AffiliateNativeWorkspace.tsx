@@ -44,8 +44,8 @@ type PartnerEdit = {
 type OrgEdit = { rate: string; status: string };
 type ApplicationEdit = { rate: string; note: string };
 
-/** The organization's share of its members' commissions, when the store does not choose one. */
-const DEFAULT_ORGANIZATION_RATE = 2.5;
+/** The organization's share of its members' sales, in percent, when the store does not choose one (the owner: 5). */
+const DEFAULT_ORGANIZATION_RATE = 5;
 
 function affiliateText(value: unknown, fallback = '—'): string {
   if (value === null || value === undefined || value === '') return fallback;
