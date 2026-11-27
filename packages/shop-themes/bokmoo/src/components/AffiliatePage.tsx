@@ -108,8 +108,8 @@ export const AffiliatePage = React.memo(function AffiliatePage({
     if (applicationResult.status === 'fulfilled') setApplication(applicationResult.value);
     const partnerCause = partnerResult.status === 'rejected' ? partnerResult.reason : null;
     setSignInRequired(partnerCause instanceof BokmooApiError && partnerCause.status === 403 && partnerCause.code === 'SIGN_IN_REQUIRED');
-    // the screenshot the account sent with an application, if they sent one
-    const attached = applicationResult.status === 'fulfilled' && applicationResult.value
+    // the screenshot the account sent, in this visit or an earlier one — it belongs to the account, not to one application
+    const attached = partnerResult.status === 'fulfilled'
       ? await getBokmooAffiliateScreenshot(api).then((blob) => (blob ? URL.createObjectURL(blob) : null)).catch(() => null)
       : null;
     setScreenshotAttached(attached);
@@ -171,6 +171,8 @@ export const AffiliatePage = React.memo(function AffiliatePage({
       const sent = await applyForBokmooAffiliateOrganization(api, applicationForm);
       setApplication(sent);
       setApplyAgain(false);
+      // the screenshot chosen just now stands on the waiting card at once, without a reload
+      if (screenshotPreview) setScreenshotAttached(screenshotPreview);
     } catch (cause) {
       sayError(cause, t(AFFILIATE.applyFailed));
     } finally {

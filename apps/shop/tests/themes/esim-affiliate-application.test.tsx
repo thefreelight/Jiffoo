@@ -37,7 +37,7 @@ type Options = {
   submit?: { status: number; body: unknown };
   // a guest session (the core answers 403 SIGN_IN_REQUIRED), a screenshot the account sent, and how an upload is answered
   guest?: boolean;
-  screenshot?: null;
+  screenshot?: boolean | null;
   upload?: { status: number; body: unknown };
 };
 
@@ -84,16 +84,8 @@ function stubAffiliate(options: Options = {}) {
           ? reply(options.upload.status, options.upload.body, options.upload.status >= 400 ? options.upload.body as { code: string; message: string } : undefined)
           : reply(200, { uploaded: true });
       }
-      return options.screenshot === null ? missing('SCREENSHOT_NOT_FOUND', 'No screenshot was sent') : reply(200, null);
-    }
-    if (options.guest) return reply(403, null, { code: 'SIGN_IN_REQUIRED', message: 'Sign in to use the affiliate workspace' });
-    if (url.endsWith('/organizations/applications/screenshot')) {
-      if (method === 'POST') {
-        return options.upload
-          ? reply(options.upload.status, options.upload.body, options.upload.status >= 400 ? options.upload.body as { code: string; message: string } : undefined)
-          : reply(200, { uploaded: true });
-      }
-      return options.screenshot === null ? missing('SCREENSHOT_NOT_FOUND', 'No screenshot was sent') : reply(200, null);
+      // by default the account sent none; `screenshot: true` stands for an account that sent one
+      return options.screenshot === true ? reply(200, null) : missing('SCREENSHOT_NOT_FOUND', 'No screenshot was sent');
     }
     if (method === 'POST' && url.endsWith('/organizations/applications')) {
       return options.submit
@@ -345,7 +337,8 @@ describe('an application asks a creator for a followers screenshot (2026-11-27)'
     await waitFor(() => expect(container.querySelector('[data-purpose="screenshot-error"]')?.textContent).toContain('截图必须是 JPEG、PNG 或 WebP 图片'));
     fireEvent.change(screenshotInput(container), { target: { files: [new File([new Uint8Array(5 * 1024 * 1024 + 1)], 'big.png', { type: 'image/png' })] } });
     await waitFor(() => expect(container.querySelector('[data-purpose="screenshot-error"]')?.textContent).toContain('截图不能超过 5 MB'));
-    expect(uploads.filter((call) => call.url.endsWith('/organizations/applications/screenshot'))).toHaveLength(0);
+    // nothing was sent: the only request about the screenshot is the page asking whether the account has one
+    expect(uploads.filter((call) => call.method === 'POST' && call.url.endsWith('/organizations/applications/screenshot'))).toHaveLength(0);
     expect(container.querySelector('[data-purpose="screenshot-sent"]')).toBeNull();
   });
 
@@ -364,12 +357,28 @@ describe('an application asks a creator for a followers screenshot (2026-11-27)'
   });
 
   it('the waiting card shows the screenshot the account sent', async () => {
-    const { container } = await openTab({ application: APPLICATION, screenshot: undefined }, false);
+    const { container } = await openTab({ application: APPLICATION, screenshot: true }, false);
     await waitFor(() => expect(container.querySelector('[data-purpose="application-screenshot"]')).toBeTruthy());
   });
 
+  const sendForm = async (container: HTMLElement) => {
+    fireEvent.change(container.querySelector('#esim-affiliate-organization-name')!, { target: { value: 'Crew With A Screenshot' } });
+    fireEvent.change(container.querySelector('#esim-affiliate-contact-name')!, { target: { value: 'Sam' } });
+    fireEvent.change(container.querySelector('#esim-affiliate-email')!, { target: { value: 'sam@example.com' } });
+    fireEvent.click(screen.getByRole('button', { name: '提交申请' }));
+  };
+  it('a screenshot sent on an earlier visit is remembered; after submitting, the waiting card shows it at once', async () => {
+    const { container } = await openTab({ screenshot: true });
+    await waitFor(() => expect(screen.getByRole('button', { name: '重新上传' })).toBeTruthy(), { timeout: 8000 });
+    expect(container.querySelector('[data-purpose="screenshot-sent"]')?.textContent).toContain('截图已发送');
+    await sendForm(container);
+    await waitFor(() => expect(container.querySelector('[data-purpose="application-status"][data-status="pending"]')).toBeTruthy());
+    await waitFor(() => expect(container.querySelector('[data-purpose="application-screenshot"]')).toBeTruthy());
+    expect(container.querySelector('[data-purpose="screenshot-sent"]')).toBeNull();
+  }, 30000);
+
   it('the waiting card has no screenshot when the account sent none', async () => {
-    const { container } = await openTab({ application: APPLICATION, screenshot: null }, false);
+    const { container } = await openTab({ application: APPLICATION }, false);
     // what the card shows has settled once the application is on the page and the page has asked for the screenshot
     await waitFor(() => expect(container.querySelector('[data-purpose="application-status"][data-status="pending"]')).toBeTruthy());
     await new Promise((resolve) => setTimeout(resolve, 0));
