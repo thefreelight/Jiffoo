@@ -18,17 +18,45 @@ export interface PromotionRow {
   rules_url: string | null;
   created_at: string;
   updated_at: string;
+  /** Rows written before templates existed are drawn by the plain announcement bar. */
+  banner_template?: string | null;
+}
+
+/**
+ * The template that draws a promotion's banner on the storefront. `default` is the plain announcement bar;
+ * `campaign` is the bar with a badge, the offer in gold, the window and a countdown.
+ */
+export type PromotionBannerTemplate = 'default' | 'campaign';
+
+/**
+ * The words of a banner in one language. `title` and `body` feed the plain announcement bar; the others
+ * the campaign bar, each optional: what is missing is left out, or taken from the promotion itself.
+ */
+export interface PromotionBannerCopy {
+  title: string;
+  body: string;
+  badge?: string;
+  subject?: string;
+  lead?: string;
+  highlight?: string;
+  note?: string;
+  cta?: string;
+}
+
+const BANNER_TEXT_LIMITS = { badge: 40, subject: 120, lead: 60, highlight: 40, note: 60, cta: 60 } as const;
+
+export function promotionBannerTemplate(value: unknown): PromotionBannerTemplate {
+  return value === 'campaign' ? 'campaign' : 'default';
+}
+
+function readJson<T>(text: string | null | undefined): T | null {
+  if (!text) return null;
+  try { return JSON.parse(text) as T; } catch { return null; }
 }
 
 export function publicPromotion(row: PromotionRow, locale: string, now = new Date().toISOString()) {
-  let banner: Record<string, { title: string; body: string }> = {};
-  if (row.banner_json) {
-    try { banner = JSON.parse(row.banner_json) as typeof banner; } catch { banner = {}; }
-  }
-  let productIds: string[] | null = null;
-  if (row.product_ids_json) {
-    try { productIds = JSON.parse(row.product_ids_json) as string[]; } catch { productIds = null; }
-  }
+  const banner: Record<string, PromotionBannerCopy> = readJson<Record<string, PromotionBannerCopy>>(row.banner_json) ?? {};
+  const productIds = readJson<string[]>(row.product_ids_json);
   const localized = banner[locale] ?? banner['en'] ?? Object.values(banner)[0] ?? null;
   return {
     id: row.id,
@@ -42,6 +70,7 @@ export function publicPromotion(row: PromotionRow, locale: string, now = new Dat
     productIds,
     perUserLimit: row.per_user_limit,
     banner: localized,
+    bannerTemplate: promotionBannerTemplate(row.banner_template),
     rulesUrl: row.rules_url,
     activeNow: row.status === 'active' && row.starts_at <= now && row.ends_at >= now,
   };
@@ -51,7 +80,7 @@ export function promotionPayload(body: unknown): {
   slug: string; name: string; startsAt: string; endsAt: string;
   discountType: string; discountValue: number;
   productIds: string[] | null; perUserLimit: number;
-  banner: Record<string, { title: string; body: string }> | null; rulesUrl: string | null;
+  banner: Record<string, PromotionBannerCopy> | null; bannerTemplate: PromotionBannerTemplate; rulesUrl: string | null;
 } | null {
   const payload = (body ?? {}) as Record<string, unknown>;
   const text = (key: string, max: number) => {
@@ -75,20 +104,25 @@ export function promotionPayload(body: unknown): {
     ? (payload.productIds as string[]).map((id) => id.trim()) : null;
   const perUserLimit = typeof payload.perUserLimit === 'number' && Number.isInteger(payload.perUserLimit) && payload.perUserLimit >= 0
     ? payload.perUserLimit : 0;
-  let banner: Record<string, { title: string; body: string }> | null = null;
+  let banner: Record<string, PromotionBannerCopy> | null = null;
   if (payload.banner && typeof payload.banner === 'object' && !Array.isArray(payload.banner)) {
     banner = {};
     for (const [locale, entry] of Object.entries(payload.banner as Record<string, unknown>)) {
       if (!entry || typeof entry !== 'object') return null;
-      const title = (entry as Record<string, unknown>).title;
-      const body = (entry as Record<string, unknown>).body;
-      if (typeof title !== 'string' || typeof body !== 'string' || !title.trim() || !body.trim()) return null;
-      banner[locale] = { title: title.trim().slice(0, 160), body: body.trim().slice(0, 600) };
+      const copy = entry as Record<string, unknown>;
+      if (typeof copy.title !== 'string' || typeof copy.body !== 'string' || !copy.title.trim() || !copy.body.trim()) return null;
+      const words: PromotionBannerCopy = { title: copy.title.trim().slice(0, 160), body: copy.body.trim().slice(0, 600) };
+      for (const [field, limit] of Object.entries(BANNER_TEXT_LIMITS)) {
+        const value = copy[field];
+        if (typeof value !== 'string') continue;
+        if (value.trim()) words[field as keyof typeof BANNER_TEXT_LIMITS] = value.trim().slice(0, limit);
+      }
+      banner[locale] = words;
     }
     if (Object.keys(banner).length === 0) banner = null;
   }
   const rulesUrl = text('rulesUrl', 300);
-  return { slug, name, startsAt, endsAt, discountType, discountValue, productIds, perUserLimit, banner, rulesUrl };
+  return { slug, name, startsAt, endsAt, discountType, discountValue, productIds, perUserLimit, banner, bannerTemplate: promotionBannerTemplate(payload.bannerTemplate), rulesUrl };
 }
 
 // Storefront browsers (bokmoo.com) read the active-promotion list directly;
@@ -149,15 +183,15 @@ export async function tryNativeBokmooPromotions(request: Request, env: BokmooPro
       await env.DB.prepare(
         `INSERT INTO native_promotions
          (id, slug, name, status, starts_at, ends_at, discount_type, discount_value,
-          product_ids_json, per_user_limit, banner_json, rules_url, created_at, updated_at)
-         VALUES (?1, ?2, ?3, 'draft', ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?12)`,
+          product_ids_json, per_user_limit, banner_json, banner_template, rules_url, created_at, updated_at)
+         VALUES (?1, ?2, ?3, 'draft', ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?13)`,
       ).bind(
         id, payload.slug, payload.name, payload.startsAt, payload.endsAt,
         payload.discountType, payload.discountValue,
         payload.productIds ? JSON.stringify(payload.productIds) : null,
         payload.perUserLimit,
         payload.banner ? JSON.stringify(payload.banner) : null,
-        payload.rulesUrl, now,
+        payload.bannerTemplate, payload.rulesUrl, now,
       ).run();
     } catch {
       return failure(409, 'SLUG_TAKEN', 'A promotion with this slug already exists');
@@ -178,15 +212,44 @@ export async function tryNativeBokmooPromotions(request: Request, env: BokmooPro
     const payload = (body ?? {}) as Record<string, unknown>;
     const existing = await env.DB.prepare('SELECT * FROM native_promotions WHERE id = ?1').bind(updateMatch[1]).first<PromotionRow>();
     if (!existing) return failure(404, 'NOT_FOUND', 'Promotion not found');
-    const status = typeof payload.status === 'string' && ['draft', 'active', 'ended'].includes(payload.status)
-      ? payload.status : existing.status;
-    const startsAt = typeof payload.startsAt === 'string' && !Number.isNaN(Date.parse(payload.startsAt)) ? payload.startsAt : existing.starts_at;
-    const endsAt = typeof payload.endsAt === 'string' && !Number.isNaN(Date.parse(payload.endsAt)) ? payload.endsAt : existing.ends_at;
-    if (Date.parse(endsAt) <= Date.parse(startsAt)) return failure(400, 'VALIDATION_ERROR', 'endsAt must be after startsAt');
+    // what is sent replaces what is stored; the rest of the campaign stays as it is
+    const merged = promotionPayload({
+      slug: payload.slug ?? existing.slug,
+      name: payload.name ?? existing.name,
+      startsAt: payload.startsAt ?? existing.starts_at,
+      endsAt: payload.endsAt ?? existing.ends_at,
+      discountType: payload.discountType ?? existing.discount_type,
+      discountValue: payload.discountValue ?? existing.discount_value,
+      productIds: payload.productIds !== undefined ? payload.productIds : readJson<unknown>(existing.product_ids_json),
+      perUserLimit: existing.per_user_limit,
+      banner: payload.banner !== undefined ? payload.banner : readJson<unknown>(existing.banner_json),
+      bannerTemplate: payload.bannerTemplate ?? promotionBannerTemplate(existing.banner_template),
+      rulesUrl: payload.rulesUrl !== undefined ? payload.rulesUrl : existing.rules_url,
+    });
+    if (!merged) return failure(400, 'VALIDATION_ERROR', 'Invalid promotion payload');
+    if (payload.perUserLimit !== undefined && !(Number.isInteger(payload.perUserLimit) && Number(payload.perUserLimit) >= 0)) {
+      return failure(400, 'VALIDATION_ERROR', 'perUserLimit must be a whole number of 0 or more');
+    }
+    const perUserLimit = payload.perUserLimit === undefined ? existing.per_user_limit : Number(payload.perUserLimit);
+    const status = payload.status === undefined ? existing.status
+      : typeof payload.status === 'string' && ['draft', 'active', 'ended'].includes(payload.status) ? payload.status : null;
+    if (status === null) return failure(400, 'VALIDATION_ERROR', 'status must be draft, active or ended');
+    if (merged.slug !== existing.slug) {
+      const clash = await env.DB.prepare('SELECT id FROM native_promotions WHERE slug = ?1 AND id != ?2')
+        .bind(merged.slug, existing.id).first<{ id: string }>();
+      if (clash) return failure(409, 'SLUG_TAKEN', 'A promotion with this slug already exists');
+    }
     const now = new Date().toISOString();
     await env.DB.prepare(
-      'UPDATE native_promotions SET status = ?1, starts_at = ?2, ends_at = ?3, updated_at = ?4 WHERE id = ?5',
-    ).bind(status, startsAt, endsAt, now, existing.id).run();
+      `UPDATE native_promotions
+       SET slug = ?1, name = ?2, status = ?3, starts_at = ?4, ends_at = ?5, discount_type = ?6, discount_value = ?7,
+           product_ids_json = ?8, per_user_limit = ?9, banner_json = ?10, banner_template = ?11, rules_url = ?12, updated_at = ?13
+       WHERE id = ?14`,
+    ).bind(
+      merged.slug, merged.name, status, merged.startsAt, merged.endsAt, merged.discountType, merged.discountValue,
+      merged.productIds ? JSON.stringify(merged.productIds) : null, perUserLimit,
+      merged.banner ? JSON.stringify(merged.banner) : null, merged.bannerTemplate, merged.rulesUrl, now, existing.id,
+    ).run();
     const row = await env.DB.prepare('SELECT * FROM native_promotions WHERE id = ?1').bind(existing.id).first<PromotionRow>();
     return success(row ? publicPromotion(row, 'en', now) : null);
   }
