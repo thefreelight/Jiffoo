@@ -13422,7 +13422,7 @@
       if (applicationResult.status === "fulfilled") setApplication(applicationResult.value);
       const partnerCause = partnerResult.status === "rejected" ? partnerResult.reason : null;
       setSignInRequired(partnerCause instanceof BokmooApiError && partnerCause.status === 403 && partnerCause.code === "SIGN_IN_REQUIRED");
-      const attached = applicationResult.status === "fulfilled" && applicationResult.value ? await getBokmooAffiliateScreenshot(api).then((blob) => blob ? URL.createObjectURL(blob) : null).catch(() => null) : null;
+      const attached = partnerResult.status === "fulfilled" ? await getBokmooAffiliateScreenshot(api).then((blob) => blob ? URL.createObjectURL(blob) : null).catch(() => null) : null;
       setScreenshotAttached(attached);
       setScreenshotSent(attached !== null);
       setLoading(false);
@@ -13475,6 +13475,7 @@
         const sent = await applyForBokmooAffiliateOrganization(api, applicationForm);
         setApplication(sent);
         setApplyAgain(false);
+        if (screenshotPreview) setScreenshotAttached(screenshotPreview);
       } catch (cause) {
         sayError(cause, t(AFFILIATE.applyFailed));
       } finally {
@@ -21689,7 +21690,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.72",
+      version: "1.1.73",
       target: "shop"
     }
   };

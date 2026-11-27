@@ -4826,7 +4826,7 @@
       if (applicationResult.status === "fulfilled") setApplication(applicationResult.value);
       const partnerCause = partnerResult.status === "rejected" ? partnerResult.reason : null;
       setSignInRequired(partnerCause instanceof EsimApiError && partnerCause.status === 403 && partnerCause.code === "SIGN_IN_REQUIRED");
-      const attached = applicationResult.status === "fulfilled" && applicationResult.value ? await getEsimAffiliateScreenshot(api).then((blob) => blob ? URL.createObjectURL(blob) : null).catch(() => null) : null;
+      const attached = partnerResult.status === "fulfilled" ? await getEsimAffiliateScreenshot(api).then((blob) => blob ? URL.createObjectURL(blob) : null).catch(() => null) : null;
       setScreenshotAttached(attached);
       setScreenshotSent(attached !== null);
       setLoading(false);
@@ -4879,6 +4879,7 @@
         const sent = await applyForEsimAffiliateOrganization(api, applicationForm);
         setApplication(sent);
         setApplyAgain(false);
+        if (screenshotPreview) setScreenshotAttached(screenshotPreview);
       } catch (cause) {
         sayError(cause, t(AFFILIATE.applyFailed));
       } finally {
@@ -22694,7 +22695,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "esim",
-      version: "0.0.29",
+      version: "0.0.30",
       target: "shop"
     }
   };
