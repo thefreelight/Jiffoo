@@ -147,7 +147,6 @@ const MAX_HOST_LENGTH = 253;
 const MAX_FIELD_LENGTH = 200;
 const MAX_RULE_ENTRY_LENGTH = 80;
 
-// eslint-disable-next-line no-control-regex
 const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f]/;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
