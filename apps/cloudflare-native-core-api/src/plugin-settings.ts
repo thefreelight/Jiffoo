@@ -225,6 +225,11 @@ const definitions: Record<string, PluginDefinition> = {
       allowedOrigins: { type: 'string', label: 'Allowed origins', description: 'Comma-separated site origins allowed to report plays from a browser.', placeholder: 'https://games.example.com' },
     },
   },
+  'traffic-analytics': {
+    slug: 'traffic-analytics', name: 'Traffic Analytics', version: '0.0.1', category: 'analytics',
+    description: 'Storefront traffic sources: visitors, visits, views and the channel each visit came from (search, AI assistants, social, e-mail, direct). Collects no personal data: no cookies, no addresses, no device identifiers.',
+    configSchema: {},
+  },
 };
 
 const encoder = new TextEncoder();
