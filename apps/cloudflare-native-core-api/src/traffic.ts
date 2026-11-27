@@ -33,10 +33,10 @@ import {
   TRAFFIC_SESSION_GAP_MS,
   TRAFFIC_SETTING_KEY,
   classifyTraffic,
+  isTrafficDimension,
   looksLikeTrafficBot,
-  normalizeTrafficHost,
   parseTrafficPageview,
-  parseTrafficPeriod,
+  parseTrafficReportQuery,
   parseTrafficRules,
   trafficClientCountry,
   trafficClientIp,
@@ -47,7 +47,9 @@ import {
   type TrafficChannel,
   type TrafficChannelRules,
   type TrafficDevice,
+  type TrafficDimension,
   type TrafficPageview,
+  type TrafficReportQuery,
 } from './traffic-core';
 import { DEFAULT_TRAFFIC_RULES } from './traffic-default-rules';
 
@@ -73,9 +75,6 @@ const PRUNE_CHANCE = 1 / 2000;
 const ENABLED_CACHE_MS = 10_000;
 
 const DAY_MS = 86_400_000;
-const MAX_ZONE_OFFSET_MINUTES = 14 * 60;
-const DEFAULT_ROWS = 25;
-const MAX_ROWS = 200;
 
 // ── is collection on? ────────────────────────────────────────────────────────
 
@@ -388,16 +387,7 @@ const DIMENSIONS = {
   page: 'path',
 } as const;
 
-type Dimension = keyof typeof DIMENSIONS;
-
-interface ReportQuery {
-  range: [number, number];
-  tz: number;
-  host: string | null;
-  channel: TrafficChannel | null;
-  limit: number;
-  offset: number;
-}
+type Dimension = TrafficDimension;
 
 function emptyTotals(): Totals {
   return { visitors: 0, visits: 0, views: 0, bounced: 0, durationMs: 0, channels: new Set() };
@@ -437,53 +427,8 @@ function formatDay(dayKey: number): string {
   return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`;
 }
 
-function isDimension(value: string | null): value is Dimension {
-  return value !== null && Object.prototype.hasOwnProperty.call(DIMENSIONS, value);
-}
-
-function isChannel(value: string | null): value is TrafficChannel {
-  return value !== null && TRAFFIC_CHANNELS.includes(value as TrafficChannel);
-}
-
-function parseZoneOffset(value: string | null): number {
-  const parsed = Number.parseInt(value ?? '', 10);
-  if (!Number.isFinite(parsed)) return 0;
-  return Math.max(-MAX_ZONE_OFFSET_MINUTES, Math.min(MAX_ZONE_OFFSET_MINUTES, parsed));
-}
-
-function parseLimit(value: string | null): number {
-  const parsed = Number.parseInt(value ?? '', 10);
-  return Number.isFinite(parsed) ? Math.min(MAX_ROWS, Math.max(1, parsed)) : DEFAULT_ROWS;
-}
-
-function parseOffset(value: string | null): number {
-  const parsed = Number.parseInt(value ?? '', 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
-}
-
-function parseReportQuery(url: URL): ReportQuery | Response {
-  const tz = parseZoneOffset(url.searchParams.get('tz'));
-  const range = parseTrafficPeriod(url.searchParams.get('from'), url.searchParams.get('to'), tz);
-  if (range === null) {
-    return failure(400, 'VALIDATION_ERROR', 'from and to must be whole days as YYYYMMDD or YYYY-MM-DD, at most 401 days apart');
-  }
-  const rawHost = url.searchParams.get('host');
-  const host = rawHost ? normalizeTrafficHost(rawHost) : null;
-  if (rawHost && host === null) return failure(400, 'VALIDATION_ERROR', 'host must be a hostname');
-  const rawChannel = url.searchParams.get('channel');
-  if (rawChannel !== null && !isChannel(rawChannel)) return failure(400, 'VALIDATION_ERROR', 'Unknown channel');
-  return {
-    range,
-    tz,
-    host,
-    channel: rawChannel,
-    limit: parseLimit(url.searchParams.get('limit')),
-    offset: parseOffset(url.searchParams.get('offset')),
-  };
-}
-
 /** `started_at` inside the queried days, narrowed to one storefront host when asked. */
-function sessionWhere(query: ReportQuery): { sql: string; args: unknown[] } {
+function sessionWhere(query: TrafficReportQuery): { sql: string; args: unknown[] } {
   const args: unknown[] = [query.range[0], query.range[1]];
   let sql = 'started_at >= ?1 AND started_at < ?2';
   if (query.host !== null) {
@@ -493,7 +438,7 @@ function sessionWhere(query: ReportQuery): { sql: string; args: unknown[] } {
   return { sql, args };
 }
 
-function periodOf(query: ReportQuery): { from: string; to: string } {
+function periodOf(query: TrafficReportQuery): { from: string; to: string } {
   return {
     from: formatDay(trafficDayKey(query.range[0], query.tz)),
     to: formatDay(trafficDayKey(query.range[1] - 1, query.tz)),
@@ -504,7 +449,7 @@ function byWeight(a: Figures, b: Figures): number {
   return b.visits - a.visits || b.views - a.views;
 }
 
-async function report(env: TrafficEnv, query: ReportQuery): Promise<Response> {
+async function report(env: TrafficEnv, query: TrafficReportQuery): Promise<Response> {
   const where = sessionWhere(query);
   const stored = await loadRules(env);
   const zoneParameter = where.args.length + 1;
@@ -554,7 +499,7 @@ async function report(env: TrafficEnv, query: ReportQuery): Promise<Response> {
   });
 }
 
-async function breakdown(env: TrafficEnv, query: ReportQuery, dimension: Dimension): Promise<Response> {
+async function breakdown(env: TrafficEnv, query: TrafficReportQuery, dimension: Dimension): Promise<Response> {
   if (dimension === 'page') {
     const days: unknown[] = [
       trafficDayKey(query.range[0], query.tz),
@@ -636,10 +581,10 @@ async function adminTraffic(request: Request, env: TrafficEnv, route: string): P
     return success({ ...stored, channels: TRAFFIC_CHANNELS });
   }
   const url = new URL(request.url);
-  const parsed = parseReportQuery(url);
-  if (parsed instanceof Response) return parsed;
+  const parsed = parseTrafficReportQuery(url.searchParams);
+  if (parsed === null) return failure(400, 'VALIDATION_ERROR', 'The report query is not valid');
   if (route === 'report') return report(env, parsed);
   const dimension = url.searchParams.get('dim') ?? url.searchParams.get('dimension');
-  if (!isDimension(dimension)) return failure(400, 'VALIDATION_ERROR', 'Unknown dimension');
+  if (!isTrafficDimension(dimension)) return failure(400, 'VALIDATION_ERROR', 'Unknown dimension');
   return breakdown(env, parsed, dimension);
 }

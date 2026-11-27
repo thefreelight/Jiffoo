@@ -446,6 +446,68 @@ export function parseTrafficPeriod(
   return [start, end];
 }
 
+export const TRAFFIC_DIMENSIONS = ['source', 'medium', 'campaign', 'referrer', 'landing', 'country', 'device', 'host', 'page'] as const;
+
+export type TrafficDimension = (typeof TRAFFIC_DIMENSIONS)[number];
+
+const MAX_ZONE_OFFSET_MINUTES = 14 * 60;
+const DEFAULT_REPORT_ROWS = 25;
+const MAX_REPORT_ROWS = 200;
+
+export interface TrafficReportQuery {
+  range: [number, number];
+  /** Minutes east of UTC the viewer asked for. */
+  tz: number;
+  host: string | null;
+  channel: TrafficChannel | null;
+  limit: number;
+  offset: number;
+}
+
+export function isTrafficDimension(value: string | null): value is TrafficDimension {
+  return value !== null && TRAFFIC_DIMENSIONS.includes(value as TrafficDimension);
+}
+
+export function isTrafficChannel(value: string | null): value is TrafficChannel {
+  return value !== null && TRAFFIC_CHANNELS.includes(value as TrafficChannel);
+}
+
+function parseZoneOffsetParam(value: string | null): number {
+  const parsed = Number.parseInt(value ?? '', 10);
+  if (!Number.isFinite(parsed)) return 0;
+  return Math.max(-MAX_ZONE_OFFSET_MINUTES, Math.min(MAX_ZONE_OFFSET_MINUTES, parsed));
+}
+
+function parsePositiveInt(value: string | null, fallback: number): number {
+  const parsed = Number.parseInt(value ?? '', 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+/**
+ * Reads the query string every report accepts — whole days, the viewer's
+ * zone, an optional storefront host and channel, paging — and answers null
+ * when anything in it is unusable.
+ */
+export function parseTrafficReportQuery(params: URLSearchParams): TrafficReportQuery | null {
+  const tz = parseZoneOffsetParam(params.get('tz'));
+  const range = parseTrafficPeriod(params.get('from'), params.get('to'), tz);
+  if (range === null) return null;
+  const rawHost = params.get('host');
+  const host = rawHost ? normalizeTrafficHost(rawHost) : null;
+  if (rawHost && host === null) return null;
+  const rawChannel = params.get('channel');
+  const channel = rawChannel !== null && isTrafficChannel(rawChannel) ? rawChannel : null;
+  if (rawChannel !== null && channel === null) return null;
+  return {
+    range,
+    tz,
+    host,
+    channel,
+    limit: Math.min(MAX_REPORT_ROWS, parsePositiveInt(params.get('limit'), DEFAULT_REPORT_ROWS)),
+    offset: parsePositiveInt(params.get('offset'), 0),
+  };
+}
+
 type HeaderReader = (name: string) => string | null | undefined;
 
 function firstHeader(read: HeaderReader, name: string): string | null {
