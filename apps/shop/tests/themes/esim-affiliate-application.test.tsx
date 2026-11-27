@@ -43,7 +43,32 @@ type Options = {
 
 /** The affiliate endpoints, as the core answers them; `null` is "not found" (404). */
 function stubAffiliate(options: Options = {}) {
-  const calls: Array<{ url: string; method: string; body: unknown; file?: File | null }> = [];
+  // the screenshot goes by XMLHttpRequest, past the storefront's fetch wrapper: a stand-in that records it and answers
+  type Sent = { url: string; method: string; body: unknown; file?: File | null; authorization?: string };
+  const calls: Sent[] = [];
+  class StandInRequest {
+    onload: (() => void) | null = null;
+    onerror: (() => void) | null = null;
+    ontimeout: (() => void) | null = null;
+    timeout = 0;
+    status = 0;
+    responseText = '';
+    private record!: Sent;
+    private authorization = '';
+    open(method: string, url: string) { calls.push({ url, method, body: undefined }); this.record = calls[calls.length - 1]!; }
+    setRequestHeader(name: string, value: string) { if (name === 'Authorization') this.authorization = value; }
+    send(body: unknown) {
+      this.record.file = body instanceof FormData ? (body.get('file') as File | null) : null;
+      this.record.authorization = this.authorization;
+      const refused = options.upload && options.upload.status >= 400 ? options.upload : null;
+      setTimeout(() => {
+        this.status = refused ? refused.status : 200;
+        this.responseText = JSON.stringify(refused ? { success: false, error: refused.body } : { success: true, data: { uploaded: true } });
+        this.onload?.();
+      }, 0);
+    }
+  }
+  vi.stubGlobal('XMLHttpRequest', StandInRequest);
   vi.stubGlobal('fetch', vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
     const url = String(input instanceof Request ? input.url : input);
     const method = init?.method ?? 'GET';
@@ -280,7 +305,7 @@ describe('an application asks a creator for a followers screenshot (2026-11-27)'
     const page = renderPage('zh-Hans');
     await openOrganizationTab();
     await waitFor(() => expect(page.container.querySelector(form ? '[data-purpose="application-form"]' : '[data-purpose="application-status"]')).toBeTruthy());
-    return { ...page, calls };
+    return { ...page, calls, uploads: calls };
   };
 
   it('the form names the screenshot and says it is optional, in the shopper’s language', async () => {
@@ -302,23 +327,25 @@ describe('an application asks a creator for a followers screenshot (2026-11-27)'
   });
 
   it('choosing an image sends it at once, and the page says it was sent', async () => {
-    const { container, calls } = await openTab();
+    localStorage.setItem('auth_token', 'token-of-the-shopper');
+    const { container, uploads } = await openTab();
     fireEvent.change(screenshotInput(container), { target: { files: [PNG()] } });
     await waitFor(() => expect(container.querySelector('[data-purpose="screenshot-sent"]')?.textContent).toContain('截图已发送'));
-    const sent = calls.find((call) => call.method === 'POST' && call.url.endsWith('/organizations/applications/screenshot'));
+    const sent = uploads.find((call) => call.method === 'POST' && call.url.endsWith('/organizations/applications/screenshot'));
     expect(sent?.file).toBeInstanceOf(File);
     expect((sent!.file as File).type).toBe('image/png');
+    expect(sent!.authorization).toBe('Bearer token-of-the-shopper');
     expect(screen.getByRole('button', { name: '重新上传' })).toBeTruthy();
     expect(container.querySelector('[data-purpose="screenshot-error"]')).toBeNull();
   });
 
   it('what is not a JPEG, PNG, or WebP image, or is over 5 MB, is refused before it leaves the page', async () => {
-    const { container, calls } = await openTab();
+    const { container, uploads } = await openTab();
     fireEvent.change(screenshotInput(container), { target: { files: [new File(['<html>'], 'x.png', { type: 'text/html' })] } });
     await waitFor(() => expect(container.querySelector('[data-purpose="screenshot-error"]')?.textContent).toContain('截图必须是 JPEG、PNG 或 WebP 图片'));
     fireEvent.change(screenshotInput(container), { target: { files: [new File([new Uint8Array(5 * 1024 * 1024 + 1)], 'big.png', { type: 'image/png' })] } });
     await waitFor(() => expect(container.querySelector('[data-purpose="screenshot-error"]')?.textContent).toContain('截图不能超过 5 MB'));
-    expect(calls.filter((call) => call.url.endsWith('/organizations/applications/screenshot'))).toHaveLength(0);
+    expect(uploads.filter((call) => call.url.endsWith('/organizations/applications/screenshot'))).toHaveLength(0);
     expect(container.querySelector('[data-purpose="screenshot-sent"]')).toBeNull();
   });
 

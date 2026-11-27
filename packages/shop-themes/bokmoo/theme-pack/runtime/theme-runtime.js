@@ -13054,18 +13054,25 @@
     const token = config.token === void 0 ? getClientToken() : config.token;
     return token ? { Authorization: `Bearer ${token}` } : {};
   }
+  function postForm(url, headers, form) {
+    return new Promise((resolve, reject) => {
+      const request2 = new XMLHttpRequest();
+      request2.open("POST", url, true);
+      for (const [name, value] of Object.entries(headers)) request2.setRequestHeader(name, value);
+      request2.timeout = 6e4;
+      request2.onload = () => resolve({ status: request2.status, body: request2.responseText });
+      request2.onerror = () => reject(new Error("The form could not be sent"));
+      request2.ontimeout = () => reject(new Error("The form could not be sent"));
+      request2.send(form);
+    });
+  }
   async function uploadBokmooAffiliateScreenshot(config, file) {
     const form = new FormData();
     form.append("file", file, "followers");
-    const response = await fetch(`${storefrontSameOriginBase(config.baseUrl.replace(/\/$/, ""))}${affiliateBase}/organizations/applications/screenshot`, {
-      method: "POST",
-      headers: affiliateSession(config),
-      body: form,
-      cache: "no-store"
-    });
-    if (response.ok) return;
-    const json = await response.json().catch(() => ({}));
-    throw new BokmooApiError(response.status, json?.error?.code || "API_ERROR", json?.error?.message || `Request failed with status ${response.status}`, json?.error?.requestId);
+    const answered = await postForm(`${storefrontSameOriginBase(config.baseUrl.replace(/\/$/, ""))}${affiliateBase}/organizations/applications/screenshot`, affiliateSession(config), form);
+    if (answered.status >= 200 && answered.status < 300) return;
+    const json = JSON.parse(answered.body);
+    throw new BokmooApiError(answered.status, json?.error?.code || "API_ERROR", json?.error?.message || `Request failed with status ${answered.status}`, json?.error?.requestId);
   }
   async function getBokmooAffiliateScreenshot(config) {
     const response = await fetch(`${storefrontSameOriginBase(config.baseUrl.replace(/\/$/, ""))}${affiliateBase}/organizations/applications/screenshot`, {
@@ -21682,7 +21689,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.71",
+      version: "1.1.72",
       target: "shop"
     }
   };

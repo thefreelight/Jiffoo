@@ -90,7 +90,7 @@ export const BUILTIN_THEMES: ThemeRegistry = {
     meta: {
       slug: 'bokmoo',
       name: 'Bokmoo',
-      version: '1.1.71',
+      version: '1.1.72',
       description: 'Premium black-and-gold storefront renderer for Bokmoo eSIM products.',
       category: 'esim',
       author: 'Jiffoo',
