@@ -27,6 +27,7 @@ import { useToast } from '@/hooks/use-toast'
 import { UserRole } from '@/lib/types'
 import { ResetPasswordDialog } from '@/components/customers/reset-password-dialog'
 import { DeleteCustomerDialog } from '@/components/customers/delete-customer-dialog'
+import { CustomerCards } from '@/components/customers/customer-cards'
 import { resolveApiErrorMessage } from '@/lib/error-utils'
 import { UserAvatar } from '@/components/ui/user-avatar'
 
@@ -474,6 +475,9 @@ export default function CustomerDetailPage() {
                 )}
               </div>
             </Card>
+
+            {/* Cards: the plans on them and the orders that bought those plans */}
+            <CustomerCards userId={userId} />
           </div>
 
           {/* Right Column: Analytics & Status */}

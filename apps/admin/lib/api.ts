@@ -521,6 +521,53 @@ export const shipFormApi = {
     apiClient.post('/extensions/plugin/shipping/api/admin/carriers/detect', { trackingNumber }),
 };
 
+// An order line that put a plan on an ICCID: a new eSIM, or a plan added to one.
+export interface CustomerCardOrder {
+  orderId: string;
+  orderNumber: string;
+  productId: string | null;
+  productName: string;
+  quantity: number;
+  createdAt: string | null;
+  status: string | null;
+  paymentStatus: string | null;
+  kind: 'new' | 'top-up';
+}
+
+export interface CustomerCardProfile {
+  iccid: string;
+  enabled: boolean;
+  name: string;
+  provider: string;
+  source: string | null;
+  syncedAt: string;
+  orders: CustomerCardOrder[];
+}
+
+// A card bound to a customer's account, the plans on it as the app last read
+// it, and the orders that bought those plans.
+export interface CustomerCard {
+  id: string;
+  cardId: string;
+  eid: string | null;
+  status: string;
+  verificationStatus: string;
+  boundAt: string | null;
+  verifiedAt: string | null;
+  lastSeenAt: string | null;
+  sku: string | null;
+  batch: string | null;
+  profiles: CustomerCardProfile[];
+}
+
+// A customer's cards, provided by the official card-connect plugin.
+// When the plugin is absent or disabled the call 404s and the customer page
+// shows no cards block.
+export const cardConnectApi = {
+  getCustomerCards: (userId: string): Promise<ApiResponse<{ items: CustomerCard[] }>> =>
+    apiClient.get(`/extensions/plugin/bokmoo-connect/api/admin/customers/${userId}/cards`),
+};
+
 // Users API
 export const usersApi = {
   getAll: (params: PaginationParams = {}): Promise<ApiResponse<PageResult<UserProfile>>> => {

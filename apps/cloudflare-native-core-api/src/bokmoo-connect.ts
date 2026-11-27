@@ -43,6 +43,31 @@ interface ImportRunRow {
   created_at: string;
 }
 
+interface ProfileRow {
+  eid: string;
+  iccid: string;
+  enabled: number;
+  name: string;
+  provider: string;
+  source: string | null;
+  synced_at: string;
+}
+
+/** An order line that put a plan on an ICCID: a new eSIM, or a plan added to one. */
+interface CustomerOrder {
+  orderId: string;
+  orderNumber: string;
+  productId: string | null;
+  productName: string;
+  quantity: number;
+  createdAt: string | null;
+  status: string | null;
+  paymentStatus: string | null;
+  kind: 'new' | 'top-up';
+}
+
+const CARD_LIFECYCLE_BLOCKS = ['frozen', 'lost', 'retired'];
+
 function response(data: unknown, status = 200): Response {
   return Response.json(status < 400 ? { success: true, data } : { success: false, error: data }, {
     status,
@@ -157,6 +182,96 @@ async function recordCardSighting(request: Request, env: Env): Promise<Response>
   return response({ result: 'recorded', eid, id }, 201);
 }
 
+function parsedJson(text: unknown): Record<string, unknown> {
+  if (typeof text !== 'string' || !text) return {};
+  try {
+    const value: unknown = JSON.parse(text);
+    return value && typeof value === 'object' ? value as Record<string, unknown> : {};
+  } catch {
+    return {};
+  }
+}
+
+/** An ICCID as digits, without the filler an odd-length one ends with. */
+function iccidDigits(value: unknown): string {
+  return typeof value === 'string' ? value.replace(/[^0-9]/g, '') : '';
+}
+
+/** Whether two ICCIDs name the same eSIM. The issuer's asset number can be
+ *  the tail of the ICCID the card reports, so a shorter one matches when it
+ *  is how the longer one ends. */
+function sameIccid(left: string, right: string): boolean {
+  if (!left || !right) return false;
+  if (left === right) return true;
+  const [short, long] = left.length <= right.length ? [left, right] : [right, left];
+  return short.length >= 6 && long.endsWith(short);
+}
+
+/** The app read a card: record the card under the caller's account and the
+ *  plans on it. A card nobody owns is bound to the caller; a card another
+ *  account owns is left alone. */
+async function syncCard(request: Request, env: Env): Promise<Response> {
+  const user = await requireUser(request, env);
+  if (!user) return error('UNAUTHORIZED', 'Login required', 401);
+  const body = await request.json<{ eid?: unknown; profiles?: unknown; source?: unknown }>().catch(() => null);
+  const eid = typeof body?.eid === 'string' ? body.eid.trim().toUpperCase() : '';
+  if (!/^[0-9]{32}$/.test(eid)) return error('VALIDATION_ERROR', 'A 32-digit EID is required', 400);
+  const input = Array.isArray(body?.profiles) ? body.profiles : [];
+  if (input.length > 32) return error('VALIDATION_ERROR', 'A card has at most 32 profiles', 400);
+  const profiles: Array<{ iccid: string; enabled: number; name: string; provider: string }> = [];
+  for (const raw of input) {
+    const item = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {};
+    const iccid = iccidDigits(item.iccid);
+    if (iccid.length < 6 || iccid.length > 22 || profiles.some((profile) => profile.iccid === iccid)) continue;
+    profiles.push({
+      iccid,
+      enabled: item.enabled === true ? 1 : 0,
+      name: optionalText(item.name, 64) ?? '',
+      provider: optionalText(item.provider, 64) ?? '',
+    });
+  }
+  const source = optionalText(body?.source, 32);
+  const now = new Date().toISOString();
+
+  const card = await env.DB.prepare('SELECT * FROM native_bokmoo_cards WHERE eid = ?1 LIMIT 1')
+    .bind(eid).first<CardRow>();
+  if (card && CARD_LIFECYCLE_BLOCKS.includes(card.status)) {
+    return error('CARD_LIFECYCLE_BLOCKED', `Card is ${card.status}`, 409, { status: card.status });
+  }
+  if (card?.user_id && card.user_id !== user.id) {
+    return error('CARD_POLICY_FAILURE', 'Card is already bound to another account', 409, { policy: 'bound_to_other' });
+  }
+
+  const statements: D1PreparedStatement[] = [];
+  if (card) {
+    statements.push(env.DB.prepare(`UPDATE native_bokmoo_cards SET user_id = ?1, bound_at = COALESCE(bound_at, ?2), last_seen_at = ?2,
+      status = CASE WHEN status IN ('unbound', 'seen') THEN 'seen' ELSE status END,
+      verification_status = CASE WHEN verification_status IN ('pending', 'seen') THEN 'seen' ELSE verification_status END,
+      updated_at = ?2 WHERE id = ?3`).bind(user.id, now, card.id));
+  } else {
+    statements.push(env.DB.prepare(`INSERT INTO native_bokmoo_cards
+      (id, mid, eid, status, verification_status, user_id, bound_at, last_seen_at, created_at, updated_at)
+      VALUES (?1, ?2, ?3, 'seen', 'seen', ?4, ?5, ?5, ?5, ?5)`)
+      .bind(`card-seen-${crypto.randomUUID().replaceAll('-', '').slice(0, 16)}`, eid, eid, user.id, now));
+  }
+  statements.push(env.DB.prepare('DELETE FROM native_bokmoo_card_profiles WHERE eid = ?1').bind(eid));
+  for (const profile of profiles) {
+    statements.push(env.DB.prepare(`INSERT INTO native_bokmoo_card_profiles (eid, iccid, enabled, name, provider, source, synced_at)
+      VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`)
+      .bind(eid, profile.iccid, profile.enabled, profile.name, profile.provider, source, now));
+  }
+  try {
+    await env.DB.batch(statements);
+  } catch (failure) {
+    // Two accounts reading the same new card at once: the second insert meets the EID's uniqueness.
+    if (!card && /UNIQUE/i.test(String(failure))) {
+      return error('CARD_POLICY_FAILURE', 'Card is already bound to another account', 409, { policy: 'bound_to_other' });
+    }
+    throw failure;
+  }
+  return response({ result: 'recorded', eid, profiles: profiles.length }, card ? 200 : 201);
+}
+
 async function createClaim(request: Request, env: Env): Promise<Response> {
   const user = await requireUser(request, env);
   if (!user) return error('UNAUTHORIZED', 'Login required', 401);
@@ -166,7 +281,7 @@ async function createClaim(request: Request, env: Env): Promise<Response> {
 
   const existing = await env.DB.prepare('SELECT * FROM native_bokmoo_cards WHERE mid = ?1 LIMIT 1')
     .bind(mid).first<CardRow>();
-  if (existing && ['frozen', 'lost', 'retired'].includes(existing.status)) {
+  if (existing && CARD_LIFECYCLE_BLOCKS.includes(existing.status)) {
     return error('CARD_LIFECYCLE_BLOCKED', `Card is ${existing.status}`, 409, { status: existing.status });
   }
   if (existing?.user_id && existing.user_id !== user.id) {
@@ -235,7 +350,7 @@ async function verifyClaim(request: Request, env: Env, sessionId: string): Promi
   const card = await env.DB.prepare('SELECT * FROM native_bokmoo_cards WHERE id = ?1 LIMIT 1')
     .bind(session.card_id).first<CardRow>();
   if (!card) return error('CARD_NOT_FOUND', 'Card record not found', 404);
-  if (['frozen', 'lost', 'retired'].includes(card.status)) return error('CARD_LIFECYCLE_BLOCKED', `Card is ${card.status}`, 409);
+  if (CARD_LIFECYCLE_BLOCKS.includes(card.status)) return error('CARD_LIFECYCLE_BLOCKED', `Card is ${card.status}`, 409);
   if (card.user_id && card.user_id !== user.id) return error('CARD_POLICY_FAILURE', 'Card is already bound to another account', 409);
   if (card.eid && eid && normalizeIdentifier(card.eid) !== eid) return error('CARD_EID_MISMATCH', 'Card EID does not match the MID record', 409);
   if (card.iccid && iccid && normalizeIdentifier(card.iccid) !== iccid) return error('CARD_ICCID_MISMATCH', 'Card ICCID does not match the MID record', 409);
@@ -275,10 +390,13 @@ async function requireAdmin(request: Request, env: Env) {
   return authenticateNativeAdmin(request, env);
 }
 
+const ADMIN_PREFIX = '/api/v1/extensions/plugin/bokmoo-connect/api/admin';
+
 function adminPath(pathname: string): string | null {
-  const prefix = '/api/v1/extensions/plugin/bokmoo-connect/api/admin';
-  if (!pathname.startsWith(`${prefix}/cards`)) return null;
-  const suffix = pathname.slice(prefix.length);
+  if (!pathname.startsWith(`${ADMIN_PREFIX}/`)) return null;
+  const suffix = pathname.slice(ADMIN_PREFIX.length);
+  const customerCards = suffix.match(/^\/customers\/[^/]+\/cards$/);
+  if (customerCards) return customerCards[0];
   return suffix === '/cards' || suffix === '/cards/import' || suffix === '/cards/imports' ? suffix : null;
 }
 
@@ -318,7 +436,7 @@ async function importCards(request: Request, env: Env): Promise<Response> {
         items.push({ mid, result: 'conflict', reason: 'card_bound_to_user' });
         continue;
       }
-      if (['frozen', 'lost', 'retired'].includes(existing.status)) {
+      if (CARD_LIFECYCLE_BLOCKS.includes(existing.status)) {
         conflicts += 1;
         items.push({ mid, result: 'conflict', reason: `card_${existing.status}` });
         continue;
@@ -402,6 +520,103 @@ async function listImportRuns(request: Request, env: Env): Promise<Response> {
   return response({ items: rows.results, total: rows.results.length });
 }
 
+/** The caller's order lines that put a plan on an ICCID, with what the order
+ *  says about them. Only the named JSON paths are read: the stored answers
+ *  also hold install credentials, which never leave the database. */
+async function customerOrders(env: Env, userId: string): Promise<Array<{ iccids: string[]; order: CustomerOrder }>> {
+  type LineRow = { order_id: string; product_id: string | null; quantity: number; payload_json: string };
+  type TopUpRow = { order_id: string; product_id: string | null; quantity: number; iccid: string };
+  type SnapshotRow = { id: string; order_number: string | null; payload: string };
+  const lines = await env.DB.prepare(
+    'SELECT order_id, product_id, quantity, payload_json FROM native_boss_order_lines WHERE user_id = ?1',
+  ).bind(userId).all<LineRow>();
+  const topUps = await env.DB.prepare(`SELECT i.order_id, i.product_id, i.quantity,
+    json_extract(i.payload, '$.fulfillmentData.esimIccid') AS iccid
+    FROM native_order_items i JOIN native_order_metadata m ON m.order_id = i.order_id
+    WHERE m.user_id = ?1 AND json_extract(i.payload, '$.fulfillmentData.esimIccid') IS NOT NULL`)
+    .bind(userId).all<TopUpRow>();
+
+  const entries: Array<{ iccids: string[]; orderId: string; productId: string | null; quantity: number; kind: CustomerOrder['kind'] }> = [];
+  for (const line of lines.results) {
+    const payload = parsedJson(line.payload_json);
+    const bossOrder = payload.bossOrder as Record<string, unknown> | undefined;
+    const record = payload.lastStatusRecord as Record<string, unknown> | undefined;
+    const listed = Array.isArray(record?.iccids) ? record.iccids : [];
+    const iccids = [bossOrder?.iccid, record?.iccid, ...listed].map(iccidDigits).filter(Boolean);
+    if (iccids.length) {
+      entries.push({ iccids: [...new Set(iccids)], orderId: line.order_id, productId: line.product_id, quantity: line.quantity, kind: 'new' });
+    }
+  }
+  for (const row of topUps.results) {
+    const iccid = iccidDigits(row.iccid);
+    if (iccid) entries.push({ iccids: [iccid], orderId: row.order_id, productId: row.product_id, quantity: row.quantity, kind: 'top-up' });
+  }
+  if (!entries.length) return [];
+
+  const orderIds = [...new Set(entries.map((entry) => entry.orderId))];
+  const snapshots = await env.DB.prepare(
+    `SELECT id, order_number, payload FROM native_order_snapshots WHERE id IN (${orderIds.map((_, index) => `?${index + 1}`).join(', ')})`,
+  ).bind(...orderIds).all<SnapshotRow>();
+  const byId = new Map(snapshots.results.map((row) => [row.id, row]));
+  return entries.map((entry) => {
+    const snapshot = byId.get(entry.orderId);
+    const payload = parsedJson(snapshot?.payload);
+    const items = Array.isArray(payload.items) ? payload.items as Array<Record<string, unknown>> : [];
+    const item = items.find((candidate) => candidate.productId === entry.productId) ?? items[0];
+    return {
+      iccids: entry.iccids,
+      order: {
+        orderId: entry.orderId,
+        orderNumber: snapshot?.order_number ?? (typeof payload.orderNumber === 'string' ? payload.orderNumber : entry.orderId),
+        productId: entry.productId,
+        productName: typeof item?.productName === 'string' ? item.productName : '',
+        quantity: entry.quantity,
+        createdAt: typeof payload.createdAt === 'string' ? payload.createdAt : null,
+        status: typeof payload.status === 'string' ? payload.status : null,
+        paymentStatus: typeof payload.paymentStatus === 'string' ? payload.paymentStatus : null,
+        kind: entry.kind,
+      },
+    };
+  });
+}
+
+/** Support's view of one customer: the cards bound to the account, the plans
+ *  on each of them as the app last read it, and the orders that put a plan
+ *  on an ICCID. */
+async function listCustomerCards(request: Request, env: Env, userId: string): Promise<Response> {
+  const admin = await requireAdmin(request, env);
+  if (!admin) return error('UNAUTHORIZED', 'Admin authentication required', 401);
+  const cards = await env.DB.prepare(
+    'SELECT * FROM native_bokmoo_cards WHERE user_id = ?1 ORDER BY created_at DESC',
+  ).bind(userId).all<CardRow>();
+  if (!cards.results.length) return response({ items: [] });
+
+  const orders = await customerOrders(env, userId);
+  const items = [];
+  for (const card of cards.results) {
+    const rows = card.eid
+      ? (await env.DB.prepare(
+        'SELECT * FROM native_bokmoo_card_profiles WHERE eid = ?1 ORDER BY enabled DESC, iccid',
+      ).bind(card.eid).all<ProfileRow>()).results
+      : [];
+    items.push({
+      ...adminCard(card),
+      profiles: rows.map((row) => ({
+        iccid: row.iccid,
+        enabled: row.enabled === 1,
+        name: row.name,
+        provider: row.provider,
+        source: row.source,
+        syncedAt: row.synced_at,
+        orders: orders
+          .filter((entry) => entry.iccids.some((iccid) => sameIccid(iccid, row.iccid)))
+          .map((entry) => entry.order),
+      })),
+    });
+  }
+  return response({ items });
+}
+
 export async function tryNativeBokmooConnect(request: Request, env: Env): Promise<Response | null> {
   const url = new URL(request.url);
   const admin = adminPath(url.pathname);
@@ -412,6 +627,10 @@ export async function tryNativeBokmooConnect(request: Request, env: Env): Promis
     if (request.method === 'POST' && admin === '/cards/import') return importCards(request, env);
     if (request.method === 'GET' && admin === '/cards') return listAdminCards(request, env);
     if (request.method === 'GET' && admin === '/cards/imports') return listImportRuns(request, env);
+    const customerCards = admin.match(/^\/customers\/([^/]+)\/cards$/);
+    if (request.method === 'GET' && customerCards) {
+      return listCustomerCards(request, env, decodeURIComponent(customerCards[1]));
+    }
     return null;
   }
   const path = normalizedPath(url.pathname);
@@ -421,6 +640,7 @@ export async function tryNativeBokmooConnect(request: Request, env: Env): Promis
   }
   if (request.method === 'GET' && path === '/cards') return listCards(request, env);
   if (request.method === 'POST' && path === '/cards/sightings') return recordCardSighting(request, env);
+  if (request.method === 'POST' && path === '/cards/sync') return syncCard(request, env);
   if (request.method === 'POST' && path === '/cards/claim-sessions') return createClaim(request, env);
   const sessionVerify = path.match(/^\/cards\/claim-sessions\/([^/]+)\/verify$/);
   if (request.method === 'POST' && sessionVerify) return verifyClaim(request, env, decodeURIComponent(sessionVerify[1]));
