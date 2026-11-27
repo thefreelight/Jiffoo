@@ -16,14 +16,14 @@ import { storeDefaultLocale, storeLocales } from '@/lib/store-locales';
 const PAGE_META = {
   blackfriday: {
     en: {
-      title: '{brand} Black Friday 2026 — 20% off BOKMOO cards',
+      title: '{brand} Black Friday 2026 — 15% off BOKMOO cards',
       description:
-        'Black Friday 2026: 20% off the BOKMOO Card and the Bluetooth Card, Nov 27 – Nov 30, applied automatically at checkout. Extra off with a creator code — details inside.',
+        'Black Friday 2026: 15% off the BOKMOO Card and the Bluetooth Card, Nov 27 – Nov 30, applied automatically at checkout. Extra off with a creator code — details inside.',
     },
     'zh-Hant': {
-      title: '{brand} 黑五 2026 — BOKMOO 實體卡 8 折',
+      title: '{brand} 黑五 2026 — BOKMOO 實體卡 8.5 折',
       description:
-        '2026 黑五：11 月 27 日至 30 日 BOKMOO 卡與藍牙卡 8 折，結帳時自動生效，憑創作者折扣碼再享額外優惠，詳見頁面。',
+        '2026 黑五：11 月 27 日至 30 日 BOKMOO 卡與藍牙卡 8.5 折，結帳時自動生效，憑創作者折扣碼再享額外優惠，詳見頁面。',
     },
   },
   home: {
