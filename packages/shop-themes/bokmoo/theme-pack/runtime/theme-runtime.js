@@ -14040,6 +14040,7 @@
     const value = typeof row.discountValue === "number" && Number.isFinite(row.discountValue) ? row.discountValue : 0;
     if (typeof row.id !== "string" || !row.id || value <= 0) return null;
     const banner = row.banner && typeof row.banner === "object" ? row.banner : null;
+    const word = (key) => typeof banner?.[key] === "string" && String(banner[key]).trim() ? String(banner[key]).trim() : void 0;
     return {
       id: row.id,
       slug: typeof row.slug === "string" ? row.slug : row.id,
@@ -14049,7 +14050,8 @@
       discountType: row.discountType === "fixed" ? "fixed" : "percent",
       discountValue: value,
       productIds: Array.isArray(row.productIds) ? row.productIds.filter((id3) => typeof id3 === "string") : null,
-      banner: banner && typeof banner.title === "string" && typeof banner.body === "string" ? { title: banner.title, body: banner.body } : null,
+      banner: banner && typeof banner.title === "string" && typeof banner.body === "string" ? { title: banner.title, body: banner.body, badge: word("badge"), subject: word("subject"), lead: word("lead"), highlight: word("highlight"), note: word("note"), cta: word("cta") } : null,
+      bannerTemplate: row.bannerTemplate === "campaign" ? "campaign" : void 0,
       rulesUrl: typeof row.rulesUrl === "string" && /^https?:\/\//i.test(row.rulesUrl) ? row.rulesUrl : null,
       activeNow: row.activeNow === true
     };
@@ -17047,6 +17049,223 @@
     return /^(https?:)?\/\//.test(href);
   }
 
+  // src/lib/campaign-bar.ts
+  var pad = (value) => String(value).padStart(2, "0");
+  function campaignTicks(endsAt, now2 = Date.now()) {
+    const target = Date.parse(endsAt || "");
+    if (!Number.isFinite(target) || target <= now2) return null;
+    const total = Math.floor((target - now2) / 1e3);
+    return {
+      days: pad(Math.floor(total / 86400)),
+      hours: pad(Math.floor(total % 86400 / 3600)),
+      minutes: pad(Math.floor(total % 3600 / 60)),
+      seconds: pad(total % 60)
+    };
+  }
+  function familyOf(locale) {
+    const value = (locale || "en").toLowerCase();
+    if (/^zh-hant|^zh-hk|^zh-tw|^zh-mo/.test(value) || value === "hant") return "hant";
+    if (/^hans$|^zh/.test(value)) return "hans";
+    if (value === "ja" || value === "ko" || value === "fr" || value === "de") return value;
+    return "en";
+  }
+  function dateTag(family) {
+    return family === "hans" ? "zh-Hans" : family === "hant" ? "zh-Hant" : family;
+  }
+  var TICK_UNITS = {
+    // the design's English edition: "02d 14h 35m 18s"
+    en: { days: "d", hours: "h", minutes: "m", seconds: "s" },
+    // the design's Chinese edition: "02天 : 14 : 35 : 18" — only the days are named
+    hans: { days: "\u5929", hours: "", minutes: "", seconds: "" },
+    hant: { days: "\u5929", hours: "", minutes: "", seconds: "" },
+    ja: { days: "\u65E5", hours: "", minutes: "", seconds: "" },
+    ko: { days: "\uC77C", hours: "", minutes: "", seconds: "" },
+    fr: { days: "j", hours: "h", minutes: "min", seconds: "s" },
+    de: { days: "T", hours: "h", minutes: "min", seconds: "s" }
+  };
+  function campaignTickLabels(ticks, locale) {
+    const units = TICK_UNITS[familyOf(locale)];
+    return [
+      `${ticks.days}${units.days}`,
+      `${ticks.hours}${units.hours}`,
+      `${ticks.minutes}${units.minutes}`,
+      `${ticks.seconds}${units.seconds}`
+    ];
+  }
+  function campaignCountdownLabel(locale) {
+    return pickCopy(locale, {
+      en: "Ends in:",
+      hans: "\u8DDD\u7ED3\u675F\u4EC5\u5269",
+      hant: "\u8DDD\u7D50\u675F\u50C5\u5269",
+      ja: "\u7D42\u4E86\u307E\u3067",
+      ko: "\uC885\uB8CC\uAE4C\uC9C0",
+      fr: "Fin dans :",
+      de: "Endet in:"
+    });
+  }
+  function campaignWindowLabel(startsAt, endsAt, locale) {
+    const start = Date.parse(startsAt || "");
+    const end = Date.parse(endsAt || "");
+    if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return null;
+    const tag = dateTag(familyOf(locale));
+    const day = { month: "short", day: "numeric", timeZone: "UTC" };
+    const last = new Date(end - 1);
+    const sameYear = new Date(start).getUTCFullYear() === last.getUTCFullYear();
+    const first = new Intl.DateTimeFormat(tag, sameYear ? day : { ...day, year: "numeric" }).format(start);
+    return `${first} \u2013 ${new Intl.DateTimeFormat(tag, day).format(last)}`;
+  }
+  var round = (value) => Math.round(value * 10) / 10;
+  function zhe(percent2) {
+    const folded = round((100 - percent2) / 10);
+    return `${folded} \u6298`;
+  }
+  function campaignHighlight(sale, locale) {
+    const written = sale.banner?.highlight?.trim();
+    if (written) return written;
+    const percent2 = round(sale.discountValue);
+    if (sale.discountType === "percent") {
+      return pickCopy(locale, {
+        en: `${percent2}% OFF`,
+        hans: zhe(percent2),
+        hant: zhe(percent2),
+        ja: `${percent2}% OFF`,
+        ko: `${percent2}% \uD560\uC778`,
+        fr: `\u2212${percent2} %`,
+        de: `${percent2} % Rabatt`
+      });
+    }
+    return pickCopy(locale, {
+      en: `$${percent2} OFF`,
+      hans: `\u51CF $${percent2}`,
+      hant: `\u6E1B $${percent2}`,
+      ja: `$${percent2} OFF`,
+      ko: `$${percent2} \uD560\uC778`,
+      fr: `\u2212${percent2} $`,
+      de: `${percent2} $ Rabatt`
+    });
+  }
+  function campaignCta(sale, locale) {
+    const written = sale.banner?.cta?.trim();
+    if (written) return written;
+    const percent2 = round(sale.discountValue);
+    if (sale.discountType === "percent") {
+      return pickCopy(locale, {
+        en: `Claim ${percent2}% OFF`,
+        hans: `\u7ACB\u5373\u4EAB\u53D7 ${zhe(percent2)}`,
+        hant: `\u7ACB\u5373\u4EAB\u53D7 ${zhe(percent2)}`,
+        ja: `${percent2}% OFF \u3092\u53D7\u3051\u53D6\u308B`,
+        ko: `${percent2}% \uD560\uC778 \uBC1B\uAE30`,
+        fr: `Obtenir \u2212${percent2} %`,
+        de: `${percent2} % Rabatt sichern`
+      });
+    }
+    return pickCopy(locale, {
+      en: `Claim $${percent2} off`,
+      hans: `\u7ACB\u5373\u7ACB\u51CF $${percent2}`,
+      hant: `\u7ACB\u5373\u7ACB\u6E1B $${percent2}`,
+      ja: `$${percent2} OFF \u3092\u53D7\u3051\u53D6\u308B`,
+      ko: `$${percent2} \uD560\uC778 \uBC1B\uAE30`,
+      fr: `Obtenir \u2212${percent2} $`,
+      de: `${percent2} $ Rabatt sichern`
+    });
+  }
+  function campaignCopy(sale, locale) {
+    const text = (value) => value && value.trim() ? value.trim() : null;
+    return {
+      badge: text(sale.banner?.badge),
+      // without a subject of its own, the banner's title is the offer
+      subject: text(sale.banner?.subject) ?? text(sale.banner?.title),
+      lead: text(sale.banner?.lead),
+      highlight: campaignHighlight(sale, locale),
+      note: text(sale.banner?.note) ?? campaignWindowLabel(sale.startsAt, sale.endsAt, locale),
+      cta: campaignCta(sale, locale),
+      countdownLabel: campaignCountdownLabel(locale)
+    };
+  }
+
+  // src/components/CampaignPromoBar.tsx
+  var ArrowRight2 = react_default.memo(function ArrowRight3() {
+    return /* @__PURE__ */ jsx("svg", { fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", strokeWidth: "2.5", "aria-hidden": "true", children: /* @__PURE__ */ jsx("path", { d: "M14 5l7 7m0 0l-7 7m7-7H3", strokeLinecap: "round", strokeLinejoin: "round" }) });
+  });
+  var Cross = react_default.memo(function Cross2() {
+    return /* @__PURE__ */ jsx("svg", { fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", strokeWidth: "2", "aria-hidden": "true", children: /* @__PURE__ */ jsx("path", { d: "M6 18L18 6M6 6l12 12", strokeLinecap: "round", strokeLinejoin: "round" }) });
+  });
+  var CampaignPromoBar = react_default.memo(function CampaignPromoBar2({ sale, locale, onDismiss }) {
+    const [ticks, setTicks] = react_default.useState(() => campaignTicks(sale.endsAt));
+    react_default.useEffect(() => {
+      const update = () => setTicks(campaignTicks(sale.endsAt));
+      update();
+      const timer = window.setInterval(update, 1e3);
+      const onVisibility = () => {
+        if (document.visibilityState === "visible") update();
+      };
+      document.addEventListener("visibilitychange", onVisibility);
+      return () => {
+        window.clearInterval(timer);
+        document.removeEventListener("visibilitychange", onVisibility);
+      };
+    }, [sale.endsAt]);
+    const copy = campaignCopy(sale, locale);
+    const labels = ticks ? campaignTickLabels(ticks, locale) : null;
+    const dismissLabel = pickCopy(locale, { en: "Dismiss", hans: "\u5173\u95ED", hant: "\u95DC\u9589", ja: "\u9589\u3058\u308B", ko: "\uB2EB\uAE30", fr: "Fermer", de: "Schlie\xDFen" });
+    return /* @__PURE__ */ jsx(
+      "div",
+      {
+        className: "bokmoo-campaign-bar",
+        "data-purpose": "promo-bar",
+        "data-template": "campaign",
+        role: "region",
+        "aria-label": pickCopy(locale, { en: "Current offer", hans: "\u5F53\u524D\u4F18\u60E0", hant: "\u76EE\u524D\u512A\u60E0", ja: "\u73FE\u5728\u306E\u30AD\u30E3\u30F3\u30DA\u30FC\u30F3", ko: "\uC9C4\uD589 \uC911\uC778 \uD504\uB85C\uBAA8\uC158", fr: "Offre en cours", de: "Aktuelles Angebot" }),
+        children: /* @__PURE__ */ jsxs("div", { className: "bokmoo-campaign-bar-inner", children: [
+          /* @__PURE__ */ jsxs("div", { className: "bokmoo-campaign-bar-main", children: [
+            copy.badge ? /* @__PURE__ */ jsxs("span", { className: "bokmoo-campaign-badge", children: [
+              /* @__PURE__ */ jsx("span", { className: "bokmoo-campaign-badge-dot", "aria-hidden": "true" }),
+              copy.badge
+            ] }) : null,
+            /* @__PURE__ */ jsxs("span", { className: "bokmoo-campaign-text", children: [
+              copy.subject ? /* @__PURE__ */ jsx("span", { className: "bokmoo-campaign-subject", children: copy.subject }) : null,
+              copy.lead ? /* @__PURE__ */ jsxs("span", { className: "bokmoo-campaign-lead", children: [
+                /* @__PURE__ */ jsx("span", { "aria-hidden": "true", children: "\u2014" }),
+                " ",
+                copy.lead
+              ] }) : copy.subject && copy.highlight ? /* @__PURE__ */ jsx("span", { className: "bokmoo-campaign-lead", "aria-hidden": "true", children: "\u2014" }) : null,
+              copy.highlight ? /* @__PURE__ */ jsx("span", { className: "bokmoo-campaign-highlight", children: copy.highlight }) : null,
+              copy.note ? /* @__PURE__ */ jsxs(Fragment2, { children: [
+                /* @__PURE__ */ jsx("span", { className: "bokmoo-campaign-divider", "aria-hidden": "true", children: "|" }),
+                /* @__PURE__ */ jsx("span", { className: "bokmoo-campaign-note", children: copy.note })
+              ] }) : null
+            ] }),
+            labels ? /* @__PURE__ */ jsxs(
+              "span",
+              {
+                className: "bokmoo-campaign-countdown",
+                role: "timer",
+                "aria-label": `${copy.countdownLabel} ${labels[0]} : ${labels[1]} : ${labels[2]} : ${labels[3]}`,
+                children: [
+                  /* @__PURE__ */ jsx("span", { className: "bokmoo-campaign-countdown-label", children: copy.countdownLabel }),
+                  /* @__PURE__ */ jsx("span", { className: "bokmoo-campaign-tick", "aria-hidden": "true", children: labels[0] }),
+                  /* @__PURE__ */ jsx("span", { className: "bokmoo-campaign-colon", "aria-hidden": "true", children: ":" }),
+                  /* @__PURE__ */ jsx("span", { className: "bokmoo-campaign-tick", "aria-hidden": "true", children: labels[1] }),
+                  /* @__PURE__ */ jsx("span", { className: "bokmoo-campaign-colon", "aria-hidden": "true", children: ":" }),
+                  /* @__PURE__ */ jsx("span", { className: "bokmoo-campaign-tick", "aria-hidden": "true", children: labels[2] }),
+                  /* @__PURE__ */ jsx("span", { className: "bokmoo-campaign-colon", "aria-hidden": "true", children: ":" }),
+                  /* @__PURE__ */ jsx("span", { className: "bokmoo-campaign-tick", "aria-hidden": "true", children: labels[3] })
+                ]
+              }
+            ) : null
+          ] }),
+          /* @__PURE__ */ jsxs("div", { className: "bokmoo-campaign-actions", children: [
+            /* @__PURE__ */ jsxs("a", { className: "bokmoo-campaign-cta", href: sale.rulesUrl ?? "#products", children: [
+              /* @__PURE__ */ jsx("span", { children: copy.cta }),
+              /* @__PURE__ */ jsx(ArrowRight2, {})
+            ] }),
+            /* @__PURE__ */ jsx("button", { className: "bokmoo-campaign-close", type: "button", onClick: onDismiss, "aria-label": dismissLabel, children: /* @__PURE__ */ jsx(Cross, {}) })
+          ] })
+        ] })
+      }
+    );
+  });
+
   // src/components/PromoBar.tsx
   var dismissedKey = (saleId) => `bokmoo:promo-bar-dismissed:${saleId}`;
   function readDismissed(saleId) {
@@ -17075,6 +17294,7 @@
       } catch {
       }
     };
+    if (sale.bannerTemplate === "campaign") return /* @__PURE__ */ jsx(CampaignPromoBar, { sale, locale, onDismiss: dismiss });
     return /* @__PURE__ */ jsxs("div", { className: "bokmoo-promo-bar", "data-purpose": "promo-bar", role: "region", "aria-label": pickCopy(locale, { en: "Current offer", hans: "\u5F53\u524D\u4F18\u60E0", hant: "\u76EE\u524D\u512A\u60E0", ja: "\u73FE\u5728\u306E\u30AD\u30E3\u30F3\u30DA\u30FC\u30F3", ko: "\uC9C4\uD589 \uC911\uC778 \uD504\uB85C\uBAA8\uC158", fr: "Offre en cours", de: "Aktuelles Angebot" }), children: [
       /* @__PURE__ */ jsxs("a", { className: "bokmoo-promo-bar-link", href: sale.rulesUrl ?? "#", children: [
         /* @__PURE__ */ jsx("span", { className: "bokmoo-promo-bar-badge", children: sale.discountType === "percent" ? `-${Math.round(sale.discountValue)}%` : "DEAL" }),
@@ -20994,6 +21214,314 @@ body[data-theme='bokmoo'] ::selection {
 }
 /* <<< Affiliate workspace end */
 
+/* >>> Campaign bar. A promotion's banner drawn from the "campaign" template (badge, offer in gold, window,
+   countdown, button). Same reason as the blocks above: the storefront's utility sheet is built together with
+   the shop worker, so a theme release carries these rules itself. Keep this block byte-identical in
+   src/tokens.css (embedded renderer) and theme-pack/tokens.css (remote runtime). */
+  .bokmoo-campaign-bar {
+    position: relative;
+    z-index: 50;
+    border-bottom: 1px solid rgba(229, 195, 101, 0.35);
+    background: linear-gradient(90deg, #0c0c0e 0%, #1a1711 50%, #0c0c0e 100%);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+    color: #d4d4d4;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  .bokmoo-campaign-bar::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, rgba(245, 158, 11, 0.15) 0%, transparent 50%, transparent 100%);
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  .bokmoo-campaign-bar-inner {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
+    max-width: 80rem;
+    margin: 0 auto;
+    padding: 10px 44px 10px 16px;
+  }
+
+  @media (min-width: 640px) {
+    .bokmoo-campaign-bar-inner {
+      flex-wrap: nowrap;
+      padding: 14px 24px;
+    }
+  }
+
+  .bokmoo-campaign-bar-main {
+    display: flex;
+    flex: 1 1 0;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  @media (min-width: 640px) {
+    .bokmoo-campaign-bar-main {
+      gap: 20px;
+    }
+  }
+
+  .bokmoo-campaign-badge {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 12px;
+    border: 1px solid rgba(229, 195, 101, 0.6);
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgba(229, 195, 101, 0.2) 0%, rgba(212, 175, 55, 0.1) 100%);
+    box-shadow: 0 0 12px rgba(229, 195, 101, 0.25);
+    color: #e5c365;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.025em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  @media (min-width: 640px) {
+    .bokmoo-campaign-badge {
+      font-size: 12px;
+    }
+  }
+
+  .bokmoo-campaign-badge-dot {
+    position: relative;
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: #e5c365;
+  }
+
+  .bokmoo-campaign-badge-dot::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 999px;
+    background: #e5c365;
+    opacity: 0.75;
+    animation: bokmoo-campaign-ping 1.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+
+  @keyframes bokmoo-campaign-ping {
+    75%, 100% { transform: scale(2.2); opacity: 0; }
+  }
+
+  .bokmoo-campaign-text {
+    display: block;
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+    color: #d4d4d4;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.4;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  @media (min-width: 640px) {
+    .bokmoo-campaign-text {
+      font-size: 14px;
+    }
+  }
+
+  .bokmoo-campaign-subject {
+    color: #fff;
+    font-weight: 500;
+  }
+
+  .bokmoo-campaign-lead {
+    margin: 0 0.35em 0 0.45em;
+  }
+
+  .bokmoo-campaign-highlight {
+    color: #f2ca50;
+    font-size: 14px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .bokmoo-campaign-divider,
+  .bokmoo-campaign-note {
+    display: none;
+  }
+
+  @media (min-width: 768px) {
+    .bokmoo-campaign-divider {
+      display: inline;
+      margin: 0 4px;
+      color: #737373;
+    }
+
+    .bokmoo-campaign-note {
+      display: inline;
+      color: #a3a3a3;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+  }
+
+  .bokmoo-campaign-countdown {
+    display: none;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.7);
+    color: #d4d4d4;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  @media (min-width: 1280px) {
+    .bokmoo-campaign-countdown {
+      display: inline-flex;
+    }
+  }
+
+  .bokmoo-campaign-countdown-label {
+    color: #a3a3a3;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .bokmoo-campaign-tick {
+    padding: 2px 6px;
+    border: 1px solid rgba(229, 195, 101, 0.3);
+    border-radius: 4px;
+    background: #1f1d18;
+    color: #e5c365;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: 12px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .bokmoo-campaign-colon {
+    color: #737373;
+    font-weight: 700;
+  }
+
+  .bokmoo-campaign-actions {
+    display: flex;
+    flex: 1 1 100%;
+    align-items: center;
+    justify-content: stretch;
+    flex-shrink: 0;
+  }
+
+  @media (min-width: 640px) {
+    .bokmoo-campaign-actions {
+      flex: 0 0 auto;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+  }
+
+  .bokmoo-campaign-cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 16px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #f2ca50 0%, #e5c365 50%, #d4af37 100%);
+    box-shadow: 0 2px 14px rgba(229, 195, 101, 0.35);
+    color: #000;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: box-shadow 0.15s ease, filter 0.15s ease, transform 0.15s ease;
+  }
+
+  @media (min-width: 640px) {
+    .bokmoo-campaign-cta {
+      font-size: 14px;
+    }
+  }
+
+  @media (max-width: 639.98px) {
+    .bokmoo-campaign-cta {
+      flex: 1 1 auto;
+    }
+  }
+
+  .bokmoo-campaign-cta:hover {
+    box-shadow: 0 2px 20px rgba(229, 195, 101, 0.6);
+    filter: brightness(1.1);
+  }
+
+  .bokmoo-campaign-cta:active {
+    transform: scale(0.95);
+  }
+
+  .bokmoo-campaign-cta svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .bokmoo-campaign-close {
+    position: absolute;
+    top: 50%;
+    right: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: #a3a3a3;
+    cursor: pointer;
+    transform: translateY(-50%);
+    transition: color 0.15s ease, background-color 0.15s ease;
+  }
+
+  @media (min-width: 640px) {
+    .bokmoo-campaign-close {
+      position: static;
+      transform: none;
+    }
+  }
+
+  .bokmoo-campaign-close:hover,
+  .bokmoo-campaign-close:focus-visible {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+  }
+
+  .bokmoo-campaign-close svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bokmoo-campaign-badge-dot::after { animation: none; }
+    .bokmoo-campaign-cta, .bokmoo-campaign-close { transition: none; }
+  }
+/* <<< Campaign bar end */
+
 
 /* \u2500\u2500 Landing stage: CSS-rendered SIM card pedestal (Obsidian Aurum hero) \u2500\u2500 */
 .bg-pedestal-top {
@@ -21037,7 +21565,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.69",
+      version: "1.1.70",
       target: "shop"
     }
   };

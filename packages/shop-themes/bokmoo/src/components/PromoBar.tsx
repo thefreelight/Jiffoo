@@ -1,6 +1,7 @@
 import React from 'react';
 import { pickCopy } from '../site';
 import { countdown, useActiveSales, type Sale } from '../lib/sale';
+import { CampaignPromoBar } from './CampaignPromoBar';
 
 const dismissedKey = (saleId: string): string => `bokmoo:promo-bar-dismissed:${saleId}`;
 
@@ -16,7 +17,9 @@ function readDismissed(saleId: string): boolean {
  * Site-wide announcement of the running promotion, shown above the header on
  * every page. It appears only while a promotion with banner copy is running
  * and goes away on its own when the promotion ends; a visitor can dismiss it
- * for the session.
+ * for the session. The promotion's template decides the bar: the plain
+ * announcement bar, or the campaign bar (badge, offer in gold, window,
+ * countdown, button).
  */
 export const PromoBar = React.memo(function PromoBar({ locale }: { locale?: string }) {
   const sales = useActiveSales(locale);
@@ -41,6 +44,8 @@ export const PromoBar = React.memo(function PromoBar({ locale }: { locale?: stri
       /* private mode: dismissing lasts for the page */
     }
   };
+
+  if (sale.bannerTemplate === 'campaign') return <CampaignPromoBar sale={sale} locale={locale} onDismiss={dismiss} />;
 
   return (
     <div className="bokmoo-promo-bar" data-purpose="promo-bar" role="region" aria-label={pickCopy(locale, { en: 'Current offer', hans: '当前优惠', hant: '目前優惠', ja: '現在のキャンペーン', ko: '진행 중인 프로모션', fr: 'Offre en cours', de: 'Aktuelles Angebot' })}>

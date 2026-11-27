@@ -711,6 +711,314 @@ body[data-theme='bokmoo'] ::selection {
 }
 /* <<< Affiliate workspace end */
 
+/* >>> Campaign bar. A promotion's banner drawn from the "campaign" template (badge, offer in gold, window,
+   countdown, button). Same reason as the blocks above: the storefront's utility sheet is built together with
+   the shop worker, so a theme release carries these rules itself. Keep this block byte-identical in
+   src/tokens.css (embedded renderer) and theme-pack/tokens.css (remote runtime). */
+  .bokmoo-campaign-bar {
+    position: relative;
+    z-index: 50;
+    border-bottom: 1px solid rgba(229, 195, 101, 0.35);
+    background: linear-gradient(90deg, #0c0c0e 0%, #1a1711 50%, #0c0c0e 100%);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+    color: #d4d4d4;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  .bokmoo-campaign-bar::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, rgba(245, 158, 11, 0.15) 0%, transparent 50%, transparent 100%);
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  .bokmoo-campaign-bar-inner {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
+    max-width: 80rem;
+    margin: 0 auto;
+    padding: 10px 44px 10px 16px;
+  }
+
+  @media (min-width: 640px) {
+    .bokmoo-campaign-bar-inner {
+      flex-wrap: nowrap;
+      padding: 14px 24px;
+    }
+  }
+
+  .bokmoo-campaign-bar-main {
+    display: flex;
+    flex: 1 1 0;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  @media (min-width: 640px) {
+    .bokmoo-campaign-bar-main {
+      gap: 20px;
+    }
+  }
+
+  .bokmoo-campaign-badge {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 12px;
+    border: 1px solid rgba(229, 195, 101, 0.6);
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgba(229, 195, 101, 0.2) 0%, rgba(212, 175, 55, 0.1) 100%);
+    box-shadow: 0 0 12px rgba(229, 195, 101, 0.25);
+    color: #e5c365;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.025em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  @media (min-width: 640px) {
+    .bokmoo-campaign-badge {
+      font-size: 12px;
+    }
+  }
+
+  .bokmoo-campaign-badge-dot {
+    position: relative;
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: #e5c365;
+  }
+
+  .bokmoo-campaign-badge-dot::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 999px;
+    background: #e5c365;
+    opacity: 0.75;
+    animation: bokmoo-campaign-ping 1.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+
+  @keyframes bokmoo-campaign-ping {
+    75%, 100% { transform: scale(2.2); opacity: 0; }
+  }
+
+  .bokmoo-campaign-text {
+    display: block;
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+    color: #d4d4d4;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.4;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  @media (min-width: 640px) {
+    .bokmoo-campaign-text {
+      font-size: 14px;
+    }
+  }
+
+  .bokmoo-campaign-subject {
+    color: #fff;
+    font-weight: 500;
+  }
+
+  .bokmoo-campaign-lead {
+    margin: 0 0.35em 0 0.45em;
+  }
+
+  .bokmoo-campaign-highlight {
+    color: #f2ca50;
+    font-size: 14px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .bokmoo-campaign-divider,
+  .bokmoo-campaign-note {
+    display: none;
+  }
+
+  @media (min-width: 768px) {
+    .bokmoo-campaign-divider {
+      display: inline;
+      margin: 0 4px;
+      color: #737373;
+    }
+
+    .bokmoo-campaign-note {
+      display: inline;
+      color: #a3a3a3;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+  }
+
+  .bokmoo-campaign-countdown {
+    display: none;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.7);
+    color: #d4d4d4;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  @media (min-width: 1280px) {
+    .bokmoo-campaign-countdown {
+      display: inline-flex;
+    }
+  }
+
+  .bokmoo-campaign-countdown-label {
+    color: #a3a3a3;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .bokmoo-campaign-tick {
+    padding: 2px 6px;
+    border: 1px solid rgba(229, 195, 101, 0.3);
+    border-radius: 4px;
+    background: #1f1d18;
+    color: #e5c365;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: 12px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .bokmoo-campaign-colon {
+    color: #737373;
+    font-weight: 700;
+  }
+
+  .bokmoo-campaign-actions {
+    display: flex;
+    flex: 1 1 100%;
+    align-items: center;
+    justify-content: stretch;
+    flex-shrink: 0;
+  }
+
+  @media (min-width: 640px) {
+    .bokmoo-campaign-actions {
+      flex: 0 0 auto;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+  }
+
+  .bokmoo-campaign-cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 16px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #f2ca50 0%, #e5c365 50%, #d4af37 100%);
+    box-shadow: 0 2px 14px rgba(229, 195, 101, 0.35);
+    color: #000;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: box-shadow 0.15s ease, filter 0.15s ease, transform 0.15s ease;
+  }
+
+  @media (min-width: 640px) {
+    .bokmoo-campaign-cta {
+      font-size: 14px;
+    }
+  }
+
+  @media (max-width: 639.98px) {
+    .bokmoo-campaign-cta {
+      flex: 1 1 auto;
+    }
+  }
+
+  .bokmoo-campaign-cta:hover {
+    box-shadow: 0 2px 20px rgba(229, 195, 101, 0.6);
+    filter: brightness(1.1);
+  }
+
+  .bokmoo-campaign-cta:active {
+    transform: scale(0.95);
+  }
+
+  .bokmoo-campaign-cta svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .bokmoo-campaign-close {
+    position: absolute;
+    top: 50%;
+    right: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: #a3a3a3;
+    cursor: pointer;
+    transform: translateY(-50%);
+    transition: color 0.15s ease, background-color 0.15s ease;
+  }
+
+  @media (min-width: 640px) {
+    .bokmoo-campaign-close {
+      position: static;
+      transform: none;
+    }
+  }
+
+  .bokmoo-campaign-close:hover,
+  .bokmoo-campaign-close:focus-visible {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+  }
+
+  .bokmoo-campaign-close svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bokmoo-campaign-badge-dot::after { animation: none; }
+    .bokmoo-campaign-cta, .bokmoo-campaign-close { transition: none; }
+  }
+/* <<< Campaign bar end */
+
 
 /* ── Landing stage: CSS-rendered SIM card pedestal (Obsidian Aurum hero) ── */
 .bg-pedestal-top {
