@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { ArrowRight, ExternalLink, ShieldCheck } from 'lucide-react';
 import { useManagedMode } from '@/lib/managed-mode';
+import { useT } from 'shared/src/i18n/react';
 
 function getSetupHref(href?: string | null, surface?: string | null): string | null {
   if (href) {
@@ -29,13 +30,20 @@ function getSetupHref(href?: string | null, surface?: string | null): string | n
 }
 
 export function ManagedLicensePanel() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const { record, isManaged, isSuspended, activatePackage, isLoading } = useManagedMode();
   const [code, setCode] = useState('');
 
   const handleActivate = async (event: FormEvent) => {
     event.preventDefault();
     if (!code.trim()) {
-      toast.error('Enter an activation code');
+      toast.error(getText('merchant.settings.managedLicense.enterAnActivationCode', 'Enter an activation code'));
       return;
     }
 
@@ -52,7 +60,7 @@ export function ManagedLicensePanel() {
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div className="space-y-1">
           <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
-            Commercial package
+            {getText('merchant.settings.managedLicense.commercialPackage', 'Commercial package')}
           </p>
           <div className="flex flex-wrap items-center gap-2">
             <h4 className="text-sm font-semibold text-gray-900">
@@ -79,11 +87,11 @@ export function ManagedLicensePanel() {
         {isManaged && record ? (
           <div className="grid gap-3 text-sm text-gray-600 md:min-w-[320px] md:grid-cols-2">
             <div className="rounded-xl border border-gray-100 bg-white px-4 py-3">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Brand</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{getText('merchant.settings.managedLicense.brand', 'Brand')}</p>
               <p className="mt-1 font-medium text-gray-900">{record.displayBrandName}</p>
             </div>
             <div className="rounded-xl border border-gray-100 bg-white px-4 py-3">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Included assets</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{getText('merchant.settings.managedLicense.includedAssets', 'Included assets')}</p>
               <p className="mt-1 font-medium text-gray-900">
                 {record.includedThemes.length} themes · {record.includedPlugins.length} plugins
               </p>
@@ -95,7 +103,7 @@ export function ManagedLicensePanel() {
       {!isManaged ? (
         <form onSubmit={handleActivate} className="flex flex-col gap-3 md:flex-row md:items-center">
           <Input
-            placeholder="Activation code from Super Admin"
+            placeholder={getText('merchant.settings.managedLicense.activationCodeFromSuperAdmin', 'Activation code from Super Admin')}
             value={code}
             onChange={(event) => setCode(event.target.value)}
             className="h-11 rounded-xl border-gray-100 bg-white md:max-w-md"
@@ -112,10 +120,10 @@ export function ManagedLicensePanel() {
       ) : (
         <div className="flex flex-col gap-2 rounded-xl border border-gray-100 bg-white px-4 py-3 text-sm text-gray-600 md:flex-row md:items-center md:justify-between">
           <span>
-            Theme and plugin changes stay limited to the package assigned from Super Admin.
+            {getText('merchant.settings.managedLicense.themeAndPluginChangesStayLimited', 'Theme and plugin changes stay limited to the package assigned from Super Admin.')}
           </span>
           {record?.supportEmail ? (
-            <span className="font-medium text-gray-900">Support: {record.supportEmail}</span>
+            <span className="font-medium text-gray-900">{getText('merchant.settings.managedLicense.support', 'Support:')} {record.supportEmail}</span>
           ) : null}
         </div>
       )}
@@ -124,13 +132,13 @@ export function ManagedLicensePanel() {
         <div className="rounded-2xl border border-blue-100 bg-white p-5 space-y-4">
           <div className="space-y-1">
             <p className="text-[10px] font-bold uppercase tracking-widest text-blue-500">
-              Solution Setup
+              {getText('merchant.settings.managedLicense.solutionSetup', 'Solution Setup')}
             </p>
             <h5 className="text-sm font-semibold text-gray-900">
-              Finish the guided setup for {record.displaySolutionName}
+              {getText('merchant.settings.managedLicense.finishTheGuidedSetupFor', 'Finish the guided setup for')} {record.displaySolutionName}
             </h5>
             <p className="text-sm leading-6 text-gray-600">
-              This package is sold like a theme, but it ships additional runtime capability. Complete the steps below to move from activation into a sellable starter state.
+              {getText('merchant.settings.managedLicense.thisPackageIsSoldLikeA', 'This package is sold like a theme, but it ships additional runtime capability. Complete the steps below to move from activation into a sellable starter state.')}
             </p>
           </div>
 
@@ -145,7 +153,7 @@ export function ManagedLicensePanel() {
                     <div className="space-y-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700">
-                          Step {index + 1}
+                          {getText('merchant.settings.managedLicense.step', 'Step')} {index + 1}
                         </Badge>
                         <span className="text-sm font-semibold text-gray-900">{step.title}</span>
                       </div>

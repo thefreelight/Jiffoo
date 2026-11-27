@@ -292,7 +292,7 @@ export default function CustomersPage() {
               <thead>
                 <tr className="border-b border-[#f4f6fa]">
                   <th className="w-10 px-4 py-3">
-                    <input type="checkbox" className="h-4 w-4 rounded border-slate-300 accent-blue-600" aria-label="Select all" disabled={usingDemoRows} />
+                    <input type="checkbox" className="h-4 w-4 rounded border-slate-300 accent-blue-600" aria-label={getText('merchant.customers.listPage.selectAll', 'Select all')} disabled={usingDemoRows} />
                   </th>
                   <SortableTh label={getText('merchant.pages.colCustomer', '客户')} />
                   <SortableTh label={getText('merchant.pages.colContact', '联系方式')} />

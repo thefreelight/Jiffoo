@@ -76,10 +76,14 @@ export default function AdminLoginPage() {
 
   useEffect(() => {
     const branding = brandingQuery.data
+    const withBrand = (brand: string, fallback: string) => {
+      const translated = t ? t('merchant.auth.documentTitle', { brand }) : fallback
+      return translated === 'merchant.auth.documentTitle' ? fallback : translated
+    }
     document.title = branding?.mode === 'managed' && branding.displayBrandName
-      ? `${branding.displayBrandName} Admin`
-      : 'Jiffoo Admin'
-  }, [brandingQuery.data])
+      ? withBrand(branding.displayBrandName, `${branding.displayBrandName} Admin`)
+      : withBrand('Jiffoo', 'Jiffoo Admin')
+  }, [brandingQuery.data, t])
 
   useEffect(() => {
     let mounted = true

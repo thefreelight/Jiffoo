@@ -3,6 +3,7 @@
 import * as React from "react"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { useT } from "shared/src/i18n/react"
 
 const SkipToMain = React.forwardRef<
   HTMLAnchorElement,
@@ -15,6 +16,7 @@ const SkipToMain = React.forwardRef<
     else if (forwardedRef) forwardedRef.current = node
   }
   const pathname = usePathname()
+  const t = useT()
   // After keyboard-initiated navigations (e.g. submitting the login form with
   // Enter), the browser relocates focus to the first focusable element — this
   // anchor — and the keyboard modality keeps :focus-visible matched, so the
@@ -50,7 +52,7 @@ const SkipToMain = React.forwardRef<
       )}
       {...props}
     >
-      Skip to main content
+      {t && t('common.shell.skipToMain') !== 'common.shell.skipToMain' ? t('common.shell.skipToMain') : 'Skip to main content'}
     </a>
   )
 })

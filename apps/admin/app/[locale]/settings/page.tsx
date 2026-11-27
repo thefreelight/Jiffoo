@@ -35,6 +35,8 @@ type SettingField = {
   labelKey: string
   labelFallback: string
   placeholder?: string
+  /** set when the placeholder is words rather than an example address */
+  placeholderKey?: string
 }
 
 const CHECKOUT_COUNTRIES_KEY = 'checkout.address.countries_require_state_postal'
@@ -51,6 +53,7 @@ const BRANDING_FIELDS: SettingField[] = [
     labelKey: 'merchant.settings.general.storeName',
     labelFallback: 'Store Name',
     placeholder: 'Your store name',
+    placeholderKey: 'merchant.settings.general.storeNamePlaceholder',
   },
   {
     key: 'branding.logo',
@@ -69,6 +72,7 @@ const BRANDING_FIELDS: SettingField[] = [
     labelKey: 'merchant.settings.general.storeDescription',
     labelFallback: 'Store Description',
     placeholder: 'Brief description about your store',
+    placeholderKey: 'merchant.settings.general.storeDescriptionPlaceholder',
   },
 ]
 
@@ -88,30 +92,22 @@ const LOCALIZATION_FIELDS: SettingField[] = [
 ]
 
 // Localization options
-const CURRENCY_OPTIONS = [
-  { value: 'USD', label: 'USD - US Dollar ($)' },
-  { value: 'EUR', label: 'EUR - Euro (€)' },
-  { value: 'GBP', label: 'GBP - British Pound (£)' },
-  { value: 'CNY', label: 'CNY - Chinese Yuan (¥)' },
-  { value: 'HKD', label: 'HKD - Hong Kong Dollar (HK$)' },
-  { value: 'TWD', label: 'TWD - Taiwan Dollar (NT$)' },
-]
-
 const LOCALE_OPTIONS = [
   { value: 'en', label: 'English' },
   { value: 'zh-Hans', label: '简体中文' },
-  { value: 'zh-Hant', label: 'Traditional Chinese' },
+  { value: 'zh-Hant', label: '繁體中文' },
 ]
 
+// the zone of each city, named in the store's language; the identifier stays the value
 const TIMEZONE_OPTIONS = [
-  { value: 'UTC', label: 'UTC' },
-  { value: 'America/New_York', label: 'America/New York (EST/EDT)' },
-  { value: 'America/Los_Angeles', label: 'America/Los Angeles (PST/PDT)' },
-  { value: 'Europe/London', label: 'Europe/London (GMT/BST)' },
-  { value: 'Asia/Shanghai', label: 'Asia/Shanghai (CST)' },
-  { value: 'Asia/Hong_Kong', label: 'Asia/Hong Kong (HKT)' },
-  { value: 'Asia/Taipei', label: 'Asia/Taipei (CST)' },
-  { value: 'Asia/Tokyo', label: 'Asia/Tokyo (JST)' },
+  { value: 'UTC', label: 'UTC', labelKey: 'merchant.settings.timezone.utc' },
+  { value: 'America/New_York', label: 'America/New York (EST/EDT)', labelKey: 'merchant.settings.timezone.newYork' },
+  { value: 'America/Los_Angeles', label: 'America/Los Angeles (PST/PDT)', labelKey: 'merchant.settings.timezone.losAngeles' },
+  { value: 'Europe/London', label: 'Europe/London (GMT/BST)', labelKey: 'merchant.settings.timezone.london' },
+  { value: 'Asia/Shanghai', label: 'Asia/Shanghai (CST)', labelKey: 'merchant.settings.timezone.shanghai' },
+  { value: 'Asia/Hong_Kong', label: 'Asia/Hong Kong (HKT)', labelKey: 'merchant.settings.timezone.hongKong' },
+  { value: 'Asia/Taipei', label: 'Asia/Taipei (CST)', labelKey: 'merchant.settings.timezone.taipei' },
+  { value: 'Asia/Tokyo', label: 'Asia/Tokyo (JST)', labelKey: 'merchant.settings.timezone.tokyo' },
 ]
 
 const THEME_FIELDS: SettingField[] = [
@@ -548,7 +544,7 @@ function SettingsPageContent() {
               </div>
               <div>
                 <h3 className="text-lg font-bold text-gray-900">
-                  {getText('merchant.settings.general.storeBranding', 'Store Branding')}
+                  {getText('merchant.settings.storeBranding', 'Store Branding')}
                 </h3>
                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
                   {getText('merchant.settings.sections.generalDesc', 'Basic store configuration and preferences')}
@@ -567,7 +563,7 @@ function SettingsPageContent() {
                     id={field.key}
                     value={getString(draft[field.key])}
                     onChange={(event) => updateField(field.key, event.target.value)}
-                    placeholder={field.placeholder}
+                    placeholder={field.placeholderKey ? getText(field.placeholderKey, field.placeholder ?? '') : field.placeholder}
                     className="rounded-xl border-gray-100 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all"
                   />
                 ) : (
@@ -575,7 +571,7 @@ function SettingsPageContent() {
                     id={field.key}
                     value={getString(draft[field.key])}
                     onChange={(event) => updateField(field.key, event.target.value)}
-                    placeholder={field.placeholder}
+                    placeholder={field.placeholderKey ? getText(field.placeholderKey, field.placeholder ?? '') : field.placeholder}
                     className="h-11 rounded-xl border-gray-100 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all"
                   />
                 )}
@@ -645,7 +641,7 @@ function SettingsPageContent() {
                       onValueChange={(value) => updateField(field.key, value)}
                     >
                       <SelectTrigger className="h-11 rounded-xl border-gray-100 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all">
-                        <SelectValue placeholder="Select language" />
+                        <SelectValue placeholder={getText('merchant.settings.page.selectLanguage', 'Select language')} />
                       </SelectTrigger>
                       <SelectContent>
                         {LOCALE_OPTIONS.map((option) => (
@@ -661,12 +657,12 @@ function SettingsPageContent() {
                       onValueChange={(value) => updateField(field.key, value)}
                     >
                       <SelectTrigger className="h-11 rounded-xl border-gray-100 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all">
-                        <SelectValue placeholder="Select timezone" />
+                        <SelectValue placeholder={getText('merchant.settings.page.selectTimezone', 'Select timezone')} />
                       </SelectTrigger>
                       <SelectContent>
                         {TIMEZONE_OPTIONS.map((option) => (
                           <SelectItem key={option.value} value={option.value}>
-                            {option.label}
+                            {getText(option.labelKey, option.label)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -676,7 +672,7 @@ function SettingsPageContent() {
                       id={field.key}
                       value={getString(draft[field.key])}
                       onChange={(event) => updateField(field.key, event.target.value)}
-                      placeholder={field.placeholder}
+                      placeholder={field.placeholderKey ? getText(field.placeholderKey, field.placeholder ?? '') : field.placeholder}
                       className="h-11 rounded-xl border-gray-100 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all"
                     />
                   )}
@@ -689,14 +685,14 @@ function SettingsPageContent() {
         {/* Checkout Address Rules Card */}
         <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-8 py-6 border-b border-gray-50">
-            <h3 className="text-lg font-bold text-gray-900">Checkout Address Rules</h3>
+            <h3 className="text-lg font-bold text-gray-900">{getText('merchant.settings.page.checkoutAddressRules', 'Checkout Address Rules')}</h3>
             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-              Countries that require state and postal code when shipping address is provided
+              {getText('merchant.settings.page.countriesThatRequireStateAndPostal', 'Countries that require state and postal code when shipping address is provided')}
             </span>
           </div>
           <div className="p-8 space-y-2">
             <Label htmlFor={CHECKOUT_COUNTRIES_KEY} className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-              Country Codes (ISO-2)
+              {getText('merchant.settings.page.countryCodesIso2', 'Country Codes (ISO-2)')}
             </Label>
             <Textarea
               id={CHECKOUT_COUNTRIES_KEY}
@@ -706,7 +702,7 @@ function SettingsPageContent() {
               className="rounded-xl border-gray-100 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all min-h-[96px]"
             />
             <p className="text-xs text-gray-500">
-              Use comma or newline separated country codes. Example: <code>US, CA, AU, CN, GB</code>
+              {getText('merchant.settings.page.useCommaOrNewlineSeparatedCountry', 'Use comma or newline separated country codes. Example:')} <code>US, CA, AU, CN, GB</code>
             </p>
           </div>
         </div>

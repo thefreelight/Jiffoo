@@ -94,7 +94,7 @@ export function ResetPasswordDialog({ open, onOpenChange, onSuccess, user }: Res
                 {getText('merchant.customers.resetPassword.title', 'Reset Password')}
               </DialogTitle>
               <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">
-                Security Protocol Upgrade
+                {getText('merchant.customers.resetPassword.securityProtocolUpgrade', 'Security Protocol Upgrade')}
               </span>
             </div>
           </div>

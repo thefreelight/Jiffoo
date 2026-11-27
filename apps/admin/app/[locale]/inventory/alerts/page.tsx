@@ -69,7 +69,7 @@ export default function StockAlertsPage() {
   const navItems = [
     { label: getText('merchant.inventory.overview', 'Overview'), href: '/inventory', exact: true },
     { label: getText('merchant.inventory.warehouses', 'Warehouses'), href: '/inventory/warehouses', exact: true },
-    { label: getText('merchant.inventory.transfers', 'Transfers'), href: '/inventory/transfers', exact: true },
+    { label: getText('merchant.inventory.transfersLabel', 'Transfers'), href: '/inventory/transfers', exact: true },
     { label: getText('merchant.inventory.alerts', 'Alerts'), href: '/inventory/alerts', exact: true },
   ]
 
@@ -598,7 +598,7 @@ export default function StockAlertsPage() {
                 </div>
                 <div>
                   <Label className="text-sm font-medium text-gray-600">
-                    {getText('merchant.stockAlerts.status', 'Status')}
+                    {getText('merchant.stockAlerts.statusLabel', 'Status')}
                   </Label>
                   <div className="mt-1">{getStatusBadge(selectedAlert.status)}</div>
                 </div>

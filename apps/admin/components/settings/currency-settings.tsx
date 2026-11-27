@@ -95,7 +95,7 @@ export default function CurrencySettings({ onSettingsChange }: CurrencySettingsP
         setEnabledCurrencies(data.enabledCurrencies)
       }
     } catch (err: any) {
-      const errorMsg = err instanceof Error ? err.message : 'Unknown error'
+      const errorMsg = err instanceof Error ? err.message : getText('common.errors.unknown', 'Unknown error')
       toast.error('Failed to load currency settings: ' + errorMsg)
     } finally {
       setLoading(false)
@@ -147,7 +147,7 @@ export default function CurrencySettings({ onSettingsChange }: CurrencySettingsP
     } else {
       // Prevent disabling base currency
       if (currency === baseCurrency) {
-        toast.error('Cannot disable the base currency')
+        toast.error(getText('merchant.settings.currencyPanel.cannotDisableTheBaseCurrency', 'Cannot disable the base currency'))
         return
       }
       newEnabled = enabledCurrencies.filter(c => c !== currency)
@@ -174,7 +174,7 @@ export default function CurrencySettings({ onSettingsChange }: CurrencySettingsP
 
       toast.success(getText('common.messages.saveSuccess', 'Settings saved successfully'))
     } catch (err: any) {
-      const errorMsg = err instanceof Error ? err.message : 'Unknown error'
+      const errorMsg = err instanceof Error ? err.message : getText('common.errors.unknown', 'Unknown error')
       toast.error('Failed to save currency settings: ' + errorMsg)
     }
   }
@@ -185,12 +185,12 @@ export default function CurrencySettings({ onSettingsChange }: CurrencySettingsP
       const response = await apiClient.post('/api/currency/rates/update')
       unwrapApiResponse(response)
 
-      toast.success(getText('merchant.settings.currency.ratesUpdated', 'Exchange rates updated successfully'))
+      toast.success(getText('merchant.settings.currencyPanel.ratesUpdated', 'Exchange rates updated successfully'))
 
       // Reload exchange rates
       await loadExchangeRates()
     } catch (err: any) {
-      const errorMsg = err instanceof Error ? err.message : 'Unknown error'
+      const errorMsg = err instanceof Error ? err.message : getText('common.errors.unknown', 'Unknown error')
       toast.error('Failed to update exchange rates: ' + errorMsg)
     } finally {
       setUpdating(false)
@@ -230,10 +230,10 @@ export default function CurrencySettings({ onSettingsChange }: CurrencySettingsP
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                {getText('merchant.settings.currency.baseCurrency', 'Base Currency')}
+                {getText('merchant.settings.currencyPanel.baseCurrency', 'Base Currency')}
               </h3>
               <p className="text-sm text-gray-500 mb-4">
-                {getText('merchant.settings.currency.baseCurrencyDesc', 'Primary currency for your store. All prices are stored in this currency.')}
+                {getText('merchant.settings.currencyPanel.baseCurrencyDesc', 'Primary currency for your store. All prices are stored in this currency.')}
               </p>
               <Select value={baseCurrency} onValueChange={handleBaseCurrencyChange}>
                 <SelectTrigger className="w-64">
@@ -260,10 +260,10 @@ export default function CurrencySettings({ onSettingsChange }: CurrencySettingsP
         <CardContent className="pt-6">
           <div className="mb-4">
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {getText('merchant.settings.currency.enabledCurrencies', 'Enabled Currencies')}
+              {getText('merchant.settings.currencyPanel.enabledCurrencies', 'Enabled Currencies')}
             </h3>
             <p className="text-sm text-gray-500">
-              {getText('merchant.settings.currency.enabledCurrenciesDesc', 'Select which currencies customers can use in your store.')}
+              {getText('merchant.settings.currencyPanel.enabledCurrenciesDesc', 'Select which currencies customers can use in your store.')}
             </p>
           </div>
 
@@ -286,7 +286,7 @@ export default function CurrencySettings({ onSettingsChange }: CurrencySettingsP
                         <span className="font-medium text-gray-900">{code}</span>
                         {isBase && (
                           <Badge variant="default" className="text-xs">
-                            {getText('merchant.settings.currency.base', 'Base')}
+                            {getText('merchant.settings.currencyPanel.base', 'Base')}
                           </Badge>
                         )}
                       </div>
@@ -311,11 +311,11 @@ export default function CurrencySettings({ onSettingsChange }: CurrencySettingsP
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                {getText('merchant.settings.currency.exchangeRates', 'Exchange Rates')}
+                {getText('merchant.settings.currencyPanel.exchangeRates', 'Exchange Rates')}
               </h3>
               {lastUpdate && (
                 <p className="text-sm text-gray-500">
-                  {getText('merchant.settings.currency.lastUpdated', 'Last updated')}: {formatDateTime(lastUpdate)}
+                  {getText('merchant.settings.currencyPanel.lastUpdated', 'Last updated')}: {formatDateTime(lastUpdate)}
                 </p>
               )}
             </div>
@@ -327,18 +327,18 @@ export default function CurrencySettings({ onSettingsChange }: CurrencySettingsP
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${updating ? 'animate-spin' : ''}`} />
               {updating
-                ? getText('merchant.settings.currency.updating', 'Updating...')
-                : getText('merchant.settings.currency.updateRates', 'Update Rates')}
+                ? getText('merchant.settings.currencyPanel.updating', 'Updating...')
+                : getText('merchant.settings.currencyPanel.updateRates', 'Update Rates')}
             </Button>
           </div>
 
           {exchangeRates.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <p className="mb-2">
-                {getText('merchant.settings.currency.noRates', 'No exchange rates available')}
+                {getText('merchant.settings.currencyPanel.noRates', 'No exchange rates available')}
               </p>
               <p className="text-sm">
-                {getText('merchant.settings.currency.clickUpdate', 'Click "Update Rates" to fetch current exchange rates')}
+                {getText('merchant.settings.currencyPanel.clickUpdate', 'Click "Update Rates" to fetch current exchange rates')}
               </p>
             </div>
           ) : (
@@ -346,11 +346,11 @@ export default function CurrencySettings({ onSettingsChange }: CurrencySettingsP
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{getText('merchant.settings.currency.from', 'From')}</TableHead>
-                    <TableHead>{getText('merchant.settings.currency.to', 'To')}</TableHead>
-                    <TableHead>{getText('merchant.settings.currency.rate', 'Rate')}</TableHead>
-                    <TableHead>{getText('merchant.settings.currency.source', 'Source')}</TableHead>
-                    <TableHead>{getText('merchant.settings.currency.updated', 'Updated')}</TableHead>
+                    <TableHead>{getText('merchant.settings.currencyPanel.from', 'From')}</TableHead>
+                    <TableHead>{getText('merchant.settings.currencyPanel.to', 'To')}</TableHead>
+                    <TableHead>{getText('merchant.settings.currencyPanel.rate', 'Rate')}</TableHead>
+                    <TableHead>{getText('merchant.settings.currencyPanel.source', 'Source')}</TableHead>
+                    <TableHead>{getText('merchant.settings.currencyPanel.updated', 'Updated')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -384,7 +384,7 @@ export default function CurrencySettings({ onSettingsChange }: CurrencySettingsP
             <div className="mt-4 flex items-center gap-2 text-sm text-gray-600">
               <CheckCircle className="h-4 w-4 text-green-500" />
               <span>
-                {getText('merchant.settings.currency.ratesActive', 'Exchange rates are active and will be used for currency conversion')}
+                {getText('merchant.settings.currencyPanel.ratesActive', 'Exchange rates are active and will be used for currency conversion')}
               </span>
             </div>
           )}

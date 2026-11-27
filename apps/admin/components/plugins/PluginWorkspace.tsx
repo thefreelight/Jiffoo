@@ -145,13 +145,19 @@ function configDraftReducer(state: ConfigDraftState, action: ConfigDraftAction):
       } catch (error) {
         return {
           ...next,
-          jsonErrors: { ...state.jsonErrors, [action.field]: error instanceof Error ? error.message : 'Invalid JSON' },
+          jsonErrors: { ...state.jsonErrors, [action.field]: error instanceof Error ? error.message : INVALID_JSON },
         };
       }
     }
     case 'saved':
       return { ...state, persisted: action.config, lastSaved: action.config };
   }
+}
+
+/** The one message the JSON fields write themselves; the parser's own words are shown as they are. */
+const INVALID_JSON = 'Invalid JSON';
+function translateJsonErrors(errors: Record<string, string>, getText: (key: string, fallback: string) => string): Record<string, string> {
+  return Object.fromEntries(Object.entries(errors).map(([field, message]) => [field, message === INVALID_JSON ? getText('merchant.plugins.invalidJson', INVALID_JSON) : message]));
 }
 
 export function PluginWorkspace({ slug }: { slug: string }) {
@@ -587,7 +593,7 @@ function PluginWorkspaceContent({ slug }: { slug: string }) {
             configDraft={configDraft}
             configMeta={selectedConfigMeta}
             jsonFieldDrafts={draftState.jsonDrafts}
-            jsonFieldErrors={draftState.jsonErrors}
+            jsonFieldErrors={translateJsonErrors(draftState.jsonErrors, getText)}
             onUpdateField={updateConfigField}
             onUpdateJsonField={updateJsonConfigField}
             title={slug === 'support-hub' ? tf('otherTitle', 'Other settings') : undefined}

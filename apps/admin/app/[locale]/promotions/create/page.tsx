@@ -59,14 +59,14 @@ export default function CreatePromotionPage() {
           </Button>
           <div className="flex flex-col">
             <h1 className="text-2xl font-black text-gray-900 tracking-tighter leading-none">
-              Initialize New Promotion
+              {getText('merchant.promotions.create.initializeNewPromotion', 'Initialize New Promotion')}
             </h1>
-            <span className="text-[10px] font-black text-blue-600 uppercase tracking-[0.4em] mt-2">Discount Creation Interface</span>
+            <span className="text-[10px] font-black text-blue-600 uppercase tracking-[0.4em] mt-2">{getText('merchant.promotions.create.discountCreationInterface', 'Discount Creation Interface')}</span>
           </div>
         </div>
         <div className="flex items-center space-x-4">
           <Button variant="outline" onClick={() => router.push('/promotions')} className="text-gray-400 border-gray-100 hover:bg-gray-50 font-black uppercase tracking-widest rounded-2xl h-12 px-8">
-            Cancel
+            {getText('merchant.promotions.create.cancel', 'Cancel')}
           </Button>
         </div>
       </div>
@@ -76,9 +76,9 @@ export default function CreatePromotionPage() {
         <div className="bg-white">
           <div className="w-full max-w-4xl space-y-12 px-4 py-10 sm:space-y-20 sm:px-10 sm:py-20">
             <div className="space-y-3">
-              <h2 className="text-4xl font-black text-gray-900 tracking-tighter uppercase">Promotion Core</h2>
+              <h2 className="text-4xl font-black text-gray-900 tracking-tighter uppercase">{getText('merchant.promotions.create.promotionCore', 'Promotion Core')}</h2>
               <div className="h-1.5 w-24 bg-blue-600 rounded-full" />
-              <p className="text-gray-400 text-lg font-bold">ESTABLISH DISCOUNT PARAMETERS & CONSTRAINTS</p>
+              <p className="text-gray-400 text-lg font-bold">{getText('merchant.promotions.create.establishDiscountParametersConstraints', 'ESTABLISH DISCOUNT PARAMETERS & CONSTRAINTS')}</p>
             </div>
 
             <PromotionForm

@@ -255,7 +255,7 @@ export default function OrderDetailPage() {
               </div>
               {(order.stripePaymentIntentId || (order.payments && order.payments[0]?.paymentIntentId)) && (
                 <div className="mt-4 rounded-xl bg-[#f8fafc] p-3">
-                  <p className="mb-1 text-xs text-slate-400">Stripe Intent ID</p>
+                  <p className="mb-1 text-xs text-slate-400">{getText('merchant.orders.detailPage.stripeIntentId', 'Stripe Intent ID')}</p>
                   <p className="break-all font-mono text-xs text-slate-600">
                     {order.stripePaymentIntentId || (order.payments && order.payments[0]?.paymentIntentId)}
                   </p>
@@ -376,7 +376,7 @@ export default function OrderDetailPage() {
                   onClick={() => setShowRefundDialog(true)}
                 >
                   <RotateCcw className="mr-2 h-4 w-4" />
-                  {getText('merchant.orders.refund', 'Refund')}
+                  {getText('merchant.orders.refundAction', 'Refund')}
                 </Button>
               )}
               <Button

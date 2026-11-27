@@ -10,6 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useT } from 'shared/src/i18n/react';
 
 const ADMIN_LOCALES = [
   { value: 'en', label: 'English' },
@@ -24,6 +25,13 @@ function getLocalizedPath(pathname: string, locale: string): string {
 }
 
 export function AdminLanguageSwitcher({ compact = false }: { compact?: boolean }) {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const pathname = usePathname();
   const locale = useLocale();
   const activeLabel = ADMIN_LOCALES.find((item) => item.value === locale)?.label || 'English';
@@ -34,7 +42,7 @@ export function AdminLanguageSwitcher({ compact = false }: { compact?: boolean }
         <button
           type="button"
           className="inline-flex h-9 items-center gap-2 rounded-lg px-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-950"
-          aria-label="Change language"
+          aria-label={getText('common.language.changeLanguage', 'Change language')}
         >
           <Languages className="h-[18px] w-[18px]" />
           {compact ? null : <span>{activeLabel}</span>}
