@@ -24,6 +24,9 @@ import {
 } from '@/components/ui/select'
 import { useT, useLocale } from 'shared/src/i18n/react'
 import { PageShell } from '@/components/layout/page-shell'
+import { useDemoInstance } from '@/hooks/use-demo-instance'
+import { listFigure, sampleChange } from '@/lib/list-figures'
+import { SampleDataNotice } from '@/components/list/sample-data-notice'
 import { ShipOrderDialog } from '@/components/orders/ShipOrderDialog'
 import { PageHero, MiniStatCard, TablePagination, SortableTh } from '@/components/list/list-kit'
 import { useOrders, useAdminDashboard, useRedeliverEsim, type Order } from '@/lib/hooks/use-api'
@@ -161,23 +164,26 @@ export default function OrdersPage() {
 
   const orders: Order[] = ordersData?.data || []
   const pagination = ordersData?.pagination
-  const usingDemoRows = !orders.length && !isLoading
-  const rows = orders.length ? orders : isLoading ? [] : (DEMO_ROWS as unknown as Order[])
+  // Sample rows fill the list on the demonstration instance only; a real store with no orders sees an empty state.
+  const demoInstance = useDemoInstance()
+  const usingDemoRows = demoInstance && !orders.length && !isLoading
+  const rows = orders.length ? orders : usingDemoRows ? (DEMO_ROWS as unknown as Order[]) : []
 
   const byStatus = dashboardData?.ordersByStatus as Record<string, number> | undefined
-  const count = (statuses: string[], fallback: number) =>
-    byStatus ? statuses.reduce((sum, s) => sum + (byStatus[s] ?? 0), 0) : fallback
+  // The store's own counts; null when the overview could not be read, so the card says so instead of showing zero.
+  const count = (statuses: string[]) => (byStatus ? statuses.reduce((sum, s) => sum + (byStatus[s] ?? 0), 0) : null)
 
   const exportCsv = () => {
+    // Samples are there to be looked at, not exported.
+    if (usingDemoRows) return
     const header = ['Order No.', 'Customer', 'Amount', 'Status', 'Created At']
-    const lines = rows.map((order, index) => {
-      const demo = DEMO_ROWS[index % DEMO_ROWS.length]
+    const lines = rows.map((order) => {
       return [
-        `#${(order.id || demo.code).slice(0, 8)}`,
-        `"${order.customer?.username || order.customer?.email || demo.customer}"`,
-        String(order.totalAmount ?? demo.amount),
-        order.status ? String(order.status) : demo.status,
-        order.createdAt ? formatDateTime(order.createdAt) : demo.createdAt,
+        `#${String(order.id ?? '').replace(/^#/, '').slice(0, 8)}`,
+        `"${order.customer?.username || order.customer?.email || '--'}"`,
+        String(order.totalAmount ?? 0),
+        String(order.status ?? ''),
+        order.createdAt ? formatDateTime(order.createdAt) : '',
       ].join(',')
     })
     const blob = new Blob([[header.join(','), ...lines].join('\n')], { type: 'text/csv;charset=utf-8' })
@@ -197,40 +203,41 @@ export default function OrdersPage() {
           description={getText('merchant.pages.ordersSubtitle', '管理所有订单，跟踪订单状态，处理发货和售后。')}
           art="orders"
         />
+        {usingDemoRows ? <SampleDataNotice /> : null}
 
         {/* Stat cards */}
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
           <MiniStatCard
             label={getText('merchant.pages.statAllOrders', '全部订单')}
-            value={(dashboardData?.metrics?.totalOrders ?? 1256).toLocaleString()}
-            change="12.5%"
+            value={listFigure(dashboardData?.metrics?.totalOrders ?? pagination?.total, 1256, usingDemoRows)}
+            change={sampleChange('12.5%', usingDemoRows)}
             changeType="increase"
             icon={ClipboardList}
             tone="blue"
           />
           <MiniStatCard
             label={getText('merchant.pages.statUnpaid', '待支付')}
-            value={count(['PENDING'], 24).toLocaleString()}
+            value={listFigure(count(['PENDING']), 24, usingDemoRows)}
             icon={Wallet}
             tone="orange"
           />
           <MiniStatCard
             label={getText('merchant.pages.statUnshipped', '待发货')}
-            value={count(['PAID', 'PROCESSING'], 38).toLocaleString()}
+            value={listFigure(count(['PAID', 'PROCESSING']), 38, usingDemoRows)}
             icon={PackageCheck}
             tone="purple"
           />
           <MiniStatCard
             label={getText('merchant.pages.statCompleted', '已完成')}
-            value={count(['COMPLETED', 'DELIVERED'], 1156).toLocaleString()}
-            change="19.3%"
+            value={listFigure(count(['COMPLETED', 'DELIVERED']), 1156, usingDemoRows)}
+            change={sampleChange('19.3%', usingDemoRows)}
             changeType="increase"
             icon={CheckCircle2}
             tone="green"
           />
           <MiniStatCard
             label={getText('merchant.pages.statCancelled', '已取消')}
-            value={count(['CANCELLED'], 38).toLocaleString()}
+            value={listFigure(count(['CANCELLED']), 38, usingDemoRows)}
             icon={XCircle}
             tone="red"
           />
@@ -302,15 +309,16 @@ export default function OrdersPage() {
               </thead>
               <tbody className="divide-y divide-[#f4f6fa]">
                 {rows.map((order, index) => {
-                  const demo = DEMO_ROWS[index % DEMO_ROWS.length]
-                  const code = `#${String(order.id || demo.code).replace(/^#/, '').slice(0, 8)}`
-                  const customer = order.customer?.username || order.customer?.email || demo.customer
-                  const meta = statusMeta(String(order.status || demo.status), getText)
-                  const created = order.createdAt ? formatDateTime(order.createdAt) : demo.createdAt
+                  // A real order never borrows a sample value: what it lacks shows as blank.
+                  const demo = usingDemoRows ? DEMO_ROWS[index % DEMO_ROWS.length] : undefined
+                  const code = `#${String(order.id || demo?.code || '').replace(/^#/, '').slice(0, 8)}`
+                  const customer = order.customer?.username || order.customer?.email || demo?.customer || '--'
+                  const meta = statusMeta(String(order.status || demo?.status || ''), getText)
+                  const created = order.createdAt ? formatDateTime(order.createdAt) : demo?.createdAt || '--'
                   const itemCount = Number(order.itemsCount ?? 0)
                     || (Array.isArray(order.itemsSummary) ? order.itemsSummary.length : 0) || 1
                   return (
-                    <tr key={order.id ?? demo.code} className="transition-colors hover:bg-[#f8fafc]">
+                    <tr key={order.id ?? demo?.code ?? index} className="transition-colors hover:bg-[#f8fafc]">
                       <td className="py-3 pl-4 pr-3 text-sm font-semibold text-slate-900">{code}</td>
                       <td className="px-3 py-3 text-sm text-slate-600">{customer}</td>
                       <td className="px-3 py-3">
@@ -338,7 +346,7 @@ export default function OrdersPage() {
                         )}
                       </td>
                       <td className="px-3 py-3 text-sm font-semibold text-slate-900">
-                        {formatCurrency(order.totalAmount ?? demo.amount, order.currency)}
+                        {formatCurrency(order.totalAmount ?? demo?.amount ?? 0, order.currency)}
                       </td>
                       <td className="px-3 py-3">
                         <span className={cn('inline-flex items-center rounded-md px-2 py-1 text-xs font-medium', meta.className)}>
@@ -354,7 +362,7 @@ export default function OrdersPage() {
                                 <Zap className="h-3 w-3" />
                                 {esimMeta(order).label}
                               </span>
-                              {shipEligible(String(order.status || demo.status)) && esimRedeliverable(order) && (
+                              {shipEligible(String(order.status || demo?.status || '')) && esimRedeliverable(order) && (
                                 <button
                                   type="button"
                                   title="重新触发自动化发货"
@@ -373,7 +381,7 @@ export default function OrdersPage() {
                               )}
                             </>
                           ) : (order.fulfillmentKind ?? 'shipping') === 'shipping' ? (
-                            shipEligible(String(order.status || demo.status)) && (
+                            shipEligible(String(order.status || demo?.status || '')) && (
                               <button
                                 type="button"
                                 className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-600 transition-colors hover:bg-blue-100"
@@ -424,10 +432,10 @@ export default function OrdersPage() {
             </table>
           </div>
           <TablePagination
-            total={usingDemoRows ? 1256 : pagination?.total ?? orders.length}
-            page={usingDemoRows ? currentPage : pagination?.page ?? currentPage}
+            total={usingDemoRows ? rows.length : pagination?.total ?? orders.length}
+            page={usingDemoRows ? 1 : pagination?.page ?? currentPage}
             pageSize={pageSize}
-            totalPages={usingDemoRows ? 126 : Math.max(pagination?.totalPages ?? 1, 1)}
+            totalPages={usingDemoRows ? 1 : Math.max(pagination?.totalPages ?? 1, 1)}
             onPageChange={setCurrentPage}
             onPageSizeChange={(size) => {
               setPageSize(size)

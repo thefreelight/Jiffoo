@@ -24,6 +24,9 @@ import {
 } from '@/components/ui/select'
 import { useT, useLocale } from 'shared/src/i18n/react'
 import { PageShell } from '@/components/layout/page-shell'
+import { useDemoInstance } from '@/hooks/use-demo-instance'
+import { listFigure, sampleChange } from '@/lib/list-figures'
+import { SampleDataNotice } from '@/components/list/sample-data-notice'
 import { PageHero, MiniStatCard, TablePagination, SortableTh } from '@/components/list/list-kit'
 import { queryKeys, useUsers, useUserStats, type User } from '@/lib/hooks/use-api'
 import { formatCurrency, cn } from '@/lib/utils'
@@ -123,8 +126,10 @@ export default function CustomersPage() {
 
   const users: User[] = usersResponse?.data || []
   const pagination = usersResponse?.pagination
-  const usingDemoRows = !users.length && !isLoading
-  const rows = users.length ? users : isLoading ? [] : (DEMO_ROWS as unknown as User[])
+  // Sample rows fill the list on the demonstration instance only; a real store with no customers sees an empty state.
+  const demoInstance = useDemoInstance()
+  const usingDemoRows = demoInstance && !users.length && !isLoading
+  const rows = users.length ? users : usingDemoRows ? (DEMO_ROWS as unknown as User[]) : []
 
   const isActiveUser = (user: User): boolean => {
     if (!user.lastLoginAt) return false
@@ -156,19 +161,20 @@ export default function CustomersPage() {
   }
 
   const exportCsv = () => {
+    // Samples are there to be looked at, not exported.
+    if (usingDemoRows) return
     const header = ['Name', 'Email', 'Total Spent', 'Orders', 'Level', 'Status', 'Registered At']
-    const lines = visibleRows.map((user, index) => {
-      const demo = DEMO_ROWS[index % DEMO_ROWS.length]
-      const vip = usingDemoRows ? demo.vip : isVip(user)
-      const active = usingDemoRows ? demo.active : isActiveUser(user)
+    const lines = visibleRows.map((user) => {
+      const vip = isVip(user)
+      const active = isActiveUser(user)
       return [
-        `"${user.username || demo.name}"`,
-        user.email || demo.email,
-        String(user.totalSpent ?? demo.spent),
-        String(user.totalOrders ?? demo.orders),
+        `"${user.username || user.email || '--'}"`,
+        user.email || '--',
+        String(user.totalSpent ?? 0),
+        String(user.totalOrders ?? 0),
         vip ? 'VIP' : 'Standard',
         active ? 'Active' : 'Dormant',
-        formatDate(user.createdAt, demo.registeredAt),
+        formatDate(user.createdAt, '--'),
       ].join(',')
     })
     const blob = new Blob([[header.join(','), ...lines].join('\n')], { type: 'text/csv;charset=utf-8' })
@@ -188,37 +194,38 @@ export default function CustomersPage() {
           description={getText('merchant.pages.customersSubtitle', '管理你的客户信息，查看购买记录和客户行为。')}
           art="customers"
         />
+        {usingDemoRows ? <SampleDataNotice /> : null}
 
         {/* Stat cards */}
         <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
           <MiniStatCard
             label={getText('merchant.pages.statAllCustomers', '全部客户')}
-            value={(userStats?.metrics?.totalUsers ?? 89).toLocaleString()}
-            change="24.6%"
+            value={listFigure(userStats?.metrics?.totalUsers ?? pagination?.total, 89, usingDemoRows)}
+            change={sampleChange('24.6%', usingDemoRows)}
             changeType="increase"
             icon={Users}
             tone="purple"
           />
           <MiniStatCard
             label={getText('merchant.pages.statNewCustomers', '新客户')}
-            value={(userStats?.metrics?.newThisMonth ?? 12).toLocaleString()}
-            change="8.3%"
+            value={listFigure(userStats?.metrics?.newThisMonth, 12, usingDemoRows)}
+            change={sampleChange('8.3%', usingDemoRows)}
             changeType="increase"
             icon={UserPlus}
             tone="green"
           />
           <MiniStatCard
             label={getText('merchant.pages.statActiveCustomers', '活跃客户')}
-            value={(userStats?.metrics?.activeUsers ?? 56).toLocaleString()}
-            change="18.2%"
+            value={listFigure(userStats?.metrics?.activeUsers, 56, usingDemoRows)}
+            change={sampleChange('18.2%', usingDemoRows)}
             changeType="increase"
             icon={UserCheck}
             tone="blue"
           />
           <MiniStatCard
             label={getText('merchant.pages.statSleepingCustomers', '沉睡客户')}
-            value={(userStats?.metrics?.inactiveUsers ?? 21).toLocaleString()}
-            change="6.7%"
+            value={listFigure(userStats?.metrics?.inactiveUsers, 21, usingDemoRows)}
+            change={sampleChange('6.7%', usingDemoRows)}
             changeType="decrease"
             icon={UserX}
             tone="red"
@@ -285,7 +292,7 @@ export default function CustomersPage() {
               <thead>
                 <tr className="border-b border-[#f4f6fa]">
                   <th className="w-10 px-4 py-3">
-                    <input type="checkbox" className="h-4 w-4 rounded border-slate-300 accent-blue-600" aria-label="Select all" />
+                    <input type="checkbox" className="h-4 w-4 rounded border-slate-300 accent-blue-600" aria-label="Select all" disabled={usingDemoRows} />
                   </th>
                   <SortableTh label={getText('merchant.pages.colCustomer', '客户')} />
                   <SortableTh label={getText('merchant.pages.colContact', '联系方式')} />
@@ -301,19 +308,20 @@ export default function CustomersPage() {
               </thead>
               <tbody className="divide-y divide-[#f4f6fa]">
                 {visibleRows.map((user, index) => {
-                  const demo = DEMO_ROWS[index % DEMO_ROWS.length]
-                  const name = user.username || demo.name
-                  const email = user.email || demo.email
-                  const spent = user.totalSpent ?? (usingDemoRows ? demo.spent : 0)
-                  const orderCount = user.totalOrders ?? (usingDemoRows ? demo.orders : 0)
-                  const vip = usingDemoRows ? demo.vip : isVip(user)
-                  const active = usingDemoRows ? demo.active : isActiveUser(user)
-                  const registered = formatDate(user.createdAt, demo.registeredAt)
+                  // A real customer never borrows a sample value: what they lack shows as blank.
+                  const demo = usingDemoRows ? DEMO_ROWS[index % DEMO_ROWS.length] : undefined
+                  const name = demo ? demo.name : user.username || user.email || '--'
+                  const email = user.email || demo?.email || '--'
+                  const spent = user.totalSpent ?? demo?.spent ?? 0
+                  const orderCount = user.totalOrders ?? demo?.orders ?? 0
+                  const vip = demo ? demo.vip : isVip(user)
+                  const active = demo ? demo.active : isActiveUser(user)
+                  const registered = formatDate(user.createdAt, demo?.registeredAt ?? '--')
                   const initial = name.charAt(0).toUpperCase()
                   return (
                     <tr key={user.id ?? name} className="transition-colors hover:bg-[#f8fafc]">
                       <td className="px-4 py-3">
-                        <input type="checkbox" className="h-4 w-4 rounded border-slate-300 accent-blue-600" aria-label={`Select ${name}`} />
+                        <input type="checkbox" className="h-4 w-4 rounded border-slate-300 accent-blue-600" aria-label={`Select ${name}`} disabled={usingDemoRows} />
                       </td>
                       <td className="px-3 py-3">
                         <div className="flex items-center gap-3">
@@ -418,10 +426,10 @@ export default function CustomersPage() {
             </table>
           </div>
           <TablePagination
-            total={usingDemoRows ? 89 : pagination?.total ?? users.length}
-            page={usingDemoRows ? currentPage : pagination?.page ?? currentPage}
+            total={usingDemoRows ? rows.length : pagination?.total ?? users.length}
+            page={usingDemoRows ? 1 : pagination?.page ?? currentPage}
             pageSize={pageSize}
-            totalPages={usingDemoRows ? 9 : Math.max(pagination?.totalPages ?? 1, 1)}
+            totalPages={usingDemoRows ? 1 : Math.max(pagination?.totalPages ?? 1, 1)}
             onPageChange={setCurrentPage}
             onPageSizeChange={(size) => {
               setPageSize(size)
