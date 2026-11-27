@@ -79,6 +79,115 @@ async function persist(
   return result(order);
 }
 
+const RUNTIME_HEADERS = { 'x-jiffoo-runtime': 'cloudflare-native-d1-admin-orders' };
+
+/** The refund is with the payment provider and not confirmed yet; the order is as it was until it is. */
+function refundAccepted(order: unknown): Response {
+  return Response.json({ success: true, data: { ...(order as Record<string, unknown>), refundPending: true } }, { status: 202, headers: RUNTIME_HEADERS });
+}
+
+/** Who completes a refund when the timer, not an administrator, finds the provider's answer. */
+const REFUND_RECONCILER = 'system:refund-reconciliation';
+
+interface RefundRow { id: string; order_id: string; payment_session_id: string; amount: number; reason: string | null; provider_refund_id: string | null }
+
+/**
+ * What the store writes down once the payment provider has refunded: the refund completed, the order refunded in
+ * full or in part, the stock back for a full refund, the audit, and the event the rest of the store follows — the
+ * shopper's refund receipt, a referrer's commission reversed.
+ */
+export async function completeNativeRefund(env: AdminWriteEnv, input: {
+  orderId: string; refundId: string; providerRefundId: string; amount: number; actorId: string; reason: string | null;
+  items: Array<{ orderItemId: string; quantity: number }> | null;
+}): Promise<Record<string, unknown> | null> {
+  const native = await loadNativeOrder(env, input.orderId);
+  const metadata = await env.DB.prepare('SELECT total_amount, currency, user_id FROM native_order_metadata WHERE order_id = ?1').bind(input.orderId).first<{ total_amount: number; currency: string; user_id: string }>();
+  const payment = await env.DB.prepare("SELECT id FROM native_payment_sessions WHERE order_id = ?1 AND status = 'SUCCEEDED' ORDER BY updated_at DESC LIMIT 1").bind(input.orderId).first<{ id: string }>();
+  if (!native || !metadata || !payment) return null;
+  const refunded = await env.DB.prepare("SELECT COALESCE(SUM(amount), 0) AS amount FROM native_refunds WHERE order_id = ?1 AND status IN ('PENDING', 'COMPLETED')").bind(input.orderId).first<{ amount: number }>();
+  const fullyRefunded = (refunded?.amount ?? 0) + 0.000001 >= metadata.total_amount;
+  const order = JSON.parse(native.payload) as Record<string, unknown>;
+  const now = new Date().toISOString();
+  Object.assign(order, { paymentStatus: fullyRefunded ? 'REFUNDED' : 'PARTIALLY_REFUNDED', ...(fullyRefunded ? { status: 'REFUNDED' } : {}), updatedAt: now });
+  // The refund is marked completed first, and only if this call was the one to do so does the rest follow:
+  // the provider's answer and an administrator's retry can arrive together, and the order is refunded once.
+  const completed = await env.DB.prepare("UPDATE native_refunds SET status = 'COMPLETED', provider_refund_id = ?1, completed_at = ?2 WHERE id = ?3 AND status = 'PENDING'")
+    .bind(input.providerRefundId, now, input.refundId).run();
+  if (!completed.meta.changes) return order;
+  const statements: D1PreparedStatement[] = [];
+  if (fullyRefunded) {
+    const inventory = await env.DB.prepare('SELECT product_id, variant_id, quantity FROM native_order_items WHERE order_id = ?1').bind(input.orderId).all<{ product_id: string; variant_id: string; quantity: number }>();
+    statements.push(...inventory.results.map((item) => env.DB.prepare('UPDATE native_inventory SET source_stock = source_stock + ?1, refreshed_at = ?2 WHERE product_id = ?3 AND variant_id = ?4').bind(item.quantity, now, item.product_id, item.variant_id)));
+  }
+  statements.push(
+    env.DB.prepare('UPDATE native_order_metadata SET payment_status = ?1 WHERE order_id = ?2').bind(fullyRefunded ? 'REFUNDED' : 'PARTIALLY_REFUNDED', input.orderId),
+    env.DB.prepare('UPDATE native_order_snapshots SET status = ?1, payload = ?2, source_updated_at = ?3 WHERE id = ?4').bind(fullyRefunded ? 'REFUNDED' : native.status, JSON.stringify(order), now, input.orderId),
+    env.DB.prepare("INSERT INTO native_order_audit (id, order_id, actor_id, action, from_status, to_status, payload, created_at) VALUES (?1, ?2, ?3, 'order.refund', ?4, ?5, ?6, ?7)").bind(crypto.randomUUID(), input.orderId, input.actorId, native.status, fullyRefunded ? 'REFUNDED' : native.status, JSON.stringify({ amount: input.amount, currency: metadata.currency, providerRefundId: input.providerRefundId }), now),
+    env.DB.prepare("INSERT INTO native_checkout_outbox (id, event_type, aggregate_id, payload, created_at) VALUES (?1, 'order.refunded', ?2, ?3, ?4)").bind(crypto.randomUUID(), input.orderId, JSON.stringify({ id: input.orderId, orderId: input.orderId, refundId: input.refundId, userId: metadata.user_id, paymentId: payment.id, providerRefundId: input.providerRefundId, amount: input.amount, currency: metadata.currency, fullyRefunded, reason: input.reason, ...(input.items ? { items: input.items } : fullyRefunded ? { items: itemsFrom(order).flatMap((item) => typeof item.id === 'string' && typeof item.quantity === 'number' ? [{ orderItemId: item.id, quantity: item.quantity }] : []) } : {}) }), now),
+  );
+  await env.DB.batch(statements);
+  return order;
+}
+
+async function stripeRefundOf(env: AdminWriteEnv, refundId: string): Promise<{ id: string; status: string } | null> {
+  const secret = (await getNativeStripeSecret(env, 'secretKey', env.STRIPE_SECRET_KEY)).value;
+  const response = await fetch(`https://api.stripe.com/v1/refunds/${encodeURIComponent(refundId)}`, { headers: { authorization: `Bearer ${secret}` } });
+  if (!response.ok) return null;
+  return (await response.json<{ id?: string; status?: string }>()) as { id: string; status: string };
+}
+
+/** The refund the store asked for on a payment, found by the order it names (for one taken before its number was kept). */
+async function stripeRefundForOrder(env: AdminWriteEnv, intent: string, orderId: string): Promise<{ id: string; status: string } | null> {
+  const secret = (await getNativeStripeSecret(env, 'secretKey', env.STRIPE_SECRET_KEY)).value;
+  const response = await fetch(`https://api.stripe.com/v1/refunds?payment_intent=${encodeURIComponent(intent)}&limit=20`, { headers: { authorization: `Bearer ${secret}` } });
+  if (!response.ok) return null;
+  const listed = await response.json<{ data?: Array<{ id?: string; status?: string; metadata?: { orderId?: string } }> }>();
+  return (listed.data ?? []).find((refund) => refund.metadata?.orderId === orderId && refund.id && refund.status) as { id: string; status: string } ?? null;
+}
+
+/** Asks the payment provider about a refund the store is still waiting on, and writes down what it says. */
+async function settleNativeRefund(env: AdminWriteEnv, refundId: string): Promise<'completed' | 'failed' | 'pending' | 'missing'> {
+  const row = await env.DB.prepare('SELECT id, order_id, payment_session_id, amount, reason, provider_refund_id FROM native_refunds WHERE id = ?1 AND status = ?2')
+    .bind(refundId, 'PENDING').first<RefundRow>();
+  if (!row) return 'missing';
+  const session = await env.DB.prepare('SELECT id, payment_intent_id FROM native_payment_sessions WHERE id = ?1').bind(row.payment_session_id).first<{ id: string; payment_intent_id: string | null }>();
+  const intent = session ? await stripePaymentIntent(env, session.id, session.payment_intent_id) : null;
+  if (!intent) return 'pending';
+  const provider = row.provider_refund_id ? await stripeRefundOf(env, row.provider_refund_id) : await stripeRefundForOrder(env, intent, row.order_id);
+  if (!provider) return 'pending';
+  if (provider.status === 'succeeded') {
+    await completeNativeRefund(env, { orderId: row.order_id, refundId: row.id, providerRefundId: provider.id, amount: row.amount, actorId: REFUND_RECONCILER, reason: row.reason, items: null });
+    return 'completed';
+  }
+  // a refund the provider gave up on is not a refund: the reservation goes, and the administrator can ask again
+  if (provider.status === 'failed' || provider.status === 'canceled') {
+    await env.DB.prepare("DELETE FROM native_refunds WHERE id = ?1 AND status = 'PENDING'").bind(row.id).run();
+    return 'failed';
+  }
+  return 'pending';
+}
+
+/**
+ * The refunds the payment provider had not confirmed when they were asked for — a card refund begins as pending and
+ * is confirmed a moment later. A few at a time, none sooner than a minute after it was asked for.
+ */
+export async function processNativePendingRefunds(env: AdminWriteEnv): Promise<{ picked: number; completed: number; failed: number }> {
+  const cutoff = new Date(Date.now() - 60_000).toISOString();
+  const rows = await env.DB.prepare("SELECT id FROM native_refunds WHERE status = 'PENDING' AND created_at < ?1 ORDER BY created_at ASC LIMIT 25")
+    .bind(cutoff).all<{ id: string }>();
+  const tally = { picked: rows.results.length, completed: 0, failed: 0 };
+  for (const row of rows.results) {
+    try {
+      const settled = await settleNativeRefund(env, row.id);
+      if (settled === 'completed') tally.completed += 1;
+      else if (settled === 'failed') tally.failed += 1;
+    } catch (error) {
+      console.error(JSON.stringify({ message: 'refund follow-up failed', refundId: row.id, error: error instanceof Error ? error.message : String(error) }));
+    }
+  }
+  return tally;
+}
+
 export async function tryNativeAdminWrites(request: Request, env: AdminWriteEnv): Promise<Response | null> {
   const url = new URL(request.url);
   const statusMatch = url.pathname.match(/^\/api\/v1\/admin\/orders\/([^/]+)\/status$/);
@@ -183,9 +292,15 @@ export async function tryNativeAdminWrites(request: Request, env: AdminWriteEnv)
   if (refundMatch) {
     const body = await request.json<{ idempotencyKey?: unknown; amount?: unknown; reason?: unknown; items?: unknown }>().catch(() => null);
     if (!body || typeof body.idempotencyKey !== 'string' || !body.idempotencyKey.trim()) return error(400, 'VALIDATION_ERROR', 'Idempotency key is required');
-    const existing = await env.DB.prepare('SELECT status FROM native_refunds WHERE idempotency_key = ?1').bind(body.idempotencyKey.trim()).first<{ status: string }>();
+    const key = body.idempotencyKey.trim();
+    const existing = await env.DB.prepare('SELECT id, status FROM native_refunds WHERE idempotency_key = ?1').bind(key).first<{ id: string; status: string }>();
     if (existing?.status === 'COMPLETED') return result(JSON.parse(native.payload));
-    if (existing?.status === 'PENDING') return error(502, 'PAYMENT_REFUND_PENDING', 'Payment provider has not confirmed the refund');
+    // Asked again while the provider has not confirmed yet: the provider is asked now. Until it has, the answer is
+    // that the refund is on its way — not, as it used to be, a failure repeated for good.
+    if (existing?.status === 'PENDING') {
+      if (await settleNativeRefund(env, existing.id) === 'completed') return result(JSON.parse((await loadNativeOrder(env, orderId))?.payload ?? native.payload));
+      return refundAccepted(JSON.parse(native.payload));
+    }
     if (native.payment_status !== 'PAID' && native.payment_status !== 'PARTIALLY_REFUNDED') return error(409, 'ORDER_NOT_PAID', 'Order is not paid, cannot refund');
     const metadata = await env.DB.prepare('SELECT total_amount, currency, user_id FROM native_order_metadata WHERE order_id = ?1').bind(orderId).first<{ total_amount: number; currency: string; user_id: string }>();
     const payment = await env.DB.prepare("SELECT id, payment_intent_id FROM native_payment_sessions WHERE order_id = ?1 AND status = 'SUCCEEDED' ORDER BY updated_at DESC LIMIT 1").bind(orderId).first<{ id: string; payment_intent_id: string | null }>();
@@ -199,10 +314,11 @@ export async function tryNativeAdminWrites(request: Request, env: AdminWriteEnv)
     if (body.items !== undefined && !refundItems) return error(400, 'INVALID_REFUND_ITEMS', 'Refund items must contain unique order item IDs and positive quantities within the purchased quantities.');
     const refundId = crypto.randomUUID();
     const now = new Date().toISOString();
+    const reason = typeof body.reason === 'string' ? body.reason : null;
     try {
-      await env.DB.prepare("INSERT INTO native_refunds (id, order_id, payment_session_id, idempotency_key, amount, currency, status, reason, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'PENDING', ?7, ?8)").bind(refundId, orderId, payment.id, body.idempotencyKey.trim(), amount, metadata.currency, typeof body.reason === 'string' ? body.reason : null, now).run();
+      await env.DB.prepare("INSERT INTO native_refunds (id, order_id, payment_session_id, idempotency_key, amount, currency, status, reason, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'PENDING', ?7, ?8)").bind(refundId, orderId, payment.id, key, amount, metadata.currency, reason, now).run();
     } catch {
-      const duplicate = await env.DB.prepare('SELECT status FROM native_refunds WHERE idempotency_key = ?1').bind(body.idempotencyKey.trim()).first<{ status: string }>();
+      const duplicate = await env.DB.prepare('SELECT status FROM native_refunds WHERE idempotency_key = ?1').bind(key).first<{ status: string }>();
       if (duplicate) return result(JSON.parse(native.payload));
       throw new Error('Unable to reserve refund');
     }
@@ -213,30 +329,20 @@ export async function tryNativeAdminWrites(request: Request, env: AdminWriteEnv)
     }
     const secret = (await getNativeStripeSecret(env, 'secretKey', env.STRIPE_SECRET_KEY)).value;
     const form = new URLSearchParams({ payment_intent: intent, amount: String(Math.round(amount * 100)), 'metadata[orderId]': orderId });
-    const stripe = await fetch('https://api.stripe.com/v1/refunds', { method: 'POST', headers: { authorization: `Bearer ${secret}`, 'content-type': 'application/x-www-form-urlencoded', 'idempotency-key': body.idempotencyKey.trim() }, body: form });
+    const stripe = await fetch('https://api.stripe.com/v1/refunds', { method: 'POST', headers: { authorization: `Bearer ${secret}`, 'content-type': 'application/x-www-form-urlencoded', 'idempotency-key': key }, body: form });
     const provider = await stripe.json<{ id?: string; status?: string; error?: { message?: string } }>();
     if (!stripe.ok || !provider.id || (provider.status !== 'succeeded' && provider.status !== 'pending')) {
       await env.DB.prepare("DELETE FROM native_refunds WHERE id = ?1 AND status = 'PENDING'").bind(refundId).run();
       return error(502, 'PAYMENT_REFUND_FAILED', provider.error?.message ?? 'Payment provider rejected the refund');
     }
-    if (provider.status === 'pending') return error(502, 'PAYMENT_REFUND_PENDING', 'Payment provider has not confirmed the refund');
-    const completed = (totalRefunded?.amount ?? 0) + amount;
-    const fullyRefunded = completed + 0.000001 >= metadata.total_amount;
-    Object.assign(order, { paymentStatus: fullyRefunded ? 'REFUNDED' : 'PARTIALLY_REFUNDED', ...(fullyRefunded ? { status: 'REFUNDED' } : {}), updatedAt: now });
-    const statements: D1PreparedStatement[] = [];
-    if (fullyRefunded) {
-      const inventory = await env.DB.prepare('SELECT product_id, variant_id, quantity FROM native_order_items WHERE order_id = ?1').bind(orderId).all<{ product_id: string; variant_id: string; quantity: number }>();
-      statements.push(...inventory.results.map((item) => env.DB.prepare('UPDATE native_inventory SET source_stock = source_stock + ?1, refreshed_at = ?2 WHERE product_id = ?3 AND variant_id = ?4').bind(item.quantity, now, item.product_id, item.variant_id)));
+    if (provider.status === 'pending') {
+      // The provider has taken the refund and confirms it a moment later (that is how a card refund begins).
+      // The refund is kept, with the provider's number on it; the timer asks the provider again and finishes it.
+      await env.DB.prepare("UPDATE native_refunds SET provider_refund_id = ?1 WHERE id = ?2 AND status = 'PENDING'").bind(provider.id, refundId).run();
+      return refundAccepted(JSON.parse(native.payload));
     }
-    statements.push(
-      env.DB.prepare("UPDATE native_refunds SET status = 'COMPLETED', provider_refund_id = ?1, completed_at = ?2 WHERE id = ?3").bind(provider.id, now, refundId),
-      env.DB.prepare('UPDATE native_order_metadata SET payment_status = ?1 WHERE order_id = ?2').bind(fullyRefunded ? 'REFUNDED' : 'PARTIALLY_REFUNDED', orderId),
-      env.DB.prepare('UPDATE native_order_snapshots SET status = ?1, payload = ?2, source_updated_at = ?3 WHERE id = ?4').bind(fullyRefunded ? 'REFUNDED' : native.status, JSON.stringify(order), now, orderId),
-      env.DB.prepare("INSERT INTO native_order_audit (id, order_id, actor_id, action, from_status, to_status, payload, created_at) VALUES (?1, ?2, ?3, 'order.refund', ?4, ?5, ?6, ?7)").bind(crypto.randomUUID(), orderId, admin.id, native.status, fullyRefunded ? 'REFUNDED' : native.status, JSON.stringify({ amount, currency: metadata.currency, providerRefundId: provider.id }), now),
-      env.DB.prepare("INSERT INTO native_checkout_outbox (id, event_type, aggregate_id, payload, created_at) VALUES (?1, 'order.refunded', ?2, ?3, ?4)").bind(crypto.randomUUID(), orderId, JSON.stringify({ id: orderId, orderId, refundId, userId: metadata.user_id, paymentId: payment.id, providerRefundId: provider.id, amount, currency: metadata.currency, fullyRefunded, reason: typeof body.reason === 'string' ? body.reason : null, ...(refundItems ? { items: refundItems } : fullyRefunded ? { items: itemsFrom(order).flatMap((item) => typeof item.id === 'string' && typeof item.quantity === 'number' ? [{ orderItemId: item.id, quantity: item.quantity }] : []) } : {}) }), now),
-    );
-    await env.DB.batch(statements);
-    return result(order);
+    await completeNativeRefund(env, { orderId, refundId, providerRefundId: provider.id, amount, actorId: admin.id, reason, items: refundItems });
+    return result(JSON.parse((await loadNativeOrder(env, orderId))?.payload ?? native.payload));
   }
 
   if (itemMatch) {
