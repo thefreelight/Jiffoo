@@ -760,6 +760,7 @@ body[data-theme=bokmoo] ::selection {
   color: #e5c365;
   font-size: 11px;
   font-weight: 600;
+  line-height: 1rem;
   letter-spacing: 0.025em;
   text-transform: uppercase;
   white-space: nowrap;
@@ -800,7 +801,7 @@ body[data-theme=bokmoo] ::selection {
   color: #d4d4d4;
   font-size: 12px;
   font-weight: 400;
-  line-height: 1.4;
+  line-height: 1.25rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -850,6 +851,7 @@ body[data-theme=bokmoo] ::selection {
   background: rgba(0, 0, 0, 0.7);
   color: #d4d4d4;
   font-size: 12px;
+  line-height: 1rem;
   white-space: nowrap;
 }
 @media (min-width: 1280px) {
@@ -879,6 +881,7 @@ body[data-theme=bokmoo] ::selection {
     monospace;
   font-size: 12px;
   font-weight: 700;
+  line-height: 1rem;
   font-variant-numeric: tabular-nums;
 }
 .bokmoo-campaign-colon {
@@ -916,6 +919,7 @@ body[data-theme=bokmoo] ::selection {
   color: #000;
   font-size: 12px;
   font-weight: 600;
+  line-height: 1.25rem;
   text-decoration: none;
   white-space: nowrap;
   transition:

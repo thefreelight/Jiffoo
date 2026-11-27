@@ -21286,6 +21286,7 @@ body[data-theme='bokmoo'] ::selection {
     color: #e5c365;
     font-size: 11px;
     font-weight: 600;
+    line-height: 1rem;
     letter-spacing: 0.025em;
     text-transform: uppercase;
     white-space: nowrap;
@@ -21328,7 +21329,7 @@ body[data-theme='bokmoo'] ::selection {
     color: #d4d4d4;
     font-size: 12px;
     font-weight: 400;
-    line-height: 1.4;
+    line-height: 1.25rem;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
@@ -21386,6 +21387,7 @@ body[data-theme='bokmoo'] ::selection {
     background: rgba(0, 0, 0, 0.7);
     color: #d4d4d4;
     font-size: 12px;
+    line-height: 1rem;
     white-space: nowrap;
   }
 
@@ -21412,6 +21414,7 @@ body[data-theme='bokmoo'] ::selection {
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
     font-size: 12px;
     font-weight: 700;
+    line-height: 1rem;
     font-variant-numeric: tabular-nums;
   }
 
@@ -21448,6 +21451,7 @@ body[data-theme='bokmoo'] ::selection {
     color: #000;
     font-size: 12px;
     font-weight: 600;
+    line-height: 1.25rem;
     text-decoration: none;
     white-space: nowrap;
     transition: box-shadow 0.15s ease, filter 0.15s ease, transform 0.15s ease;
@@ -21521,6 +21525,7 @@ body[data-theme='bokmoo'] ::selection {
     .bokmoo-campaign-cta, .bokmoo-campaign-close { transition: none; }
   }
 /* <<< Campaign bar end */
+
 
 
 /* \u2500\u2500 Landing stage: CSS-rendered SIM card pedestal (Obsidian Aurum hero) \u2500\u2500 */
