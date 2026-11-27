@@ -12,6 +12,7 @@ import {
   getEsimAffiliatePartner,
   getEsimOrganizationCommissions,
   getEsimAffiliateScreenshot,
+  imageDataUrl,
   registerEsimAffiliatePartner,
   uploadEsimAffiliateScreenshot,
   type EsimAffiliateApplication,
@@ -110,10 +111,11 @@ export const AffiliatePage = React.memo(function AffiliatePage({
     setSignInRequired(partnerCause instanceof EsimApiError && partnerCause.status === 403 && partnerCause.code === 'SIGN_IN_REQUIRED');
     // the screenshot the account sent, in this visit or an earlier one — it belongs to the account, not to one application
     const attached = partnerResult.status === 'fulfilled'
-      ? await getEsimAffiliateScreenshot(api).then((blob) => (blob ? URL.createObjectURL(blob) : null)).catch(() => null)
+      ? await getEsimAffiliateScreenshot(api).catch(() => null)
       : null;
-    setScreenshotAttached(attached);
-    setScreenshotSent(attached !== null);
+    // a screenshot chosen in this visit while this was loading is not undone by an older answer
+    setScreenshotAttached((current) => current ?? attached);
+    setScreenshotSent((current) => current || attached !== null);
     setLoading(false);
   }, [api, isAuthenticated, lang]);
 
@@ -135,7 +137,7 @@ export const AffiliatePage = React.memo(function AffiliatePage({
       await uploadEsimAffiliateScreenshot(api, file);
       setScreenshotSent(true);
       setScreenshotAttached(null);
-      setScreenshotPreview(URL.createObjectURL(file));
+      setScreenshotPreview(await imageDataUrl(file));
     } catch (cause) {
       // only what has words in the shopper's language is passed on as such; anything else is the one sentence
       setScreenshotError(cause instanceof EsimApiError && ['INVALID_FILE_TYPE', 'FILE_TOO_LARGE', 'VALIDATION_ERROR', 'SIGN_IN_REQUIRED'].includes(cause.code)
@@ -322,7 +324,7 @@ export const AffiliatePage = React.memo(function AffiliatePage({
                       </div>
                       {screenshotError ? <p role="alert" data-purpose="screenshot-error" className="mt-2 text-xs leading-5 text-[var(--esim-danger)]">{screenshotError}</p> : null}
                     </div>
-                    <button disabled={loading} className="inline-flex min-h-12 items-center justify-center gap-2 bg-[var(--esim-gold)] px-5 text-sm font-semibold text-[var(--esim-bg)] disabled:opacity-50" type="submit"><Plus className="h-4 w-4" />{loading ? t(AFFILIATE.submitting) : t(AFFILIATE.submitApplication)}</button>
+                    <button disabled={loading || screenshotUploading} className="inline-flex min-h-12 items-center justify-center gap-2 bg-[var(--esim-gold)] px-5 text-sm font-semibold text-[var(--esim-bg)] disabled:opacity-50" type="submit"><Plus className="h-4 w-4" />{loading ? t(AFFILIATE.submitting) : t(AFFILIATE.submitApplication)}</button>
                   </form>
                 )}
               </div>

@@ -830,13 +830,23 @@ export async function uploadBokmooAffiliateScreenshot(config: BokmooApiConfig, f
   throw new BokmooApiError(answered.status, json?.error?.code || 'API_ERROR', json?.error?.message || `Request failed with status ${answered.status}`, json?.error?.requestId);
 }
 
-/** The screenshot the account sent, or null when they sent none. */
-export async function getBokmooAffiliateScreenshot(config: BokmooApiConfig): Promise<Blob | null> {
+/** An image as a data: address. The storefront's content security policy (older builds too) lets data: images show, and not blob: ones. */
+export function imageDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error ?? new Error('The image could not be read'));
+    reader.readAsDataURL(blob);
+  });
+}
+
+/** The screenshot the account sent as a data: address, or null when they sent none. */
+export async function getBokmooAffiliateScreenshot(config: BokmooApiConfig): Promise<string | null> {
   const response = await fetch(`${storefrontSameOriginBase(config.baseUrl.replace(/\/$/, ''))}${affiliateBase}/organizations/applications/screenshot`, {
     headers: { ...affiliateSession(config), Accept: 'image/*' }, cache: 'no-store',
   });
   if (response.status === 404) return null;
-  if (response.ok) return response.blob();
+  if (response.ok) return imageDataUrl(await response.blob());
   const json = await response.json().catch(() => ({}));
   throw new BokmooApiError(response.status, json?.error?.code || 'API_ERROR', json?.error?.message || `Request failed with status ${response.status}`, json?.error?.requestId);
 }

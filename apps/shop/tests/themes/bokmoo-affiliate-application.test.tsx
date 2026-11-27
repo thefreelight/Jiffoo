@@ -39,14 +39,19 @@ type Options = {
   // a guest session (the core answers 403 SIGN_IN_REQUIRED), a screenshot the account sent, and how an upload is answered
   guest?: boolean;
   screenshot?: boolean | null;
-  upload?: { status: number; body: unknown };
+  upload?: { status: number; body: unknown; hold?: boolean };
 };
 
 /** The affiliate endpoints, as the core answers them; `null` is "not found" (404). */
+// upload requests whose answer is held back until a test gives it (module level: the page helper reads them)
+let heldRequests: Array<() => void> = [];
+
 function stubAffiliate(options: Options = {}) {
   // the screenshot goes by XMLHttpRequest, past the storefront's fetch wrapper: a stand-in that records it and answers
   type Sent = { url: string; method: string; body: unknown; file?: File | null; authorization?: string };
   const calls: Sent[] = [];
+  // a request whose answer is held back until the test gives it (`upload: { hold: true }`)
+  heldRequests = [];
   class StandInRequest {
     onload: (() => void) | null = null;
     onerror: (() => void) | null = null;
@@ -62,11 +67,13 @@ function stubAffiliate(options: Options = {}) {
       this.record.file = body instanceof FormData ? (body.get('file') as File | null) : null;
       this.record.authorization = this.authorization;
       const refused = options.upload && options.upload.status >= 400 ? options.upload : null;
-      setTimeout(() => {
+      const answer = () => {
         this.status = refused ? refused.status : 200;
         this.responseText = JSON.stringify(refused ? { success: false, error: refused.body } : { success: true, data: { uploaded: true } });
         this.onload?.();
-      }, 0);
+      };
+      if (options.upload?.hold) { heldRequests.push(answer); return; }
+      setTimeout(answer, 0);
     }
   }
   vi.stubGlobal('XMLHttpRequest', StandInRequest);
@@ -302,7 +309,7 @@ describe('an application asks a creator for a followers screenshot (2026-11-27)'
     const page = renderPage('zh-Hans');
     await openOrganizationTab();
     await waitFor(() => expect(page.container.querySelector(form ? '[data-purpose="application-form"]' : '[data-purpose="application-status"]')).toBeTruthy());
-    return { ...page, calls, uploads: calls };
+    return { ...page, calls, uploads: calls, get held() { return heldRequests; } };
   };
 
   it('the form names the screenshot and says it is optional, in the shopper’s language', async () => {
@@ -332,8 +339,22 @@ describe('an application asks a creator for a followers screenshot (2026-11-27)'
     expect(sent?.file).toBeInstanceOf(File);
     expect((sent!.file as File).type).toBe('image/png');
     expect(sent!.authorization).toBe('Bearer token-of-the-shopper');
+    // the preview is a data: image, which the storefront's content security policy lets show (a blob: one is blocked)
+    expect(container.querySelector('[data-purpose="application-form"] img')?.getAttribute('src')?.startsWith('data:image/png;base64,')).toBe(true);
     expect(screen.getByRole('button', { name: '重新上传' })).toBeTruthy();
     expect(container.querySelector('[data-purpose="screenshot-error"]')).toBeNull();
+  });
+
+  it('while a screenshot is on its way the form cannot be sent; once it has arrived, it can', async () => {
+    const { container, held } = await openTab({ upload: { status: 0, body: null, hold: true } });
+    const submit = () => [...container.querySelectorAll('[data-purpose="application-form"] button[type="submit"]')][0] as HTMLButtonElement;
+    expect(submit().disabled).toBe(false);
+    fireEvent.change(screenshotInput(container), { target: { files: [PNG()] } });
+    await waitFor(() => expect(submit().disabled).toBe(true));
+    expect(container.querySelector('[data-purpose="screenshot-sent"]')).toBeNull();
+    held[0]!();
+    await waitFor(() => expect(container.querySelector('[data-purpose="screenshot-sent"]')?.textContent).toContain('截图已发送'));
+    expect(submit().disabled).toBe(false);
   });
 
   it('what is not a JPEG, PNG, or WebP image, or is over 5 MB, is refused before it leaves the page', async () => {
