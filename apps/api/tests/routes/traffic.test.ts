@@ -13,6 +13,13 @@ vi.mock('@/core/admin/plugin-management/service', async (importOriginal) => ({
   isPluginEnabled: vi.fn(async () => pluginEnabled.value),
 }));
 
+// The API trusts the storefront origins in its CORS list. Pin the list before
+// the environment module loads, so the test does not depend on the
+// environment file of the machine it runs on.
+vi.hoisted(() => {
+  process.env.CORS_ORIGIN = 'https://shop.example.com,https://mall.example.com';
+});
+
 import { systemSettingsService } from '@/core/admin/system-settings/service';
 import { TRAFFIC_SESSION_GAP_MS } from '@/core/traffic/traffic-core';
 import { DEFAULT_TRAFFIC_RULES } from '@/core/traffic/traffic-default-rules';
@@ -154,8 +161,12 @@ describe('traffic on the self-hosted line: what a beacon must look like', () => 
     expect((await beacon(pageview(), { origin: '' })).statusCode).toBe(403);
     expect((await beacon(pageview(), { 'sec-fetch-site': 'cross-site' })).statusCode).toBe(403);
     expect((await beacon(pageview(), { 'x-forwarded-host': 'evil.example' })).statusCode).toBe(403);
-    // A storefront the API already serves across origins is trusted by its origin alone.
-    expect((await beacon(pageview(), { origin: 'http://localhost:3000', 'x-forwarded-host': '', 'sec-fetch-site': 'cross-site' })).statusCode).toBe(204);
+    // A storefront the API already serves across origins is trusted by its origin alone, wherever on the list it is.
+    for (const trustedOrigin of ['https://shop.example.com', 'https://mall.example.com']) {
+      expect((await beacon(pageview(), { origin: trustedOrigin, 'x-forwarded-host': '', 'sec-fetch-site': 'cross-site' })).statusCode).toBe(204);
+    }
+    // A storefront on another site that is not on the list is not.
+    expect((await beacon(pageview(), { origin: 'https://stranger.example', 'x-forwarded-host': '', 'sec-fetch-site': 'cross-site' })).statusCode).toBe(403);
     resetTrafficCaches();
     await prisma.trafficSession.deleteMany();
     // A storefront that calls the API directly is trusted by its origin alone.

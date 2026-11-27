@@ -68,6 +68,14 @@ const publicMetadata = (summary: string) => ({
   summary,
 });
 
+// The security declaration is what tells the OpenAPI contract (and anyone
+// reading the document) that these routes answer only to a signed-in admin.
+const adminMetadata = (summary: string) => ({
+  tags: ['traffic'],
+  summary,
+  security: [{ bearerAuth: [] }],
+});
+
 const trafficPublicRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/config', { schema: publicMetadata('Is storefront traffic collection on?') }, async (_request, reply) => {
     return reply.header('cache-control', 'no-store').send({
@@ -128,13 +136,13 @@ const writeTrafficRules = {
 };
 
 const trafficAdminRoutes: FastifyPluginAsync = async (fastify) => {
-  fastify.get('/report', { ...readTraffic, schema: publicMetadata('Traffic figures, daily series and channels') }, async (request, reply) => {
+  fastify.get('/report', { ...readTraffic, schema: adminMetadata('Traffic figures, daily series and channels') }, async (request, reply) => {
     const query = parseTrafficReportQuery(new URLSearchParams(request.query as Record<string, string>));
     if (query === null) return sendError(reply, 400, 'VALIDATION_ERROR', 'The report query is not valid');
     return sendSuccess(reply, await trafficReport(query));
   });
 
-  fastify.get('/breakdown', { ...readTraffic, schema: publicMetadata('Visits grouped by one acquisition dimension') }, async (request, reply) => {
+  fastify.get('/breakdown', { ...readTraffic, schema: adminMetadata('Visits grouped by one acquisition dimension') }, async (request, reply) => {
     const params = new URLSearchParams(request.query as Record<string, string>);
     const query = parseTrafficReportQuery(params);
     const dimension = params.get('dim') ?? params.get('dimension');
@@ -144,14 +152,14 @@ const trafficAdminRoutes: FastifyPluginAsync = async (fastify) => {
     return sendSuccess(reply, await trafficBreakdown(query, dimension));
   });
 
-  fastify.get('/rules', { ...readTraffic, schema: publicMetadata('The channel lists in force') }, async (_request, reply) => {
+  fastify.get('/rules', { ...readTraffic, schema: adminMetadata('The channel lists in force') }, async (_request, reply) => {
     return sendSuccess(reply, { ...(await loadTrafficRules()), channels: TRAFFIC_CHANNELS });
   });
 
   fastify.put('/rules', {
     ...writeTrafficRules,
     bodyLimit: TRAFFIC_RULES_MAX_BYTES,
-    schema: publicMetadata('Replace the channel lists'),
+    schema: adminMetadata('Replace the channel lists'),
   }, async (request, reply) => {
     const body: unknown = typeof request.body === 'string' ? parseJson(request.body) : request.body;
     const rules = parseTrafficRules(body);
