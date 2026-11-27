@@ -4,6 +4,7 @@ import { apiClient } from '@/lib/api';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { WorkspaceCard, workspaceOutlineButtonClass } from '@/components/plugins/plugin-workspace-ui';
+import { useWorkspaceText } from '@/components/plugins/use-workspace-text';
 import { toast } from 'sonner';
 
 interface ConnectorDefinition {
@@ -44,6 +45,7 @@ const AUTH_TONES: Record<string, string> = {
 
 export function RemoteRadarJobsNativeWorkspace(props: { installationId: string; disabled?: boolean }) {
   const { disabled } = props;
+  const tf = useWorkspaceText();
   const [connectors, setConnectors] = useState<ConnectorDefinition[]>([]);
   const [sources, setSources] = useState<SourceRow[]>([]);
   const [stats, setStats] = useState<StatsRow | null>(null);
@@ -76,18 +78,18 @@ export function RemoteRadarJobsNativeWorkspace(props: { installationId: string; 
       const sourceData = unwrap<{ sources?: SourceRow[] }>(sourceResponse);
       const statsData = unwrap<StatsRow>(statsResponse);
       if (!connectorData?.connectors || !sourceData?.sources) {
-        throw new Error(connectorData?.error?.message || sourceData?.error?.message || 'Failed to load job sources');
+        throw new Error(connectorData?.error?.message || sourceData?.error?.message || tf('jobs.loadFailed', 'Failed to load job sources'));
       }
       setConnectors(connectorData.connectors || []);
       setSources(sourceData.sources || []);
       setStats(statsData?.activeTotal != null ? statsData : null);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to load RemoteRadar jobs administration.';
+      const message = error instanceof Error ? error.message : tf('jobs.loadFailedAdmin', 'Failed to load RemoteRadar jobs administration.');
       toast.error(message);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [tf]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -95,28 +97,26 @@ export function RemoteRadarJobsNativeWorkspace(props: { installationId: string; 
     <div className="space-y-6">
       <WorkspaceCard
         icon={<Radar className="h-6 w-6" />}
-        title="RemoteRadar job sources"
-        description="Connector health, authorized sources, and sync status read from the RemoteRadar jobs plugin through the protected admin proxy."
+        title={tf('jobs.title', 'RemoteRadar job sources')}
+        description={tf('jobs.description', 'Connector health, authorized sources, and sync status read from the RemoteRadar jobs plugin through the protected admin proxy.')}
         actions={
           <Button variant="outline" className={workspaceOutlineButtonClass} onClick={() => void load()} disabled={loading || disabled}>
-            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-            Refresh
-          </Button>
+            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}{tf('jobs.refresh', 'Refresh')}</Button>
         }
       >
         <div className="space-y-6">
           {stats ? (
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="rounded-lg border border-slate-200 p-4">
-                <p className="text-sm text-slate-500">Active jobs</p>
+                <p className="text-sm text-slate-500">{tf('jobs.stat.activeJobs', 'Active jobs')}</p>
                 <p className="text-2xl font-semibold text-slate-900">{stats.activeTotal}</p>
               </div>
               <div className="rounded-lg border border-slate-200 p-4">
-                <p className="text-sm text-slate-500">New today</p>
+                <p className="text-sm text-slate-500">{tf('jobs.stat.newToday', 'New today')}</p>
                 <p className="text-2xl font-semibold text-slate-900">{stats.todayNew}</p>
               </div>
               <div className="rounded-lg border border-slate-200 p-4">
-                <p className="text-sm text-slate-500">Last sync</p>
+                <p className="text-sm text-slate-500">{tf('jobs.stat.lastSync', 'Last sync')}</p>
                 <p className="text-sm font-medium text-slate-900">
                   {stats.lastSyncedAt ? new Date(stats.lastSyncedAt).toLocaleString() : 'Never'}
                 </p>
@@ -125,7 +125,7 @@ export function RemoteRadarJobsNativeWorkspace(props: { installationId: string; 
           ) : null}
 
           <div className="space-y-2">
-            <p className="text-sm font-semibold text-slate-900">Available connectors</p>
+            <p className="text-sm font-semibold text-slate-900">{tf('jobs.connectors.title', 'Available connectors')}</p>
             <div className="flex flex-wrap gap-2">
               {connectors.map((connector) => (
                 <Badge key={connector.id} variant="secondary" className="rounded-md px-2.5 py-1">
@@ -133,22 +133,22 @@ export function RemoteRadarJobsNativeWorkspace(props: { installationId: string; 
                 </Badge>
               ))}
               {!loading && connectors.length === 0 ? (
-                <p className="text-sm text-slate-500">No connectors are registered.</p>
+                <p className="text-sm text-slate-500">{tf('jobs.connectors.empty', 'No connectors are registered.')}</p>
               ) : null}
             </div>
           </div>
 
           <div className="space-y-2">
-            <p className="text-sm font-semibold text-slate-900">Authorized sources</p>
+            <p className="text-sm font-semibold text-slate-900">{tf('jobs.sources.title', 'Authorized sources')}</p>
             <div className="overflow-hidden rounded-lg border border-slate-200">
               <table className="w-full text-sm">
                 <thead className="bg-slate-50 text-left text-slate-500">
                   <tr>
-                    <th className="px-4 py-2.5 font-medium">Source</th>
-                    <th className="px-4 py-2.5 font-medium">Connector</th>
-                    <th className="px-4 py-2.5 font-medium">Authorization</th>
-                    <th className="px-4 py-2.5 font-medium">Active</th>
-                    <th className="px-4 py-2.5 font-medium">Updated</th>
+                    <th className="px-4 py-2.5 font-medium">{tf('jobs.sources.source', 'Source')}</th>
+                    <th className="px-4 py-2.5 font-medium">{tf('jobs.sources.connector', 'Connector')}</th>
+                    <th className="px-4 py-2.5 font-medium">{tf('jobs.sources.authorization', 'Authorization')}</th>
+                    <th className="px-4 py-2.5 font-medium">{tf('jobs.sources.active', 'Active')}</th>
+                    <th className="px-4 py-2.5 font-medium">{tf('jobs.sources.updated', 'Updated')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -175,9 +175,7 @@ export function RemoteRadarJobsNativeWorkspace(props: { installationId: string; 
                   ))}
                   {!loading && sources.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-4 py-6 text-center text-slate-500">
-                        No sources are registered yet.
-                      </td>
+                      <td colSpan={5} className="px-4 py-6 text-center text-slate-500">{tf('jobs.sources.empty', 'No sources are registered yet.')}</td>
                     </tr>
                   ) : null}
                 </tbody>

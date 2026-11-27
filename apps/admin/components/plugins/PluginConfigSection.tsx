@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils';
 import {
   getDescriptorType,
   getConfigFieldLabel,
+  getConfigFieldPlaceholder,
   type PluginConfigSchema,
 } from '@/components/plugins/plugin-config-utils';
 import {
@@ -171,7 +172,7 @@ export function PluginConfigSection(props: {
                 type={isSecret ? 'password' : 'text'}
                 value={value == null ? '' : String(value)}
                 onChange={(event) => onUpdateField(field, event.target.value)}
-                placeholder={isSecret && secretConfigured ? secretStoredPlaceholder : descriptor?.placeholder}
+                placeholder={isSecret && secretConfigured ? secretStoredPlaceholder : getConfigFieldPlaceholder(slug, locale, field, descriptor)}
                 autoComplete="off"
                 spellCheck={false}
                 className={cn(workspaceInputClass, isSecret && secretConfigured && 'bg-gray-50/50')}

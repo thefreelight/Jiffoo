@@ -4,7 +4,7 @@
  * read it the same way for readiness checks, draft seeding, and field labels.
  */
 
-import { localizePluginConfigLabel } from '@/lib/extension-catalog-zh';
+import { localizePluginConfigLabel, localizePluginConfigPlaceholder } from '@/lib/extension-catalog-zh';
 import type { PluginConfigMeta } from '@/lib/types';
 
 export type PluginConfigDescriptor = {
@@ -40,6 +40,16 @@ export function getConfigFieldLabel(
 ): string {
   const fallback = descriptor?.label || field;
   return localizePluginConfigLabel(slug, field, fallback, locale);
+}
+
+/** The hint inside an empty settings field, in the store's language. */
+export function getConfigFieldPlaceholder(
+  slug: string,
+  locale: string,
+  field: string,
+  descriptor: PluginConfigDescriptor | undefined,
+): string | undefined {
+  return localizePluginConfigPlaceholder(slug, field, descriptor?.placeholder ?? '', locale) || undefined;
 }
 
 export function buildJsonFieldDrafts(

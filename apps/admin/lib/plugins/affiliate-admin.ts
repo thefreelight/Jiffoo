@@ -19,9 +19,16 @@ export function scopeProductIdsOf(value: unknown): string[] {
   return Array.isArray(value) ? value.map(String) : [];
 }
 
-export function affiliateScopeSummary(mode: AffiliateScopeMode, productIds: string[]): string {
-  if (mode === 'all') return 'All products';
-  return mode === 'selected' ? `Only ${productIds.length} picked` : `All but ${productIds.length}`;
+/** Says what a code applies to in the store's language; without a translator (a test) it says it in English. */
+export type AffiliateText = (key: string, fallback: string, params?: Record<string, string | number>) => string;
+const english: AffiliateText = (_key, fallback, params) =>
+  (params ? Object.entries(params).reduce((text, [name, value]) => text.replace(new RegExp(`\\{${name}\\}`, 'g'), String(value)), fallback) : fallback);
+
+export function affiliateScopeSummary(mode: AffiliateScopeMode, productIds: string[], text: AffiliateText = english): string {
+  if (mode === 'all') return text('affiliate.scope.summaryAll', 'All products');
+  return mode === 'selected'
+    ? text('affiliate.scope.summarySelected', 'Only {count} picked', { count: productIds.length })
+    : text('affiliate.scope.summaryExcept', 'All but {count}', { count: productIds.length });
 }
 
 /** A card that is shipped: `goods` in the catalog, or anything marked as needing shipping. */
@@ -62,14 +69,15 @@ export function toggleGroup(productIds: string[], products: AffiliateScopeProduc
 /** The request that opens an organization: the owner is an account id, or the e-mail of an account. */
 export function newOrganizationPayload(
   input: { name: string; owner: string; rate: string },
+  text: AffiliateText = english,
 ): { payload: { name: string; ownerUserId?: string; ownerEmail?: string; commissionRate: number } } | { error: string } {
   const name = input.name.trim();
   const owner = input.owner.trim();
   const rate = Number(input.rate);
-  if (name.length < 2) return { error: 'Give the organization a name of at least two characters.' };
-  if (!owner) return { error: 'Give the organization its owner: an account id or an e-mail address.' };
+  if (name.length < 2) return { error: text('affiliate.error.nameTooShort', 'Give the organization a name of at least two characters.') };
+  if (!owner) return { error: text('affiliate.error.ownerRequired', 'Give the organization its owner: an account id or an e-mail address.') };
   // an emptied field is not a rate of zero
-  if (!input.rate.trim() || !Number.isFinite(rate) || rate < 0 || rate > 90) return { error: 'The organization rate must be between 0 and 90.' };
+  if (!input.rate.trim() || !Number.isFinite(rate) || rate < 0 || rate > 90) return { error: text('affiliate.error.organizationRate', 'The organization rate must be between 0 and 90.') };
   return { payload: { name, ...(owner.includes('@') ? { ownerEmail: owner.toLowerCase() } : { ownerUserId: owner }), commissionRate: rate } };
 }
 
