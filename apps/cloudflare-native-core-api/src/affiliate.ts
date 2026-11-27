@@ -888,6 +888,11 @@ export interface NativeAffiliateSettlementResult {
   organization: NativeOrganizationCommissionResult | null;
 }
 
+/** A line of an eSIM plan: the plan seller's products are the ones whose id it names. */
+function isEsimPlanLine(item: Record<string, unknown>): boolean {
+  return typeof item.productId === 'string' && item.productId.startsWith('boss-');
+}
+
 /** Whether this account arrived through the link of someone other than the organization's owner. */
 async function referredByAnotherMember(env: AffiliateDataEnv, input: { userId?: string | null; ownerId?: string | null }): Promise<boolean> {
   if (!input.userId || !input.ownerId) return false;
@@ -904,6 +909,21 @@ export async function createNativeAffiliateCommission(env: AffiliateDataEnv, ord
   const orderId = typeof order.id === 'string' ? order.id : null;
   let amount = typeof order.totalAmount === 'number' ? order.totalAmount : 0;
   if (!userId || !orderId || amount <= 0) return null;
+  const lines = Array.isArray(order.items) ? order.items as Array<Record<string, unknown>> : [];
+  // eSIM plans earn nothing, for the partner or the organization: the lines
+  // the plan seller handles (their product ids say so, as in the order
+  // pipeline) leave the base. An order's discounts are taken off its total,
+  // so in a mixed order each line keeps its share of the total in proportion
+  // to what it sold for.
+  const sold = (item: Record<string, unknown>) => Number(item.unitPrice || 0) * Number(item.quantity || 0);
+  const earning = lines.filter((item) => !isEsimPlanLine(item));
+  const earningGross = earning.reduce((sum, item) => sum + sold(item), 0);
+  const orderGross = lines.reduce((sum, item) => sum + sold(item), 0);
+  if (orderGross > 0 && earningGross < orderGross) {
+    if (earningGross <= 0) return null;
+    amount = cents(amount * (earningGross / orderGross));
+    if (amount <= 0) return null;
+  }
   // A promo code used at checkout attributes the order directly, even when
   // the buyer never registered through a referral link.
   const promoPartner = await env.DB.prepare(
@@ -936,10 +956,9 @@ export async function createNativeAffiliateCommission(env: AffiliateDataEnv, ord
   const scopeMode = affiliateScopeMode(row.scope_mode);
   if (scopeMode !== 'all') {
     const scope = affiliateScopeOf(scopeMode, await scopeProductIds(env, attribution.partner_id));
-    const items = Array.isArray(order.items) ? order.items as Array<Record<string, unknown>> : [];
-    const gross = items
+    const gross = earning
       .filter((item) => typeof item.productId === 'string' && affiliateScopeAllows(scope, item.productId))
-      .reduce((sum, item) => sum + Number(item.unitPrice || 0) * Number(item.quantity || 0), 0);
+      .reduce((sum, item) => sum + sold(item), 0);
     const discounts = Array.isArray(order.appliedDiscounts) ? order.appliedDiscounts as Array<Record<string, unknown>> : [];
     const codeDiscount = discounts.find((discount) => discount.kind === 'affiliate');
     const codePartnerId = typeof codeDiscount?.id === 'string' ? codeDiscount.id : null;

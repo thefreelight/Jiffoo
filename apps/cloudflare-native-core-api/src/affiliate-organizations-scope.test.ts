@@ -560,3 +560,47 @@ describe('the checkout prices a code on the products it reaches', () => {
     expect(db.metadataInserts[0]!.slice(5)).toEqual(['partner-1', null]);
   });
 });
+
+describe('eSIM plans earn nothing', () => {
+  const card = { productId: 'card', unitPrice: 40, quantity: 1 };
+  const plan = { productId: 'boss-HKMO-1GB-7D', unitPrice: 10, quantity: 1 };
+  const code = { kind: 'affiliate', id: 'partner-1', amount: 5 };
+  const attributed = (partners: Row[], scope: Row[] = []) => {
+    const db = fakeDb({ partners, scope });
+    db.state.attributions.push({ user_id: 'user-2', partner_id: 'partner-1', status: 'associated' });
+    return db;
+  };
+
+  it('nothing at all when the order holds nothing but plans', async () => {
+    const db = attributed([PARTNER]);
+    expect(await createNativeAffiliateCommission(envOf(db), { id: 'order-3', userId: 'user-2', totalAmount: 10, items: [plan] })).toBeNull();
+    expect(db.state.commissions).toEqual([]);
+  });
+
+  it('the card’s share of a mixed order, the order’s discount shared by what each line sold for', async () => {
+    const db = attributed([PARTNER]);
+    // $40 card + $10 plan, $5 off the order: $45 paid, of which the card’s part is 45 × 40 / 50 = $36.
+    const result = await createNativeAffiliateCommission(envOf(db), {
+      id: 'order-4', userId: 'user-2', totalAmount: 45, discountAmount: 5, appliedDiscounts: [code], items: [card, plan],
+    });
+    expect(result?.partner).toMatchObject({ amount: 3.6 });
+    expect(db.state.commissions[0]).toMatchObject({ order_amount: 36, amount: 3.6, commission_rate: 10 });
+  });
+
+  it('a limited code earns on its products among the rest, less the discount it gave', async () => {
+    const db = attributed([{ ...PARTNER, scope_mode: 'selected' }], [{ partner_id: 'partner-1', product_id: 'card' }, { partner_id: 'partner-1', product_id: plan.productId }]);
+    const result = await createNativeAffiliateCommission(envOf(db), {
+      id: 'order-5', userId: 'user-2', totalAmount: 45, discountAmount: 5, appliedDiscounts: [code], items: [card, plan],
+    });
+    // The plan is in the code’s reach and still earns nothing: the $40 card, less the $5.
+    expect(result?.partner).toMatchObject({ amount: 3.5 });
+  });
+
+  it('the organization’s share leaves the plans out too', async () => {
+    const db = attributed([{ ...PARTNER, organization_id: 'org-1' }]);
+    db.state.orgs.push({ id: 'org-1', owner_user_id: 'user-1', code: 'ORG-1', name: 'Crew', status: 'active', commission_rate: 2, currency: 'USD', created_at: '', updated_at: '' });
+    const result = await createNativeAffiliateCommission(envOf(db), { id: 'order-6', userId: 'user-2', totalAmount: 50, items: [card, plan] });
+    expect(result?.partner).toMatchObject({ amount: 4 });
+    expect(result?.organization).toMatchObject({ amount: 0.8, beneficiaryUserId: 'user-1' });
+  });
+});
