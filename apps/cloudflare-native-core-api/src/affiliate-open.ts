@@ -76,11 +76,28 @@ export async function joinReferrerOrganization(
   env: AffiliateOpenEnv,
   input: { user: AffiliateOpenUser; referrerPartnerId: string },
 ): Promise<ReferrerJoin> {
-  const referrer = await env.DB.prepare('SELECT organization_id FROM native_affiliate_partners WHERE id = ?1')
-    .bind(input.referrerPartnerId).first<{ organization_id: string | null }>();
-  if (!referrer?.organization_id) return 'none';
+  const referrer = await env.DB.prepare('SELECT organization_id, user_id FROM native_affiliate_partners WHERE id = ?1')
+    .bind(input.referrerPartnerId).first<{ organization_id: string | null; user_id: string }>();
+  if (!referrer) return 'none';
+  // A partner whose account is in an organization is in it, even when the account was opened before the
+  // two were tied together: the account decides, and the partner's row is brought up to date.
+  let organizationId = referrer.organization_id;
+  if (!organizationId) {
+    const own = await env.DB.prepare(
+      `SELECT organizations.id FROM native_affiliate_organizations organizations
+       LEFT JOIN native_affiliate_org_members members
+         ON members.organization_id = organizations.id AND members.user_id = ?1 AND members.status = 'active'
+       WHERE organizations.status = 'active'
+         AND (organizations.owner_user_id = ?1 OR members.user_id IS NOT NULL)
+       ORDER BY organizations.created_at DESC LIMIT 1`,
+    ).bind(referrer.user_id).first<{ id: string }>();
+    if (!own) return 'none';
+    organizationId = own.id;
+    await env.DB.prepare('UPDATE native_affiliate_partners SET organization_id = ?1, updated_at = CURRENT_TIMESTAMP WHERE id = ?2')
+      .bind(organizationId, input.referrerPartnerId).run();
+  }
   const organization = await env.DB.prepare("SELECT owner_user_id FROM native_affiliate_organizations WHERE id = ?1 AND status = 'active'")
-    .bind(referrer.organization_id).first<{ owner_user_id: string }>();
+    .bind(organizationId).first<{ owner_user_id: string }>();
   // the owner is not a member of their own organization
   if (!organization || organization.owner_user_id === input.user.id) return 'none';
   const membership = await env.DB.prepare("SELECT id FROM native_affiliate_org_members WHERE user_id = ?1 AND status = 'active' LIMIT 1")
@@ -94,10 +111,10 @@ export async function joinReferrerOrganization(
       env.DB.prepare(
         `INSERT INTO native_affiliate_org_members (id, organization_id, user_id, role, status, joined_at)
          VALUES (?1, ?2, ?3, 'INFLUENCER', 'active', ?4)`,
-      ).bind(crypto.randomUUID(), referrer.organization_id, input.user.id, now),
+      ).bind(crypto.randomUUID(), organizationId, input.user.id, now),
       env.DB.prepare(
         `UPDATE native_affiliate_partners SET organization_id = ?1, member_role = 'INFLUENCER', updated_at = ?2 WHERE id = ?3`,
-      ).bind(referrer.organization_id, now, partnerId),
+      ).bind(organizationId, now, partnerId),
     ]);
   } catch {
     // two requests raced: the account is a member by now
