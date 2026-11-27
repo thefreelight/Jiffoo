@@ -186,6 +186,9 @@ export interface BokmooAffiliateOrganization {
   commissionRate: number;
   currency: string;
   members: BokmooAffiliateMember[];
+  // who is asking, and whether they manage the members (an older core says nothing, and means the owner)
+  viewerRole?: string;
+  canManageMembers?: boolean;
 }
 
 export interface BokmooInstructionSet {
@@ -792,4 +795,32 @@ export async function addBokmooAffiliateMember(
 export async function getBokmooOrganizationCommissions(config: BokmooApiConfig): Promise<BokmooAffiliateCommission[]> {
   const result = await request<{ items: BokmooAffiliateCommission[] }>(config, `${affiliateBase}/organizations/commissions`);
   return result.items || [];
+}
+
+function affiliateSession(config: BokmooApiConfig): Record<string, string> {
+  const token = config.token === undefined ? getClientToken() : config.token;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+/** Sends the screenshot of the follower counts that goes with an application to open an organization. One per account. */
+export async function uploadBokmooAffiliateScreenshot(config: BokmooApiConfig, file: Blob): Promise<void> {
+  const form = new FormData();
+  form.append('file', file, 'followers');
+  const response = await fetch(`${storefrontSameOriginBase(config.baseUrl.replace(/\/$/, ''))}${affiliateBase}/organizations/applications/screenshot`, {
+    method: 'POST', headers: affiliateSession(config), body: form, cache: 'no-store',
+  });
+  if (response.ok) return;
+  const json = await response.json().catch(() => ({}));
+  throw new BokmooApiError(response.status, json?.error?.code || 'API_ERROR', json?.error?.message || `Request failed with status ${response.status}`, json?.error?.requestId);
+}
+
+/** The screenshot the account sent, or null when they sent none. */
+export async function getBokmooAffiliateScreenshot(config: BokmooApiConfig): Promise<Blob | null> {
+  const response = await fetch(`${storefrontSameOriginBase(config.baseUrl.replace(/\/$/, ''))}${affiliateBase}/organizations/applications/screenshot`, {
+    headers: { ...affiliateSession(config), Accept: 'image/*' }, cache: 'no-store',
+  });
+  if (response.status === 404) return null;
+  if (response.ok) return response.blob();
+  const json = await response.json().catch(() => ({}));
+  throw new BokmooApiError(response.status, json?.error?.code || 'API_ERROR', json?.error?.message || `Request failed with status ${response.status}`, json?.error?.requestId);
 }

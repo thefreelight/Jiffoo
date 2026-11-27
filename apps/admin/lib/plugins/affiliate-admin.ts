@@ -1,3 +1,4 @@
+import { getApiServiceBaseUrl } from 'shared';
 import type { AffiliateScope, AffiliateScopeMode } from '@/lib/hooks/use-api';
 
 /**
@@ -70,4 +71,16 @@ export function newOrganizationPayload(
   // an emptied field is not a rate of zero
   if (!input.rate.trim() || !Number.isFinite(rate) || rate < 0 || rate > 90) return { error: 'The organization rate must be between 0 and 90.' };
   return { payload: { name, ...(owner.includes('@') ? { ownerEmail: owner.toLowerCase() } : { ownerUserId: owner }), commissionRate: rate } };
+}
+
+/** Where the screenshot of an applicant's follower counts is read, with the administrator's session. */
+export function affiliateScreenshotUrl(id: string): string {
+  const base = String(getApiServiceBaseUrl() || '').replace(/\/$/, '');
+  return `${base}/extensions/plugin/affiliate/api/admin/applications/${encodeURIComponent(id)}/screenshot`;
+}
+
+/** What the store's answer about that screenshot means for the page. */
+export function screenshotOutcome(status: number): 'shown' | 'none' | 'failed' {
+  if (status === 404) return 'none';
+  return status >= 200 && status < 300 ? 'shown' : 'failed';
 }

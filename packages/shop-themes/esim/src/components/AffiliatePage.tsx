@@ -11,7 +11,9 @@ import {
   getEsimAffiliateOrganization,
   getEsimAffiliatePartner,
   getEsimOrganizationCommissions,
+  getEsimAffiliateScreenshot,
   registerEsimAffiliatePartner,
+  uploadEsimAffiliateScreenshot,
   type EsimAffiliateApplication,
   type EsimAffiliateCommission,
   type EsimAffiliateOrganization,
@@ -65,6 +67,15 @@ export const AffiliatePage = React.memo(function AffiliatePage({
   const [organizationCode, setOrganizationCode] = React.useState('');
   const [memberEmail, setMemberEmail] = React.useState('');
   const [memberRole, setMemberRole] = React.useState<'INFLUENCER' | 'MANAGER'>('INFLUENCER');
+  // A guest session — checking out without an account — has no partner account: the core asks for a sign-in.
+  const [signInRequired, setSignInRequired] = React.useState(false);
+  // the screenshot of the follower counts that goes with an application
+  const screenshotInput = React.useRef<HTMLInputElement | null>(null);
+  const [screenshotSent, setScreenshotSent] = React.useState(false);
+  const [screenshotUploading, setScreenshotUploading] = React.useState(false);
+  const [screenshotError, setScreenshotError] = React.useState('');
+  const [screenshotPreview, setScreenshotPreview] = React.useState<string | null>(null);
+  const [screenshotAttached, setScreenshotAttached] = React.useState<string | null>(null);
 
   const refresh = React.useCallback(async () => {
     if (!isAuthenticated) return;
@@ -84,17 +95,25 @@ export const AffiliatePage = React.memo(function AffiliatePage({
     if (partnerResult.status === 'fulfilled') {
       setPartner(partnerResult.value[0]);
       setCommissions(partnerResult.value[1]);
-    } else if (!(partnerResult.reason instanceof EsimApiError && partnerResult.reason.status === 404)) {
+    } else if (!(partnerResult.reason instanceof EsimApiError && (partnerResult.reason.status === 404 || partnerResult.reason.code === 'SIGN_IN_REQUIRED'))) {
       setError(partnerResult.reason instanceof EsimApiError ? affiliateErrorText(lang, partnerResult.reason) : t(AFFILIATE.loadFailed));
     }
     if (organizationResult.status === 'fulfilled') {
       setOrganization(organizationResult.value[0]);
       setOrganizationCommissions(organizationResult.value[1]);
-    } else if (!(organizationResult.reason instanceof EsimApiError && organizationResult.reason.status === 404)) {
+    } else if (!(organizationResult.reason instanceof EsimApiError && (organizationResult.reason.status === 404 || organizationResult.reason.code === 'SIGN_IN_REQUIRED'))) {
       setError(organizationResult.reason instanceof EsimApiError ? affiliateErrorText(lang, organizationResult.reason) : t(AFFILIATE.loadFailed));
     }
     // An older core knows no applications: the form is then shown, and its answer explains.
     if (applicationResult.status === 'fulfilled') setApplication(applicationResult.value);
+    const partnerCause = partnerResult.status === 'rejected' ? partnerResult.reason : null;
+    setSignInRequired(partnerCause instanceof EsimApiError && partnerCause.status === 403 && partnerCause.code === 'SIGN_IN_REQUIRED');
+    // the screenshot the account sent with an application, if they sent one
+    const attached = applicationResult.status === 'fulfilled' && applicationResult.value
+      ? await getEsimAffiliateScreenshot(api).then((blob) => (blob ? URL.createObjectURL(blob) : null)).catch(() => null)
+      : null;
+    setScreenshotAttached(attached);
+    setScreenshotSent(attached !== null);
     setLoading(false);
   }, [api, isAuthenticated, lang]);
 
@@ -106,13 +125,34 @@ export const AffiliatePage = React.memo(function AffiliatePage({
     else setError(fallback);
   };
 
+  const sendScreenshot = async (file: File | undefined) => {
+    if (!file) return;
+    setScreenshotError('');
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { setScreenshotError(affiliateErrorText(lang, { code: 'INVALID_FILE_TYPE' })); return; }
+    if (file.size > 5 * 1024 * 1024) { setScreenshotError(affiliateErrorText(lang, { code: 'FILE_TOO_LARGE' })); return; }
+    setScreenshotUploading(true);
+    try {
+      await uploadEsimAffiliateScreenshot(api, file);
+      setScreenshotSent(true);
+      setScreenshotAttached(null);
+      setScreenshotPreview(URL.createObjectURL(file));
+    } catch (cause) {
+      // only what has words in the shopper's language is passed on as such; anything else is the one sentence
+      setScreenshotError(cause instanceof EsimApiError && ['INVALID_FILE_TYPE', 'FILE_TOO_LARGE', 'VALIDATION_ERROR', 'SIGN_IN_REQUIRED'].includes(cause.code)
+        ? affiliateErrorText(lang, cause) : t(AFFILIATE.screenshotFailed));
+    } finally {
+      setScreenshotUploading(false);
+    }
+  };
+
   if (isLoading) return <div className="min-h-screen bg-[var(--esim-bg)]" />;
-  if (!isAuthenticated) {
+  if (!isAuthenticated || signInRequired) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[var(--esim-bg)] px-5">
         <div className="max-w-md border-y border-[var(--esim-line)] py-10 text-center">
           <WalletCards className="mx-auto h-7 w-7 text-[var(--esim-gold)]" />
           <h1 className="mt-5 text-3xl text-[var(--esim-ink)]">{t(AFFILIATE.signInTitle)}</h1>
+          {signInRequired ? <p className="mt-4 max-w-sm text-sm leading-6 text-[var(--esim-copy)]">{t(AFFILIATE.signInRequired)}</p> : null}
           <button onClick={onNavigateToLogin} className="mt-7 min-h-11 bg-[var(--esim-gold)] px-6 text-sm font-semibold text-[var(--esim-bg)]" type="button">{t(AFFILIATE.signIn)}</button>
         </div>
       </div>
@@ -198,12 +238,15 @@ export const AffiliatePage = React.memo(function AffiliatePage({
                       <div><p className="text-sm text-[var(--esim-copy-soft)]">{organization.code}</p><h2 className="mt-2 text-2xl text-[var(--esim-ink)]">{organization.name}</h2></div>
                       <div className="text-right"><p className="text-2xl font-semibold text-[var(--esim-ink)]">{money(organizationCommissions)}</p><p className="text-xs text-[var(--esim-copy-soft)]">{fill(t(AFFILIATE.organizationRate), { rate: organization.commissionRate })}</p></div>
                     </div>
-                    <form onSubmit={async (event) => { event.preventDefault(); setLoading(true); setError(''); try { await addEsimAffiliateMember(api, organization.id, { email: memberEmail, role: memberRole }); setMemberEmail(''); await refresh(); } catch (cause) { sayError(cause, t(AFFILIATE.memberFailed)); } finally { setLoading(false); } }} className="mt-7 flex flex-col gap-3 sm:flex-row">
+                    <form style={organization.canManageMembers === false ? { display: 'none' } : undefined} onSubmit={async (event) => { event.preventDefault(); setLoading(true); setError(''); try { await addEsimAffiliateMember(api, organization.id, { email: memberEmail, role: memberRole }); setMemberEmail(''); await refresh(); } catch (cause) { sayError(cause, t(AFFILIATE.memberFailed)); } finally { setLoading(false); } }} className="mt-7 flex flex-col gap-3 sm:flex-row">
                       <input type="email" value={memberEmail} onChange={(event) => setMemberEmail(event.target.value)} placeholder={t(AFFILIATE.memberEmail)} aria-label={t(AFFILIATE.memberEmail)} required className="h-11 min-w-0 flex-1 border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-4 text-sm text-[var(--esim-ink)] outline-none" />
                       <select value={memberRole} onChange={(event) => setMemberRole(event.target.value as 'INFLUENCER' | 'MANAGER')} aria-label={t(AFFILIATE.members)} className="h-11 border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-3 text-sm text-[var(--esim-ink)]"><option value="INFLUENCER">{t(AFFILIATE.roleInfluencer)}</option><option value="MANAGER">{t(AFFILIATE.roleManager)}</option></select>
                       <button className="inline-flex h-11 items-center justify-center gap-2 bg-[var(--esim-gold)] px-5 text-sm font-semibold text-[var(--esim-bg)]" type="submit"><UserPlus className="h-4 w-4" />{t(AFFILIATE.addMember)}</button>
                     </form>
-                    <h3 className="mt-7 text-xs font-semibold uppercase text-[var(--esim-copy-soft)]">{t(AFFILIATE.members)}</h3>
+                    <h3 style={organization.canManageMembers === false ? { display: 'none' } : undefined} className="mt-7 text-xs font-semibold uppercase text-[var(--esim-copy-soft)]">{t(AFFILIATE.members)}</h3>
+                    <p data-purpose="member-of" style={organization.canManageMembers === false ? undefined : { display: 'none' }} className="mt-7 text-sm leading-6 text-[var(--esim-copy)]">
+                      {t(AFFILIATE.memberOf)} · {memberRoleText(lang, organization.viewerRole)}
+                    </p>
                     <div className="mt-3 divide-y divide-[var(--esim-line)] border-y border-[var(--esim-line)]">
                       {organization.members.map((member) => <div key={member.id} className="flex items-center justify-between gap-4 py-4"><div className="min-w-0"><p className="truncate text-sm font-semibold text-[var(--esim-ink)]">{member.username || member.email}</p><p className="mt-1 truncate text-xs text-[var(--esim-copy-soft)]">{member.email}</p></div><span className="text-xs font-semibold text-[var(--esim-gold)]">{memberRoleText(lang, member.role)}</span></div>)}
                     </div>
@@ -222,6 +265,7 @@ export const AffiliatePage = React.memo(function AffiliatePage({
                             ? fill(t(AFFILIATE.reviewNote), { note: application.reviewNote })
                             : t(AFFILIATE.rejectedBody)}
                     </p>
+                    {screenshotAttached ? <img data-purpose="application-screenshot" src={screenshotAttached} alt={t(AFFILIATE.followersScreenshot)} className="mt-6 max-h-40 rounded-[var(--esim-radius-md)] border border-[var(--esim-line)] object-contain" /> : null}
                     <dl className="mt-6 divide-y divide-[var(--esim-line)] border border-[var(--esim-line)]">
                       <Detail label={t(AFFILIATE.organizationName)} value={application.organizationName} />
                       <Detail label={t(AFFILIATE.contactName)} value={application.contactName} />
@@ -263,6 +307,18 @@ export const AffiliatePage = React.memo(function AffiliatePage({
                     <div>
                       <label className={labelClassName} htmlFor="esim-affiliate-message">{t(AFFILIATE.message)}</label>
                       <textarea id="esim-affiliate-message" name="message" value={applicationForm.message} onChange={(event) => setApplicationForm({ ...applicationForm, message: event.target.value })} maxLength={1000} rows={4} className="esim-affiliate-textarea w-full border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-4 py-3 text-sm text-[var(--esim-ink)] outline-none" />
+                    </div>
+                    <div>
+                      <label className={labelClassName} htmlFor="esim-affiliate-screenshot">{t(AFFILIATE.followersScreenshot)}</label>
+                      <p className="mb-2 text-xs leading-5 text-[var(--esim-copy-soft)]">{t(AFFILIATE.followersHint)}</p>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <input ref={screenshotInput} id="esim-affiliate-screenshot" data-purpose="screenshot-input" type="file" accept="image/jpeg,image/png,image/webp" style={{ position: 'absolute', width: 1, height: 1, opacity: 0, overflow: 'hidden' }}
+                          onChange={(event) => { void sendScreenshot(event.target.files?.[0]); event.target.value = ''; }} />
+                        <button type="button" disabled={screenshotUploading} onClick={() => screenshotInput.current?.click()} className="inline-flex min-h-11 items-center justify-center gap-2 border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-4 text-sm font-semibold text-[var(--esim-ink)] disabled:opacity-50">{screenshotSent ? t(AFFILIATE.replaceScreenshot) : t(AFFILIATE.uploadScreenshot)}</button>
+                        {screenshotPreview ? <img src={screenshotPreview} alt="" className="h-12 w-20 rounded-[var(--esim-radius-md)] border border-[var(--esim-line)] object-cover" /> : null}
+                        {screenshotSent ? <span data-purpose="screenshot-sent" className="inline-flex items-center gap-1 text-sm text-[var(--esim-success)]"><Check className="h-4 w-4" />{t(AFFILIATE.screenshotAttached)}</span> : null}
+                      </div>
+                      {screenshotError ? <p role="alert" data-purpose="screenshot-error" className="mt-2 text-xs leading-5 text-[var(--esim-danger)]">{screenshotError}</p> : null}
                     </div>
                     <button disabled={loading} className="inline-flex min-h-12 items-center justify-center gap-2 bg-[var(--esim-gold)] px-5 text-sm font-semibold text-[var(--esim-bg)] disabled:opacity-50" type="submit"><Plus className="h-4 w-4" />{loading ? t(AFFILIATE.submitting) : t(AFFILIATE.submitApplication)}</button>
                   </form>

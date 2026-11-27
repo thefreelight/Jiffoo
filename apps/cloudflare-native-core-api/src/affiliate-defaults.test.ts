@@ -18,6 +18,8 @@ const ACCOUNTS = {
   'user-1': { id: 'user-1', email: 'owner@example.com', username: 'owner', role: 'USER' },
   'user-2': { id: 'user-2', email: 'sam@example.com', username: 'sam', role: 'USER' },
   'user-3': { id: 'user-3', email: 'kim@example.com', username: 'kim', role: 'USER' },
+  // a shopper who checks out without an account: a session of their own, and no partner account
+  'guest-1': { id: 'guest-1', email: '0f1e2d3c@guest.bokmoo.invalid', username: 'guest_0f1e2d3c', role: 'GUEST' },
 };
 
 /** An in-memory stand-in for the affiliate tables, answering by the statement it is asked. */
@@ -30,6 +32,8 @@ function fakeDb() {
       if (sql.includes('FROM native_plugin_instances')) return { enabled: 1 };
       if (sql.includes('SELECT id FROM native_affiliate_partners WHERE user_id')) return partnerBy('user_id', values[0]) ? { id: partnerBy('user_id', values[0])!.id } : null;
       if (sql.includes('SELECT * FROM native_affiliate_partners WHERE user_id')) return partnerBy('user_id', values[0]);
+      if (sql.includes('SELECT user_id FROM native_affiliate_partners WHERE id')) { const row = partnerBy('id', values[0]); return row ? { user_id: row.user_id } : null; }
+      if (sql.includes('SELECT user_id FROM native_affiliate_org_applications WHERE id')) { const row = state.applications.find((entry) => entry.id === values[0]) ?? null; return row ? { user_id: row.user_id } : null; }
       if (sql.includes('SELECT organization_id FROM native_affiliate_partners WHERE id')) return partnerBy('id', values[0]);
       if (sql.includes('SELECT organization_id, user_id FROM native_affiliate_partners WHERE id')) return partnerBy('id', values[0]);
       // the organization an account is in, as owner or as an active member
@@ -66,6 +70,7 @@ function fakeDb() {
       return null;
     },
     all: async () => {
+      if (sql.includes('SELECT members.id, members.user_id AS userId')) return { results: state.members.filter((row) => row.organization_id === values[0]) };
       if (sql.includes('SELECT product_id FROM native_affiliate_partner_scope WHERE partner_id')) return { results: state.scope.filter((row) => row.partner_id === values[0]) };
       if (sql.includes("SELECT role FROM native_affiliate_org_members WHERE organization_id")) return { results: state.members.filter((row) => row.organization_id === values[0] && row.user_id === values[1] && row.status === 'active') };
       return { results: [] };
@@ -305,5 +310,206 @@ describe('what an organization earns', () => {
     expect(settled?.partner).toMatchObject({ amount: 4 });
     expect(settled?.organization).toBeNull();
     expect(db.state.orgCommissions).toEqual([]);
+  });
+});
+
+// ---- 2026-11-27, after the store's tests on the live shop: two levels and no further, nobody earns on their own
+// purchase, a guest is no partner, the members of an organization are for its owner, and a followers screenshot.
+
+/** An in-memory stand-in for the bucket that holds the screenshots. */
+function fakeAssets() {
+  const objects = new Map<string, { bytes: Uint8Array; httpMetadata?: { contentType?: string } }>();
+  const keys = (prefix: string) => [...objects.keys()].filter((key) => key.startsWith(prefix));
+  return {
+    objects,
+    list: async ({ prefix }: { prefix: string }) => ({ objects: keys(prefix).map((key) => ({ key })) }),
+    get: async (key: string) => (objects.has(key) ? { body: objects.get(key)!.bytes, httpMetadata: objects.get(key)!.httpMetadata } : null),
+    put: async (key: string, bytes: Uint8Array, options?: { httpMetadata?: { contentType?: string } }) => { objects.set(key, { bytes, httpMetadata: options?.httpMetadata }); },
+    delete: async (key: string) => { objects.delete(key); },
+  };
+}
+const PNG = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13]);
+const JPEG = Uint8Array.from([0xff, 0xd8, 0xff, 0xe0, 0, 16, 74, 70, 73, 70, 0]);
+const upload = (bytes: Uint8Array, type: string) => {
+  const form = new FormData();
+  form.append('file', new File([bytes as BlobPart], 'followers.bin', { type }));
+  return new Request(`https://api.bokmoo.com${STORE}/organizations/applications/screenshot`, { method: 'POST', headers: { authorization: 'Bearer token' }, body: form });
+};
+
+describe('two levels, and no further', () => {
+  it('the organization earns nothing on the sale of someone a member brought in', async () => {
+    const db = fakeDb();
+    await ownerWithOrganization(db, 'user-1', 5);
+    arrivedThrough(db, 'visitor-1', 'user-1');
+    await call(db, 'POST', `${STORE}/attributions/associate`, { visitorId: 'visitor-1' });              // user-2: the owner's own recruit
+    arrivedThrough(db, 'visitor-2', 'user-2');
+    await call(db, 'POST', `${STORE}/attributions/associate`, { visitorId: 'visitor-2' }, 'user-3');    // user-3: user-2's recruit, in the organization too
+    expect(db.state.members.map((row) => [row.user_id, row.role])).toEqual([['user-1', 'OWNER'], ['user-2', 'INFLUENCER'], ['user-3', 'INFLUENCER']]);
+    arrivedThrough(db, 'visitor-9', 'user-3', 'buyer-9');
+    const settled = await createNativeAffiliateCommission(envOf(db), order('order-third', 'buyer-9'));
+    // the seller is paid; the owner is not, and neither is the member in between
+    expect(settled?.partner).toMatchObject({ amount: 4, partnerId: db.state.partners.find((row) => row.user_id === 'user-3')!.id });
+    expect(settled?.organization).toBeNull();
+    expect(db.state.orgCommissions).toEqual([]);
+  });
+
+  it('a member the owner added by hand still earns the organization its share', async () => {
+    const db = fakeDb();
+    await ownerWithOrganization(db, 'user-1', 5);
+    await call(db, 'GET', `${STORE}/partners/me`, undefined, 'user-2');
+    db.state.members.push({ id: 'm-2', organization_id: 'org-1', user_id: 'user-2', role: 'INFLUENCER', status: 'active', joined_at: '' });
+    Object.assign(db.state.partners.find((row) => row.user_id === 'user-2')!, { organization_id: 'org-1', member_role: 'INFLUENCER' });
+    arrivedThrough(db, 'visitor-9', 'user-2', 'buyer-9');
+    const settled = await createNativeAffiliateCommission(envOf(db), order('order-hand', 'buyer-9'));
+    expect(settled?.partner).toMatchObject({ amount: 4 });
+    expect(settled?.organization).toMatchObject({ amount: 2, beneficiaryUserId: 'user-1' });
+  });
+});
+
+describe('nobody earns a commission on their own purchase', () => {
+  it('a partner who shops with their own code keeps the buyer discount and is paid nothing', async () => {
+    const db = fakeDb();
+    await call(db, 'POST', `${STORE}/partners/register`, { displayName: 'Sam' }, 'user-2');
+    const partner = db.state.partners[0]!;
+    arrivedThrough(db, 'visitor-1', 'user-2', 'user-2');
+    const settled = await createNativeAffiliateCommission(envOf(db), { ...order('order-self', 'user-2'), totalAmount: 36, appliedDiscounts: [{ kind: 'affiliate', id: partner.id, amount: 4 }] });
+    expect(settled).toBeNull();
+    expect(db.state.commissions).toEqual([]);
+  });
+
+  it('the owner’s own purchase through their own link pays no one', async () => {
+    const db = fakeDb();
+    await ownerWithOrganization(db, 'user-1', 5);
+    arrivedThrough(db, 'visitor-1', 'user-1', 'user-1');
+    expect(await createNativeAffiliateCommission(envOf(db), order('order-owner', 'user-1'))).toBeNull();
+    expect(db.state.commissions).toEqual([]);
+    expect(db.state.orgCommissions).toEqual([]);
+  });
+
+  it('a member’s own purchase with their own code pays the organization nothing either', async () => {
+    const db = fakeDb();
+    await ownerWithOrganization(db, 'user-1', 5);
+    arrivedThrough(db, 'visitor-1', 'user-1');
+    await call(db, 'POST', `${STORE}/attributions/associate`, { visitorId: 'visitor-1' });
+    arrivedThrough(db, 'visitor-2', 'user-2', 'user-2');
+    const member = db.state.partners.find((row) => row.user_id === 'user-2')!;
+    expect(await createNativeAffiliateCommission(envOf(db), { ...order('order-member-self', 'user-2'), appliedDiscounts: [{ kind: 'affiliate', id: member.id, amount: 4 }] })).toBeNull();
+    expect(db.state.commissions).toEqual([]);
+    expect(db.state.orgCommissions).toEqual([]);
+  });
+});
+
+describe('a guest session is no partner account', () => {
+  it('opening the partner page as a guest opens nothing, and asks for a sign-in', async () => {
+    const db = fakeDb();
+    const page = await call(db, 'GET', `${STORE}/partners/me`, undefined, 'guest-1');
+    expect(page.status).toBe(403);
+    expect(page.body.error?.code).toBe('SIGN_IN_REQUIRED');
+    expect(db.state.partners).toEqual([]);
+    expect((await call(db, 'GET', `${STORE}/organizations/me`, undefined, 'guest-1')).status).toBe(403);
+    expect((await call(db, 'GET', `${STORE}/commissions`, undefined, 'guest-1')).status).toBe(403);
+    expect((await call(db, 'POST', `${STORE}/partners/register`, { displayName: 'Guest' }, 'guest-1')).status).toBe(403);
+    expect((await call(db, 'POST', `${STORE}/organizations/applications`, { organizationName: 'Crew' }, 'guest-1')).status).toBe(403);
+    expect(db.state.partners).toEqual([]);
+    expect(db.state.applications).toEqual([]);
+  });
+
+  it('a guest’s visit is still tied to the partner who brought it, and joins no organization', async () => {
+    const db = fakeDb();
+    await ownerWithOrganization(db, 'user-1');
+    arrivedThrough(db, 'visitor-1', 'user-1');
+    const tied = await call(db, 'POST', `${STORE}/attributions/associate`, { visitorId: 'visitor-1' }, 'guest-1');
+    expect(tied.status).toBe(200);
+    expect(tied.body.data).toMatchObject({ userId: 'guest-1', organization: 'none' });
+    expect(db.state.attributions[0]).toMatchObject({ user_id: 'guest-1', status: 'associated' });
+    expect(db.state.members).toHaveLength(1);
+    expect(db.state.partners).toHaveLength(1);
+  });
+});
+
+describe('who sees the members of an organization', () => {
+  it('the owner sees them and manages them; a member sees the organization and their own place in it', async () => {
+    const db = fakeDb();
+    await ownerWithOrganization(db, 'user-1');
+    arrivedThrough(db, 'visitor-1', 'user-1');
+    await call(db, 'POST', `${STORE}/attributions/associate`, { visitorId: 'visitor-1' });
+    const asOwner = await call(db, 'GET', `${STORE}/organizations/me`, undefined, 'user-1');
+    expect(asOwner.body.data).toMatchObject({ name: 'Crew', viewerRole: 'OWNER', canManageMembers: true });
+    expect(asOwner.body.data?.members).toHaveLength(2);
+    const asMember = await call(db, 'GET', `${STORE}/organizations/me`, undefined, 'user-2');
+    expect(asMember.body.data).toMatchObject({ name: 'Crew', commissionRate: 5, viewerRole: 'INFLUENCER', canManageMembers: false, members: [] });
+  });
+
+  it('a manager added by the owner is shown as one, and still does not manage the members', async () => {
+    const db = fakeDb();
+    await ownerWithOrganization(db, 'user-1');
+    db.state.members.push({ id: 'm-3', organization_id: 'org-1', user_id: 'user-3', role: 'MANAGER', status: 'active', joined_at: '' });
+    const asManager = await call(db, 'GET', `${STORE}/organizations/me`, undefined, 'user-3');
+    expect(asManager.body.data).toMatchObject({ viewerRole: 'MANAGER', canManageMembers: false, members: [] });
+  });
+});
+
+describe('a followers screenshot sent with an application', () => {
+  it('is stored under the account, the latest replacing the earlier one, and read back by the account', async () => {
+    const db = fakeDb();
+    const assets = fakeAssets();
+    const env = { DB: db, ASSETS: assets } as never;
+    authenticateNativeUser.mockResolvedValue(ACCOUNTS['user-2']);
+    const first = await tryNativeAffiliate(upload(PNG, 'image/png'), env);
+    expect(first?.status).toBe(200);
+    expect(((await first!.json()) as Row).data).toMatchObject({ uploaded: true, contentType: 'image/png', size: PNG.length });
+    expect([...assets.objects.keys()]).toEqual(['private/affiliate/applications/user-2/followers.png']);
+    // a JPEG follows: one screenshot per account
+    const second = await tryNativeAffiliate(upload(JPEG, 'image/jpeg'), env);
+    expect(second?.status).toBe(200);
+    expect([...assets.objects.keys()]).toEqual(['private/affiliate/applications/user-2/followers.jpg']);
+    const own = await tryNativeAffiliate(request('GET', `${STORE}/organizations/applications/screenshot`), env);
+    expect(own?.status).toBe(200);
+    expect(own?.headers.get('content-type')).toBe('image/jpeg');
+    expect([...new Uint8Array(await own!.arrayBuffer())]).toEqual([...JPEG]);
+  });
+
+  it('is refused when it is not a JPEG, PNG, or WebP image, or is larger than 5 MB, and when the bucket is not there', async () => {
+    const db = fakeDb();
+    authenticateNativeUser.mockResolvedValue(ACCOUNTS['user-2']);
+    const env = { DB: db, ASSETS: fakeAssets() } as never;
+    const text = await tryNativeAffiliate(upload(Uint8Array.from([60, 104, 116, 109, 108, 62]), 'image/png'), env);
+    expect(text?.status).toBe(400);
+    expect(((await text!.json()) as Row).error).toMatchObject({ code: 'INVALID_FILE_TYPE' });
+    const large = await tryNativeAffiliate(upload(new Uint8Array(5 * 1024 * 1024 + 1), 'image/png'), env);
+    expect(large?.status).toBe(400);
+    expect(((await large!.json()) as Row).error).toMatchObject({ code: 'FILE_TOO_LARGE' });
+    const none = await tryNativeAffiliate(new Request(`https://api.bokmoo.com${STORE}/organizations/applications/screenshot`, { method: 'POST', headers: { authorization: 'Bearer token', 'content-type': 'application/json' }, body: '{}' }), env);
+    expect(none?.status).toBe(400);
+    const noBucket = await tryNativeAffiliate(upload(PNG, 'image/png'), { DB: db } as never);
+    expect(noBucket?.status).toBe(503);
+  });
+
+  it('is read by the store through the application, and by no one else', async () => {
+    const db = fakeDb();
+    const assets = fakeAssets();
+    const env = { DB: db, ASSETS: assets } as never;
+    authenticateNativeUser.mockResolvedValue(ACCOUNTS['user-2']);
+    await tryNativeAffiliate(upload(PNG, 'image/png'), env);
+    const applied = await call(db, 'POST', `${STORE}/organizations/applications`, { organizationName: 'Crew' }, 'user-2');
+    // an administrator opens the application's screenshot
+    authenticateNativeAdmin.mockResolvedValue({ id: 'admin-1' });
+    const shown = await tryNativeAffiliate(request('GET', `${ADMIN}/applications/${applied.body.data?.id}/screenshot`), env);
+    expect(shown?.status).toBe(200);
+    expect(shown?.headers.get('content-type')).toBe('image/png');
+    // a shopper's session does not open the admin route
+    authenticateNativeAdmin.mockResolvedValue(null);
+    const refused = await tryNativeAffiliate(request('GET', `${ADMIN}/applications/${applied.body.data?.id}/screenshot`), env);
+    expect(refused?.status).toBe(401);
+    // an application that is not, and an applicant who sent no screenshot
+    authenticateNativeAdmin.mockResolvedValue({ id: 'admin-1' });
+    expect((await tryNativeAffiliate(request('GET', `${ADMIN}/applications/nope/screenshot`), env))?.status).toBe(404);
+    const bare = await call(db, 'POST', `${STORE}/organizations/applications`, { organizationName: 'Bare' }, 'user-3');
+    const missing = await tryNativeAffiliate(request('GET', `${ADMIN}/applications/${bare.body.data?.id}/screenshot`), env);
+    expect(missing?.status).toBe(404);
+    expect(((await missing!.json()) as Row).error).toMatchObject({ code: 'SCREENSHOT_NOT_FOUND' });
+    // a guest is offered no screenshot route
+    authenticateNativeUser.mockResolvedValue(ACCOUNTS['guest-1']);
+    expect((await tryNativeAffiliate(upload(PNG, 'image/png'), env))?.status).toBe(403);
   });
 });

@@ -192,6 +192,14 @@ async function processEvent(env: OutboxEnv, event: OutboxRow): Promise<void> {
         reason: typeof refund.reason === 'string' ? refund.reason : null,
       });
     }
+    // A buyer who is refunded in full takes the commissions of that order with them. The store pays out what is left;
+    // a commission that was already paid out is not touched here.
+    if (refund.fullyRefunded === true) {
+      await env.DB.batch([
+        env.DB.prepare("UPDATE native_affiliate_commissions SET status = 'reversed' WHERE order_id = ?1 AND status = 'pending'").bind(event.aggregate_id),
+        env.DB.prepare("UPDATE native_affiliate_org_commissions SET status = 'reversed' WHERE order_id = ?1 AND status = 'pending'").bind(event.aggregate_id),
+      ]);
+    }
   }
   const snapshot = await env.DB.prepare('SELECT payload FROM native_order_snapshots WHERE id = ?1').bind(event.aggregate_id).first<OrderSnapshotRow>();
   const parsedPayload = JSON.parse(event.payload) as Record<string, unknown>;
