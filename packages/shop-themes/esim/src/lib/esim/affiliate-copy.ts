@@ -104,14 +104,22 @@ export const AFFILIATE = {
   organizationEyebrow: { en: 'Organization affiliate', hans: '组织推广', hant: '組織推廣', ja: '組織アフィリエイト', ko: '조직 제휴', fr: 'Affiliation d’organisation', de: 'Organisations-Partnerschaft' },
   organizationTitle: { en: 'Creator network.', hans: '创作者网络。', hant: '創作者網絡。', ja: 'クリエイターネットワーク。', ko: '크리에이터 네트워크.', fr: 'Réseau de créateurs.', de: 'Creator-Netzwerk.' },
   applyIntro: {
-    en: 'Run a channel, an agency or a creator team? Tell us about it and we will get back to you. Once approved, you add members and earn on their sales.',
-    hans: '你有频道、经纪团队或创作者团队？留下信息，我们会尽快联系你。通过后即可添加成员，并获得他们带来的销售佣金。',
-    hant: '你有頻道、經紀團隊或創作者團隊？留下資訊，我們會盡快聯絡你。通過後即可新增成員，並獲得他們帶來的銷售佣金。',
-    ja: 'チャンネル、エージェンシー、クリエイターチームを運営していますか？情報をお送りください。承認後にメンバーを追加し、その売上に対する報酬を得られます。',
-    ko: '채널, 에이전시 또는 크리에이터 팀을 운영하나요? 정보를 남겨 주시면 연락드리겠습니다. 승인 후 멤버를 추가하고 멤버의 판매에 대한 수수료를 받을 수 있습니다.',
-    fr: 'Vous animez une chaîne, une agence ou une équipe de créateurs ? Parlez-nous de votre projet : nous vous recontactons. Une fois approuvé, vous ajoutez des membres et touchez une commission sur leurs ventes.',
-    de: 'Sie betreiben einen Kanal, eine Agentur oder ein Creator-Team? Erzählen Sie uns davon – wir melden uns. Nach der Freischaltung fügen Sie Mitglieder hinzu und verdienen an deren Verkäufen.',
+    en: 'A creator with an audience? Leave your contact details and a screenshot of your followers to apply for an organization. Once approved, you earn a higher commission rate and a share of what the members you bring in sell.',
+    hans: '如果你是大 V，可以提交联系方式和粉丝数据截图，申请开通组织。通过后可获得更高的佣金比例和二级返佣：你带来的成员出单，你也拿一份组织分成。',
+    hant: '如果你是大 V，可以提交聯絡方式和粉絲數據截圖，申請開通組織。通過後可獲得更高的佣金比例和二級返傭：您帶來的成員出單，您也拿一份組織分成。',
+    ja: '多くのフォロワーがいるクリエイターですか？連絡先とフォロワー数のスクリーンショットを添えて、組織の開設を申請してください。承認後はより高い報酬率と、あなたが招待したメンバーの売上に対する報酬を受け取れます。',
+    ko: '팔로워가 많은 크리에이터인가요? 연락처와 팔로워 수 스크린샷을 남기고 조직 개설을 신청하세요. 승인되면 더 높은 수수료율과, 회원님이 초대한 멤버의 판매에 대한 수수료를 받습니다.',
+    fr: 'Vous avez une audience ? Laissez vos coordonnées et une capture de vos abonnés pour demander une organisation. Une fois approuvée, vous touchez un taux de commission plus élevé et une part des ventes faites par les membres que vous amenez.',
+    de: 'Sie haben eine Reichweite? Hinterlassen Sie Ihre Kontaktdaten und einen Screenshot Ihrer Follower und beantragen Sie eine Organisation. Nach der Freischaltung erhalten Sie einen höheren Provisionssatz und einen Anteil an dem, was die von Ihnen geworbenen Mitglieder verkaufen.',
   },
+  followersScreenshot: { en: 'Followers screenshot', hans: '粉丝数据截图', hant: '粉絲數據截圖', ja: 'フォロワー数のスクリーンショット', ko: '팔로워 수 스크린샷', fr: 'Capture de vos abonnés', de: 'Follower-Screenshot' },
+  followersHint: { en: 'Optional. If you have an audience, show us your followers on the platforms you use. JPEG, PNG, or WebP, up to 5 MB.', hans: '选填。如果你是大 V，可以把各平台的粉丝数据截图发给我们。支持 JPEG、PNG、WebP，最大 5 MB。', hant: '選填。如果你是大 V，可以把各平台的粉絲數據截圖發給我們。支援 JPEG、PNG、WebP，最大 5 MB。', ja: '任意。多くのフォロワーがいる場合は、利用中のプラットフォームのフォロワー数のスクリーンショットをお送りください。JPEG・PNG・WebP、5 MB まで。', ko: '선택 사항입니다. 팔로워가 많다면 사용 중인 플랫폼의 팔로워 수 스크린샷을 보내 주세요. JPEG, PNG, WebP, 최대 5 MB.', fr: 'Facultatif. Si vous avez une audience, montrez-nous vos abonnés sur vos plateformes. JPEG, PNG ou WebP, 5 Mo maximum.', de: 'Optional. Wenn Sie eine Reichweite haben, zeigen Sie uns Ihre Follower auf Ihren Plattformen. JPEG, PNG oder WebP, höchstens 5 MB.' },
+  uploadScreenshot: { en: 'Upload screenshot', hans: '上传截图', hant: '上傳截圖', ja: 'スクリーンショットを送る', ko: '스크린샷 올리기', fr: 'Envoyer la capture', de: 'Screenshot hochladen' },
+  replaceScreenshot: { en: 'Upload another', hans: '重新上传', hant: '重新上傳', ja: '別の画像を送る', ko: '다른 스크린샷 올리기', fr: 'Envoyer une autre capture', de: 'Anderes Bild hochladen' },
+  screenshotAttached: { en: 'Screenshot sent', hans: '截图已发送', hant: '截圖已送出', ja: '送信済み', ko: '스크린샷 전송됨', fr: 'Capture envoyée', de: 'Screenshot gesendet' },
+  screenshotFailed: { en: 'The screenshot could not be sent. Check the file and try again.', hans: '截图发送失败，请检查文件后重试。', hant: '截圖送出失敗，請檢查檔案後重試。', ja: 'スクリーンショットを送信できませんでした。ファイルを確認してもう一度お試しください。', ko: '스크린샷을 보내지 못했습니다. 파일을 확인하고 다시 시도하세요.', fr: 'La capture n’a pas pu être envoyée. Vérifiez le fichier et réessayez.', de: 'Das Screenshot konnte nicht gesendet werden. Prüfen Sie die Datei und versuchen Sie es erneut.' },
+  signInRequired: { en: 'Sign in to see your referral link and earnings.', hans: '登录后即可查看你的推广链接和收益。', hant: '登入後即可查看你的推廣連結和收益。', ja: 'ログインすると紹介リンクと報酬を確認できます。', ko: '로그인하면 추천 링크와 수익을 확인할 수 있습니다.', fr: 'Connectez-vous pour voir votre lien de parrainage et vos gains.', de: 'Melden Sie sich an, um Ihren Empfehlungslink und Ihre Erlöse zu sehen.' },
+  memberOf: { en: 'You are a member of this organization.', hans: '你是这个组织的成员。', hant: '你是這個組織的成員。', ja: 'あなたはこの組織のメンバーです。', ko: '당신은 이 조직의 멤버입니다.', fr: 'Vous êtes membre de cette organisation.', de: 'Sie sind Mitglied dieser Organisation.' },
   organizationName: { en: 'Organization name', hans: '组织名称', hant: '組織名稱', ja: '組織名', ko: '조직 이름', fr: 'Nom de l’organisation', de: 'Name der Organisation' },
   contactName: { en: 'Contact name', hans: '联系人', hant: '聯絡人', ja: '担当者名', ko: '담당자 이름', fr: 'Nom du contact', de: 'Kontaktperson' },
   phone: { en: 'Phone or WhatsApp', hans: '电话或 WhatsApp', hant: '電話或 WhatsApp', ja: '電話番号または WhatsApp', ko: '전화번호 또는 WhatsApp', fr: 'Téléphone ou WhatsApp', de: 'Telefon oder WhatsApp' },
@@ -207,6 +215,13 @@ export function affiliateErrorText(
   const say = (copy: AffiliateCopy) => affiliateText(locale, copy);
   if (code === 'USER_ALREADY_ORGANIZED') {
     return say({ en: 'This account already belongs to an organization.', hans: '该账户已属于一个组织。', hant: '該帳戶已屬於一個組織。', ja: 'このアカウントはすでに組織に所属しています。', ko: '이 계정은 이미 조직에 속해 있습니다.', fr: 'Ce compte appartient déjà à une organisation.', de: 'Dieses Konto gehört bereits zu einer Organisation.' });
+  }
+  if (code === 'SIGN_IN_REQUIRED') return say(AFFILIATE.signInRequired);
+  if (code === 'INVALID_FILE_TYPE') {
+    return say({ en: 'Screenshots must be JPEG, PNG, or WebP images.', hans: '截图必须是 JPEG、PNG 或 WebP 图片。', hant: '截圖必須是 JPEG、PNG 或 WebP 圖片。', ja: 'スクリーンショットは JPEG・PNG・WebP の画像にしてください。', ko: '스크린샷은 JPEG, PNG, WebP 이미지여야 합니다.', fr: 'Les captures doivent être des images JPEG, PNG ou WebP.', de: 'Screenshots müssen JPEG-, PNG- oder WebP-Bilder sein.' });
+  }
+  if (code === 'FILE_TOO_LARGE') {
+    return say({ en: 'The screenshot must be at most 5 MB.', hans: '截图不能超过 5 MB。', hant: '截圖不能超過 5 MB。', ja: 'スクリーンショットは 5 MB までにしてください。', ko: '스크린샷은 5 MB 이하여야 합니다.', fr: 'La capture ne doit pas dépasser 5 Mo.', de: 'Das Screenshot darf höchstens 5 MB groß sein.' });
   }
   if (code === 'APPLICATION_PENDING') return say(AFFILIATE.pendingTitle);
   if (code === 'OWNER_ROLE_IMMUTABLE') {

@@ -6,7 +6,9 @@
  * row saves on its own because every row is an independent record, not a page setting.
  */
 
-import { Fragment, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
+import { apiClient } from '@/lib/api';
+import { affiliateScreenshotUrl, screenshotOutcome } from '@/lib/plugins/affiliate-admin';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -575,6 +577,53 @@ export function AffiliateNativeWorkspace({ data }: { data: AffiliateNativeOvervi
   );
 }
 
+/**
+ * The screenshot of the follower counts an applicant sent with their application, when they sent one. It is
+ * read with the administrator's session, the way every other request of this workspace is.
+ */
+function ApplicationScreenshot({ id }: { id: string }) {
+  const [state, setState] = useState<{ status: 'loading' | 'none' | 'failed' | 'shown'; url: string | null }>({ status: 'loading', url: null });
+  const owned = useRef<string | null>(null);
+  useEffect(() => {
+    let live = true;
+    setState({ status: 'loading', url: null });
+    const token = apiClient.getToken();
+    fetch(affiliateScreenshotUrl(id), {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      cache: 'no-store',
+    }).then(async (response) => {
+      if (!live) return;
+      const outcome = screenshotOutcome(response.status);
+      if (outcome === 'none') {
+        setState({ status: 'none', url: null });
+        return;
+      }
+      if (outcome !== 'shown') throw new Error(`status ${response.status}`);
+      const url = URL.createObjectURL(await response.blob());
+      if (owned.current) URL.revokeObjectURL(owned.current);
+      owned.current = url;
+      setState({ status: 'shown', url });
+    }).catch(() => {
+      if (live) setState({ status: 'failed', url: null });
+    });
+    return () => {
+      live = false;
+    };
+  }, [id]);
+  useEffect(() => () => {
+    if (owned.current) URL.revokeObjectURL(owned.current);
+  }, []);
+  if (state.status === 'none') return <p data-purpose="screenshot-none" className="mt-2 text-xs text-muted-foreground">No followers screenshot was sent.</p>;
+  if (state.status === 'failed') return <p data-purpose="screenshot-failed" className="mt-2 text-xs text-red-700">The followers screenshot could not be loaded.</p>;
+  if (!state.url) return <p data-purpose="screenshot-loading" className="mt-2 text-xs text-muted-foreground">Loading the followers screenshot…</p>;
+  return (
+    <a data-purpose="screenshot" href={state.url} target="_blank" rel="noreferrer" className="mt-2 block">
+      <img src={state.url} alt="Followers screenshot" className="h-20 max-w-[9rem] rounded-lg border border-gray-200 object-cover" />
+      <span className="text-xs text-muted-foreground underline-offset-2 hover:underline">Followers screenshot — click to open it full size</span>
+    </a>
+  );
+}
+
 /** A storefront application waiting for the store's answer. */
 function ApplicationRow({
   application,
@@ -602,6 +651,7 @@ function ApplicationRow({
         {application.phone ? <p className="text-muted-foreground">{application.phone}</p> : null}
         {website ? <a href={website} target="_blank" rel="noreferrer" className="text-muted-foreground underline-offset-2 hover:underline">{website}</a> : null}
         {application.username ? <p className="mt-1 text-muted-foreground">Account: {application.username}</p> : null}
+        <ApplicationScreenshot id={String(application.id)} />
       </td>
       <td className="py-2 pr-4 text-xs">{affiliateDate(application.created_at)}</td>
       <td className="py-2 pr-4">

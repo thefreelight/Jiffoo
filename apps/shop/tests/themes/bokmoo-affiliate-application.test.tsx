@@ -36,19 +36,41 @@ type Options = {
   organization?: Record<string, unknown> | null;
   application?: Record<string, unknown> | null;
   submit?: { status: number; body: unknown };
+  // a guest session (the core answers 403 SIGN_IN_REQUIRED), a screenshot the account sent, and how an upload is answered
+  guest?: boolean;
+  screenshot?: null;
+  upload?: { status: number; body: unknown };
 };
 
 /** The affiliate endpoints, as the core answers them; `null` is "not found" (404). */
 function stubAffiliate(options: Options = {}) {
-  const calls: Array<{ url: string; method: string; body: unknown }> = [];
+  const calls: Array<{ url: string; method: string; body: unknown; file?: File | null }> = [];
   vi.stubGlobal('fetch', vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
     const url = String(input instanceof Request ? input.url : input);
     const method = init?.method ?? 'GET';
-    calls.push({ url, method, body: init?.body ? JSON.parse(String(init.body)) : undefined });
+    calls.push({ url, method, body: typeof init?.body === 'string' ? JSON.parse(init.body) : undefined, file: init?.body instanceof FormData ? (init.body.get('file') as File | null) : undefined });
     const reply = (status: number, data: unknown, error?: { code: string; message: string }) => (
-      { ok: status < 400, status, json: async () => (error ? { success: false, error } : { success: true, data }) }
+      { ok: status < 400, status, json: async () => (error ? { success: false, error } : { success: true, data }), blob: async () => new Blob([new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0, 0, 0, 0])], { type: 'image/png' }) }
     );
     const missing = (code: string, message: string) => reply(404, null, { code, message });
+    if (options.guest) return reply(403, null, { code: 'SIGN_IN_REQUIRED', message: 'Sign in to use the affiliate workspace' });
+    if (url.endsWith('/organizations/applications/screenshot')) {
+      if (method === 'POST') {
+        return options.upload
+          ? reply(options.upload.status, options.upload.body, options.upload.status >= 400 ? options.upload.body as { code: string; message: string } : undefined)
+          : reply(200, { uploaded: true });
+      }
+      return options.screenshot === null ? missing('SCREENSHOT_NOT_FOUND', 'No screenshot was sent') : reply(200, null);
+    }
+    if (options.guest) return reply(403, null, { code: 'SIGN_IN_REQUIRED', message: 'Sign in to use the affiliate workspace' });
+    if (url.endsWith('/organizations/applications/screenshot')) {
+      if (method === 'POST') {
+        return options.upload
+          ? reply(options.upload.status, options.upload.body, options.upload.status >= 400 ? options.upload.body as { code: string; message: string } : undefined)
+          : reply(200, { uploaded: true });
+      }
+      return options.screenshot === null ? missing('SCREENSHOT_NOT_FOUND', 'No screenshot was sent') : reply(200, null);
+    }
     if (method === 'POST' && url.endsWith('/organizations/applications')) {
       return options.submit
         ? reply(options.submit.status, options.submit.body, options.submit.status >= 400 ? options.submit.body as { code: string; message: string } : undefined)
@@ -161,7 +183,7 @@ describe('an organization is requested from the store, not opened by the shopper
     const { container } = renderPage('zh-Hans');
     await openOrganizationTab();
     await waitFor(() => expect(container.querySelector('[data-purpose="application-form"]')).toBeTruthy());
-    for (const chinese of ['留下信息，我们会尽快联系你', '机构名称', '联系人', '邮箱', '电话或 WhatsApp', '网站或社交媒体主页', '机构介绍', '提交申请']) {
+    for (const chinese of ['如果你是大 V，可以提交联系方式和粉丝数据截图', '粉丝数据截图', '上传截图', '机构名称', '联系人', '邮箱', '电话或 WhatsApp', '网站或社交媒体主页', '机构介绍', '提交申请']) {
       expect(text(container)).toContain(chinese);
     }
     expect(text(container)).not.toMatch(/Organization name|Create organization|Commission rate|Submit/);
@@ -251,5 +273,126 @@ describe('an organization is requested from the store, not opened by the shopper
     await waitFor(() => expect(container.querySelector('[data-purpose="application-form"]')).toBeTruthy());
     expect(text(container)).toContain('クリエイターネットワーク。');
     expect(text(container)).not.toMatch(/Creator network|Organization name/);
+  });
+});
+
+describe('an application asks a creator for a followers screenshot (2026-11-27)', () => {
+  const PNG = () => new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0])], 'followers.png', { type: 'image/png' });
+  const screenshotInput = (container: HTMLElement) => container.querySelector('[data-purpose="screenshot-input"]') as HTMLInputElement;
+  /** The organization tab for a shopper with no organization; with `form: false` for one whose application waits. */
+  const openTab = async (options: Options = {}, form = true) => {
+    const calls = stubAffiliate({ organization: null, application: null, ...options });
+    const page = renderPage('zh-Hans');
+    await openOrganizationTab();
+    await waitFor(() => expect(page.container.querySelector(form ? '[data-purpose="application-form"]' : '[data-purpose="application-status"]')).toBeTruthy());
+    return { ...page, calls };
+  };
+
+  it('the form names the screenshot and says it is optional, in the shopper’s language', async () => {
+    const { container } = await openTab();
+    expect(screen.getByLabelText('粉丝数据截图')).toBeTruthy();
+    expect(text(container)).toContain('选填。如果你是大 V');
+    expect(screen.getByRole('button', { name: '上传截图' })).toBeTruthy();
+    expect(text(container)).toContain('通过后可获得更高的佣金比例和二级返佣');
+    expect(text(container)).not.toContain('留下信息，我们会尽快联系你');
+  });
+
+  it('the same form in English carries no Chinese', async () => {
+    stubAffiliate({ organization: null, application: null });
+    const { container } = renderPage('en');
+    fireEvent.click(screen.getByRole('button', { name: 'Organization' }));
+    await waitFor(() => expect(container.querySelector('[data-purpose="application-form"]')).toBeTruthy());
+    expect(screen.getByLabelText('Followers screenshot')).toBeTruthy();
+    expect(text(container)).not.toMatch(/[\u4e00-\u9fff]/);
+  });
+
+  it('choosing an image sends it at once, and the page says it was sent', async () => {
+    const { container, calls } = await openTab();
+    fireEvent.change(screenshotInput(container), { target: { files: [PNG()] } });
+    await waitFor(() => expect(container.querySelector('[data-purpose="screenshot-sent"]')?.textContent).toContain('截图已发送'));
+    const sent = calls.find((call) => call.method === 'POST' && call.url.endsWith('/organizations/applications/screenshot'));
+    expect(sent?.file).toBeInstanceOf(File);
+    expect((sent!.file as File).type).toBe('image/png');
+    expect(screen.getByRole('button', { name: '重新上传' })).toBeTruthy();
+    expect(container.querySelector('[data-purpose="screenshot-error"]')).toBeNull();
+  });
+
+  it('what is not a JPEG, PNG, or WebP image, or is over 5 MB, is refused before it leaves the page', async () => {
+    const { container, calls } = await openTab();
+    fireEvent.change(screenshotInput(container), { target: { files: [new File(['<html>'], 'x.png', { type: 'text/html' })] } });
+    await waitFor(() => expect(container.querySelector('[data-purpose="screenshot-error"]')?.textContent).toContain('截图必须是 JPEG、PNG 或 WebP 图片'));
+    fireEvent.change(screenshotInput(container), { target: { files: [new File([new Uint8Array(5 * 1024 * 1024 + 1)], 'big.png', { type: 'image/png' })] } });
+    await waitFor(() => expect(container.querySelector('[data-purpose="screenshot-error"]')?.textContent).toContain('截图不能超过 5 MB'));
+    expect(calls.filter((call) => call.url.endsWith('/organizations/applications/screenshot'))).toHaveLength(0);
+    expect(container.querySelector('[data-purpose="screenshot-sent"]')).toBeNull();
+  });
+
+  it('when the store refuses a screenshot, the shopper is told in their language', async () => {
+    const { container } = await openTab({ upload: { status: 400, body: { code: 'INVALID_FILE_TYPE', message: 'Screenshots must be JPEG, PNG, or WebP images' } } });
+    fireEvent.change(screenshotInput(container), { target: { files: [PNG()] } });
+    await waitFor(() => expect(container.querySelector('[data-purpose="screenshot-error"]')?.textContent).toContain('截图必须是 JPEG、PNG 或 WebP 图片'));
+    expect(container.querySelector('[data-purpose="screenshot-sent"]')).toBeNull();
+  });
+
+  it('when the store cannot take a screenshot at all, the shopper is told to try again', async () => {
+    const { container } = await openTab({ upload: { status: 503, body: { code: 'STORAGE_UNAVAILABLE', message: 'Screenshot storage is not configured' } } });
+    fireEvent.change(screenshotInput(container), { target: { files: [PNG()] } });
+    await waitFor(() => expect(container.querySelector('[data-purpose="screenshot-error"]')?.textContent).toContain('截图发送失败'));
+    expect(container.querySelector('[data-purpose="screenshot-sent"]')).toBeNull();
+  });
+
+  it('the waiting card shows the screenshot the account sent', async () => {
+    const { container } = await openTab({ application: APPLICATION, screenshot: undefined }, false);
+    await waitFor(() => expect(container.querySelector('[data-purpose="application-screenshot"]')).toBeTruthy());
+  });
+
+  it('the waiting card has no screenshot when the account sent none', async () => {
+    const { container } = await openTab({ application: APPLICATION, screenshot: null }, false);
+    // what the card shows has settled once the application is on the page and the page has asked for the screenshot
+    await waitFor(() => expect(container.querySelector('[data-purpose="application-status"][data-status="pending"]')).toBeTruthy());
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(container.querySelector('[data-purpose="application-screenshot"]')).toBeNull();
+  });
+});
+
+describe('who sees the members of an organization', () => {
+  it('the owner sees them and can add one', async () => {
+    stubAffiliate();
+    const { container } = renderPage('zh-Hans');
+    await openOrganizationTab();
+    await waitFor(() => expect(container.querySelector('[data-purpose="affiliate-organization"]')).toBeTruthy());
+    expect(text(container)).toContain('kim@example.com');
+    expect((screen.getByLabelText('成员邮箱') as HTMLInputElement).closest('form')!.style.display).not.toBe('none');
+    expect((container.querySelector('[data-purpose="member-of"]') as HTMLElement).style.display).toBe('none');
+  });
+
+  it('a member sees the 机构 and their own place in it, and none of the other members', async () => {
+    stubAffiliate({ organization: { ...ORGANIZATION, members: [], canManageMembers: false, viewerRole: 'INFLUENCER' } });
+    const { container } = renderPage('zh-Hans');
+    await openOrganizationTab();
+    await waitFor(() => expect(container.querySelector('[data-purpose="affiliate-organization"]')).toBeTruthy());
+    expect(text(container)).not.toContain('kim@example.com');
+    expect(text(container)).not.toContain('sam@example.com');
+    expect((screen.getByLabelText('成员邮箱') as HTMLInputElement).closest('form')!.style.display).toBe('none');
+    const place = container.querySelector('[data-purpose="member-of"]') as HTMLElement;
+    expect(place.style.display).not.toBe('none');
+    expect(place.textContent).toContain(AFFILIATE.memberOf.hans);
+    expect(place.textContent).toContain('创作者');
+    expect(text(container)).toContain('Travel Crew');
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+});
+
+describe('a guest is asked to sign in', () => {
+  it('the page says so in the shopper’s language, and shows no error', async () => {
+    stubAffiliate({ guest: true });
+    const { container } = renderPage('zh-Hans');
+    await waitFor(() => expect(text(container)).toContain('登录后即可查看你的推广链接和收益。'));
+    expect(screen.getByRole('button', { name: /登入|登录/ })).toBeTruthy();
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(container.querySelector('[data-purpose="partner-scope"]')).toBeNull();
+    expect(affiliateErrorText('en', { code: 'SIGN_IN_REQUIRED', message: 'Sign in to use the affiliate workspace' })).toBe('Sign in to see your referral link and earnings.');
+    expect(affiliateErrorText('fr', { code: 'FILE_TOO_LARGE', message: 'x' })).toBe('La capture ne doit pas dépasser 5 Mo.');
+    expect(affiliateErrorText('de', { code: 'INVALID_FILE_TYPE', message: 'x' })).toBe('Screenshots müssen JPEG-, PNG- oder WebP-Bilder sein.');
   });
 });

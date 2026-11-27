@@ -1,7 +1,13 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+// the API base the admin's client is configured with, standing still for the test
+vi.mock('shared', async (importOriginal) => ({ ...(await importOriginal<typeof import('shared')>()), getApiServiceBaseUrl: () => 'https://admin.example/api/v1/' }));
+
 import {
   type AffiliateScopeProduct,
   affiliateScopeMode,
+  affiliateScreenshotUrl,
+  screenshotOutcome,
   affiliateScopeSummary,
   isPhysicalProduct,
   newOrganizationPayload,
@@ -84,5 +90,19 @@ describe('the store opens an organization itself', () => {
     expect(errorOf({ name: 'Crew', owner: 'owner@example.com', rate: '95' })).toMatch(/rate/);
     expect(errorOf({ name: 'Crew', owner: 'owner@example.com', rate: '' })).toMatch(/rate/);
     expect(errorOf({ name: 'Crew', owner: 'owner@example.com', rate: '8' })).toBeUndefined();
+  });
+});
+
+describe('the followers screenshot of an application', () => {
+  it('is read from the admin route of that application, on the API base the workspace uses', () => {
+    expect(affiliateScreenshotUrl('app-1')).toBe('https://admin.example/api/v1/extensions/plugin/affiliate/api/admin/applications/app-1/screenshot');
+    expect(affiliateScreenshotUrl('a/b')).toBe('https://admin.example/api/v1/extensions/plugin/affiliate/api/admin/applications/a%2Fb/screenshot');
+  });
+
+  it('is shown, or reported as never sent, or as not loadable', () => {
+    expect(screenshotOutcome(200)).toBe('shown');
+    expect(screenshotOutcome(404)).toBe('none');
+    expect(screenshotOutcome(401)).toBe('failed');
+    expect(screenshotOutcome(503)).toBe('failed');
   });
 });

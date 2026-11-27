@@ -3754,6 +3754,33 @@
     const result = await request(config, `${affiliateBase}/organizations/commissions`);
     return result.items || [];
   }
+  function affiliateSession(config) {
+    const token = config.token === void 0 ? getClientToken() : config.token;
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }
+  async function uploadEsimAffiliateScreenshot(config, file) {
+    const form = new FormData();
+    form.append("file", file, "followers");
+    const response = await fetch(`${storefrontSameOriginBase(config.baseUrl.replace(/\/$/, ""))}${affiliateBase}/organizations/applications/screenshot`, {
+      method: "POST",
+      headers: affiliateSession(config),
+      body: form,
+      cache: "no-store"
+    });
+    if (response.ok) return;
+    const json = await response.json().catch(() => ({}));
+    throw new EsimApiError(response.status, json?.error?.code || "API_ERROR", json?.error?.message || `Request failed with status ${response.status}`, json?.error?.requestId);
+  }
+  async function getEsimAffiliateScreenshot(config) {
+    const response = await fetch(`${storefrontSameOriginBase(config.baseUrl.replace(/\/$/, ""))}${affiliateBase}/organizations/applications/screenshot`, {
+      headers: { ...affiliateSession(config), Accept: "image/*" },
+      cache: "no-store"
+    });
+    if (response.status === 404) return null;
+    if (response.ok) return response.blob();
+    const json = await response.json().catch(() => ({}));
+    throw new EsimApiError(response.status, json?.error?.code || "API_ERROR", json?.error?.message || `Request failed with status ${response.status}`, json?.error?.requestId);
+  }
   var couponRedeemEndpoint = "/api/v1/plugins/coupon/api/redeem";
   async function redeemEsimCode(config, code, idempotencyKey) {
     return request(config, couponRedeemEndpoint, "POST", {
@@ -4591,14 +4618,22 @@
     organizationEyebrow: { en: "Organization affiliate", hans: "\u7EC4\u7EC7\u63A8\u5E7F", hant: "\u7D44\u7E54\u63A8\u5EE3", ja: "\u7D44\u7E54\u30A2\u30D5\u30A3\u30EA\u30A8\u30A4\u30C8", ko: "\uC870\uC9C1 \uC81C\uD734", fr: "Affiliation d\u2019organisation", de: "Organisations-Partnerschaft" },
     organizationTitle: { en: "Creator network.", hans: "\u521B\u4F5C\u8005\u7F51\u7EDC\u3002", hant: "\u5275\u4F5C\u8005\u7DB2\u7D61\u3002", ja: "\u30AF\u30EA\u30A8\u30A4\u30BF\u30FC\u30CD\u30C3\u30C8\u30EF\u30FC\u30AF\u3002", ko: "\uD06C\uB9AC\uC5D0\uC774\uD130 \uB124\uD2B8\uC6CC\uD06C.", fr: "R\xE9seau de cr\xE9ateurs.", de: "Creator-Netzwerk." },
     applyIntro: {
-      en: "Run a channel, an agency or a creator team? Tell us about it and we will get back to you. Once approved, you add members and earn on their sales.",
-      hans: "\u4F60\u6709\u9891\u9053\u3001\u7ECF\u7EAA\u56E2\u961F\u6216\u521B\u4F5C\u8005\u56E2\u961F\uFF1F\u7559\u4E0B\u4FE1\u606F\uFF0C\u6211\u4EEC\u4F1A\u5C3D\u5FEB\u8054\u7CFB\u4F60\u3002\u901A\u8FC7\u540E\u5373\u53EF\u6DFB\u52A0\u6210\u5458\uFF0C\u5E76\u83B7\u5F97\u4ED6\u4EEC\u5E26\u6765\u7684\u9500\u552E\u4F63\u91D1\u3002",
-      hant: "\u4F60\u6709\u983B\u9053\u3001\u7D93\u7D00\u5718\u968A\u6216\u5275\u4F5C\u8005\u5718\u968A\uFF1F\u7559\u4E0B\u8CC7\u8A0A\uFF0C\u6211\u5011\u6703\u76E1\u5FEB\u806F\u7D61\u4F60\u3002\u901A\u904E\u5F8C\u5373\u53EF\u65B0\u589E\u6210\u54E1\uFF0C\u4E26\u7372\u5F97\u4ED6\u5011\u5E36\u4F86\u7684\u92B7\u552E\u4F63\u91D1\u3002",
-      ja: "\u30C1\u30E3\u30F3\u30CD\u30EB\u3001\u30A8\u30FC\u30B8\u30A7\u30F3\u30B7\u30FC\u3001\u30AF\u30EA\u30A8\u30A4\u30BF\u30FC\u30C1\u30FC\u30E0\u3092\u904B\u55B6\u3057\u3066\u3044\u307E\u3059\u304B\uFF1F\u60C5\u5831\u3092\u304A\u9001\u308A\u304F\u3060\u3055\u3044\u3002\u627F\u8A8D\u5F8C\u306B\u30E1\u30F3\u30D0\u30FC\u3092\u8FFD\u52A0\u3057\u3001\u305D\u306E\u58F2\u4E0A\u306B\u5BFE\u3059\u308B\u5831\u916C\u3092\u5F97\u3089\u308C\u307E\u3059\u3002",
-      ko: "\uCC44\uB110, \uC5D0\uC774\uC804\uC2DC \uB610\uB294 \uD06C\uB9AC\uC5D0\uC774\uD130 \uD300\uC744 \uC6B4\uC601\uD558\uB098\uC694? \uC815\uBCF4\uB97C \uB0A8\uACA8 \uC8FC\uC2DC\uBA74 \uC5F0\uB77D\uB4DC\uB9AC\uACA0\uC2B5\uB2C8\uB2E4. \uC2B9\uC778 \uD6C4 \uBA64\uBC84\uB97C \uCD94\uAC00\uD558\uACE0 \uBA64\uBC84\uC758 \uD310\uB9E4\uC5D0 \uB300\uD55C \uC218\uC218\uB8CC\uB97C \uBC1B\uC744 \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
-      fr: "Vous animez une cha\xEEne, une agence ou une \xE9quipe de cr\xE9ateurs ? Parlez-nous de votre projet : nous vous recontactons. Une fois approuv\xE9, vous ajoutez des membres et touchez une commission sur leurs ventes.",
-      de: "Sie betreiben einen Kanal, eine Agentur oder ein Creator-Team? Erz\xE4hlen Sie uns davon \u2013 wir melden uns. Nach der Freischaltung f\xFCgen Sie Mitglieder hinzu und verdienen an deren Verk\xE4ufen."
+      en: "A creator with an audience? Leave your contact details and a screenshot of your followers to apply for an organization. Once approved, you earn a higher commission rate and a share of what the members you bring in sell.",
+      hans: "\u5982\u679C\u4F60\u662F\u5927 V\uFF0C\u53EF\u4EE5\u63D0\u4EA4\u8054\u7CFB\u65B9\u5F0F\u548C\u7C89\u4E1D\u6570\u636E\u622A\u56FE\uFF0C\u7533\u8BF7\u5F00\u901A\u7EC4\u7EC7\u3002\u901A\u8FC7\u540E\u53EF\u83B7\u5F97\u66F4\u9AD8\u7684\u4F63\u91D1\u6BD4\u4F8B\u548C\u4E8C\u7EA7\u8FD4\u4F63\uFF1A\u4F60\u5E26\u6765\u7684\u6210\u5458\u51FA\u5355\uFF0C\u4F60\u4E5F\u62FF\u4E00\u4EFD\u7EC4\u7EC7\u5206\u6210\u3002",
+      hant: "\u5982\u679C\u4F60\u662F\u5927 V\uFF0C\u53EF\u4EE5\u63D0\u4EA4\u806F\u7D61\u65B9\u5F0F\u548C\u7C89\u7D72\u6578\u64DA\u622A\u5716\uFF0C\u7533\u8ACB\u958B\u901A\u7D44\u7E54\u3002\u901A\u904E\u5F8C\u53EF\u7372\u5F97\u66F4\u9AD8\u7684\u4F63\u91D1\u6BD4\u4F8B\u548C\u4E8C\u7D1A\u8FD4\u50AD\uFF1A\u60A8\u5E36\u4F86\u7684\u6210\u54E1\u51FA\u55AE\uFF0C\u60A8\u4E5F\u62FF\u4E00\u4EFD\u7D44\u7E54\u5206\u6210\u3002",
+      ja: "\u591A\u304F\u306E\u30D5\u30A9\u30ED\u30EF\u30FC\u304C\u3044\u308B\u30AF\u30EA\u30A8\u30A4\u30BF\u30FC\u3067\u3059\u304B\uFF1F\u9023\u7D61\u5148\u3068\u30D5\u30A9\u30ED\u30EF\u30FC\u6570\u306E\u30B9\u30AF\u30EA\u30FC\u30F3\u30B7\u30E7\u30C3\u30C8\u3092\u6DFB\u3048\u3066\u3001\u7D44\u7E54\u306E\u958B\u8A2D\u3092\u7533\u8ACB\u3057\u3066\u304F\u3060\u3055\u3044\u3002\u627F\u8A8D\u5F8C\u306F\u3088\u308A\u9AD8\u3044\u5831\u916C\u7387\u3068\u3001\u3042\u306A\u305F\u304C\u62DB\u5F85\u3057\u305F\u30E1\u30F3\u30D0\u30FC\u306E\u58F2\u4E0A\u306B\u5BFE\u3059\u308B\u5831\u916C\u3092\u53D7\u3051\u53D6\u308C\u307E\u3059\u3002",
+      ko: "\uD314\uB85C\uC6CC\uAC00 \uB9CE\uC740 \uD06C\uB9AC\uC5D0\uC774\uD130\uC778\uAC00\uC694? \uC5F0\uB77D\uCC98\uC640 \uD314\uB85C\uC6CC \uC218 \uC2A4\uD06C\uB9B0\uC0F7\uC744 \uB0A8\uAE30\uACE0 \uC870\uC9C1 \uAC1C\uC124\uC744 \uC2E0\uCCAD\uD558\uC138\uC694. \uC2B9\uC778\uB418\uBA74 \uB354 \uB192\uC740 \uC218\uC218\uB8CC\uC728\uACFC, \uD68C\uC6D0\uB2D8\uC774 \uCD08\uB300\uD55C \uBA64\uBC84\uC758 \uD310\uB9E4\uC5D0 \uB300\uD55C \uC218\uC218\uB8CC\uB97C \uBC1B\uC2B5\uB2C8\uB2E4.",
+      fr: "Vous avez une audience ? Laissez vos coordonn\xE9es et une capture de vos abonn\xE9s pour demander une organisation. Une fois approuv\xE9e, vous touchez un taux de commission plus \xE9lev\xE9 et une part des ventes faites par les membres que vous amenez.",
+      de: "Sie haben eine Reichweite? Hinterlassen Sie Ihre Kontaktdaten und einen Screenshot Ihrer Follower und beantragen Sie eine Organisation. Nach der Freischaltung erhalten Sie einen h\xF6heren Provisionssatz und einen Anteil an dem, was die von Ihnen geworbenen Mitglieder verkaufen."
     },
+    followersScreenshot: { en: "Followers screenshot", hans: "\u7C89\u4E1D\u6570\u636E\u622A\u56FE", hant: "\u7C89\u7D72\u6578\u64DA\u622A\u5716", ja: "\u30D5\u30A9\u30ED\u30EF\u30FC\u6570\u306E\u30B9\u30AF\u30EA\u30FC\u30F3\u30B7\u30E7\u30C3\u30C8", ko: "\uD314\uB85C\uC6CC \uC218 \uC2A4\uD06C\uB9B0\uC0F7", fr: "Capture de vos abonn\xE9s", de: "Follower-Screenshot" },
+    followersHint: { en: "Optional. If you have an audience, show us your followers on the platforms you use. JPEG, PNG, or WebP, up to 5 MB.", hans: "\u9009\u586B\u3002\u5982\u679C\u4F60\u662F\u5927 V\uFF0C\u53EF\u4EE5\u628A\u5404\u5E73\u53F0\u7684\u7C89\u4E1D\u6570\u636E\u622A\u56FE\u53D1\u7ED9\u6211\u4EEC\u3002\u652F\u6301 JPEG\u3001PNG\u3001WebP\uFF0C\u6700\u5927 5 MB\u3002", hant: "\u9078\u586B\u3002\u5982\u679C\u4F60\u662F\u5927 V\uFF0C\u53EF\u4EE5\u628A\u5404\u5E73\u53F0\u7684\u7C89\u7D72\u6578\u64DA\u622A\u5716\u767C\u7D66\u6211\u5011\u3002\u652F\u63F4 JPEG\u3001PNG\u3001WebP\uFF0C\u6700\u5927 5 MB\u3002", ja: "\u4EFB\u610F\u3002\u591A\u304F\u306E\u30D5\u30A9\u30ED\u30EF\u30FC\u304C\u3044\u308B\u5834\u5408\u306F\u3001\u5229\u7528\u4E2D\u306E\u30D7\u30E9\u30C3\u30C8\u30D5\u30A9\u30FC\u30E0\u306E\u30D5\u30A9\u30ED\u30EF\u30FC\u6570\u306E\u30B9\u30AF\u30EA\u30FC\u30F3\u30B7\u30E7\u30C3\u30C8\u3092\u304A\u9001\u308A\u304F\u3060\u3055\u3044\u3002JPEG\u30FBPNG\u30FBWebP\u30015 MB \u307E\u3067\u3002", ko: "\uC120\uD0DD \uC0AC\uD56D\uC785\uB2C8\uB2E4. \uD314\uB85C\uC6CC\uAC00 \uB9CE\uB2E4\uBA74 \uC0AC\uC6A9 \uC911\uC778 \uD50C\uB7AB\uD3FC\uC758 \uD314\uB85C\uC6CC \uC218 \uC2A4\uD06C\uB9B0\uC0F7\uC744 \uBCF4\uB0B4 \uC8FC\uC138\uC694. JPEG, PNG, WebP, \uCD5C\uB300 5 MB.", fr: "Facultatif. Si vous avez une audience, montrez-nous vos abonn\xE9s sur vos plateformes. JPEG, PNG ou WebP, 5 Mo maximum.", de: "Optional. Wenn Sie eine Reichweite haben, zeigen Sie uns Ihre Follower auf Ihren Plattformen. JPEG, PNG oder WebP, h\xF6chstens 5 MB." },
+    uploadScreenshot: { en: "Upload screenshot", hans: "\u4E0A\u4F20\u622A\u56FE", hant: "\u4E0A\u50B3\u622A\u5716", ja: "\u30B9\u30AF\u30EA\u30FC\u30F3\u30B7\u30E7\u30C3\u30C8\u3092\u9001\u308B", ko: "\uC2A4\uD06C\uB9B0\uC0F7 \uC62C\uB9AC\uAE30", fr: "Envoyer la capture", de: "Screenshot hochladen" },
+    replaceScreenshot: { en: "Upload another", hans: "\u91CD\u65B0\u4E0A\u4F20", hant: "\u91CD\u65B0\u4E0A\u50B3", ja: "\u5225\u306E\u753B\u50CF\u3092\u9001\u308B", ko: "\uB2E4\uB978 \uC2A4\uD06C\uB9B0\uC0F7 \uC62C\uB9AC\uAE30", fr: "Envoyer une autre capture", de: "Anderes Bild hochladen" },
+    screenshotAttached: { en: "Screenshot sent", hans: "\u622A\u56FE\u5DF2\u53D1\u9001", hant: "\u622A\u5716\u5DF2\u9001\u51FA", ja: "\u9001\u4FE1\u6E08\u307F", ko: "\uC2A4\uD06C\uB9B0\uC0F7 \uC804\uC1A1\uB428", fr: "Capture envoy\xE9e", de: "Screenshot gesendet" },
+    screenshotFailed: { en: "The screenshot could not be sent. Check the file and try again.", hans: "\u622A\u56FE\u53D1\u9001\u5931\u8D25\uFF0C\u8BF7\u68C0\u67E5\u6587\u4EF6\u540E\u91CD\u8BD5\u3002", hant: "\u622A\u5716\u9001\u51FA\u5931\u6557\uFF0C\u8ACB\u6AA2\u67E5\u6A94\u6848\u5F8C\u91CD\u8A66\u3002", ja: "\u30B9\u30AF\u30EA\u30FC\u30F3\u30B7\u30E7\u30C3\u30C8\u3092\u9001\u4FE1\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u30D5\u30A1\u30A4\u30EB\u3092\u78BA\u8A8D\u3057\u3066\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002", ko: "\uC2A4\uD06C\uB9B0\uC0F7\uC744 \uBCF4\uB0B4\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4. \uD30C\uC77C\uC744 \uD655\uC778\uD558\uACE0 \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.", fr: "La capture n\u2019a pas pu \xEAtre envoy\xE9e. V\xE9rifiez le fichier et r\xE9essayez.", de: "Das Screenshot konnte nicht gesendet werden. Pr\xFCfen Sie die Datei und versuchen Sie es erneut." },
+    signInRequired: { en: "Sign in to see your referral link and earnings.", hans: "\u767B\u5F55\u540E\u5373\u53EF\u67E5\u770B\u4F60\u7684\u63A8\u5E7F\u94FE\u63A5\u548C\u6536\u76CA\u3002", hant: "\u767B\u5165\u5F8C\u5373\u53EF\u67E5\u770B\u4F60\u7684\u63A8\u5EE3\u9023\u7D50\u548C\u6536\u76CA\u3002", ja: "\u30ED\u30B0\u30A4\u30F3\u3059\u308B\u3068\u7D39\u4ECB\u30EA\u30F3\u30AF\u3068\u5831\u916C\u3092\u78BA\u8A8D\u3067\u304D\u307E\u3059\u3002", ko: "\uB85C\uADF8\uC778\uD558\uBA74 \uCD94\uCC9C \uB9C1\uD06C\uC640 \uC218\uC775\uC744 \uD655\uC778\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.", fr: "Connectez-vous pour voir votre lien de parrainage et vos gains.", de: "Melden Sie sich an, um Ihren Empfehlungslink und Ihre Erl\xF6se zu sehen." },
+    memberOf: { en: "You are a member of this organization.", hans: "\u4F60\u662F\u8FD9\u4E2A\u7EC4\u7EC7\u7684\u6210\u5458\u3002", hant: "\u4F60\u662F\u9019\u500B\u7D44\u7E54\u7684\u6210\u54E1\u3002", ja: "\u3042\u306A\u305F\u306F\u3053\u306E\u7D44\u7E54\u306E\u30E1\u30F3\u30D0\u30FC\u3067\u3059\u3002", ko: "\uB2F9\uC2E0\uC740 \uC774 \uC870\uC9C1\uC758 \uBA64\uBC84\uC785\uB2C8\uB2E4.", fr: "Vous \xEAtes membre de cette organisation.", de: "Sie sind Mitglied dieser Organisation." },
     organizationName: { en: "Organization name", hans: "\u7EC4\u7EC7\u540D\u79F0", hant: "\u7D44\u7E54\u540D\u7A31", ja: "\u7D44\u7E54\u540D", ko: "\uC870\uC9C1 \uC774\uB984", fr: "Nom de l\u2019organisation", de: "Name der Organisation" },
     contactName: { en: "Contact name", hans: "\u8054\u7CFB\u4EBA", hant: "\u806F\u7D61\u4EBA", ja: "\u62C5\u5F53\u8005\u540D", ko: "\uB2F4\uB2F9\uC790 \uC774\uB984", fr: "Nom du contact", de: "Kontaktperson" },
     phone: { en: "Phone or WhatsApp", hans: "\u7535\u8BDD\u6216 WhatsApp", hant: "\u96FB\u8A71\u6216 WhatsApp", ja: "\u96FB\u8A71\u756A\u53F7\u307E\u305F\u306F WhatsApp", ko: "\uC804\uD654\uBC88\uD638 \uB610\uB294 WhatsApp", fr: "T\xE9l\xE9phone ou WhatsApp", de: "Telefon oder WhatsApp" },
@@ -4679,6 +4714,13 @@
     if (code === "USER_ALREADY_ORGANIZED") {
       return say({ en: "This account already belongs to an organization.", hans: "\u8BE5\u8D26\u6237\u5DF2\u5C5E\u4E8E\u4E00\u4E2A\u7EC4\u7EC7\u3002", hant: "\u8A72\u5E33\u6236\u5DF2\u5C6C\u65BC\u4E00\u500B\u7D44\u7E54\u3002", ja: "\u3053\u306E\u30A2\u30AB\u30A6\u30F3\u30C8\u306F\u3059\u3067\u306B\u7D44\u7E54\u306B\u6240\u5C5E\u3057\u3066\u3044\u307E\u3059\u3002", ko: "\uC774 \uACC4\uC815\uC740 \uC774\uBBF8 \uC870\uC9C1\uC5D0 \uC18D\uD574 \uC788\uC2B5\uB2C8\uB2E4.", fr: "Ce compte appartient d\xE9j\xE0 \xE0 une organisation.", de: "Dieses Konto geh\xF6rt bereits zu einer Organisation." });
     }
+    if (code === "SIGN_IN_REQUIRED") return say(AFFILIATE.signInRequired);
+    if (code === "INVALID_FILE_TYPE") {
+      return say({ en: "Screenshots must be JPEG, PNG, or WebP images.", hans: "\u622A\u56FE\u5FC5\u987B\u662F JPEG\u3001PNG \u6216 WebP \u56FE\u7247\u3002", hant: "\u622A\u5716\u5FC5\u9808\u662F JPEG\u3001PNG \u6216 WebP \u5716\u7247\u3002", ja: "\u30B9\u30AF\u30EA\u30FC\u30F3\u30B7\u30E7\u30C3\u30C8\u306F JPEG\u30FBPNG\u30FBWebP \u306E\u753B\u50CF\u306B\u3057\u3066\u304F\u3060\u3055\u3044\u3002", ko: "\uC2A4\uD06C\uB9B0\uC0F7\uC740 JPEG, PNG, WebP \uC774\uBBF8\uC9C0\uC5EC\uC57C \uD569\uB2C8\uB2E4.", fr: "Les captures doivent \xEAtre des images JPEG, PNG ou WebP.", de: "Screenshots m\xFCssen JPEG-, PNG- oder WebP-Bilder sein." });
+    }
+    if (code === "FILE_TOO_LARGE") {
+      return say({ en: "The screenshot must be at most 5 MB.", hans: "\u622A\u56FE\u4E0D\u80FD\u8D85\u8FC7 5 MB\u3002", hant: "\u622A\u5716\u4E0D\u80FD\u8D85\u904E 5 MB\u3002", ja: "\u30B9\u30AF\u30EA\u30FC\u30F3\u30B7\u30E7\u30C3\u30C8\u306F 5 MB \u307E\u3067\u306B\u3057\u3066\u304F\u3060\u3055\u3044\u3002", ko: "\uC2A4\uD06C\uB9B0\uC0F7\uC740 5 MB \uC774\uD558\uC5EC\uC57C \uD569\uB2C8\uB2E4.", fr: "La capture ne doit pas d\xE9passer 5 Mo.", de: "Das Screenshot darf h\xF6chstens 5 MB gro\xDF sein." });
+    }
     if (code === "APPLICATION_PENDING") return say(AFFILIATE.pendingTitle);
     if (code === "OWNER_ROLE_IMMUTABLE") {
       return say({ en: "The owner is already a member of the organization.", hans: "\u6240\u6709\u8005\u5DF2\u7ECF\u662F\u7EC4\u7EC7\u6210\u5458\u3002", hant: "\u64C1\u6709\u8005\u5DF2\u7D93\u662F\u7D44\u7E54\u6210\u54E1\u3002", ja: "\u30AA\u30FC\u30CA\u30FC\u306F\u3059\u3067\u306B\u7D44\u7E54\u306E\u30E1\u30F3\u30D0\u30FC\u3067\u3059\u3002", ko: "\uC18C\uC720\uC790\uB294 \uC774\uBBF8 \uC870\uC9C1\uC758 \uBA64\uBC84\uC785\uB2C8\uB2E4.", fr: "Le propri\xE9taire est d\xE9j\xE0 membre de l\u2019organisation.", de: "Der Inhaber ist bereits Mitglied der Organisation." });
@@ -4740,6 +4782,13 @@
     const [organizationCode, setOrganizationCode] = react_default.useState("");
     const [memberEmail, setMemberEmail] = react_default.useState("");
     const [memberRole, setMemberRole] = react_default.useState("INFLUENCER");
+    const [signInRequired, setSignInRequired] = react_default.useState(false);
+    const screenshotInput = react_default.useRef(null);
+    const [screenshotSent, setScreenshotSent] = react_default.useState(false);
+    const [screenshotUploading, setScreenshotUploading] = react_default.useState(false);
+    const [screenshotError, setScreenshotError] = react_default.useState("");
+    const [screenshotPreview, setScreenshotPreview] = react_default.useState(null);
+    const [screenshotAttached, setScreenshotAttached] = react_default.useState(null);
     const refresh = react_default.useCallback(async () => {
       if (!isAuthenticated) return;
       setLoading(true);
@@ -4758,16 +4807,21 @@
       if (partnerResult.status === "fulfilled") {
         setPartner(partnerResult.value[0]);
         setCommissions(partnerResult.value[1]);
-      } else if (!(partnerResult.reason instanceof EsimApiError && partnerResult.reason.status === 404)) {
+      } else if (!(partnerResult.reason instanceof EsimApiError && (partnerResult.reason.status === 404 || partnerResult.reason.code === "SIGN_IN_REQUIRED"))) {
         setError(partnerResult.reason instanceof EsimApiError ? affiliateErrorText(lang, partnerResult.reason) : t(AFFILIATE.loadFailed));
       }
       if (organizationResult.status === "fulfilled") {
         setOrganization(organizationResult.value[0]);
         setOrganizationCommissions(organizationResult.value[1]);
-      } else if (!(organizationResult.reason instanceof EsimApiError && organizationResult.reason.status === 404)) {
+      } else if (!(organizationResult.reason instanceof EsimApiError && (organizationResult.reason.status === 404 || organizationResult.reason.code === "SIGN_IN_REQUIRED"))) {
         setError(organizationResult.reason instanceof EsimApiError ? affiliateErrorText(lang, organizationResult.reason) : t(AFFILIATE.loadFailed));
       }
       if (applicationResult.status === "fulfilled") setApplication(applicationResult.value);
+      const partnerCause = partnerResult.status === "rejected" ? partnerResult.reason : null;
+      setSignInRequired(partnerCause instanceof EsimApiError && partnerCause.status === 403 && partnerCause.code === "SIGN_IN_REQUIRED");
+      const attached = applicationResult.status === "fulfilled" && applicationResult.value ? await getEsimAffiliateScreenshot(api).then((blob) => blob ? URL.createObjectURL(blob) : null).catch(() => null) : null;
+      setScreenshotAttached(attached);
+      setScreenshotSent(attached !== null);
       setLoading(false);
     }, [api, isAuthenticated, lang]);
     react_default.useEffect(() => {
@@ -4777,11 +4831,35 @@
       if (cause instanceof EsimApiError) setError(affiliateErrorText(lang, cause));
       else setError(fallback);
     };
+    const sendScreenshot = async (file) => {
+      if (!file) return;
+      setScreenshotError("");
+      if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+        setScreenshotError(affiliateErrorText(lang, { code: "INVALID_FILE_TYPE" }));
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        setScreenshotError(affiliateErrorText(lang, { code: "FILE_TOO_LARGE" }));
+        return;
+      }
+      setScreenshotUploading(true);
+      try {
+        await uploadEsimAffiliateScreenshot(api, file);
+        setScreenshotSent(true);
+        setScreenshotAttached(null);
+        setScreenshotPreview(URL.createObjectURL(file));
+      } catch (cause) {
+        setScreenshotError(cause instanceof EsimApiError && ["INVALID_FILE_TYPE", "FILE_TOO_LARGE", "VALIDATION_ERROR", "SIGN_IN_REQUIRED"].includes(cause.code) ? affiliateErrorText(lang, cause) : t(AFFILIATE.screenshotFailed));
+      } finally {
+        setScreenshotUploading(false);
+      }
+    };
     if (isLoading) return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-[var(--esim-bg)]" });
-    if (!isAuthenticated) {
+    if (!isAuthenticated || signInRequired) {
       return /* @__PURE__ */ jsx("div", { className: "flex min-h-screen items-center justify-center bg-[var(--esim-bg)] px-5", children: /* @__PURE__ */ jsxs("div", { className: "max-w-md border-y border-[var(--esim-line)] py-10 text-center", children: [
         /* @__PURE__ */ jsx(WalletCards, { className: "mx-auto h-7 w-7 text-[var(--esim-gold)]" }),
         /* @__PURE__ */ jsx("h1", { className: "mt-5 text-3xl text-[var(--esim-ink)]", children: t(AFFILIATE.signInTitle) }),
+        signInRequired ? /* @__PURE__ */ jsx("p", { className: "mt-4 max-w-sm text-sm leading-6 text-[var(--esim-copy)]", children: t(AFFILIATE.signInRequired) }) : null,
         /* @__PURE__ */ jsx("button", { onClick: onNavigateToLogin, className: "mt-7 min-h-11 bg-[var(--esim-gold)] px-6 text-sm font-semibold text-[var(--esim-bg)]", type: "button", children: t(AFFILIATE.signIn) })
       ] }) });
     }
@@ -4880,7 +4958,7 @@
                 /* @__PURE__ */ jsx("p", { className: "text-xs text-[var(--esim-copy-soft)]", children: fill(t(AFFILIATE.organizationRate), { rate: organization.commissionRate }) })
               ] })
             ] }),
-            /* @__PURE__ */ jsxs("form", { onSubmit: async (event) => {
+            /* @__PURE__ */ jsxs("form", { style: organization.canManageMembers === false ? { display: "none" } : void 0, onSubmit: async (event) => {
               event.preventDefault();
               setLoading(true);
               setError("");
@@ -4904,7 +4982,12 @@
                 t(AFFILIATE.addMember)
               ] })
             ] }),
-            /* @__PURE__ */ jsx("h3", { className: "mt-7 text-xs font-semibold uppercase text-[var(--esim-copy-soft)]", children: t(AFFILIATE.members) }),
+            /* @__PURE__ */ jsx("h3", { style: organization.canManageMembers === false ? { display: "none" } : void 0, className: "mt-7 text-xs font-semibold uppercase text-[var(--esim-copy-soft)]", children: t(AFFILIATE.members) }),
+            /* @__PURE__ */ jsxs("p", { "data-purpose": "member-of", style: organization.canManageMembers === false ? void 0 : { display: "none" }, className: "mt-7 text-sm leading-6 text-[var(--esim-copy)]", children: [
+              t(AFFILIATE.memberOf),
+              " \xB7 ",
+              memberRoleText(lang, organization.viewerRole)
+            ] }),
             /* @__PURE__ */ jsx("div", { className: "mt-3 divide-y divide-[var(--esim-line)] border-y border-[var(--esim-line)]", children: organization.members.map((member) => /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between gap-4 py-4", children: [
               /* @__PURE__ */ jsxs("div", { className: "min-w-0", children: [
                 /* @__PURE__ */ jsx("p", { className: "truncate text-sm font-semibold text-[var(--esim-ink)]", children: member.username || member.email }),
@@ -4918,6 +5001,7 @@
               /* @__PURE__ */ jsx("p", { className: "text-xs font-semibold uppercase text-[var(--esim-gold)]", children: t(application.status === "rejected" ? AFFILIATE.rejectedTitle : application.status === "approved" ? AFFILIATE.statusApproved : AFFILIATE.statusPending) }),
               /* @__PURE__ */ jsx("h2", { className: "mt-3 text-2xl text-[var(--esim-ink)]", children: t(application.status === "rejected" ? AFFILIATE.rejectedTitle : application.status === "approved" ? AFFILIATE.statusApproved : AFFILIATE.pendingTitle) }),
               /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm text-[var(--esim-copy)]", children: application.status === "pending" ? fill(t(AFFILIATE.pendingBody), { name: application.organizationName, email: application.email }) : application.status !== "rejected" ? "" : application.reviewNote ? fill(t(AFFILIATE.reviewNote), { note: application.reviewNote }) : t(AFFILIATE.rejectedBody) }),
+              screenshotAttached ? /* @__PURE__ */ jsx("img", { "data-purpose": "application-screenshot", src: screenshotAttached, alt: t(AFFILIATE.followersScreenshot), className: "mt-6 max-h-40 rounded-[var(--esim-radius-md)] border border-[var(--esim-line)] object-contain" }) : null,
               /* @__PURE__ */ jsxs("dl", { className: "mt-6 divide-y divide-[var(--esim-line)] border border-[var(--esim-line)]", children: [
                 /* @__PURE__ */ jsx(Detail, { label: t(AFFILIATE.organizationName), value: application.organizationName }),
                 /* @__PURE__ */ jsx(Detail, { label: t(AFFILIATE.contactName), value: application.contactName }),
@@ -4963,6 +5047,34 @@
             /* @__PURE__ */ jsxs("div", { children: [
               /* @__PURE__ */ jsx("label", { className: labelClassName, htmlFor: "esim-affiliate-message", children: t(AFFILIATE.message) }),
               /* @__PURE__ */ jsx("textarea", { id: "esim-affiliate-message", name: "message", value: applicationForm.message, onChange: (event) => setApplicationForm({ ...applicationForm, message: event.target.value }), maxLength: 1e3, rows: 4, className: "esim-affiliate-textarea w-full border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-4 py-3 text-sm text-[var(--esim-ink)] outline-none" })
+            ] }),
+            /* @__PURE__ */ jsxs("div", { children: [
+              /* @__PURE__ */ jsx("label", { className: labelClassName, htmlFor: "esim-affiliate-screenshot", children: t(AFFILIATE.followersScreenshot) }),
+              /* @__PURE__ */ jsx("p", { className: "mb-2 text-xs leading-5 text-[var(--esim-copy-soft)]", children: t(AFFILIATE.followersHint) }),
+              /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap items-center gap-3", children: [
+                /* @__PURE__ */ jsx(
+                  "input",
+                  {
+                    ref: screenshotInput,
+                    id: "esim-affiliate-screenshot",
+                    "data-purpose": "screenshot-input",
+                    type: "file",
+                    accept: "image/jpeg,image/png,image/webp",
+                    style: { position: "absolute", width: 1, height: 1, opacity: 0, overflow: "hidden" },
+                    onChange: (event) => {
+                      void sendScreenshot(event.target.files?.[0]);
+                      event.target.value = "";
+                    }
+                  }
+                ),
+                /* @__PURE__ */ jsx("button", { type: "button", disabled: screenshotUploading, onClick: () => screenshotInput.current?.click(), className: "inline-flex min-h-11 items-center justify-center gap-2 border border-[var(--esim-line)] bg-[var(--esim-bg-elevated)] px-4 text-sm font-semibold text-[var(--esim-ink)] disabled:opacity-50", children: screenshotSent ? t(AFFILIATE.replaceScreenshot) : t(AFFILIATE.uploadScreenshot) }),
+                screenshotPreview ? /* @__PURE__ */ jsx("img", { src: screenshotPreview, alt: "", className: "h-12 w-20 rounded-[var(--esim-radius-md)] border border-[var(--esim-line)] object-cover" }) : null,
+                screenshotSent ? /* @__PURE__ */ jsxs("span", { "data-purpose": "screenshot-sent", className: "inline-flex items-center gap-1 text-sm text-[var(--esim-success)]", children: [
+                  /* @__PURE__ */ jsx(Check, { className: "h-4 w-4" }),
+                  t(AFFILIATE.screenshotAttached)
+                ] }) : null
+              ] }),
+              screenshotError ? /* @__PURE__ */ jsx("p", { role: "alert", "data-purpose": "screenshot-error", className: "mt-2 text-xs leading-5 text-[var(--esim-danger)]", children: screenshotError }) : null
             ] }),
             /* @__PURE__ */ jsxs("button", { disabled: loading, className: "inline-flex min-h-12 items-center justify-center gap-2 bg-[var(--esim-gold)] px-5 text-sm font-semibold text-[var(--esim-bg)] disabled:opacity-50", type: "submit", children: [
               /* @__PURE__ */ jsx(Plus, { className: "h-4 w-4" }),
@@ -22575,7 +22687,7 @@ details[open] summary .faq-icon { transform: rotate(45deg); }
     meta: {
       ...existingMeta,
       slug: "esim",
-      version: "0.0.28",
+      version: "0.0.29",
       target: "shop"
     }
   };

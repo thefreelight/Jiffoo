@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "slug": "esim",
   "name": "eSIM Route Mall",
-  "version": "0.0.28",
+  "version": "0.0.29",
   "target": "shop",
   "description": "Route-first eSIM mall storefront (One trip, one eSIM) for esim.bokmoo.com.",
   "author": "Jiffoo",

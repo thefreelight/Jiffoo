@@ -70,11 +70,71 @@ function application(row: ApplicationRow): Record<string, unknown> {
   };
 }
 
-function organization(row: OrganizationRow, members: Array<Record<string, unknown>> = []): Record<string, unknown> {
+// A followers screenshot sent with an application to open an organization. It is for the store's eyes only:
+// it sits outside the public /uploads and /extensions prefixes and is read back through the admin route below.
+const SCREENSHOT_MAX_BYTES = 5 * 1024 * 1024;
+const SCREENSHOT_EXTENSIONS: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+
+function screenshotAssets(env: AffiliateEnv): R2Bucket | null {
+  return (env as AffiliateEnv & { ASSETS?: R2Bucket }).ASSETS ?? null;
+}
+
+const screenshotPrefix = (userId: string) => `private/affiliate/applications/${userId}/followers`;
+
+/** What the bytes are, by their first bytes — not by what the sender called the file. */
+function imageTypeOf(bytes: Uint8Array): 'image/jpeg' | 'image/png' | 'image/webp' | null {
+  if (bytes.length >= 4 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return 'image/png';
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return 'image/jpeg';
+  if (bytes.length >= 12 && bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46
+    && bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) return 'image/webp';
+  return null;
+}
+
+async function storeScreenshot(env: AffiliateEnv, request: Request, userId: string): Promise<Response> {
+  const assets = screenshotAssets(env);
+  if (!assets) return failure(503, 'STORAGE_UNAVAILABLE', 'Screenshot storage is not configured');
+  const form = await request.formData().catch(() => null);
+  const file = form?.get('file');
+  if (!(file instanceof File)) return failure(400, 'VALIDATION_ERROR', 'No file uploaded');
+  if (file.size <= 0 || file.size > SCREENSHOT_MAX_BYTES) return failure(400, 'FILE_TOO_LARGE', 'Screenshots must be at most 5 MB');
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const type = imageTypeOf(bytes);
+  if (!type) return failure(400, 'INVALID_FILE_TYPE', 'Screenshots must be JPEG, PNG, or WebP images');
+  // one screenshot per account: the latest replaces the earlier one, whatever its file type was
+  const earlier = await assets.list({ prefix: screenshotPrefix(userId) });
+  for (const object of earlier.objects) await assets.delete(object.key);
+  const key = `${screenshotPrefix(userId)}.${SCREENSHOT_EXTENSIONS[type]}`;
+  await assets.put(key, bytes, { httpMetadata: { contentType: type, cacheControl: 'private, max-age=300' } });
+  return success({ uploaded: true, contentType: type, size: bytes.length });
+}
+
+async function readScreenshot(env: AffiliateEnv, userId: string): Promise<Response> {
+  const assets = screenshotAssets(env);
+  if (!assets) return failure(503, 'STORAGE_UNAVAILABLE', 'Screenshot storage is not configured');
+  const listed = await assets.list({ prefix: screenshotPrefix(userId) });
+  const first = listed.objects[0];
+  if (!first) return failure(404, 'SCREENSHOT_NOT_FOUND', 'No screenshot was sent');
+  const object = await assets.get(first.key);
+  if (!object) return failure(404, 'SCREENSHOT_NOT_FOUND', 'No screenshot was sent');
+  return new Response(object.body, {
+    headers: {
+      'content-type': object.httpMetadata?.contentType ?? 'application/octet-stream',
+      'cache-control': 'private, max-age=300',
+      'x-content-type-options': 'nosniff',
+    },
+  });
+}
+
+function organization(
+  row: OrganizationRow,
+  members: Array<Record<string, unknown>> = [],
+  viewer: { viewerRole: string; canManageMembers: boolean } = { viewerRole: 'OWNER', canManageMembers: true },
+): Record<string, unknown> {
   return {
     id: row.id, ownerUserId: row.owner_user_id, code: row.code, name: row.name,
     status: row.status, commissionRate: row.commission_rate, currency: row.currency,
-    members, createdAt: row.created_at, updatedAt: row.updated_at,
+    members, viewerRole: viewer.viewerRole, canManageMembers: viewer.canManageMembers,
+    createdAt: row.created_at, updatedAt: row.updated_at,
   };
 }
 
@@ -376,7 +436,9 @@ async function associate(request: Request, env: AffiliateEnv, user: NativeSessio
   const referrer = await env.DB.prepare(
     'SELECT partner_id FROM native_affiliate_attributions WHERE visitor_id = ?1 AND user_id = ?2 ORDER BY associated_at DESC LIMIT 1',
   ).bind(suppliedVisitorId, user.id).first<{ partner_id: string }>();
-  const organization = referrer ? await joinReferrerOrganization(env, { user, referrerPartnerId: referrer.partner_id }) : 'none';
+  const organization = referrer && user.role !== 'GUEST'
+    ? await joinReferrerOrganization(env, { user, referrerPartnerId: referrer.partner_id })
+    : 'none';
   return success({ visitorId: suppliedVisitorId, userId: user.id, organization });
 }
 
@@ -490,10 +552,10 @@ async function handleNativeAffiliate(request: Request, env: AffiliateEnv, _url: 
     const organizations = await env.DB.prepare(
       `SELECT o.id, o.code, o.name, o.status, o.commission_rate, o.currency, o.created_at, o.owner_user_id,
               users.email AS owner_email, users.username AS owner_username,
-              COUNT(p.id) AS member_count
+              (SELECT COUNT(*) FROM native_affiliate_org_members members
+                WHERE members.organization_id = o.id AND members.status = 'active' AND members.user_id != o.owner_user_id) AS member_count
        FROM native_affiliate_organizations o
        LEFT JOIN native_users users ON users.id = o.owner_user_id
-       LEFT JOIN native_affiliate_partners p ON p.organization_id = o.id
        GROUP BY o.id ORDER BY o.created_at DESC LIMIT 200`,
     ).all<Record<string, unknown>>();
     const applications = await env.DB.prepare(
@@ -526,6 +588,15 @@ async function handleNativeAffiliate(request: Request, env: AffiliateEnv, _url: 
     }
     return { admin };
   };
+
+  const adminScreenshotMatch = rawPath.match(/^\/api\/v1\/extensions\/plugin\/affiliate\/api\/admin\/applications\/([\w-]+)\/screenshot$/);
+  if (adminScreenshotMatch && request.method === 'GET') {
+    const guard = await adminAffiliateGuard();
+    if (guard.error) return guard.error;
+    const applied = await env.DB.prepare('SELECT user_id FROM native_affiliate_org_applications WHERE id = ?1').bind(adminScreenshotMatch[1]).first<{ user_id: string }>();
+    if (!applied) return failure(404, 'APPLICATION_NOT_FOUND', 'Application not found');
+    return readScreenshot(env, applied.user_id);
+  }
 
   const adminPartnerMatch = rawPath.match(/^\/api\/v1\/extensions\/plugin\/affiliate\/api\/admin\/partners\/([\w-]+)$/);
   if (adminPartnerMatch && request.method === 'PATCH') {
@@ -747,6 +818,15 @@ async function handleNativeAffiliate(request: Request, env: AffiliateEnv, _url: 
   if (request.method === 'GET' && route) return recordReferral(request, env, decodeURIComponent(route[1]!));
   const user = await currentUser(request, env);
   if (!user) return failure(401, 'UNAUTHORIZED', 'Login required');
+  // A guest session — a shopper checking out without an account — is no partner and belongs to no organization:
+  // it is offered the sign-in instead. Its visits are still tied to the partner whose link it arrived through,
+  // so a guest order pays the partner who brought it.
+  const tyingVisit = request.method === 'POST' && rawPath === '/api/v1/plugins/affiliate/store/attributions/associate';
+  if (user.role === 'GUEST' && !tyingVisit) return failure(403, 'SIGN_IN_REQUIRED', 'Sign in to use the affiliate workspace');
+  if (rawPath === '/api/v1/plugins/affiliate/store/organizations/applications/screenshot') {
+    if (request.method === 'POST') return storeScreenshot(env, request, user.id);
+    if (request.method === 'GET') return readScreenshot(env, user.id);
+  }
   // Organizations are opened by the store. A storefront that still offers "create organization"
   // (an older cached theme) is told to apply instead.
   if (request.method === 'POST' && path === '/api/v1/plugins/affiliate/store/organizations') {
@@ -759,7 +839,15 @@ async function handleNativeAffiliate(request: Request, env: AffiliateEnv, _url: 
   }
   if (request.method === 'GET' && path === '/api/v1/plugins/affiliate/store/organizations/me') {
     const row = await organizationOfUser(env, user.id);
-    return row ? success(organization(row, await organizationMembers(env, row.id))) : failure(404, 'ORGANIZATION_NOT_FOUND', 'Organization not found');
+    if (!row) return failure(404, 'ORGANIZATION_NOT_FOUND', 'Organization not found');
+    // The owner manages the members and sees who they are. A member — anyone an owner's link brought in — sees
+    // the organization and their own place in it, never the other members' names and addresses.
+    const isOwner = row.owner_user_id === user.id;
+    const membership = isOwner ? null : await env.DB.prepare(
+      "SELECT role FROM native_affiliate_org_members WHERE organization_id = ?1 AND user_id = ?2 AND status = 'active'",
+    ).bind(row.id, user.id).first<{ role: string }>();
+    const viewerRole = isOwner ? 'OWNER' : (membership?.role ?? 'INFLUENCER');
+    return success(organization(row, isOwner ? await organizationMembers(env, row.id) : [], { viewerRole, canManageMembers: isOwner }));
   }
   const memberMatch = path.match(/^\/api\/v1\/plugins\/affiliate\/store\/organizations\/([^/]+)\/members$/);
   if (request.method === 'POST' && memberMatch) return addOrganizationMember(request, env, user, decodeURIComponent(memberMatch[1]!));
@@ -800,6 +888,17 @@ export interface NativeAffiliateSettlementResult {
   organization: NativeOrganizationCommissionResult | null;
 }
 
+/** Whether this account arrived through the link of someone other than the organization's owner. */
+async function referredByAnotherMember(env: AffiliateDataEnv, input: { userId?: string | null; ownerId?: string | null }): Promise<boolean> {
+  if (!input.userId || !input.ownerId) return false;
+  const referral = await env.DB.prepare(
+    `SELECT partner_id FROM native_affiliate_attributions WHERE user_id = ?1 AND status IN ('associated', 'converted') ORDER BY created_at DESC LIMIT 1`,
+  ).bind(input.userId).first<{ partner_id: string }>();
+  if (!referral?.partner_id) return false;
+  const referrer = await env.DB.prepare('SELECT user_id FROM native_affiliate_partners WHERE id = ?1').bind(referral.partner_id).first<{ user_id: string | null }>();
+  return !!referrer?.user_id && referrer.user_id !== input.ownerId;
+}
+
 export async function createNativeAffiliateCommission(env: AffiliateDataEnv, order: Record<string, unknown>): Promise<NativeAffiliateSettlementResult | null> {
   const userId = typeof order.userId === 'string' ? order.userId : null;
   const orderId = typeof order.id === 'string' ? order.id : null;
@@ -829,6 +928,9 @@ export async function createNativeAffiliateCommission(env: AffiliateDataEnv, ord
      WHERE partners.id = ?1 AND partners.status = 'active'`,
   ).bind(attribution.partner_id).first<{ commission_rate: number; currency: string; organization_id: string | null; owner_user_id: string | null; organization_rate: number | null; organization_currency: string | null; scope_mode?: string | null; partner_user_id?: string | null }>();
   if (!row) return null;
+  // Nobody earns a commission on their own purchase: a partner who shops with their own code or link keeps the
+  // buyer discount, and is paid nothing as a referrer.
+  if (row.partner_user_id === userId) return null;
   // A code that is limited to certain products earns on those products alone: what they sold for
   // after the promotion, less the discount the code itself gave. Everything else earns on the order.
   const scopeMode = affiliateScopeMode(row.scope_mode);
@@ -863,7 +965,11 @@ export async function createNativeAffiliateCommission(env: AffiliateDataEnv, ord
   // The organization's share is for the sales of its members. The owner's own sales pay the owner's own
   // commission and nothing beside it: the owner is not a member of their own organization.
   const partnerIsOwner = row.owner_user_id != null && row.owner_user_id === row.partner_user_id;
-  if (row.organization_id && row.owner_user_id && row.organization_rate !== null && !partnerIsOwner) {
+  // Two levels, and no further. The organization earns on what the members the owner brought in sell — through the
+  // owner's own link, or added by the owner's hand — and not on what the people those members brought in sell.
+  const soldByAMembersOwn = row.organization_id != null && !partnerIsOwner
+    && await referredByAnotherMember(env, { userId: row.partner_user_id, ownerId: row.owner_user_id });
+  if (row.organization_id && row.owner_user_id && row.organization_rate !== null && !partnerIsOwner && !soldByAMembersOwn) {
     const orgExisting = await env.DB.prepare(
       'SELECT id, amount, currency, beneficiary_user_id FROM native_affiliate_org_commissions WHERE organization_id = ?1 AND order_id = ?2',
     ).bind(row.organization_id, orderId).first<{ id: string; amount: number; currency: string; beneficiary_user_id: string }>();
