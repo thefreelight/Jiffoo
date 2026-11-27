@@ -14,6 +14,24 @@ import { pickCopy } from '../site';
  *   pinned to picked products reaches them at their current price, sale or not.
  */
 
+/** The words of a promotion's banner in the shopper's language. `title` and `body` feed the plain announcement bar; the rest the campaign bar. */
+export interface SaleBannerCopy {
+  title: string;
+  body: string;
+  /** The pill at the left of the campaign bar: the campaign's name. */
+  badge?: string;
+  /** What is on offer, before the highlight. */
+  subject?: string;
+  /** The words between the subject and the highlight ("Save up to"). */
+  lead?: string;
+  /** The offer in gold. Without it, the promotion's own discount is named. */
+  highlight?: string;
+  /** The window ("Nov 27 – Nov 30"). Without it, the promotion's own days are named. */
+  note?: string;
+  /** What the button says. Without it, the promotion's own discount is offered. */
+  cta?: string;
+}
+
 /** An automatic promotion the store is running right now. */
 export interface Sale {
   id: string;
@@ -25,7 +43,9 @@ export interface Sale {
   discountValue: number;
   /** Product ids the sale covers. An empty list covers nothing. */
   productIds: string[] | null;
-  banner: { title: string; body: string } | null;
+  banner: SaleBannerCopy | null;
+  /** The template that draws the banner: the plain announcement bar (the default), or the campaign bar. */
+  bannerTemplate?: 'default' | 'campaign';
   rulesUrl: string | null;
   activeNow: boolean;
 }
@@ -81,7 +101,8 @@ function parseSale(raw: unknown): Sale | null {
   const row = raw as Record<string, unknown>;
   const value = typeof row.discountValue === 'number' && Number.isFinite(row.discountValue) ? row.discountValue : 0;
   if (typeof row.id !== 'string' || !row.id || value <= 0) return null;
-  const banner = (row.banner && typeof row.banner === 'object' ? row.banner : null) as { title?: unknown; body?: unknown } | null;
+  const banner = (row.banner && typeof row.banner === 'object' ? row.banner : null) as Record<string, unknown> | null;
+  const word = (key: string): string | undefined => (typeof banner?.[key] === 'string' && String(banner[key]).trim() ? String(banner[key]).trim() : undefined);
   return {
     id: row.id,
     slug: typeof row.slug === 'string' ? row.slug : row.id,
@@ -92,8 +113,9 @@ function parseSale(raw: unknown): Sale | null {
     discountValue: value,
     productIds: Array.isArray(row.productIds) ? row.productIds.filter((id): id is string => typeof id === 'string') : null,
     banner: banner && typeof banner.title === 'string' && typeof banner.body === 'string'
-      ? { title: banner.title, body: banner.body }
+      ? { title: banner.title, body: banner.body, badge: word('badge'), subject: word('subject'), lead: word('lead'), highlight: word('highlight'), note: word('note'), cta: word('cta') }
       : null,
+    bannerTemplate: row.bannerTemplate === 'campaign' ? 'campaign' : undefined,
     rulesUrl: typeof row.rulesUrl === 'string' && /^https?:\/\//i.test(row.rulesUrl) ? row.rulesUrl : null,
     activeNow: row.activeNow === true,
   };

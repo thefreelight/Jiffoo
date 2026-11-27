@@ -30,6 +30,9 @@ function adminDb(rows: Record<string, unknown>[] = []) {
     prepare: (sql: string) => ({
       bind: (...values: unknown[]) => ({
         first: async () => {
+          if (sql.includes('WHERE slug = ?1 AND id != ?2')) {
+            return table.find((row) => row.slug === values[0] && row.id !== values[1]) ?? null;
+          }
           if (sql.includes('WHERE id = ?1')) return table.find((row) => row.id === values[0]) ?? null;
           if (sql.includes('COUNT(*) AS n FROM native_order_metadata')) {
             return { n: table.filter((row) => row.user_id === values[0] && row.promotion_id === values[1]).length };
@@ -38,18 +41,22 @@ function adminDb(rows: Record<string, unknown>[] = []) {
         },
         all: async () => ({ results: [...table] }),
         run: async () => {
+          // SQLite numbers a bare "?" one past the highest number assigned so far: a statement that mixes the two
+          // styles has fewer parameters than bindings, and D1 refuses it. The real database would; so does this one.
+          if (/(?<![\w?])\?(?!\d)/.test(sql) && /\?\d+/.test(sql)) throw new Error(`a statement mixes "?" and "?1" placeholders: ${sql.slice(0, 90)}`);
           if (sql.startsWith('INSERT INTO native_promotions')) {
-            const [id, slug, name, startsAt, endsAt, discountType, discountValue, productIds, perUserLimit, banner, rulesUrl, now] = values;
+            const [id, slug, name, startsAt, endsAt, discountType, discountValue, productIds, perUserLimit, banner, bannerTemplate, rulesUrl, now] = values;
             table.push({
               id, slug, name, status: 'draft', starts_at: startsAt, ends_at: endsAt,
               discount_type: discountType, discount_value: discountValue,
               product_ids_json: productIds, per_user_limit: perUserLimit,
-              banner_json: banner, rules_url: rulesUrl, created_at: now, updated_at: now,
+              banner_json: banner, banner_template: bannerTemplate, rules_url: rulesUrl, created_at: now, updated_at: now,
             });
           }
           if (sql.startsWith('UPDATE native_promotions')) {
-            const row = table.find((entry) => entry.id === values[4]);
-            if (row) Object.assign(row, { status: values[0], starts_at: values[1], ends_at: values[2], updated_at: values[3] });
+            const columns = ['slug', 'name', 'status', 'starts_at', 'ends_at', 'discount_type', 'discount_value', 'product_ids_json', 'per_user_limit', 'banner_json', 'banner_template', 'rules_url', 'updated_at'];
+            const row = table.find((entry) => entry.id === values[columns.length]);
+            if (row) Object.assign(row, Object.fromEntries(columns.map((column, index) => [column, values[index]])));
           }
           return { success: true };
         },
@@ -80,6 +87,96 @@ describe('promotionPayload', () => {
     expect(promotionPayload({ ...validPromotion, endsAt: '2026-11-20T00:00:00.000Z' })).toBeNull();
     expect(promotionPayload({ ...validPromotion, discountType: 'percent', discountValue: 120 })).toBeNull();
     expect(promotionPayload({ ...validPromotion, discountType: 'coupon' })).toBeNull();
+  });
+});
+
+describe('the banner of a promotion: a template and its words', () => {
+  const campaign = {
+    ...validPromotion,
+    bannerTemplate: 'campaign',
+    banner: {
+      en: { title: 'Black Friday', body: '20% off', badge: '🔥 Black Friday Sale', subject: 'Physical eSIM & Bluetooth Smart Card', lead: 'Save up to', highlight: '20% OFF', cta: 'Claim 20% OFF' },
+      'zh-Hans': { title: '黑五', body: '8 折', badge: '🔥 黑五限时礼遇', highlight: '8 折' },
+    },
+  };
+
+  it('keeps the template and the words, trimmed and bounded', () => {
+    const payload = promotionPayload(campaign);
+    expect(payload?.bannerTemplate).toBe('campaign');
+    expect(payload?.banner?.en).toEqual({ title: 'Black Friday', body: '20% off', badge: '🔥 Black Friday Sale', subject: 'Physical eSIM & Bluetooth Smart Card', lead: 'Save up to', highlight: '20% OFF', cta: 'Claim 20% OFF' });
+    // a language may give only some of the words
+    expect(payload?.banner?.['zh-Hans']).toEqual({ title: '黑五', body: '8 折', badge: '🔥 黑五限时礼遇', highlight: '8 折' });
+    // a template that does not exist is the plain bar; blank and overlong words are dropped or cut
+    expect(promotionPayload({ ...validPromotion, bannerTemplate: 'nonsense' })?.bannerTemplate).toBe('default');
+    const odd = promotionPayload({ ...validPromotion, banner: { en: { title: 'T', body: 'B', badge: '   ', cta: 'x'.repeat(80), subject: 42 } } });
+    expect(odd?.banner?.en).toEqual({ title: 'T', body: 'B', cta: 'x'.repeat(60) });
+  });
+
+  it('the storefront is told which template draws the banner, and gets its words in its language', async () => {
+    const db = adminDb([{
+      id: 'p1', slug: 'black-friday-2026', name: 'Black Friday', status: 'active',
+      starts_at: '2026-01-01T00:00:00.000Z', ends_at: '2026-12-31T00:00:00.000Z',
+      discount_type: 'percent', discount_value: 20, product_ids_json: null, per_user_limit: 0,
+      banner_json: JSON.stringify(campaign.banner), banner_template: 'campaign', rules_url: 'https://bokmoo.com/blackfriday', created_at: '', updated_at: '',
+    }]);
+    const payload = await (await tryNativeBokmooPromotions(request('GET', '/api/v1/promotions/active?locale=zh-Hans'), env(db))).json();
+    expect(payload.data.items[0]).toMatchObject({ bannerTemplate: 'campaign', banner: { badge: '🔥 黑五限时礼遇', highlight: '8 折', title: '黑五' } });
+    // a row from before templates existed reads as the plain bar
+    const plain = adminDb([{ ...db.table[0]!, banner_template: undefined }]);
+    const older = await (await tryNativeBokmooPromotions(request('GET', '/api/v1/promotions/active?locale=en'), env(plain))).json();
+    expect(older.data.items[0].bannerTemplate).toBe('default');
+    expect(older.data.items[0].banner.cta).toBe('Claim 20% OFF');
+  });
+
+  it('a campaign can be changed whole: words, template, discount, products, limit, link and slug', async () => {
+    authenticateNativeAdmin.mockResolvedValue({ id: 'admin-1' });
+    const db = adminDb();
+    const created = await (await tryNativeBokmooPromotions(request('POST', '/api/v1/admin/promotions', validPromotion), env(db))).json();
+    const changed = await tryNativeBokmooPromotions(
+      request('PATCH', `/api/v1/admin/promotions/${created.data.id}`, {
+        slug: 'black-friday-2027', name: 'Black Friday 2027', discountValue: 25, productIds: ['odoo-product-6'], perUserLimit: 1,
+        rulesUrl: 'https://bokmoo.com/blackfriday-2027', bannerTemplate: 'campaign',
+        banner: { en: { title: 'BF 2027', body: '25% off', badge: '🔥 Black Friday', cta: 'Claim 25% OFF' } },
+      }),
+      env(db),
+    );
+    expect(changed.status).toBe(200);
+    expect((await changed.json()).data).toMatchObject({
+      slug: 'black-friday-2027', name: 'Black Friday 2027', discountValue: 25, productIds: ['odoo-product-6'], perUserLimit: 1,
+      rulesUrl: 'https://bokmoo.com/blackfriday-2027', bannerTemplate: 'campaign', banner: { title: 'BF 2027', cta: 'Claim 25% OFF' },
+      // not sent: kept
+      status: 'draft', startsAt: validPromotion.startsAt, discountType: 'percent',
+    });
+    expect(db.table[0]!.banner_template).toBe('campaign');
+    expect(JSON.parse(String(db.table[0]!.banner_json))).toEqual({ en: { title: 'BF 2027', body: '25% off', badge: '🔥 Black Friday', cta: 'Claim 25% OFF' } });
+
+    // clearing: no words, no link, every product
+    const cleared = await tryNativeBokmooPromotions(
+      request('PATCH', `/api/v1/admin/promotions/${created.data.id}`, { banner: {}, rulesUrl: '', productIds: null }),
+      env(db),
+    );
+    expect((await cleared.json()).data).toMatchObject({ banner: null, rulesUrl: null, productIds: null });
+  });
+
+  it('refuses what it cannot store, and changes nothing', async () => {
+    authenticateNativeAdmin.mockResolvedValue({ id: 'admin-1' });
+    const db = adminDb([{
+      id: 'p1', slug: 'black-friday-2026', name: 'Black Friday', status: 'active',
+      starts_at: '2026-11-27T00:00:00.000Z', ends_at: '2026-12-01T00:00:00.000Z',
+      discount_type: 'percent', discount_value: 20, product_ids_json: null, per_user_limit: 0,
+      banner_json: null, rules_url: null, created_at: '', updated_at: '',
+    }, { ...{}, id: 'p2', slug: 'cyber-monday', name: 'Cyber Monday', status: 'draft', starts_at: '', ends_at: '', discount_type: 'percent', discount_value: 10, per_user_limit: 0, banner_json: null, rules_url: null, created_at: '', updated_at: '' }]);
+    const before = JSON.stringify(db.table);
+    const patch = (body: unknown) => tryNativeBokmooPromotions(request('PATCH', '/api/v1/admin/promotions/p1', body), env(db));
+    expect((await patch({ status: 'whenever' })).status).toBe(400);
+    expect((await patch({ perUserLimit: 1.5 })).status).toBe(400);
+    expect((await patch({ perUserLimit: -1 })).status).toBe(400);
+    expect((await patch({ endsAt: '2026-11-01T00:00:00.000Z' })).status).toBe(400);
+    expect((await patch({ slug: 'cyber-monday' })).status).toBe(409);
+    expect((await patch({ banner: { en: { title: 'no body' } } })).status).toBe(400);
+    expect((await patch({ discountValue: 150 })).status).toBe(400);
+    expect((await tryNativeBokmooPromotions(request('PATCH', '/api/v1/admin/promotions/none', { status: 'draft' }), env(db))).status).toBe(404);
+    expect(JSON.stringify(db.table)).toBe(before);
   });
 });
 
