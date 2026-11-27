@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const authenticateNativeUser = vi.fn();
 const authenticateNativeAdmin = vi.fn();
@@ -339,5 +339,142 @@ describe('native Bokmoo Connect admin card inventory', () => {
       data: { items: [{ id: run.id, total: 2, imported: 2 }], total: 1 },
     });
     expect(query.mock.calls[0][0]).toContain('SELECT * FROM native_bokmoo_card_import_runs');
+  });
+});
+
+describe('card sync: the plans on a card, under the account that read it', () => {
+  const EID = '89086030201234567890123456789012';
+
+  /** A database whose statements remember the SQL and values they were bound with. */
+  function recordingDb(first: unknown) {
+    const bound: Array<[string, unknown[]]> = [];
+    const query = vi.fn((sql: string) => {
+      const state = statement(first);
+      return { ...state, bind: vi.fn((...values: unknown[]) => { bound.push([sql, values]); return state; }) };
+    });
+    const batch = vi.fn(async () => []);
+    return { db: { prepare: query, batch } as never, bound, batch };
+  }
+
+  function sync(body: unknown) {
+    return tryNativeBokmooConnect(
+      new Request('https://api.example/api/v1/cards/sync', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: 'Bearer token' },
+        body: JSON.stringify(body),
+      }), { DB: db } as never,
+    );
+  }
+
+  let db: never;
+  let bound: Array<[string, unknown[]]>;
+  let batch: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    isNativePluginEnabled.mockResolvedValue(true);
+    authenticateNativeUser.mockResolvedValue({ id: 'user-1', email: 'u@example.com' });
+  });
+
+  it('binds a card nobody owns to the caller and stores its plans', async () => {
+    ({ db, bound, batch } = recordingDb(null));
+    const response = await sync({
+      eid: EID,
+      source: 'bluetooth',
+      profiles: [
+        { iccid: '8900000000000000001', enabled: true, name: 'Plan A', provider: 'Operator A' },
+        { iccid: '8900 0000 0000 0000 002', enabled: false },
+        { iccid: 'bad', enabled: false },
+      ],
+    });
+    expect(response?.status).toBe(201);
+    await expect(response?.json()).resolves.toMatchObject({ data: { result: 'recorded', eid: EID, profiles: 2 } });
+    expect(batch).toHaveBeenCalledTimes(1);
+    const card = bound.find(([sql]) => sql.includes('INSERT INTO native_bokmoo_cards'));
+    const plans = bound.filter(([sql]) => sql.includes('INSERT INTO native_bokmoo_card_profiles'));
+    expect(card?.[1]).toEqual([expect.stringMatching(/^card-seen-[0-9a-f]{16}$/), EID, EID, 'user-1', expect.any(String)]);
+    expect(plans.map(([, values]) => values.slice(1, 6))).toEqual([
+      ['8900000000000000001', 1, 'Plan A', 'Operator A', 'bluetooth'],
+      ['8900000000000000002', 0, '', '', 'bluetooth'],
+    ]);
+    expect(bound.some(([sql]) => sql.includes('DELETE FROM native_bokmoo_card_profiles'))).toBe(true);
+  });
+
+  it('leaves a card another account owns alone', async () => {
+    ({ db, bound, batch } = recordingDb({ id: 'card-1', eid: EID, status: 'seen', verification_status: 'seen', user_id: 'user-2' }));
+    const response = await sync({ eid: EID, profiles: [] });
+    expect(response?.status).toBe(409);
+    await expect(response?.json()).resolves.toMatchObject({
+      success: false, error: { code: 'CARD_POLICY_FAILURE', details: { policy: 'bound_to_other' } },
+    });
+    expect(batch).not.toHaveBeenCalled();
+  });
+
+  it('keeps a verified card verified and refreshes what is on it', async () => {
+    ({ db, bound, batch } = recordingDb({ id: 'card-1', eid: EID, status: 'bound', verification_status: 'verified', user_id: 'user-1' }));
+    const response = await sync({ eid: EID, profiles: [{ iccid: '8900000000000000001', enabled: true }] });
+    expect(response?.status).toBe(200);
+    const update = bound.find(([sql]) => sql.startsWith('UPDATE native_bokmoo_cards'));
+    expect(update?.[0]).toContain("status = CASE WHEN status IN ('unbound', 'seen') THEN 'seen' ELSE status END");
+    expect(update?.[1]).toEqual(['user-1', expect.any(String), 'card-1']);
+  });
+
+  it('lists a customer\'s cards with the plans on them and the orders for those ICCIDs', async () => {
+    const admin = { id: 'admin-1', email: 'admin@example.com' };
+    isNativePluginEnabled.mockResolvedValue(true);
+    authenticateNativeAdmin.mockResolvedValue(admin);
+    const card = { id: 'card-1', mid: EID, eid: EID, iccid: null, sku: null, batch: null, status: 'seen', verification_status: 'seen', user_id: 'user-1', bound_at: null, verified_at: null, last_seen_at: null };
+    const profiles = [
+      { eid: EID, iccid: '8900000000000000001', enabled: 1, name: 'Plan A', provider: 'Operator A', source: 'bluetooth', synced_at: '2026-11-27T00:00:00.000Z' },
+      { eid: EID, iccid: '8900000000000000002', enabled: 0, name: 'Plan B', provider: '', source: 'bluetooth', synced_at: '2026-11-27T00:00:00.000Z' },
+    ];
+    // The stored answer also carries the install credentials: they must not come back.
+    const lines = [{ order_id: 'ord_1', product_id: 'prod_1', quantity: 1, payload_json: JSON.stringify({ bossOrder: { iccid: '00000001' }, installCredentials: { lpaString: 'LPA:1$secret' } }) }];
+    const topUps = [{ order_id: 'ord_2', product_id: 'prod_2', quantity: 1, iccid: '00000002' }];
+    const snapshots = [
+      { id: 'ord_1', order_number: 'BM202611270001', payload: JSON.stringify({ createdAt: '2026-11-01T00:00:00Z', status: 'PAID', paymentStatus: 'paid', items: [{ productId: 'prod_1', productName: 'Japan 5GB' }] }) },
+      { id: 'ord_2', order_number: 'BM202611270002', payload: JSON.stringify({ items: [{ productId: 'prod_2', productName: 'Japan 10GB' }] }) },
+    ];
+    // Read in the handler's order: the customer's cards, then this customer's
+    // order lines (new plans, top-ups, the orders themselves), then each card's plans.
+    const query = vi.fn()
+      .mockReturnValueOnce(statement(null, [card]))
+      .mockReturnValueOnce(statement(null, lines))
+      .mockReturnValueOnce(statement(null, topUps))
+      .mockReturnValueOnce(statement(null, snapshots))
+      .mockReturnValueOnce(statement(null, profiles));
+    const response = await tryNativeBokmooConnect(
+      new Request(`${ADMIN_URL}/customers/user-1/cards`, { headers: { authorization: 'Bearer admin-token' } }),
+      { DB: { prepare: query } } as never,
+    );
+    expect(response?.status).toBe(200);
+    const payload = await response?.json() as any;
+    expect(payload.data.items).toHaveLength(1);
+    expect(payload.data.items[0]).toMatchObject({ id: 'card-1', eid: EID, userId: 'user-1' });
+    expect(payload.data.items[0].profiles.map((profile: any) => [profile.iccid, profile.enabled, profile.name])).toEqual([
+      ['8900000000000000001', true, 'Plan A'],
+      ['8900000000000000002', false, 'Plan B'],
+    ]);
+    // The issuer's asset number is the tail of the ICCID the card reports.
+    expect(payload.data.items[0].profiles[0].orders).toEqual([
+      { orderId: 'ord_1', orderNumber: 'BM202611270001', productId: 'prod_1', productName: 'Japan 5GB', quantity: 1, createdAt: '2026-11-01T00:00:00Z', status: 'PAID', paymentStatus: 'paid', kind: 'new' },
+    ]);
+    expect(payload.data.items[0].profiles[1].orders).toEqual([
+      { orderId: 'ord_2', orderNumber: 'BM202611270002', productId: 'prod_2', productName: 'Japan 10GB', quantity: 1, createdAt: null, status: null, paymentStatus: null, kind: 'top-up' },
+    ]);
+    expect(JSON.stringify(payload)).not.toContain('LPA:1$');
+    expect(query.mock.calls[2][0]).toContain('json_extract(i.payload');
+  });
+
+  it('answers an empty list for a customer without cards and reads nothing else', async () => {
+    isNativePluginEnabled.mockResolvedValue(true);
+    authenticateNativeAdmin.mockResolvedValue({ id: 'admin-1', email: 'admin@example.com' });
+    const query = vi.fn().mockReturnValueOnce(statement(null, []));
+    const response = await tryNativeBokmooConnect(
+      new Request(`${ADMIN_URL}/customers/user-9/cards`, { headers: { authorization: 'Bearer admin-token' } }),
+      { DB: { prepare: query } } as never,
+    );
+    expect(response?.status).toBe(200);
+    await expect(response?.json()).resolves.toMatchObject({ data: { items: [] } });
+    expect(query).toHaveBeenCalledTimes(1);
   });
 });

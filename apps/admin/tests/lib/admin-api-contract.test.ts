@@ -25,6 +25,7 @@ import {
   themesApi,
   upgradeApi,
   unwrapApiResponse,
+  cardConnectApi,
 } from '../../lib/api';
 
 describe('Admin API productization contracts', () => {
@@ -196,5 +197,14 @@ describe('Admin API productization contracts', () => {
     });
     expect(mocks.apiClient.post).toHaveBeenCalledWith('/admin/themes/shop/rollback', {});
     expect(mocks.apiClient.delete).toHaveBeenCalledWith('/extensions/theme-shop/modelsfind');
+  });
+
+  it('asks the card plugin for one customer\'s cards on the plugin admin route', async () => {
+    mocks.apiClient.get.mockResolvedValue({ success: true, data: { items: [] } });
+    await cardConnectApi.getCustomerCards('user-1');
+    expect(mocks.apiClient.get).toHaveBeenCalledTimes(1);
+    expect(mocks.apiClient.get).toHaveBeenCalledWith(
+      '/extensions/plugin/bokmoo-connect/api/admin/customers/user-1/cards',
+    );
   });
 });

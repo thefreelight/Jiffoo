@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { ProductForm, DashboardStats, Product, Order, OrderDetail, User, OrderItem, ThemeMeta, ActiveTheme, HealthMetricsResponse, HealthSummaryResponse, ErrorLog, ErrorListParams } from '../types';
 import { PageResult } from 'shared';
 import type { GameStatsDay, GameStatsGame, GameStatsOverview, GameStatsRangeDays } from '../api';
+import { cardConnectApi, type CustomerCard } from '../api';
 import { UseQueryResult } from '@tanstack/react-query';
 import { useT } from 'shared/src/i18n/react';
 import { useAuthStore } from '../store';
@@ -582,6 +583,20 @@ export function useUser(id: string) {
       return unwrapApiResponse(response) as unknown as User;
     },
     enabled: !!id,
+  });
+}
+
+/** A customer's cards and the plans on them. Errors (404) while the
+ *  card-connect plugin is not enabled: the customer page shows nothing then. */
+export function useCustomerCards(userId: string) {
+  return useQuery({
+    queryKey: ['customers', userId, 'cards'] as const,
+    queryFn: async () => {
+      const response = await cardConnectApi.getCustomerCards(userId);
+      return (unwrapApiResponse(response) as unknown as { items: CustomerCard[] }).items;
+    },
+    enabled: !!userId,
+    retry: false,
   });
 }
 
