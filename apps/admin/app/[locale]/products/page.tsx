@@ -34,6 +34,10 @@ import {
 } from '@/components/ui/select'
 import { useT, useLocale } from 'shared/src/i18n/react'
 import { PageShell } from '@/components/layout/page-shell'
+import { useDemoInstance } from '@/hooks/use-demo-instance'
+import { listFigure, sampleChange } from '@/lib/list-figures'
+import { SampleDataNotice } from '@/components/list/sample-data-notice'
+import { ProductThumb } from '@/components/list/product-thumb'
 import { PageHero, MiniStatCard, TablePagination, SortableTh } from '@/components/list/list-kit'
 import { ProductArt, type ProductIconKind } from '@/components/dashboard/overview/product-art'
 import { useProducts, useDeleteProduct, useProductStats, type Product as ApiProduct } from '@/lib/hooks/use-api'
@@ -85,12 +89,14 @@ export default function ProductsPage() {
   const products: ApiProduct[] = productsData?.data || []
   const pagination = productsData?.pagination
 
+  // Sample rows fill the list on the demonstration instance only; a real store with no products sees an empty state.
+  const demoInstance = useDemoInstance()
+  const usingDemoRows = demoInstance && !products.length && !isLoading
   const rows = products.length
     ? products
-    : isLoading
-      ? []
-      : (DEMO_ROWS as unknown as ApiProduct[])
-  const usingDemoRows = !products.length && !isLoading
+    : usingDemoRows
+      ? (DEMO_ROWS as unknown as ApiProduct[])
+      : []
 
   const categories = Array.from(
     new Set(products.map((product) => product.categoryName).filter(Boolean) as string[]),
@@ -104,14 +110,20 @@ export default function ProductsPage() {
     return matchesCategory && matchesStatus
   })
 
-  const total = usingDemoRows ? 320 : pagination?.total ?? products.length
-  const totalPages = usingDemoRows ? 32 : Math.max(pagination?.totalPages ?? 1, 1)
+  const total = usingDemoRows ? rows.length : pagination?.total ?? products.length
+  const totalPages = usingDemoRows ? 1 : Math.max(pagination?.totalPages ?? 1, 1)
 
+  const metrics = productStats?.metrics
+  // Off shelf means not on sale, which is the catalog without the active products; it is not the same as out of stock.
+  const offShelf =
+    typeof metrics?.totalProducts === 'number' && typeof metrics?.activeProducts === 'number'
+      ? Math.max(metrics.totalProducts - metrics.activeProducts, 0)
+      : undefined
   const stats = {
-    total: productStats?.metrics?.totalProducts,
-    active: productStats?.metrics?.activeProducts,
-    offShelf: productStats?.metrics?.outOfStockProducts,
-    lowStock: productStats?.metrics?.lowStockProducts,
+    total: metrics?.totalProducts,
+    active: metrics?.activeProducts,
+    offShelf,
+    lowStock: metrics?.lowStockProducts,
   }
 
   const handleDeleteProduct = async (id: string) => {
@@ -144,37 +156,38 @@ export default function ProductsPage() {
           description={getText('merchant.pages.productsSubtitle', '管理你的商品信息，支持多规格、库存、分类和上下架操作。')}
           art="products"
         />
+        {usingDemoRows ? <SampleDataNotice /> : null}
 
         {/* Stat cards */}
         <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
           <MiniStatCard
             label={getText('merchant.pages.statAllProducts', '全部商品')}
-            value={(stats.total ?? 320).toLocaleString()}
-            change="4.2%"
+            value={listFigure(stats.total, 320, usingDemoRows)}
+            change={sampleChange('4.2%', usingDemoRows)}
             changeType="increase"
             icon={ShoppingBag}
             tone="blue"
           />
           <MiniStatCard
             label={getText('merchant.pages.statOnSale', '在售商品')}
-            value={(stats.active ?? 286).toLocaleString()}
-            change="4.3%"
+            value={listFigure(stats.active, 286, usingDemoRows)}
+            change={sampleChange('4.3%', usingDemoRows)}
             changeType="increase"
             icon={PackageCheck}
             tone="green"
           />
           <MiniStatCard
             label={getText('merchant.pages.statOffShelf', '下架商品')}
-            value={(stats.offShelf ?? 24).toLocaleString()}
-            change="6.1%"
+            value={listFigure(stats.offShelf, 24, usingDemoRows)}
+            change={sampleChange('6.1%', usingDemoRows)}
             changeType="decrease"
             icon={PackageX}
             tone="red"
           />
           <MiniStatCard
             label={getText('merchant.pages.statLowStock', '低库存商品')}
-            value={(stats.lowStock ?? 5).toLocaleString()}
-            change="16.7%"
+            value={listFigure(stats.lowStock, 5, usingDemoRows)}
+            change={sampleChange('16.7%', usingDemoRows)}
             changeType="decrease"
             icon={AlertTriangle}
             tone="orange"
@@ -234,7 +247,7 @@ export default function ProductsPage() {
               <thead>
                 <tr className="border-b border-[#f4f6fa]">
                   <th className="w-10 px-4 py-3">
-                    <input type="checkbox" className="h-4 w-4 rounded border-slate-300 accent-blue-600" aria-label="Select all" />
+                    <input type="checkbox" className="h-4 w-4 rounded border-slate-300 accent-blue-600" aria-label="Select all" disabled={usingDemoRows} />
                   </th>
                   <SortableTh label={getText('merchant.pages.colProduct', '商品')} />
                   <SortableTh label={getText('merchant.pages.colSku', 'SKU')} />
@@ -248,27 +261,26 @@ export default function ProductsPage() {
               </thead>
               <tbody className="divide-y divide-[#f4f6fa]">
                 {visibleRows.map((product, index) => {
-                  const demo = demoArt(index)
+                  // A real product never borrows a sample value or a sample picture.
+                  const demo = usingDemoRows ? demoArt(index) : undefined
                   const imageUrl = getProductImage(product)
-                  const name = product.name || demo.name
-                  const category = product.categoryName || demo.category
-                  const stock = product.stock ?? demo.stock ?? 0
-                  const active = usingDemoRows ? demo.active : product.isActive !== false
+                  const name = product.name || demo?.name || product.id || '--'
+                  const category = product.categoryName || demo?.category || '--'
+                  const stock = product.stock ?? demo?.stock ?? 0
+                  const active = demo ? demo.active : product.isActive !== false
                   return (
                     <tr key={product.id ?? `${name}-${index}`} className="group transition-colors hover:bg-[#f8fafc]">
                       <td className="px-4 py-3">
-                        <input type="checkbox" className="h-4 w-4 rounded border-slate-300 accent-blue-600" aria-label={`Select ${name}`} />
+                        <input type="checkbox" className="h-4 w-4 rounded border-slate-300 accent-blue-600" aria-label={`Select ${name}`} disabled={usingDemoRows} />
                       </td>
                       <td className="px-3 py-3">
                         <div className="flex items-center gap-3">
                           {imageUrl ? (
                             <img src={imageUrl} alt={name} className="h-10 w-10 shrink-0 rounded-lg object-cover" />
+                          ) : demo ? (
+                            <ProductArt icon={demo.categoryIcon} art={demo.art} className="h-10 w-10 shrink-0" />
                           ) : (
-                            <ProductArt
-                              icon={demo.categoryIcon}
-                              art={demo.art}
-                              className="h-10 w-10 shrink-0"
-                            />
+                            <ProductThumb name={name} className="h-10 w-10" />
                           )}
                           <div className="min-w-0">
                             <p className="truncate text-sm font-medium text-slate-900">{name}</p>
@@ -276,9 +288,9 @@ export default function ProductsPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-3 py-3 text-sm text-slate-600">{product.skuCode || demo.sku}</td>
+                      <td className="px-3 py-3 text-sm text-slate-600">{product.skuCode || demo?.sku || '--'}</td>
                       <td className="px-3 py-3 text-sm font-medium text-slate-900">
-                        {formatCurrency(product.price ?? demo.price ?? 0)}
+                        {formatCurrency(product.price ?? demo?.price ?? 0)}
                       </td>
                       <td className="px-3 py-3 text-sm text-slate-600">{stock}</td>
                       <td className="px-3 py-3">
@@ -341,7 +353,7 @@ export default function ProductsPage() {
           </div>
           <TablePagination
             total={total}
-            page={usingDemoRows ? currentPage : pagination?.page ?? currentPage}
+            page={usingDemoRows ? 1 : pagination?.page ?? currentPage}
             pageSize={pageSize}
             totalPages={totalPages}
             onPageChange={setCurrentPage}

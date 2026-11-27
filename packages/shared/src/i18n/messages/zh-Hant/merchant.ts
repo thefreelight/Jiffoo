@@ -8,6 +8,8 @@
 export const merchant = {
   // Unified list pages (products / inventory / orders / customers)
   pages: {
+    sampleDataTitle: '示例資料',
+    sampleDataHint: '這些行是演示實例用來展示頁面樣式的範例，不是真實資料，也不能對它們操作。',
     productsTitle: '商品管理',
     productsSubtitle: '管理你的商品資訊，支援多規格、庫存、分類和上下架操作。',
     inventoryTitle: '庫存管理',

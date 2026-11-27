@@ -8,6 +8,8 @@
 export const merchant = {
   // Unified list pages (products / inventory / orders / customers)
   pages: {
+    sampleDataTitle: 'Sample data',
+    sampleDataHint: 'These rows are samples the demonstration instance shows to illustrate the page. They are not real records and cannot be acted on.',
     productsTitle: 'Products',
     productsSubtitle: 'Manage your catalog with variants, stock, categories, and shelf status.',
     inventoryTitle: 'Inventory',
