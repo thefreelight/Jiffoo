@@ -803,7 +803,7 @@ export const OFFICIAL_LAUNCH_EXTENSIONS: OfficialCatalogEntry[] = [
     launchWave: 'official-extensions-go-live-v1',
     packageUrl: 'https://artifacts.jiffoo.com/official-artifacts/plugins/traffic-analytics/0.0.1.jplugin',
     // The collection, reports and admin page are part of the platform from this release on.
-    minCoreVersion: '1.0.172',
+    minCoreVersion: '1.0.173',
     defaultPricingModel: 'free',
     defaultCurrency: 'USD',
     pricingConfigured: false,
