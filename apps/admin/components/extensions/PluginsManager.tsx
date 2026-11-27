@@ -170,7 +170,7 @@ export function PluginsManager() {
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
             <div className="mb-2 flex items-center gap-2 text-sm text-slate-500">
-              <span>Plugins</span><span>/</span><span className="text-slate-900">{view === 'installed' ? getText('merchant.plugins.installedCollection', 'Installed plugins') : getText('merchant.plugins.marketplace', 'Official plugin marketplace')}</span>
+              <span>{getText('merchant.plugins.title', 'Plugins')}</span><span>/</span><span className="text-slate-900">{view === 'installed' ? getText('merchant.plugins.installedCollection', 'Installed plugins') : getText('merchant.plugins.marketplace', 'Official plugin marketplace')}</span>
             </div>
             <h2 className="text-[28px] font-bold tracking-tight text-slate-950">
               {view === 'installed'

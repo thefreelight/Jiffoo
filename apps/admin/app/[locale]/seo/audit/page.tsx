@@ -72,7 +72,7 @@ export default function SeoAuditPage() {
       setIssues(convertedIssues)
 
       if (convertedIssues.length === 0) {
-        toast.success('No SEO issues found! All products and categories have proper SEO metadata.')
+        toast.success(getText('admin.seo.auditPage.noSeoIssuesFoundAllProducts', 'No SEO issues found! All products and categories have proper SEO metadata.'))
       } else {
         toast.success(`Audit complete: Found ${auditResult.summary.totalIssues} issues`)
       }

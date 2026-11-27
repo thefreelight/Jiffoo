@@ -9,6 +9,7 @@
 import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useT } from 'shared/src/i18n/react';
 
 export type HeroArt = 'products' | 'inventory' | 'orders' | 'customers'
 
@@ -169,6 +170,13 @@ export function TablePagination({
   totalLabel,
   perPageLabel,
 }: TablePaginationProps) {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const pages: (number | 'ellipsis')[] = []
   const windowed = new Set<number>([1, 2, 3, 4, 5, page, totalPages].filter((p) => p >= 1 && p <= totalPages))
   const sorted = [...windowed].sort((a, b) => a - b)
@@ -185,13 +193,13 @@ export function TablePagination({
         {totalLabel} <span className="font-semibold text-slate-600">{total.toLocaleString()}</span>
       </p>
       <div className="flex items-center gap-3">
-        <nav className="flex items-center gap-1" aria-label="Pagination">
+        <nav className="flex items-center gap-1" aria-label={getText('common.pagination.pagination', 'Pagination')}>
           <button
             type="button"
             disabled={page <= 1}
             onClick={() => onPageChange(page - 1)}
             className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 disabled:opacity-40"
-            aria-label="Previous page"
+            aria-label={getText('common.pagination.previousPage', 'Previous page')}
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
@@ -219,7 +227,7 @@ export function TablePagination({
             disabled={page >= totalPages}
             onClick={() => onPageChange(page + 1)}
             className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 disabled:opacity-40"
-            aria-label="Next page"
+            aria-label={getText('common.pagination.nextPage', 'Next page')}
           >
             <ChevronRight className="h-4 w-4" />
           </button>

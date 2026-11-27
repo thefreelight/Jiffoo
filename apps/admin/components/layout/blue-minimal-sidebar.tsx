@@ -356,7 +356,7 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
             <Link
               href={getSystemNavHref(user, locale)}
               className="mr-2 flex items-center"
-              aria-label="Update available"
+              aria-label={getText('common.shell.updateAvailable', 'Update available')}
             >
               <span className="h-2 w-2 rounded-full bg-[#3B82F6]" />
             </Link>

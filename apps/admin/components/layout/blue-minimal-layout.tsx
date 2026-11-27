@@ -127,7 +127,7 @@ export function BlueMinimalLayout({ children }: BlueMinimalLayoutProps) {
               <button
                 onClick={handleOpenSidebar}
                 className="lg:hidden fixed top-4 left-4 z-[60] p-3 bg-blue-600 text-white rounded-xl shadow-2xl hover:bg-blue-700 transition-all duration-200 hover:shadow-blue-500/50 hover:scale-105 active:scale-95"
-                aria-label="Open menu"
+                aria-label={getText('common.shell.openMenu', 'Open menu')}
               >
                 <Menu className="w-6 h-6" />
               </button>
@@ -175,12 +175,15 @@ export function BlueMinimalLayout({ children }: BlueMinimalLayoutProps) {
 
 function ManagedDocumentTitle() {
   const { record, isManaged } = useManagedMode()
+  const t = useT()
 
   useEffect(() => {
+    const fallback = 'Commerce Admin - Management Dashboard'
+    const translated = t ? t('merchant.header.documentTitle') : fallback
     document.title = isManaged && record
       ? `${record.displayBrandName} · ${record.displaySolutionName}`
-      : 'Commerce Admin - Management Dashboard'
-  }, [isManaged, record])
+      : translated === 'merchant.header.documentTitle' ? fallback : translated
+  }, [isManaged, record, t])
 
   return null
 }

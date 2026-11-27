@@ -12,6 +12,7 @@ import {
   Clock,
   WifiOff
 } from 'lucide-react';
+import { useT } from 'shared/src/i18n/react';
 // Custom error classes for error type detection
 class TimeoutError extends Error {
   constructor(message = 'Request timed out') {
@@ -160,6 +161,13 @@ export function ErrorState({
   fullPage = false,
   showDetails = process.env.NODE_ENV === 'development'
 }: ErrorStateProps) {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const errorMessage = error instanceof Error ? error.message : error;
   const errorStack = error instanceof Error ? error.stack : undefined;
 
@@ -199,7 +207,7 @@ export function ErrorState({
             className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors"
           >
             <RefreshCw className="h-4 w-4" />
-            Retry
+            {getText('common.state.retry', 'Retry')}
           </button>
         )}
         {onGoBack && (
@@ -208,7 +216,7 @@ export function ErrorState({
             className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back
+            {getText('common.state.back', 'Back')}
           </button>
         )}
         {onGoHome && (
@@ -217,7 +225,7 @@ export function ErrorState({
             className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
           >
             <Home className="h-4 w-4" />
-            Go Home
+            {getText('common.state.goHome', 'Go Home')}
           </button>
         )}
       </div>
@@ -225,7 +233,7 @@ export function ErrorState({
       {showDetails && errorMessage && (
         <details className="mt-6 text-left w-full max-w-lg">
           <summary className="text-sm text-gray-600 dark:text-gray-400 cursor-pointer hover:text-gray-800 dark:hover:text-gray-200">
-            Error Details (Development Mode)
+            {getText('common.state.errorDetailsDevelopmentMode', 'Error Details (Development Mode)')}
           </summary>
           <div className="mt-2 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
             <p className="text-sm font-mono text-red-600 dark:text-red-400 break-all">

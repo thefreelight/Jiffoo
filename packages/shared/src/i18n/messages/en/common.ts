@@ -76,6 +76,7 @@ export const common = {
     disabled: 'Disabled',
     shipped: 'Shipped',
     delivered: 'Delivered',
+    live: 'Live metric',
   },
 
   // Labels
@@ -100,6 +101,7 @@ export const common = {
   messages: {
     saveSuccess: 'Saved successfully',
     saveFailed: 'Failed to save changes',
+    loading: 'Loading...',
   },
 
   // Validation
@@ -121,6 +123,8 @@ export const common = {
     offline: 'You are currently offline. Some features may be unavailable.',
     backOnline: 'Network restored',
     dismissNotice: 'Dismiss notice',
+    openMenu: 'Open menu',
+    updateAvailable: 'Update available',
   },
   errors: {
     general: 'Something went wrong. Please try again.',
@@ -178,6 +182,7 @@ export const common = {
     lastPage: 'Last page',
     previousPage: 'Previous page',
     nextPage: 'Next page',
+    pagination: 'Pagination',
   },
 
   // Language
@@ -191,6 +196,7 @@ export const common = {
     ko: 'Korean',
     fr: 'French',
     de: 'German',
+    changeLanguage: 'Change language',
   },
 
   // Footer
@@ -200,5 +206,30 @@ export const common = {
     privacyPolicy: 'Privacy Policy',
     contactUs: 'Contact Us',
     help: 'Help',
+  },
+  refresh: 'Refresh',
+  retry: 'Retry',
+  save: 'Save Changes',
+  saving: 'Saving...',
+  dialog: {
+    close: 'Close',
+  },
+  errorPage: {
+    errorId: 'Error ID:',
+  },
+  globalError: {
+    retry: 'Try again',
+    title: 'Something went wrong!',
+  },
+  notFound: {
+    goBackHome: 'Go back home',
+    pageNotFound: 'Page Not Found',
+    sorryThePageYouAreLooking: 'Sorry, the page you are looking for does not exist.',
+  },
+  state: {
+    back: 'Back',
+    errorDetailsDevelopmentMode: 'Error Details (Development Mode)',
+    goHome: 'Go Home',
+    retry: 'Retry',
   },
 };

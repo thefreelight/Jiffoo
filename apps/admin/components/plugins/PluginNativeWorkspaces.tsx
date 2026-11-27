@@ -71,24 +71,26 @@ type ShippingProvider = 'kuaidi100' | 'fourpx';
 
 type ShippingProviderAction = {
   value: string;
+  /** the English name, and the dictionary key that names the operation in the store's language */
   label: string;
+  labelKey: string;
   endpoint: string;
   needsMerchantReference?: boolean;
 };
 
 const shippingProviderActions: Record<ShippingProvider, ShippingProviderAction[]> = {
   kuaidi100: [
-    { value: 'label-order', label: 'Create label order', endpoint: 'kuaidi100/label-orders', needsMerchantReference: true },
-    { value: 'pickup-order', label: 'Create pickup order', endpoint: 'kuaidi100/pickup-orders', needsMerchantReference: true },
-    { value: 'tracking-query', label: 'Query tracking', endpoint: 'kuaidi100/tracking/query' },
-    { value: 'tracking-subscribe', label: 'Subscribe to tracking', endpoint: 'kuaidi100/tracking/subscribe' },
+    { value: 'label-order', label: 'Create label order', labelKey: 'shipping.action.createLabelOrder', endpoint: 'kuaidi100/label-orders', needsMerchantReference: true },
+    { value: 'pickup-order', label: 'Create pickup order', labelKey: 'shipping.action.createPickupOrder', endpoint: 'kuaidi100/pickup-orders', needsMerchantReference: true },
+    { value: 'tracking-query', label: 'Query tracking', labelKey: 'shipping.action.queryTracking', endpoint: 'kuaidi100/tracking/query' },
+    { value: 'tracking-subscribe', label: 'Subscribe to tracking', labelKey: 'shipping.action.subscribeTracking', endpoint: 'kuaidi100/tracking/subscribe' },
   ],
   fourpx: [
-    { value: 'create-order', label: 'Create shipment order', endpoint: 'fourpx/orders', needsMerchantReference: true },
-    { value: 'get-order', label: 'Get shipment order', endpoint: 'fourpx/orders/get' },
-    { value: 'cancel-order', label: 'Cancel shipment order', endpoint: 'fourpx/orders/cancel' },
-    { value: 'get-label', label: 'Get shipping label', endpoint: 'fourpx/labels' },
-    { value: 'get-tracking', label: 'Query tracking', endpoint: 'fourpx/tracking' },
+    { value: 'create-order', label: 'Create shipment order', labelKey: 'shipping.action.createShipmentOrder', endpoint: 'fourpx/orders', needsMerchantReference: true },
+    { value: 'get-order', label: 'Get shipment order', labelKey: 'shipping.action.getShipmentOrder', endpoint: 'fourpx/orders/get' },
+    { value: 'cancel-order', label: 'Cancel shipment order', labelKey: 'shipping.action.cancelShipmentOrder', endpoint: 'fourpx/orders/cancel' },
+    { value: 'get-label', label: 'Get shipping label', labelKey: 'shipping.action.getShippingLabel', endpoint: 'fourpx/labels' },
+    { value: 'get-tracking', label: 'Query tracking', labelKey: 'shipping.action.queryTracking', endpoint: 'fourpx/tracking' },
   ],
 };
 
@@ -435,6 +437,7 @@ export function OdooNativeWorkspace(props: {
   onSaveConfig: (config: Record<string, unknown>) => Promise<void>;
 }) {
   const { installationId, selectedInstance, onSaveConfig } = props;
+  const tf = useWorkspaceText();
   const persistedConfig = useMemo(
     () => (
       isPlainObject(selectedInstance?.config)
@@ -448,12 +451,12 @@ export function OdooNativeWorkspace(props: {
   const [testAuthSecret, setTestAuthSecret] = useState('');
   const [productionChannelId, setProductionChannelId] = useState('');
   const [productionAuthSecret, setProductionAuthSecret] = useState('');
-  const [healthMessage, setHealthMessage] = useState('Health has not been checked yet.');
+  const [healthMessage, setHealthMessage] = useState(() => tf('odoo.health.notChecked', 'Health has not been checked yet.'));
   const [healthTone, setHealthTone] = useState<StatusTone>('default');
   const [healthPayload, setHealthPayload] = useState<OdooHealthPayload | null>(null);
   const [productType, setProductType] = useState('all');
   const [jobId, setJobId] = useState('');
-  const [syncMessage, setSyncMessage] = useState('Ready to submit a product sync job.');
+  const [syncMessage, setSyncMessage] = useState(() => tf('odoo.sync.ready', 'Ready to submit a product sync job.'));
   const [syncTone, setSyncTone] = useState<StatusTone>('default');
   const [jobPayload, setJobPayload] = useState<OdooJobPayload | null>(null);
   const [isLoadingHealth, setIsLoadingHealth] = useState(false);
@@ -482,7 +485,7 @@ export function OdooNativeWorkspace(props: {
     const activeConfig = currentConfig.mode === 'production' ? currentConfig.production : currentConfig.test;
 
     if (!activeConfig?.channelId || !activeConfig?.authSecret) {
-      const message = 'Channel ID and Auth Secret are required for the selected environment.';
+      const message = tf('odoo.error.credentialsRequired', 'Channel ID and Auth Secret are required for the selected environment.');
       toast.error(message);
       throw new Error(message);
     }
@@ -496,7 +499,7 @@ export function OdooNativeWorkspace(props: {
 
   const checkHealth = async () => {
     setIsLoadingHealth(true);
-    setHealthMessage('Checking Odoo plugin health...');
+    setHealthMessage(tf('odoo.health.checking', 'Checking Odoo plugin health...'));
     setHealthTone('default');
 
     try {
@@ -505,10 +508,10 @@ export function OdooNativeWorkspace(props: {
       });
       const data = unwrapApiResponse<OdooHealthPayload>(response);
       setHealthPayload(data);
-      setHealthMessage(`Health check passed${data.status ? `: ${data.status}` : '.'}`);
+      setHealthMessage(tf('odoo.health.passed', 'Health check passed{detail}', { detail: data.status ? `: ${data.status}` : '.' }));
       setHealthTone('success');
     } catch (error) {
-      setHealthMessage(error instanceof Error ? error.message : 'Failed to load Odoo health.');
+      setHealthMessage(error instanceof Error ? error.message : tf('odoo.health.failed', 'Failed to load Odoo health.'));
       setHealthTone('error');
     } finally {
       setIsLoadingHealth(false);
@@ -517,13 +520,13 @@ export function OdooNativeWorkspace(props: {
 
   const startSync = async () => {
     if (!selectedInstance?.enabled) {
-      setSyncMessage('Enable the selected Odoo instance before starting a sync.');
+      setSyncMessage(tf('odoo.sync.enableFirst', 'Enable the selected Odoo instance before starting a sync.'));
       setSyncTone('error');
       return;
     }
 
     setIsSyncing(true);
-    setSyncMessage('Submitting sync job...');
+    setSyncMessage(tf('odoo.sync.submitting', 'Submitting sync job...'));
     setSyncTone('default');
 
     try {
@@ -536,13 +539,13 @@ export function OdooNativeWorkspace(props: {
       if (data.jobId) {
         setJobId(data.jobId);
       }
-      setSyncMessage(data.jobId ? `Sync accepted. Job: ${data.jobId}` : 'Sync accepted.');
+      setSyncMessage(data.jobId ? tf('odoo.sync.acceptedJob', 'Sync accepted. Job: {jobId}', { jobId: data.jobId }) : tf('odoo.sync.accepted', 'Sync accepted.'));
       setSyncTone('success');
-      toast.success('Odoo sync job started');
+      toast.success(tf('odoo.sync.started', 'Odoo sync job started'));
     } catch (error) {
-      setSyncMessage(error instanceof Error ? error.message : 'Failed to submit Odoo sync job.');
+      setSyncMessage(error instanceof Error ? error.message : tf('odoo.sync.submitFailed', 'Failed to submit Odoo sync job.'));
       setSyncTone('error');
-      toast.error(error instanceof Error ? error.message : 'Failed to submit Odoo sync job.');
+      toast.error(error instanceof Error ? error.message : tf('odoo.sync.submitFailed', 'Failed to submit Odoo sync job.'));
     } finally {
       setIsSyncing(false);
     }
@@ -550,13 +553,13 @@ export function OdooNativeWorkspace(props: {
 
   const loadJob = async () => {
     if (!jobId.trim()) {
-      setSyncMessage('Enter a sync job id first.');
+      setSyncMessage(tf('odoo.job.enterId', 'Enter a sync job id first.'));
       setSyncTone('error');
       return;
     }
 
     setIsLoadingJob(true);
-    setSyncMessage('Loading sync job status...');
+    setSyncMessage(tf('odoo.job.loading', 'Loading sync job status...'));
     setSyncTone('default');
 
     try {
@@ -569,10 +572,10 @@ export function OdooNativeWorkspace(props: {
           ? ` (${data.progressDone}/${data.progressTotal})`
           : '';
       setJobPayload(data);
-      setSyncMessage(`Job ${data.jobId} is ${String(data.status || 'unknown').toLowerCase()}${progress}.`);
+      setSyncMessage(tf('odoo.job.state', 'Job {jobId} is {status}{progress}.', { jobId: data.jobId, status: String(data.status || 'unknown').toLowerCase(), progress }));
       setSyncTone(String(data.status || '').toUpperCase() === 'FAILED' ? 'error' : 'success');
     } catch (error) {
-      setSyncMessage(error instanceof Error ? error.message : 'Failed to load sync job status.');
+      setSyncMessage(error instanceof Error ? error.message : tf('odoo.job.loadFailed', 'Failed to load sync job status.'));
       setSyncTone('error');
     } finally {
       setIsLoadingJob(false);
@@ -583,26 +586,26 @@ export function OdooNativeWorkspace(props: {
     <div className="space-y-5">
       <WorkspaceCard
         icon={<Workflow className="h-6 w-6" />}
-        title="Odoo configuration"
-        description="Manage Odoo credentials and mode from a native Merchant Admin form instead of a plugin iframe."
+        title={tf('odoo.config.title', 'Odoo configuration')}
+        description={tf('odoo.config.description', 'Manage Odoo credentials and mode from a native Merchant Admin form instead of a plugin iframe.')}
       >
         <div className="space-y-6">
-          <WorkspaceField label="Environment mode" htmlFor="odoo-mode" className="max-w-md">
+          <WorkspaceField label={tf('odoo.config.environmentMode', 'Environment mode')} htmlFor="odoo-mode" className="max-w-md">
             <Select value={mode} onValueChange={(value) => setMode(value === 'production' ? 'production' : 'test')}>
               <SelectTrigger id="odoo-mode" className={workspaceSelectTriggerClass}>
-                <SelectValue placeholder="Select environment mode" />
+                <SelectValue placeholder={tf('odoo.config.environmentPlaceholder', 'Select environment mode')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="test">test</SelectItem>
-                <SelectItem value="production">production</SelectItem>
+                <SelectItem value="test">{tf('odoo.mode.test', 'test')}</SelectItem>
+                <SelectItem value="production">{tf('odoo.mode.production', 'production')}</SelectItem>
               </SelectContent>
             </Select>
           </WorkspaceField>
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-4 rounded-2xl border border-gray-100 bg-gray-50/40 p-5">
-              <p className="text-sm font-semibold text-gray-900">Test credentials</p>
-              <WorkspaceField label="Channel ID" htmlFor="odoo-test-channel-id">
+              <p className="text-sm font-semibold text-gray-900">{tf('odoo.config.testCredentials', 'Test credentials')}</p>
+              <WorkspaceField label={tf('odoo.config.channelId', 'Channel ID')} htmlFor="odoo-test-channel-id">
                 <Input
                   id="odoo-test-channel-id"
                   value={testChannelId}
@@ -610,7 +613,7 @@ export function OdooNativeWorkspace(props: {
                   className={workspaceInputClass}
                 />
               </WorkspaceField>
-              <WorkspaceField label="Auth Secret" htmlFor="odoo-test-auth-secret">
+              <WorkspaceField label={tf('odoo.config.authSecret', 'Auth Secret')} htmlFor="odoo-test-auth-secret">
                 <Input
                   id="odoo-test-auth-secret"
                   type="password"
@@ -623,8 +626,8 @@ export function OdooNativeWorkspace(props: {
             </div>
 
             <div className="space-y-4 rounded-2xl border border-gray-100 bg-gray-50/40 p-5">
-              <p className="text-sm font-semibold text-gray-900">Production credentials</p>
-              <WorkspaceField label="Channel ID" htmlFor="odoo-production-channel-id">
+              <p className="text-sm font-semibold text-gray-900">{tf('odoo.config.productionCredentials', 'Production credentials')}</p>
+              <WorkspaceField label={tf('odoo.config.channelId', 'Channel ID')} htmlFor="odoo-production-channel-id">
                 <Input
                   id="odoo-production-channel-id"
                   value={productionChannelId}
@@ -632,7 +635,7 @@ export function OdooNativeWorkspace(props: {
                   className={workspaceInputClass}
                 />
               </WorkspaceField>
-              <WorkspaceField label="Auth Secret" htmlFor="odoo-production-auth-secret">
+              <WorkspaceField label={tf('odoo.config.authSecret', 'Auth Secret')} htmlFor="odoo-production-auth-secret">
                 <Input
                   id="odoo-production-auth-secret"
                   type="password"
@@ -650,8 +653,8 @@ export function OdooNativeWorkspace(props: {
       <div className="grid gap-5 xl:grid-cols-2">
         <WorkspaceCard
           icon={<ShieldCheck className="h-6 w-6" />}
-          title="Health"
-          description="Check whether the Odoo plugin runtime is reachable through the extension gateway."
+          title={tf('odoo.health.title', 'Health')}
+          description={tf('odoo.health.description', 'Check whether the Odoo plugin runtime is reachable through the extension gateway.')}
         >
           <div className="space-y-4">
             <StatusLine tone={healthTone}>{healthMessage}</StatusLine>
@@ -659,37 +662,35 @@ export function OdooNativeWorkspace(props: {
             {healthPayload ? (
               <div className="grid gap-3 rounded-2xl border border-gray-100 p-4 text-sm text-gray-600">
                 <div className="flex justify-between gap-4">
-                  <span className="text-gray-500">Plugin</span>
+                  <span className="text-gray-500">{tf('odoo.health.plugin', 'Plugin')}</span>
                   <span className="font-medium text-gray-900">{healthPayload.plugin || 'odoo'}</span>
                 </div>
                 <div className="flex justify-between gap-4">
-                  <span className="text-gray-500">Version</span>
+                  <span className="text-gray-500">{tf('odoo.health.version', 'Version')}</span>
                   <span className="font-medium text-gray-900">{healthPayload.version || 'n/a'}</span>
                 </div>
                 <div className="flex justify-between gap-4">
-                  <span className="text-gray-500">Reported at</span>
+                  <span className="text-gray-500">{tf('odoo.health.reportedAt', 'Reported at')}</span>
                   <span className="font-medium text-gray-900">{formatDate(healthPayload.timestamp)}</span>
                 </div>
               </div>
             ) : null}
 
             <Button variant="outline" onClick={() => void checkHealth()} disabled={isLoadingHealth} className={workspaceOutlineButtonClass}>
-              {isLoadingHealth ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
-              Check health
-            </Button>
+              {isLoadingHealth ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}{tf('odoo.health.check', 'Check health')}</Button>
           </div>
         </WorkspaceCard>
 
         <WorkspaceCard
           icon={<RefreshCw className="h-6 w-6" />}
-          title="Product sync"
-          description="Trigger sync jobs and inspect their runtime status from Merchant Admin."
+          title={tf('odoo.sync.title', 'Product sync')}
+          description={tf('odoo.sync.description', 'Trigger sync jobs and inspect their runtime status from Merchant Admin.')}
         >
           <div className="space-y-4">
-            <WorkspaceField label="Product type" htmlFor="odoo-product-type">
+            <WorkspaceField label={tf('odoo.sync.productType', 'Product type')} htmlFor="odoo-product-type">
               <Select value={productType} onValueChange={setProductType}>
                 <SelectTrigger id="odoo-product-type" className={workspaceSelectTriggerClass}>
-                  <SelectValue placeholder="Select product type" />
+                  <SelectValue placeholder={tf('odoo.sync.productTypePlaceholder', 'Select product type')} />
                 </SelectTrigger>
                 <SelectContent>
                   {['all', 'esim', 'data', 'esim-card', 'ota-card', 'effective_date', 'external_data', 'sign_data'].map((option) => (
@@ -702,43 +703,39 @@ export function OdooNativeWorkspace(props: {
             </WorkspaceField>
 
             <Button onClick={() => void startSync()} disabled={isSyncing} className={workspacePrimaryButtonClass}>
-              {isSyncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Workflow className="mr-2 h-4 w-4" />}
-              Start sync
-            </Button>
+              {isSyncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Workflow className="mr-2 h-4 w-4" />}{tf('odoo.sync.start', 'Start sync')}</Button>
 
-            <WorkspaceField label="Job ID" htmlFor="odoo-job-id">
+            <WorkspaceField label={tf('odoo.job.id', 'Job ID')} htmlFor="odoo-job-id">
               <Input
                 id="odoo-job-id"
                 value={jobId}
                 onChange={(event) => setJobId(event.target.value)}
-                placeholder="Paste a sync job id"
+                placeholder={tf('odoo.job.idPlaceholder', 'Paste a sync job id')}
                 className={workspaceInputClass}
               />
             </WorkspaceField>
 
             <Button variant="outline" onClick={() => void loadJob()} disabled={isLoadingJob} className={workspaceOutlineButtonClass}>
-              {isLoadingJob ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-              Load job status
-            </Button>
+              {isLoadingJob ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}{tf('odoo.job.load', 'Load job status')}</Button>
 
             <StatusLine tone={syncTone}>{syncMessage}</StatusLine>
 
             {jobPayload ? (
               <div className="grid gap-3 rounded-2xl border border-gray-100 p-4 text-sm text-gray-600">
                 <div className="flex justify-between gap-4">
-                  <span className="text-gray-500">Job</span>
+                  <span className="text-gray-500">{tf('odoo.job.job', 'Job')}</span>
                   <span className="font-medium text-gray-900">{jobPayload.jobId}</span>
                 </div>
                 <div className="flex justify-between gap-4">
-                  <span className="text-gray-500">Status</span>
+                  <span className="text-gray-500">{tf('odoo.job.status', 'Status')}</span>
                   <span className="font-medium text-gray-900">{jobPayload.status || 'unknown'}</span>
                 </div>
                 <div className="flex justify-between gap-4">
-                  <span className="text-gray-500">Product type</span>
+                  <span className="text-gray-500">{tf('odoo.job.productType', 'Product type')}</span>
                   <span className="font-medium text-gray-900">{jobPayload.productType || 'n/a'}</span>
                 </div>
                 <div className="flex justify-between gap-4">
-                  <span className="text-gray-500">Progress</span>
+                  <span className="text-gray-500">{tf('odoo.job.progress', 'Progress')}</span>
                   <span className="font-medium text-gray-900">
                     {typeof jobPayload.progressDone === 'number' && typeof jobPayload.progressTotal === 'number'
                       ? `${jobPayload.progressDone}/${jobPayload.progressTotal}`
@@ -841,7 +838,7 @@ export function ShippingNativeWorkspace(props: {
       setResponseDraft(JSON.stringify(data, null, 2));
       setStatusMessage(tf('shipping.done', 'Operation completed.'));
       setStatusTone('success');
-      toast.success(`${selectedAction.label} completed`);
+      toast.success(tf('shipping.actionCompleted', '{action} completed', { action: tf(selectedAction.labelKey, selectedAction.label) }));
     } catch (error) {
       const message = error instanceof Error ? error.message : tf('shipping.failed', 'Operation failed.');
       setStatusMessage(message);
@@ -880,7 +877,7 @@ export function ShippingNativeWorkspace(props: {
               </SelectTrigger>
               <SelectContent>
                 {availableActions.map((item) => (
-                  <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
+                  <SelectItem key={item.value} value={item.value}>{tf(item.labelKey, item.label)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

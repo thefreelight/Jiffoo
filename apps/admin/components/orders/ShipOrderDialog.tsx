@@ -196,7 +196,7 @@ export function ShipOrderDialog({ order, open, onOpenChange, onSuccess }: ShipOr
                         <div className="relative">
                             <Input
                                 id="carrier"
-                                placeholder="e.g. FedEx, UPS, SF Express"
+                                placeholder={getText('merchant.orders.shipDialog.carrierExample', 'e.g. FedEx, UPS, SF Express')}
                                 value={carrier}
                                 onChange={(e) => {
                                     setCarrier(e.target.value)
@@ -251,7 +251,7 @@ export function ShipOrderDialog({ order, open, onOpenChange, onSuccess }: ShipOr
                         <Label htmlFor="trackingNumber">{getText('merchant.orders.ship.trackingNumber', 'Tracking Number')}</Label>
                         <Input
                             id="trackingNumber"
-                            placeholder="Enter tracking number"
+                            placeholder={getText('merchant.orders.shipDialog.enterTrackingNumber', 'Enter tracking number')}
                             value={trackingNumber}
                             onChange={(e) => setTrackingNumber(e.target.value)}
                             autoComplete="off"

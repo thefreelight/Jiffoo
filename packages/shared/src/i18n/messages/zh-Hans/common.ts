@@ -76,12 +76,14 @@ export const common = {
     disabled: '已停用',
     shipped: '已发货',
     delivered: '已送达',
+    live: '实时',
   },
 
   // Common messages
   messages: {
     saveSuccess: '储存成功',
     saveFailed: '储存失败',
+    loading: '正在加载…',
   },
 
   // Labels
@@ -121,6 +123,8 @@ export const common = {
     offline: '你当前处于离线状态，部分功能可能无法使用。',
     backOnline: '网络已恢复',
     dismissNotice: '关闭提示',
+    openMenu: '打开菜单',
+    updateAvailable: '有新版本可用',
   },
   errors: {
     general: '发生错误，请重试。',
@@ -178,6 +182,7 @@ export const common = {
     lastPage: '最后一页',
     previousPage: '上一页',
     nextPage: '下一页',
+    pagination: '分页',
   },
 
   // Language
@@ -191,6 +196,7 @@ export const common = {
     ko: '韩语',
     fr: '法语',
     de: '德语',
+    changeLanguage: '切换语言',
   },
 
   // Footer
@@ -200,6 +206,31 @@ export const common = {
     privacyPolicy: '隐私政策',
     contactUs: '联系我们',
     help: '说明',
+  },
+  refresh: '刷新',
+  retry: '重试',
+  save: '保存',
+  saving: '正在保存…',
+  dialog: {
+    close: '关闭',
+  },
+  errorPage: {
+    errorId: '错误 ID：',
+  },
+  globalError: {
+    retry: '再试一次',
+    title: '出错了！',
+  },
+  notFound: {
+    goBackHome: '回到首页',
+    pageNotFound: '找不到页面',
+    sorryThePageYouAreLooking: '抱歉，你要找的页面不存在。',
+  },
+  state: {
+    back: '返回',
+    errorDetailsDevelopmentMode: '错误详情（开发模式）',
+    goHome: '回首页',
+    retry: '重试',
   },
 };
 

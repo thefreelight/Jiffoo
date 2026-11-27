@@ -36,6 +36,14 @@ const ZH_HANS: Record<string, ExtensionCatalogLocalization> = {
   'smtp-email': { name: 'SMTP 邮件', description: '用于验证码与事务邮件的 SMTP 发信通道。' },
   stripe: { name: 'Stripe 支付', description: 'Stripe 收银台、Webhook 与退款。' },
   shipping: { name: '物流', description: '物流追踪、Odoo 履约、快递100 与 4PX 承运商操作。' },
+  'bokmoo-connect': {
+    name: 'BOKMOO Connect',
+    description: 'BOKMOO 实体卡的领取能力：印刷码领取会话、安卓 / 读卡器读取 EID / ICCID、账号绑卡，以及受控的卡片库存导入。',
+  },
+  'game-stats': {
+    name: '游戏统计',
+    description: '游戏站点的匿名游玩统计：当前在线人数，以及每款游戏每天的会话数、玩家数和游玩时长。不保存个人数据。',
+  },
   wallet: { name: '虚拟钱包', description: '储值余额与交易流水。' },
   subscription: { name: '订阅与会员', description: '订阅与会员状态管理。' },
   affiliate: { name: '联盟营销', description: '联盟伙伴、推荐归因与佣金账本，支持店面自助入驻。' },
@@ -71,6 +79,14 @@ const ZH_HANT: Record<string, ExtensionCatalogLocalization> = {
   'smtp-email': { name: 'SMTP 郵件', description: '用於驗證碼與事務郵件的 SMTP 發信通道。' },
   stripe: { name: 'Stripe 支付', description: 'Stripe 結帳、Webhook 與退款。' },
   shipping: { name: '物流', description: '物流追蹤、Odoo 履約、快遞100 與 4PX 承運商操作。' },
+  'bokmoo-connect': {
+    name: 'BOKMOO Connect',
+    description: 'BOKMOO 實體卡的領取能力：印刷碼領取會話、Android / 讀卡器讀取 EID / ICCID、帳號綁卡，以及受控的卡片庫存匯入。',
+  },
+  'game-stats': {
+    name: '遊戲統計',
+    description: '遊戲網站的匿名遊玩統計：目前線上人數，以及每款遊戲每天的會話數、玩家數和遊玩時長。不保存個人資料。',
+  },
   wallet: { name: '虛擬錢包', description: '儲值餘額與交易流水。' },
   subscription: { name: '訂閱與會員', description: '訂閱與會員狀態管理。' },
   affiliate: { name: '聯盟行銷', description: '聯盟夥伴、推薦歸因與佣金帳本，支援店面自助入駐。' },
@@ -87,7 +103,7 @@ const ZH_HANT: Record<string, ExtensionCatalogLocalization> = {
  * settings forms render these overlays when the session locale is Chinese.
  * A field without an entry falls back to the catalog label.
  */
-type ConfigFieldLocalization = string | { label: string; description?: string };
+type ConfigFieldLocalization = string | { label: string; description?: string; placeholder?: string };
 
 const CONFIG_FIELDS_ZH_HANS: Record<string, Record<string, ConfigFieldLocalization>> = {
   'support-hub': {
@@ -119,7 +135,9 @@ const CONFIG_FIELDS_ZH_HANS: Record<string, Record<string, ConfigFieldLocalizati
     mode: { label: '承运商环境', description: '承运商提供测试环境时使用测试接口。' },
     kuaidi100Enabled: '启用快递100', kuaidi100Key: '快递100 Key', kuaidi100Customer: '快递100 Customer ID',
     kuaidi100Secret: '快递100 Secret', kuaidi100CallbackSalt: '快递100 回调盐值',
-    kuaidi100ApiBaseUrl: '快递100 API 地址', kuaidi100PollBaseUrl: '快递100 轮询地址', kuaidi100CallbackUrl: '快递100 回调地址',
+    kuaidi100ApiBaseUrl: { label: '快递100 API 地址', description: '覆盖 https://api.kuaidi100.com（面单订单）的地址，例如一个从国内出口的中继。' },
+    kuaidi100PollBaseUrl: { label: '快递100 轮询地址', description: '覆盖 https://poll.kuaidi100.com（查询、订阅、揽收）的地址，例如一个从国内出口的中继。' },
+    kuaidi100CallbackUrl: { label: '快递100 回调地址', description: '接收快递100 物流推送的公开 Webhook 地址（例如 https://api.example.com/api/v1/extensions/plugin/shipping/api/admin/webhooks/kuaidi100）。' },
     fourpxEnabled: '启用 4PX', fourpxAppKey: '4PX App Key', fourpxAppSecret: '4PX App Secret',
     fourpxAccessToken: '4PX Access Token', fourpxLanguage: '4PX 返回语言',
   },
@@ -133,7 +151,13 @@ const CONFIG_FIELDS_ZH_HANS: Record<string, Record<string, ConfigFieldLocalizati
     clientId: 'Google OAuth 客户端 ID', clientSecret: 'Google OAuth 客户端密钥',
     androidClientId: 'Android 客户端 ID（App 令牌校验）', iosClientId: 'iOS 客户端 ID（App 令牌校验）',
   },
-  'facebook-auth': { appId: 'Facebook 应用 ID', appSecret: 'Facebook 应用密钥' },
+  'facebook-auth': { appId: 'Facebook 应用 ID', appSecret: { label: 'Facebook 应用密钥', placeholder: 'Meta 应用密钥' } },
+  'game-stats': {
+    heartbeatWindowSeconds: { label: '心跳窗口（秒）', description: '玩家最近一次心跳在这个时间内，就算作正在玩。' },
+    retentionDays: { label: '原始数据保留天数', description: '会话和玩家标识保留这么久；每日汇总会一直保留。' },
+    timezoneOffsetMinutes: { label: '时区偏移（分钟）', description: '每日汇总按这个相对 UTC 向东的分钟数划分日期。' },
+    allowedOrigins: { label: '允许的来源', description: '允许从浏览器上报游玩记录的站点来源，多个用逗号分隔。' },
+  },
   'apple-auth': {
     servicesId: 'Services ID（网页端）', teamId: 'Apple 开发者 Team ID', keyId: 'Key ID（.p8 密钥）',
     privateKey: '私钥（.p8 内容）', bundleId: 'App Bundle ID（App 令牌校验）',
@@ -170,7 +194,9 @@ const CONFIG_FIELDS_ZH_HANT: Record<string, Record<string, ConfigFieldLocalizati
     mode: { label: '承運商環境', description: '承運商提供測試環境時使用測試介面。' },
     kuaidi100Enabled: '啟用快遞100', kuaidi100Key: '快遞100 Key', kuaidi100Customer: '快遞100 Customer ID',
     kuaidi100Secret: '快遞100 Secret', kuaidi100CallbackSalt: '快遞100 回呼鹽值',
-    kuaidi100ApiBaseUrl: '快遞100 API 網址', kuaidi100PollBaseUrl: '快遞100 輪詢網址', kuaidi100CallbackUrl: '快遞100 回呼網址',
+    kuaidi100ApiBaseUrl: { label: '快遞100 API 網址', description: '覆蓋 https://api.kuaidi100.com（面單訂單）的網址，例如一個從國內出口的中繼。' },
+    kuaidi100PollBaseUrl: { label: '快遞100 輪詢網址', description: '覆蓋 https://poll.kuaidi100.com（查詢、訂閱、攬收）的網址，例如一個從國內出口的中繼。' },
+    kuaidi100CallbackUrl: { label: '快遞100 回呼網址', description: '接收快遞100 物流推送的公開 Webhook 網址（例如 https://api.example.com/api/v1/extensions/plugin/shipping/api/admin/webhooks/kuaidi100）。' },
     fourpxEnabled: '啟用 4PX', fourpxAppKey: '4PX App Key', fourpxAppSecret: '4PX App Secret',
     fourpxAccessToken: '4PX Access Token', fourpxLanguage: '4PX 回傳語言',
   },
@@ -184,7 +210,13 @@ const CONFIG_FIELDS_ZH_HANT: Record<string, Record<string, ConfigFieldLocalizati
     clientId: 'Google OAuth 用戶端 ID', clientSecret: 'Google OAuth 用戶端金鑰',
     androidClientId: 'Android 用戶端 ID（App 權杖驗證）', iosClientId: 'iOS 用戶端 ID（App 權杖驗證）',
   },
-  'facebook-auth': { appId: 'Facebook 應用程式 ID', appSecret: 'Facebook 應用程式金鑰' },
+  'facebook-auth': { appId: 'Facebook 應用程式 ID', appSecret: { label: 'Facebook 應用程式金鑰', placeholder: 'Meta 應用程式金鑰' } },
+  'game-stats': {
+    heartbeatWindowSeconds: { label: '心跳視窗（秒）', description: '玩家最近一次心跳在這個時間內，就算作正在玩。' },
+    retentionDays: { label: '原始資料保留天數', description: '會話和玩家識別碼保留這麼久；每日彙總會一直保留。' },
+    timezoneOffsetMinutes: { label: '時區偏移（分鐘）', description: '每日彙總按這個相對 UTC 向東的分鐘數劃分日期。' },
+    allowedOrigins: { label: '允許的來源', description: '允許從瀏覽器上報遊玩記錄的網站來源，多個用逗號分隔。' },
+  },
   'apple-auth': {
     servicesId: 'Services ID（網頁端）', teamId: 'Apple 開發者 Team ID', keyId: 'Key ID（.p8 金鑰）',
     privateKey: '私鑰（.p8 內容）', bundleId: 'App Bundle ID（App 權杖驗證）',
@@ -204,6 +236,12 @@ function resolveConfigField(
 export function localizePluginConfigLabel(slug: string, field: string, fallback: string, locale?: string): string {
   const overlay = resolveConfigField(slug, field, locale);
   return typeof overlay === 'string' ? overlay : overlay?.label ?? fallback;
+}
+
+/** The hint inside an empty field, in the store's language; an example (a key format, an address) is left as it is. */
+export function localizePluginConfigPlaceholder(slug: string, field: string, fallback: string, locale?: string): string {
+  const overlay = resolveConfigField(slug, field, locale);
+  return typeof overlay === 'object' ? overlay.placeholder ?? fallback : fallback;
 }
 
 export function localizePluginConfigDescription(slug: string, field: string, fallback: string, locale?: string): string {

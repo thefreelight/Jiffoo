@@ -46,7 +46,7 @@ export default function SEOSettingsPage() {
 
         setSettings(seoSettings)
       } catch (err: any) {
-        const errorMsg = err instanceof Error ? err.message : 'Unknown error'
+        const errorMsg = err instanceof Error ? err.message : getText('common.errors.unknown', 'Unknown error')
         toast.error('Failed to load SEO settings: ' + errorMsg)
       } finally {
         setLoading(false)
@@ -67,7 +67,7 @@ export default function SEOSettingsPage() {
       setSettings(data)
       toast.success(getText('common.messages.saveSuccess', 'SEO settings saved successfully!'))
     } catch (err: any) {
-      const errorMsg = err instanceof Error ? err.message : 'Unknown error'
+      const errorMsg = err instanceof Error ? err.message : getText('common.errors.unknown', 'Unknown error')
       toast.error(getText('common.messages.saveFailed', 'Failed to save SEO settings: ') + errorMsg)
     } finally {
       setSaving(false)
@@ -221,25 +221,25 @@ export default function SEOSettingsPage() {
           <CardContent className="p-4">
             <div className="space-y-3">
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <span className="text-sm text-gray-600">Product:</span>
+                <span className="text-sm text-gray-600">{getText('admin.seo.page.product', 'Product:')}</span>
                 <code className="text-sm text-blue-600">
                   {settings.productUrlPattern?.replace('{slug}', 'example-product')}
                 </code>
               </div>
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <span className="text-sm text-gray-600">Category:</span>
+                <span className="text-sm text-gray-600">{getText('admin.seo.page.category', 'Category:')}</span>
                 <code className="text-sm text-blue-600">
                   {settings.categoryUrlPattern?.replace('{slug}', 'example-category')}
                 </code>
               </div>
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <span className="text-sm text-gray-600">Page:</span>
+                <span className="text-sm text-gray-600">{getText('admin.seo.page.page', 'Page:')}</span>
                 <code className="text-sm text-blue-600">
                   {settings.pageUrlPattern?.replace('{slug}', 'example-page')}
                 </code>
               </div>
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <span className="text-sm text-gray-600">Blog:</span>
+                <span className="text-sm text-gray-600">{getText('admin.seo.page.blog', 'Blog:')}</span>
                 <code className="text-sm text-blue-600">
                   {settings.blogUrlPattern?.replace('{slug}', 'example-post')}
                 </code>

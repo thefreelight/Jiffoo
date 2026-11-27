@@ -8,6 +8,7 @@
 import { AlertCircle, CheckCircle, AlertTriangle, XCircle } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { useT } from 'shared/src/i18n/react';
 
 interface SeoIssue {
   id: string
@@ -24,6 +25,13 @@ interface SeoAuditPanelProps {
 }
 
 export function SeoAuditPanel({ issues = [], loading = false }: SeoAuditPanelProps) {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   // Count issues by type
   const errorCount = issues.filter(i => i.type === 'error').length
   const warningCount = issues.filter(i => i.type === 'warning').length
@@ -61,7 +69,7 @@ export function SeoAuditPanel({ issues = [], loading = false }: SeoAuditPanelPro
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading audit results...</p>
+          <p className="mt-2 text-gray-600">{getText('merchant.seo.auditPanel.loadingAuditResults', 'Loading audit results...')}</p>
         </div>
       </div>
     )
@@ -75,7 +83,7 @@ export function SeoAuditPanel({ issues = [], loading = false }: SeoAuditPanelPro
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Issues</p>
+                <p className="text-sm font-medium text-gray-600">{getText('merchant.seo.auditPanel.totalIssues', 'Total Issues')}</p>
                 <p className="text-2xl font-bold text-gray-900">{totalIssues}</p>
               </div>
               <AlertCircle className="w-8 h-8 text-gray-400" />
@@ -87,7 +95,7 @@ export function SeoAuditPanel({ issues = [], loading = false }: SeoAuditPanelPro
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Errors</p>
+                <p className="text-sm font-medium text-gray-600">{getText('merchant.seo.auditPanel.errors', 'Errors')}</p>
                 <p className="text-2xl font-bold text-red-600">{errorCount}</p>
               </div>
               <XCircle className="w-8 h-8 text-red-400" />
@@ -99,7 +107,7 @@ export function SeoAuditPanel({ issues = [], loading = false }: SeoAuditPanelPro
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Warnings</p>
+                <p className="text-sm font-medium text-gray-600">{getText('merchant.seo.auditPanel.warnings', 'Warnings')}</p>
                 <p className="text-2xl font-bold text-yellow-600">{warningCount}</p>
               </div>
               <AlertTriangle className="w-8 h-8 text-yellow-400" />
@@ -111,7 +119,7 @@ export function SeoAuditPanel({ issues = [], loading = false }: SeoAuditPanelPro
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Info</p>
+                <p className="text-sm font-medium text-gray-600">{getText('merchant.seo.auditPanel.info', 'Info')}</p>
                 <p className="text-2xl font-bold text-blue-600">{infoCount}</p>
               </div>
               <AlertCircle className="w-8 h-8 text-blue-400" />
@@ -123,13 +131,13 @@ export function SeoAuditPanel({ issues = [], loading = false }: SeoAuditPanelPro
       {/* Issues List */}
       <Card>
         <CardHeader>
-          <CardTitle>SEO Issues</CardTitle>
+          <CardTitle>{getText('merchant.seo.auditPanel.seoIssues', 'SEO Issues')}</CardTitle>
         </CardHeader>
         <CardContent>
           {issues.length === 0 ? (
             <div className="text-center py-12">
               <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
-              <p className="text-gray-600">No SEO issues found! Your content is well optimized.</p>
+              <p className="text-gray-600">{getText('merchant.seo.auditPanel.noSeoIssuesFoundYourContent', 'No SEO issues found! Your content is well optimized.')}</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -150,7 +158,7 @@ export function SeoAuditPanel({ issues = [], loading = false }: SeoAuditPanelPro
                       </div>
                       <p className="text-sm text-gray-700 mb-2">{issue.issue}</p>
                       <p className="text-sm text-gray-500">
-                        <span className="font-medium">Recommendation:</span> {issue.recommendation}
+                        <span className="font-medium">{getText('merchant.seo.auditPanel.recommendation', 'Recommendation:')}</span> {issue.recommendation}
                       </p>
                     </div>
                   </div>
