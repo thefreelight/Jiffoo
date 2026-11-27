@@ -153,6 +153,23 @@ async function openOrganization(env: AffiliateEnv, input: { name: string; ownerI
   return { row };
 }
 
+/**
+ * A partner account sits in the organization its account belongs to — above all an owner's: the owner's
+ * link brings accounts into the organization, and the organization earns on their sales. An account that
+ * had the organization before it had a partner account is tied to it here, whenever it opens its page.
+ */
+async function linkPartnerToOwnOrganization(env: AffiliateEnv, userId: string): Promise<void> {
+  const organization = await organizationOfUser(env, userId);
+  if (!organization) return;
+  const row = await me(env, userId);
+  if (!row || row.organization_id) return;
+  const membership = await env.DB.prepare(
+    'SELECT role FROM native_affiliate_org_members WHERE organization_id = ?1 AND user_id = ?2 AND status = \'active\'',
+  ).bind(organization.id, userId).first<{ role: string }>();
+  await env.DB.prepare('UPDATE native_affiliate_partners SET organization_id = ?1, member_role = ?2, updated_at = CURRENT_TIMESTAMP WHERE id = ?3')
+    .bind(organization.id, membership?.role ?? 'OWNER', row.id).run();
+}
+
 async function organizationApplicationOf(env: AffiliateEnv, userId: string): Promise<ApplicationRow | null> {
   return env.DB.prepare(
     'SELECT * FROM native_affiliate_org_applications WHERE user_id = ?1 ORDER BY created_at DESC LIMIT 1',
@@ -752,6 +769,7 @@ async function handleNativeAffiliate(request: Request, env: AffiliateEnv, _url: 
     // An account is a partner by default: one that has no partner account yet (it registered before
     // accounts were opened by default) gets it here.
     const opened = await openNativeAffiliatePartner(env, user);
+    if (opened) await linkPartnerToOwnOrganization(env, user.id);
     const row = opened ? await me(env, user.id) : null;
     return row ? success(partner(row, await scopeProductIds(env, row.id))) : failure(503, 'AFFILIATE_UNAVAILABLE', 'The partner account could not be opened');
   }

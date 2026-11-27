@@ -31,6 +31,15 @@ function fakeDb() {
       if (sql.includes('SELECT id FROM native_affiliate_partners WHERE user_id')) return partnerBy('user_id', values[0]) ? { id: partnerBy('user_id', values[0])!.id } : null;
       if (sql.includes('SELECT * FROM native_affiliate_partners WHERE user_id')) return partnerBy('user_id', values[0]);
       if (sql.includes('SELECT organization_id FROM native_affiliate_partners WHERE id')) return partnerBy('id', values[0]);
+      if (sql.includes('SELECT organization_id, user_id FROM native_affiliate_partners WHERE id')) return partnerBy('id', values[0]);
+      // the organization an account is in, as owner or as an active member
+      if (sql.includes('LEFT JOIN native_affiliate_org_members members') && sql.includes('ORDER BY organizations.created_at DESC LIMIT 1')) {
+        return state.orgs.find((org) => org.status === 'active' && (org.owner_user_id === values[0]
+          || state.members.some((member) => member.organization_id === org.id && member.user_id === values[0] && member.status === 'active'))) ?? null;
+      }
+      if (sql.includes('SELECT role FROM native_affiliate_org_members WHERE organization_id')) {
+        return state.members.find((row) => row.organization_id === values[0] && row.user_id === values[1] && row.status === 'active') ?? null;
+      }
       if (sql.includes("SELECT owner_user_id FROM native_affiliate_organizations WHERE id")) { const org = orgOf(values[0]); return org ? { owner_user_id: org.owner_user_id } : null; }
       if (sql.includes("SELECT id FROM native_affiliate_org_members WHERE user_id")) return state.members.find((row) => row.user_id === values[0] && row.status === 'active') ?? null;
       if (sql.includes('SELECT partner_id FROM native_affiliate_attributions WHERE visitor_id')) {
@@ -79,6 +88,12 @@ function fakeDb() {
       } else if (sql.includes("UPDATE native_affiliate_partners SET organization_id = ?1, member_role = 'INFLUENCER'")) {
         const row = partnerBy('id', values[2]);
         if (row) Object.assign(row, { organization_id: values[0], member_role: 'INFLUENCER' });
+      } else if (sql.includes('UPDATE native_affiliate_partners SET organization_id = ?1, member_role = ?2')) {
+        const row = partnerBy('id', values[2]);
+        if (row) Object.assign(row, { organization_id: values[0], member_role: values[1] });
+      } else if (sql.includes('UPDATE native_affiliate_partners SET organization_id = ?1, updated_at = CURRENT_TIMESTAMP WHERE id = ?2')) {
+        const row = partnerBy('id', values[1]);
+        if (row) Object.assign(row, { organization_id: values[0] });
       } else if (sql.includes('INSERT INTO native_affiliate_organizations')) {
         state.orgs.push({ id: values[0], owner_user_id: values[1], code: values[2], name: values[3], status: 'active', commission_rate: values[4], currency: 'USD', created_at: values[5], updated_at: values[5] });
       } else if (sql.includes('INSERT INTO native_affiliate_org_applications')) {
@@ -223,6 +238,34 @@ describe('an account that arrives through a partner’s link joins that partner�
     expect(associated.status).toBe(404);
     expect(associated.body.error?.code).toBe('ATTRIBUTION_NOT_FOUND');
     expect(db.state.members).toEqual([]);
+  });
+});
+
+describe('an organization that came before its accounts’ partner accounts', () => {
+  it('the owner is tied to it when they open their partner page', async () => {
+    const db = fakeDb();
+    // the store opened the organization for an account that has no partner account yet
+    db.state.orgs.push({ id: 'org-1', owner_user_id: 'user-1', code: 'ORG-1', name: 'Crew', status: 'active', commission_rate: 5, currency: 'USD', created_at: '', updated_at: '' });
+    const page = await call(db, 'GET', `${STORE}/partners/me`, undefined, 'user-1');
+    expect(page.body.data).toMatchObject({ userId: 'user-1', organizationId: 'org-1', memberRole: 'OWNER', commissionRate: 10 });
+    // and so is a member the owner added
+    db.state.members.push({ id: 'm-2', organization_id: 'org-1', user_id: 'user-3', role: 'MANAGER', status: 'active', joined_at: '' });
+    const member = await call(db, 'GET', `${STORE}/partners/me`, undefined, 'user-3');
+    expect(member.body.data).toMatchObject({ userId: 'user-3', organizationId: 'org-1', memberRole: 'MANAGER' });
+  });
+
+  it('a link is followed into the organization of the partner’s account, even when the partner’s row was not tied to it', async () => {
+    const db = fakeDb();
+    // a partner account opened before the account was given its organization
+    await call(db, 'POST', `${STORE}/partners/register`, { displayName: 'Owner' }, 'user-1');
+    db.state.orgs.push({ id: 'org-1', owner_user_id: 'user-1', code: 'ORG-1', name: 'Crew', status: 'active', commission_rate: 5, currency: 'USD', created_at: '', updated_at: '' });
+    expect(db.state.partners[0]!.organization_id).toBeNull();
+    arrivedThrough(db, 'visitor-1', 'user-1');
+    const joined = await call(db, 'POST', `${STORE}/attributions/associate`, { visitorId: 'visitor-1' });
+    expect(joined.body.data).toMatchObject({ organization: 'joined' });
+    expect(db.state.members).toEqual([expect.objectContaining({ organization_id: 'org-1', user_id: 'user-2', role: 'INFLUENCER' })]);
+    // the partner's row now says what its account already did
+    expect(db.state.partners[0]).toMatchObject({ user_id: 'user-1', organization_id: 'org-1' });
   });
 });
 
