@@ -106,6 +106,19 @@ export interface DashboardData {
   };
   ordersByStatus: Record<string, number>;
   recentOrders: Order[];
+  /** The last thirty days against the thirty days before. Cloudflare Native reports it; absent elsewhere. */
+  period?: {
+    days: number;
+    /** The currency most paid revenue came in. */
+    currency: string;
+    revenue: { current: number; previous: number };
+    orders: { current: number; previous: number };
+    newCustomers: { current: number; previous: number };
+  };
+  /** Paid orders per UTC day, oldest first: a year, and the year before it to compare with. */
+  series?: Array<{ day: string; revenue: number; orders: number }>;
+  /** Best sellers of the last thirty days by units, with the thirty days before. */
+  topProducts?: Array<{ productId: string; name: string; sold: number; previousSold: number }>;
 }
 
 export interface ThemeTargetsResponse {

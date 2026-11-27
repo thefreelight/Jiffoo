@@ -1,6 +1,7 @@
 /**
- * Sales trend card: combined bar + line chart of current vs previous period,
- * with range tabs, channel filter, hover tooltip, and totals legend.
+ * Sales trend card: bars and a line of paid revenue per period, beside the same
+ * period one range earlier, with range tabs and a hover tooltip. It is drawn
+ * from the daily figures the core reports; with none it says so.
  */
 
 'use client'
@@ -17,16 +18,9 @@ import {
   YAxis,
 } from 'recharts'
 import { SectionCard } from './section-card'
-import { buildTrendSeries, DEMO_TREND_TOTALS, type TrendPoint } from './overview-data'
+import { trendPoints, type TrendPoint, type TrendRange } from '@/lib/dashboard-analytics'
 import { formatCurrency } from '@/lib/utils'
 import { useT } from 'shared/src/i18n/react'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 
 const RANGE_TABS = [
@@ -36,8 +30,6 @@ const RANGE_TABS = [
   { key: '1y', labelKey: 'merchant.dashboard.overview.range1y', labelFallback: '1年' },
 ] as const
 
-type RangeKey = (typeof RANGE_TABS)[number]['key']
-
 interface TrendTooltipPayloadEntry {
   dataKey?: string | number
   value?: number | string
@@ -45,10 +37,8 @@ interface TrendTooltipPayloadEntry {
 }
 
 interface SalesTrendCardProps {
-  /** Total for the current period (falls back to the reference demo value). */
-  totalCurrent?: number
-  /** Total for the previous period. */
-  totalPrevious?: number
+  /** Paid revenue per UTC day, as the core reports it. */
+  series?: Array<{ day: string; revenue: number }>
   currency?: string
 }
 
@@ -58,12 +48,14 @@ function TrendTooltip({
   label,
   currentLabel,
   previousLabel,
+  currency,
 }: {
   active?: boolean
   payload?: TrendTooltipPayloadEntry[]
   label?: string
   currentLabel: string
   previousLabel: string
+  currency?: string
 }) {
   if (!active || !payload?.length) return null
 
@@ -79,14 +71,14 @@ function TrendTooltip({
           <span className="h-2 w-2 rounded-full bg-[#3b82f6]" />
           {currentLabel}
           <span className="font-bold text-slate-900">
-            {typeof current === 'number' ? `$${current.toFixed(2)}` : '--'}
+            {typeof current === 'number' ? formatCurrency(current, currency) : '--'}
           </span>
         </div>
         <div className="flex items-center gap-2 text-xs text-slate-600">
           <span className="h-2 w-2 rounded-full bg-[#c6dbff]" />
           {previousLabel}
           <span className="font-bold text-slate-900">
-            {typeof previous === 'number' ? `$${previous.toFixed(2)}` : '--'}
+            {typeof previous === 'number' ? formatCurrency(previous, currency) : '--'}
           </span>
         </div>
       </div>
@@ -94,10 +86,9 @@ function TrendTooltip({
   )
 }
 
-export function SalesTrendCard({ totalCurrent, totalPrevious, currency }: SalesTrendCardProps) {
+export function SalesTrendCard({ series, currency }: SalesTrendCardProps) {
   const t = useT()
-  const [range, setRange] = useState<RangeKey>('30d')
-  const [channel, setChannel] = useState('all')
+  const [range, setRange] = useState<TrendRange>('30d')
 
   const getText = (key: string, fallback: string): string => {
     if (!t) return fallback
@@ -105,13 +96,11 @@ export function SalesTrendCard({ totalCurrent, totalPrevious, currency }: SalesT
     return translated === key ? fallback : translated
   }
 
-  const currentTotal = totalCurrent ?? DEMO_TREND_TOTALS.current
-  const previousTotal = totalPrevious ?? DEMO_TREND_TOTALS.previous
-
-  const series = useMemo(
-    () => buildTrendSeries(range, currentTotal, previousTotal),
-    [range, currentTotal, previousTotal],
-  )
+  const points = useMemo(() => trendPoints(series ?? [], range), [series, range])
+  const currentTotal = points.reduce((sum, point) => sum + point.current, 0)
+  const previousTotal = points.reduce((sum, point) => sum + point.previous, 0)
+  // With no paid revenue in either period there is nothing honest to draw.
+  const hasFigures = currentTotal > 0 || previousTotal > 0
 
   const currentLabel = getText('merchant.dashboard.overview.currentPeriod', '本期销售额')
   const previousLabel = getText('merchant.dashboard.overview.previousPeriod', '上期销售额')
@@ -123,12 +112,13 @@ export function SalesTrendCard({ totalCurrent, totalPrevious, currency }: SalesT
       bodyClassName="min-h-0 flex-1"
     >
       <div className="mb-3 flex flex-wrap items-center justify-end gap-2">
-        <div className="flex items-center rounded-lg border border-[#eef1f6] bg-[#f8fafc] p-0.5">
+        <div className="flex items-center rounded-lg border border-[#eef1f6] bg-[#f8fafc] p-0.5" data-testid="sales-range">
           {RANGE_TABS.map((tab) => (
             <button
               key={tab.key}
               type="button"
               onClick={() => setRange(tab.key)}
+              data-range={tab.key}
               className={cn(
                 'rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
                 range === tab.key
@@ -140,75 +130,77 @@ export function SalesTrendCard({ totalCurrent, totalPrevious, currency }: SalesT
             </button>
           ))}
         </div>
-        <Select value={channel} onValueChange={setChannel}>
-          <SelectTrigger className="h-8 w-[120px] rounded-lg border-[#eef1f6] bg-[#f8fafc] text-xs font-medium text-slate-600 shadow-none focus:ring-0">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{getText('merchant.dashboard.overview.allChannels', '全部渠道')}</SelectItem>
-            <SelectItem value="online">{getText('merchant.dashboard.overview.onlineStore', 'Online Store')}</SelectItem>
-            <SelectItem value="offline">{getText('merchant.dashboard.overview.offline', '线下订单')}</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
 
-      <div className="h-[240px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={series} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-            <CartesianGrid vertical={false} stroke="#f1f4f9" />
-            <XAxis
-              dataKey="label"
-              tickLine={false}
-              axisLine={false}
-              tick={{ fill: '#94a3b8', fontSize: 11 }}
-              interval="preserveStartEnd"
-              minTickGap={28}
-            />
-            <YAxis
-              tickLine={false}
-              axisLine={false}
-              tick={{ fill: '#94a3b8', fontSize: 11 }}
-              width={52}
-              tickFormatter={(value: number) => `$${Number(value).toLocaleString()}`}
-            />
-            <Tooltip
-              cursor={{ stroke: '#e2e8f0' }}
-              content={<TrendTooltip currentLabel={currentLabel} previousLabel={previousLabel} />}
-            />
-            <Bar dataKey="previous" barSize={10} fill="#dbe9ff" radius={[4, 4, 0, 0]} isAnimationActive={false} />
-            <Line
-              type="monotone"
-              dataKey="previous"
-              stroke="#c6dbff"
-              strokeWidth={2}
-              dot={false}
-              isAnimationActive={false}
-            />
-            <Line
-              type="monotone"
-              dataKey="current"
-              stroke="#3b82f6"
-              strokeWidth={2.5}
-              dot={{ r: 2.5, fill: '#ffffff', stroke: '#3b82f6', strokeWidth: 1.5 }}
-              activeDot={{ r: 4 }}
-              isAnimationActive={false}
-            />
-          </ComposedChart>
-        </ResponsiveContainer>
-      </div>
+      {hasFigures ? (
+        <>
+          <div className="h-[240px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={points} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+                <CartesianGrid vertical={false} stroke="#f1f4f9" />
+                <XAxis
+                  dataKey="label"
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fill: '#94a3b8', fontSize: 11 }}
+                  interval="preserveStartEnd"
+                  minTickGap={28}
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fill: '#94a3b8', fontSize: 11 }}
+                  width={52}
+                  tickFormatter={(value: number) => formatCurrency(Number(value), currency)}
+                />
+                <Tooltip
+                  cursor={{ stroke: '#e2e8f0' }}
+                  content={<TrendTooltip currentLabel={currentLabel} previousLabel={previousLabel} currency={currency} />}
+                />
+                <Bar dataKey="previous" barSize={10} fill="#dbe9ff" radius={[4, 4, 0, 0]} isAnimationActive={false} />
+                <Line
+                  type="monotone"
+                  dataKey="previous"
+                  stroke="#c6dbff"
+                  strokeWidth={2}
+                  dot={false}
+                  isAnimationActive={false}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="current"
+                  stroke="#3b82f6"
+                  strokeWidth={2.5}
+                  dot={{ r: 2.5, fill: '#ffffff', stroke: '#3b82f6', strokeWidth: 1.5 }}
+                  activeDot={{ r: 4 }}
+                  isAnimationActive={false}
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-6 border-t border-[#f4f6fa] pt-3">
-        <div className="flex items-center gap-2 text-xs text-slate-600">
-          <span className="h-2 w-2 rounded-full bg-[#3b82f6]" />
-          {currentLabel}
-          <span className="font-bold text-slate-900">{formatCurrency(currentTotal, currency)}</span>
+          <div className="mt-3 flex flex-wrap items-center gap-6 border-t border-[#f4f6fa] pt-3">
+            <div className="flex items-center gap-2 text-xs text-slate-600">
+              <span className="h-2 w-2 rounded-full bg-[#3b82f6]" />
+              {currentLabel}
+              <span data-testid="sales-current" className="font-bold text-slate-900">
+                {formatCurrency(Math.round(currentTotal * 100) / 100, currency)}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-slate-600">
+              <span className="h-2 w-2 rounded-full bg-[#c6dbff]" />
+              {previousLabel}
+              <span data-testid="sales-previous" className="font-bold text-slate-900">
+                {formatCurrency(Math.round(previousTotal * 100) / 100, currency)}
+              </span>
+            </div>
+          </div>
+        </>
+      ) : (
+        <div data-testid="sales-empty" className="flex h-[292px] items-center justify-center px-6 text-center text-sm text-slate-400">
+          {getText('merchant.dashboard.overview.noSalesYet', '所选时间段内还没有已付款的订单')}
         </div>
-        <div className="flex items-center gap-2 text-xs text-slate-600">
-          <span className="h-2 w-2 rounded-full bg-[#c6dbff]" />
-          {previousLabel}
-          <span className="font-bold text-slate-900">{formatCurrency(previousTotal, currency)}</span>
-        </div>
-      </div>
+      )}
     </SectionCard>
   )
 }
