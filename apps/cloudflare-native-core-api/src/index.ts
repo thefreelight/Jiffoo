@@ -18,7 +18,7 @@ import { tryNativeI18nPlugin } from './i18n-plugin';
 import { tryNativePluginOrders } from './plugin-orders';
 import { processCheckoutOutbox } from './outbox';
 import { tryNativeShopperAccount } from './shopper-account';
-import { processNativeOdooShipmentPoll, tryNativeExternalOrderSync } from './external-orders';
+import { processNativeExternalOrderRetries, processNativeOdooShipmentPoll, tryNativeExternalOrderSync } from './external-orders';
 import { processNativeEmailOutbox } from './mail-outbox';
 import { tryNativeAffiliate } from './affiliate';
 import { tryNativeSupportHub } from './support-hub';
@@ -459,12 +459,13 @@ export default {
     }
   },
   async scheduled(_controller: ScheduledController, env: WorkerEnv): Promise<void> {
-    const [checkout, email, odooCatalog, odooShipments, jobs, walletReservations, currencyReservations, creditGrants, resumeExtraction, videoTasks, toolDiscovery, staleReservations, bossCatalog, bossOrders, gameStats] = await Promise.allSettled([
+    const [checkout, email, odooCatalog, odooShipments, jobs, walletReservations, currencyReservations, creditGrants, resumeExtraction, videoTasks, toolDiscovery, staleReservations, bossCatalog, bossOrders, gameStats, odooHandOvers] = await Promise.allSettled([
       processCheckoutOutbox(env),
       processNativeEmailOutbox(env),
       processScheduledOdooCatalogSync(env),
       processScheduledBossCatalogSync(env),
       processNativeOdooShipmentPoll(env),
+      processNativeExternalOrderRetries(env),
       processNativeJobsSync(env),
       expireNativeWalletReservations(env),
       expireNativeCurrencyReservations(env),
@@ -482,6 +483,7 @@ export default {
       email: email.status === 'fulfilled' ? email.value : { error: String(email.reason) },
       odooCatalog: odooCatalog.status === 'fulfilled' ? odooCatalog.value : { error: String(odooCatalog.reason) },
       odooShipments: odooShipments.status === 'fulfilled' ? odooShipments.value : { error: String(odooShipments.reason) },
+      odooHandOvers: odooHandOvers.status === 'fulfilled' ? odooHandOvers.value : { error: String(odooHandOvers.reason) },
       jobs: jobs.status === 'fulfilled' ? jobs.value : { error: String(jobs.reason) },
       walletReservations: walletReservations.status === 'fulfilled'
         ? walletReservations.value

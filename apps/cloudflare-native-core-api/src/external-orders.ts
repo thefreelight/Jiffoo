@@ -69,6 +69,22 @@ function text(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
+function errorMessage(error: unknown): string {
+  return (error instanceof Error ? error.message : String(error)).slice(0, 1000);
+}
+
+/**
+ * A hand-over to Odoo that did not go through is written on the link, and that is all: it is never thrown out of
+ * here. The store's systems being unreachable must not hold back what the shopper is owed once they have paid —
+ * their receipt, a referrer's commission — and the timer hands the order over again (processNativeExternalOrderRetries).
+ */
+async function markHandOverFailed(env: ExternalOrderEnv, externalOrderRef: string, message: string, now: string): Promise<void> {
+  await env.DB.prepare(
+    `UPDATE native_external_order_links SET sync_status = 'FAILED', last_error = ?1,
+     attempt_count = attempt_count + 1, last_synced_at = ?2, updated_at = ?2 WHERE external_order_ref = ?3`,
+  ).bind(message, now, externalOrderRef).run();
+}
+
 function fulfillmentStatus(externalStatus: string | null, shipmentStatus: string | null): string {
   const value = `${externalStatus ?? ''} ${shipmentStatus ?? ''}`.toLowerCase();
   if (value.includes('deliver') || value.includes('complete')) return 'delivered';
@@ -89,7 +105,11 @@ export async function submitNativeOdooOrders(env: ExternalOrderEnv, orderId: str
     const itemId = text(item.id);
     const installationId = text(attributes.installationId);
     const productCode = text(attributes.externalVariantCode) || text(item.variantId);
-    if (!itemId || !installationId || !productCode) throw new Error('Odoo item is missing installation or external variant metadata');
+    // an item the catalog gave no Odoo identity can never be handed over; it is not a reason to stop the order's other work
+    if (!itemId || !installationId || !productCode) {
+      console.error(JSON.stringify({ message: 'Odoo item is missing installation or external variant metadata', orderId, itemId }));
+      continue;
+    }
     const externalOrderRef = `native-${orderId}-${itemId}`.slice(0, 190);
     const existing = await env.DB.prepare(
       `SELECT sync_status FROM native_external_order_links
@@ -115,7 +135,17 @@ export async function submitNativeOdooOrders(env: ExternalOrderEnv, orderId: str
        ON CONFLICT(provider, installation_id, order_item_id) DO UPDATE SET
          request_payload = excluded.request_payload, updated_at = excluded.updated_at`,
     ).bind(crypto.randomUUID(), installationId, orderId, itemId, externalOrderRef, JSON.stringify(requestPayload), now).run();
-    const nativeResult = await createNativeOdooOrder(env, requestPayload);
+    let nativeResult: Awaited<ReturnType<typeof createNativeOdooOrder>> = null;
+    let refused: string | null = null;
+    try {
+      nativeResult = await createNativeOdooOrder(env, requestPayload);
+    } catch (error) {
+      refused = errorMessage(error);
+    }
+    if (refused !== null) {
+      await markHandOverFailed(env, externalOrderRef, refused, now);
+      continue;
+    }
     if (nativeResult) {
       await env.DB.prepare(
         `UPDATE native_external_order_links SET sync_status = 'SUBMITTED', external_order_name = ?1,
@@ -143,8 +173,8 @@ export async function submitNativeOdooOrders(env: ExternalOrderEnv, orderId: str
       await env.DB.prepare(
         `UPDATE native_external_order_links SET sync_status = 'FAILED', last_error = ?1,
          attempt_count = attempt_count + 1, last_synced_at = ?2, updated_at = ?2 WHERE external_order_ref = ?3`,
-      ).bind(error instanceof Error ? error.message.slice(0, 1000) : String(error).slice(0, 1000), now, externalOrderRef).run();
-      throw error;
+      ).bind(errorMessage(error), now, externalOrderRef).run();
+      continue;
     }
     const responseBody: Record<string, unknown> = await response.json<Record<string, unknown>>().catch(() => ({}));
     const data = responseBody.data && typeof responseBody.data === 'object' ? responseBody.data as Record<string, unknown> : responseBody;
@@ -156,7 +186,7 @@ export async function submitNativeOdooOrders(env: ExternalOrderEnv, orderId: str
         `UPDATE native_external_order_links SET sync_status = 'FAILED', response_payload = ?1, last_error = ?2,
          attempt_count = attempt_count + 1, last_synced_at = ?3, updated_at = ?3 WHERE external_order_ref = ?4`,
       ).bind(JSON.stringify(responseBody), message, now, externalOrderRef).run();
-      throw new Error(message ?? 'Odoo order creation failed');
+      continue;
     }
     await env.DB.prepare(
       `UPDATE native_external_order_links SET sync_status = 'SUBMITTED', external_order_name = ?1,
@@ -169,6 +199,30 @@ export async function submitNativeOdooOrders(env: ExternalOrderEnv, orderId: str
   order.items = items;
   order.updatedAt = new Date().toISOString();
   await env.DB.prepare('UPDATE native_order_snapshots SET payload = ?1, source_updated_at = ?2 WHERE id = ?3').bind(JSON.stringify(order), order.updatedAt, orderId).run();
+}
+
+/**
+ * Hands over again the orders Odoo did not take the first time — its login refused, or it did not answer:
+ * a few at a time, each no sooner than fifteen minutes after its last try, and no more than twelve tries.
+ */
+export async function processNativeExternalOrderRetries(env: ExternalOrderEnv): Promise<{ picked: number; handedOver: number }> {
+  const cutoff = new Date(Date.now() - 15 * 60_000).toISOString();
+  const rows = await env.DB.prepare(
+    `SELECT order_id FROM native_external_order_links
+     WHERE provider = 'odoo' AND sync_status = 'FAILED' AND attempt_count < 12 AND last_synced_at < ?1
+     ORDER BY last_synced_at ASC LIMIT 25`,
+  ).bind(cutoff).all<{ order_id: string }>();
+  const orders = [...new Set(rows.results.map((row) => row.order_id))];
+  let handedOver = 0;
+  for (const orderId of orders) {
+    try {
+      await submitNativeOdooOrders(env, orderId);
+      handedOver += 1;
+    } catch (error) {
+      console.error(JSON.stringify({ message: 'external order hand-over retry failed', orderId, error: errorMessage(error) }));
+    }
+  }
+  return { picked: orders.length, handedOver };
 }
 
 /** Poll Odoo pickings for a small bounded set of linked orders. */
