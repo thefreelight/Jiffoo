@@ -476,12 +476,18 @@ export function useRefundOrder() {
       const response = await ordersApi.refundOrder(id, data);
       return unwrapApiResponse(response);
     },
-    onSuccess: (_, { id }) => {
+    onSuccess: (order, { id }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.orders });
       queryClient.invalidateQueries({ queryKey: queryKeys.order(id) });
       queryClient.invalidateQueries({ queryKey: queryKeys.orderStats });
       queryClient.invalidateQueries({ queryKey: queryKeys.adminDashboard });
-      toast.success('Order refunded successfully');
+      // A card refund is confirmed by the payment provider a moment after it is asked for; the order shows as
+      // refunded then. It is not said to be refunded before it is.
+      if ((order as { refundPending?: boolean } | undefined)?.refundPending) {
+        toast.success('Refund submitted. The order shows as refunded once the payment provider confirms it, usually within a few minutes.');
+      } else {
+        toast.success('Order refunded successfully');
+      }
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));

@@ -3,7 +3,7 @@ import { tryNativeIdentityLogin } from './identity-login';
 import { tryNativeCart } from './cart';
 import { tryNativeOrderRead } from './orders';
 import { tryNativeAdminOrders } from './admin-orders';
-import { tryNativeAdminWrites } from './admin-writes';
+import { tryNativeAdminWrites, processNativePendingRefunds } from './admin-writes';
 import { tryNativeAdminWebhooks } from './admin-webhooks';
 import { tryNativeAdminUsers } from './admin-users';
 import { tryNativeAdminStaff } from './admin-staff';
@@ -459,13 +459,14 @@ export default {
     }
   },
   async scheduled(_controller: ScheduledController, env: WorkerEnv): Promise<void> {
-    const [checkout, email, odooCatalog, odooShipments, jobs, walletReservations, currencyReservations, creditGrants, resumeExtraction, videoTasks, toolDiscovery, staleReservations, bossCatalog, bossOrders, gameStats, odooHandOvers] = await Promise.allSettled([
+    const [checkout, email, odooCatalog, odooShipments, jobs, walletReservations, currencyReservations, creditGrants, resumeExtraction, videoTasks, toolDiscovery, staleReservations, bossCatalog, bossOrders, gameStats, odooHandOvers, refundFollowUps] = await Promise.allSettled([
       processCheckoutOutbox(env),
       processNativeEmailOutbox(env),
       processScheduledOdooCatalogSync(env),
       processScheduledBossCatalogSync(env),
       processNativeOdooShipmentPoll(env),
       processNativeExternalOrderRetries(env),
+      processNativePendingRefunds(env),
       processNativeJobsSync(env),
       expireNativeWalletReservations(env),
       expireNativeCurrencyReservations(env),
@@ -484,6 +485,7 @@ export default {
       odooCatalog: odooCatalog.status === 'fulfilled' ? odooCatalog.value : { error: String(odooCatalog.reason) },
       odooShipments: odooShipments.status === 'fulfilled' ? odooShipments.value : { error: String(odooShipments.reason) },
       odooHandOvers: odooHandOvers.status === 'fulfilled' ? odooHandOvers.value : { error: String(odooHandOvers.reason) },
+      refundFollowUps: refundFollowUps.status === 'fulfilled' ? refundFollowUps.value : { error: String(refundFollowUps.reason) },
       jobs: jobs.status === 'fulfilled' ? jobs.value : { error: String(jobs.reason) },
       walletReservations: walletReservations.status === 'fulfilled'
         ? walletReservations.value
