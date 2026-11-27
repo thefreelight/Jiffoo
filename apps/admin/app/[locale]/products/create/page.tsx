@@ -143,7 +143,7 @@ export default function CreateProductPage() {
             disabled={createProductMutation.isPending}
             className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-6 h-9 rounded-lg active:scale-95 transition-all"
           >
-            {createProductMutation.isPending ? 'Sending...' : 'Save Product'}
+            {createProductMutation.isPending ? getText('merchant.productCreate.sending', 'Sending...') : getText('merchant.productCreate.saveProduct', 'Save Product')}
           </Button>
         </>
       }
@@ -191,7 +191,7 @@ export default function CreateProductPage() {
                     <Label className="text-xs font-bold text-gray-500 uppercase tracking-tighter">{getText('merchant.productCreate.requiresShipping', 'Requires Shipping')}</Label>
                     <div className="h-12 rounded-2xl bg-gray-50/50 border border-gray-100 px-4 flex items-center justify-between">
                       <span className="text-sm font-medium text-gray-700">
-                        {formData.requiresShipping ? 'Yes' : 'No'}
+                        {formData.requiresShipping ? getText('merchant.productCreate.yes', 'Yes') : 'No'}
                       </span>
                       <Switch
                         checked={formData.requiresShipping}

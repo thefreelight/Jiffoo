@@ -72,6 +72,16 @@ export function SubmissionsReview() {
     return translated === key ? fallback : translated;
   };
 
+  /** The name of a submission's state, in the store's language; a state this screen does not know is shown as the core spells it. */
+  const statusText = (status: string): string => ({
+    submitted: getText('merchant.marketplace.submissions.statusSubmitted', 'submitted'),
+    draft: getText('merchant.marketplace.submissions.statusDraft', 'draft'),
+    changes_requested: getText('merchant.marketplace.submissions.statusChangesRequested', 'changes requested'),
+    approved: getText('merchant.marketplace.submissions.statusApproved', 'approved'),
+    rejected: getText('merchant.marketplace.submissions.statusRejected', 'rejected'),
+    all: getText('merchant.marketplace.submissions.statusAll', 'all'),
+  } as Record<string, string>)[status] ?? status.replace('_', ' ');
+
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>('submitted');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -134,7 +144,7 @@ export function SubmissionsReview() {
                 statusFilter === status ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
-              {status.replace('_', ' ')}
+              {statusText(status)}
             </button>
           ))}
         </div>
@@ -158,7 +168,7 @@ export function SubmissionsReview() {
                       STATUS_STYLES[submission.status] ?? 'bg-gray-100 text-gray-600'
                     }`}
                   >
-                    {submission.status.replace('_', ' ')}
+                    {statusText(submission.status)}
                   </span>
                 </div>
                 <div className="mt-0.5 text-xs text-gray-500">
@@ -191,7 +201,7 @@ export function SubmissionsReview() {
                   STATUS_STYLES[selected.status] ?? 'bg-gray-100 text-gray-600'
                 }`}
               >
-                {selected.status.replace('_', ' ')}
+                {statusText(selected.status)}
               </span>
             </header>
 

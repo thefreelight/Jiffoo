@@ -125,6 +125,10 @@ export const common = {
     dismissNotice: 'Dismiss notice',
     openMenu: 'Open menu',
     updateAvailable: 'Update available',
+    collapsePlugins: 'Collapse plugins',
+    expandPlugins: 'Expand plugins',
+    managementWorkspace: 'Management Workspace',
+    notifications: 'Notifications',
   },
   errors: {
     general: 'Something went wrong. Please try again.',

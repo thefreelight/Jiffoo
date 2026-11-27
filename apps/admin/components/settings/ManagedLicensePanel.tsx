@@ -64,7 +64,7 @@ export function ManagedLicensePanel() {
           </p>
           <div className="flex flex-wrap items-center gap-2">
             <h4 className="text-sm font-semibold text-gray-900">
-              {isManaged && record ? record.displaySolutionName : 'Activate a managed deployment'}
+              {isManaged && record ? record.displaySolutionName : getText('merchant.settings.managedLicense.activateAManagedDeployment', 'Activate a managed deployment')}
             </h4>
             <Badge
               variant="outline"
@@ -74,13 +74,13 @@ export function ManagedLicensePanel() {
                   : 'border-blue-200 bg-blue-50 text-blue-700'
                 : 'border-slate-200 bg-white text-slate-600'}
             >
-              {isManaged ? (isSuspended ? 'Suspended' : 'Managed') : 'Optional'}
+              {isManaged ? (isSuspended ? getText('merchant.settings.managedLicense.suspended', 'Suspended') : getText('merchant.settings.managedLicense.managed', 'Managed')) : getText('merchant.settings.managedLicense.optional', 'Optional')}
             </Badge>
           </div>
           <p className="max-w-3xl text-sm leading-6 text-gray-600">
             {isManaged && record
-              ? 'This store is running a licensed package. Marketplace pricing stays hidden and only the approved assets remain surfaced across themes and plugins.'
-              : 'If this store is part of a managed commercial rollout, enter the activation code from Super Admin here. Standard self-hosted deployments can ignore this section.'}
+              ? getText('merchant.settings.managedLicense.thisStoreIsRunningALicensed', 'This store is running a licensed package. Marketplace pricing stays hidden and only the approved assets remain surfaced across themes and plugins.')
+              : getText('merchant.settings.managedLicense.ifThisStoreIsPartOf', 'If this store is part of a managed commercial rollout, enter the activation code from Super Admin here. Standard self-hosted deployments can ignore this section.')}
           </p>
         </div>
 
@@ -114,7 +114,7 @@ export function ManagedLicensePanel() {
             className="h-11 rounded-xl bg-blue-600 px-5 font-semibold hover:bg-blue-700"
           >
             <ShieldCheck className="mr-2 h-4 w-4" />
-            {isLoading ? 'Activating…' : 'Activate package'}
+            {isLoading ? getText('merchant.settings.managedLicense.activating', 'Activating…') : getText('merchant.settings.managedLicense.activatePackage', 'Activate package')}
           </Button>
         </form>
       ) : (
