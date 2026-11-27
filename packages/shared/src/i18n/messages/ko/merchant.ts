@@ -1138,7 +1138,7 @@ export const merchant = {
         startedAt: '시작: {time}',
         notTakenOver: '아직 상담원이 답장하지 않음',
         autoRefresh: '자동으로 새로고침',
-        showEarlierLimit: '이 대화의 처음 {count}개 메시지를 표시합니다.',
+        showEarlierLimit: '이 대화의 최근 {count}개 메시지를 표시합니다.',
         newMessages: '새 메시지 {count}개',
         composerPlaceholder: '답장 입력…',
         send: '보내기',

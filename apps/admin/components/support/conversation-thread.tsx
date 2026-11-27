@@ -119,7 +119,7 @@ function MessageScroll(props: {
       >
         {count >= SUPPORT_TRANSCRIPT_LIMIT ? (
           <p className="mx-auto mb-4 w-fit rounded-full bg-amber-50 px-3 py-1 text-[11px] font-semibold text-amber-700">
-            {tf('showEarlierLimit', 'Showing the first {count} messages of this conversation.', { count: SUPPORT_TRANSCRIPT_LIMIT })}
+            {tf('showEarlierLimit', 'Showing the latest {count} messages of this conversation.', { count: SUPPORT_TRANSCRIPT_LIMIT })}
           </p>
         ) : null}
         {content}

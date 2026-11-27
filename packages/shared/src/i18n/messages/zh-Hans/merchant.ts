@@ -1282,7 +1282,7 @@ export const merchant = {
         startedAt: '开始于 {time}',
         notTakenOver: '尚未人工接管',
         autoRefresh: '自动刷新',
-        showEarlierLimit: '当前显示该会话的前 {count} 条消息。',
+        showEarlierLimit: '当前显示该会话最近的 {count} 条消息。',
         newMessages: '{count} 条新消息',
         composerPlaceholder: '输入回复内容…',
         send: '发送',
