@@ -164,19 +164,24 @@ async function processEvent(env: OutboxEnv, event: OutboxRow): Promise<void> {
   const now = new Date().toISOString();
   if (event.event_type === 'payment.succeeded') {
     await fulfillPaidOrder(env, event, now);
-    await grantRemoteRadarPaidOrderEntitlement(env, event);
-    await grantBossPaidOrder(env, event);
-    await submitNativeOdooOrders(env, event.aggregate_id);
+    // The referrer's commission depends on the payment alone: it is recorded before the order goes on to the
+    // store's other systems, so a system that is down, busy or refusing never holds back what a referrer is owed.
+    // (A retry of this event finds the commission there and adds nothing.)
     const paidSnapshot = await env.DB.prepare('SELECT payload FROM native_order_snapshots WHERE id = ?1').bind(event.aggregate_id).first<OrderSnapshotRow>();
     if (paidSnapshot) {
-      const paidOrder = JSON.parse(paidSnapshot.payload) as Record<string, unknown>;
-      await enqueueOrderPaidEmail(env, paidOrder);
-      const commission = await createNativeAffiliateCommission(env, paidOrder);
+      const commission = await createNativeAffiliateCommission(env, JSON.parse(paidSnapshot.payload) as Record<string, unknown>);
       if (commission) {
         await enqueueAffiliateCommissionEmail(env, commission.partner);
         if (commission.organization) await enqueueOrganizationCommissionEmail(env, commission.organization);
       }
     }
+    await grantRemoteRadarPaidOrderEntitlement(env, event);
+    await grantBossPaidOrder(env, event);
+    // a hand-over to Odoo that does not go through is written down and retried by the timer; it never fails this event
+    await submitNativeOdooOrders(env, event.aggregate_id);
+    // the shopper's receipt goes out last, once the systems that provision what they bought have had their turn
+    const receiptSnapshot = await env.DB.prepare('SELECT payload FROM native_order_snapshots WHERE id = ?1').bind(event.aggregate_id).first<OrderSnapshotRow>();
+    if (receiptSnapshot) await enqueueOrderPaidEmail(env, JSON.parse(receiptSnapshot.payload) as Record<string, unknown>);
   }
   if (event.event_type === 'order.refunded') {
     const refund = JSON.parse(event.payload) as { amount?: unknown; fullyRefunded?: unknown; currency?: unknown; reason?: unknown };
