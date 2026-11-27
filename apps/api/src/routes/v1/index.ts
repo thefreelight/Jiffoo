@@ -29,6 +29,7 @@ import platformConnectionRoutes from '@/core/admin/platform-connection/routes';
 import { adminDashboardRoutes } from '@/core/admin/dashboard/routes';
 import { adminCatalogImportRoutes } from '@/core/admin/catalog-import/routes';
 import { platformOffersRoutes } from '@/core/admin/platform-offers/routes';
+import trafficPublicRoutes, { trafficAdminRoutes } from '@/core/traffic/routes';
 
 // Extension installer routes
 import { extensionInstallerRoutes } from '@/core/admin/extension-installer/routes';
@@ -63,6 +64,9 @@ export async function registerV1Routes(fastify: FastifyInstance) {
   // API Token management (admin only)
   await fastify.register(apiTokenRoutes, { prefix: '/admin/api-tokens' });
 
+  // Traffic reports (admin only); its storefront half is registered with the public routes below
+  await fastify.register(trafficAdminRoutes, { prefix: '/admin/traffic' });
+
   // Dashboard routes
   await fastify.register(adminDashboardRoutes, { prefix: '/admin' });
 
@@ -79,6 +83,9 @@ export async function registerV1Routes(fastify: FastifyInstance) {
 
   // Platform offers (public, display-only)
   await fastify.register(platformOffersRoutes, { prefix: '/platform-offers' });
+
+  // Storefront traffic collection (public: the switch and the page-view beacon)
+  await fastify.register(trafficPublicRoutes, { prefix: '/traffic' });
 
   // Extension installer routes
   await fastify.register(extensionInstallerRoutes, { prefix: '/extensions' });
