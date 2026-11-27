@@ -49,7 +49,9 @@ import {
 } from '../ui/dropdown-menu'
 import { useUpdateCheck } from '@/hooks/use-update-check'
 import { useJobsAdminCapability } from '@/hooks/use-jobs-admin-capability'
-import { useAdminDashboard, useInstalledPluginNav, useInstalledPlugins } from '@/lib/hooks/use-api'
+import { useInstalledPluginNav, useInstalledPlugins } from '@/lib/hooks/use-api'
+import { useNewOrders } from '@/hooks/use-new-orders'
+import { newOrdersLabel } from '@/lib/new-orders'
 import { canAccessAnyPermission, getSystemNavHref } from '@/lib/admin-access'
 import { ADMIN_PERMISSIONS, type AdminPermission } from 'shared'
 import { UserAvatar } from '../ui/user-avatar'
@@ -103,7 +105,6 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
   const { hasUpdate } = useUpdateCheck()
   const jobsAdminAvailable = useJobsAdminCapability()
   const { record, isManaged } = useManagedMode()
-  const { data: dashboardData } = useAdminDashboard()
   const { data: installedPlugins } = useInstalledPlugins()
   const { data: installedPluginNav } = useInstalledPluginNav()
 
@@ -119,11 +120,13 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
   const [pluginsExpanded, setPluginsExpanded] = useState<boolean | null>(null)
   const pluginsOpen = pluginsExpanded ?? true
 
-  const openOrders = useMemo(() => {
-    const byStatus = dashboardData?.ordersByStatus as Record<string, number> | undefined
-    if (!byStatus) return undefined
-    return ['PENDING', 'PAID', 'PROCESSING'].reduce((sum, status) => sum + (byStatus[status] ?? 0), 0)
-  }, [dashboardData])
+  // The badge on "Orders" counts the orders placed since this account last looked at them.
+  const onOrdersPage = /\/orders(\/|$)/.test(pathname)
+  const { count: newOrders, markSeen } = useNewOrders({
+    userId: user?.id ?? null,
+    enabled: canAccessAnyPermission(user, [ADMIN_PERMISSIONS.ORDERS_READ]),
+    onOrdersPage,
+  })
 
   const installedCount = (installedPlugins as { items?: unknown[] } | undefined)?.items?.length
   // The game stats report only exists where the game-stats plugin is installed and enabled.
@@ -328,7 +331,10 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
         )}
         <Link
           href={href}
-          onClick={handleNavClick}
+          onClick={() => {
+            if (item.id === 'orders') markSeen()
+            handleNavClick()
+          }}
           className={cn(
             'flex flex-1 items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors',
             isActive ? 'text-blue-600' : 'text-slate-500 hover:text-slate-900',
@@ -337,9 +343,13 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
           <Icon className={cn('h-5 w-5 shrink-0 transition-transform', isActive && 'scale-110')} />
           <span className="truncate">{getText(item.nameKey, item.fallback)}</span>
 
-          {item.id === 'orders' && openOrders ? (
-            <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[11px] font-bold text-white">
-              {openOrders}
+          {item.id === 'orders' && newOrders > 0 ? (
+            <span
+              data-testid="new-orders-badge"
+              title={getText('merchant.dashboard.overview.newOrdersTitle', '{count} 个新订单').replace('{count}', String(newOrders))}
+              className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[11px] font-bold text-white"
+            >
+              {newOrdersLabel(newOrders)}
             </span>
           ) : null}
           {item.id === 'system' && hasUpdate && (

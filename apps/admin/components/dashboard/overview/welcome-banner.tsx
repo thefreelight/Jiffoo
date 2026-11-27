@@ -36,10 +36,9 @@ function HeroIllustration() {
         <g transform="rotate(-4 250 85)">
           <rect x="160" y="18" width="176" height="112" rx="14" fill="#ffffff" opacity="0.92" />
           <rect x="160" y="18" width="176" height="112" rx="14" stroke="#e3eaf9" />
-          <text x="178" y="46" fill="#8a94a6" fontSize="11" fontWeight="600">销售额</text>
-          <text x="176" y="72" fill="#1f2937" fontSize="20" fontWeight="800">$8,736</text>
-          <rect x="176" y="80" width="46" height="14" rx="7" fill="#e7f8ef" />
-          <text x="184" y="90" fill="#16a34a" fontSize="9" fontWeight="700">↑ 12.5%</text>
+          {/* Only shapes: a figure printed here would read as the store's sales, and it would be made up. */}
+          <rect x="176" y="40" width="70" height="8" rx="4" fill="#eef2fb" />
+          <rect x="176" y="56" width="46" height="8" rx="4" fill="#e3eaf9" />
           {/* mini bars */}
           <rect x="238" y="92" width="9" height="24" rx="3" fill="#bfdbfe" />
           <rect x="252" y="80" width="9" height="36" rx="3" fill="#93c5fd" />
