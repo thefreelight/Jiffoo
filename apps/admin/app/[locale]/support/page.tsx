@@ -2,7 +2,7 @@
 
 import { PageShell } from '@/components/layout/page-shell'
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
-import { SupportHubInboxWorkspace } from '@/components/plugins/SupportHubInboxWorkspace'
+import { SupportInboxWorkspace } from '@/components/support/support-inbox-workspace'
 import { useWorkspaceText } from '@/components/plugins/use-workspace-text'
 import { ADMIN_PERMISSIONS } from 'shared'
 
@@ -15,10 +15,10 @@ export default function SupportConversationsPage() {
         title={tf('supportTitle', 'Support conversations')}
         description={tf(
           'supportDescription',
-          'Read visitor messages and reply as a support agent. Conversations you answer stop using AI replies.',
+          'Pick a conversation to read it and reply as a support agent. Conversations you answer stop using AI replies.',
         )}
       >
-        <SupportHubInboxWorkspace installationId="default" />
+        <SupportInboxWorkspace installationId="default" />
       </PageShell>
     </ProtectedRoute>
   )

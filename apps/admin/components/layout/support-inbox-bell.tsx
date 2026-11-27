@@ -24,6 +24,8 @@ import { useAuthStore } from '@/lib/store'
 import { canAccessAnyPermission } from '@/lib/admin-access'
 import { ADMIN_PERMISSIONS } from 'shared'
 import { useLocale, useT } from 'shared/src/i18n/react'
+import { useWorkspaceText } from '@/components/plugins/use-workspace-text'
+import { formatRelativeTime, visitorShortId } from '@/lib/support-inbox'
 
 interface UnreadInfo {
   unread: number
@@ -55,6 +57,8 @@ export function SupportInboxBell() {
     const translated = t(key)
     return translated === key ? fallback : translated
   }
+  // The same wording as the inbox, so a row here reads like the thread it opens.
+  const workspaceText = useWorkspaceText()
 
   const refresh = useCallback(async () => {
     if (loadingRef.current) return
@@ -137,19 +141,23 @@ export function SupportInboxBell() {
           conversations.map((conversation) => (
             <Link
               key={conversation.id}
-              href={`/${locale}/support`}
+              // Opens this conversation in the inbox, not just the page.
+              href={`/${locale}/support?c=${encodeURIComponent(conversation.id)}`}
               className="block rounded-xl p-3 transition-colors hover:bg-blue-50/70"
             >
               <div className="flex items-start gap-3">
                 <MessagesSquare className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
                 <div className="min-w-0">
+                  <p className="truncate text-[11px] font-semibold text-gray-400">
+                    {workspaceText('inbox.visitorLabel', 'Visitor {id}', { id: visitorShortId(conversation.visitorToken) })}
+                  </p>
                   <p className="truncate text-sm font-semibold text-gray-900">
                     {conversation.lastMessage || getText('merchant.header.supportEmptyConversation', '(no messages)')}
                   </p>
                   <p className="mt-0.5 text-xs text-gray-500">
-                    {conversation.visitorToken.slice(0, 12)}… · {conversation.messageCount}{' '}
-                    {getText('merchant.header.supportMessages', 'messages')} ·{' '}
-                    {new Date(conversation.updatedAt).toLocaleString()}
+                    {workspaceText('inbox.messageCount', '{count} messages', { count: conversation.messageCount })}
+                    {' · '}
+                    {formatRelativeTime(conversation.updatedAt, locale)}
                   </p>
                 </div>
               </div>
