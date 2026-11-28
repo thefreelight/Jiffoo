@@ -1,6 +1,7 @@
 import { authenticateNativeAdmin, getNativeJwtSecret, type NativeAuthEnv } from './auth';
 import { ADMIN_PERMISSIONS } from './native-rbac';
 import { adminHasPermission, resolveNativeAdminAccess } from './admin-access';
+import { nativeModuleSettings, nativeModulesWithSettings } from './native-plugin-modules/settings';
 
 type ConfigValue = string | number | boolean | null | ConfigValue[] | { [key: string]: ConfigValue };
 type PluginConfig = Record<string, ConfigValue>;
@@ -232,6 +233,25 @@ const definitions: Record<string, PluginDefinition> = {
   },
 };
 
+/** A compiled-in module's settings form, in the shape the Admin reads. */
+function moduleDefinition(slug: string): PluginDefinition | undefined {
+  const settings = nativeModuleSettings(slug);
+  if (!settings) return undefined;
+  return {
+    slug, name: settings.name, version: settings.version, category: settings.category ?? 'other', description: settings.description,
+    configSchema: Object.fromEntries(settings.fields.map((field) => [field.key, {
+      type: field.type, label: field.label, description: field.description, placeholder: field.placeholder,
+      required: field.required, sensitive: field.type === 'secret', enum: [...(field.enum ?? [])],
+      pattern: field.pattern, patternMessage: field.patternMessage,
+    }])),
+  };
+}
+
+/** The settings definition of a plugin: written into the core, or compiled in as a module. */
+function definitionFor(slug: string): PluginDefinition | undefined {
+  return definitions[slug] ?? moduleDefinition(slug);
+}
+
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
@@ -331,6 +351,9 @@ async function saveInstance(
       if (value === null) delete secrets[field];
       else if (typeof value === 'string' && value.trim()) {
         const normalized = value.trim();
+        if (descriptor.pattern && !new RegExp(descriptor.pattern).test(normalized)) {
+          throw new Error(descriptor.patternMessage ?? `${field} is not in the expected form`);
+        }
         if (definition.slug === 'stripe' && (field.endsWith('SecretKey') || field === 'secretKey')) {
           if (!/^(sk|rk)_(test|live)_/.test(normalized)) throw new Error('Stripe secret key must start with sk_test_, sk_live_, rk_test_, or rk_live_');
         }
@@ -338,6 +361,10 @@ async function saveInstance(
         secrets[field] = await encrypt(env, normalized);
       }
       continue;
+    }
+    // A field that declares a form is refused when the administrator's value is not in it.
+    if (typeof value === 'string' && value && descriptor.pattern && !new RegExp(descriptor.pattern).test(value)) {
+      throw new Error(descriptor.patternMessage ?? `${field} is not in the expected form`);
     }
     if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' || value === null) config[field] = value;
   }
@@ -353,6 +380,7 @@ async function saveInstance(
     if (missing.length > 0) throw new Error(`Required plugin configuration is missing: ${missing.join(', ')}`);
   }
   validateConfig(definition.slug, config, secrets);
+  nativeModuleSettings(definition.slug)?.validate?.(config);
   await env.DB.prepare(
     `INSERT INTO native_plugin_instances
       (id, plugin_slug, instance_key, enabled, config_json, encrypted_secrets_json, created_at, updated_at)
@@ -427,7 +455,7 @@ export async function getNativePluginConfig(
   env: PluginSettingsEnv,
   slug: string,
 ): Promise<{ enabled: boolean; config: Record<string, unknown> } | null> {
-  const definition = definitions[slug];
+  const definition = definitionFor(slug);
   if (!definition) return null;
   const row = await findInstance(env, slug);
   if (!row) return { enabled: false, config: {} };
@@ -498,10 +526,11 @@ export async function tryNativePluginSettings(request: Request, env: PluginSetti
     if (!adminHasPermission(catalogAccess, ADMIN_PERMISSIONS.PLUGINS_READ)) {
       return response({ code: 'FORBIDDEN', message: 'Permission required: plugins.read' }, 403);
     }
-    const knownSlugs = new Set(Object.keys(definitions));
+    const listed = [...Object.values(definitions), ...nativeModulesWithSettings().map((module) => moduleDefinition(module.id)!)];
+    const knownSlugs = new Set(listed.map((definition) => definition.slug));
     const items: Array<(typeof definitions)[string] & {
       runtimeType: string; source: string; deletedAt: null; enabled: boolean; manifestJson: string;
-    }> = await Promise.all(Object.values(definitions).map(async (definition) => {
+    }> = await Promise.all(listed.map(async (definition) => {
       const instance = await findInstance(env, definition.slug);
       return {
         ...definition,
@@ -553,7 +582,7 @@ export async function tryNativePluginSettings(request: Request, env: PluginSetti
   if (!adminHasPermission(pluginAccess, pluginPermission)) {
     return response({ code: 'FORBIDDEN', message: `Permission required: ${request.method === 'GET' ? 'plugins.read' : 'plugins.write'}` }, 403);
   }
-  const definition = definitions[slug];
+  const definition = definitionFor(slug);
   if (!definition) {
     // Slugs outside the native registry (e.g. gateway-only plugins such as
     // remoteradar-jobs) must answer fast with structured envelopes. Falling

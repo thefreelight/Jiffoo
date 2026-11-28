@@ -1,4 +1,6 @@
+import type { NativePaymentMethod, NativePluginModulePayments } from './payments';
 import { NATIVE_PLUGIN_MODULES } from './registry';
+import type { NativePluginModuleSettings } from './settings';
 
 /**
  * The composition points of native plugin modules: the places where the core hands work to the
@@ -33,6 +35,15 @@ export interface NativePluginModule {
   onStoreEvent?(env: NativePluginModuleEnv, event: NativeStoreEvent): Promise<unknown>;
   /** The module's share of the core's scheduled run. */
   runScheduledWork?(env: NativePluginModuleEnv): Promise<unknown>;
+  /** The module's settings form for the Admin. A module without settings leaves it out. */
+  settings?: NativePluginModuleSettings;
+  /**
+   * The payment method the module adds to the storefront's list, or null while its settings do
+   * not make it usable. Asked only while the plugin is enabled, with its settings.
+   */
+  paymentMethod?(settings: Record<string, unknown>): Omit<NativePaymentMethod, 'name'> | null;
+  /** How the core takes, checks and returns payments through the module. */
+  payments?: NativePluginModulePayments;
 }
 
 type EventListener = NativePluginModule & {
@@ -42,6 +53,11 @@ type EventListener = NativePluginModule & {
 /** The slugs of the modules compiled into this worker; `/health` reports them. */
 export function compiledNativePluginModules(): string[] {
   return NATIVE_PLUGIN_MODULES.map((module) => module.id);
+}
+
+/** The module compiled in under this slug, if the build brought one. */
+export function nativePluginModuleById(id: unknown): NativePluginModule | undefined {
+  return typeof id === 'string' ? NATIVE_PLUGIN_MODULES.find((module) => module.id === id) : undefined;
 }
 
 export async function tryNativePluginModuleRoutes(

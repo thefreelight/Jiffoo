@@ -3,7 +3,7 @@
 A **native plugin module** is a plugin's own implementation compiled into a Cloudflare Native
 core worker. The open-source repository is the framework and compiles **none**: a build that
 wants modules in lists them in two small registry files before bundling. The core refers to the
-modules in five places and nowhere else.
+modules only in the places listed below.
 
 This page is for whoever prepares such a build.
 
@@ -73,6 +73,54 @@ the classes only it uses. After listing a page, check the compiled CSS for one o
 
 A build step that lists modules reads this after deploying: a module missing from the list was
 not compiled in, and a plugin the instance has enabled would silently do nothing.
+
+## A module that takes payments
+
+A plugin whose checkout runs on a page of the plugin's own (a payment gateway's cashier) adds three
+optional members. The core keeps everything around that page the same for every such module — the
+session, the return to the store, settling the order once, the refund bookkeeping — so the module
+only describes its own protocol.
+
+```ts
+interface NativePluginModule {
+  // …tryRoute, onStoreEvent, runScheduledWork as above
+  settings?: {                                   // the plugin's form in the Admin
+    name: string; version: string; description: string; category?: string;
+    fields: Array<{ key: string; type: 'string' | 'number' | 'boolean' | 'secret'; label: string;
+                    required?: boolean; description?: string; placeholder?: string;
+                    enum?: string[]; pattern?: string; patternMessage?: string }>;
+    validate?(config: Record<string, unknown>): void;
+  };
+  paymentMethod?(settings: Record<string, unknown>): {  // null while the plugin cannot be used
+    displayName: string; icon: string; supportedCurrencies: string[]; isLive: boolean; clientConfig: Record<string, unknown>;
+  } | null;
+  payments?: {
+    webhookAck?: 'json' | 'text';                 // 'text' answers a verified delivery with the bare body "success"
+    createCheckout(settings, charge: { orderId; amountMinor; currency; successUrl; cancelUrl; notifyUrl; buyerEmail; idempotencyKey }): Promise<{ providerSessionId: string | null; url: string; expiresAt: string | null }>;
+    lookup(settings, session: { orderId: string; providerSessionId: string | null }): Promise<{ status: 'succeeded' | 'failed' | 'pending'; paymentId: string | null } | null>;
+    readWebhook(settings, delivery: { rawBody: string; headers: Record<string, string> }): Promise<NativePaymentNotice>;   // throws when unverifiable
+    createRefund?(settings, { paymentId; amountMinor; currency; reason; reference }): Promise<{ outcome: 'succeeded' | 'failed' | 'pending'; providerRefundId: string | null }>;
+    refundOutcome?(settings, { reference; providerRefundId }): Promise<'succeeded' | 'failed' | 'pending' | null>;
+  };
+}
+```
+
+The full types are in `src/native-plugin-modules/payments.ts` and `…/settings.ts`. Where the core uses them:
+
+| Where | Behaviour |
+| --- | --- |
+| `GET /api/v1/payments/available-methods` | Lists the method of every module that is enabled and says it can be used, after the core's own methods. `name` is the plugin's slug. |
+| `POST /api/v1/payments/sessions` with that `paymentMethod` | Calls `createCheckout` and keeps the session by the order (`<slug>_<orderId>`); `notifyUrl` is this store's webhook route for the module, on the host the shopper's client called. |
+| `POST /api/v1/payments/webhook/<slug>` | Calls `readWebhook`. A delivery that throws is refused with 400 and nothing it says is trusted. A payment settles the order once; a refund completes the refund waiting for it. |
+| `GET /api/v1/payments/sessions/<id>` | While the session is still unpaid, asks `lookup` first, so a shopper who returns before the webhook is not told the order is unpaid. |
+| Admin refund | Asks `createRefund`; a refund the module takes but does not confirm is finished by its webhook or by the core's pending-refund timer through `refundOutcome`. A module without `createRefund` (money that cannot be sent back by itself) is refused with a message that says so. |
+| Admin plugin settings | `settings` is the plugin's form: listed with the other plugins, saved with `secret` fields encrypted, `required` and `pattern` enforced when the plugin is switched on, then `validate`. The core hands the module its settings with the secrets decrypted. |
+
+Before the module's page opens, the core checks `paymentMethod(settings)` and refuses with
+`PAYMENT_METHOD_NOT_AVAILABLE` when it is null — the same rule that keeps the method off the
+storefront list. `successUrl` must be an absolute https address (a page outside the store cannot
+use an app scheme) and may contain `{CHECKOUT_SESSION_ID}`, which the core replaces with the session
+it keeps.
 
 ## Installing
 

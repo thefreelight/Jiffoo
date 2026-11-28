@@ -5,6 +5,8 @@ import { getNativePluginConfig, getNativePluginSecret, getNativeStripeSecret } f
 import { stripeCustomerEmail } from './stripe-form';
 import { settleNativeWalletCheckout } from './native-wallet';
 import { allocateOrderNumber, type OrderNumberEnv } from './order-numbers';
+import { applyModuleRefundNotice } from './admin-writes';
+import { NativePaymentError, nativePaymentModule, type NativePaymentModule, type NativePaymentNotice } from './native-plugin-modules/payments';
 
 type CheckoutEnv = Pick<Cloudflare.Env,
   'DB' | 'JWT_SECRET' | 'STRIPE_SECRET_KEY' | 'STRIPE_WEBHOOK_SECRET' | 'NATIVE_CHECKOUT_ENABLED'> & OrderNumberEnv & {
@@ -69,6 +71,7 @@ interface PaymentSessionRow {
   expires_at: string;
   status: string;
   provider: string;
+  payment_intent_id?: string | null;
 }
 
 type ProductLoader = (productId: string) => Promise<ProductDetail | null>;
@@ -582,7 +585,13 @@ export async function releaseStaleInventoryReservations(
 
 async function createPaymentSession(request: Request, env: CheckoutEnv, user: NativeSessionUser): Promise<Response | null> {
   const body = await request.json<{ paymentMethod?: unknown; orderId?: unknown; successUrl?: unknown; cancelUrl?: unknown; idempotencyKey?: unknown }>().catch(() => null);
-  if (!body || body.paymentMethod !== 'stripe' || typeof body.orderId !== 'string') return null;
+  if (!body || typeof body.orderId !== 'string') return null;
+  // A payment method a compiled-in module takes is handled the way Stripe's is: the module opens its own page.
+  const module = nativePaymentModule(body.paymentMethod);
+  if (module) {
+    return createModulePaymentSession(request, env, user, module, { orderId: body.orderId, successUrl: body.successUrl, cancelUrl: body.cancelUrl, idempotencyKey: body.idempotencyKey });
+  }
+  if (body.paymentMethod !== 'stripe') return null;
   const row = await env.DB.prepare(
     `SELECT snapshots.payload, metadata.total_amount, metadata.currency, metadata.payment_status
      FROM native_order_snapshots snapshots JOIN native_order_metadata metadata ON metadata.order_id = snapshots.id
@@ -866,16 +875,280 @@ async function handleStripeWebhook(request: Request, env: CheckoutEnv): Promise<
   return success({ received: true, handled: true, applied: paid && Boolean(orderId), duplicate: false, normalizedStatus: paid ? 'succeeded' : 'ignored' });
 }
 
+// ── Payments through compiled-in plugin modules ─────────────────────────────
+// A module that takes payments opens its own checkout page. The core keeps the
+// session by the order — the module's own id only exists once that page is
+// open — and that key rides back on the return URL, so the payment-result page
+// can ask about the order. Everything around the page (settling the order once,
+// refunds and their bookkeeping) is the core's, the same for every module.
+
+type ModulePaymentSessionBody = { orderId: string; successUrl?: unknown; cancelUrl?: unknown; idempotencyKey?: unknown };
+
+/** The return address with the session placeholder filled in; null unless it is an absolute https address. */
+export function modulePaymentReturnUrl(raw: string, sessionId: string): string | null {
+  const filled = raw.replaceAll('{CHECKOUT_SESSION_ID}', sessionId).replaceAll('{SESSION_ID}', sessionId);
+  try {
+    return new URL(filled).protocol === 'https:' ? filled : null;
+  } catch {
+    return null;
+  }
+}
+
+function modulePaymentFailure(module: NativePaymentModule, error: unknown): Response {
+  const message = error instanceof Error ? error.message : String(error);
+  const code = error instanceof NativePaymentError ? error.code : 'GATEWAY_REJECTED';
+  console.error(JSON.stringify({ message: 'Payment module request failed', module: module.id, code, error: message }));
+  // The shopper's answer says only that the method cannot be used; the gateway's own words stay in the log.
+  if (code === 'CURRENCY_UNSUPPORTED') return failure(400, 'CURRENCY_NOT_SUPPORTED', 'This payment method cannot charge the order\'s currency');
+  if (code === 'INVALID_ORDER_TOTAL') return failure(409, 'INVALID_ORDER_TOTAL', 'Order total is not chargeable');
+  if (code === 'NOT_CONFIGURED') return failure(503, 'PAYMENT_METHOD_NOT_CONFIGURED', 'This payment method is not configured on this store');
+  return failure(502, 'PAYMENT_PLUGIN_FAILED', 'This payment method could not open its checkout page');
+}
+
+async function createModulePaymentSession(
+  request: Request,
+  env: CheckoutEnv,
+  user: NativeSessionUser,
+  module: NativePaymentModule,
+  body: ModulePaymentSessionBody,
+): Promise<Response> {
+  const row = await env.DB.prepare(
+    `SELECT snapshots.payload, metadata.total_amount, metadata.currency, metadata.payment_status
+     FROM native_order_snapshots snapshots JOIN native_order_metadata metadata ON metadata.order_id = snapshots.id
+     WHERE snapshots.id = ?1 AND snapshots.user_id = ?2`,
+  ).bind(body.orderId, user.id).first<OrderSnapshotRow>();
+  if (!row) return failure(404, 'NOT_FOUND', 'Order not found');
+  if (row.payment_status === 'PAID') return failure(409, 'ORDER_ALREADY_PAID', 'Order is already paid');
+  const plugin = await getNativePluginConfig(env, module.id);
+  // The shopper's answer says only that the method is off; which setting is
+  // missing is for the administrator's settings page, not the checkout.
+  if (!plugin?.enabled) return failure(503, 'PAYMENT_METHOD_NOT_AVAILABLE', 'This payment method is not available on this store');
+  // The storefront lists a method only while the module can use its settings; checkout refuses it the same way.
+  if (module.paymentMethod && !(await module.paymentMethod(plugin.config))) {
+    return failure(503, 'PAYMENT_METHOD_NOT_AVAILABLE', 'This payment method is not available on this store');
+  }
+  const sessionId = `${module.id}_${body.orderId}`;
+  const idempotencyKey = typeof body.idempotencyKey === 'string' && body.idempotencyKey.trim()
+    ? body.idempotencyKey.trim()
+    : `order:${body.orderId}:${module.id}`;
+  const existing = await env.DB.prepare(
+    'SELECT id, session_url, expires_at FROM native_payment_sessions WHERE idempotency_key = ?1',
+  ).bind(idempotencyKey).first<{ id: string; session_url: string; expires_at: string }>();
+  // A page that has not run out is handed back, so a checkout that was
+  // abandoned and reopened continues the same payment.
+  if (existing && Date.parse(existing.expires_at) > Date.now()) {
+    return success({ sessionId: existing.id, url: existing.session_url, expiresAt: existing.expires_at });
+  }
+  const order = JSON.parse(row.payload) as Record<string, unknown>;
+  const amountMinor = Math.round(Number(row.total_amount) * 100);
+  if (!Number.isFinite(amountMinor) || amountMinor <= 0) return failure(409, 'INVALID_ORDER_TOTAL', 'Order total is not chargeable');
+  const successUrl = modulePaymentReturnUrl(
+    typeof body.successUrl === 'string' ? body.successUrl : '',
+    sessionId,
+  );
+  // A module's page lives outside the store, so it needs a return address; the app scheme that closes the in-app browser is not one it can use.
+  if (!successUrl) return failure(400, 'VALIDATION_ERROR', 'successUrl must be an absolute https address');
+  const cancelUrl = typeof body.cancelUrl === 'string' && body.cancelUrl.trim() ? body.cancelUrl.trim() : `${storefrontOrigin(request)}/checkout`;
+  let checkout;
+  try {
+    checkout = await module.payments.createCheckout(plugin.config, {
+      orderId: body.orderId,
+      amountMinor,
+      currency: String(row.currency ?? order.currency ?? 'USD').toUpperCase(),
+      successUrl,
+      cancelUrl,
+      // This store's own route for the module's deliveries, on the host the shopper's client called.
+      notifyUrl: `${new URL(request.url).origin}/api/v1/payments/webhook/${module.id}`,
+      buyerEmail: user.email?.trim()
+        ? user.email
+        : typeof order.customerEmail === 'string' && order.customerEmail.trim() ? order.customerEmail : null,
+      // A page that ran out needs a new one; the same key would only return the old one.
+      idempotencyKey: existing ? `${idempotencyKey}:${Date.now()}` : idempotencyKey,
+    });
+  } catch (error) {
+    return modulePaymentFailure(module, error);
+  }
+  const now = new Date().toISOString();
+  const expiresAt = checkout.expiresAt ?? new Date(Date.now() + 86400 * 1000).toISOString();
+  await env.DB.batch([
+    ...(existing ? [env.DB.prepare('DELETE FROM native_payment_sessions WHERE id = ?1').bind(existing.id)] : []),
+    env.DB.prepare(
+      `INSERT INTO native_payment_sessions
+       (id, order_id, user_id, provider, idempotency_key, session_url, payment_intent_id, status, expires_at, created_at, updated_at)
+       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 'PENDING', ?8, ?9, ?9)`,
+    ).bind(sessionId, body.orderId, user.id, module.id, idempotencyKey, checkout.url, checkout.providerSessionId, expiresAt, now),
+  ]);
+  return success({ sessionId, url: checkout.url, expiresAt }, 201);
+}
+
+export type ModulePaymentSettlement = {
+  provider: string;
+  orderId: string;
+  paymentId: string | null;
+  amountMinor: number | null;
+  currency: string | null;
+};
+
+/**
+ * Marks an order paid through a module. The order settles once: the event row
+ * is claimed in the same batch as everything it triggers, so a delivery and a
+ * lookup that agree, or two deliveries of one event, change nothing the second
+ * time.
+ */
+export async function settleModulePayment(
+  env: Pick<CheckoutEnv, 'DB'>,
+  payment: ModulePaymentSettlement,
+): Promise<'settled' | 'duplicate' | 'unknown-order' | 'amount-mismatch'> {
+  const row = await env.DB.prepare(
+    `SELECT snapshots.payload, snapshots.user_id, metadata.total_amount, metadata.currency, metadata.payment_status
+     FROM native_order_snapshots snapshots JOIN native_order_metadata metadata ON metadata.order_id = snapshots.id
+     WHERE snapshots.id = ?1`,
+  ).bind(payment.orderId).first<{ payload: string; user_id: string; total_amount: number; currency: string; payment_status: string }>();
+  if (!row) return 'unknown-order';
+  if (row.payment_status === 'PAID') return 'duplicate';
+  // Anti-underpayment guard. It applies only to an amount the module reports in
+  // the order's own currency: a shopper who paid in their local currency was
+  // charged a converted amount this store has no rate to check against.
+  const expectedMinor = Math.round(Number(row.total_amount) * 100);
+  const sameCurrency = payment.currency === null || payment.currency.toUpperCase() === String(row.currency).toUpperCase();
+  if (payment.amountMinor !== null && sameCurrency && Math.abs(payment.amountMinor - expectedMinor) > 0) {
+    console.error(JSON.stringify({
+      message: 'Module payment differs from the order total',
+      provider: payment.provider, orderId: payment.orderId, chargedMinor: payment.amountMinor, expectedMinor,
+    }));
+    return 'amount-mismatch';
+  }
+  const order = JSON.parse(row.payload) as Record<string, unknown>;
+  const now = new Date().toISOString();
+  Object.assign(order, { status: 'PAID', paymentStatus: 'PAID', updatedAt: now });
+  const sessionId = `${payment.provider}_${payment.orderId}`;
+  try {
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO native_payment_events (provider_event_id, provider, event_type, received_at)
+         VALUES (?1, ?2, 'payment.succeeded', ?3)`,
+      ).bind(`${payment.provider}:paid:${payment.orderId}`, payment.provider, now),
+      // The module's payment id is what a refund is asked against.
+      env.DB.prepare(
+        "UPDATE native_payment_sessions SET status = 'SUCCEEDED', payment_intent_id = COALESCE(?1, payment_intent_id), updated_at = ?2 WHERE order_id = ?3 AND provider = ?4",
+      ).bind(payment.paymentId, now, payment.orderId, payment.provider),
+      env.DB.prepare("UPDATE native_order_metadata SET payment_status = 'PAID' WHERE order_id = ?1").bind(payment.orderId),
+      env.DB.prepare("UPDATE native_order_snapshots SET status = 'PAID', payload = ?1, source_updated_at = ?2 WHERE id = ?3")
+        .bind(JSON.stringify(order), now, payment.orderId),
+      env.DB.prepare(
+        `INSERT INTO native_checkout_outbox (id, event_type, aggregate_id, payload, created_at)
+         VALUES (?1, 'payment.succeeded', ?2, ?3, ?4)`,
+      ).bind(crypto.randomUUID(), payment.orderId, JSON.stringify({ orderId: payment.orderId, sessionId, provider: payment.provider, paymentId: payment.paymentId }), now),
+      // The buyer's pull channel in the apps (no APNs); the event claim above is what keeps it to one.
+      env.DB.prepare(
+        `INSERT INTO native_bokmoo_notifications (id, user_id, type, title, body, metadata_json, created_at)
+         VALUES (?1, ?2, 'order', ?3, ?4, ?5, ?6)`,
+      ).bind(
+        crypto.randomUUID(),
+        row.user_id,
+        'Payment confirmed',
+        `Order ${payment.orderId} has been paid. We are preparing it for delivery.`,
+        JSON.stringify({ orderId: payment.orderId, sessionId, provider: payment.provider }),
+        now,
+      ),
+    ]);
+  } catch (error) {
+    // Only the event claim can conflict, and it conflicts for a payment that was already settled.
+    if (error instanceof Error && /UNIQUE constraint failed: .*native_payment_events/.test(error.message)) return 'duplicate';
+    throw error;
+  }
+  return 'settled';
+}
+
+type ModulePaymentResult = { received: true; handled: boolean; applied: boolean; duplicate: boolean; normalizedStatus: string };
+
+/** Answers a delivery the way the module's gateway reads an answer. */
+function modulePaymentAck(module: NativePaymentModule, accepted: boolean, result?: ModulePaymentResult): Response {
+  // Some gateways take anything but the bare word as a failed delivery and would send it again.
+  if (module.payments.webhookAck === 'text') return new Response(accepted ? 'success' : 'fail', { status: accepted ? 200 : 400 });
+  return accepted ? success(result) : failure(400, 'INVALID_WEBHOOK_SIGNATURE', 'Webhook could not be verified');
+}
+
+async function handleModulePaymentWebhook(request: Request, env: CheckoutEnv, module: NativePaymentModule): Promise<Response> {
+  const plugin = await getNativePluginConfig(env, module.id);
+  const rawBody = await request.text();
+  let notice: NativePaymentNotice;
+  try {
+    notice = await module.payments.readWebhook(plugin?.config ?? {}, {
+      rawBody,
+      headers: Object.fromEntries(request.headers.entries()),
+    });
+  } catch (error) {
+    // Fail closed: without a verification key nothing a delivery says is trusted either.
+    console.error(JSON.stringify({ message: 'Payment module webhook refused', module: module.id, error: error instanceof Error ? error.message : String(error) }));
+    return modulePaymentAck(module, false);
+  }
+  const provider = module.id;
+  const received = (result: Omit<ModulePaymentResult, 'received'>): Response => modulePaymentAck(module, true, { received: true, ...result });
+  if (notice.kind === 'ignored') return received({ handled: false, applied: false, duplicate: false, normalizedStatus: 'ignored' });
+  if (notice.kind === 'refund') {
+    const outcome = await applyModuleRefundNotice(env, notice);
+    return received({ handled: outcome !== 'unknown', applied: outcome === 'completed', duplicate: false, normalizedStatus: outcome === 'failed' ? 'failed' : 'succeeded' });
+  }
+  // A payment that did not go through leaves the order as it is; the shopper may pay again.
+  if (notice.status !== 'succeeded') return received({ handled: false, applied: false, duplicate: false, normalizedStatus: 'failed' });
+  let orderId = notice.orderId;
+  if (!orderId && notice.providerSessionId) {
+    // The module's own session id is the second way to the order.
+    const session = await env.DB.prepare('SELECT order_id FROM native_payment_sessions WHERE payment_intent_id = ?1 AND provider = ?2')
+      .bind(notice.providerSessionId, provider).first<{ order_id: string }>();
+    orderId = session?.order_id ?? '';
+  }
+  if (!orderId) return received({ handled: false, applied: false, duplicate: false, normalizedStatus: 'ignored' });
+  const outcome = await settleModulePayment(env, {
+    provider, orderId, paymentId: notice.paymentId, amountMinor: notice.amountMinor, currency: notice.currency,
+  });
+  return received({
+    handled: outcome === 'settled' || outcome === 'duplicate',
+    applied: outcome === 'settled',
+    duplicate: outcome === 'duplicate',
+    normalizedStatus: outcome === 'amount-mismatch' || outcome === 'unknown-order' ? 'ignored' : 'succeeded',
+  });
+}
+
 async function verifyPaymentSession(env: CheckoutEnv, user: NativeSessionUser, sessionId: string): Promise<Response | null> {
   const payment = await env.DB.prepare('SELECT * FROM native_payment_sessions WHERE id = ?1 AND user_id = ?2')
     .bind(sessionId, user.id).first<PaymentSessionRow>();
   if (!payment) return null;
+  let status = payment.status;
+  // A session a compiled-in module opened reports nothing back, and its webhook can trail the
+  // shopper: ask the module before answering that the order is still unpaid.
+  const module = nativePaymentModule(payment.provider);
+  if (module && status === 'PENDING') status = await refreshModulePaymentSession(env, module, payment);
   return success({
     sessionId,
     orderId: payment.order_id,
-    status: payment.status === 'SUCCEEDED' ? 'paid' : payment.status.toLowerCase(),
+    status: status === 'SUCCEEDED' ? 'paid' : status.toLowerCase(),
     paymentMethod: payment.provider,
   });
+}
+
+/** Asks the module about a session this store still shows as unpaid; the session's status afterwards. */
+async function refreshModulePaymentSession(env: CheckoutEnv, module: NativePaymentModule, payment: PaymentSessionRow): Promise<string> {
+  try {
+    const plugin = await getNativePluginConfig(env, module.id);
+    if (!plugin?.enabled) return payment.status;
+    const fact = await module.payments.lookup(plugin.config, {
+      orderId: payment.order_id,
+      providerSessionId: payment.payment_intent_id ?? null,
+    });
+    if (fact?.status === 'succeeded') {
+      await settleModulePayment(env, {
+        provider: module.id, orderId: payment.order_id, paymentId: fact.paymentId, amountMinor: null, currency: null,
+      });
+    }
+  } catch (error) {
+    // The lookup only saves the shopper a moment; the webhook is what settles the order for good.
+    console.warn(JSON.stringify({ message: 'Payment module lookup failed', module: module.id, orderId: payment.order_id, error: error instanceof Error ? error.message : String(error) }));
+  }
+  const current = await env.DB.prepare('SELECT status FROM native_payment_sessions WHERE id = ?1')
+    .bind(payment.id).first<{ status: string }>();
+  return current?.status ?? payment.status;
 }
 
 // ── chfastpay easy-pay channel (aggregated Alipay/WeChat for mainland
@@ -1085,6 +1358,9 @@ export async function tryNativeCheckout(
   if (url.pathname === '/api/v1/payments/webhook/epay' && (request.method === 'GET' || request.method === 'POST')) {
     return handleEpayNotify(request, env);
   }
+  const moduleWebhook = url.pathname.match(/^\/api\/v1\/payments\/webhook\/([a-z0-9][a-z0-9-]{0,63})$/);
+  const module = moduleWebhook ? nativePaymentModule(moduleWebhook[1]) : null;
+  if (module && request.method === 'POST') return handleModulePaymentWebhook(request, env, module);
   if (url.pathname === '/api/v1/payments/epay/session' && request.method === 'POST') {
     if (String(env.NATIVE_CHECKOUT_ENABLED) !== 'true') return null;
     const user = await authenticateNativeUser(request, env);

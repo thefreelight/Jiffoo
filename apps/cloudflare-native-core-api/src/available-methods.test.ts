@@ -1,4 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+// The methods list reads each payment module's settings, which pulls in the mail transport's Workers-only socket module.
+vi.mock('cloudflare:sockets', () => ({ connect: vi.fn() }));
+
 import { stripeBindingMethod, stripeMethod, tryNativeAvailableMethods } from './available-methods';
 
 function env(rows: Record<string, unknown>, bindings?: { secretKey?: string; webhookSecret?: string }) {
