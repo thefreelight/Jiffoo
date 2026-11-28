@@ -38,6 +38,7 @@ import { useDemoInstance } from '@/hooks/use-demo-instance'
 import { listFigure, sampleChange } from '@/lib/list-figures'
 import { SampleDataNotice } from '@/components/list/sample-data-notice'
 import { ProductThumb } from '@/components/list/product-thumb'
+import { getProductImage } from '@/lib/product-image'
 import { PageHero, MiniStatCard, TablePagination, SortableTh } from '@/components/list/list-kit'
 import { ProductArt, type ProductIconKind } from '@/components/dashboard/overview/product-art'
 import { useProducts, useDeleteProduct, useProductStats, type Product as ApiProduct } from '@/lib/hooks/use-api'
@@ -135,15 +136,6 @@ export default function ProductsPage() {
         console.error('Failed to delete product:', error)
       }
     }
-  }
-
-  const getProductImage = (product: ApiProduct) => {
-    const firstImage = Array.isArray(product.images) ? (product.images[0] as string | { url?: string } | null) : null
-    if (typeof firstImage === 'string' && firstImage.trim()) return firstImage
-    if (firstImage && typeof firstImage === 'object' && 'url' in firstImage && typeof firstImage.url === 'string') {
-      return firstImage.url
-    }
-    return null
   }
 
   const demoArt = (index: number) => DEMO_ROWS[index % DEMO_ROWS.length]

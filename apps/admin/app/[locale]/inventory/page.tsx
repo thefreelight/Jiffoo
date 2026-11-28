@@ -27,9 +27,10 @@ import { useDemoInstance } from '@/hooks/use-demo-instance'
 import { listFigure } from '@/lib/list-figures'
 import { SampleDataNotice } from '@/components/list/sample-data-notice'
 import { ProductThumb } from '@/components/list/product-thumb'
+import { getProductImage } from '@/lib/product-image'
 import { PageHero, MiniStatCard, TablePagination, SortableTh } from '@/components/list/list-kit'
 import { ProductArt, type ProductIconKind } from '@/components/dashboard/overview/product-art'
-import { useProducts, useProductStats, useInventoryDashboard, type Product as ApiProduct } from '@/lib/hooks/use-api'
+import { useProducts, useProductStats, useInventoryDashboard, useInventoryStats, type Product as ApiProduct } from '@/lib/hooks/use-api'
 import { formatCurrency, cn } from '@/lib/utils'
 
 interface DemoRow {
@@ -81,10 +82,13 @@ export default function InventoryPage() {
   })
   const { data: productStats } = useProductStats()
   const { data: inventoryDashboard } = useInventoryDashboard({ status: 'ACTIVE' })
+  const { data: inventoryStats } = useInventoryStats()
+  const stock = inventoryStats?.stock
 
   const products: ApiProduct[] = productsData?.data || []
   const pagination = productsData?.pagination
-  const alertCount = (inventoryDashboard as { items?: unknown[] } | undefined)?.items?.length
+  // The core's count where it reports one; elsewhere the dashboard's list of active alerts.
+  const alertCount = stock ? stock.lowStockProducts + stock.outOfStockProducts : inventoryDashboard?.alerts?.items?.length
 
   // Sample rows fill the list on the demonstration instance only; a real store with no products sees an empty state.
   const demoInstance = useDemoInstance()
@@ -97,13 +101,15 @@ export default function InventoryPage() {
     return stockFilter === state
   })
 
-  // Units and value are totals over the whole catalog, so they are only exact
-  // while the whole catalog is on this page; otherwise they are not shown.
+  // Units and value are totals over the whole catalog. A core that reports them (Cloudflare Native)
+  // is believed; elsewhere they are only exact while the whole catalog is on this page, and are not shown otherwise.
   const wholeCatalogLoaded = !searchTerm && products.length > 0 && (pagination?.total ?? products.length) <= products.length
-  const totalUnits = wholeCatalogLoaded ? products.reduce((sum, product) => sum + (product.stock ?? 0), 0) : undefined
-  const stockValue = wholeCatalogLoaded
+  const pageUnits = wholeCatalogLoaded ? products.reduce((sum, product) => sum + (product.stock ?? 0), 0) : undefined
+  const pageValue = wholeCatalogLoaded
     ? Math.round(products.reduce((sum, product) => sum + (product.stock ?? 0) * (product.price ?? 0), 0) * 100) / 100
     : undefined
+  const totalUnits = stock?.units ?? pageUnits
+  const stockValue = stock?.value ?? pageValue
 
   const exportCsv = () => {
     // Samples are there to be looked at, not exported.
@@ -243,6 +249,7 @@ export default function InventoryPage() {
                   const demo = usingDemoRows ? DEMO_ROWS[index % DEMO_ROWS.length] : undefined
                   const name = product.name || demo?.name || product.id || '--'
                   const stock = product.stock ?? demo?.stock ?? 0
+                  const imageUrl = getProductImage(product)
                   const state = stockState(stock)
                   const stateMeta = {
                     normal: { label: getText('merchant.pages.stockNormal', '正常'), dot: 'bg-emerald-500', text: 'text-slate-600' },
@@ -256,7 +263,9 @@ export default function InventoryPage() {
                       </td>
                       <td className="px-3 py-3">
                         <div className="flex items-center gap-3">
-                          {demo ? (
+                          {imageUrl ? (
+                            <img src={imageUrl} alt={name} className="h-10 w-10 shrink-0 rounded-lg object-cover" />
+                          ) : demo ? (
                             <ProductArt icon={demo.categoryIcon} art={demo.art} className="h-10 w-10 shrink-0" />
                           ) : (
                             <ProductThumb name={name} className="h-10 w-10" />
