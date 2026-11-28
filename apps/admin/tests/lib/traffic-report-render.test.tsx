@@ -66,6 +66,7 @@ const report: TrafficReport = {
   daily: Array.from({ length: 7 }, (_, index) => ({ day: `2026-11-${22 + index}`, visitors: 17, visits: 21, views: 61 })),
   channels: [
     { channel: 'paid', ...figures(4, 9, 1, 80) },
+  { channel: 'affiliate', ...figures(3, 6, 1, 70) },
     { channel: 'ai', ...figures(9, 31, 2, 210) },
     { channel: 'search', ...figures(61, 190, 26, 120) },
     { channel: 'social', ...figures(12, 20, 8, 40) },
@@ -115,9 +116,9 @@ const expectEach = (text: string, expected: string[]) => {
 // search-or-AI card above the table uses some of the same labels, so the
 // order is read inside the table alone.
 const channelNames: Record<Locale, Record<TrafficChannel, string>> = {
-  en: { paid: 'Paid', ai: 'AI assistants', search: 'Organic search', social: 'Social', email: 'E-mail', campaign: 'Tagged campaigns', referral: 'Referrals', direct: 'Direct' },
-  'zh-Hans': { paid: '付费推广', ai: 'AI 助手', search: '自然搜索', social: '社交', email: '邮件', campaign: '标记活动', referral: '引荐链接', direct: '直接访问' },
-  'zh-Hant': { paid: '付費推廣', ai: 'AI 助手', search: '自然搜尋', social: '社交', email: '郵件', campaign: '標記活動', referral: '引薦連結', direct: '直接訪問' },
+  en: { paid: 'Paid', affiliate: 'Affiliate links', ai: 'AI assistants', search: 'Organic search', social: 'Social', email: 'E-mail', campaign: 'Tagged campaigns', referral: 'Referrals', direct: 'Direct' },
+  'zh-Hans': { paid: '付费推广', affiliate: '联盟推广', ai: 'AI 助手', search: '自然搜索', social: '社交', email: '邮件', campaign: '标记活动', referral: '引荐链接', direct: '直接访问' },
+  'zh-Hant': { paid: '付費推廣', affiliate: '聯盟推廣', ai: 'AI 助手', search: '自然搜尋', social: '社交', email: '郵件', campaign: '標記活動', referral: '引薦連結', direct: '直接訪問' },
 };
 
 function expectChannelsInCoreOrder(text: string, locale: Locale, header: string, next: string) {

@@ -227,6 +227,8 @@ interface GroupRow {
   utmMedium: string | null;
   utmCampaign: string | null;
   clickIds: string | null;
+  /** Named in the grouping because the storefront's own referral link is told by it. */
+  landingPath?: string | null;
   visitors: bigint | number | null;
   visits: bigint | number | null;
   views: bigint | number | null;
@@ -338,6 +340,7 @@ function channelOf(row: GroupRow, rules: TrafficChannelRules): TrafficChannel {
     utmMedium: row.utmMedium,
     utmCampaign: row.utmCampaign,
     clickIds: row.clickIds ? row.clickIds.split(',') : [],
+    landingPath: row.landingPath ?? null,
   }, rules);
 }
 
@@ -366,9 +369,9 @@ export async function trafficReport(query: ReportQuery): Promise<TrafficReport> 
     prisma.$queryRaw<GroupRow[]>(Prisma.sql`
       SELECT ${AGGREGATE} FROM "traffic_sessions" WHERE ${where}`),
     prisma.$queryRaw<GroupRow[]>(Prisma.sql`
-      SELECT "referrerHost", "utmSource", "utmMedium", "utmCampaign", "clickIds", ${AGGREGATE}
+      SELECT "referrerHost", "utmSource", "utmMedium", "utmCampaign", "clickIds", "landingPath", ${AGGREGATE}
       FROM "traffic_sessions" WHERE ${where}
-      GROUP BY "referrerHost", "utmSource", "utmMedium", "utmCampaign", "clickIds"`),
+      GROUP BY "referrerHost", "utmSource", "utmMedium", "utmCampaign", "clickIds", "landingPath"`),
     // A day index counts local midnights, so the zone offset is added before dividing.
     prisma.$queryRaw<DailyRow[]>(Prisma.sql`
       SELECT FLOOR(("startedAt" + ${BigInt(query.tz * 60_000)}) / 86400000)::BIGINT AS "dayIndex", ${AGGREGATE}
@@ -433,9 +436,9 @@ export async function trafficBreakdown(query: ReportQuery, dimension: TrafficDim
   const where = sessionWhere(query);
   const stored = await loadTrafficRules();
   const groups = await prisma.$queryRaw<GroupRow[]>(Prisma.sql`
-    SELECT ${column} AS "value", "referrerHost", "utmSource", "utmMedium", "utmCampaign", "clickIds", ${AGGREGATE}
+    SELECT ${column} AS "value", "referrerHost", "utmSource", "utmMedium", "utmCampaign", "clickIds", "landingPath", ${AGGREGATE}
     FROM "traffic_sessions" WHERE ${where} AND ${column} IS NOT NULL
-    GROUP BY ${column}, "referrerHost", "utmSource", "utmMedium", "utmCampaign", "clickIds"`);
+    GROUP BY ${column}, "referrerHost", "utmSource", "utmMedium", "utmCampaign", "clickIds", "landingPath"`);
 
   // Visits are grouped by channel first, so a channel filter is exact and
   // each row can say which channel it came from.

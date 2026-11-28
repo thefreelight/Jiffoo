@@ -2991,6 +2991,7 @@ export const merchant = {
     visitsSeries: '访问次数',
     channels: '渠道',
     share: '占比',
+    channelAffiliate: '联盟推广',
     channelPaid: '付费推广',
     channelAi: 'AI 助手',
     channelSearch: '自然搜索',

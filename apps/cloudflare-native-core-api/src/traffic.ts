@@ -348,6 +348,8 @@ interface GroupRow {
   utm_medium: string | null;
   utm_campaign: string | null;
   click_ids: string | null;
+  /** Named in the grouping because the storefront's own referral link is told by it. */
+  landing_path?: string | null;
   visitors: number;
   visits: number;
   views: number;
@@ -425,6 +427,7 @@ function channelOf(row: GroupRow, rules: TrafficChannelRules): TrafficChannel {
     utmMedium: row.utm_medium,
     utmCampaign: row.utm_campaign,
     clickIds: row.click_ids ? row.click_ids.split(',') : [],
+    landingPath: row.landing_path ?? null,
   }, rules);
 }
 
@@ -462,9 +465,9 @@ async function report(env: TrafficEnv, query: TrafficReportQuery): Promise<Respo
   const [summaryRow, channelGroups, dailyGroups] = await Promise.all([
     env.DB.prepare(`SELECT ${AGGREGATE} FROM native_traffic_sessions WHERE ${where.sql}`)
       .bind(...where.args).first<GroupRow>(),
-    env.DB.prepare(`SELECT referrer_host, utm_source, utm_medium, utm_campaign, click_ids, ${AGGREGATE}
+    env.DB.prepare(`SELECT referrer_host, utm_source, utm_medium, utm_campaign, click_ids, landing_path, ${AGGREGATE}
       FROM native_traffic_sessions WHERE ${where.sql}
-      GROUP BY referrer_host, utm_source, utm_medium, utm_campaign, click_ids`)
+      GROUP BY referrer_host, utm_source, utm_medium, utm_campaign, click_ids, landing_path`)
       .bind(...where.args).all<GroupRow>(),
     env.DB.prepare(`SELECT CAST((started_at + CAST(?${zoneParameter} AS INTEGER)) / 86400000 AS INTEGER) AS day_index, ${AGGREGATE}
       FROM native_traffic_sessions WHERE ${where.sql} GROUP BY day_index`)
@@ -537,9 +540,9 @@ async function breakdown(env: TrafficEnv, query: TrafficReportQuery, dimension: 
   const where = sessionWhere(query);
   const stored = await loadRules(env);
   const groups = await env.DB.prepare(
-    `SELECT ${column} AS value, referrer_host, utm_source, utm_medium, utm_campaign, click_ids, ${AGGREGATE}
+    `SELECT ${column} AS value, referrer_host, utm_source, utm_medium, utm_campaign, click_ids, landing_path, ${AGGREGATE}
      FROM native_traffic_sessions WHERE ${where.sql} AND ${column} IS NOT NULL
-     GROUP BY ${column}, referrer_host, utm_source, utm_medium, utm_campaign, click_ids`,
+     GROUP BY ${column}, referrer_host, utm_source, utm_medium, utm_campaign, click_ids, landing_path`,
   ).bind(...where.args).all<GroupRow>();
 
   // Visits are grouped by channel first, so a channel filter is exact and

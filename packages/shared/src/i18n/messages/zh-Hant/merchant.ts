@@ -1628,6 +1628,7 @@ export const merchant = {
     visitsSeries: '訪問次數',
     channels: '渠道',
     share: '佔比',
+    channelAffiliate: '聯盟推廣',
     channelPaid: '付費推廣',
     channelAi: 'AI 助手',
     channelSearch: '自然搜尋',

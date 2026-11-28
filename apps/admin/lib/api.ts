@@ -1834,7 +1834,7 @@ export const gameStatsApi = {
 // Traffic Analytics (core collection): where storefront visits come from. A
 // visit opens on the first page view and ends after 30 quiet minutes; its
 // channel is decided at read time from the referrer host, UTM tags and click ids.
-export const TRAFFIC_CHANNELS = ['paid', 'ai', 'search', 'social', 'email', 'campaign', 'referral', 'direct'] as const;
+export const TRAFFIC_CHANNELS = ['paid', 'affiliate', 'ai', 'search', 'social', 'email', 'campaign', 'referral', 'direct'] as const;
 export type TrafficChannel = (typeof TRAFFIC_CHANNELS)[number];
 export type TrafficDimension = 'source' | 'medium' | 'campaign' | 'referrer' | 'landing' | 'country' | 'device' | 'host' | 'page';
 export type TrafficRangeDays = 7 | 30 | 90;

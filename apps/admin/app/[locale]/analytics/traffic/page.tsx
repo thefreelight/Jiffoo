@@ -52,6 +52,7 @@ const DEVICE_LINES: Array<DictionaryLine & { value: string }> = [
 
 const CHANNEL_COLORS: Record<TrafficChannel, string> = {
   paid: '#f97316',
+  affiliate: '#0d9488',
   ai: '#8b5cf6',
   search: '#3b82f6',
   social: '#ec4899',
@@ -64,6 +65,7 @@ const CHANNEL_COLORS: Record<TrafficChannel, string> = {
 // In the order the core names them.
 const CHANNEL_LINES: Array<DictionaryLine & { channel: TrafficChannel }> = [
   { channel: 'paid', labelKey: 'merchant.traffic.channelPaid', label: 'Paid' },
+  { channel: 'affiliate', labelKey: 'merchant.traffic.channelAffiliate', label: 'Affiliate links' },
   { channel: 'ai', labelKey: 'merchant.traffic.channelAi', label: 'AI assistants' },
   { channel: 'search', labelKey: 'merchant.traffic.channelSearch', label: 'Organic search' },
   { channel: 'social', labelKey: 'merchant.traffic.channelSocial', label: 'Social' },
