@@ -236,7 +236,7 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
           {
             id: 'trafficAnalytics',
             nameKey: 'merchant.nav.trafficAnalytics',
-            fallback: '流量分析',
+            fallback: 'Traffic',
             href: '/analytics/traffic',
             icon: ChartColumn,
             requiredPermissions: [ADMIN_PERMISSIONS.DASHBOARD_READ],
