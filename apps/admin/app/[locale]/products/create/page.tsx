@@ -122,7 +122,7 @@ export default function CreateProductPage() {
       }
 
       await createProductMutation.mutateAsync(productData as any)
-      toast.success('Product created successfully')
+      toast.success(getText('merchant.productCreate.productCreatedSuccessfully', 'Product created successfully'))
       router.push('/products')
     } catch (error) {
       console.error('Failed to create product:', error)
@@ -132,18 +132,18 @@ export default function CreateProductPage() {
   return (
     <PageShell
       title={getText('products.create.title', 'Create New Product')}
-      description="Product Management"
+      description={getText('merchant.productCreate.productManagement', 'Product Management')}
       actions={
         <>
           <Button variant="outline" onClick={() => router.push('/products')} className="text-slate-500 border-slate-200 hover:bg-slate-50 text-sm font-semibold rounded-lg h-9 px-4">
-            Cancel
+            {getText('merchant.productCreate.cancel', 'Cancel')}
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={createProductMutation.isPending}
             className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-6 h-9 rounded-lg active:scale-95 transition-all"
           >
-            {createProductMutation.isPending ? 'Sending...' : 'Save Product'}
+            {createProductMutation.isPending ? getText('merchant.productCreate.sending', 'Sending...') : getText('merchant.productCreate.saveProduct', 'Save Product')}
           </Button>
         </>
       }
@@ -157,30 +157,30 @@ export default function CreateProductPage() {
           <div className="lg:col-span-2 space-y-8">
             <div className="bg-white rounded-3xl border border-gray-100 p-8 shadow-sm space-y-8">
               <div className="space-y-1">
-                <h2 className="text-lg font-bold text-gray-900">Basic Information</h2>
-                <p className="text-gray-400 text-xs">Primary details for the storefront</p>
+                <h2 className="text-lg font-bold text-gray-900">{getText('merchant.productCreate.basicInformation', 'Basic Information')}</h2>
+                <p className="text-gray-400 text-xs">{getText('merchant.productCreate.primaryDetailsForTheStorefront', 'Primary details for the storefront')}</p>
               </div>
 
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <Label className="text-xs font-bold text-gray-500 uppercase tracking-tighter">Product Name</Label>
+                  <Label className="text-xs font-bold text-gray-500 uppercase tracking-tighter">{getText('merchant.productCreate.productName', 'Product Name')}</Label>
                   <Input
                     value={formData.name}
                     onChange={(e) => handleInputChange('name', e.target.value)}
                     className="h-12 text-base font-medium border-gray-100 focus:border-blue-500 focus:ring-0 rounded-2xl bg-gray-50/50 px-6 transition-all"
-                    placeholder="Enter product title..."
+                    placeholder={getText('merchant.productCreate.enterProductTitle', 'Enter product title...')}
                   />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label className="text-xs font-bold text-gray-500 uppercase tracking-tighter">Category</Label>
+                    <Label className="text-xs font-bold text-gray-500 uppercase tracking-tighter">{getText('merchant.productCreate.category', 'Category')}</Label>
                     <Select value={formData.category} onValueChange={(v) => handleInputChange('category', v)}>
                       <SelectTrigger className="h-12 bg-gray-50/50 border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 flex items-center px-6 font-medium text-gray-900 transition-all">
-                        <SelectValue placeholder="Select Category" />
+                        <SelectValue placeholder={getText('merchant.productCreate.selectCategory', 'Select Category')} />
                       </SelectTrigger>
                       <SelectContent className="rounded-2xl border-gray-100 shadow-2xl p-2 bg-white">
-                        <SelectItem value="none" className="rounded-xl py-2.5 font-medium transition-colors">Unassigned</SelectItem>
+                        <SelectItem value="none" className="rounded-xl py-2.5 font-medium transition-colors">{getText('merchant.productCreate.unassigned', 'Unassigned')}</SelectItem>
                         {categories.map((c: any) => (
                           <SelectItem key={c.id} value={c.id} className="rounded-xl py-2.5 font-medium transition-colors">{c.name}</SelectItem>
                         ))}
@@ -188,10 +188,10 @@ export default function CreateProductPage() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-xs font-bold text-gray-500 uppercase tracking-tighter">Requires Shipping</Label>
+                    <Label className="text-xs font-bold text-gray-500 uppercase tracking-tighter">{getText('merchant.productCreate.requiresShipping', 'Requires Shipping')}</Label>
                     <div className="h-12 rounded-2xl bg-gray-50/50 border border-gray-100 px-4 flex items-center justify-between">
                       <span className="text-sm font-medium text-gray-700">
-                        {formData.requiresShipping ? 'Yes' : 'No'}
+                        {formData.requiresShipping ? getText('merchant.productCreate.yes', 'Yes') : 'No'}
                       </span>
                       <Switch
                         checked={formData.requiresShipping}
@@ -202,13 +202,13 @@ export default function CreateProductPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-xs font-bold text-gray-500 uppercase tracking-tighter">Description</Label>
+                  <Label className="text-xs font-bold text-gray-500 uppercase tracking-tighter">{getText('merchant.productCreate.description', 'Description')}</Label>
                   <Textarea
                     value={formData.description}
                     onChange={(e) => handleInputChange('description', e.target.value)}
                     rows={6}
                     className="border-gray-100 rounded-2xl p-6 leading-relaxed text-sm font-medium text-gray-700 bg-gray-50/50 resize-none focus:border-blue-500 focus:ring-0 transition-all"
-                    placeholder="Full product details..."
+                    placeholder={getText('merchant.productCreate.fullProductDetails', 'Full product details...')}
                   />
                 </div>
               </div>
@@ -216,8 +216,8 @@ export default function CreateProductPage() {
 
             <div className="bg-white rounded-3xl border border-gray-100 p-8 shadow-sm space-y-8">
               <div className="space-y-1">
-                <h2 className="text-lg font-bold text-gray-900">Inventory & Pricing</h2>
-                <p className="text-gray-400 text-xs">Configure variant specifications</p>
+                <h2 className="text-lg font-bold text-gray-900">{getText('merchant.productCreate.inventoryPricing', 'Inventory & Pricing')}</h2>
+                <p className="text-gray-400 text-xs">{getText('merchant.productCreate.configureVariantSpecifications', 'Configure variant specifications')}</p>
               </div>
 
               <VariantsEditor
@@ -231,8 +231,8 @@ export default function CreateProductPage() {
           <div className="space-y-8">
             <div className="bg-white rounded-3xl border border-gray-100 p-8 shadow-sm space-y-6">
               <div className="space-y-1">
-                <h2 className="text-lg font-bold text-gray-900">Product Media</h2>
-                <p className="text-gray-400 text-xs">Upload gallery images</p>
+                <h2 className="text-lg font-bold text-gray-900">{getText('merchant.productCreate.productMedia', 'Product Media')}</h2>
+                <p className="text-gray-400 text-xs">{getText('merchant.productCreate.uploadGalleryImages', 'Upload gallery images')}</p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -242,7 +242,7 @@ export default function CreateProductPage() {
                   ) : (
                     <div className="text-center">
                       <Plus className="w-8 h-8 text-gray-300 group-hover:text-blue-500 mx-auto" />
-                      <span className="text-[10px] font-bold text-gray-400 group-hover:text-blue-500 uppercase tracking-widest mt-2 block">Upload</span>
+                      <span className="text-[10px] font-bold text-gray-400 group-hover:text-blue-500 uppercase tracking-widest mt-2 block">{getText('merchant.productCreate.upload', 'Upload')}</span>
                     </div>
                   )}
                   <input type="file" accept="image/*" multiple className="hidden" onChange={handleImageUpload} disabled={isUploading} />
@@ -250,7 +250,7 @@ export default function CreateProductPage() {
 
                 {formData.images.map((img, idx) => (
                   <div key={idx} className="group relative aspect-square bg-gray-50 rounded-3xl overflow-hidden border border-gray-100">
-                    <Image src={img} alt="Asset" fill className="object-cover" />
+                    <Image src={img} alt={getText('merchant.productCreate.asset', 'Asset')} fill className="object-cover" />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                       <Button
                         variant="ghost"

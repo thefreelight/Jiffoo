@@ -23,6 +23,10 @@ import {
 } from '@/components/ui/select'
 import { useT } from 'shared/src/i18n/react'
 import { PageShell } from '@/components/layout/page-shell'
+import { useDemoInstance } from '@/hooks/use-demo-instance'
+import { listFigure } from '@/lib/list-figures'
+import { SampleDataNotice } from '@/components/list/sample-data-notice'
+import { ProductThumb } from '@/components/list/product-thumb'
 import { PageHero, MiniStatCard, TablePagination, SortableTh } from '@/components/list/list-kit'
 import { ProductArt, type ProductIconKind } from '@/components/dashboard/overview/product-art'
 import { useProducts, useProductStats, useInventoryDashboard, type Product as ApiProduct } from '@/lib/hooks/use-api'
@@ -82,8 +86,10 @@ export default function InventoryPage() {
   const pagination = productsData?.pagination
   const alertCount = (inventoryDashboard as { items?: unknown[] } | undefined)?.items?.length
 
-  const rows = products.length ? products : isLoading ? [] : (DEMO_ROWS as unknown as ApiProduct[])
-  const usingDemoRows = !products.length && !isLoading
+  // Sample rows fill the list on the demonstration instance only; a real store with no products sees an empty state.
+  const demoInstance = useDemoInstance()
+  const usingDemoRows = demoInstance && !products.length && !isLoading
+  const rows = products.length ? products : usingDemoRows ? (DEMO_ROWS as unknown as ApiProduct[]) : []
 
   const visibleRows = rows.filter((product) => {
     if (stockFilter === 'all') return true
@@ -91,14 +97,20 @@ export default function InventoryPage() {
     return stockFilter === state
   })
 
-  const totalUnits = usingDemoRows ? 12560 : undefined
-  const stockValue = usingDemoRows ? 86736 : undefined
+  // Units and value are totals over the whole catalog, so they are only exact
+  // while the whole catalog is on this page; otherwise they are not shown.
+  const wholeCatalogLoaded = !searchTerm && products.length > 0 && (pagination?.total ?? products.length) <= products.length
+  const totalUnits = wholeCatalogLoaded ? products.reduce((sum, product) => sum + (product.stock ?? 0), 0) : undefined
+  const stockValue = wholeCatalogLoaded
+    ? Math.round(products.reduce((sum, product) => sum + (product.stock ?? 0) * (product.price ?? 0), 0) * 100) / 100
+    : undefined
 
   const exportCsv = () => {
+    // Samples are there to be looked at, not exported.
+    if (usingDemoRows) return
     const header = ['SKU', 'Name', 'Stock', 'Threshold', 'Status']
-    const lines = visibleRows.map((product, index) => {
-      const demo = DEMO_ROWS[index % DEMO_ROWS.length]
-      const state = stockState(product.stock ?? demo.stock)
+    const lines = visibleRows.map((product) => {
+      const state = stockState(product.stock ?? 0)
       const statusLabel =
         state === 'normal'
           ? getText('merchant.pages.stockNormal', '正常')
@@ -106,10 +118,10 @@ export default function InventoryPage() {
             ? getText('merchant.pages.stockLow', '低库存')
             : getText('merchant.pages.stockOut', '缺货')
       return [
-        product.skuCode || demo.sku,
-        `"${(product.name || demo.name).replace(/"/g, '""')}"`,
-        String(product.stock ?? demo.stock),
-        String(demo.threshold),
+        product.skuCode || '--',
+        `"${(product.name || '--').replace(/"/g, '""')}"`,
+        String(product.stock ?? 0),
+        '--',
         statusLabel,
       ].join(',')
     })
@@ -130,36 +142,31 @@ export default function InventoryPage() {
           description={getText('merchant.pages.inventorySubtitle', '实时掌握库存动态，设置库存预警，避免缺货或积压。')}
           art="inventory"
         />
+        {usingDemoRows ? <SampleDataNotice /> : null}
 
         {/* Stat cards */}
         <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
           <MiniStatCard
             label={getText('merchant.pages.statTotalUnits', '总库存数量')}
-            value={(productStats?.metrics?.totalProducts ?? totalUnits ?? 12560).toLocaleString()}
-            change="12.5%"
-            changeType="increase"
+            value={listFigure(totalUnits, 12560, usingDemoRows)}
             icon={ShoppingBag}
             tone="blue"
           />
           <MiniStatCard
             label={getText('merchant.pages.statStockValue', '库存价值')}
-            value={formatCurrency(stockValue ?? 86736)}
-            change="8.3%"
-            changeType="increase"
+            value={usingDemoRows ? formatCurrency(86736) : stockValue !== undefined ? formatCurrency(stockValue) : '—'}
             icon={CircleDollarSign}
             tone="green"
           />
           <MiniStatCard
             label={getText('merchant.pages.statLowStock', '低库存商品')}
-            value={(productStats?.metrics?.lowStockProducts ?? 5).toLocaleString()}
-            change="16.7%"
-            changeType="decrease"
+            value={listFigure(productStats?.metrics?.lowStockProducts, 5, usingDemoRows)}
             icon={AlertTriangle}
             tone="orange"
           />
           <MiniStatCard
             label={getText('merchant.pages.statStockAlerts', '库存预警数')}
-            value={(alertCount ?? 3).toLocaleString()}
+            value={listFigure(alertCount, 3, usingDemoRows)}
             note={getText('merchant.pages.needAttention', '需要关注')}
             icon={PackageSearch}
             tone="purple"
@@ -218,7 +225,7 @@ export default function InventoryPage() {
               <thead>
                 <tr className="border-b border-[#f4f6fa]">
                   <th className="w-10 px-4 py-3">
-                    <input type="checkbox" className="h-4 w-4 rounded border-slate-300 accent-blue-600" aria-label="Select all" />
+                    <input type="checkbox" className="h-4 w-4 rounded border-slate-300 accent-blue-600" aria-label={getText('merchant.inventory.page.selectAll', 'Select all')} disabled={usingDemoRows} />
                   </th>
                   <SortableTh label={getText('merchant.pages.colProduct', '商品')} />
                   <SortableTh label={getText('merchant.pages.colSku', 'SKU')} />
@@ -232,9 +239,10 @@ export default function InventoryPage() {
               </thead>
               <tbody className="divide-y divide-[#f4f6fa]">
                 {visibleRows.map((product, index) => {
-                  const demo = DEMO_ROWS[index % DEMO_ROWS.length]
-                  const name = product.name || demo.name
-                  const stock = product.stock ?? demo.stock
+                  // A real product never borrows a sample value or a sample picture.
+                  const demo = usingDemoRows ? DEMO_ROWS[index % DEMO_ROWS.length] : undefined
+                  const name = product.name || demo?.name || product.id || '--'
+                  const stock = product.stock ?? demo?.stock ?? 0
                   const state = stockState(stock)
                   const stateMeta = {
                     normal: { label: getText('merchant.pages.stockNormal', '正常'), dot: 'bg-emerald-500', text: 'text-slate-600' },
@@ -244,19 +252,23 @@ export default function InventoryPage() {
                   return (
                     <tr key={product.id ?? `${name}-${index}`} className="transition-colors hover:bg-[#f8fafc]">
                       <td className="px-4 py-3">
-                        <input type="checkbox" className="h-4 w-4 rounded border-slate-300 accent-blue-600" aria-label={`Select ${name}`} />
+                        <input type="checkbox" className="h-4 w-4 rounded border-slate-300 accent-blue-600" aria-label={`Select ${name}`} disabled={usingDemoRows} />
                       </td>
                       <td className="px-3 py-3">
                         <div className="flex items-center gap-3">
-                          <ProductArt icon={demo.categoryIcon} art={demo.art} className="h-10 w-10 shrink-0" />
+                          {demo ? (
+                            <ProductArt icon={demo.categoryIcon} art={demo.art} className="h-10 w-10 shrink-0" />
+                          ) : (
+                            <ProductThumb name={name} className="h-10 w-10" />
+                          )}
                           <p className="truncate text-sm font-medium text-slate-900">{name}</p>
                         </div>
                       </td>
-                      <td className="px-3 py-3 text-sm text-slate-600">{product.skuCode || demo.sku}</td>
+                      <td className="px-3 py-3 text-sm text-slate-600">{product.skuCode || '--'}</td>
                       <td className={cn('px-3 py-3 text-sm font-semibold', state === 'low' || state === 'out' ? 'text-red-500' : 'text-slate-900')}>
                         {stock}
                       </td>
-                      <td className="px-3 py-3 text-sm text-slate-600">{demo.threshold}</td>
+                      <td className="px-3 py-3 text-sm text-slate-600">{demo?.threshold ?? '--'}</td>
                       <td className="px-3 py-3">
                         <span className={cn('inline-flex items-center gap-1.5 text-sm', stateMeta.text)}>
                           <span className={cn('h-1.5 w-1.5 rounded-full', stateMeta.dot)} />
@@ -298,10 +310,10 @@ export default function InventoryPage() {
             </table>
           </div>
           <TablePagination
-            total={usingDemoRows ? 320 : pagination?.total ?? products.length}
-            page={usingDemoRows ? currentPage : pagination?.page ?? currentPage}
+            total={usingDemoRows ? rows.length : pagination?.total ?? products.length}
+            page={usingDemoRows ? 1 : pagination?.page ?? currentPage}
             pageSize={pageSize}
-            totalPages={usingDemoRows ? 32 : Math.max(pagination?.totalPages ?? 1, 1)}
+            totalPages={usingDemoRows ? 1 : Math.max(pagination?.totalPages ?? 1, 1)}
             onPageChange={setCurrentPage}
             onPageSizeChange={(size) => {
               setPageSize(size)

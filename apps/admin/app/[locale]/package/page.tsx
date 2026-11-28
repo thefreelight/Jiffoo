@@ -110,11 +110,11 @@ export default function PackagePage() {
 
             <div className="grid gap-3 text-sm text-slate-600 md:min-w-[320px] md:grid-cols-2">
               <div className="rounded-xl border border-gray-100 bg-slate-50 px-4 py-3">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Brand</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{getText('merchant.package.page.brand', 'Brand')}</p>
                 <p className="mt-1 font-medium text-slate-950">{record.displayBrandName}</p>
               </div>
               <div className="rounded-xl border border-gray-100 bg-slate-50 px-4 py-3">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Package</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{getText('merchant.package.page.package', 'Package')}</p>
                 <p className="mt-1 font-medium text-slate-950">{record.packageName}</p>
               </div>
             </div>
@@ -177,7 +177,7 @@ export default function PackagePage() {
                       <div className="space-y-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700">
-                            Step {index + 1}
+                            {getText('merchant.package.page.step', 'Step')} {index + 1}
                           </Badge>
                           <span className="font-semibold text-slate-950">{step.title}</span>
                         </div>
@@ -222,7 +222,7 @@ export default function PackagePage() {
             <CardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="rounded-xl border border-gray-100 bg-slate-50/60 px-4 py-3">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Themes ready</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{getText('merchant.package.page.themesReady', 'Themes ready')}</p>
                   <p className="mt-1 text-lg font-semibold text-slate-950">
                     {installedThemeCount}/{includedThemeItems.length || 0}
                   </p>
@@ -233,7 +233,7 @@ export default function PackagePage() {
                   </p>
                 </div>
                 <div className="rounded-xl border border-gray-100 bg-slate-50/60 px-4 py-3">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Plugin setup</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{getText('merchant.package.page.pluginSetup', 'Plugin setup')}</p>
                   <p className="mt-1 text-lg font-semibold text-slate-950">
                     {configuredPluginCount}/{includedPluginItems.length || 0}
                   </p>
@@ -265,13 +265,13 @@ export default function PackagePage() {
 
               {readiness && readiness.missingThemeSlugs.length > 0 ? (
                 <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                  Missing included themes: {readiness.missingThemeSlugs.join(', ')}
+                  {getText('merchant.package.page.missingIncludedThemes', 'Missing included themes:')} {readiness.missingThemeSlugs.join(', ')}
                 </div>
               ) : null}
 
               {readiness && readiness.pluginDetails.some((item) => item.installed && item.configRequired && !item.configReady) ? (
                 <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                  Plugins still needing configuration:{' '}
+                  {getText('merchant.package.page.pluginsStillNeedingConfiguration', 'Plugins still needing configuration:')}{' '}
                   {readiness.pluginDetails
                     .filter((item) => item.installed && item.configRequired && !item.configReady)
                     .map((item) => item.slug)
@@ -372,15 +372,15 @@ export default function PackagePage() {
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-3">
           <div className="rounded-xl border border-gray-100 bg-slate-50/60 px-4 py-3">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Activation</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{getText('merchant.package.page.activation', 'Activation')}</p>
             <p className="mt-1 font-medium text-slate-950">{record.activationCode}</p>
           </div>
           <div className="rounded-xl border border-gray-100 bg-slate-50/60 px-4 py-3">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Default Theme</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{getText('merchant.package.page.defaultTheme', 'Default Theme')}</p>
             <p className="mt-1 font-medium text-slate-950">{record.defaultThemeSlug || 'Not set'}</p>
           </div>
           <div className="rounded-xl border border-gray-100 bg-slate-50/60 px-4 py-3">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Support</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{getText('merchant.package.page.support', 'Support')}</p>
             <p className="mt-1 font-medium text-slate-950">{record.supportEmail || 'Not configured'}</p>
           </div>
         </CardContent>

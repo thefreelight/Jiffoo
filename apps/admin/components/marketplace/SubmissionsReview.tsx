@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiClient, unwrapApiResponse, isAdminApiError } from '@/lib/api';
+import { useT } from 'shared/src/i18n/react';
 
 interface ValidationIssue {
   level: 'error' | 'warning';
@@ -64,6 +65,23 @@ function parseIssues(validationJson: unknown): ValidationIssue[] {
 }
 
 export function SubmissionsReview() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
+  /** The name of a submission's state, in the store's language; a state this screen does not know is shown as the core spells it. */
+  const statusText = (status: string): string => ({
+    submitted: getText('merchant.marketplace.submissions.statusSubmitted', 'submitted'),
+    draft: getText('merchant.marketplace.submissions.statusDraft', 'draft'),
+    changes_requested: getText('merchant.marketplace.submissions.statusChangesRequested', 'changes requested'),
+    approved: getText('merchant.marketplace.submissions.statusApproved', 'approved'),
+    rejected: getText('merchant.marketplace.submissions.statusRejected', 'rejected'),
+    all: getText('merchant.marketplace.submissions.statusAll', 'all'),
+  } as Record<string, string>)[status] ?? status.replace('_', ' ');
+
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>('submitted');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -126,12 +144,12 @@ export function SubmissionsReview() {
                 statusFilter === status ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
-              {status.replace('_', ' ')}
+              {statusText(status)}
             </button>
           ))}
         </div>
         <ul className="max-h-[70vh] divide-y divide-gray-100 overflow-y-auto">
-          {submissions.length === 0 && <li className="p-6 text-sm text-gray-500">No submissions in this state.</li>}
+          {submissions.length === 0 && <li className="p-6 text-sm text-gray-500">{getText('merchant.marketplace.submissions.noSubmissionsInThisState', 'No submissions in this state.')}</li>}
           {submissions.map((submission) => (
             <li key={submission.id}>
               <button
@@ -150,7 +168,7 @@ export function SubmissionsReview() {
                       STATUS_STYLES[submission.status] ?? 'bg-gray-100 text-gray-600'
                     }`}
                   >
-                    {submission.status.replace('_', ' ')}
+                    {statusText(submission.status)}
                   </span>
                 </div>
                 <div className="mt-0.5 text-xs text-gray-500">
@@ -163,7 +181,7 @@ export function SubmissionsReview() {
       </aside>
 
       <section className="rounded-xl border border-gray-200 bg-white p-5">
-        {!selected && <p className="text-sm text-gray-500">Select a submission to review.</p>}
+        {!selected && <p className="text-sm text-gray-500">{getText('merchant.marketplace.submissions.selectASubmissionToReview', 'Select a submission to review.')}</p>}
         {selected && (
           <div className="space-y-5">
             <header className="flex flex-wrap items-start justify-between gap-3">
@@ -183,7 +201,7 @@ export function SubmissionsReview() {
                   STATUS_STYLES[selected.status] ?? 'bg-gray-100 text-gray-600'
                 }`}
               >
-                {selected.status.replace('_', ' ')}
+                {statusText(selected.status)}
               </span>
             </header>
 
@@ -192,12 +210,12 @@ export function SubmissionsReview() {
             <div className="grid gap-2 text-sm sm:grid-cols-2">
               {selected.sourceUrl && (
                 <a href={selected.sourceUrl} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
-                  Source repository ↗
+                  {getText('merchant.marketplace.submissions.sourceRepository', 'Source repository ↗')}
                 </a>
               )}
               {selected.artifactUrl && (
                 <a href={selected.artifactUrl} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
-                  Artifact (remote) ↗
+                  {getText('merchant.marketplace.submissions.artifactRemote', 'Artifact (remote)')} ↗
                 </a>
               )}
               {selected.artifactStoragePath && (
@@ -210,14 +228,14 @@ export function SubmissionsReview() {
                     )
                   }
                 >
-                  Artifact (stored){selected.artifactSize ? ` · ${(selected.artifactSize / 1024 / 1024).toFixed(1)}MB` : ''} ⬇
+                  {getText('merchant.marketplace.submissions.artifactStored', 'Artifact (stored)')}{selected.artifactSize ? ` · ${(selected.artifactSize / 1024 / 1024).toFixed(1)}MB` : ''} ⬇
                 </button>
               )}
             </div>
 
             {parseIssues(selected.validationJson).length > 0 && (
               <div className="space-y-1.5">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500">Automated validation</h3>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500">{getText('merchant.marketplace.submissions.automatedValidation', 'Automated validation')}</h3>
                 {parseIssues(selected.validationJson).map((issue, index) => (
                   <div
                     key={`${issue.code}-${index}`}
@@ -233,14 +251,14 @@ export function SubmissionsReview() {
 
             {selected.reviewNotes && (
               <div className="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-600">
-                <span className="font-semibold">Last review:</span> {selected.reviewNotes}
+                <span className="font-semibold">{getText('merchant.marketplace.submissions.lastReview', 'Last review:')}</span> {selected.reviewNotes}
                 {selected.reviewedBy ? ` — ${selected.reviewedBy}` : ''}
               </div>
             )}
 
             <details>
               <summary className="cursor-pointer text-xs font-bold uppercase tracking-wider text-gray-500">
-                Manifest
+                {getText('merchant.marketplace.submissions.manifest', 'Manifest')}
               </summary>
               <pre className="mt-2 max-h-72 overflow-auto rounded-lg bg-gray-950 p-3 text-[11px] leading-4 text-gray-100">
                 {JSON.stringify((selected as unknown as { manifestJson?: unknown }).manifestJson, null, 2)}
@@ -250,7 +268,7 @@ export function SubmissionsReview() {
             {selected.status === 'approved' && (
               <div className="space-y-2 border-t border-gray-100 pt-4">
                 <p className="text-xs text-gray-500">
-                  Approved — publishing records the catalog reference (<code className="font-mono">submission:{selected.id}</code>) and hands the entry to the market publish flow.
+                  {getText('merchant.marketplace.submissions.approvedPublishingRecordsTheCatalogReference', 'Approved — publishing records the catalog reference (')}<code className="font-mono">submission:{selected.id}</code>{getText('merchant.marketplace.submissions.andHandsTheEntryToThe', ') and hands the entry to the market publish flow.')}
                 </p>
                 <button
                   type="button"
@@ -270,14 +288,14 @@ export function SubmissionsReview() {
                   }}
                   className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
                 >
-                  Publish to catalog
+                  {getText('merchant.marketplace.submissions.publishToCatalog', 'Publish to catalog')}
                 </button>
               </div>
             )}
 
             {selected.status === 'published' && (
               <div className="rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
-                Published — catalog reference <span className="font-mono">{selected.catalogRef}</span>
+                {getText('merchant.marketplace.submissions.publishedCatalogReference', 'Published — catalog reference')} <span className="font-mono">{selected.catalogRef}</span>
               </div>
             )}
 
@@ -287,7 +305,7 @@ export function SubmissionsReview() {
                   value={notes}
                   onChange={(event) => setNotes(event.target.value)}
                   rows={2}
-                  placeholder="Review notes (required)"
+                  placeholder={getText('merchant.marketplace.submissions.reviewNotesRequired', 'Review notes (required)')}
                   className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
                 />
                 {error && <p className="text-xs text-red-600">{error}</p>}
@@ -298,7 +316,7 @@ export function SubmissionsReview() {
                     onClick={() => void act('approve')}
                     className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
                   >
-                    Approve
+                    {getText('merchant.marketplace.submissions.approve', 'Approve')}
                   </button>
                   <button
                     type="button"
@@ -306,7 +324,7 @@ export function SubmissionsReview() {
                     onClick={() => void act('request-changes')}
                     className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-50"
                   >
-                    Request changes
+                    {getText('merchant.marketplace.submissions.requestChanges', 'Request changes')}
                   </button>
                   <button
                     type="button"
@@ -314,7 +332,7 @@ export function SubmissionsReview() {
                     onClick={() => void act('reject')}
                     className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
                   >
-                    Reject
+                    {getText('merchant.marketplace.submissions.reject', 'Reject')}
                   </button>
                 </div>
               </div>

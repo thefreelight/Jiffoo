@@ -33,14 +33,26 @@ interface CreateTokenResponse {
 }
 
 const SCOPE_OPTIONS = [
-  { value: 'catalog:read', label: 'Catalog: Read (search products, get details)' },
-  { value: 'cart:write', label: 'Cart: Write (add items, manage cart)' },
-  { value: 'checkout:create', label: 'Checkout: Create (create orders, payment sessions)' },
-  { value: 'orders:read', label: 'Orders: Read (view order history)' },
-  { value: '*', label: 'All Access (admin-level)' },
+  { value: 'catalog:read', label: 'Catalog: Read (search products, get details)', labelKey: 'merchant.settings.apiToken.scopeCatalogRead' },
+  { value: 'cart:write', label: 'Cart: Write (add items, manage cart)', labelKey: 'merchant.settings.apiToken.scopeCartWrite' },
+  { value: 'checkout:create', label: 'Checkout: Create (create orders, payment sessions)', labelKey: 'merchant.settings.apiToken.scopeCheckoutCreate' },
+  { value: 'orders:read', label: 'Orders: Read (view order history)', labelKey: 'merchant.settings.apiToken.scopeOrdersRead' },
+  { value: '*', label: 'All Access (admin-level)', labelKey: 'merchant.settings.apiToken.scopeAllAccess' },
 ]
 
+/** What a scope is called in the store's language; one this list does not name is shown as the core spells it. */
+const scopeLabel = (getText: (key: string, fallback: string) => string, scope: string): string => {
+  const option = SCOPE_OPTIONS.find((entry) => entry.value === scope)
+  return option ? getText(option.labelKey, option.label) : scope
+}
+
 export function ApiTokenPanel() {
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const t = useT()
   const [tokens, setTokens] = useState<ApiTokenRecord[]>([])
   const [loading, setLoading] = useState(true)
@@ -75,11 +87,11 @@ export function ApiTokenPanel() {
 
   const handleCreate = async () => {
     if (!newLabel.trim()) {
-      toast.error('Label is required')
+      toast.error(getText('merchant.settings.apiToken.labelIsRequired', 'Label is required'))
       return
     }
     if (newScopes.length === 0) {
-      toast.error('Select at least one scope')
+      toast.error(getText('merchant.settings.apiToken.selectAtLeastOneScope', 'Select at least one scope'))
       return
     }
 
@@ -106,7 +118,7 @@ export function ApiTokenPanel() {
       setNewScopes(['catalog:read'])
       setShowCreateForm(false)
       await loadTokens()
-      toast.success('Token created successfully')
+      toast.success(getText('merchant.settings.apiToken.tokenCreatedSuccessfully', 'Token created successfully'))
     } catch (error: unknown) {
       toast.error(resolveApiErrorMessage(error, t))
     } finally {
@@ -127,7 +139,7 @@ export function ApiTokenPanel() {
 
       if (!response.ok) throw new Error('Failed to revoke token')
 
-      toast.success('Token revoked')
+      toast.success(getText('merchant.settings.apiToken.tokenRevoked', 'Token revoked'))
       await loadTokens()
     } catch (error: unknown) {
       toast.error(resolveApiErrorMessage(error, t))
@@ -160,9 +172,9 @@ export function ApiTokenPanel() {
       <div className="px-8 py-6 border-b border-gray-50">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-bold text-gray-900">API Tokens</h3>
+            <h3 className="text-lg font-bold text-gray-900">{getText('merchant.settings.apiToken.apiTokens', 'API Tokens')}</h3>
             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-              For MCP Server & Integrations
+              {getText('merchant.settings.apiToken.forMcpServerIntegrations', 'For MCP Server & Integrations')}
             </span>
           </div>
           <Button
@@ -170,7 +182,7 @@ export function ApiTokenPanel() {
             className="h-9 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 font-semibold text-sm"
           >
             <Plus className="h-4 w-4 mr-1.5" />
-            New Token
+            {getText('merchant.settings.apiToken.newToken', 'New Token')}
           </Button>
         </div>
       </div>
@@ -182,7 +194,7 @@ export function ApiTokenPanel() {
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-green-600" />
               <p className="text-sm font-bold text-green-800">
-                Token created — save it now, it won&apos;t be shown again
+                {getText('merchant.settings.apiToken.tokenCreatedSaveItNowIt', 'Token created — save it now, it won&apos;t be shown again')}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -204,7 +216,7 @@ export function ApiTokenPanel() {
               variant="ghost"
               className="text-xs"
             >
-              Dismiss
+              {getText('merchant.settings.apiToken.dismiss', 'Dismiss')}
             </Button>
           </div>
         )}
@@ -214,18 +226,18 @@ export function ApiTokenPanel() {
           <div className="rounded-2xl border border-gray-100 bg-gray-50/30 p-5 space-y-4">
             <div className="space-y-2">
               <Label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                Label
+                {getText('merchant.settings.apiToken.label', 'Label')}
               </Label>
               <Input
                 value={newLabel}
                 onChange={(e) => setNewLabel(e.target.value)}
-                placeholder="e.g. Claude Desktop - Personal"
+                placeholder={getText('merchant.settings.apiToken.eGClaudeDesktopPersonal', 'e.g. Claude Desktop - Personal')}
                 className="h-11 rounded-xl"
               />
             </div>
             <div className="space-y-2">
               <Label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                Scopes
+                {getText('merchant.settings.apiToken.scopes', 'Scopes')}
               </Label>
               <div className="space-y-2">
                 {SCOPE_OPTIONS.map((opt) => (
@@ -239,7 +251,7 @@ export function ApiTokenPanel() {
                       onChange={() => toggleScope(opt.value)}
                       className="h-4 w-4 rounded border-gray-300"
                     />
-                    <span className="text-sm text-gray-700">{opt.label}</span>
+                    <span className="text-sm text-gray-700">{getText(opt.labelKey, opt.label)}</span>
                   </label>
                 ))}
               </div>
@@ -250,14 +262,14 @@ export function ApiTokenPanel() {
                 disabled={creating}
                 className="h-9 px-4 rounded-xl bg-blue-600 hover:bg-blue-700"
               >
-                {creating ? 'Creating...' : 'Create Token'}
+                {creating ? getText('merchant.settings.apiToken.creating', 'Creating...') : getText('merchant.settings.apiToken.createToken', 'Create Token')}
               </Button>
               <Button
                 onClick={() => setShowCreateForm(false)}
                 variant="outline"
                 className="h-9 px-4 rounded-xl"
               >
-                Cancel
+                {getText('merchant.settings.apiToken.cancel', 'Cancel')}
               </Button>
             </div>
           </div>
@@ -265,13 +277,13 @@ export function ApiTokenPanel() {
 
         {/* Token list */}
         {loading ? (
-          <p className="text-sm text-gray-500">Loading tokens...</p>
+          <p className="text-sm text-gray-500">{getText('merchant.settings.apiToken.loadingTokens', 'Loading tokens...')}</p>
         ) : tokens.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <Key className="h-8 w-8 text-gray-300 mb-2" />
-            <p className="text-sm text-gray-500">No API tokens yet</p>
+            <p className="text-sm text-gray-500">{getText('merchant.settings.apiToken.noApiTokensYet', 'No API tokens yet')}</p>
             <p className="text-xs text-gray-400 mt-1">
-              Create a token to enable MCP server or other integrations
+              {getText('merchant.settings.apiToken.createATokenToEnableMcp', 'Create a token to enable MCP server or other integrations')}
             </p>
           </div>
         ) : (
@@ -296,12 +308,12 @@ export function ApiTokenPanel() {
                             : 'bg-blue-100 text-blue-700',
                         )}
                       >
-                        {scope}
+                        {scopeLabel(getText, scope)}
                       </span>
                     ))}
                   </div>
                   <p className="text-xs text-gray-400 mt-1">
-                    Created: {formatDate(token.createdAt)}
+                    {getText('merchant.settings.apiToken.created', 'Created:')} {formatDate(token.createdAt)}
                     {token.lastUsedAt && ` · Last used: ${formatDate(token.lastUsedAt)}`}
                   </p>
                 </div>
@@ -322,8 +334,7 @@ export function ApiTokenPanel() {
         <div className="flex items-start gap-2 rounded-xl bg-blue-50/50 border border-blue-100 p-3">
           <AlertCircle className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
           <p className="text-xs text-blue-700">
-            API tokens enable AI agents (Claude Desktop, Claude Code) to interact with your store.
-            Use the MCP server with <code className="font-mono text-blue-800">JIFFOO_API_TOKEN</code> env var.
+            {getText('merchant.settings.apiToken.apiTokensEnableAiAgentsClaude', 'API tokens enable AI agents (Claude Desktop, Claude Code) to interact with your store. Use the MCP server with')} <code className="font-mono text-blue-800">JIFFOO_API_TOKEN</code> {getText('merchant.settings.apiToken.envVar', 'env var.')}
           </p>
         </div>
       </div>

@@ -104,7 +104,7 @@ export function AlertConfig({ initialThresholds, onSave, isLoading }: AlertConfi
       }
       toast.success(getText('admin.health.alerts.saveSuccess', 'Alert thresholds saved successfully'))
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : 'Unknown error'
+      const errorMsg = error instanceof Error ? error.message : getText('common.errors.unknown', 'Unknown error')
       toast.error(getText('admin.health.alerts.saveFailed', 'Failed to save alert thresholds: ') + errorMsg)
     } finally {
       setSaving(false)

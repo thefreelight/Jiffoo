@@ -11,6 +11,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { upgradeApi, unwrapApiResponse } from '@/lib/api';
+import { useT } from 'shared/src/i18n/react';
 
 export const SYSTEM_UPDATE_CHECK_CACHE_KEY = 'jiffoo_last_update_check';
 const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -48,6 +49,12 @@ interface UpdateCheckResult {
  * for 24 hours to avoid excessive API calls.
  */
 export function useUpdateCheck(): UpdateCheckResult {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
   const [hasUpdate, setHasUpdate] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [currentVersion, setCurrentVersion] = useState<string | null>(null);
@@ -133,7 +140,7 @@ export function useUpdateCheck(): UpdateCheckResult {
         latestVersion: data.latestVersion,
       });
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to check for updates';
+      const errorMessage = err instanceof Error ? err.message : getText('merchant.systemUpdates.checkFailed', 'Failed to check for updates');
       setError(errorMessage);
       setHasUpdate(false);
     } finally {

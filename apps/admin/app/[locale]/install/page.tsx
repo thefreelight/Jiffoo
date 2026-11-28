@@ -6,6 +6,7 @@ import { AlertCircle, ArrowRight, Check, Database, Eye, EyeOff, Loader2, LockKey
 import { useLocale } from 'shared/src/i18n/react'
 import { useAuthStore } from '@/lib/store'
 import { JiffooMark } from '@/components/branding/jiffoo-mark'
+import { useT } from 'shared/src/i18n/react';
 
 type InstallStatus = { isInstalled: boolean; version?: string; siteName?: string }
 type DatabaseStatus = { connected: boolean; error?: string }
@@ -30,6 +31,13 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
 const inputClass = 'h-12 w-full rounded-md border border-white/10 bg-white/[0.045] px-3.5 text-sm font-medium text-white outline-none transition placeholder:text-zinc-600 focus:border-emerald-400/70 focus:bg-white/[0.07] focus:ring-2 focus:ring-emerald-400/10'
 
 export default function InstallPage() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const router = useRouter()
   const locale = useLocale()
   const { login } = useAuthStore()
@@ -59,7 +67,7 @@ export default function InstallPage() {
         setDatabaseStatus(database)
         if (status.isInstalled) router.replace(`/${locale}/auth/login`)
       })
-      .catch((reason) => !cancelled && setError(reason instanceof Error ? reason.message : 'Unable to load setup status'))
+      .catch((reason) => !cancelled && setError(reason instanceof Error ? reason.message : getText('merchant.install.unableToLoadSetupStatus', 'Unable to load setup status')))
       .finally(() => !cancelled && setIsChecking(false))
     return () => { cancelled = true }
   }, [locale, router])
@@ -87,7 +95,7 @@ export default function InstallPage() {
         router.replace(`/${locale}/auth/login`)
       }
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Installation failed')
+      setError(reason instanceof Error ? reason.message : getText('merchant.install.installationFailed', 'Installation failed'))
     } finally {
       setIsSubmitting(false)
     }
@@ -103,22 +111,22 @@ export default function InstallPage() {
           <JiffooMark size="md" className="[&_span:last-child]:text-zinc-100" />
 
           <div className="mt-12 lg:mt-24">
-            <p className="text-xs font-semibold uppercase text-emerald-400">Initial setup</p>
-            <h1 className="mt-4 max-w-xs text-3xl font-semibold leading-tight">Make this store yours.</h1>
-            <p className="mt-3 max-w-xs text-sm leading-6 text-zinc-500">Create the owner account and open your workspace. Email is optional.</p>
+            <p className="text-xs font-semibold uppercase text-emerald-400">{getText('merchant.install.initialSetup', 'Initial setup')}</p>
+            <h1 className="mt-4 max-w-xs text-3xl font-semibold leading-tight">{getText('merchant.install.makeThisStoreYours', 'Make this store yours.')}</h1>
+            <p className="mt-3 max-w-xs text-sm leading-6 text-zinc-500">{getText('merchant.install.createTheOwnerAccountAndOpen', 'Create the owner account and open your workspace. Email is optional.')}</p>
           </div>
 
           <ol className="mt-9 grid gap-3 sm:grid-cols-3 lg:mt-14 lg:grid-cols-1">
-            <SetupStep icon={Database} index="01" title="Database" detail={connectionLabel} complete={Boolean(databaseStatus?.connected)} />
-            <SetupStep icon={LockKeyhole} index="02" title="Owner account" detail="Current step" active />
-            <SetupStep icon={Store} index="03" title="Workspace" detail="Ready next" />
+            <SetupStep icon={Database} index="01" title={getText('merchant.install.database', 'Database')} detail={connectionLabel} complete={Boolean(databaseStatus?.connected)} />
+            <SetupStep icon={LockKeyhole} index="02" title={getText('merchant.install.ownerAccount', 'Owner account')} detail="Current step" active />
+            <SetupStep icon={Store} index="03" title={getText('merchant.install.workspace', 'Workspace')} detail="Ready next" />
           </ol>
         </aside>
 
         <section className="flex items-center justify-center px-5 py-10 sm:px-10 lg:px-16">
           <div className="w-full max-w-xl">
             <div className="mb-8 flex items-center justify-between border-b border-white/10 pb-5">
-              <div><p className="text-sm text-zinc-500">Step 2 of 3</p><h2 className="mt-1 text-2xl font-semibold">Create owner account</h2></div>
+              <div><p className="text-sm text-zinc-500">{getText('merchant.install.step2Of3', 'Step 2 of 3')}</p><h2 className="mt-1 text-2xl font-semibold">{getText('merchant.install.createOwnerAccount', 'Create owner account')}</h2></div>
               <span className={`inline-flex h-8 items-center gap-2 rounded-md border px-3 text-xs font-semibold ${databaseStatus?.connected ? 'border-emerald-400/20 bg-emerald-400/10 text-emerald-300' : 'border-white/10 text-zinc-500'}`}>
                 {isChecking ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <span className="h-1.5 w-1.5 rounded-full bg-current" />}{connectionLabel}
               </span>
@@ -127,24 +135,24 @@ export default function InstallPage() {
             {error ? <div className="mb-5 flex gap-3 rounded-md border border-red-400/20 bg-red-400/10 p-3 text-sm text-red-200"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />{error}</div> : null}
 
             <form onSubmit={handleSubmit} className="space-y-5">
-              <Field label="Login name" hint="Required">
+              <Field label={getText('merchant.install.loginName', 'Login name')} hint="Required">
                 <input className={inputClass} value={username} onChange={(event) => setUsername(event.target.value)} placeholder="admin" autoComplete="username" required />
               </Field>
-              <Field label="Email" hint="Optional — add it later in Settings">
+              <Field label={getText('merchant.install.email', 'Email')} hint="Optional — add it later in Settings">
                 <input className={inputClass} type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@company.com" autoComplete="email" />
               </Field>
               <div className="grid gap-5 sm:grid-cols-2">
-                <Field label="Password" hint="8+ characters">
-                  <div className="relative"><input className={`${inputClass} pr-11`} type={showPassword ? 'text' : 'password'} value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" required minLength={8} /><button type="button" onClick={() => setShowPassword((value) => !value)} className="absolute right-1 top-1 grid h-10 w-10 place-items-center text-zinc-500 hover:text-white" aria-label={showPassword ? 'Hide password' : 'Show password'}>{showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button></div>
+                <Field label={getText('merchant.install.password', 'Password')} hint="8+ characters">
+                  <div className="relative"><input className={`${inputClass} pr-11`} type={showPassword ? 'text' : 'password'} value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" required minLength={8} /><button type="button" onClick={() => setShowPassword((value) => !value)} className="absolute right-1 top-1 grid h-10 w-10 place-items-center text-zinc-500 hover:text-white" aria-label={showPassword ? getText('merchant.install.hidePassword', 'Hide password') : getText('merchant.install.showPassword', 'Show password')}>{showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button></div>
                 </Field>
-                <Field label="Confirm password"><input className={inputClass} type={showPassword ? 'text' : 'password'} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} autoComplete="new-password" required minLength={8} /></Field>
+                <Field label={getText('merchant.install.confirmPassword', 'Confirm password')}><input className={inputClass} type={showPassword ? 'text' : 'password'} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} autoComplete="new-password" required minLength={8} /></Field>
               </div>
-              <Field label="Store name"><input className={inputClass} value={siteName} onChange={(event) => setSiteName(event.target.value)} required /></Field>
+              <Field label={getText('merchant.install.storeName', 'Store name')}><input className={inputClass} value={siteName} onChange={(event) => setSiteName(event.target.value)} required /></Field>
 
               <div className="flex flex-col-reverse gap-4 border-t border-white/10 pt-6 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-xs leading-5 text-zinc-600">The owner account has full administrative access.</p>
+                <p className="text-xs leading-5 text-zinc-600">{getText('merchant.install.theOwnerAccountHasFullAdministrative', 'The owner account has full administrative access.')}</p>
                 <button type="submit" disabled={Boolean(blocked)} className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-emerald-400 px-5 text-sm font-bold text-[#07100c] transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-40">
-                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}Create workspace<ArrowRight className="h-4 w-4" />
+                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}{getText('merchant.install.createWorkspace', 'Create workspace')}<ArrowRight className="h-4 w-4" />
                 </button>
               </div>
             </form>

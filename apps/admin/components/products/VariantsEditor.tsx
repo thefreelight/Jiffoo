@@ -15,6 +15,7 @@ import { generateId } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import { apiClient, unwrapApiResponse } from '@/lib/api'
 import { toast } from 'sonner'
+import { useT } from 'shared/src/i18n/react';
 
 interface Variant {
     id?: string
@@ -55,6 +56,13 @@ interface VariantsEditorProps {
 }
 
 export function VariantsEditor({ variants, onChange, productId }: VariantsEditorProps) {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
     const [enabledCurrencies, setEnabledCurrencies] = useState<string[]>(['USD'])
     const [baseCurrency, setBaseCurrency] = useState<string>('USD')
     const [currencyPrices, setCurrencyPrices] = useState<Record<string, CurrencyPrice[]>>({})
@@ -114,7 +122,7 @@ export function VariantsEditor({ variants, onChange, productId }: VariantsEditor
 
     const saveCurrencyPrice = async (variantId: string, currency: string, price: number) => {
         if (!productId || !variantId) {
-            toast.error('Save the product first before setting currency prices')
+            toast.error(getText('merchant.products.variantEditor.saveTheProductFirstBeforeSetting', 'Save the product first before setting currency prices'))
             return
         }
 
@@ -130,7 +138,7 @@ export function VariantsEditor({ variants, onChange, productId }: VariantsEditor
             // Reload currency prices
             await loadCurrencyPrices(variantId)
         } catch (err: any) {
-            const errorMsg = err instanceof Error ? err.message : 'Unknown error'
+            const errorMsg = err instanceof Error ? err.message : getText('common.errors.unknown', 'Unknown error')
             toast.error('Failed to save currency price: ' + errorMsg)
         }
     }
@@ -177,18 +185,18 @@ export function VariantsEditor({ variants, onChange, productId }: VariantsEditor
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
                             {/* Identity */}
                             <div className="col-span-1 md:col-span-2 lg:col-span-3 space-y-2">
-                                <Label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest pl-1">Variant Name</Label>
+                                <Label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest pl-1">{getText('merchant.products.variantEditor.variantName', 'Variant Name')}</Label>
                                 <Input
                                     value={variant.name}
                                     onChange={(e) => handleUpdateVariant(index, { name: e.target.value })}
-                                    placeholder="e.g. Red / XL"
+                                    placeholder={getText('merchant.products.variantEditor.nameExample', 'e.g. Red / XL')}
                                     className="h-10 text-sm font-bold border-gray-100 bg-white rounded-lg focus:ring-2 focus:ring-blue-500/10 focus:bg-white px-4 transition-all"
                                 />
                             </div>
 
                             {/* SKU */}
                             <div className="col-span-1 md:col-span-1 lg:col-span-3 space-y-2">
-                                <Label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest pl-1">SKU Reference</Label>
+                                <Label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest pl-1">{getText('merchant.products.variantEditor.skuReference', 'SKU Reference')}</Label>
                                 <Input
                                     value={variant.skuCode || ''}
                                     onChange={(e) => handleUpdateVariant(index, { skuCode: e.target.value })}
@@ -199,7 +207,7 @@ export function VariantsEditor({ variants, onChange, productId }: VariantsEditor
 
                             {/* Price */}
                             <div className="col-span-1 md:col-span-1 lg:col-span-2 space-y-2">
-                                <Label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest pl-1">Sale Price</Label>
+                                <Label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest pl-1">{getText('merchant.products.variantEditor.salePrice', 'Sale Price')}</Label>
                                 <div className="relative group">
                                     <span className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-gray-300 text-xs transition-colors group-focus-within:text-blue-500">$</span>
                                     <Input
@@ -218,7 +226,7 @@ export function VariantsEditor({ variants, onChange, productId }: VariantsEditor
 
                             {/* Stock */}
                             <div className="col-span-1 md:col-span-1 lg:col-span-2 space-y-2">
-                                <Label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest pl-1 block">Stock</Label>
+                                <Label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest pl-1 block">{getText('merchant.products.variantEditor.stock', 'Stock')}</Label>
                                 <Input
                                     type="number"
                                     value={variant.baseStock === 0 ? '' : variant.baseStock}
@@ -238,7 +246,7 @@ export function VariantsEditor({ variants, onChange, productId }: VariantsEditor
                                     onClick={() => handleRemoveVariant(index)}
                                     disabled={variants.length <= 1}
                                     className="w-9 h-9 rounded-lg text-gray-300 border border-gray-100 bg-white hover:bg-red-50 hover:text-red-500 hover:border-red-100 transition-all disabled:opacity-0 flex items-center justify-center shrink-0"
-                                    title="Remove Variant"
+                                    title={getText('merchant.products.variantEditor.removeVariant', 'Remove Variant')}
                                 >
                                     <Trash2 className="w-4 h-4" />
                                 </button>
@@ -256,7 +264,7 @@ export function VariantsEditor({ variants, onChange, productId }: VariantsEditor
                                     <div className="flex items-center gap-3">
                                         <DollarSign className="w-6 h-6 text-blue-500" />
                                         <h4 className="text-lg font-black text-gray-900 uppercase tracking-wide">
-                                            Multi-Currency Pricing
+                                            {getText('merchant.products.variantEditor.multiCurrencyPricing', 'Multi-Currency Pricing')}
                                         </h4>
                                         <Badge variant="outline" className="text-xs">
                                             {(currencyPrices[variant.id] || []).length} of {enabledCurrencies.length - 1} custom
@@ -272,7 +280,7 @@ export function VariantsEditor({ variants, onChange, productId }: VariantsEditor
                                 {expandedVariants[variant.id || variant.tempId || String(index)] && (
                                     <div className="space-y-4 pl-9">
                                         <p className="text-sm text-gray-500 mb-6">
-                                            Set custom prices for different currencies. Currencies without custom prices will use auto-converted rates.
+                                            {getText('merchant.products.variantEditor.setCustomPricesForDifferentCurrencies', 'Set custom prices for different currencies. Currencies without custom prices will use auto-converted rates.')}
                                         </p>
                                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                                             {enabledCurrencies
@@ -304,7 +312,7 @@ export function VariantsEditor({ variants, onChange, productId }: VariantsEditor
                                                                     </div>
                                                                 </div>
                                                                 {hasCustomPrice && (
-                                                                    <Badge className="bg-blue-600 text-white text-xs">Custom</Badge>
+                                                                    <Badge className="bg-blue-600 text-white text-xs">{getText('merchant.products.variantEditor.custom', 'Custom')}</Badge>
                                                                 )}
                                                             </div>
 
@@ -317,7 +325,7 @@ export function VariantsEditor({ variants, onChange, productId }: VariantsEditor
                                                                         type="text"
                                                                         value={localPrice}
                                                                         onChange={(e) => setLocalPrices(prev => ({ ...prev, [priceKey]: e.target.value }))}
-                                                                        placeholder="Auto-converted"
+                                                                        placeholder={getText('merchant.products.variantEditor.autoConverted', 'Auto-converted')}
                                                                         className="h-12 pl-10 pr-4 font-bold text-lg border-gray-200"
                                                                     />
                                                                 </div>
@@ -328,14 +336,14 @@ export function VariantsEditor({ variants, onChange, productId }: VariantsEditor
                                                                         if (!isNaN(price) && price > 0) {
                                                                             saveCurrencyPrice(variant.id!, currency, price)
                                                                         } else {
-                                                                            toast.error('Please enter a valid price')
+                                                                            toast.error(getText('merchant.products.variantEditor.pleaseEnterAValidPrice', 'Please enter a valid price'))
                                                                         }
                                                                     }}
                                                                     disabled={!localPrice || loadingPrices[variant.id!]}
                                                                     className="w-full h-10 text-xs font-black uppercase"
                                                                     size="sm"
                                                                 >
-                                                                    {loadingPrices[variant.id!] ? 'Saving...' : hasCustomPrice ? 'Update' : 'Set Custom Price'}
+                                                                    {loadingPrices[variant.id!] ? getText('merchant.products.variantEditor.saving', 'Saving...') : hasCustomPrice ? getText('merchant.products.variantEditor.update', 'Update') : getText('merchant.products.variantEditor.setCustomPrice', 'Set Custom Price')}
                                                                 </Button>
                                                             </div>
                                                         </div>
@@ -356,7 +364,7 @@ export function VariantsEditor({ variants, onChange, productId }: VariantsEditor
                 className="h-10 w-full rounded-xl border-2 border-dashed border-gray-100 bg-white text-gray-400 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition-all flex items-center justify-center space-x-2 group"
             >
                 <Plus className="w-4 h-4" />
-                <span className="text-xs font-bold uppercase tracking-widest">Add New Variant</span>
+                <span className="text-xs font-bold uppercase tracking-widest">{getText('merchant.products.variantEditor.addNewVariant', 'Add New Variant')}</span>
             </Button>
         </div>
     )

@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { plainText } from '@/lib/plain-text';
 import { persist } from 'zustand/middleware'
 import { DashboardStats } from './types'
 import { apiClient, authApi, dashboardApi, unwrapApiResponse } from './api'
@@ -170,7 +171,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 
       set({ stats, isLoading: false })
     } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : 'Unknown error';
+      const msg = error instanceof Error ? error.message : plainText('common.errors.unknown', 'Unknown error');
       console.error('Fetch stats failed:', msg);
       set({ error: msg, isLoading: false })
     }

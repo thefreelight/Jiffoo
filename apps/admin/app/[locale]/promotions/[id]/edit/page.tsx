@@ -85,9 +85,9 @@ export default function EditPromotionPage() {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen space-y-4">
-        <p className="text-red-600 font-semibold">Failed to load promotion</p>
+        <p className="text-red-600 font-semibold">{getText('merchant.promotions.edit.failedToLoadPromotion', 'Failed to load promotion')}</p>
         <Button onClick={() => router.push('/promotions')}>
-          Back to Promotions
+          {getText('merchant.promotions.edit.backToPromotions', 'Back to Promotions')}
         </Button>
       </div>
     )
@@ -96,9 +96,9 @@ export default function EditPromotionPage() {
   if (!promotion) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen space-y-4">
-        <p className="text-gray-600 font-semibold">Promotion not found</p>
+        <p className="text-gray-600 font-semibold">{getText('merchant.promotions.edit.promotionNotFound', 'Promotion not found')}</p>
         <Button onClick={() => router.push('/promotions')}>
-          Back to Promotions
+          {getText('merchant.promotions.edit.backToPromotions', 'Back to Promotions')}
         </Button>
       </div>
     )
@@ -114,9 +114,9 @@ export default function EditPromotionPage() {
           </Button>
           <div className="flex flex-col">
             <h1 className="text-2xl font-black text-gray-900 tracking-tighter leading-none">
-              Modify Promotion: {promotion.code}
+              {getText('merchant.promotions.edit.modifyPromotion', 'Modify Promotion:')} {promotion.code}
             </h1>
-            <span className="text-[10px] font-black text-blue-600 uppercase tracking-[0.4em] mt-2">Discount Edit Interface</span>
+            <span className="text-[10px] font-black text-blue-600 uppercase tracking-[0.4em] mt-2">{getText('merchant.promotions.edit.discountEditInterface', 'Discount Edit Interface')}</span>
           </div>
         </div>
         <div className="flex items-center space-x-4">
@@ -127,10 +127,10 @@ export default function EditPromotionPage() {
             className="text-red-600 border-red-200 hover:bg-red-50 font-black uppercase tracking-widest rounded-2xl h-12 px-8"
           >
             <Trash2 className="w-4 h-4 mr-2" />
-            Delete
+            {getText('merchant.promotions.edit.delete', 'Delete')}
           </Button>
           <Button variant="outline" onClick={() => router.push('/promotions')} className="text-gray-400 border-gray-100 hover:bg-gray-50 font-black uppercase tracking-widest rounded-2xl h-12 px-8">
-            Cancel
+            {getText('merchant.promotions.edit.cancel', 'Cancel')}
           </Button>
         </div>
       </div>
@@ -140,9 +140,9 @@ export default function EditPromotionPage() {
         <div className="bg-white">
           <div className="w-full max-w-4xl space-y-12 px-4 py-10 sm:space-y-20 sm:px-10 sm:py-20">
             <div className="space-y-3">
-              <h2 className="text-4xl font-black text-gray-900 tracking-tighter uppercase">Promotion Core</h2>
+              <h2 className="text-4xl font-black text-gray-900 tracking-tighter uppercase">{getText('merchant.promotions.edit.promotionCore', 'Promotion Core')}</h2>
               <div className="h-1.5 w-24 bg-blue-600 rounded-full" />
-              <p className="text-gray-400 text-lg font-bold">UPDATE DISCOUNT PARAMETERS & CONSTRAINTS</p>
+              <p className="text-gray-400 text-lg font-bold">{getText('merchant.promotions.edit.updateDiscountParametersConstraints', 'UPDATE DISCOUNT PARAMETERS & CONSTRAINTS')}</p>
             </div>
 
             <PromotionForm
@@ -159,21 +159,21 @@ export default function EditPromotionPage() {
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Are you sure?</DialogTitle>
+            <DialogTitle>{getText('merchant.promotions.edit.areYouSure', 'Are you sure?')}</DialogTitle>
             <DialogDescription>
-              This will permanently delete the promotion "{promotion.code}". This action cannot be undone.
+              {getText('merchant.promotions.edit.thisWillPermanentlyDeleteThePromotion', 'This will permanently delete the promotion "')}{promotion.code}{getText('merchant.promotions.edit.thisActionCannotBeUndone', '". This action cannot be undone.')}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex gap-2">
             <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
-              Cancel
+              {getText('merchant.promotions.edit.cancel', 'Cancel')}
             </Button>
             <Button
               onClick={handleDelete}
               disabled={deletePromotionMutation.isPending}
               className="bg-red-600 hover:bg-red-700"
             >
-              {deletePromotionMutation.isPending ? 'Deleting...' : 'Delete Promotion'}
+              {deletePromotionMutation.isPending ? getText('merchant.promotions.edit.deleting', 'Deleting...') : getText('merchant.promotions.edit.deletePromotion', 'Delete Promotion')}
             </Button>
           </DialogFooter>
         </DialogContent>

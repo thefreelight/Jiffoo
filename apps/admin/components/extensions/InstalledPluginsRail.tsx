@@ -133,7 +133,7 @@ export function InstalledPluginsRail({
                         {displayName}
                       </p>
                       {isOfficial ? (
-                        <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-blue-500" aria-label="Official" />
+                        <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-blue-500" aria-label={getText('merchant.extensions.badgeOfficial', 'Official')} />
                       ) : null}
                     </div>
                     <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-slate-500">

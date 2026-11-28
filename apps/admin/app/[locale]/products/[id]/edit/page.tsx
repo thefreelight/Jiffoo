@@ -174,7 +174,7 @@ export default function EditProductPage() {
         await updateDescriptionMutation.mutateAsync({ id: productId, description: formData.description })
         setSuccessMode(true)
         refetch()
-        toast.success('Storefront description saved — live on the storefront within seconds')
+        toast.success(getText('merchant.productEdit.storefrontDescriptionSavedLiveOnThe', 'Storefront description saved — live on the storefront within seconds'))
         setTimeout(() => setSuccessMode(false), 3000)
         return
       }
@@ -195,7 +195,7 @@ export default function EditProductPage() {
       // Key: Stay on page, provide feedback
       setSuccessMode(true)
       refetch()
-      toast.success('Product updated successfully')
+      toast.success(getText('merchant.productEdit.productUpdatedSuccessfully', 'Product updated successfully'))
 
       // Restore button text after 3 seconds
       setTimeout(() => setSuccessMode(false), 3000)
@@ -238,17 +238,17 @@ export default function EditProductPage() {
     ? externalSource.variants.filter((variant: any) => variant.hasPendingChange).length
     : 0
 
-  if (isLoading) return <div className="p-12 text-center text-gray-400 font-bold uppercase tracking-[0.2em] animate-pulse">Accessing Encrypted Asset...</div>
+  if (isLoading) return <div className="p-12 text-center text-gray-400 font-bold uppercase tracking-[0.2em] animate-pulse">{getText('merchant.productEdit.accessingEncryptedAsset', 'Accessing Encrypted Asset...')}</div>
   if (error) return <div className="p-12 text-center text-red-500 font-black uppercase">{getText('common.errors.general', 'Something went wrong. Please try again.')}</div>
 
   return (
     <PageShell
       title={formData.name || 'Edit Product'}
-      description="Product Editor"
+      description={getText('merchant.productEdit.productEditor', 'Product Editor')}
       actions={
         <>
           <Button variant="outline" onClick={() => router.push('/products')} className="hidden sm:flex text-slate-500 border-slate-200 hover:bg-slate-50 text-sm font-semibold rounded-lg h-9 px-4">
-            Cancel
+            {getText('merchant.productEdit.cancel', 'Cancel')}
           </Button>
           <Button
             onClick={handleSubmit}
@@ -256,7 +256,7 @@ export default function EditProductPage() {
             className={`text-sm font-semibold px-4 sm:px-6 h-9 rounded-lg transition-all active:scale-95 ${successMode ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'
               }`}
           >
-            {updateProductMutation.isPending || updateDescriptionMutation.isPending ? 'Saving...' : successMode ? 'Updated' : 'Save Changes'}
+            {updateProductMutation.isPending || updateDescriptionMutation.isPending ? getText('merchant.productEdit.saving', 'Saving...') : successMode ? getText('merchant.productEdit.updated', 'Updated') : getText('merchant.productEdit.saveChanges', 'Save Changes')}
           </Button>
         </>
       }
@@ -275,22 +275,22 @@ export default function EditProductPage() {
                     <Link2 className="w-5 h-5" />
                   </div>
                   <div>
-                    <h2 className="text-base font-bold text-gray-900 uppercase tracking-tight">External Source</h2>
+                    <h2 className="text-base font-bold text-gray-900 uppercase tracking-tight">{getText('merchant.productEdit.externalSource', 'External Source')}</h2>
                     <p className="text-gray-400 text-xs font-medium uppercase tracking-widest">
-                      {externalSource?.sourceProvider || 'External'} linked source snapshot
+                      {externalSource?.sourceProvider || 'External'} {getText('merchant.productEdit.linkedSourceSnapshot', 'linked source snapshot')}
                     </p>
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge className="bg-gray-900 text-white">{externalSource?.sourceProvider || 'external'}</Badge>
                   <Badge variant="outline" className={externalSource?.product?.sourceIsActive === false ? 'border-red-200 text-red-600' : 'border-green-200 text-green-600'}>
-                    {externalSource?.product?.sourceIsActive === false ? 'Source inactive' : 'Source active'}
+                    {externalSource?.product?.sourceIsActive === false ? getText('merchant.productEdit.sourceInactive', 'Source inactive') : getText('merchant.productEdit.sourceActive', 'Source active')}
                   </Badge>
                   {hasPendingProductChange && (
-                    <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">Product change pending</Badge>
+                    <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">{getText('merchant.productEdit.productChangePending', 'Product change pending')}</Badge>
                   )}
                   {pendingVariantCount > 0 && (
-                    <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">{pendingVariantCount} variant changes pending</Badge>
+                    <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">{pendingVariantCount} {getText('merchant.productEdit.variantChangesPending', 'variant changes pending')}</Badge>
                   )}
                 </div>
               </div>
@@ -301,53 +301,53 @@ export default function EditProductPage() {
                 disabled={acknowledgeProductSourceMutation.isPending}
                 className="bg-gray-900 hover:bg-black text-white rounded-xl"
               >
-                {acknowledgeProductSourceMutation.isPending ? 'Confirming...' : 'Acknowledge All'}
+                {acknowledgeProductSourceMutation.isPending ? getText('merchant.productEdit.confirming', 'Confirming...') : getText('merchant.productEdit.acknowledgeAll', 'Acknowledge All')}
               </Button>
             </div>
 
             {(hasPendingProductChange || pendingVariantCount > 0) && (
               <Alert className="border-amber-200 bg-amber-50 text-amber-900">
                 <ShieldAlert className="h-4 w-4" />
-                <AlertTitle>Source changes detected</AlertTitle>
+                <AlertTitle>{getText('merchant.productEdit.sourceChangesDetected', 'Source changes detected')}</AlertTitle>
                 <AlertDescription>
-                  Product-level and variant-level source snapshots have changed. Review them here before clearing the pending flags.
+                  {getText('merchant.productEdit.productLevelAndVariantLevelSource', 'Product-level and variant-level source snapshots have changed. Review them here before clearing the pending flags.')}
                 </AlertDescription>
               </Alert>
             )}
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
               <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 space-y-2">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">External Product Code</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{getText('merchant.productEdit.externalProductCode', 'External Product Code')}</p>
                 <p className="text-sm font-semibold text-gray-900 break-all">{externalSource?.product?.externalProductCode || '-'}</p>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 pt-2">Last Source Update</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 pt-2">{getText('merchant.productEdit.lastSourceUpdate', 'Last Source Update')}</p>
                 <p className="text-sm font-medium text-gray-700">{externalSource?.product?.sourceUpdatedAt || '-'}</p>
               </div>
 
               <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 space-y-2">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Product Pending Summary</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{getText('merchant.productEdit.productPendingSummary', 'Product Pending Summary')}</p>
                 <p className="text-sm font-medium text-gray-700">
-                  {hasPendingProductChange ? renderChangedFields(externalSource?.product?.pendingChangeSummary) : 'No pending product-level changes'}
+                  {hasPendingProductChange ? renderChangedFields(externalSource?.product?.pendingChangeSummary) : getText('merchant.productEdit.noPendingProductLevelChanges', 'No pending product-level changes')}
                 </p>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 pt-2">Last Approved</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 pt-2">{getText('merchant.productEdit.lastApproved', 'Last Approved')}</p>
                 <p className="text-sm font-medium text-gray-700">{externalSource?.product?.lastApprovedAt || '-'}</p>
               </div>
 
               <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 space-y-2">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Source Snapshot</p>
-                <p className="text-sm font-medium text-gray-700">Name: {externalSource?.product?.sourceName || '-'}</p>
-                <p className="text-sm font-medium text-gray-700">Category: {externalSource?.product?.sourceCategoryCode || '-'}</p>
-                <p className="text-sm font-medium text-gray-700">Sync Status: {externalSource?.product?.syncStatus || '-'}</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{getText('merchant.productEdit.sourceSnapshot', 'Source Snapshot')}</p>
+                <p className="text-sm font-medium text-gray-700">{getText('merchant.productEdit.name', 'Name:')} {externalSource?.product?.sourceName || '-'}</p>
+                <p className="text-sm font-medium text-gray-700">{getText('merchant.productEdit.category', 'Category:')} {externalSource?.product?.sourceCategoryCode || '-'}</p>
+                <p className="text-sm font-medium text-gray-700">{getText('merchant.productEdit.syncStatus', 'Sync Status:')} {externalSource?.product?.syncStatus || '-'}</p>
               </div>
             </div>
 
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <GitCompareArrows className="w-4 h-4 text-blue-600" />
-                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-tight">Variant Source Review</h3>
+                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-tight">{getText('merchant.productEdit.variantSourceReview', 'Variant Source Review')}</h3>
               </div>
 
               {isExternalSourceLoading ? (
-                <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 text-sm text-gray-500">Loading source details...</div>
+                <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 text-sm text-gray-500">{getText('merchant.productEdit.loadingSourceDetails', 'Loading source details...')}</div>
               ) : (
                 <div className="space-y-3">
                   {externalSource?.variants?.map((variant: any) => (
@@ -360,18 +360,18 @@ export default function EditProductPage() {
                           <span className="text-sm font-bold text-gray-900">{variant.sourceVariantName || variant.externalVariantCode}</span>
                           <Badge variant="outline" className="border-gray-200 text-gray-600">{variant.sourceSkuCode || variant.coreSkuCode || 'No SKU'}</Badge>
                           {variant.hasPendingChange ? (
-                            <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">Pending</Badge>
+                            <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">{getText('merchant.productEdit.pending', 'Pending')}</Badge>
                           ) : (
-                            <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Confirmed</Badge>
+                            <Badge className="bg-green-100 text-green-800 hover:bg-green-100">{getText('merchant.productEdit.confirmed', 'Confirmed')}</Badge>
                           )}
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm text-gray-600">
-                          <p>Cost: {variant.sourceCostPrice ?? '-'}</p>
-                          <p>Status: {variant.sourceIsActive === false ? 'Inactive' : 'Active'}</p>
-                          <p>Sync: {variant.syncStatus}</p>
+                          <p>{getText('merchant.productEdit.cost', 'Cost:')} {variant.sourceCostPrice ?? '-'}</p>
+                          <p>{getText('merchant.productEdit.status', 'Status:')} {variant.sourceIsActive === false ? getText('merchant.productEdit.inactive', 'Inactive') : getText('merchant.productEdit.active', 'Active')}</p>
+                          <p>{getText('merchant.productEdit.sync', 'Sync:')} {variant.syncStatus}</p>
                         </div>
                         <p className="text-sm text-gray-700">
-                          {variant.hasPendingChange ? renderChangedFields(variant.pendingChangeSummary) : 'No pending source changes'}
+                          {variant.hasPendingChange ? renderChangedFields(variant.pendingChangeSummary) : getText('merchant.productEdit.noPendingSourceChanges', 'No pending source changes')}
                         </p>
                       </div>
 
@@ -382,7 +382,7 @@ export default function EditProductPage() {
                         disabled={!variant.hasPendingChange || acknowledgeVariantSourceMutation.isPending}
                         className="rounded-xl border-gray-200"
                       >
-                        {acknowledgeVariantSourceMutation.isPending ? 'Confirming...' : 'Acknowledge Variant'}
+                        {acknowledgeVariantSourceMutation.isPending ? getText('merchant.productEdit.confirming', 'Confirming...') : getText('merchant.productEdit.acknowledgeVariant', 'Acknowledge Variant')}
                       </Button>
                     </div>
                   ))}
@@ -398,29 +398,29 @@ export default function EditProductPage() {
             {/* Basic Information Section */}
             <section className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm space-y-6">
               <div className="space-y-1">
-                <h2 className="text-base font-bold text-gray-900 uppercase tracking-tight">Basic Information</h2>
-                <p className="text-gray-400 text-xs font-medium uppercase tracking-widest">Primary details</p>
+                <h2 className="text-base font-bold text-gray-900 uppercase tracking-tight">{getText('merchant.productEdit.basicInformation', 'Basic Information')}</h2>
+                <p className="text-gray-400 text-xs font-medium uppercase tracking-widest">{getText('merchant.productEdit.primaryDetails', 'Primary details')}</p>
               </div>
 
               <div className="space-y-5">
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Product Name</Label>
+                  <Label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">{getText('merchant.productEdit.productName', 'Product Name')}</Label>
                   <Input
                     value={formData.name}
                     onChange={(e) => handleInputChange('name', e.target.value)}
                     className="h-11 text-sm font-medium border-gray-100 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 rounded-xl bg-gray-50/50 px-4 transition-all"
-                    placeholder="Enter product title..."
+                    placeholder={getText('merchant.productEdit.enterProductTitle', 'Enter product title...')}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Category</Label>
+                  <Label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">{getText('merchant.productEdit.category', 'Category')}</Label>
                   <Select value={formData.category} onValueChange={(v) => handleInputChange('category', v)}>
                     <SelectTrigger className="h-11 bg-gray-50/50 border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500/10 transition-all flex items-center px-4 font-medium text-gray-900 text-sm">
-                      <SelectValue placeholder="Select Category" />
+                      <SelectValue placeholder={getText('merchant.productEdit.selectCategory', 'Select Category')} />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl border-gray-100 shadow-xl p-2 bg-white">
-                      <SelectItem value="none" className="rounded-lg py-2 font-medium transition-colors text-sm">Unassigned</SelectItem>
+                      <SelectItem value="none" className="rounded-lg py-2 font-medium transition-colors text-sm">{getText('merchant.productEdit.unassigned', 'Unassigned')}</SelectItem>
                       {categories.map((c: any) => (
                         <SelectItem key={c.id} value={c.id} className="rounded-lg py-2 font-medium transition-colors cursor-pointer text-sm">{c.name}</SelectItem>
                       ))}
@@ -429,10 +429,10 @@ export default function EditProductPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Requires Shipping</Label>
+                  <Label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">{getText('merchant.productEdit.requiresShipping', 'Requires Shipping')}</Label>
                   <div className="h-11 rounded-xl bg-gray-50/50 border border-gray-100 px-4 flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-700">
-                      {formData.requiresShipping ? 'Yes' : 'No'}
+                      {formData.requiresShipping ? getText('merchant.productEdit.yes', 'Yes') : 'No'}
                     </span>
                     <Switch
                       checked={formData.requiresShipping}
@@ -443,14 +443,14 @@ export default function EditProductPage() {
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Description</Label>
+                    <Label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">{getText('merchant.productEdit.description', 'Description')}</Label>
                     {isNativeCatalog && isDescriptionOverridden && (
                       <button
                         type="button"
                         onClick={() => handleInputChange('description', (product as unknown as Record<string, unknown>).odooDescription as string ?? '')}
                         className="text-[10px] font-bold uppercase tracking-widest text-blue-600 hover:text-blue-700"
                       >
-                        Reset to synced copy
+                        {getText('merchant.productEdit.resetToSyncedCopy', 'Reset to synced copy')}
                       </button>
                     )}
                   </div>
@@ -459,13 +459,13 @@ export default function EditProductPage() {
                     onChange={(e) => handleInputChange('description', e.target.value)}
                     rows={4}
                     className="border-gray-100 rounded-xl p-4 leading-relaxed text-sm font-medium text-gray-700 bg-gray-50/50 resize-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all"
-                    placeholder="Write a compelling product description..."
+                    placeholder={getText('merchant.productEdit.writeACompellingProductDescription', 'Write a compelling product description...')}
                   />
                   {isNativeCatalog && (
                     <p className="text-[10px] font-medium text-gray-400 leading-relaxed">
                       {isDescriptionOverridden
-                        ? 'Storefront shows this admin copy. "Reset to synced copy" falls back to the Odoo description.'
-                        : 'Storefront shows the synced Odoo description. Edit and save to override it — sync will not overwrite your copy.'}
+                        ? getText('merchant.productEdit.storefrontShowsThisAdminCopyReset', 'Storefront shows this admin copy. "Reset to synced copy" falls back to the Odoo description.')
+                        : getText('merchant.productEdit.storefrontShowsTheSyncedOdooDescription', 'Storefront shows the synced Odoo description. Edit and save to override it — sync will not overwrite your copy.')}
                     </p>
                   )}
                 </div>
@@ -475,8 +475,8 @@ export default function EditProductPage() {
             {/* Product Media Section */}
             <section className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm space-y-6">
               <div className="space-y-1">
-                <h2 className="text-base font-bold text-gray-900 uppercase tracking-tight">Product Media</h2>
-                <p className="text-gray-400 text-xs font-medium uppercase tracking-widest">Gallery images</p>
+                <h2 className="text-base font-bold text-gray-900 uppercase tracking-tight">{getText('merchant.productEdit.productMedia', 'Product Media')}</h2>
+                <p className="text-gray-400 text-xs font-medium uppercase tracking-widest">{getText('merchant.productEdit.galleryImages', 'Gallery images')}</p>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -488,7 +488,7 @@ export default function EditProductPage() {
                       <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
                         <Plus className="w-5 h-5 text-blue-600" />
                       </div>
-                      <span className="text-[10px] font-bold text-gray-400 group-hover:text-blue-600 uppercase tracking-widest block">Upload</span>
+                      <span className="text-[10px] font-bold text-gray-400 group-hover:text-blue-600 uppercase tracking-widest block">{getText('merchant.productEdit.upload', 'Upload')}</span>
                     </div>
                   )}
                   <input type="file" accept="image/*" multiple className="hidden" onChange={handleImageUpload} disabled={isUploading} />
@@ -496,7 +496,7 @@ export default function EditProductPage() {
 
                 {formData.images.map((img, idx) => (
                   <div key={idx} className="group relative aspect-square bg-gray-50 rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
-                    <Image src={img} alt="Product" fill className="object-cover transition-transform group-hover:scale-105 duration-500" />
+                    <Image src={img} alt={getText('merchant.productEdit.product', 'Product')} fill className="object-cover transition-transform group-hover:scale-105 duration-500" />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                       <Button
                         variant="ghost"
@@ -517,8 +517,8 @@ export default function EditProductPage() {
           <div className="lg:col-span-2">
             <section className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm space-y-6 h-full">
               <div className="space-y-1">
-                <h2 className="text-base font-bold text-gray-900 uppercase tracking-tight">Inventory & Pricing</h2>
-                <p className="text-gray-400 text-xs font-medium uppercase tracking-widest">Configure variants, price points and stock levels</p>
+                <h2 className="text-base font-bold text-gray-900 uppercase tracking-tight">{getText('merchant.productEdit.inventoryPricing', 'Inventory & Pricing')}</h2>
+                <p className="text-gray-400 text-xs font-medium uppercase tracking-widest">{getText('merchant.productEdit.configureVariantsPricePointsAndStock', 'Configure variants, price points and stock levels')}</p>
               </div>
 
               <VariantsEditor
@@ -547,10 +547,10 @@ export default function EditProductPage() {
 
         {/* Action Footer */}
         <div className="pt-2 flex items-center justify-between pb-6">
-          <p className="text-xs text-gray-400 font-medium">Last synced: Just now</p>
+          <p className="text-xs text-gray-400 font-medium">{getText('merchant.productEdit.lastSyncedJustNow', 'Last synced: Just now')}</p>
           <div className="flex items-center space-x-2">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Auto-save Enabled</span>
+            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{getText('merchant.productEdit.autoSaveEnabled', 'Auto-save Enabled')}</span>
           </div>
         </div>
       </div>

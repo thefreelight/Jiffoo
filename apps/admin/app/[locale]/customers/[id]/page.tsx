@@ -329,7 +329,7 @@ export default function CustomerDetailPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="rounded-xl border-gray-100">
-                        <SelectItem value={UserRole.USER}>REGULAR USER</SelectItem>
+                        <SelectItem value={UserRole.USER}>{getText('merchant.customers.detailPage.regularUser', 'REGULAR USER')}</SelectItem>
                         <SelectItem value={UserRole.ADMIN}>ADMINISTRATOR</SelectItem>
                       </SelectContent>
                     </Select>

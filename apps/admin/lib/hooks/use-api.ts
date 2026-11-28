@@ -156,6 +156,13 @@ export function useProductExternalSource(id: string) {
 }
 
 export function useCreateProduct() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
@@ -176,7 +183,7 @@ export function useCreateProduct() {
         queryKey: queryKeys.products,
         exact: false
       });
-      toast.success('Product created successfully');
+      toast.success(getText('merchant.toast.productCreatedSuccessfully', 'Product created successfully'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -207,7 +214,14 @@ export function useUpdateProductDescription() {
   });
 }
 
-export function useUpdateProduct() {  const queryClient = useQueryClient();
+export function useUpdateProduct() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+  const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
   return useMutation({
@@ -223,7 +237,7 @@ export function useUpdateProduct() {  const queryClient = useQueryClient();
       queryClient.invalidateQueries({ queryKey: queryKeys.product(id) });
       queryClient.invalidateQueries({ queryKey: queryKeys.productStats });
       queryClient.invalidateQueries({ queryKey: queryKeys.adminDashboard });
-      toast.success('Product updated successfully');
+      toast.success(getText('merchant.toast.productUpdatedSuccessfully', 'Product updated successfully'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -232,6 +246,13 @@ export function useUpdateProduct() {  const queryClient = useQueryClient();
 }
 
 export function useAcknowledgeProductSourceChanges() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
@@ -247,7 +268,7 @@ export function useAcknowledgeProductSourceChanges() {
         queryKey: queryKeys.products,
         exact: false,
       });
-      toast.success('Source changes acknowledged');
+      toast.success(getText('merchant.toast.sourceChangesAcknowledged', 'Source changes acknowledged'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -256,6 +277,13 @@ export function useAcknowledgeProductSourceChanges() {
 }
 
 export function useAcknowledgeVariantSourceChange() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
@@ -271,7 +299,7 @@ export function useAcknowledgeVariantSourceChange() {
         queryKey: queryKeys.products,
         exact: false,
       });
-      toast.success('Variant source change acknowledged');
+      toast.success(getText('merchant.toast.variantSourceChangeAcknowledged', 'Variant source change acknowledged'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -280,6 +308,13 @@ export function useAcknowledgeVariantSourceChange() {
 }
 
 export function useDeleteProduct() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
@@ -305,7 +340,7 @@ export function useDeleteProduct() {
         queryKey: queryKeys.products,
         exact: false
       });
-      toast.success('Product deleted successfully');
+      toast.success(getText('merchant.toast.productDeletedSuccessfully', 'Product deleted successfully'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -492,6 +527,13 @@ export function useOrder(id: string) {
 }
 
 export function useUpdateOrderItemFulfillment() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
@@ -513,7 +555,7 @@ export function useUpdateOrderItemFulfillment() {
       queryClient.invalidateQueries({ queryKey: queryKeys.orders });
       queryClient.invalidateQueries({ queryKey: queryKeys.orderStats });
       queryClient.invalidateQueries({ queryKey: queryKeys.adminDashboard });
-      toast.success('Fulfillment payload updated successfully');
+      toast.success(getText('merchant.toast.fulfillmentPayloadUpdatedSuccessfully', 'Fulfillment payload updated successfully'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -522,6 +564,13 @@ export function useUpdateOrderItemFulfillment() {
 }
 
 export function useUpdateOrderStatus() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
@@ -535,7 +584,7 @@ export function useUpdateOrderStatus() {
       queryClient.invalidateQueries({ queryKey: queryKeys.order(id) });
       queryClient.invalidateQueries({ queryKey: queryKeys.orderStats });
       queryClient.invalidateQueries({ queryKey: queryKeys.adminDashboard });
-      toast.success('Order status updated successfully');
+      toast.success(getText('merchant.toast.orderStatusUpdatedSuccessfully', 'Order status updated successfully'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -544,6 +593,13 @@ export function useUpdateOrderStatus() {
 }
 
 export function useCancelOrder() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
@@ -557,7 +613,7 @@ export function useCancelOrder() {
       queryClient.invalidateQueries({ queryKey: queryKeys.order(id) });
       queryClient.invalidateQueries({ queryKey: queryKeys.orderStats });
       queryClient.invalidateQueries({ queryKey: queryKeys.adminDashboard });
-      toast.success('Order cancelled successfully');
+      toast.success(getText('merchant.toast.orderCancelledSuccessfully', 'Order cancelled successfully'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -566,6 +622,13 @@ export function useCancelOrder() {
 }
 
 export function useRefundOrder() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
@@ -582,9 +645,9 @@ export function useRefundOrder() {
       // A card refund is confirmed by the payment provider a moment after it is asked for; the order shows as
       // refunded then. It is not said to be refunded before it is.
       if ((order as { refundPending?: boolean } | undefined)?.refundPending) {
-        toast.success('Refund submitted. The order shows as refunded once the payment provider confirms it, usually within a few minutes.');
+        toast.success(getText('merchant.toast.refundSubmittedTheOrderShowsAs', 'Refund submitted. The order shows as refunded once the payment provider confirms it, usually within a few minutes.'));
       } else {
-        toast.success('Order refunded successfully');
+        toast.success(getText('merchant.toast.orderRefundedSuccessfully', 'Order refunded successfully'));
       }
     },
     onError: (error: unknown) => {
@@ -619,6 +682,13 @@ export function useRedeliverEsim() {
 }
 
 export function useShipOrder() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
@@ -639,7 +709,7 @@ export function useShipOrder() {
       queryClient.invalidateQueries({ queryKey: queryKeys.order(id) });
       queryClient.invalidateQueries({ queryKey: queryKeys.orderStats });
       queryClient.invalidateQueries({ queryKey: queryKeys.adminDashboard });
-      toast.success('Order marked as shipped');
+      toast.success(getText('merchant.toast.orderMarkedAsShipped', 'Order marked as shipped'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -705,6 +775,13 @@ export function useCustomerCards(userId: string) {
 }
 
 export function useDeleteUser() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
@@ -727,7 +804,7 @@ export function useDeleteUser() {
         queryKey: queryKeys.users,
         exact: false
       });
-      toast.success('User deleted successfully');
+      toast.success(getText('merchant.toast.userDeletedSuccessfully', 'User deleted successfully'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -736,6 +813,13 @@ export function useDeleteUser() {
 }
 
 export function useUpdateUser() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
@@ -763,7 +847,7 @@ export function useUpdateUser() {
       queryClient.invalidateQueries({ queryKey: queryKeys.user(id) });
       queryClient.invalidateQueries({ queryKey: queryKeys.userStats });
       queryClient.invalidateQueries({ queryKey: queryKeys.adminDashboard });
-      toast.success('User updated successfully');
+      toast.success(getText('merchant.toast.userUpdatedSuccessfully', 'User updated successfully'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -855,6 +939,13 @@ export function useStaffAuditLogs(userId: string, page = 1, limit = 20) {
 }
 
 export function useCreateStaff() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
@@ -865,7 +956,7 @@ export function useCreateStaff() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.staff, exact: false });
-      toast.success('Staff member created successfully');
+      toast.success(getText('merchant.toast.staffMemberCreatedSuccessfully', 'Staff member created successfully'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -874,6 +965,13 @@ export function useCreateStaff() {
 }
 
 export function useUpdateStaff() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
@@ -885,7 +983,7 @@ export function useUpdateStaff() {
     onSuccess: (_, { userId }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.staff, exact: false });
       queryClient.invalidateQueries({ queryKey: queryKeys.staffMember(userId) });
-      toast.success('Staff member updated successfully');
+      toast.success(getText('merchant.toast.staffMemberUpdatedSuccessfully', 'Staff member updated successfully'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -894,6 +992,13 @@ export function useUpdateStaff() {
 }
 
 export function useRemoveStaff() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
@@ -905,7 +1010,7 @@ export function useRemoveStaff() {
     onSuccess: (_, userId) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.staff, exact: false });
       queryClient.removeQueries({ queryKey: queryKeys.staffMember(userId) });
-      toast.success('Staff access removed');
+      toast.success(getText('merchant.toast.staffAccessRemoved', 'Staff access removed'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -914,6 +1019,13 @@ export function useRemoveStaff() {
 }
 
 export function useResendStaffInvite() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
@@ -924,7 +1036,7 @@ export function useResendStaffInvite() {
     },
     onSuccess: (_, userId) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.staffMember(userId) });
-      toast.success('Invitation email sent');
+      toast.success(getText('merchant.toast.invitationEmailSent', 'Invitation email sent'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -1010,6 +1122,13 @@ export function useCategories() {
 
 // Upload hooks
 export function useUploadProductImage() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const { getErrorMessage } = useLocalizedApiFeedback();
 
   return useMutation({
@@ -1018,7 +1137,7 @@ export function useUploadProductImage() {
       return unwrapApiResponse(response);
     },
     onSuccess: () => {
-      toast.success('Image uploaded successfully');
+      toast.success(getText('merchant.toast.imageUploadedSuccessfully', 'Image uploaded successfully'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -1027,6 +1146,13 @@ export function useUploadProductImage() {
 }
 
 export function useUploadAvatar() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
@@ -1044,7 +1170,7 @@ export function useUploadAvatar() {
         });
       }
       queryClient.invalidateQueries({ queryKey: queryKeys.accountProfile });
-      toast.success('Avatar uploaded successfully');
+      toast.success(getText('merchant.toast.avatarUploadedSuccessfully', 'Avatar uploaded successfully'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -1063,6 +1189,13 @@ export function useAccountProfile() {
 }
 
 export function useUpdateAccountProfile() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
@@ -1082,7 +1215,7 @@ export function useUpdateAccountProfile() {
           updatedAt: updatedProfile.updatedAt ?? user.updatedAt,
         });
       }
-      toast.success('Profile updated successfully');
+      toast.success(getText('merchant.toast.profileUpdatedSuccessfully', 'Profile updated successfully'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -1091,6 +1224,13 @@ export function useUpdateAccountProfile() {
 }
 
 export function useUpdateAccountEmail() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
@@ -1109,7 +1249,7 @@ export function useUpdateAccountEmail() {
           updatedAt: updatedProfile.updatedAt ?? user.updatedAt,
         });
       }
-      toast.success('Email updated successfully');
+      toast.success(getText('merchant.toast.emailUpdatedSuccessfully', 'Email updated successfully'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -1118,6 +1258,13 @@ export function useUpdateAccountEmail() {
 }
 
 export function useChangePassword() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const { getErrorMessage } = useLocalizedApiFeedback();
 
   return useMutation({
@@ -1133,7 +1280,7 @@ export function useChangePassword() {
           requiresPasswordRotation: false,
         });
       }
-      toast.success('Password changed successfully');
+      toast.success(getText('merchant.toast.passwordChangedSuccessfully', 'Password changed successfully'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -1310,6 +1457,13 @@ export function useManagedPackageStatus() {
 }
 
 export function useActivateManagedPackage() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
@@ -1323,7 +1477,7 @@ export function useActivateManagedPackage() {
       queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
       queryClient.invalidateQueries({ queryKey: themeQueryKeys.all });
       queryClient.invalidateQueries({ queryKey: pluginQueryKeys.all });
-      toast.success('Commercial package activated');
+      toast.success(getText('merchant.toast.commercialPackageActivated', 'Commercial package activated'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error, 'merchant.extensions.managedPackageActivationFailed', 'Failed to activate commercial package'));
@@ -1332,6 +1486,13 @@ export function useActivateManagedPackage() {
 }
 
 export function useProvisionManagedPackage() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
@@ -1345,7 +1506,7 @@ export function useProvisionManagedPackage() {
       queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
       queryClient.invalidateQueries({ queryKey: themeQueryKeys.all });
       queryClient.invalidateQueries({ queryKey: pluginQueryKeys.all });
-      toast.success('Included assets provisioned successfully');
+      toast.success(getText('merchant.toast.includedAssetsProvisionedSuccessfully', 'Included assets provisioned successfully'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error, 'merchant.extensions.managedPackageProvisionFailed', 'Failed to provision included assets'));
@@ -1404,6 +1565,13 @@ export function usePollPlatformConnection() {
 }
 
 export function useCompletePlatformConnection() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
@@ -1415,7 +1583,7 @@ export function useCompletePlatformConnection() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: platformConnectionQueryKeys.all });
       queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
-      toast.success('Platform instance connected successfully');
+      toast.success(getText('merchant.toast.platformInstanceConnectedSuccessfully', 'Platform instance connected successfully'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error, 'merchant.extensions.platformCompleteFailed', 'Failed to complete platform connection'));
@@ -1424,6 +1592,13 @@ export function useCompletePlatformConnection() {
 }
 
 export function useBindPlatformTenant() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
@@ -1435,7 +1610,7 @@ export function useBindPlatformTenant() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: platformConnectionQueryKeys.all });
       queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
-      toast.success('Default store bound to the official platform');
+      toast.success(getText('merchant.toast.defaultStoreBoundToTheOfficial', 'Default store bound to the official platform'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error, 'merchant.extensions.platformBindTenantFailed', 'Failed to bind the default store'));
@@ -1444,6 +1619,13 @@ export function useBindPlatformTenant() {
 }
 
 export function useDisconnectPlatformConnection() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
@@ -1455,7 +1637,7 @@ export function useDisconnectPlatformConnection() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: platformConnectionQueryKeys.all });
       queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
-      toast.success('Platform connection removed');
+      toast.success(getText('merchant.toast.platformConnectionRemoved', 'Platform connection removed'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error, 'merchant.extensions.platformDisconnectFailed', 'Failed to disconnect platform connection'));
@@ -1699,6 +1881,13 @@ export function useAffiliateNativeOverview(slug: string) {
 
 // Update plugin configuration mutation
 export function useUpdatePluginConfig() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
@@ -1712,7 +1901,7 @@ export function useUpdatePluginConfig() {
     },
     onSuccess: (_, variables) => {
       refreshPluginRuntimeState(queryClient, variables.slug);
-      toast.success('Plugin configuration updated successfully');
+      toast.success(getText('merchant.toast.pluginConfigurationUpdatedSuccessfully', 'Plugin configuration updated successfully'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -1747,6 +1936,13 @@ export function useTogglePlugin() {
 
 // Uninstall plugin mutation
 export function useUninstallPlugin() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
@@ -1757,7 +1953,7 @@ export function useUninstallPlugin() {
     },
     onSuccess: (_, slug) => {
       refreshPluginRuntimeState(queryClient, slug);
-      toast.success('Plugin uninstalled successfully');
+      toast.success(getText('merchant.toast.pluginUninstalledSuccessfully', 'Plugin uninstalled successfully'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -1767,6 +1963,13 @@ export function useUninstallPlugin() {
 
 // Restore plugin mutation (soft-uninstall rollback)
 export function useRestorePlugin() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
@@ -1777,7 +1980,7 @@ export function useRestorePlugin() {
     },
     onSuccess: (_, slug) => {
       refreshPluginRuntimeState(queryClient, slug);
-      toast.success('Plugin restored successfully');
+      toast.success(getText('merchant.toast.pluginRestoredSuccessfully', 'Plugin restored successfully'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -1787,6 +1990,13 @@ export function useRestorePlugin() {
 
 // Purge plugin mutation (hard delete)
 export function usePurgePlugin() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
@@ -1797,7 +2007,7 @@ export function usePurgePlugin() {
     },
     onSuccess: (_, slug) => {
       refreshPluginRuntimeState(queryClient, slug);
-      toast.success('Plugin purged permanently');
+      toast.success(getText('merchant.toast.pluginPurgedPermanently', 'Plugin purged permanently'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -1887,6 +2097,13 @@ export function useUpdatePluginInstance() {
 
 // Delete plugin instance mutation
 export function useDeletePluginInstance() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
@@ -1897,7 +2114,7 @@ export function useDeletePluginInstance() {
     },
     onSuccess: (_, variables) => {
       refreshPluginRuntimeState(queryClient, variables.slug);
-      toast.success('Instance deleted successfully');
+      toast.success(getText('merchant.toast.instanceDeletedSuccessfully', 'Instance deleted successfully'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -1922,6 +2139,13 @@ function invalidatePluginTokenStatus(queryClient: ReturnType<typeof useQueryClie
 }
 
 export function useIssuePluginInstanceToken() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
@@ -1932,7 +2156,7 @@ export function useIssuePluginInstanceToken() {
     },
     onSuccess: (_, variables) => {
       invalidatePluginTokenStatus(queryClient, variables.slug, variables.installationId);
-      toast.success('Gateway access token issued');
+      toast.success(getText('merchant.toast.gatewayAccessTokenIssued', 'Gateway access token issued'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -1941,6 +2165,13 @@ export function useIssuePluginInstanceToken() {
 }
 
 export function useRefreshPluginInstanceToken() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
@@ -1951,7 +2182,7 @@ export function useRefreshPluginInstanceToken() {
     },
     onSuccess: (_, variables) => {
       invalidatePluginTokenStatus(queryClient, variables.slug, variables.installationId);
-      toast.success('Gateway access token rotated');
+      toast.success(getText('merchant.toast.gatewayAccessTokenRotated', 'Gateway access token rotated'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -1960,6 +2191,13 @@ export function useRefreshPluginInstanceToken() {
 }
 
 export function useSuspendPluginInstanceToken() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
@@ -1970,7 +2208,7 @@ export function useSuspendPluginInstanceToken() {
     },
     onSuccess: (_, variables) => {
       invalidatePluginTokenStatus(queryClient, variables.slug, variables.installationId);
-      toast.success('Gateway access token suspended');
+      toast.success(getText('merchant.toast.gatewayAccessTokenSuspended', 'Gateway access token suspended'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -1979,6 +2217,13 @@ export function useSuspendPluginInstanceToken() {
 }
 
 export function useResumePluginInstanceToken() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
@@ -1989,7 +2234,7 @@ export function useResumePluginInstanceToken() {
     },
     onSuccess: (_, variables) => {
       invalidatePluginTokenStatus(queryClient, variables.slug, variables.installationId);
-      toast.success('Gateway access token resumed');
+      toast.success(getText('merchant.toast.gatewayAccessTokenResumed', 'Gateway access token resumed'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -1998,6 +2243,13 @@ export function useResumePluginInstanceToken() {
 }
 
 export function useRevokePluginInstanceToken() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
@@ -2008,7 +2260,7 @@ export function useRevokePluginInstanceToken() {
     },
     onSuccess: (_, variables) => {
       invalidatePluginTokenStatus(queryClient, variables.slug, variables.installationId);
-      toast.success('Gateway access token revoked');
+      toast.success(getText('merchant.toast.gatewayAccessTokenRevoked', 'Gateway access token revoked'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -2117,6 +2369,13 @@ export function useInventoryStats() {
 
 // Generate forecast mutation
 export function useGenerateForecast() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
@@ -2133,7 +2392,7 @@ export function useGenerateForecast() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.inventoryDashboard });
       queryClient.invalidateQueries({ queryKey: queryKeys.inventoryStats });
-      toast.success('Forecast generated successfully');
+      toast.success(getText('merchant.toast.forecastGeneratedSuccessfully', 'Forecast generated successfully'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -2166,6 +2425,13 @@ export function useRecomputeAllForecasts() {
 
 // Dismiss alert mutation
 export function useDismissAlert() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
@@ -2177,7 +2443,7 @@ export function useDismissAlert() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.inventoryDashboard });
       queryClient.invalidateQueries({ queryKey: queryKeys.inventoryStats });
-      toast.success('Alert dismissed successfully');
+      toast.success(getText('merchant.toast.alertDismissedSuccessfully', 'Alert dismissed successfully'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -2187,6 +2453,13 @@ export function useDismissAlert() {
 
 // Resolve alert mutation
 export function useResolveAlert() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
@@ -2198,7 +2471,7 @@ export function useResolveAlert() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.inventoryDashboard });
       queryClient.invalidateQueries({ queryKey: queryKeys.inventoryStats });
-      toast.success('Alert resolved successfully');
+      toast.success(getText('merchant.toast.alertResolvedSuccessfully', 'Alert resolved successfully'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -2208,6 +2481,13 @@ export function useResolveAlert() {
 
 // Update alert status mutation
 export function useUpdateAlertStatus() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
@@ -2227,7 +2507,7 @@ export function useUpdateAlertStatus() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.inventoryDashboard });
       queryClient.invalidateQueries({ queryKey: queryKeys.inventoryStats });
-      toast.success('Alert status updated successfully');
+      toast.success(getText('merchant.toast.alertStatusUpdatedSuccessfully', 'Alert status updated successfully'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -2237,6 +2517,13 @@ export function useUpdateAlertStatus() {
 
 // Check and create alerts mutation
 export function useCheckAlerts() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
@@ -2248,7 +2535,7 @@ export function useCheckAlerts() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.inventoryDashboard });
       queryClient.invalidateQueries({ queryKey: queryKeys.inventoryStats });
-      toast.success('Alerts updated successfully');
+      toast.success(getText('merchant.toast.alertsUpdatedSuccessfully', 'Alerts updated successfully'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -2258,6 +2545,13 @@ export function useCheckAlerts() {
 
 // Record forecast accuracy mutation
 export function useRecordAccuracy() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
@@ -2270,7 +2564,7 @@ export function useRecordAccuracy() {
       queryClient.invalidateQueries({ queryKey: queryKeys.inventoryDashboard });
       queryClient.invalidateQueries({ queryKey: queryKeys.inventoryStats });
 
-      toast.success('Forecast accuracy recorded successfully');
+      toast.success(getText('merchant.toast.forecastAccuracyRecordedSuccessfully', 'Forecast accuracy recorded successfully'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -2375,6 +2669,13 @@ export function useErrorStats() {
 }
 
 export function useResolveError() {
+  const t = useT();
+  const getText = (key: string, fallback: string): string => {
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
+  };
+
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -2388,7 +2689,7 @@ export function useResolveError() {
       queryClient.invalidateQueries({ queryKey: errorQueryKeys.all });
       queryClient.invalidateQueries({ queryKey: errorQueryKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: errorQueryKeys.stats });
-      toast.success('Error status updated successfully');
+      toast.success(getText('merchant.toast.errorStatusUpdatedSuccessfully', 'Error status updated successfully'));
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Failed to update error status');

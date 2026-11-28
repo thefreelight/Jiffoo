@@ -146,16 +146,15 @@ export function OfficialBadge({ className, compact = false }: OfficialBadgeProps
 
 export function InstalledPluginBadge({ className }: { className?: string }) {
   const t = useT();
-  const label = t && t('merchant.extensions.badgeInstalled') !== 'merchant.extensions.badgeInstalled'
-    ? t('merchant.extensions.badgeInstalled')
-    : '已安装';
+  const translated = t ? t('merchant.extensions.badgeInstalled') : 'merchant.extensions.badgeInstalled';
+  const label = translated === 'merchant.extensions.badgeInstalled' ? 'Installed' : translated;
   return (
     <Badge
       variant="outline"
       className={cn('gap-1.5 rounded-full border-slate-200 bg-slate-50 text-slate-600 px-2.5 py-1 text-[11px] font-semibold', className)}
     >
       <Puzzle className="h-3.5 w-3.5" />
-      Installed
+      {label}
     </Badge>
   );
 }

@@ -45,7 +45,7 @@ export default function Error({
                 </div>
                 {error.digest && (
                     <p className="text-xs text-gray-400 mt-4">
-                        Error ID: {error.digest}
+                        {getText('common.errorPage.errorId', 'Error ID:')} {error.digest}
                     </p>
                 )}
             </div>

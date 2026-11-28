@@ -84,6 +84,7 @@ export default function RedemptionCodesPage() {
     } as Trilingual,
     createSuccess: { en: 'Code created', hans: '兑换码已创建', hant: '兌換碼已建立' } as Trilingual,
     createFailed: { en: 'Create failed', hans: '创建失败', hant: '建立失敗' } as Trilingual,
+    unknownError: { en: 'unknown error', hans: '未知错误', hant: '未知錯誤' } as Trilingual,
   }
 
   const statusOf = (item: RedemptionCodeDTO): string => {
@@ -119,7 +120,7 @@ export default function RedemptionCodesPage() {
       setShowForm(false)
       await codes.refetch()
     } catch (error) {
-      toast.error(`${pick(copy.createFailed)}: ${error instanceof Error ? error.message : 'unknown error'}`)
+      toast.error(`${pick(copy.createFailed)}: ${error instanceof Error ? error.message : pick(copy.unknownError)}`)
     } finally {
       setBusy(false)
     }

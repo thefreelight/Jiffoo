@@ -194,7 +194,7 @@ export function OfficialPluginsCatalog({
                 {entry === 'all' ? getText('common.labels.all', 'All') : getText(`merchant.extensions.category.${entry}`, entry)}
               </button>
             ))}
-            <span className="ml-auto hidden rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 lg:inline-flex">Featured <span className="ml-2 text-slate-400">⌄</span></span>
+            <span className="ml-auto hidden rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 lg:inline-flex">{getText('merchant.extensions.featured', 'Featured')}<span className="ml-2 text-slate-400">⌄</span></span>
           </div>
         </div>
       </div>
@@ -221,9 +221,9 @@ export function OfficialPluginsCatalog({
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
             <Search className="h-5 w-5" />
           </div>
-          <h4 className="mt-4 text-base font-semibold text-slate-950">{marketOnline ? 'No plugins found' : 'Marketplace is temporarily unavailable'}</h4>
-          <p className="mx-auto mt-1 max-w-md text-sm text-slate-500">{marketOnline ? (managedPackage ? getText('merchant.extensions.noIncludedPlugins', 'No licensed plugins are available for this package.') : getText('merchant.extensions.noOfficialMatches', 'No official plugins match the current filter.')) : 'Installed plugins remain available. Marketplace listings will return when the catalog service reconnects.'}</p>
-          <div className="mt-5 flex justify-center gap-2"><Button variant="outline" className="rounded-lg" onClick={() => setSearch('')}>Clear search</Button></div>
+          <h4 className="mt-4 text-base font-semibold text-slate-950">{marketOnline ? getText('merchant.extensions.noPluginsFound', 'No plugins found') : getText('merchant.extensions.marketplaceIsTemporarilyUnavailable', 'Marketplace is temporarily unavailable')}</h4>
+          <p className="mx-auto mt-1 max-w-md text-sm text-slate-500">{marketOnline ? (managedPackage ? getText('merchant.extensions.noIncludedPlugins', 'No licensed plugins are available for this package.') : getText('merchant.extensions.noOfficialMatches', 'No official plugins match the current filter.')) : getText('merchant.extensions.installedPluginsRemainAvailableMarketplaceListin', 'Installed plugins remain available. Marketplace listings will return when the catalog service reconnects.')}</p>
+          <div className="mt-5 flex justify-center gap-2"><Button variant="outline" className="rounded-lg" onClick={() => setSearch('')}>{getText('merchant.extensions.clearSearch', 'Clear search')}</Button></div>
         </div>
       ) : (
         <div className="space-y-4">

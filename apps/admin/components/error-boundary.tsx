@@ -9,6 +9,7 @@
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { logger } from '@/lib/logger';
+import { useT } from 'shared/src/i18n/react';
 
 interface Props {
   children: ReactNode;
@@ -18,6 +19,13 @@ interface Props {
 interface State {
   hasError: boolean;
   error?: Error;
+}
+
+/** A class component cannot call a hook; this one line of its fallback can. */
+function BoundaryText({ k, fallback }: { k: string; fallback: string }) {
+  const t = useT();
+  const translated = t ? t(k) : k;
+  return <>{translated === k ? fallback : translated}</>;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
@@ -80,23 +88,23 @@ export class ErrorBoundary extends Component<Props, State> {
             </div>
             <div className="mt-4 text-center">
               <h3 className="text-lg font-medium text-gray-900">
-                Admin Panel Error
+                <BoundaryText k="common.errorBoundary.title" fallback="Admin Panel Error" />
               </h3>
               <p className="mt-2 text-sm text-gray-500">
-                The admin panel encountered an unexpected error. We have logged this issue. Please refresh the page to try again.
+                <BoundaryText k="common.errorBoundary.description" fallback="The admin panel encountered an unexpected error. We have logged this issue. Please refresh the page to try again." />
               </p>
               <div className="mt-6">
                 <button
                   onClick={() => window.location.reload()}
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
-                  Refresh Page
+                  <BoundaryText k="common.errorBoundary.refresh" fallback="Refresh Page" />
                 </button>
               </div>
               {process.env.NODE_ENV === 'development' && this.state.error && (
                 <details className="mt-4 text-left">
                   <summary className="text-sm text-gray-600 cursor-pointer">
-                    Error Details (Development Mode)
+                    <BoundaryText k="common.errorBoundary.details" fallback="Error Details (Development Mode)" />
                   </summary>
                   <pre className="mt-2 text-xs text-red-600 bg-red-50 p-2 rounded overflow-auto">
                     {this.state.error.stack}

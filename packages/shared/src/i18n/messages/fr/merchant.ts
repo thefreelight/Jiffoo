@@ -6,6 +6,11 @@
  */
 
 export const merchant = {
+  // Unified list pages (products / inventory / orders / customers)
+  pages: {
+    sampleDataTitle: 'Données d’exemple',
+    sampleDataHint: 'Ces lignes sont des exemples affichés par l’instance de démonstration pour illustrer la page. Ce ne sont pas de vraies données et elles ne peuvent pas être utilisées.',
+  },
   // Navigation
   nav: {
     dashboard: 'Dashboard',
