@@ -37,6 +37,7 @@ import {
   ShieldCheck,
   Headphones,
   Gamepad2,
+  ChartColumn,
 } from 'lucide-react'
 import { useAuthStore } from '@/lib/store'
 import {
@@ -131,6 +132,8 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
   const installedCount = (installedPlugins as { items?: unknown[] } | undefined)?.items?.length
   // The game stats report only exists where the game-stats plugin is installed and enabled.
   const gameStatsEnabled = installedPluginNav?.some((plugin) => plugin.slug === 'game-stats' && plugin.enabled) ?? false
+  // The traffic report only exists where the traffic-analytics plugin is installed and enabled.
+  const trafficEnabled = installedPluginNav?.some((plugin) => plugin.slug === 'traffic-analytics' && plugin.enabled) ?? false
 
   // Build navigation config dynamically
   const navigationConfig = useMemo(() => {
@@ -227,6 +230,19 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
           } satisfies NavigationItem,
         ]
         : []),
+      // Only meaningful with the Traffic Analytics plugin: hidden everywhere else.
+      ...(trafficEnabled
+        ? [
+          {
+            id: 'trafficAnalytics',
+            nameKey: 'merchant.nav.trafficAnalytics',
+            fallback: 'Traffic',
+            href: '/analytics/traffic',
+            icon: ChartColumn,
+            requiredPermissions: [ADMIN_PERMISSIONS.DASHBOARD_READ],
+          } satisfies NavigationItem,
+        ]
+        : []),
       {
         id: 'themes',
         nameKey: 'merchant.nav.themes',
@@ -259,7 +275,7 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
     }
 
     return [items[0], packageItem, ...items.slice(1)] as (NavigationItem | 'divider')[]
-  }, [isManaged, record, jobsAdminAvailable, gameStatsEnabled])
+  }, [isManaged, record, jobsAdminAvailable, gameStatsEnabled, trafficEnabled])
 
   // Permission-filtered navigation; entries without requirements stay visible.
   const visibleNavigation = useMemo(

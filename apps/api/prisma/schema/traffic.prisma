@@ -1,0 +1,57 @@
+// ============================================================
+// STOREFRONT TRAFFIC (core collection)
+//
+// A visit opens on the first page view and continues until 30 minutes pass
+// without another. Which channel a visit came from is decided when it is read,
+// from the lists in traffic_channel_rules. Nothing personal is stored: a
+// visitor is a monthly-rotated HMAC, never an address, cookie or device id.
+// ============================================================
+
+/// One storefront visit with the acquisition fields it arrived with.
+model TrafficSession {
+  id           String  @id
+  host         String
+  visitorKey   String
+  /// Epoch milliseconds.
+  startedAt    BigInt
+  lastSeenAt   BigInt
+  views        Int     @default(1)
+  landingPath  String
+  referrerHost String?
+  utmSource    String?
+  utmMedium    String?
+  utmCampaign  String?
+  utmContent   String?
+  utmTerm      String?
+  /// Comma-joined names of the click parameters present on the landing URL.
+  clickIds     String?
+  country      String?
+  device       String?
+
+  @@index([startedAt])
+  @@index([visitorKey, lastSeenAt])
+  @@map("traffic_sessions")
+  @@schema("public")
+}
+
+/// Page views per path per day (`YYYYMMDD` in the viewer's zone).
+model TrafficPageDaily {
+  day   Int
+  host  String
+  path  String
+  views Int    @default(1)
+
+  @@id([day, host, path])
+  @@map("traffic_page_daily")
+  @@schema("public")
+}
+
+/// The single row holding the channel rules document an analytics plugin maintains.
+model TrafficChannelRules {
+  id        Int      @id
+  rulesJson String
+  updatedAt DateTime @updatedAt
+
+  @@map("traffic_channel_rules")
+  @@schema("public")
+}

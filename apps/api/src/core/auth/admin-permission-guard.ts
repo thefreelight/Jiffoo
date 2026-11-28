@@ -167,6 +167,13 @@ function resolveRequiredPermission(method: string, pathname: string): AdminPermi
       : ADMIN_PERMISSIONS.SETTINGS_WRITE;
   }
 
+  // Traffic reports read with the dashboard; only the channel lists are written.
+  if (pathname.startsWith('/admin/traffic')) {
+    return isReadMethod(method)
+      ? ADMIN_PERMISSIONS.DASHBOARD_READ
+      : ADMIN_PERMISSIONS.SETTINGS_WRITE;
+  }
+
   return null;
 }
 

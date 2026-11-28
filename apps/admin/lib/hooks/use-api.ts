@@ -5,11 +5,23 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiClient, PaginationParams, productsApi, ordersApi, redemptionsApi, usersApi, pluginsApi, themesApi, marketApi, managedPackageApi, platformConnectionApi, uploadApi, dashboardApi, inventoryApi, accountApi, authApi, healthApi, errorsApi, promotionsApi, redirectsApi, staffApi, gameStatsApi, unwrapApiResponse, isAdminApiError, ProductStatsData, OrderStatsData, UserStatsData, InventoryStatsData, type SeoRedirect, type Promotion, type PromotionForm as PromotionFormData, type StaffCreatePayload, type StaffMutationPayload } from '../api';
+import { apiClient, PaginationParams, productsApi, ordersApi, redemptionsApi, usersApi, pluginsApi, themesApi, marketApi, managedPackageApi, platformConnectionApi, uploadApi, dashboardApi, inventoryApi, accountApi, authApi, healthApi, errorsApi, promotionsApi, redirectsApi, staffApi, gameStatsApi, trafficApi, settingsApi, TRAFFIC_COLLECTION_SETTING, unwrapApiResponse, isAdminApiError, ProductStatsData, OrderStatsData, UserStatsData, InventoryStatsData, type SeoRedirect, type Promotion, type PromotionForm as PromotionFormData, type StaffCreatePayload, type StaffMutationPayload } from '../api';
 import { toast } from 'sonner';
 import { ProductForm, DashboardStats, Product, Order, OrderDetail, User, OrderItem, ThemeMeta, ActiveTheme, HealthMetricsResponse, HealthSummaryResponse, ErrorLog, ErrorListParams } from '../types';
 import { PageResult } from 'shared';
-import type { GameStatsDay, GameStatsGame, GameStatsOverview, GameStatsRangeDays } from '../api';
+import type {
+  GameStatsDay,
+  GameStatsGame,
+  GameStatsOverview,
+  GameStatsRangeDays,
+  TrafficBreakdown,
+  TrafficChannel,
+  TrafficDimension,
+  TrafficPeriod,
+  TrafficRangeDays,
+  TrafficReport,
+  TrafficRules,
+} from '../api';
 import { cardConnectApi, type CustomerCard } from '../api';
 import { UseQueryResult } from '@tanstack/react-query';
 import { useT } from 'shared/src/i18n/react';
@@ -64,6 +76,11 @@ export const queryKeys = {
   gameStatsOverview: ['game-stats', 'overview'] as const,
   gameStatsTimeseries: (days: number) => ['game-stats', 'timeseries', days] as const,
   gameStatsGames: (days: number) => ['game-stats', 'games', days] as const,
+  trafficReport: (days: number, host: string | null) => ['traffic', 'report', days, host] as const,
+  trafficBreakdown: (dimension: TrafficDimension, days: number, channel: TrafficChannel | null, host: string | null) =>
+    ['traffic', 'breakdown', dimension, days, channel, host] as const,
+  trafficRules: ['traffic', 'rules'] as const,
+  trafficSwitch: ['traffic', 'switch'] as const,
   salesStats: (period: string) => ['sales-stats', period] as const,
   productStats: ['product-stats'] as const,
   adminDashboard: ['admin-dashboard'] as const,
@@ -383,6 +400,87 @@ export function useGameStatsGames(days: GameStatsRangeDays) {
     staleTime: 5 * 60 * 1000,
     retry: false,
   });
+}
+
+// Traffic Analytics hooks (core collection). The reports move as visitors
+// arrive; a minute is fresh enough for them and cheap on the API.
+const TRAFFIC_STALE_MS = 60 * 1000;
+
+/** The last `days` whole days in the viewer's zone. */
+export function trafficPeriod(days: TrafficRangeDays, now = new Date()): TrafficPeriod {
+  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const start = new Date(end);
+  start.setDate(start.getDate() - (days - 1));
+  const dayKey = (date: Date) =>
+    `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}`;
+  return { from: dayKey(start), to: dayKey(end), tz: -now.getTimezoneOffset() };
+}
+
+const periodQuery = (days: TrafficRangeDays, host: string | null) => {
+  const period = trafficPeriod(days);
+  return host ? { ...period, host } : period;
+};
+
+export function useTrafficReport(days: TrafficRangeDays, host: string | null) {
+  return useQuery({
+    queryKey: queryKeys.trafficReport(days, host),
+    queryFn: async () => unwrapApiResponse<TrafficReport>(await trafficApi.report(periodQuery(days, host))),
+    staleTime: TRAFFIC_STALE_MS,
+    retry: false,
+  });
+}
+
+export function useTrafficBreakdown(
+  dimension: TrafficDimension,
+  days: TrafficRangeDays,
+  options: { channel?: TrafficChannel | null; host?: string | null; limit?: number; offset?: number } = {},
+) {
+  const channel = options.channel ?? null;
+  const host = options.host ?? null;
+  return useQuery({
+    queryKey: queryKeys.trafficBreakdown(dimension, days, channel, host),
+    queryFn: async () => unwrapApiResponse<TrafficBreakdown>(
+      await trafficApi.breakdown(dimension, {
+        ...periodQuery(days, host),
+        ...(channel ? { channel } : {}),
+        limit: options.limit ?? 200,
+        offset: options.offset ?? 0,
+      }),
+    ),
+    staleTime: TRAFFIC_STALE_MS,
+    retry: false,
+  });
+}
+
+export function useTrafficRules() {
+  return useQuery({
+    queryKey: queryKeys.trafficRules,
+    queryFn: async () => unwrapApiResponse<TrafficRules>(await trafficApi.rules()),
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+}
+
+/** Whether the merchant paused page-view collection; on until they do. */
+export function useTrafficCollectionPaused() {
+  const queryClient = useQueryClient();
+  const paused = useQuery({
+    queryKey: queryKeys.trafficSwitch,
+    queryFn: async () => unwrapApiResponse<Record<string, unknown>>(await settingsApi.getAll())[TRAFFIC_COLLECTION_SETTING] === false,
+    staleTime: 30 * 1000,
+    retry: false,
+  });
+  const setPaused = useMutation({
+    mutationFn: async (next: boolean) => {
+      const response = await settingsApi.batchUpdate({ [TRAFFIC_COLLECTION_SETTING]: !next });
+      if (!response.success) throw new Error('Could not change the traffic collection switch');
+      return next;
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['traffic'] });
+    },
+  });
+  return { paused, setPaused };
 }
 
 // Orders hooks

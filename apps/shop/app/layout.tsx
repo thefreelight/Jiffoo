@@ -17,6 +17,8 @@ import { AppEmbedInjector } from '@/lib/theme-pack/app-embed-injector';
 import { resolvePublicOrigin } from '@/lib/server-api-url';
 import { generateThemeStyles } from '@/lib/theme-runtime';
 import { documentLocale } from '@/lib/storefront-locale';
+import { isTrafficCollectionEnabled } from '@/lib/traffic-server';
+import { StorefrontTracker } from '@/components/storefront-tracker';
 
 /**
  * Viewport configuration for PWA support
@@ -197,8 +199,11 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Fetch store context (theme, settings)
+  // Fetch store context (theme, settings); the traffic switch is asked in
+  // parallel so counting page views never adds to the page's own latency.
+  const trafficSwitch = isTrafficCollectionEnabled();
   const context = await getServerStoreContext();
+  const trafficEnabled = await trafficSwitch;
   // The page's language: the root layout is the only place <html lang> can be set.
   const locale = await documentLocale();
 
@@ -257,6 +262,7 @@ export default async function RootLayout({
         />
         <Providers>{children}</Providers>
         <ServiceWorkerRegister />
+        {trafficEnabled ? <StorefrontTracker /> : null}
         <PwaInstallBanner />
         <AppEmbedInjector position="body-end" />
         <DevTools />

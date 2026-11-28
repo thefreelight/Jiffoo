@@ -1818,3 +1818,104 @@ export const gameStatsApi = {
   games: (days: GameStatsRangeDays): Promise<ApiResponse<{ days: number; today: string; fromDay: string; items: GameStatsGame[] }>> =>
     apiClient.get(`/plugins/game-stats/admin/games?days=${days}`),
 };
+
+// Traffic Analytics (core collection): where storefront visits come from. A
+// visit opens on the first page view and ends after 30 quiet minutes; its
+// channel is decided at read time from the referrer host, UTM tags and click ids.
+export const TRAFFIC_CHANNELS = ['paid', 'ai', 'search', 'social', 'email', 'campaign', 'referral', 'direct'] as const;
+export type TrafficChannel = (typeof TRAFFIC_CHANNELS)[number];
+export type TrafficDimension = 'source' | 'medium' | 'campaign' | 'referrer' | 'landing' | 'country' | 'device' | 'host' | 'page';
+export type TrafficRangeDays = 7 | 30 | 90;
+
+export interface TrafficFigures {
+  visitors: number;
+  visits: number;
+  views: number;
+  /** Share of visits that left after one page, 0..1. */
+  bounceRate: number;
+  avgVisitSeconds: number;
+}
+
+export interface TrafficDay {
+  day: string;
+  visitors: number;
+  visits: number;
+  views: number;
+}
+
+export interface TrafficReport {
+  period: { from: string; to: string };
+  host: string | null;
+  rulesVersion: number;
+  rulesUpdatedAt: string | null;
+  summary: TrafficFigures;
+  daily: TrafficDay[];
+  channels: Array<TrafficFigures & { channel: TrafficChannel }>;
+}
+
+/** Whole days `YYYYMMDD` in the viewer's zone; `tz` is minutes east of UTC. */
+export interface TrafficPeriod {
+  from: string;
+  to: string;
+  tz: number;
+  host?: string;
+}
+
+export interface TrafficSourceRow extends TrafficFigures {
+  value: string;
+  /** The one channel these visits came from, or null when there was more than one. */
+  channel: TrafficChannel | null;
+}
+
+export interface TrafficPageRow {
+  value: string;
+  views: number;
+}
+
+export interface TrafficBreakdown {
+  dimension: TrafficDimension;
+  period: { from: string; to: string };
+  host: string | null;
+  channel: TrafficChannel | null;
+  total: number;
+  /** Page views per path for the `page` dimension; visits for every other one. */
+  rows: TrafficSourceRow[] | TrafficPageRow[];
+}
+
+export interface TrafficChannelRules {
+  version: number;
+  ai: string[];
+  search: string[];
+  searchExclude: string[];
+  social: string[];
+  email: string[];
+  paidMediums: string[];
+  paidClickParams: string[];
+  emailMediums: string[];
+  socialMediums: string[];
+}
+
+export interface TrafficRules {
+  rules: TrafficChannelRules;
+  updatedAt: string | null;
+  channels: TrafficChannel[];
+}
+
+/** System setting a merchant uses to pause collection without uninstalling the plugin. */
+export const TRAFFIC_COLLECTION_SETTING = 'traffic.collection.enabled';
+
+export const trafficApi = {
+  report: (period: TrafficPeriod): Promise<ApiResponse<TrafficReport>> =>
+    apiClient.get('/admin/traffic/report', { params: period }),
+
+  breakdown: (
+    dimension: TrafficDimension,
+    period: TrafficPeriod & { channel?: TrafficChannel; limit?: number; offset?: number },
+  ): Promise<ApiResponse<TrafficBreakdown>> =>
+    apiClient.get('/admin/traffic/breakdown', { params: { dim: dimension, ...period } }),
+
+  rules: (): Promise<ApiResponse<TrafficRules>> => apiClient.get('/admin/traffic/rules'),
+
+  replaceRules: (rules: TrafficChannelRules): Promise<ApiResponse<TrafficRules>> =>
+    apiClient.put('/admin/traffic/rules', rules),
+};
