@@ -21,6 +21,7 @@ import type { AffiliateNativeOverviewData } from '@/lib/hooks/use-api';
  *  - English written into a component — text, a placeholder, a label, a toast, a message kept in state, the words a
  *    failure falls back to — unless it is one of the named exceptions below;
  *  - a line of 简体中文 that is still English (a code, a unit or a brand excepted);
+ *  - a line of 简体中文 said the Taiwan way, or written with a Traditional character;
  *  - and the affiliate workspace, rendered in 简体中文, reads as Chinese.
  */
 
@@ -123,6 +124,83 @@ const ENGLISH_THAT_STAYS = new Set([
 
 /** A code, a unit, a brand or an example address: allowed to stand without Chinese. */
 const NOT_COPY = /^(?:N\/A|API Key|yourstore|zhang-san|WH-MAIN|[A-Z]{2,5}|v\d.*|\d[\d.,%]*|USD|CNY|EUR|GBP|HKD|TWD|SKU|SEO(?: .*)?|API|App|eSIM|AI|AEO|JSON|URL|SMTP.*|OAuth.*|MCP.*|JWT|HTML|CSS|Docker.*|Kubernetes.*|Next\.js.*|Stripe.*|Odoo|BOKMOO.*|Firepath.*|RemoteRadar.*|Game Stats|Imager AI|Kuaidi100|4PX.*|Jiffoo.*|VIP|Pro|Telegram|WhatsApp|Google.*|Facebook.*|Apple.*|Meta|OpenAI|DeepSeek|Moonshot.*|Qwen.*|Z\.ai.*|Zhipu.*|GLM.*|Claude.*|gpt-.*|whsec_|sk_|pk_|rk_|GOCSPX|example\.com.*|https?.*|\/.*|UTC|America\/.*|Europe\/.*|Asia\/.*|localhost.*|\{.*\}|—|–|·|→|↗|⬇|×|✓|\.{3}|…|%)$/i;
+
+/**
+ * 简体中文 is written the mainland way (2026-11-28). Before this, 379 dictionary lines said things the Taiwan way —
+ * 载入, 设定, 帐号, 连线 — because the dictionaries had been translated from Traditional Chinese. Words a mainland
+ * reader reads as another region's wording; a word that is ordinary Chinese as well (建立, 取得, 透过) is not listed.
+ * A line that must keep one of these is a decision: name it in TAIWAN_WORD_THAT_STAYS.
+ */
+const TAIWAN_STYLE_WORDS = [
+  // people and accounts
+  '使用者', '登入', '登出', '帐号', '帐户', '帐单', '转帐', '对帐', '大头贴', '身分',
+  // access, connection, servers, network
+  '存取', '连线', '网路', '网际网路', '伺服器', '资料库', '网域', '子网域', '连接埠', '权杖', '金钥', '杂凑', '签核', '生物辨识',
+  // settings, loading, saving, finding
+  '设定', '预设', '载入', '储存变更', '储存中', '已储存', '储存成功', '储存失败', '未储存', '储存设定', '储存格', '搜寻', '重新整理', '栏位', '汇出', '汇入', '列印', '套用', '重设', '封存', '排程', '行事历', '工作阶段',
+  // the screen
+  '介面', '选单', '视窗', '萤幕', '对话方块', '核取方块', '单选钮', '进度列', '下拉式选单', '控制项', '版面配置', '索引标签', '收合', '网址列', '外挂', '范本', '版型', '模组', '解除安装',
+  // data and code
+  '资讯', '讯息', '档案', '快取', '佇列', '程式', '软体', '硬碟', '硬体', '韧体', '宽频', '位元组', '解析度', '标头', '查询字串', '检查码', '副档名', '试算表',
+  // buying and selling
+  '结帐', '宅配', '超商', '折价券', '红利点数', '提领', '分润', '行销', '客制', '自订', '保固',
+  // mail and messages
+  '推播', '回覆', '电子信箱', '验证信箱', '封锁',
+  // devices and media
+  '影片', '视讯', '行动装置', '行动支付', '行动电话', '行动网路', '行动版', '智慧型', '桌上型', '笔记型电脑', '邮递区号', '县市', '讯号', '时间戳记', '西元',
+  // actions
+  '点选', '复制贴上', '剪下', '拖曳', '支援', '检视',
+  // reports, time and quality
+  '仪表板', '最佳化', '机率', '字型', '字级', '渐层', '币别', '点阅率', '不重复访客', '疑难排解', '逾时', '国定假日', '特休', '育婴假',
+  // the corner quotation marks: the mainland standard is “”
+  '「', '」',
+];
+/** Lines that keep a listed word because it is the mainland word there too. */
+const TAIWAN_WORD_THAT_STAYS = new Set(['个人资料', '员工权限档案', '快速预设']);
+
+/**
+ * Characters that exist in Traditional only (the 382 the repo's own 繁體中文 text uses; every one of them becomes
+ * another character in 简体中文). A character that is both — 著, 乾, 覆 — is not among them.
+ */
+const TRADITIONAL_ONLY = '遊戲統計個雜湊隨機瀏覽標識帳號線獨時長數與當資還區間內無關聯沒篩選顯紀錄開後這裡會現條暫請確認掛裝並啟載動鐘領兌換碼戶訂閱單結發貨總變體過狀態給敗錯誤譜國際義問監鍵轉構於頁蓋尋蟲點語設優銷規則評價儲圖絡對話郵驗證務蹤約遞運實讀綁庫匯網訪從來麼別虛擬錢餘額員夥薦歸駐費註冊連飛書預佇鑰詞歡隱稱測試範純產憑貼準權欄簽頭應複製環鹽繼輪詢攬傳視彙東劃許報記廣細藍續達經錶寶陽紋盤帶針蠟燭鈷燒極簡啞筆攤絲籤緻電為場録創搶見詳適參擁輸礎該減兩張種類項終併濫詐買賣購質們獲靈輕鬆較擇團隊協題幫護營訊檔據獎復屬組織聲觀車紹編輯刪閉處檢論財離頻嗎捨棄剛韓說備側進將術掃幾擊鈕決稅級穩顆熱議緒維賴儀願調彈暢嘗門樣圍亞歐亂佈難讓幣違滿盡邊軟專業順貴鎖頂証採攜僅責損擔傭審須寫況階縫賬雙診斷諾臨辦響繫歷華週陸灣馬賓驟説淪牆補乾淨檻釋樂畫棧導夾學繪斂氣縮強駕馭習覺驚豔節敘趨勢嚮聰風絕紅嚴肅';
+
+/** Every line of 简体中文 the admin can show: the shared dictionaries it and the storefront read, and its own Chinese overlay. */
+const SHARED_I18N = path.resolve(ADMIN, '../../packages/shared/src/i18n');
+const SIMPLIFIED_SOURCES: Array<{ root: string; file: string; tables?: Set<string> }> = [
+  ...['merchant', 'common', 'shop', 'whiteLabel'].map((name) => ({ root: SHARED_I18N, file: `messages/zh-Hans/${name}.ts` })),
+  ...['admin', 'common', 'shop'].map((name) => ({ root: SHARED_I18N, file: `locales/zh-Hans/${name}.json` })),
+  { root: ADMIN, file: 'lib/extension-catalog-zh.ts', tables: new Set(['ZH_HANS', 'CONFIG_FIELDS_ZH_HANS', 'CONFIG_OPTIONS_ZH_HANS']) },
+];
+
+/** Every string a source holds as a value, with its key path: a dictionary line, or — with `tables` — a line of the named tables. */
+function valuesOf(source: { root: string; file: string; tables?: Set<string> }): Array<{ key: string; text: string }> {
+  const full = path.join(source.root, source.file);
+  const text = fs.readFileSync(full, 'utf8');
+  if (full.endsWith('.json')) return [...flatten(JSON.parse(text))].map(([key, value]) => ({ key, text: value }));
+  const ast = ts.createSourceFile(full, text, ts.ScriptTarget.Latest, true);
+  const values: Array<{ key: string; text: string }> = [];
+  const inNamedTable = (node: ts.Node) => {
+    for (let cur: ts.Node | undefined = node.parent; cur; cur = cur.parent) {
+      if (ts.isVariableDeclaration(cur) && ts.isIdentifier(cur.name)) return !source.tables || source.tables.has(cur.name.text);
+    }
+    return !source.tables;
+  };
+  const visit = (node: ts.Node) => {
+    if ((ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) && !(ts.isPropertyAssignment(node.parent) && node.parent.name === node) && inNamedTable(node)) {
+      const parts: string[] = [];
+      for (let child: ts.Node = node, cur: ts.Node | undefined = node.parent; cur; child = cur, cur = cur.parent) {
+        if (ts.isPropertyAssignment(cur)) parts.unshift(cur.name.getText(ast).replace(/^['"]|['"]$/g, ''));
+        else if (ts.isArrayLiteralExpression(cur)) parts.unshift(String(cur.elements.indexOf(child as ts.Expression)));
+        if (ts.isSourceFile(cur)) break;
+      }
+      values.push({ key: parts.join('.'), text: node.text });
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(ast);
+  return values;
+}
+const simplifiedLines = SIMPLIFIED_SOURCES.flatMap((source) => valuesOf(source).map((line) => ({ file: source.file, ...line })));
 
 interface Read {
   asked: Map<string, { english: string[]; where: Set<string> }>;
@@ -285,6 +363,20 @@ describe('the admin in 简体中文', () => {
   it('keeps the English out of the 简体中文 dictionary itself', () => {
     const stillEnglish = [...chinese].filter(([key, value]) => !/[\u4e00-\u9fff]/.test(value) && !NOT_COPY.test(value) && !/^[\w.\-]+@[\w.\-]+$/.test(value));
     expect(stillEnglish.map(([key]) => key), 'lines of 简体中文 with no Chinese in them:\n' + stillEnglish.map(([key, value]) => `  ${key} = ${value}`).join('\n')).toEqual([]);
+  });
+
+  const mainland = (read: (line: { key: string; text: string }) => string | undefined) => simplifiedLines
+    .map((line) => ({ line, found: read(line) }))
+    .filter((entry) => entry.found !== undefined);
+
+  it('writes every line of 简体中文 the mainland way', () => {
+    const worded = mainland((line) => TAIWAN_STYLE_WORDS.find((word) => line.text.includes(word) && !TAIWAN_WORD_THAT_STAYS.has(line.text)));
+    expect(worded.map((entry) => `  ${entry.line.file} ${entry.line.key} = ${entry.line.text}  ← ${entry.found}`), 'Taiwan-style wording in 简体中文:\n').toEqual([]);
+  });
+
+  it('keeps Traditional characters out of 简体中文', () => {
+    const traditional = mainland((line) => [...line.text].find((character) => TRADITIONAL_ONLY.includes(character)));
+    expect(traditional.map((entry) => `  ${entry.line.file} ${entry.line.key} = ${entry.line.text}  ← ${entry.found}`), 'Traditional characters in 简体中文:\n').toEqual([]);
   });
 
   it('reads the affiliate workspace as Chinese', () => {

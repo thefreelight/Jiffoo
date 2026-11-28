@@ -42,7 +42,7 @@ const STATUS_LABEL_FALLBACKS: Record<(typeof ORDER_STATUSES)[number], string> = 
   PENDING: '待处理',
   PAID: '已付款',
   PROCESSING: '处理中',
-  SHIPPED: '已出货',
+  SHIPPED: '已发货',
   DELIVERED: '已送达',
   COMPLETED: '已完成',
   CANCELLED: '已取消',

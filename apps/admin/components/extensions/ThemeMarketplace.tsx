@@ -658,7 +658,7 @@ export function ThemeMarketplace() {
           {visibleItems.length === 0 && (
             <div className="col-span-2 rounded-xl border border-dashed border-[#e2e8f0] bg-white/60 py-16 text-center text-sm text-slate-400 xl:col-span-4">
               {mineOnly
-                ? getText('merchant.themes.market.mineEmpty', '还没有已安装的主题，去市集挑一个吧。')
+                ? getText('merchant.themes.market.mineEmpty', '还没有已安装的主题，去市场挑一个吧。')
                 : getText('common.noData', '暂无数据')}
             </div>
           )}
