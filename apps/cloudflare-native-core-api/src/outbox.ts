@@ -1,4 +1,5 @@
 import { deliverNativeWebhooks } from './webhooks';
+import { notifyNativePluginModules } from './native-plugin-modules/runtime';
 import { submitNativeOdooOrders } from './external-orders';
 import { createNativeAffiliateCommission } from './affiliate';
 import { enqueueAffiliateCommissionEmail, enqueueOrganizationCommissionEmail, enqueueOrderPaidEmail, enqueueRefundEmail } from './mail-outbox';
@@ -212,6 +213,13 @@ async function processEvent(env: OutboxEnv, event: OutboxRow): Promise<void> {
     ? { ...parsedPayload, ...(snapshot ? { order: JSON.parse(snapshot.payload) } : {}) }
     : snapshot ? { order: JSON.parse(snapshot.payload) } : parsedPayload;
   await deliverNativeWebhooks(env, event.id, event.event_type, eventPayload, event.attempt_count + 1);
+  // Modules compiled into the worker are told about the event too; one that fails is logged and
+  // the event is still delivered.
+  for (const outcome of await notifyNativePluginModules(env, { id: event.id, type: event.event_type, payload: eventPayload })) {
+    if (outcome.status === 'rejected') {
+      console.error(JSON.stringify({ message: 'native plugin module failed on a store event', module: outcome.id, eventType: event.event_type, error: outcome.error }));
+    }
+  }
   await markDelivered(env, event.id, now);
 }
 

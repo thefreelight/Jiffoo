@@ -38,6 +38,7 @@ import { I18nTranslationsPanel } from '@/components/plugins/I18nTranslationsPane
 import { PluginConfigSection } from '@/components/plugins/PluginConfigSection';
 import { PluginInstanceCard } from '@/components/plugins/PluginInstanceCard';
 import { RemoteRadarJobsNativeWorkspace } from '@/components/plugins/RemoteRadarJobsNativeWorkspace';
+import { nativePluginPage } from '@/lib/native-plugin-pages/registry';
 import { SupportHubAiPanel } from '@/components/plugins/SupportHubAiPanel';
 import { SUPPORT_HUB_CHANNEL_FIELDS, SupportHubChannelsSection } from '@/components/plugins/SupportHubChannelsSection';
 import {
@@ -387,10 +388,13 @@ function PluginWorkspaceContent({ slug }: { slug: string }) {
   const isOfficial = officialPluginSlugs.has(slug) || data?.source === 'official-market' || installedMeta?.source === 'official-market';
   const canOpenInbox = canAccessAnyPermission(user, [ADMIN_PERMISSIONS.SUPPORT_READ]);
   const supportsConfigForm = slug !== 'i18n' && (slug !== 'odoo' || isNative);
-  const hasNativeWorkspace = slug === 'odoo' || slug === 'i18n' || slug === 'remoteradar-jobs' || slug === 'seo' || Boolean(configSchema);
+  // A page the build compiled in for this plugin, when it has one.
+  const CompiledInPage = useMemo(() => nativePluginPage(slug), [slug]);
+  const hasNativeWorkspace = Boolean(CompiledInPage) || slug === 'odoo' || slug === 'i18n' || slug === 'remoteradar-jobs' || slug === 'seo' || Boolean(configSchema);
   // True for plugins that declare no settings and ship no dedicated panel, such as the wallet.
   const hasNoContent = !(
-    (supportsConfigForm && hasEditableConfig)
+    Boolean(CompiledInPage)
+    || (supportsConfigForm && hasEditableConfig)
     || slug === 'i18n'
     || slug === 'odoo'
     || (slug === 'shipping' && isNative)
@@ -540,7 +544,9 @@ function PluginWorkspaceContent({ slug }: { slug: string }) {
         </WorkspaceNotice>
       ) : null}
 
-      {slug === 'i18n' ? (
+      {CompiledInPage ? (
+        <CompiledInPage />
+      ) : slug === 'i18n' ? (
         <>
           <I18nNativeWorkspace installationId={installationId} disabled={!selectedInstance} />
           <I18nTranslationsPanel installationId={installationId} disabled={!selectedInstance} />
