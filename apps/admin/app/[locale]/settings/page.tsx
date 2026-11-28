@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { resolveApiErrorMessage } from '@/lib/error-utils'
+import { serverSentenceKey } from '@/lib/server-sentences'
 import { settingsApi, type SystemSettingsMap, unwrapApiResponse, upgradeApi } from '@/lib/api'
 import { clearUpdateCheckCache } from '@/hooks/use-update-check'
 import { cn } from '@/lib/utils'
@@ -236,6 +237,12 @@ function SettingsPageContent() {
     if (!t) return fallback
     const translated = t(key)
     return translated === key ? fallback : translated
+  }
+
+  /** A sentence the core sent, in the store's language when it is one the dictionary knows. */
+  const serverText = (sentence: string | null | undefined): string => {
+    const key = serverSentenceKey(sentence)
+    return key ? getText(key, String(sentence)) : String(sentence ?? '')
   }
 
   const formatDeploymentMode = (mode: string) => {
@@ -910,7 +917,7 @@ function SettingsPageContent() {
               </p>
               {versionInfo?.deploymentModeReason ? (
                 <p className="text-xs text-gray-500">
-                  {versionInfo.deploymentModeReason}
+                  {serverText(versionInfo.deploymentModeReason)}
                 </p>
               ) : null}
               {versionInfo?.minimumAutoUpgradableVersion ? (
@@ -929,7 +936,7 @@ function SettingsPageContent() {
               ) : null}
               {versionInfo?.oneClickUpgradeAvailable === false && versionInfo?.oneClickUpgradeBlockedReason ? (
                 <p className="text-xs font-medium text-amber-700">
-                  {versionInfo.oneClickUpgradeBlockedReason}
+                  {serverText(versionInfo.oneClickUpgradeBlockedReason)}
                 </p>
               ) : null}
               <p className="text-xs text-gray-500">

@@ -115,6 +115,8 @@ const ENGLISH_THAT_STAYS = new Set([
   'components/plugins/I18nTranslationsPanel.tsx|{ "Sign in": "ログイン", "Password": "パスワード" }',
   // a carrier's name
   'components/plugins/PluginNativeWorkspaces.tsx|Kuaidi100',
+  // the English beside its own translation, for English readers
+  'components/ui/dialog.tsx|Close',
   // the name of a language in that language
   'app/[locale]/settings/page.tsx|English',
 ]);
@@ -130,6 +132,8 @@ interface Read {
 const hasWords = (text: string) => /[A-Za-z]{3,}/.test(text) && (/[A-Za-z]{3,}\s+[A-Za-z]{2,}/.test(text) || /[A-Z][a-z]{2,}/.test(text)) && !/^\/|:\/\//.test(text);
 const TEXT_ATTRIBUTES = new Set(['placeholder', 'title', 'alt', 'aria-label', 'aria-placeholder', 'label', 'description', 'helperText', 'tooltip']);
 const LABEL_PROPERTIES = new Set(['label', 'description', 'placeholder', 'tooltip', 'helperText', 'emptyText', 'subtitle', 'heading', 'hint']);
+/** attributes that are not read as words */
+const NOT_READ = /^(className|src|href|variant|icon|to|as|for|id|key|value|type|name|alt|title|d|fill|stroke|width|height|viewBox|xmlns|data-[\w-]+|aria-hidden|role|tabIndex|target|rel|autoComplete|spellCheck|dir|lang)$/;
 
 function readAdmin(): Read {
   const asked: Read['asked'] = new Map();
@@ -178,6 +182,17 @@ function readAdmin(): Read {
         const value = siblings.find((sibling) => sibling.name && ts.isIdentifier(sibling.name) && (sibling.name as ts.Identifier).text === 'value');
         return textOf(value?.initializer) !== null && ['en', 'zh-Hans', 'zh-Hant'].includes(textOf(value!.initializer)!);
       };
+      /** the lines a choice on the screen is between */
+      const branchesOf = (expression: ts.Expression | undefined): ts.Expression[] => {
+        if (!expression) return [];
+        if (ts.isParenthesizedExpression(expression)) return branchesOf(expression.expression);
+        if (ts.isConditionalExpression(expression)) {
+          // the English beside its own translation is what English readers get: `t('k') !== 'k' ? t('k') : 'English'`
+          if (/(^|[^\w.])t\(/.test(expression.getText(ast))) return [];
+          return [...branchesOf(expression.whenTrue), ...branchesOf(expression.whenFalse)];
+        }
+        return ts.isStringLiteral(expression) || ts.isNoSubstitutionTemplateLiteral(expression) ? [expression] : [];
+      };
       const flag = (kind: string, text: string, node: ts.Node, property?: ts.PropertyAssignment) => {
         if (!reachable || !hasWords(text)) return;
         if (property && carriesItsKey(property)) return;
@@ -207,6 +222,13 @@ function readAdmin(): Read {
           const key = /^(merchant|common|admin)\./.test(node.initializer.text) ? node.initializer.text : `merchant.plugins.workspace.${node.initializer.text}`;
           if (!asked.has(key)) asked.set(key, { english: [], where: new Set() });
           asked.get(key)!.where.add(where);
+        }
+        // a choice between two lines shown on the screen: {open ? 'Collapse' : 'Expand'} between tags, or in an attribute that is read
+        if (ts.isJsxAttribute(node) && node.initializer && ts.isJsxExpression(node.initializer) && !NOT_READ.test(node.name.getText(ast))) {
+          for (const branch of branchesOf(node.initializer.expression)) flag(`@${node.name.getText(ast)}?`, (branch as ts.StringLiteral).text, branch);
+        }
+        if (ts.isJsxExpression(node) && node.expression && ts.isConditionalExpression(node.expression) && !ts.isJsxAttribute(node.parent)) {
+          for (const branch of branchesOf(node.expression)) flag('choice', (branch as ts.StringLiteral).text, branch);
         }
         if (ts.isJsxText(node)) {
           const text = node.text.replace(/\s+/g, ' ').trim();

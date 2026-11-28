@@ -173,7 +173,7 @@ export default function EditPromotionPage() {
               disabled={deletePromotionMutation.isPending}
               className="bg-red-600 hover:bg-red-700"
             >
-              {deletePromotionMutation.isPending ? 'Deleting...' : 'Delete Promotion'}
+              {deletePromotionMutation.isPending ? getText('merchant.promotions.edit.deleting', 'Deleting...') : getText('merchant.promotions.edit.deletePromotion', 'Delete Promotion')}
             </Button>
           </DialogFooter>
         </DialogContent>

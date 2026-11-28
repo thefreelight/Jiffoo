@@ -343,7 +343,7 @@ export function VariantsEditor({ variants, onChange, productId }: VariantsEditor
                                                                     className="w-full h-10 text-xs font-black uppercase"
                                                                     size="sm"
                                                                 >
-                                                                    {loadingPrices[variant.id!] ? 'Saving...' : hasCustomPrice ? 'Update' : 'Set Custom Price'}
+                                                                    {loadingPrices[variant.id!] ? getText('merchant.products.variantEditor.saving', 'Saving...') : hasCustomPrice ? getText('merchant.products.variantEditor.update', 'Update') : getText('merchant.products.variantEditor.setCustomPrice', 'Set Custom Price')}
                                                                 </Button>
                                                             </div>
                                                         </div>

@@ -304,7 +304,7 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
 
   const solutionTitle = isManaged && record
     ? record.displaySolutionName
-    : 'Management Workspace'
+    : getText('common.shell.managementWorkspace', 'Management Workspace')
 
   const brandInitial = brandTitle.trim().charAt(0).toUpperCase() || 'J'
 
@@ -366,7 +366,7 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
         {item.id === 'plugins' && (
           <button
             type="button"
-            aria-label={pluginsOpen ? 'Collapse plugins' : 'Expand plugins'}
+            aria-label={pluginsOpen ? getText('common.shell.collapsePlugins', 'Collapse plugins') : getText('common.shell.expandPlugins', 'Expand plugins')}
             onClick={() => setPluginsExpanded(!pluginsOpen)}
             className="mr-2 rounded-md p-1 text-slate-300 transition-colors hover:bg-slate-100 hover:text-slate-500"
           >

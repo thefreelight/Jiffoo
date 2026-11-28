@@ -118,7 +118,7 @@ export function RemoteRadarJobsNativeWorkspace(props: { installationId: string; 
               <div className="rounded-lg border border-slate-200 p-4">
                 <p className="text-sm text-slate-500">{tf('jobs.stat.lastSync', 'Last sync')}</p>
                 <p className="text-sm font-medium text-slate-900">
-                  {stats.lastSyncedAt ? new Date(stats.lastSyncedAt).toLocaleString() : 'Never'}
+                  {stats.lastSyncedAt ? new Date(stats.lastSyncedAt).toLocaleString() : tf('jobs.never', 'Never')}
                 </p>
               </div>
             </div>

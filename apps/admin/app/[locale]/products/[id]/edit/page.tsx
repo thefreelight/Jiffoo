@@ -256,7 +256,7 @@ export default function EditProductPage() {
             className={`text-sm font-semibold px-4 sm:px-6 h-9 rounded-lg transition-all active:scale-95 ${successMode ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'
               }`}
           >
-            {updateProductMutation.isPending || updateDescriptionMutation.isPending ? 'Saving...' : successMode ? 'Updated' : 'Save Changes'}
+            {updateProductMutation.isPending || updateDescriptionMutation.isPending ? getText('merchant.productEdit.saving', 'Saving...') : successMode ? getText('merchant.productEdit.updated', 'Updated') : getText('merchant.productEdit.saveChanges', 'Save Changes')}
           </Button>
         </>
       }
@@ -284,7 +284,7 @@ export default function EditProductPage() {
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge className="bg-gray-900 text-white">{externalSource?.sourceProvider || 'external'}</Badge>
                   <Badge variant="outline" className={externalSource?.product?.sourceIsActive === false ? 'border-red-200 text-red-600' : 'border-green-200 text-green-600'}>
-                    {externalSource?.product?.sourceIsActive === false ? 'Source inactive' : 'Source active'}
+                    {externalSource?.product?.sourceIsActive === false ? getText('merchant.productEdit.sourceInactive', 'Source inactive') : getText('merchant.productEdit.sourceActive', 'Source active')}
                   </Badge>
                   {hasPendingProductChange && (
                     <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">{getText('merchant.productEdit.productChangePending', 'Product change pending')}</Badge>
@@ -301,7 +301,7 @@ export default function EditProductPage() {
                 disabled={acknowledgeProductSourceMutation.isPending}
                 className="bg-gray-900 hover:bg-black text-white rounded-xl"
               >
-                {acknowledgeProductSourceMutation.isPending ? 'Confirming...' : 'Acknowledge All'}
+                {acknowledgeProductSourceMutation.isPending ? getText('merchant.productEdit.confirming', 'Confirming...') : getText('merchant.productEdit.acknowledgeAll', 'Acknowledge All')}
               </Button>
             </div>
 
@@ -326,7 +326,7 @@ export default function EditProductPage() {
               <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 space-y-2">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{getText('merchant.productEdit.productPendingSummary', 'Product Pending Summary')}</p>
                 <p className="text-sm font-medium text-gray-700">
-                  {hasPendingProductChange ? renderChangedFields(externalSource?.product?.pendingChangeSummary) : 'No pending product-level changes'}
+                  {hasPendingProductChange ? renderChangedFields(externalSource?.product?.pendingChangeSummary) : getText('merchant.productEdit.noPendingProductLevelChanges', 'No pending product-level changes')}
                 </p>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 pt-2">{getText('merchant.productEdit.lastApproved', 'Last Approved')}</p>
                 <p className="text-sm font-medium text-gray-700">{externalSource?.product?.lastApprovedAt || '-'}</p>
@@ -367,11 +367,11 @@ export default function EditProductPage() {
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm text-gray-600">
                           <p>{getText('merchant.productEdit.cost', 'Cost:')} {variant.sourceCostPrice ?? '-'}</p>
-                          <p>{getText('merchant.productEdit.status', 'Status:')} {variant.sourceIsActive === false ? 'Inactive' : 'Active'}</p>
+                          <p>{getText('merchant.productEdit.status', 'Status:')} {variant.sourceIsActive === false ? getText('merchant.productEdit.inactive', 'Inactive') : getText('merchant.productEdit.active', 'Active')}</p>
                           <p>{getText('merchant.productEdit.sync', 'Sync:')} {variant.syncStatus}</p>
                         </div>
                         <p className="text-sm text-gray-700">
-                          {variant.hasPendingChange ? renderChangedFields(variant.pendingChangeSummary) : 'No pending source changes'}
+                          {variant.hasPendingChange ? renderChangedFields(variant.pendingChangeSummary) : getText('merchant.productEdit.noPendingSourceChanges', 'No pending source changes')}
                         </p>
                       </div>
 
@@ -382,7 +382,7 @@ export default function EditProductPage() {
                         disabled={!variant.hasPendingChange || acknowledgeVariantSourceMutation.isPending}
                         className="rounded-xl border-gray-200"
                       >
-                        {acknowledgeVariantSourceMutation.isPending ? 'Confirming...' : 'Acknowledge Variant'}
+                        {acknowledgeVariantSourceMutation.isPending ? getText('merchant.productEdit.confirming', 'Confirming...') : getText('merchant.productEdit.acknowledgeVariant', 'Acknowledge Variant')}
                       </Button>
                     </div>
                   ))}
@@ -432,7 +432,7 @@ export default function EditProductPage() {
                   <Label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">{getText('merchant.productEdit.requiresShipping', 'Requires Shipping')}</Label>
                   <div className="h-11 rounded-xl bg-gray-50/50 border border-gray-100 px-4 flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-700">
-                      {formData.requiresShipping ? 'Yes' : 'No'}
+                      {formData.requiresShipping ? getText('merchant.productEdit.yes', 'Yes') : 'No'}
                     </span>
                     <Switch
                       checked={formData.requiresShipping}
@@ -464,8 +464,8 @@ export default function EditProductPage() {
                   {isNativeCatalog && (
                     <p className="text-[10px] font-medium text-gray-400 leading-relaxed">
                       {isDescriptionOverridden
-                        ? 'Storefront shows this admin copy. "Reset to synced copy" falls back to the Odoo description.'
-                        : 'Storefront shows the synced Odoo description. Edit and save to override it — sync will not overwrite your copy.'}
+                        ? getText('merchant.productEdit.storefrontShowsThisAdminCopyReset', 'Storefront shows this admin copy. "Reset to synced copy" falls back to the Odoo description.')
+                        : getText('merchant.productEdit.storefrontShowsTheSyncedOdooDescription', 'Storefront shows the synced Odoo description. Edit and save to override it — sync will not overwrite your copy.')}
                     </p>
                   )}
                 </div>

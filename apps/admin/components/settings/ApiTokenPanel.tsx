@@ -262,7 +262,7 @@ export function ApiTokenPanel() {
                 disabled={creating}
                 className="h-9 px-4 rounded-xl bg-blue-600 hover:bg-blue-700"
               >
-                {creating ? 'Creating...' : 'Create Token'}
+                {creating ? getText('merchant.settings.apiToken.creating', 'Creating...') : getText('merchant.settings.apiToken.createToken', 'Create Token')}
               </Button>
               <Button
                 onClick={() => setShowCreateForm(false)}

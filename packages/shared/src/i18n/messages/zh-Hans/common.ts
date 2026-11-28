@@ -125,6 +125,10 @@ export const common = {
     dismissNotice: '关闭提示',
     openMenu: '打开菜单',
     updateAvailable: '有新版本可用',
+    collapsePlugins: '收起插件',
+    expandPlugins: '展开插件',
+    managementWorkspace: '管理工作空间',
+    notifications: '通知',
   },
   errors: {
     general: '发生错误，请重试。',

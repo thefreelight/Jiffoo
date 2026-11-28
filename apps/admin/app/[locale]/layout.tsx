@@ -34,6 +34,9 @@ export default async function LocaleLayout({ children, params }: Props) {
 
   // Get messages for this locale
   const messages = getMessages(locale as Locale, 'tenant');
+  // what screen readers call the stack of toasts, in the language of the page (the library's own word is English)
+  const shell = (messages as unknown as { common?: { shell?: Record<string, unknown> } }).common?.shell;
+  const toasterLabel = typeof shell?.notifications === 'string' ? shell.notifications : 'Notifications';
 
   return (
     <I18nProvider locale={locale as Locale} messages={messages}>
@@ -42,7 +45,7 @@ export default async function LocaleLayout({ children, params }: Props) {
           <QueryProvider>
             <SkipToMain />
             <BlueMinimalLayout>{children}</BlueMinimalLayout>
-            <Toaster position="top-right" richColors />
+            <Toaster position="top-right" richColors containerAriaLabel={toasterLabel} />
           </QueryProvider>
         </ToastProvider>
       </LoggerProvider>
