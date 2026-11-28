@@ -24,6 +24,23 @@ interface MembershipRow {
   revoked_permissions: string;
 }
 
+/**
+ * Membership rows keep both permission lists as JSON text (admin-staff writes
+ * them with JSON.stringify). resolveAdminAccess only reads arrays, so handing
+ * it the raw column would count every grant and every revocation as absent.
+ */
+function parsePermissionList(value: unknown): unknown[] {
+  if (Array.isArray(value)) return value;
+  if (typeof value !== 'string') return [];
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    // Unreadable lists are empty lists; unknown names are dropped by resolveAdminAccess.
+    return [];
+  }
+}
+
 export async function resolveNativeAdminAccess(
   env: NativeAuthEnv,
   adminUserId: string,
@@ -46,8 +63,8 @@ export async function resolveNativeAdminAccess(
       role: membership.role,
       status: membership.status,
       isOwner: membership.is_owner === 1,
-      extraPermissions: membership.extra_permissions,
-      revokedPermissions: membership.revoked_permissions,
+      extraPermissions: parsePermissionList(membership.extra_permissions),
+      revokedPermissions: parsePermissionList(membership.revoked_permissions),
     });
   }
   if (fallbackRole) {
