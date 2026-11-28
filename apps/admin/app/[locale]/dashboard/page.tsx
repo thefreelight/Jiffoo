@@ -21,6 +21,7 @@ import { OrdersByStatusCard } from '@/components/dashboard/overview/orders-by-st
 import { RecentOrdersCard, type RecentOrderRow } from '@/components/dashboard/overview/recent-orders-card'
 import { TopProductsCard, type TopProductRow } from '@/components/dashboard/overview/top-products-card'
 import { SystemStatusCard } from '@/components/dashboard/overview/system-status-card'
+import { TrafficOverviewCard } from '@/components/dashboard/overview/traffic-overview-card'
 import { QuickActionsCard } from '@/components/dashboard/overview/quick-actions-card'
 import { PlatformOffersCards } from '@/components/dashboard/PlatformOffersCards'
 import { formatCurrency } from '@/lib/utils'
@@ -195,7 +196,11 @@ export default function DashboardPage() {
           <div className="xl:col-span-2">
             <SalesTrendCard series={series} currency={currency} />
           </div>
-          <OrdersByStatusCard byStatus={data?.ordersByStatus} />
+          <div className="flex flex-col gap-4">
+            <OrdersByStatusCard byStatus={data?.ordersByStatus} />
+            {/* Draws itself only while the Traffic Analytics plugin is counting. */}
+            <TrafficOverviewCard />
+          </div>
         </div>
 
         {/* Orders / products / status column */}
