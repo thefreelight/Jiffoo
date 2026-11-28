@@ -36,6 +36,13 @@ export async function proxyApiRequest(
   const headers = new Headers(request.headers);
   headers.set('x-forwarded-host', source.host);
   headers.set('x-forwarded-proto', source.protocol.replace(':', ''));
+  // The Core API tells visitors apart by the address this worker saw. A
+  // Worker-to-Worker hop can replace Cloudflare's own headers with a shared
+  // placeholder, so the address and country travel under names of our own.
+  const clientIp = request.headers.get('cf-connecting-ip');
+  const clientCountry = request.headers.get('cf-ipcountry');
+  if (clientIp) headers.set('x-jiffoo-client-ip', clientIp);
+  if (clientCountry) headers.set('x-jiffoo-client-country', clientCountry);
 
   return fetch(new Request(target, {
     method: request.method,

@@ -44,6 +44,10 @@ const ZH_HANS: Record<string, ExtensionCatalogLocalization> = {
     name: '游戏统计',
     description: '游戏站点的匿名游玩统计：当前在线人数，以及每款游戏每天的会话数、玩家数和游玩时长。不保存个人数据。',
   },
+  'traffic-analytics': {
+    name: '流量分析',
+    description: '店面访问从哪里来、来了之后做了什么：访客、访问次数、页面浏览、渠道（自然搜索、AI 助手、社交、邮件、直接访问）、来源与落地页。不保存个人数据：没有 cookie、不存 IP 地址、不存设备标识。',
+  },
   wallet: { name: '虚拟钱包', description: '储值余额与交易流水。' },
   subscription: { name: '订阅与会员', description: '订阅与会员状态管理。' },
   affiliate: { name: '联盟营销', description: '联盟伙伴、推荐归因与佣金账本，支持店面自助入驻。' },
@@ -86,6 +90,10 @@ const ZH_HANT: Record<string, ExtensionCatalogLocalization> = {
   'game-stats': {
     name: '遊戲統計',
     description: '遊戲網站的匿名遊玩統計：目前線上人數，以及每款遊戲每天的會話數、玩家數和遊玩時長。不保存個人資料。',
+  },
+  'traffic-analytics': {
+    name: '流量分析',
+    description: '店面訪問從哪裡來、來了之後做了什麼：訪客、訪問次數、頁面瀏覽、渠道（自然搜尋、AI 助手、社交、郵件、直接訪問）、來源與落地頁。不保存個人資料：沒有 cookie、不存 IP 位址、不存裝置識別碼。',
   },
   wallet: { name: '虛擬錢包', description: '儲值餘額與交易流水。' },
   subscription: { name: '訂閱與會員', description: '訂閱與會員狀態管理。' },

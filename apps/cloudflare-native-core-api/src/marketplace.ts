@@ -19,7 +19,7 @@ type Env = NativeAuthEnv & {
   ASSETS: { put(key: string, value: Uint8Array): Promise<unknown> };
 };
 
-const NATIVE_INSTALLABLE_PLUGINS = new Set(['wallet', 'affiliate', 'coupon', 'subscription', 'shipping', 'bokmoo-connect', 'support-hub', 'visitor-identification', 'aeo-booster', 'lead-capture', 'competitor-watch', 'experiments', 'funnel-insights', 'email-campaigns', 'hubspot-sync', 'programmatic-seo', 'abm-pages', 'ad-creative', 'playbook-runtime', 'agentra-connect', 'seo', 'game-stats']);
+const NATIVE_INSTALLABLE_PLUGINS = new Set(['wallet', 'affiliate', 'coupon', 'subscription', 'shipping', 'bokmoo-connect', 'support-hub', 'visitor-identification', 'aeo-booster', 'lead-capture', 'competitor-watch', 'experiments', 'funnel-insights', 'email-campaigns', 'hubspot-sync', 'programmatic-seo', 'abm-pages', 'ad-creative', 'playbook-runtime', 'agentra-connect', 'seo', 'game-stats', 'traffic-analytics']);
 
 function baseUrl(env: Env): string {
   return (env.PLATFORM_API_BASE_URL?.trim() || env.MARKET_API_URL?.trim() || 'https://platform-api.jiffoo.com/api').replace(/\/+$/, '');
