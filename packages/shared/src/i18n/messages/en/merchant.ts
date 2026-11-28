@@ -3005,6 +3005,7 @@ export const merchant = {
     pause: 'Pause collection',
     resume: 'Resume collection',
     paused: 'Collection is paused: page views are not being counted. Reports keep what was already recorded.',
+    pluginOff: 'Page views are not being counted: the Traffic Analytics plugin is not installed or enabled. Install it from the plugin market and the first visit appears here.',
     switchHint: 'A change takes up to half a minute to reach the storefront.',
     switchFailed: 'The switch could not be changed. Check that you may write settings.',
     visitors: 'Visitors',

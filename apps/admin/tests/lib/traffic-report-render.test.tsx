@@ -61,6 +61,7 @@ const report: TrafficReport = {
   host: null,
   rulesVersion: 1,
   rulesUpdatedAt: null,
+  collection: 'on',
   summary: { visitors: 120, visits: 148, views: 431, bounceRate: 0.46, avgVisitSeconds: 95 },
   daily: Array.from({ length: 7 }, (_, index) => ({ day: `2026-11-${22 + index}`, visitors: 17, visits: 21, views: 61 })),
   channels: [
@@ -164,6 +165,15 @@ describe('the traffic report', () => {
     const text = render('en');
     expect(text).toContain('Collection is paused');
     expect(text).toContain('Resume collection');
+  });
+
+  it('says why nothing is counted while the plugin is off, and offers no pause button then', () => {
+    populate();
+    view.report = { ...report, collection: 'plugin-off' };
+    const text = render('en');
+    expect(text).toContain('the Traffic Analytics plugin is not installed or enabled');
+    expect(text).not.toContain('Pause collection');
+    expect(text).not.toContain('Collection is paused');
   });
 
   it('tells the merchant when the reports cannot be read', () => {

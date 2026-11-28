@@ -1860,6 +1860,8 @@ export interface TrafficReport {
   host: string | null;
   rulesVersion: number;
   rulesUpdatedAt: string | null;
+  /** Why page views are or are not being counted right now. */
+  collection: 'on' | 'paused' | 'plugin-off';
   summary: TrafficFigures;
   daily: TrafficDay[];
   channels: Array<TrafficFigures & { channel: TrafficChannel }>;

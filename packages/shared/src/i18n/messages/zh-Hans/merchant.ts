@@ -2977,6 +2977,7 @@ export const merchant = {
     pause: '暂停统计',
     resume: '恢复统计',
     paused: '统计已暂停：新的页面浏览不再计数，已有数据仍可查看。',
+    pluginOff: '页面浏览没有被统计：流量分析插件尚未安装或启用。到插件市场安装后，第一位访客的到来就会出现在这里。',
     switchHint: '开关变更约半分钟后在店面生效。',
     switchFailed: '开关没能改掉。请确认你有修改设置的权限。',
     visitors: '访客',

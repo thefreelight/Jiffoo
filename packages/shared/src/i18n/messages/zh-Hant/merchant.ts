@@ -1614,6 +1614,7 @@ export const merchant = {
     pause: '暫停統計',
     resume: '恢復統計',
     paused: '統計已暫停：新的頁面瀏覽不再計數，已有資料仍可查看。',
+    pluginOff: '頁面瀏覽沒有被統計：流量分析外掛尚未安裝或啟用。到外掛市集安裝後，第一位訪客的到來就會出現在這裡。',
     switchHint: '開關變更約半分鐘後在店面生效。',
     switchFailed: '開關沒能改掉。請確認你有修改設定的權限。',
     visitors: '訪客',

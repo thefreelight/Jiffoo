@@ -465,6 +465,21 @@ describe('native traffic: reports', () => {
     expect(reply.data).toMatchObject({ rulesVersion: 1, rulesUpdatedAt: null, host: null });
   });
 
+  it('says whether page views are being counted, and why not', async () => {
+    expect((await json(await admin(await ready(), REPORT)))?.data?.collection).toBe('on');
+    // The merchant switched collection off.
+    resetNativeTrafficCaches();
+    const paused = open({ switchedOff: true });
+    await seedVisits(paused);
+    addMembership(paused, 'ADMIN');
+    expect((await json(await admin(paused, REPORT)))?.data?.collection).toBe('paused');
+    // The plugin is not there at all.
+    resetNativeTrafficCaches();
+    const absent = open({ installed: false });
+    addMembership(absent, 'ADMIN');
+    expect((await json(await admin(absent, REPORT)))?.data?.collection).toBe('plugin-off');
+  });
+
   it('counts a day in the viewer’s zone and can narrow to one storefront host', async () => {
     const h = await ready();
     // Beijing's 25 November starts at 16:00 UTC on the 24th, so all eight visits fall on that one day.

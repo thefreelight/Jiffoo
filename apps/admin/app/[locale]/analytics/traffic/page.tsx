@@ -234,15 +234,17 @@ export default function TrafficPage() {
               ))}
             </select>
           ) : null}
-          <Button
-            variant="outline"
-            onClick={() => changeSwitch(!paused.data)}
-            disabled={setPaused.isPending || paused.data === undefined}
-            className="gap-2"
-          >
-            {setPaused.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : paused.data ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
-            {paused.data ? getText('merchant.traffic.resume', 'Resume collection') : getText('merchant.traffic.pause', 'Pause collection')}
-          </Button>
+          {data?.collection === 'plugin-off' ? null : (
+            <Button
+              variant="outline"
+              onClick={() => changeSwitch(!paused.data)}
+              disabled={setPaused.isPending || paused.data === undefined}
+              className="gap-2"
+            >
+              {setPaused.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : paused.data ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+              {paused.data ? getText('merchant.traffic.resume', 'Resume collection') : getText('merchant.traffic.pause', 'Pause collection')}
+            </Button>
+          )}
           <Button variant="outline" onClick={() => void refresh()} disabled={report.isFetching} className="gap-2">
             <RefreshCw className={cn('h-4 w-4', report.isFetching && 'animate-spin')} />
             {getText('merchant.traffic.refresh', 'Refresh')}
@@ -273,7 +275,11 @@ export default function TrafficPage() {
             <p className="text-xs text-muted-foreground">
               {data.period.from} – {data.period.to} · {getText('merchant.traffic.privacy', 'Nothing personal is stored: no cookies, no addresses, no device identifiers. A visitor is an anonymous key that changes every month, and visitors who ask not to be tracked are not counted.')}
             </p>
-            {paused.data ? (
+            {data.collection === 'plugin-off' ? (
+              <p className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-xs text-slate-700">
+                {getText('merchant.traffic.pluginOff', 'Page views are not being counted: the Traffic Analytics plugin is not installed or enabled. Install it from the plugin market and the first visit appears here.')}
+              </p>
+            ) : paused.data ? (
               <p className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900">
                 {getText('merchant.traffic.paused', 'Collection is paused: page views are not being counted. Reports keep what was already recorded.')}{' '}
                 {getText('merchant.traffic.switchHint', 'A change takes up to half a minute to reach the storefront.')}
