@@ -129,6 +129,7 @@ export const common = {
     expandPlugins: 'Expand plugins',
     managementWorkspace: 'Management Workspace',
     notifications: 'Notifications',
+    aiAssistant: 'AI assistant',
   },
   errors: {
     general: 'Something went wrong. Please try again.',

@@ -154,7 +154,7 @@ export function BlueMinimalLayout({ children }: BlueMinimalLayoutProps) {
                 <UpdateNotificationBell />
                 <button
                   type="button"
-                  aria-label="AI assistant"
+                  aria-label={getText('common.shell.aiAssistant', 'AI assistant')}
                   className="ml-1 flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900 text-white shadow-md transition-colors hover:bg-slate-700"
                 >
                   <Bot className="h-[18px] w-[18px]" />

@@ -129,7 +129,10 @@ interface Read {
   hardcoded: Array<{ file: string; line: number; kind: string; text: string }>;
 }
 
-const hasWords = (text: string) => /[A-Za-z]{3,}/.test(text) && (/[A-Za-z]{3,}\s+[A-Za-z]{2,}/.test(text) || /[A-Z][a-z]{2,}/.test(text)) && !/^\/|:\/\//.test(text);
+// "AI assistant", "eSIM plans" — a short token and a word — are English too; a code in capitals (USD, SKU, ID) is not
+const hasWords = (text: string) => /[A-Za-z]{3,}/.test(text)
+  && (/[A-Za-z]{3,}\s+[A-Za-z]{2,}/.test(text) || /[A-Z][a-z]{2,}/.test(text) || /(^|\s)[A-Za-z]{1,2}\s+[A-Za-z]{3,}/.test(text) || /(^|\s)[A-Za-z]{3,}\s+[A-Za-z]{1,2}($|\s)/.test(text))
+  && !/^\/|:\/\//.test(text);
 const TEXT_ATTRIBUTES = new Set(['placeholder', 'title', 'alt', 'aria-label', 'aria-placeholder', 'label', 'description', 'helperText', 'tooltip']);
 const LABEL_PROPERTIES = new Set(['label', 'description', 'placeholder', 'tooltip', 'helperText', 'emptyText', 'subtitle', 'heading', 'hint']);
 /** attributes that are not read as words */
