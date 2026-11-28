@@ -210,7 +210,7 @@ export default function GameStatsPage() {
     >
       <PageNav
         items={[
-          { label: getText('merchant.nav.dashboard', '仪表板'), href: '/dashboard' },
+          { label: getText('merchant.nav.dashboard', '仪表盘'), href: '/dashboard' },
           { label: pick(copy.title), href: '/analytics/games', exact: true },
         ]}
       />

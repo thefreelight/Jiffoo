@@ -136,8 +136,8 @@ const CONFIG_FIELDS_ZH_HANS: Record<string, Record<string, ConfigFieldLocalizati
     secretKey: { label: 'Stripe 密钥', description: '服务端凭据。粘贴标准密钥（sk_...）或最小权限的受限密钥（rk_...），不要填到可发布密钥里。' },
     testSecretKey: '测试密钥', testPublishableKey: '测试可发布密钥', testWebhookSecret: '测试 Webhook 签名密钥',
     liveSecretKey: '正式密钥', livePublishableKey: '正式可发布密钥', liveWebhookSecret: '正式 Webhook 签名密钥',
-    publishableKey: { label: 'Stripe 可发布密钥', description: '来自 Stripe 控制台「开发者 → API 密钥」的浏览器端公钥，以 pk_ 开头；不要粘贴 sk_ 或 rk_ 密钥。' },
-    webhookSecret: { label: 'Webhook 签名密钥', description: '本实例 Webhook 端点的签名密钥，从 Stripe 控制台「开发者 → Webhook → 对应端点 → 签名密钥」复制。' },
+    publishableKey: { label: 'Stripe 可发布密钥', description: '来自 Stripe 控制台“开发者 → API 密钥”的浏览器端公钥，以 pk_ 开头；不要粘贴 sk_ 或 rk_ 密钥。' },
+    webhookSecret: { label: 'Webhook 签名密钥', description: '本实例 Webhook 端点的签名密钥，从 Stripe 控制台“开发者 → Webhook → 对应端点 → 签名密钥”复制。' },
   },
   shipping: {
     mode: { label: '承运商环境', description: '承运商提供测试环境时使用测试接口。' },

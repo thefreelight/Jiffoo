@@ -2,11 +2,11 @@
   "buttons": {
     "submit": "提交",
     "cancel": "取消",
-    "save": "储存",
+    "save": "保存",
     "delete": "删除",
     "edit": "编辑",
     "add": "新增",
-    "search": "搜寻",
+    "search": "搜索",
     "filter": "筛选",
     "clear": "清除",
     "confirm": "确认",
@@ -14,10 +14,10 @@
     "back": "返回",
     "next": "下一步",
     "previous": "上一步",
-    "loading": "载入中...",
-    "refresh": "重新整理",
-    "export": "汇出",
-    "import": "汇入"
+    "loading": "加载中...",
+    "refresh": "刷新",
+    "export": "导出",
+    "import": "导入"
   },
   "status": {
     "active": "启用",
@@ -32,28 +32,28 @@
     "disabled": "已停用"
   },
   "errors": {
-    "required": "此栏位为必填",
+    "required": "此项为必填项",
     "invalid_email": "请输入有效的电子邮件地址",
     "min_length": "至少需要 {{count}} 个字元",
     "max_length": "不能超过 {{count}} 个字元",
-    "network_error": "网路错误，请重试",
-    "server_error": "伺服器错误，请稍后重试",
-    "not_found": "找不到资料",
-    "unauthorized": "请登入后继续",
-    "forbidden": "您没有权限存取此内容",
+    "network_error": "网络错误，请重试",
+    "server_error": "服务器错误，请稍后重试",
+    "not_found": "找不到数据",
+    "unauthorized": "请登录后继续",
+    "forbidden": "您没有权限访问此内容",
     "orderFailed": "下单失败，请重试。",
     "general": "出错了，请重试。",
     "paymentFailed": "支付发起失败，请重试。"
   },
   "messages": {
-    "save_success": "储存成功",
+    "save_success": "保存成功",
     "delete_success": "删除成功",
     "update_success": "更新成功",
-    "create_success": "建立成功",
+    "create_success": "创建成功",
     "confirm_delete": "确定要删除吗？",
-    "no_data": "暂无资料",
-    "loading": "载入中...",
-    "search_placeholder": "搜寻..."
+    "no_data": "暂无数据",
+    "loading": "加载中...",
+    "search_placeholder": "搜索..."
   },
   "pagination": {
     "page": "页",

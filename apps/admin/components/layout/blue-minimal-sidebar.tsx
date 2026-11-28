@@ -141,7 +141,7 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
       {
         id: 'dashboard',
         nameKey: 'merchant.nav.dashboard',
-        fallback: '仪表板',
+        fallback: '仪表盘',
         href: '/dashboard',
         icon: LayoutDashboard,
         requiredPermissions: [ADMIN_PERMISSIONS.DASHBOARD_READ],

@@ -4,11 +4,11 @@
         "products": "商品",
         "categories": "分类",
         "cart": "购物车",
-        "account": "帐户",
+        "account": "账户",
         "orders": "订单",
         "wishlist": "收藏清单",
-        "login": "登入",
-        "logout": "登出",
+        "login": "登录",
+        "logout": "退出登录",
         "register": "注册"
     },
     "home": {
@@ -40,7 +40,7 @@
         "continue_shopping": "继续购物",
         "subtotal": "小计",
         "total": "总计",
-        "checkout": "结帐",
+        "checkout": "结算",
         "remove": "删除",
         "update": "更新",
         "quantity": "数量",
@@ -48,9 +48,9 @@
         "items": "件商品"
     },
     "checkout": {
-        "title": "结帐",
+        "title": "结算",
         "shipping_address": "收货地址",
-        "billing_address": "帐单地址",
+        "billing_address": "账单地址",
         "payment_method": "付款方式",
         "order_summary": "订单摘要",
         "place_order": "提交订单",
@@ -62,7 +62,7 @@
         "address": "详细地址",
         "city": "城市",
         "state": "省/州",
-        "postal_code": "邮递区号",
+        "postal_code": "邮政编码",
         "country": "国家"
     },
     "order": {
@@ -76,39 +76,39 @@
         "payment": "付款",
         "track_order": "追踪订单",
         "cancel_order": "取消订单",
-        "view_details": "检视详情",
+        "view_details": "查看详情",
         "order_success": "订单提交成功！",
         "order_cancelled": "订单已取消"
     },
     "account": {
-        "my_account": "我的帐户",
+        "my_account": "我的账户",
         "profile": "个人资料",
         "orders": "我的订单",
         "addresses": "收货地址",
-        "settings": "设定",
-        "change_password": "变更密码",
+        "settings": "设置",
+        "change_password": "修改密码",
         "edit_profile": "编辑资料"
     },
     "auth": {
-        "login": "登入",
+        "login": "登录",
         "register": "注册",
         "forgot_password": "忘记密码？",
         "remember_me": "记住我",
         "email": "电子邮件",
         "password": "密码",
         "confirm_password": "确认密码",
-        "username": "使用者名称",
-        "login_success": "登入成功",
+        "username": "用户名",
+        "login_success": "登录成功",
         "register_success": "注册成功",
-        "logout_success": "已登出"
+        "logout_success": "已退出登录"
     },
     "footer": {
         "about": "关于我们",
-        "contact": "联络我们",
+        "contact": "联系我们",
         "privacy": "隐私权政策",
         "terms": "服务条款",
         "faq": "常见问题",
-        "support": "客服支援",
+        "support": "客服支持",
         "newsletter": "订阅电子报",
         "copyright": "© 2024 版权所有"
     }

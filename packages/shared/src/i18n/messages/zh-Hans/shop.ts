@@ -17,7 +17,7 @@ export const shop = {
     contact: '联系我们',
     help: '帮助',
     cart: '购物车',
-    account: '帐户',
+    account: '账户',
     orders: '订单',
     wishlist: '愿望清单',
     search: '搜索',
@@ -42,7 +42,7 @@ export const shop = {
       badge: '新品上市',
       subtitle: '为现代生活精心策划的商品，值得信赖的卓越品质。',
       explore: '探索商品',
-      watchVideo: '观看影片',
+      watchVideo: '观看视频',
       trustedBy: '深受 10,000+ 顾客信赖',
       fastDelivery: '快速配送',
       deliveryTime: '1-3 个工作天',
@@ -73,7 +73,7 @@ export const shop = {
     banner: {
       title: '为现代生活而设计',
       subtitle: '注重细节。卓越品质。隽永设计。',
-      watch: '观看影片',
+      watch: '观看视频',
     },
     newsletter: {
       title: '加入 Jiffoo 社群',
@@ -102,7 +102,7 @@ export const shop = {
       securePayment: {
         badge: '交易安全',
         title: '安全支付',
-        description: '您的付款资讯经过加密保护。安心购物。',
+        description: '您的付款信息经过加密保护。安心购物。',
       },
     },
     features: {
@@ -119,7 +119,7 @@ export const shop = {
         badge: '交易安全',
         title: '安全支付',
         subtitle: '100% 安全结算',
-        description: '您的付款资讯经过加密保护。安心购物。',
+        description: '您的付款信息经过加密保护。安心购物。',
       },
       returns: {
         title: '轻松退货',
@@ -160,7 +160,7 @@ export const shop = {
     showing: '显示',
     productsCount: '件商品',
     noProducts: '暂无商品',
-    loading: '正在载入商品...',
+    loading: '正在加载商品...',
     sort: {
       newest: '最新上架',
       featured: '精选推荐',
@@ -172,8 +172,8 @@ export const shop = {
       next: '下一页',
     },
     view: {
-      grid: '网格检视',
-      list: '列表检视',
+      grid: '网格视图',
+      list: '列表视图',
     },
   },
 
@@ -211,7 +211,7 @@ export const shop = {
     subtotal: '小计',
     shipping: '运费',
     shippingFree: '免运费',
-    tax: '税金',
+    tax: '税费',
     discount: '折扣',
     total: '总计',
     checkout: '前往结算',
@@ -242,14 +242,14 @@ export const shop = {
 
   // Checkout
   checkout: {
-    title: '结帐',
+    title: '结算',
     shipping: {
-      title: '运送资讯',
-      address: '运送地址',
-      method: '运送方式',
+      title: '配送信息',
+      address: '配送地址',
+      method: '配送方式',
     },
     payment: {
-      title: '付款资讯',
+      title: '付款信息',
       method: '付款方式',
     },
     review: {
@@ -257,10 +257,10 @@ export const shop = {
     },
     placeOrder: '提交订单',
     processing: '处理中...',
-    termsNotice: '点击「提交订单」即表示您同意我们的服务条款和隐私政策',
+    termsNotice: '点击“提交订单”即表示您同意我们的服务条款和隐私政策',
     noPaymentMethods: '无可用付款方式',
     installPaymentPlugin: '请安装付款插件以启用结算功能。',
-    contactAdmin: '请联络管理员配置付款方式。',
+    contactAdmin: '请联系管理员配置付款方式。',
   },
 
   // Orders
@@ -283,12 +283,12 @@ export const shop = {
     fetchFailed: '无法获取订单详情',
     notFound: '找不到订单',
     notFoundDescription: '您要找的订单不存在。',
-    paymentSessionFailed: '无法建立付款会话',
+    paymentSessionFailed: '无法创建付款会话',
     paymentRetryFailed: '重试付款失败',
     statuses: {
       pending: '待处理',
       processing: '处理中',
-      shipped: '已出货',
+      shipped: '已发货',
       delivered: '已送达',
       cancelled: '已取消',
       refunded: '已退款',
@@ -313,18 +313,18 @@ export const shop = {
       oauthFailed: 'OAuth 登录失败',
     },
     register: {
-      title: '建立帐户',
+      title: '创建账户',
       firstName: '名字',
       lastName: '姓氏',
       email: '电子邮件',
       password: '密码',
       confirmPassword: '确认密码',
       agreeTerms: '我同意服务条款和隐私政策',
-      submit: '建立帐户',
-      haveAccount: '已有帐户？',
-      signIn: '登入',
+      submit: '创建账户',
+      haveAccount: '已有账户？',
+      signIn: '登录',
       success: '注册成功',
-      welcomeMessage: '欢迎！请使用您的凭证登录。',
+      welcomeMessage: '欢迎！请使用您的账号和密码登录。',
       failed: '注册失败',
       oauthFailed: 'OAuth 注册失败',
       passwordMismatch: '密码不匹配',
@@ -354,7 +354,7 @@ export const shop = {
     },
     verifyTitle: '验证你的邮箱',
     verifyMessage: '这个账号还在等验证。请输入我们发送的验证码，或者重新发送一个。',
-    logout: '登出',
+    logout: '退出登录',
   },
 
   // Profile
@@ -382,13 +382,13 @@ export const shop = {
   // Contact
   contact: {
     underDevelopment: '功能开发中',
-    underDevelopmentDescription: '联络表单功能目前正在开发中，请稍后再试。',
+    underDevelopmentDescription: '联系表单功能目前正在开发中，请稍后再试。',
   },
 
   // Recommendations
   recommendations: {
-    errorTitle: '无法载入推荐',
-    loading: '正在载入推荐...',
+    errorTitle: '无法加载推荐',
+    loading: '正在加载推荐...',
     personalizedForYou: '为您推荐',
     popularProducts: '热门商品',
     personalizedDescription: '根据您的兴趣和购物记录',
@@ -403,17 +403,17 @@ export const shop = {
   footer: {
     aboutUs: '关于我们',
     customerService: '客户服务',
-    information: '资讯',
+    information: '信息',
     contactUs: '联系我们',
-    quickLinks: '快速连结',
+    quickLinks: '快速链接',
     allProducts: '所有商品',
     specialDeals: '特别优惠',
     helpCenter: '帮助中心',
-    shippingInfo: '运送资讯',
+    shippingInfo: '配送信息',
     returnsExchanges: '退换货',
     faq: '常见问题',
-    contactInfo: '联络资讯',
-    legal: '法律资讯',
+    contactInfo: '联系信息',
+    legal: '法律信息',
     privacyPolicy: '隐私政策',
     termsOfService: '服务条款',
     cookiePolicy: 'Cookie 政策',
@@ -430,9 +430,9 @@ export const shop = {
 
   // Header
   header: {
-    login: '登入',
+    login: '登录',
     signUp: '注册',
-    logout: '登出',
+    logout: '退出登录',
     profile: '个人资料',
   },
 
@@ -443,7 +443,7 @@ export const shop = {
       subtitle: '今天我们能帮您什么？',
       searchPlaceholder: '搜索帮助...',
       popularTopics: '热门主题',
-      contactSupport: '联络客服',
+      contactSupport: '联系客服',
     },
     contact: {
       title: '联系我们',
@@ -452,8 +452,8 @@ export const shop = {
         name: '姓名',
         email: '电子邮件',
         subject: '主题',
-        message: '讯息',
-        submit: '发送讯息',
+        message: '留言内容',
+        submit: '发送留言',
       },
     },
     privacy: {

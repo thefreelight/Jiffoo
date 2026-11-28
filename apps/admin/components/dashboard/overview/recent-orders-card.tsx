@@ -36,7 +36,7 @@ const STATUS_LABEL_KEYS: Record<string, { key: string; fallback: string; tone: P
   PENDING: { key: 'merchant.orders.pending', fallback: '待处理', tone: 'pending' },
   PAID: { key: 'merchant.orders.paid', fallback: '已付款', tone: 'paid' },
   PROCESSING: { key: 'merchant.orders.processing', fallback: '处理中', tone: 'paid' },
-  SHIPPED: { key: 'merchant.orders.shipped', fallback: '已出货', tone: 'shipped' },
+  SHIPPED: { key: 'merchant.orders.shipped', fallback: '已发货', tone: 'shipped' },
   DELIVERED: { key: 'merchant.orders.delivered', fallback: '已送达', tone: 'completed' },
   COMPLETED: { key: 'merchant.dashboard.overview.statusCompleted', fallback: '已完成', tone: 'completed' },
   CANCELLED: { key: 'merchant.orders.cancelled', fallback: '已取消', tone: 'cancelled' },
