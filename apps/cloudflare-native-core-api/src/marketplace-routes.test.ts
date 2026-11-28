@@ -183,6 +183,37 @@ const memberConnection = {
   tenantBinding: { tenantBindingId: 'bind-1', localStoreId: 'store-1' },
 };
 
+// A theme package the native theme installer accepts: theme.json and a runtime file.
+function themePackageZip(slug: string, version: string): Uint8Array {
+  const encoder = new TextEncoder();
+  const themeJson = encoder.encode(JSON.stringify({ slug, version, defaultConfig: {} }));
+  const crcTable = (() => { const t: number[] = []; for (let n = 0; n < 256; n += 1) { let c = n; for (let k = 0; k < 8; k += 1) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+  const crcOf = (bytes: Uint8Array) => { let crc = 0xffffffff; for (const byte of bytes) crc = crcTable[(crc ^ byte) & 0xff]! ^ (crc >>> 8); return (crc ^ 0xffffffff) >>> 0; };
+  const entry = (name: string, bytes: Uint8Array, offset: number) => {
+    const nameBytes = encoder.encode(name);
+    const crc = crcOf(bytes);
+    const local = new Uint8Array(30 + nameBytes.length);
+    const lv = new DataView(local.buffer);
+    lv.setUint32(0, 0x04034b50, true); lv.setUint32(14, crc, true); lv.setUint32(18, bytes.length, true); lv.setUint32(22, bytes.length, true); lv.setUint16(26, nameBytes.length, true);
+    local.set(nameBytes, 30);
+    const cd = new Uint8Array(46 + nameBytes.length);
+    const cv = new DataView(cd.buffer);
+    cv.setUint32(0, 0x02014b50, true); cv.setUint32(16, crc, true); cv.setUint32(20, bytes.length, true); cv.setUint32(24, bytes.length, true); cv.setUint16(28, nameBytes.length, true); cv.setUint32(42, offset, true);
+    cd.set(nameBytes, 46);
+    return { local, cd, bytes };
+  };
+  const a = entry('theme.json', themeJson, 0);
+  const runtime = encoder.encode('/* runtime */');
+  const b = entry('runtime/theme-runtime.js', runtime, a.local.length + themeJson.length);
+  const centralSize = a.cd.length + b.cd.length;
+  const localSize = a.local.length + themeJson.length + b.local.length + runtime.length;
+  const eocd = new Uint8Array(22);
+  const ev = new DataView(eocd.buffer);
+  ev.setUint32(0, 0x06054b50, true); ev.setUint16(8, 2, true); ev.setUint16(10, 2, true); ev.setUint32(12, centralSize, true); ev.setUint32(16, localSize, true);
+  const zip = new Uint8Array([...a.local, ...themeJson, ...b.local, ...runtime, ...a.cd, ...b.cd, ...eocd]);
+  return zip;
+}
+
 describe('non-free official extensions need a platform entitlement', () => {
   it('refuses to enable a member-priced plugin when the instance has no credentials', async () => {
     authenticateNativeAdmin.mockResolvedValue(true);
@@ -252,32 +283,7 @@ describe('non-free official extensions need a platform entitlement', () => {
 
   it('installs a member-priced theme through the authorized route using the platform connection', async () => {
     authenticateNativeAdmin.mockResolvedValue(true);
-    const encoder = new TextEncoder();
-    const themeJson = encoder.encode(JSON.stringify({ slug: 'navtoai', version: '0.2.8', defaultConfig: {} }));
-    const crcTable = (() => { const t: number[] = []; for (let n = 0; n < 256; n += 1) { let c = n; for (let k = 0; k < 8; k += 1) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
-    const crcOf = (bytes: Uint8Array) => { let crc = 0xffffffff; for (const byte of bytes) crc = crcTable[(crc ^ byte) & 0xff]! ^ (crc >>> 8); return (crc ^ 0xffffffff) >>> 0; };
-    const entry = (name: string, bytes: Uint8Array, offset: number) => {
-      const nameBytes = encoder.encode(name);
-      const crc = crcOf(bytes);
-      const local = new Uint8Array(30 + nameBytes.length);
-      const lv = new DataView(local.buffer);
-      lv.setUint32(0, 0x04034b50, true); lv.setUint32(14, crc, true); lv.setUint32(18, bytes.length, true); lv.setUint32(22, bytes.length, true); lv.setUint16(26, nameBytes.length, true);
-      local.set(nameBytes, 30);
-      const cd = new Uint8Array(46 + nameBytes.length);
-      const cv = new DataView(cd.buffer);
-      cv.setUint32(0, 0x02014b50, true); cv.setUint32(16, crc, true); cv.setUint32(20, bytes.length, true); cv.setUint32(24, bytes.length, true); cv.setUint16(28, nameBytes.length, true); cv.setUint32(42, offset, true);
-      cd.set(nameBytes, 46);
-      return { local, cd, bytes };
-    };
-    const a = entry('theme.json', themeJson, 0);
-    const runtime = encoder.encode('/* runtime */');
-    const b = entry('runtime/theme-runtime.js', runtime, a.local.length + themeJson.length);
-    const centralSize = a.cd.length + b.cd.length;
-    const localSize = a.local.length + themeJson.length + b.local.length + runtime.length;
-    const eocd = new Uint8Array(22);
-    const ev = new DataView(eocd.buffer);
-    ev.setUint32(0, 0x06054b50, true); ev.setUint16(8, 2, true); ev.setUint16(10, 2, true); ev.setUint32(12, centralSize, true); ev.setUint32(16, localSize, true);
-    const zip = new Uint8Array([...a.local, ...themeJson, ...b.local, ...runtime, ...a.cd, ...b.cd, ...eocd]);
+    const zip = themePackageZip('navtoai', '0.2.8');
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(Response.json({ data: { items: [{
         slug: 'navtoai', kind: 'theme', installable: true, sellableVersion: '0.2.8', pricingModel: 'member', packageAccess: 'license',
@@ -302,5 +308,75 @@ describe('non-free official extensions need a platform entitlement', () => {
     expect(requests.map((value) => value.method)).toEqual(['HEAD', 'GET']);
     expect(Object.fromEntries(requests[0]!.headers)).toMatchObject({ 'x-jiffoo-instance-id': 'inst-1', 'x-jiffoo-instance-token': 'tok-1', 'x-jiffoo-tenant-binding-id': 'bind-1', 'x-jiffoo-local-store-id': 'store-1' });
     expect(requests[0]!.headers.has('x-jiffoo-license-key')).toBe(false);
+  });
+});
+
+describe('official items with a free base', () => {
+  const freeBasePlugin = { slug: 'traffic-analytics', kind: 'plugin', installable: true, sellableVersion: '0.0.1', pricingModel: 'member', packageAccess: 'license', freeBase: true };
+
+  it('installs a membership plugin the platform marks as free-base without any credential', async () => {
+    authenticateNativeAdmin.mockResolvedValue(true);
+    const fetchMock = vi.fn(async () => Response.json({ data: { items: [freeBasePlugin] } }));
+    vi.stubGlobal('fetch', fetchMock);
+    const { db, run } = instanceDb();
+    const response = await tryNativeMarketplace(new Request('https://api.example/api/v1/admin/market/extensions/traffic-analytics/install', {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'plugin', version: '0.0.1' }),
+    }), { DB: db } as never);
+    expect(response?.status).toBe(200);
+    expect(run).toHaveBeenCalledOnce();
+    // Only the catalog was asked: no entitlement check and, for a plugin, no package download.
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it('fetches a free-base theme through an install grant, never through a public URL', async () => {
+    authenticateNativeAdmin.mockResolvedValue(true);
+    const grantUrl = 'https://get.jiffoo.com/api/marketplace/official/package/theme/navtoai/0.2.8?grant=' + 'a'.repeat(64);
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(Response.json({ data: { items: [{
+        slug: 'navtoai', kind: 'theme', installable: true, sellableVersion: '0.2.8', pricingModel: 'member', packageAccess: 'license', freeBase: true,
+        versions: [{ version: '0.2.8', packageUrl: null }],
+      }] } }))
+      .mockResolvedValueOnce(Response.json({ success: true, data: { allowed: true, packageUrl: grantUrl, entitlement: { required: false, status: 'free_base' } } }))
+      .mockResolvedValueOnce(new Response(themePackageZip('navtoai', '0.2.8') as unknown as BodyInit, { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const { db } = instanceDb();
+    const objects = new Map<string, Uint8Array>();
+    const response = await tryNativeMarketplace(new Request('https://api.example/api/v1/admin/market/extensions/navtoai/install', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ kind: 'theme-shop', version: '0.2.8', activate: true }),
+    }), {
+      DB: db,
+      ASSETS: { put: vi.fn(async (key: string, value: Uint8Array) => { objects.set(key, value); }) },
+    } as never);
+    expect(response?.status).toBe(200);
+    expect(objects.has('extensions/themes/shop/.versions/navtoai/0.2.8/runtime/theme-runtime.js')).toBe(true);
+    const authorization = fetchMock.mock.calls[1]?.[0] as Request;
+    expect(authorization.url).toBe('https://platform-api.jiffoo.com/api/marketplace/official/catalog/navtoai/authorize-install');
+    expect(authorization.method).toBe('POST');
+    expect(JSON.parse(await authorization.text())).toEqual({ userId: 'native-install', version: '0.2.8' });
+    // Without a Platform service binding the granted address is fetched by URL: no credential rides along.
+    const download = fetchMock.mock.calls[2]?.[0];
+    expect(typeof download === 'string' ? download : (download as Request).url).toBe(grantUrl);
+    expect(fetchMock.mock.calls[2]?.[1]).toBeUndefined();
+  });
+
+  it('installs nothing when the platform does not confirm the free base', async () => {
+    authenticateNativeAdmin.mockResolvedValue(true);
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(Response.json({ data: { items: [{
+        slug: 'navtoai', kind: 'theme', installable: true, sellableVersion: '0.2.8', pricingModel: 'member', packageAccess: 'license', freeBase: true,
+        versions: [{ version: '0.2.8', packageUrl: null }],
+      }] } }))
+      .mockResolvedValueOnce(Response.json({ success: true, data: { allowed: false, packageUrl: null, entitlement: { required: true, status: 'denied' } } }));
+    vi.stubGlobal('fetch', fetchMock);
+    const { db } = instanceDb();
+    const put = vi.fn();
+    const response = await tryNativeMarketplace(new Request('https://api.example/api/v1/admin/market/extensions/navtoai/install', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ kind: 'theme-shop', version: '0.2.8', activate: true }),
+    }), { DB: db, ASSETS: { put } } as never);
+    expect(response?.status).toBe(503);
+    expect(put).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

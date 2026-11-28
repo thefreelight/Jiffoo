@@ -64,6 +64,18 @@ export async function isTrafficCollectionEnabled(): Promise<boolean> {
   return enabled;
 }
 
+/** Why page views are or are not being counted, for the report to say. */
+export async function trafficCollectionState(): Promise<'on' | 'paused' | 'plugin-off'> {
+  let installed = false;
+  try {
+    installed = await isPluginEnabled(TRAFFIC_PLUGIN_SLUG, 'default');
+  } catch {
+    installed = false;
+  }
+  if (!installed) return 'plugin-off';
+  return (await isTrafficCollectionEnabled()) ? 'on' : 'paused';
+}
+
 // ── rate limit (per process; a cheap volume guard, not a security boundary) ──
 
 const rateBuckets = new Map<string, { startedAt: number; count: number }>();
@@ -240,6 +252,8 @@ export interface TrafficReport {
   host: string | null;
   rulesVersion: number;
   rulesUpdatedAt: string | null;
+  /** Why page views are or are not being counted right now. */
+  collection: 'on' | 'paused' | 'plugin-off';
   summary: Figures;
   daily: Array<{ day: string; visitors: number; visits: number; views: number }>;
   channels: Array<Figures & { channel: TrafficChannel }>;
@@ -389,6 +403,7 @@ export async function trafficReport(query: ReportQuery): Promise<TrafficReport> 
     host: query.host,
     rulesVersion: stored.rules.version,
     rulesUpdatedAt: stored.updatedAt,
+    collection: await trafficCollectionState(),
     summary: figures(summary),
     daily,
     channels: TRAFFIC_CHANNELS.map((channel) => ({ channel, ...figures(channelTotals.get(channel) ?? emptyTotals()) })),

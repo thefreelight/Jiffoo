@@ -103,6 +103,12 @@ async function resolveCollectionEnabled(env: TrafficEnv): Promise<boolean> {
   return enabled;
 }
 
+/** Why page views are or are not being counted, for the report to say. */
+async function collectionState(env: TrafficEnv): Promise<'on' | 'paused' | 'plugin-off'> {
+  if (!(await isNativePluginEnabled(env, PLUGIN_SLUG))) return 'plugin-off';
+  return (await resolveCollectionEnabled(env)) ? 'on' : 'paused';
+}
+
 // ── rate limit (per isolate; a cheap volume guard, not a security boundary) ──
 
 const rateBuckets = new Map<string, { startedAt: number; count: number }>();
@@ -491,6 +497,7 @@ async function report(env: TrafficEnv, query: TrafficReportQuery): Promise<Respo
   return success({
     period: periodOf(query),
     host: query.host,
+    collection: await collectionState(env),
     rulesVersion: stored.rules.version,
     rulesUpdatedAt: stored.updatedAt,
     summary: figures(summary),

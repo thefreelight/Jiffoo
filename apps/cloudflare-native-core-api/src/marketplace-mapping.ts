@@ -17,6 +17,10 @@ export type NativeCatalogItem = {
   pricingModel?: OfficialPricingModel;
   /** `license` packages are only served by the platform after an entitlement check. */
   packageAccess?: 'public' | 'license';
+  /** The platform marks a membership item whose basic features everyone may use:
+   * installing it needs no entitlement, and the membership is asked for by the
+   * paid features themselves. */
+  freeBase?: boolean;
   price?: number | null;
   currency?: string;
   currentVersion?: string;
@@ -36,9 +40,12 @@ export type PlatformDeliveryCredentials = {
 /**
  * Whether installing this item needs the platform to confirm an entitlement.
  * Only the platform saying `free` skips the check; anything else — including a
- * missing pricing model — is treated as non-free.
+ * missing pricing model — is treated as non-free. The one exception is an item
+ * the platform marks as having a free base: anyone may install it, and what the
+ * membership unlocks is left to the paid features.
  */
-export function requiresPlatformEntitlement(item: Pick<NativeCatalogItem, 'pricingModel' | 'packageAccess'>): boolean {
+export function requiresPlatformEntitlement(item: Pick<NativeCatalogItem, 'pricingModel' | 'packageAccess' | 'freeBase'>): boolean {
+  if (item.freeBase === true) return false;
   return item.packageAccess === 'license' || item.pricingModel !== 'free';
 }
 
@@ -145,6 +152,7 @@ export function buildNativeCatalogResponse(items: NativeCatalogItem[], installed
         pricingModel: item.pricingModel || 'free',
         price: item.price || 0,
         currency: item.currency || 'USD',
+        freeBase: item.freeBase === true,
         installState: enabled === undefined ? 'not_installed' : enabled ? 'enabled' : 'installed',
         releaseStatus: item.installable ? 'published' : 'catalog-only',
         source: enabled === undefined ? 'official-market' : 'installed',

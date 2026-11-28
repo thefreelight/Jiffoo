@@ -17,6 +17,21 @@ describe('non-free official extension gating', () => {
     }
   });
 
+  it('lets anyone install an item the platform marks as having a free base', () => {
+    expect(requiresPlatformEntitlement({ pricingModel: 'member', packageAccess: 'license', freeBase: true })).toBe(false);
+    // Only the platform's explicit flag does it; a missing or a falsy flag changes nothing.
+    expect(requiresPlatformEntitlement({ pricingModel: 'member', packageAccess: 'license' })).toBe(true);
+    expect(requiresPlatformEntitlement({ pricingModel: 'member', packageAccess: 'license', freeBase: false })).toBe(true);
+  });
+
+  it('passes the free-base flag on to the admin catalog', () => {
+    const response = buildNativeCatalogResponse([
+      { slug: 'traffic-analytics', kind: 'plugin', pricingModel: 'member', packageAccess: 'license', freeBase: true },
+      { slug: 'wallet', kind: 'plugin', pricingModel: 'member', packageAccess: 'license' },
+    ], new Map());
+    expect(response.items.map((item) => (item as { freeBase?: boolean }).freeBase)).toEqual([true, false]);
+  });
+
   it('builds the authorized package route for themes and plugins', () => {
     expect(officialPackageRoute('theme', 'navtoai', '0.2.8')).toBe('/marketplace/official/package/theme/navtoai/0.2.8');
     expect(officialPackageRoute('plugin', 'wallet', '0.2.0')).toBe('/marketplace/official/package/plugin/wallet/0.2.0');
