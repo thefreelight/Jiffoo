@@ -129,6 +129,7 @@ export const common = {
     expandPlugins: '展开插件',
     managementWorkspace: '管理工作空间',
     notifications: '通知',
+    aiAssistant: 'AI 助手',
   },
   errors: {
     general: '发生错误，请重试。',
