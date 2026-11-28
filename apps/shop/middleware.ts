@@ -92,7 +92,8 @@ async function ensureSeoRedirects(origin: string): Promise<void> {
  * Shop middleware handler
  *
  * Request flow:
- * 1. Check if path should never be forwarded (/api/*, /extensions/*, /uploads/*, /theme-app/*)
+ * 1. A Core API path (/api/*, /plugins/*, /extensions/*, /uploads/*) goes on to
+ *    the rewrite rules with the visitor's address and country added
  * 2. Check if Theme App mode is active -> rewrite to Theme App Gateway
  * 3. Handle locale redirect if no locale prefix
  * 4. Pass through
@@ -118,8 +119,8 @@ async function refreshPluginLocales(request: ProxyRequest): Promise<void> {
   pluginLocalesRefreshedAt = Date.now();
   try {
     // Same-origin subrequest: the middleware runtime does not expose
-    // wrangler vars on process.env, and /api/* re-enters this worker's
-    // API proxy to the Core API without recursing into the middleware.
+    // wrangler vars on process.env, and /api/* re-enters this worker on its
+    // way to the Core API; the middleware lets it through without a fetch.
     const response = await fetch(`${request.nextUrl.origin}/api/v1/plugins/i18n/store/locales`, {
       cache: 'no-store',
       headers: { accept: 'application/json' },
@@ -186,7 +187,39 @@ export function localeFallbackRedirect(
   return NextResponse.redirect(target, fallback.permanent ? 301 : undefined);
 }
 
+/**
+ * Paths the rewrite rules hand to the Core API (`/api`, `/plugins`,
+ * `/extensions`, `/uploads` in next.config).
+ */
+const CORE_API_PREFIXES = ['/api/', '/plugins/', '/extensions/', '/uploads/'];
+
+/**
+ * The Core API tells visitors apart by the address this worker saw. On a
+ * storefront whose entry is this Next worker, these paths reach the Core API
+ * through the rewrite rules, and the hop between Workers replaces Cloudflare's
+ * own address headers with one shared placeholder: every visitor would count
+ * as the same address. The address and the country therefore travel under
+ * names of our own — the same two the worker entry's API proxy sets where that
+ * entry is deployed. Without Cloudflare's headers (local development) nothing
+ * is added.
+ */
+export function coreApiAddressForward(request: ProxyRequest): NextResponse | null {
+  const pathname = request.nextUrl.pathname;
+  if (!CORE_API_PREFIXES.some((prefix) => pathname.startsWith(prefix))) return null;
+  const requestHeaders = new Headers(request.headers);
+  const address = request.headers.get('cf-connecting-ip');
+  const country = request.headers.get('cf-ipcountry');
+  if (address) requestHeaders.set('x-jiffoo-client-ip', address);
+  if (country) requestHeaders.set('x-jiffoo-client-country', country);
+  return NextResponse.next({ request: { headers: requestHeaders } });
+}
+
 export async function middleware(request: ProxyRequest) {
+  // A Core API path goes on to the rewrite rules at once: no redirect, no
+  // lookup, no fetch of its own.
+  const forwarded = coreApiAddressForward(request);
+  if (forwarded) return forwarded;
+
   const artifactRedirect = officialArtifactRedirect(request);
   if (artifactRedirect) return artifactRedirect;
 
@@ -248,11 +281,12 @@ export async function middleware(request: ProxyRequest) {
  * IMPORTANT: This matcher MUST NOT exclude /_next/* because Theme App mode
  * needs to forward static resources to the Theme App server.
  *
+ * The Core API paths (/api, /plugins, /extensions, /uploads) go through the
+ * middleware for one thing only: the visitor's address and country are added
+ * to the request before the rewrite rules forward it (see
+ * coreApiAddressForward). Nothing else runs for them.
+ *
  * Excluded paths:
- * - /api/* - Core API routes (prevents infinite loop)
- * - /plugins/* - Plugin runtime mount for storefront slots
- * - /extensions/* - Extension static files
- * - /uploads/* - Upload files
  * - /media/* - Core API media (proxied by app/media route handler; the locale
  *   redirect must not prefix it, the path has no route in the shop app)
  * - /theme-app/* - Theme App Gateway (prevents infinite loop)
@@ -261,5 +295,5 @@ export async function middleware(request: ProxyRequest) {
  * NOTE: Next.js requires matcher to be a static literal, cannot be imported.
  */
 export const config = {
-  matcher: ['/((?!api/|plugins/|extensions/|uploads/|media/|theme-app/|favicon.ico).*)'],
+  matcher: ['/((?!media/|theme-app/|favicon.ico).*)'],
 };
