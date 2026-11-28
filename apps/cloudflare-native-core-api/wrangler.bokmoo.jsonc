@@ -51,7 +51,7 @@
     "NATIVE_CHECKOUT_ENABLED": "true",
     "ORDER_NUMBER_PREFIX": "BM",
     "PUBLIC_API_BASE_URL": "https://api.bokmoo.com",
-    "RUNTIME_VERSION": "1.0.172",
+    "RUNTIME_VERSION": "1.0.173",
     "SMTP_FROM_EMAIL": "support@bokmoo.com",
     "SMTP_FROM_NAME": "Bokmoo",
     "SMTP_HOST": "mail.easyeuicc.cc",
