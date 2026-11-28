@@ -30,6 +30,7 @@ import { importSnapshots } from './snapshot-import';
 import { tryNativeAdminDashboard } from './admin-dashboard';
 import { tryNativeAdminProducts } from './admin-products';
 import { tryNativeAdminInventory } from './admin-inventory';
+import { compiledNativePluginModules, runNativePluginModuleWork, tryNativePluginModuleRoutes } from './native-plugin-modules/runtime';
 import { tryNativeAdminApiTokens } from './admin-api-tokens';
 import { nativeUpgradeVersion } from './upgrade-version';
 import { handleAppVersionLatest } from './app-version';
@@ -269,6 +270,7 @@ async function routeNativeRequest(request: Request, env: WorkerEnv, ctx: Executi
         runtime: 'cloudflare-workers-free',
         version: env.RUNTIME_VERSION,
         d1Schema: row?.value ?? null,
+        pluginModules: compiledNativePluginModules(),
       }, { status: schemaHealthy ? 200 : 503, headers: runtimeHeaders('cloudflare-native') });
     }
     if (nativeRequest.method === 'GET' && nativeRequest.url.includes('/api/v1/upgrade/version')) {
@@ -430,6 +432,10 @@ async function routeNativeRequest(request: Request, env: WorkerEnv, ctx: Executi
     if (nativeAdminStaff) return nativeAdminStaff;
     const nativeOrders = await tryNativeOrderRead(nativeRequest, env, (proxyRequest) => proxy(proxyRequest, env));
     if (nativeOrders) return nativeOrders;
+    // The core's own routes answer first; a compiled-in plugin module only sees what none of them
+    // recognised. (The open-source build compiles none in, so this never answers.)
+    const nativePluginModule = await tryNativePluginModuleRoutes(nativeRequest, env, (promise) => ctx.waitUntil(promise));
+    if (nativePluginModule) return nativePluginModule;
     // Keep legacy /api/* callers on the normalized v1 contract when native
     // handling declines the request. The original path can hit an incompatible
     // fallback route and turn a normal auth failure into a Worker exception.
@@ -465,7 +471,7 @@ export default {
     }
   },
   async scheduled(_controller: ScheduledController, env: WorkerEnv): Promise<void> {
-    const [checkout, email, odooCatalog, odooShipments, jobs, walletReservations, currencyReservations, creditGrants, resumeExtraction, videoTasks, toolDiscovery, staleReservations, bossCatalog, bossOrders, gameStats, odooHandOvers, refundFollowUps] = await Promise.allSettled([
+    const [checkout, email, odooCatalog, odooShipments, jobs, walletReservations, currencyReservations, creditGrants, resumeExtraction, videoTasks, toolDiscovery, staleReservations, bossCatalog, bossOrders, gameStats, odooHandOvers, refundFollowUps, pluginModules] = await Promise.allSettled([
       processCheckoutOutbox(env),
       processNativeEmailOutbox(env),
       processScheduledOdooCatalogSync(env),
@@ -483,6 +489,7 @@ export default {
       releaseStaleInventoryReservations(env),
       syncBossOrderStatuses(env),
       processNativeGameStats(env),
+      runNativePluginModuleWork(env),
     ]);
     console.log(JSON.stringify({
       message: 'native scheduled work processed',
@@ -517,6 +524,7 @@ export default {
       bossCatalog: bossCatalog.status === 'fulfilled' ? bossCatalog.value : { error: String(bossCatalog.reason) },
       bossOrders: bossOrders.status === 'fulfilled' ? bossOrders.value : { error: String(bossOrders.reason) },
       gameStats: gameStats.status === 'fulfilled' ? gameStats.value : { error: String(gameStats.reason) },
+      pluginModules: pluginModules.status === 'fulfilled' ? pluginModules.value : { error: String(pluginModules.reason) },
     }));
   },
 } satisfies ExportedHandler<WorkerEnv>;

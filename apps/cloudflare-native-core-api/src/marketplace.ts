@@ -10,6 +10,7 @@ import {
   type PlatformDeliveryCredentials,
 } from './marketplace-mapping';
 import { installThemePackage, readActiveThemeSnapshot } from './theme-install';
+import { compiledNativePluginModules } from './native-plugin-modules/runtime';
 
 type Env = NativeAuthEnv & {
   DB: D1Database;
@@ -114,7 +115,10 @@ export async function tryNativeMarketplace(request: Request, env: Env): Promise<
     const body = await request.clone().json().catch(() => null) as { kind?: string; version?: string } | null;
     if (body?.kind !== 'plugin' && body?.kind !== 'theme' && body?.kind !== 'theme-shop') return null;
     const catalogKind = body.kind === 'theme' || body.kind === 'theme-shop' ? 'theme' : 'plugin';
-    if (body.kind === 'plugin' && !NATIVE_INSTALLABLE_PLUGINS.has(install[1])) {
+    // A plugin is implemented on the Native line when it is compiled into this worker as a module;
+    // the list above names the ones that predate modules. Whether the instance may have it is the
+    // platform's decision, taken below from the platform catalog.
+    if (body.kind === 'plugin' && !NATIVE_INSTALLABLE_PLUGINS.has(install[1]) && !compiledNativePluginModules().includes(install[1])) {
       return Response.json({ success: false, error: { code: 'NATIVE_PLUGIN_NOT_IMPLEMENTED', message: `Native installation is not implemented for ${install[1]}` } }, { status: 501 });
     }
     try {
