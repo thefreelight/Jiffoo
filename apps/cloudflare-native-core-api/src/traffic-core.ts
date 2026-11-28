@@ -41,10 +41,18 @@ export const TRAFFIC_CLICK_PARAMS = [
   '_bta_tid',
   'yclid',
   'rb_clickid',
+  'gdt_vid',
+  'qhclickid',
+  'sscid',
+  'cjevent',
+  'irclickid',
+  'ranSiteID',
+  'ranEAID',
 ] as const;
 
 export const TRAFFIC_CHANNELS = [
   'paid',
+  'affiliate',
   'ai',
   'search',
   'social',
@@ -79,6 +87,12 @@ export interface TrafficChannelRules {
   paidMediums: string[];
   /** Query parameters whose presence marks a paid click. */
   paidClickParams: string[];
+  /** Referrer hosts and bare `utm_source` values of affiliate networks. */
+  affiliate: string[];
+  /** `utm_medium` values that mark a partner's or a creator's link. */
+  affiliateMediums: string[];
+  /** Query parameters whose presence marks a click through an affiliate network. */
+  affiliateClickParams: string[];
   /** `utm_medium` values that mark e-mail. */
   emailMediums: string[];
   /** `utm_medium` values that mark a social post. */
@@ -94,6 +108,9 @@ export const EMPTY_TRAFFIC_RULES: TrafficChannelRules = {
   email: [],
   paidMediums: [],
   paidClickParams: [],
+  affiliate: [],
+  affiliateMediums: [],
+  affiliateClickParams: [],
   emailMediums: [],
   socialMediums: [],
 };
@@ -108,6 +125,14 @@ const RULE_LIST_KEYS = [
   'paidClickParams',
   'emailMediums',
   'socialMediums',
+] as const;
+
+/** Added after the first release: a document saved before they existed is
+ * still accepted, and the lists it lacks read as empty. */
+const OPTIONAL_RULE_LIST_KEYS = [
+  'affiliate',
+  'affiliateMediums',
+  'affiliateClickParams',
 ] as const;
 
 export interface TrafficPageview {
@@ -138,6 +163,19 @@ export interface TrafficAcquisition {
   utmMedium: string | null;
   utmCampaign: string | null;
   clickIds: readonly string[];
+  /** The page the visit opened, when known: a partner's own referral link is told by it. */
+  landingPath?: string | null;
+}
+
+// The storefront's own referral link, `/<language>/r/<code>` (the affiliate
+// program's), with or without the language prefix.
+const AFFILIATE_LINK_PATTERN = /^\/(?:[a-z]{2}(?:-[a-z]{4})?\/)?r\/([a-z0-9_-]{3,64})\/?$/i;
+
+/** The partner's code when the path is the storefront's own referral link, else null. */
+export function ownAffiliateCode(path: string | null | undefined): string | null {
+  if (path === null || path === undefined) return null;
+  const match = AFFILIATE_LINK_PATTERN.exec(path);
+  return match === null ? null : match[1]!.toUpperCase();
 }
 
 const HOST_PATTERN = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$/;
@@ -275,6 +313,16 @@ export function parseTrafficRules(raw: unknown): TrafficChannelRules | null {
     total += list.length;
     rules[key] = list;
   }
+  for (const key of OPTIONAL_RULE_LIST_KEYS) {
+    if (raw[key] === undefined) {
+      rules[key] = [];
+      continue;
+    }
+    const list = parseRuleList(raw[key]);
+    if (list === null) return null;
+    total += list.length;
+    rules[key] = list;
+  }
   if (total > TRAFFIC_RULES_MAX_ENTRIES) return null;
   return rules as TrafficChannelRules;
 }
@@ -322,15 +370,26 @@ export function parseTrafficPageview(body: unknown, fallbackHost: string): Traff
 
 /**
  * Ordered the way the simple analytics tools order it: an explicit paid
- * marker wins, then AI assistants (they beat both campaign tags and search
- * lists, since some lists file assistants under search), then search, e-mail
- * and social, then anything tagged, anything external, and finally direct.
+ * marker wins, then a partner's link (the storefront's own referral link, an
+ * affiliate network's click id or host, or a medium that says so), then AI
+ * assistants (they beat both campaign tags and search lists, since some lists
+ * file assistants under search), then search, e-mail and social, then
+ * anything tagged, anything external, and finally direct.
  */
 export function classifyTraffic(acquisition: TrafficAcquisition, rules: TrafficChannelRules): TrafficChannel {
   const { referrerHost, utmSource, utmMedium } = acquisition;
-  const hasClick = acquisition.clickIds.some((name) => rules.paidClickParams.includes(name));
-  if (hasClick) return 'paid';
+  const clicks = acquisition.clickIds.map((name) => name.toLowerCase());
+  if (clicks.some((name) => rules.paidClickParams.includes(name))) return 'paid';
   if (utmMedium !== null && rules.paidMediums.includes(utmMedium)) return 'paid';
+  if (ownAffiliateCode(acquisition.landingPath) !== null) return 'affiliate';
+  if (clicks.some((name) => rules.affiliateClickParams.includes(name))) return 'affiliate';
+  if (utmMedium !== null && rules.affiliateMediums.includes(utmMedium)) return 'affiliate';
+  if (
+    (referrerHost !== null && trafficHostMatches(referrerHost, rules.affiliate)) ||
+    (utmSource !== null && trafficHostMatches(utmSource, rules.affiliate))
+  ) {
+    return 'affiliate';
+  }
   if (
     (referrerHost !== null && trafficHostMatches(referrerHost, rules.ai)) ||
     (utmSource !== null && trafficHostMatches(utmSource, rules.ai))

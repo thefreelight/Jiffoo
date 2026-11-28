@@ -339,7 +339,7 @@ describe('traffic on the self-hosted line: reports', () => {
       { day: '2026-11-25', visitors: 1, visits: 1, views: 1 },
     ]);
     const channels = reply.channels as Array<Record<string, unknown>>;
-    expect(channels.map((channel) => channel.channel)).toEqual(['paid', 'ai', 'search', 'social', 'email', 'campaign', 'referral', 'direct']);
+    expect(channels.map((channel) => channel.channel)).toEqual(['paid', 'affiliate', 'ai', 'search', 'social', 'email', 'campaign', 'referral', 'direct']);
     const byChannel = Object.fromEntries(channels.map((channel) => [channel.channel, channel]));
     expect(byChannel.ai).toMatchObject({ visitors: 1, visits: 1, views: 2, bounceRate: 0, avgVisitSeconds: 120 });
     expect(byChannel.search).toMatchObject({ visitors: 2, visits: 2, views: 2, bounceRate: 1, avgVisitSeconds: 0 });
@@ -349,7 +349,29 @@ describe('traffic on the self-hosted line: reports', () => {
     expect(byChannel.referral).toMatchObject({ visits: 1 });
     expect(byChannel.direct).toMatchObject({ visits: 1 });
     expect(byChannel.campaign).toMatchObject({ visits: 0, bounceRate: 0 });
-    expect(reply).toMatchObject({ rulesVersion: 1, rulesUpdatedAt: null, host: null });
+    expect(reply).toMatchObject({ rulesVersion: 2, rulesUpdatedAt: null, host: null });
+  });
+
+  it("counts a partner's link as its own channel and names the code", async () => {
+    at(480 * MINUTE);
+    await send({ ip: '203.0.113.9', userAgent: CHROME }, { p: '/en/r/PARTNER1' });
+    await send({ ip: '203.0.113.10', userAgent: CHROME }, { p: '/en?utm_medium=affiliate&utm_source=partner' });
+    // Too short to be a code: this is nobody's partner link.
+    await send({ ip: '203.0.113.11', userAgent: CHROME }, { p: '/en/r/ab' });
+    at(0);
+
+    const reply = await data(await adminGet(REPORT));
+    const byChannel = Object.fromEntries((reply.channels as Array<Record<string, unknown>>).map((channel) => [channel.channel, channel]));
+    expect(byChannel.affiliate).toMatchObject({ visitors: 2, visits: 2, views: 2, bounceRate: 1, avgVisitSeconds: 0 });
+    expect(byChannel.direct).toMatchObject({ visits: 2 });
+    expect(reply.summary).toMatchObject({ visitors: 11, visits: 11, views: 12 });
+
+    // One row per partner: the code is in the landing page's path.
+    const links = await data(await adminGet(`/breakdown?dim=landing&channel=affiliate&from=20261124&to=20261125`));
+    expect(links.rows).toEqual([
+      { value: '/en', channel: 'affiliate', visitors: 1, visits: 1, views: 1, bounceRate: 1, avgVisitSeconds: 0 },
+      { value: '/en/r/PARTNER1', channel: 'affiliate', visitors: 1, visits: 1, views: 1, bounceRate: 1, avgVisitSeconds: 0 },
+    ]);
   });
 
   it('counts a day in the viewer’s zone and can narrow to one storefront host', async () => {

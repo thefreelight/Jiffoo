@@ -462,7 +462,7 @@ describe('native traffic: reports', () => {
     expect(byChannel.referral).toMatchObject({ visits: 1 });
     expect(byChannel.direct).toMatchObject({ visits: 1 });
     expect(byChannel.campaign).toMatchObject({ visits: 0, bounceRate: 0 });
-    expect(reply.data).toMatchObject({ rulesVersion: 1, rulesUpdatedAt: null, host: null });
+    expect(reply.data).toMatchObject({ rulesVersion: 2, rulesUpdatedAt: null, host: null });
   });
 
   it('says whether page views are being counted, and why not', async () => {
@@ -573,5 +573,47 @@ describe('native traffic: reports', () => {
     expect(channels.ai).toMatchObject({ visits: 2 });
     expect(channels.referral).toMatchObject({ visits: 0 });
     expect(reply.data).toMatchObject({ rulesVersion: 2 });
+  });
+});
+
+describe('native traffic: affiliate links', () => {
+  it("counts a partner's link as its own channel, names the code, and moves nothing else", async () => {
+    const h = open();
+    await seedVisits(h);
+    at(480 * MINUTE);
+    // [address, pageview overrides, user agent]
+    const pageviews: Array<[number, Record<string, unknown>, string]> = [
+      [9, { p: '/en/r/PARTNER1' }, CHROME],
+      [10, { p: '/ja/r/CREATOR-9?utm_source=post' }, IPHONE],
+      [11, { p: '/en?utm_medium=affiliate&utm_source=partner' }, CHROME],
+      // Too short to be a code: this is nobody's partner link.
+      [12, { p: '/en/r/ab' }, CHROME],
+    ];
+    for (const [address, overrides, userAgent] of pageviews) {
+      const response = await collect(h, pageview(overrides), { ...from(address), 'user-agent': userAgent });
+      expect(response?.status).toBe(204);
+    }
+    addMembership(h, 'ADMIN');
+    authenticateNativeAdmin.mockResolvedValue({ id: 'u-admin', role: 'ADMIN' });
+
+    const reply = await json(await admin(h, REPORT));
+    const byChannel = Object.fromEntries(
+      (reply.data?.channels as Array<Record<string, unknown>>).map((channel) => [channel.channel, channel]),
+    );
+    expect(byChannel.affiliate).toMatchObject({ visitors: 3, visits: 3, views: 3, bounceRate: 1, avgVisitSeconds: 0 });
+    // The eight earlier visits keep the channels they had; the short code stays with the pages nobody sent.
+    expect(byChannel.campaign).toMatchObject({ visits: 0 });
+    expect(byChannel.direct).toMatchObject({ visits: 2 });
+    expect(reply.data?.summary).toMatchObject({ visitors: 12, visits: 12, views: 13 });
+
+    // One row per partner: the code is in the landing page's path.
+    const links = await json(await admin(h, `/breakdown?dim=landing&from=20261124&to=20261125&channel=affiliate`));
+    expect(links.data?.rows).toEqual([
+      { value: '/en', channel: 'affiliate', visitors: 1, visits: 1, views: 1, bounceRate: 1, avgVisitSeconds: 0 },
+      { value: '/en/r/PARTNER1', channel: 'affiliate', visitors: 1, visits: 1, views: 1, bounceRate: 1, avgVisitSeconds: 0 },
+      { value: '/ja/r/CREATOR-9', channel: 'affiliate', visitors: 1, visits: 1, views: 1, bounceRate: 1, avgVisitSeconds: 0 },
+    ]);
+    const direct = await json(await admin(h, `/breakdown?dim=landing&from=20261124&to=20261125&channel=direct`));
+    expect((direct.data?.rows as Array<{ value: string }>).map((row) => row.value)).toEqual(['/en', '/en/r/ab']);
   });
 });

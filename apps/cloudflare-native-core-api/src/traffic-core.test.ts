@@ -12,6 +12,7 @@ import {
   looksLikeTrafficBot,
   normalizeTrafficHost,
   normalizeTrafficReferrer,
+  ownAffiliateCode,
   parseTrafficPageview,
   parseTrafficPeriod,
   parseTrafficRules,
@@ -23,6 +24,7 @@ import {
   trafficOriginHost,
   trafficVisitorKey,
   type TrafficAcquisition,
+  TRAFFIC_CLICK_PARAMS,
   type TrafficChannel,
   type TrafficChannelRules,
 } from './traffic-core';
@@ -146,7 +148,21 @@ describe('parseTrafficRules', () => {
       paidClickParams: ['gclid', 'msclkid'],
       emailMediums: ['email'],
       socialMediums: ['social', 'social-media'],
+      affiliate: [],
+      affiliateMediums: [],
+      affiliateClickParams: [],
     });
+  });
+
+  it('reads the affiliate lists when the document has them', () => {
+    const parsed = parseTrafficRules({
+      ...RULES_DOCUMENT,
+      affiliate: ['ShareASale.com', 'cj'],
+      affiliateMediums: ['Affiliate'],
+      affiliateClickParams: ['CJEvent'],
+    });
+    expect(parsed).toMatchObject({ affiliate: ['shareasale.com', 'cj'], affiliateMediums: ['affiliate'], affiliateClickParams: ['cjevent'] });
+    expect(parseTrafficRules({ ...RULES_DOCUMENT, affiliate: 'not a list' })).toBeNull();
   });
 
   it('removes duplicates inside a list', () => {
@@ -256,6 +272,27 @@ describe('classifyTraffic', () => {
 
   it.each(cases)('%s', (_name, input, expected) => {
     expect(classifyTraffic(input, rules())).toBe(expected);
+  });
+
+  it("counts a partner's link as its own channel, after paid and before everything else", () => {
+    // The storefront's own referral link needs no list at all.
+    expect(classifyTraffic(acquisition({ landingPath: '/en/r/BOKMOO10' }), rules())).toBe('affiliate');
+    const networks = parseTrafficRules({
+      ...RULES_DOCUMENT,
+      affiliate: ['shareasale.com', 'cj'],
+      affiliateMediums: ['affiliate'],
+      affiliateClickParams: ['cjevent'],
+    });
+    if (networks === null) throw new Error('fixture rules must parse');
+    expect(classifyTraffic(acquisition({ referrerHost: 'www.shareasale.com' }), networks)).toBe('affiliate');
+    expect(classifyTraffic(acquisition({ utmSource: 'cj' }), networks)).toBe('affiliate');
+    expect(classifyTraffic(acquisition({ utmMedium: 'affiliate' }), networks)).toBe('affiliate');
+    // Click parameters are compared without regard to case: networks mix upper and lower case in theirs.
+    expect(classifyTraffic(acquisition({ clickIds: ['CJEvent'] }), networks)).toBe('affiliate');
+    expect(classifyTraffic(acquisition({ referrerHost: 'chatgpt.com', landingPath: '/zh-Hans/r/summer' }), networks)).toBe('affiliate');
+    expect(classifyTraffic(acquisition({ clickIds: ['gclid'], landingPath: '/en/r/BOKMOO10' }), networks)).toBe('paid');
+    // A medium that used to be filed under paid now reads as a partner's link.
+    expect(classifyTraffic(acquisition({ utmMedium: 'affiliate' }), rules())).toBe('campaign');
   });
 
   it('knows no market lists on its own', () => {
@@ -458,5 +495,120 @@ describe('mirror guard', () => {
     expect(nodeCopy('traffic-default-rules.ts')).toBe(
       readFileSync(new URL('./traffic-default-rules.ts', import.meta.url), 'utf8'),
     );
+  });
+});
+
+describe('ownAffiliateCode', () => {
+  it('reads the partner code off the storefront\u2019s own referral link', () => {
+    expect(ownAffiliateCode('/en/r/ABC123')).toBe('ABC123');
+    expect(ownAffiliateCode('/zh-Hans/r/summer-42/')).toBe('SUMMER-42');
+    expect(ownAffiliateCode('/r/abc12')).toBe('ABC12');
+  });
+
+  it('is null for any other path', () => {
+    for (const path of ['/en/products', '/en/r/ab', '/en/r/has%20space', '/en/ref/abcd', '/en/rr/abcd', '/en/r', '/', 'en/r/abcd']) {
+      expect(ownAffiliateCode(path), path).toBeNull();
+    }
+    expect(ownAffiliateCode(null)).toBeNull();
+    expect(ownAffiliateCode(undefined)).toBeNull();
+  });
+});
+
+describe('the default channel lists', () => {
+  it('are a well-formed rules document', () => {
+    expect(DEFAULT_TRAFFIC_RULES.version).toBe(2);
+    expect(parseTrafficRules(DEFAULT_TRAFFIC_RULES)).toEqual(DEFAULT_TRAFFIC_RULES);
+  });
+
+  it('name the channels in the order the report shows them', () => {
+    expect(TRAFFIC_CHANNELS).toEqual(['paid', 'affiliate', 'ai', 'search', 'social', 'email', 'campaign', 'referral', 'direct']);
+  });
+
+  it('keep a partner\u2019s link out of the paid lists', () => {
+    expect(DEFAULT_TRAFFIC_RULES.paidMediums).not.toContain('affiliate');
+    expect(DEFAULT_TRAFFIC_RULES.affiliateMediums).toContain('affiliate');
+  });
+
+  it('only rule on click parameters the tracker reports', () => {
+    const reported = TRAFFIC_CLICK_PARAMS.map((name) => name.toLowerCase());
+    for (const name of [...DEFAULT_TRAFFIC_RULES.paidClickParams, ...DEFAULT_TRAFFIC_RULES.affiliateClickParams]) {
+      expect(reported, name).toContain(name);
+    }
+  });
+
+  it('never let a search engine or an assistant swallow a social network or a webmail client', () => {
+    // `tieba.baidu.com` is a community under a search engine's domain: it has to be excluded from search to be reached.
+    for (const list of ['social', 'email'] as const) {
+      for (const host of DEFAULT_TRAFFIC_RULES[list]) {
+        if (trafficHostMatches(host, DEFAULT_TRAFFIC_RULES.search)) {
+          expect(trafficHostMatches(host, DEFAULT_TRAFFIC_RULES.searchExclude), host).toBe(true);
+        }
+        expect(trafficHostMatches(host, DEFAULT_TRAFFIC_RULES.ai), host).toBe(false);
+      }
+    }
+    // E-mail is told before social, so the other way round is fine: `mail.naver.com` is a webmail client under a portal.
+    for (const host of DEFAULT_TRAFFIC_RULES.social) {
+      expect(trafficHostMatches(host, DEFAULT_TRAFFIC_RULES.email), host).toBe(false);
+    }
+  });
+
+  it('cover the mainstream sources of each kind', () => {
+    const cases: [string, TrafficAcquisition, TrafficChannel][] = [
+      ['ChatGPT', acquisition({ referrerHost: 'chatgpt.com' }), 'ai'],
+      ['Gemini', acquisition({ referrerHost: 'gemini.google.com' }), 'ai'],
+      ['Copilot', acquisition({ referrerHost: 'copilot.microsoft.com' }), 'ai'],
+      ['DeepSeek', acquisition({ referrerHost: 'chat.deepseek.com' }), 'ai'],
+      ['Doubao', acquisition({ referrerHost: 'www.doubao.com' }), 'ai'],
+      ['Qwen', acquisition({ referrerHost: 'tongyi.aliyun.com' }), 'ai'],
+      ['Google', acquisition({ referrerHost: 'www.google.com.hk' }), 'search'],
+      ['Bing', acquisition({ referrerHost: 'cn.bing.com' }), 'search'],
+      ['DuckDuckGo', acquisition({ referrerHost: 'duckduckgo.com' }), 'search'],
+      ['Naver', acquisition({ referrerHost: 'search.naver.com' }), 'search'],
+      ['Yahoo Japan', acquisition({ referrerHost: 'search.yahoo.co.jp' }), 'search'],
+      ['Yandex', acquisition({ referrerHost: 'yandex.ru' }), 'search'],
+      ['Baidu', acquisition({ referrerHost: 'www.baidu.com' }), 'search'],
+      ['Sogou', acquisition({ referrerHost: 'm.sogou.com' }), 'search'],
+      ['360', acquisition({ referrerHost: 'www.so.com' }), 'search'],
+      ['Quark', acquisition({ referrerHost: 'quark.sm.cn' }), 'search'],
+      ['Facebook', acquisition({ referrerHost: 'm.facebook.com' }), 'social'],
+      ['Instagram', acquisition({ referrerHost: 'l.instagram.com' }), 'social'],
+      ['X', acquisition({ referrerHost: 't.co' }), 'social'],
+      ['LinkedIn', acquisition({ referrerHost: 'lnkd.in' }), 'social'],
+      ['Pinterest', acquisition({ referrerHost: 'pin.it' }), 'social'],
+      ['Reddit', acquisition({ referrerHost: 'old.reddit.com' }), 'social'],
+      ['YouTube', acquisition({ referrerHost: 'm.youtube.com' }), 'social'],
+      ['TikTok', acquisition({ referrerHost: 'www.tiktok.com' }), 'social'],
+      ['Telegram', acquisition({ referrerHost: 't.me' }), 'social'],
+      ['WhatsApp', acquisition({ referrerHost: 'web.whatsapp.com' }), 'social'],
+      ['LINE', acquisition({ referrerHost: 'line.me' }), 'social'],
+      ['WeChat', acquisition({ referrerHost: 'mp.weixin.qq.com' }), 'social'],
+      ['Weibo', acquisition({ referrerHost: 'weibo.cn' }), 'social'],
+      ['Zhihu', acquisition({ referrerHost: 'zhuanlan.zhihu.com' }), 'social'],
+      ['Xiaohongshu', acquisition({ referrerHost: 'xhslink.com' }), 'social'],
+      ['Bilibili', acquisition({ referrerHost: 'b23.tv' }), 'social'],
+      ['Douyin', acquisition({ referrerHost: 'v.douyin.com' }), 'social'],
+      ['Qzone', acquisition({ referrerHost: 'qzone.qq.com' }), 'social'],
+      ['Naver Cafe', acquisition({ referrerHost: 'cafe.naver.com' }), 'social'],
+      ['Baidu Tieba', acquisition({ referrerHost: 'tieba.baidu.com' }), 'social'],
+      ['TripAdvisor', acquisition({ referrerHost: 'www.tripadvisor.com' }), 'social'],
+      ['Gmail', acquisition({ referrerHost: 'mail.google.com' }), 'email'],
+      ['Outlook', acquisition({ referrerHost: 'outlook.live.com' }), 'email'],
+      ['QQ Mail', acquisition({ referrerHost: 'mail.qq.com' }), 'email'],
+      ['163 Mail', acquisition({ referrerHost: 'mail.163.com' }), 'email'],
+      ['Yandex Mail', acquisition({ referrerHost: 'mail.yandex.ru' }), 'email'],
+      ['Mailchimp', acquisition({ referrerHost: 'us1.list-manage.com' }), 'email'],
+      ['Google Ads', acquisition({ clickIds: ['gclid'] }), 'paid'],
+      ['Microsoft Ads', acquisition({ clickIds: ['msclkid'] }), 'paid'],
+      ['TikTok Ads', acquisition({ clickIds: ['ttclid'] }), 'paid'],
+      ['Tencent Ads', acquisition({ clickIds: ['gdt_vid'] }), 'paid'],
+      ['Baidu Baike is a site, not a search', acquisition({ referrerHost: 'baike.baidu.com' }), 'referral'],
+      ['ShareASale', acquisition({ referrerHost: 'www.shareasale.com' }), 'affiliate'],
+      ['Taobao affiliates', acquisition({ referrerHost: 'uland.taobao.com' }), 'affiliate'],
+      ['JD affiliates', acquisition({ referrerHost: 'u.jd.com' }), 'affiliate'],
+      ['an affiliate medium', acquisition({ utmMedium: 'affiliate' }), 'affiliate'],
+    ];
+    for (const [name, input, expected] of cases) {
+      expect(classifyTraffic(input, DEFAULT_TRAFFIC_RULES), name).toBe(expected);
+    }
   });
 });

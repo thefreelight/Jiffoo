@@ -3019,6 +3019,7 @@ export const merchant = {
     visitsSeries: 'Visits',
     channels: 'Channels',
     share: 'Share',
+    channelAffiliate: 'Affiliate links',
     channelPaid: 'Paid',
     channelAi: 'AI assistants',
     channelSearch: 'Organic search',
