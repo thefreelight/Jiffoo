@@ -15,9 +15,16 @@ const view = vi.hoisted(() => ({
   reportError: false,
   breakdowns: {} as Record<string, unknown>,
   paused: false,
+  // What the address asks for, and the days the page then asked the core for.
+  search: '',
+  daysAsked: undefined as unknown,
 }));
 
-vi.mock('next/navigation', () => ({ usePathname: () => '/analytics/traffic' }));
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/analytics/traffic',
+  useRouter: () => ({ replace: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(view.search),
+}));
 vi.mock('next/link', async () => {
   const React = await import('react');
   return {
@@ -34,7 +41,10 @@ vi.mock('@/lib/hooks/use-api', () => {
     refetch: vi.fn(),
   });
   return {
-    useTrafficReport: () => answer(view.report, view.reportError),
+    useTrafficReport: (days: number) => {
+      view.daysAsked = days;
+      return answer(view.report, view.reportError);
+    },
     useTrafficBreakdown: (dimension: string) => answer(view.breakdowns[dimension]),
     useTrafficCollectionPaused: () => ({
       paused: answer(view.paused),
@@ -145,6 +155,20 @@ describe('the traffic report', () => {
       'Pause collection', 'Nothing personal is stored', 'Channel lists v 1',
     ]);
     expectChannelsInCoreOrder(text, 'en', 'Channels Visitors Visits Page views Share', 'Sources');
+  });
+
+  it('asks for the days the address names, and otherwise for the last seven', () => {
+    populate();
+    render('en');
+    expect(view.daysAsked).toBe(7);
+    view.search = 'range=30';
+    render('en');
+    expect(view.daysAsked).toBe(30);
+    // Anything else in the address is ignored rather than sent to the core.
+    view.search = 'range=45';
+    render('en');
+    expect(view.daysAsked).toBe(7);
+    view.search = '';
   });
 
   it('says so when the range has no visits yet', () => {

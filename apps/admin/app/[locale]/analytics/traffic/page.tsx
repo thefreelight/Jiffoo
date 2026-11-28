@@ -1,12 +1,14 @@
 'use client'
 
 import { ChartColumn, Eye, Loader2, MousePointerClick, Pause, Play, RefreshCw, Route, Users } from 'lucide-react'
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { toast } from 'sonner'
 import { useT } from 'shared/src/i18n/react'
 import { PageNav } from '@/components/layout/page-nav'
 import { PageShell } from '@/components/layout/page-shell'
+import { TRAFFIC_CHANNEL_COLORS, TRAFFIC_CHANNEL_LINES } from '@/components/traffic/traffic-channels'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import {
@@ -50,31 +52,6 @@ const DEVICE_LINES: Array<DictionaryLine & { value: string }> = [
   { value: 'other', labelKey: 'merchant.traffic.deviceOther', label: 'Other' },
 ]
 
-const CHANNEL_COLORS: Record<TrafficChannel, string> = {
-  paid: '#f97316',
-  affiliate: '#0d9488',
-  ai: '#8b5cf6',
-  search: '#3b82f6',
-  social: '#ec4899',
-  email: '#10b981',
-  campaign: '#f59e0b',
-  referral: '#64748b',
-  direct: '#94a3b8',
-}
-
-// In the order the core names them.
-const CHANNEL_LINES: Array<DictionaryLine & { channel: TrafficChannel }> = [
-  { channel: 'paid', labelKey: 'merchant.traffic.channelPaid', label: 'Paid' },
-  { channel: 'affiliate', labelKey: 'merchant.traffic.channelAffiliate', label: 'Affiliate links' },
-  { channel: 'ai', labelKey: 'merchant.traffic.channelAi', label: 'AI assistants' },
-  { channel: 'search', labelKey: 'merchant.traffic.channelSearch', label: 'Organic search' },
-  { channel: 'social', labelKey: 'merchant.traffic.channelSocial', label: 'Social' },
-  { channel: 'email', labelKey: 'merchant.traffic.channelEmail', label: 'E-mail' },
-  { channel: 'campaign', labelKey: 'merchant.traffic.channelCampaign', label: 'Tagged campaigns' },
-  { channel: 'referral', labelKey: 'merchant.traffic.channelReferral', label: 'Referrals' },
-  { channel: 'direct', labelKey: 'merchant.traffic.channelDirect', label: 'Direct' },
-]
-
 const PAGE_SIZE = 10
 
 interface TrendTooltipEntry {
@@ -106,7 +83,28 @@ function TrendTooltip({ active, payload, getText }: { active?: boolean; payload?
   )
 }
 
+/** The days a report shows; `?range=` in the address picks the starting one. */
+const RANGE_VALUES: TrafficRangeDays[] = [7, 30, 90]
+function rangeFromAddress(value: string | null): TrafficRangeDays {
+  return RANGE_VALUES.find((days) => String(days) === value) ?? 7
+}
+
 export default function TrafficPage() {
+  // The address decides the starting range, and a page drawn on the server
+  // cannot read the address: the shell is drawn with the default days while
+  // the browser reads it, then redrawn on the days the address names.
+  return (
+    <Suspense fallback={<TrafficReport searchParams={new URLSearchParams()} />}>
+      <AddressDrivenReport />
+    </Suspense>
+  )
+}
+
+function AddressDrivenReport() {
+  return <TrafficReport searchParams={useSearchParams()} />
+}
+
+function TrafficReport({ searchParams }: { searchParams: Pick<URLSearchParams, 'get' | 'toString'> }) {
   const t = useT()
 
   // Helper function for translations with fallback
@@ -118,7 +116,15 @@ export default function TrafficPage() {
 
   const line = (entry: DictionaryLine): string => getText(entry.labelKey, entry.label)
 
-  const [range, setRange] = useState<TrafficRangeDays>(7)
+  const router = useRouter()
+  // The range is kept in the address, so the dashboard's traffic overview can open the report on its own days.
+  const [range, setRangeState] = useState<TrafficRangeDays>(() => rangeFromAddress(searchParams.get('range')))
+  const setRange = (days: TrafficRangeDays) => {
+    setRangeState(days)
+    const query = new URLSearchParams(searchParams.toString())
+    query.set('range', String(days))
+    router.replace(`?${query.toString()}`, { scroll: false })
+  }
   const [host, setHost] = useState<string | null>(null)
   const [dimension, setDimension] = useState<SourceDimension>('source')
   const [shown, setShown] = useState(PAGE_SIZE)
@@ -177,14 +183,14 @@ export default function TrafficPage() {
     {
       label: getText('merchant.traffic.seo', 'Organic search (SEO)'),
       figures: channelFigures('search'),
-      color: CHANNEL_COLORS.search,
+      color: TRAFFIC_CHANNEL_COLORS.search,
       rows: engines.data?.rows ?? [],
       rowsLabel: getText('merchant.traffic.topEngines', 'Search engines'),
     },
     {
       label: getText('merchant.traffic.geo', 'AI assistants (GEO)'),
       figures: channelFigures('ai'),
-      color: CHANNEL_COLORS.ai,
+      color: TRAFFIC_CHANNEL_COLORS.ai,
       rows: assistants.data?.rows ?? [],
       rowsLabel: getText('merchant.traffic.topAssistants', 'AI assistants'),
     },
@@ -384,12 +390,12 @@ export default function TrafficPage() {
                       <tbody>
                         {TRAFFIC_CHANNELS.map((channel) => {
                           const figures = channelFigures(channel)
-                          const entry = CHANNEL_LINES.find((item) => item.channel === channel) ?? CHANNEL_LINES[0]!
+                          const entry = TRAFFIC_CHANNEL_LINES.find((item) => item.channel === channel) ?? TRAFFIC_CHANNEL_LINES[0]!
                           return (
                             <tr key={channel} className="border-b last:border-b-0 hover:bg-muted/40">
                               <td className="px-4 py-3">
                                 <span className="inline-flex items-center gap-2 font-medium">
-                                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: CHANNEL_COLORS[channel] }} />
+                                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: TRAFFIC_CHANNEL_COLORS[channel] }} />
                                   {line(entry)}
                                 </span>
                               </td>
@@ -451,7 +457,7 @@ export default function TrafficPage() {
                                 <td className="max-w-xs px-4 py-3">
                                   <span className="inline-flex items-center gap-2">
                                     {row.channel ? (
-                                      <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: CHANNEL_COLORS[row.channel] }} />
+                                      <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: TRAFFIC_CHANNEL_COLORS[row.channel] }} />
                                     ) : null}
                                     <span className={cn('truncate', row.value.startsWith('/') ? 'font-mono text-xs' : '')}>
                                       {displayValue(row.value)}
