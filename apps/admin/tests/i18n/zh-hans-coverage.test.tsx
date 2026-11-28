@@ -159,10 +159,11 @@ const TAIWAN_STYLE_WORDS = [
 const TAIWAN_WORD_THAT_STAYS = new Set(['个人资料', '员工权限档案', '快速预设']);
 
 /**
- * Characters that exist in Traditional only (the 382 the repo's own 繁體中文 text uses; every one of them becomes
- * another character in 简体中文). A character that is both — 著, 乾, 覆 — is not among them.
+ * Characters that exist in Traditional only (the 437 the repo's own 繁體中文 text uses; every one of them becomes
+ * another character in 简体中文). A character that is also Simplified in its own right — 著 (著名), 覆, 阪 (大阪) — is left out
+ * (乾 stays in: 乾坤 has no place in store copy).
  */
-const TRADITIONAL_ONLY = '遊戲統計個雜湊隨機瀏覽標識帳號線獨時長數與當資還區間內無關聯沒篩選顯紀錄開後這裡會現條暫請確認掛裝並啟載動鐘領兌換碼戶訂閱單結發貨總變體過狀態給敗錯誤譜國際義問監鍵轉構於頁蓋尋蟲點語設優銷規則評價儲圖絡對話郵驗證務蹤約遞運實讀綁庫匯網訪從來麼別虛擬錢餘額員夥薦歸駐費註冊連飛書預佇鑰詞歡隱稱測試範純產憑貼準權欄簽頭應複製環鹽繼輪詢攬傳視彙東劃許報記廣細藍續達經錶寶陽紋盤帶針蠟燭鈷燒極簡啞筆攤絲籤緻電為場録創搶見詳適參擁輸礎該減兩張種類項終併濫詐買賣購質們獲靈輕鬆較擇團隊協題幫護營訊檔據獎復屬組織聲觀車紹編輯刪閉處檢論財離頻嗎捨棄剛韓說備側進將術掃幾擊鈕決稅級穩顆熱議緒維賴儀願調彈暢嘗門樣圍亞歐亂佈難讓幣違滿盡邊軟專業順貴鎖頂証採攜僅責損擔傭審須寫況階縫賬雙診斷諾臨辦響繫歷華週陸灣馬賓驟説淪牆補乾淨檻釋樂畫棧導夾學繪斂氣縮強駕馭習覺驚豔節敘趨勢嚮聰風絕紅嚴肅';
+const TRADITIONAL_ONLY = '遊戲統計個雜湊隨機瀏覽標識帳號線獨時長數與當資還區間內無關聯沒篩選顯紀錄開後這裡會現條暫請確認掛裝並啟載動鐘領兌換碼戶訂閱單結發貨總變體過狀態給敗錯誤譜國際義問監鍵轉構於頁蓋尋蟲點語設優銷規則評價儲圖絡對話郵驗證務蹤約遞運實讀綁庫匯網訪從來麼別虛擬錢餘額員夥薦歸駐費註冊連飛書預佇鑰詞歡隱稱測試範純產憑貼準權欄簽頭應複製環鹽繼輪詢攬傳視彙東劃許報記乾廣細藍續達經錶寶陽紋盤帶針蠟燭鈷燒極簡啞筆攤絲籤緻電為場録創搶見詳適參擁輸礎該減兩張種類項終併濫詐買賣購質們獲靈輕鬆較擇團隊協題幫護營訊檔據獎復屬組織聲觀車紹編輯刪閉處檢論財離頻嗎捨棄剛韓說備側進將術掃幾擊鈕決稅級穩顆熱議緒維賴儀願調彈暢嘗門樣圍亞歐亂佈難讓幣違滿盡邊軟專業順貴鎖頂証採攜僅責損擔傭審須寫況階縫賬雙診斷諾臨辦響繫歷華週陸灣馬賓驟説淪牆補淨檻釋樂畫棧導夾學繪斂氣縮強駕馭習覺驚豔節敘趨勢嚮聰風絕紅嚴肅顧職舖鋪徑塊執積壓躍閾偵驅異寬陣遙軸攔誌係濟貢獻閘銀鎊層閒擴譯廠諮潔滾鏈險脈衝佔腦飾雋愛興聽謝顏膽綠溫親績賺腳'
 
 /** Every line of 简体中文 the admin can show: the shared dictionaries it and the storefront read, and its own Chinese overlay. */
 const SHARED_I18N = path.resolve(ADMIN, '../../packages/shared/src/i18n');
