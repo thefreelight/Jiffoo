@@ -41,15 +41,31 @@ interface OfficialPluginsCatalogProps {
   managedPackage?: ManagedPackageDefinition | null;
 }
 
-function formatPrice(item: OfficialCatalogItem): string {
-  if (item.pricingModel === 'free' || item.price <= 0) {
-    return 'Free';
+/** The price line of a catalog card, said through the dictionary so that the
+ * card reads as one language on every admin. */
+function formatPrice(item: OfficialCatalogItem, getText: (key: string, fallback: string) => string): string {
+  if (item.freeBase) {
+    // A membership item whose basic features everyone may use.
+    return getText('merchant.extensions.priceFreeBase', 'Free · Pro features with membership');
   }
+  if (item.pricingModel === 'free' || item.price <= 0) {
+    return getText('merchant.extensions.priceFree', 'Free');
+  }
+  const amount = `${item.currency} ${item.price}`;
   if (item.pricingModel === 'member') {
     // Membership-priced items are unlocked by a Jiffoo Pro membership, not bought one by one.
-    return `Pro · ${item.currency} ${item.price}/yr`;
+    return `${getText('merchant.extensions.pricePro', 'Pro')} · ${amount}${getText('merchant.extensions.pricePerYear', '/yr')}`;
   }
-  return `${item.pricingModel === 'subscription' ? 'Subscription' : 'One-time'} · ${item.currency} ${item.price}`;
+  const kind = item.pricingModel === 'subscription'
+    ? getText('merchant.extensions.priceSubscription', 'Subscription')
+    : getText('merchant.extensions.priceOneTime', 'One-time');
+  return `${kind} · ${amount}`;
+}
+
+/** Only an item that needs an entitlement waits for the platform connection; a
+ * free item and an item with a free base install without one. */
+function needsPlatformBinding(item: OfficialCatalogItem): boolean {
+  return item.pricingModel !== 'free' && !item.freeBase;
 }
 
 function getReleaseTone(item: OfficialCatalogItem): string {
@@ -163,7 +179,7 @@ export function OfficialPluginsCatalog({
           </Alert>
         ) : null}
 
-        {!isLoading && marketOnline && !marketplaceReady && !managedPackage && visibleItems.some((item) => item.pricingModel !== 'free') ? (
+        {!isLoading && marketOnline && !marketplaceReady && !managedPackage && visibleItems.some(needsPlatformBinding) ? (
           <Alert className="mt-4 border-slate-200 bg-slate-50 text-slate-900">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>{getText('merchant.extensions.platformConnectionRequired', 'Platform connection required')}</AlertTitle>
@@ -261,7 +277,7 @@ export function OfficialPluginsCatalog({
             const hasSolutionSemantics = solutionMeta?.offerKind === 'theme_first_solution' || controlPlaneSolution?.offerKind === 'theme_first_solution';
             const isInstalling = installingSlug === item.slug || (isProvisioningPackage && solutionMeta?.offerKind === 'theme_first_solution');
             const showConfigure = item.installState === 'installed' && item.configRequired && !item.configReady;
-            const requiresPlatformBinding = item.pricingModel !== 'free';
+            const requiresPlatformBinding = needsPlatformBinding(item);
             const isUpdateAction = Boolean(item.updateAvailable && item.installState !== 'not_installed');
             const installDisabled =
               item.installState === 'not_installed' &&
@@ -305,7 +321,7 @@ export function OfficialPluginsCatalog({
 
             const priceLabel = managedPackage
               ? getText('merchant.plugins.includedInPackage', 'Included in package')
-              : formatPrice(item);
+              : formatPrice(item, getText);
 
             return (
               <Card key={item.slug} className="overflow-hidden rounded-2xl border-slate-200/80 bg-white shadow-[0_8px_30px_rgba(15,23,42,0.04)] transition-shadow hover:shadow-[0_14px_36px_rgba(15,23,42,0.08)]">

@@ -695,6 +695,8 @@ export interface OfficialCatalogItem {
   settlementTargetId?: string | null;
   target?: 'shop' | 'admin';
   pricingModel: OfficialCatalogPricingModel;
+  /** A membership item whose basic features everyone may use: it installs without a membership. */
+  freeBase?: boolean;
   price: number;
   currency: string;
   installState: OfficialCatalogInstallState;

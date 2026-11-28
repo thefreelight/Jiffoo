@@ -49,6 +49,7 @@ export interface OfficialCatalogItem {
   settlementTargetId?: string | null;
   target?: 'shop' | 'admin';
   pricingModel: OfficialPricingModel;
+  freeBase?: boolean;
   price: number;
   currency: string;
   installState: OfficialInstallState;
@@ -486,6 +487,7 @@ export async function getOfficialCatalog(): Promise<OfficialCatalogResponse> {
           settlementTargetId: remoteItem.settlementTargetId ?? seed.settlementTargetId ?? null,
           target: meta.target,
           pricingModel: remoteItem.pricingModel,
+          freeBase: remoteItem.freeBase === true,
           price: remoteItem.price ?? 0,
           currency: remoteItem.currency,
           installState,
@@ -552,6 +554,7 @@ export async function getOfficialCatalog(): Promise<OfficialCatalogResponse> {
         settlementTargetType: remoteItem.settlementTargetType ?? seed.settlementTargetType,
         settlementTargetId: remoteItem.settlementTargetId ?? seed.settlementTargetId ?? null,
         pricingModel: remoteItem.pricingModel,
+        freeBase: remoteItem.freeBase === true,
         price: remoteItem.price ?? 0,
         currency: remoteItem.currency,
         installState,

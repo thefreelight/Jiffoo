@@ -134,6 +134,8 @@ export interface OfficialExtensionCatalogItem {
   featured: boolean;
   recommended: boolean;
   pricingModel: OfficialPricingModel;
+  /** The platform marks a membership item whose basic features everyone may use. */
+  freeBase?: boolean;
   price: number | null;
   currency: string;
   currentVersion: string;
@@ -181,7 +183,7 @@ export interface OfficialInstallAuthorizationRequest {
 
 export interface OfficialInstallEntitlement {
   required: boolean;
-  status: 'not_required' | 'granted' | 'denied';
+  status: 'not_required' | 'granted' | 'denied' | 'free_base';
   pricingModel: OfficialPricingModel;
   licenseId?: string | null;
   licenseType?: 'PERPETUAL' | 'SUBSCRIPTION' | 'TRIAL' | null;

@@ -227,4 +227,33 @@ describe('market install binding guard', () => {
       expect(body.error?.code).not.toBe('PLATFORM_CONNECTION_REQUIRED');
     }
   });
+
+  it('installs a membership item the platform marks as free-base on an unbound instance', async () => {
+    // The platform hands such an item to everyone: no membership and no platform
+    // connection are asked for, and the answer is not a 402-style denial.
+    mocks.getOfficialCatalogEntry.mockReturnValue({ slug: 'traffic-analytics', kind: 'plugin', defaultPricingModel: 'free' });
+    const grantUrl = 'https://get.jiffoo.com/api/marketplace/official/package/plugin/traffic-analytics/0.0.1?grant=' + 'b'.repeat(64);
+    mocks.authorizeInstall.mockResolvedValue({
+      allowed: true,
+      slug: 'traffic-analytics',
+      kind: 'plugin',
+      deliveryMode: 'package-managed',
+      paymentMode: 'platform_collect',
+      settlementTargetType: 'platform',
+      artifactKind: 'plugin-package',
+      version: '0.0.1',
+      packageUrl: grantUrl,
+      checksumUrl: `${grantUrl.replace('?grant=', '/sha256?grant=')}`,
+      signatureUrl: null,
+      pricingModel: 'member',
+      price: 99,
+      currency: 'USD',
+      entitlement: { required: false, status: 'free_base', pricingModel: 'member' },
+    });
+
+    const response = await app.inject({ method: 'POST', url: '/extensions/traffic-analytics/install', payload: { kind: 'plugin' } });
+
+    expect(response.statusCode).not.toBe(403);
+    expect(mocks.authorizeInstall).toHaveBeenCalledWith('traffic-analytics', { userId: 'admin_user_1', version: undefined });
+  });
 });

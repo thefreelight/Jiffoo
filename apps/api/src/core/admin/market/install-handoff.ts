@@ -51,7 +51,7 @@ export interface OfficialMarketInstallOptions {
   settlementTargetId?: string | null;
   entitlement?: {
     required: boolean;
-    status: 'not_required' | 'granted' | 'denied';
+    status: 'not_required' | 'granted' | 'denied' | 'free_base';
     pricingModel: 'free' | 'one_time' | 'subscription';
     licenseId?: string | null;
     licenseType?: string | null;

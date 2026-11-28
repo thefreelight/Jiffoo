@@ -130,6 +130,10 @@ export async function tryNativeMarketplace(request: Request, env: Env): Promise<
       // package route. The platform decides whether this instance is entitled;
       // a public package URL in the catalog is never used for such an item.
       let entitlement: PlatformDeliveryCredentials | null = null;
+      // An item with a free base is handed to everyone, yet its package stays
+      // private: the platform names it through an install grant, never through
+      // a public URL.
+      let grantedPackageUrl: string | null = null;
       if (requiresPlatformEntitlement(item)) {
         entitlement = await deliveryCredentials(env);
         if (!entitlement.licenseKey && !entitlement.connection) return membershipRequiredResponse(null);
@@ -139,11 +143,26 @@ export async function tryNativeMarketplace(request: Request, env: Env): Promise<
           return membershipRequiredResponse(denial?.error?.details);
         }
         if (!access.ok) return failure(new Error(`Official marketplace request failed (${access.status})`));
+      } else if (item.freeBase && catalogKind === 'theme') {
+        const authorization = await platformRequest(env, `/marketplace/official/catalog/${encodeURIComponent(item.slug)}/authorize-install`, {
+          method: 'POST',
+          headers: { accept: 'application/json', 'content-type': 'application/json' },
+          body: JSON.stringify({ userId: 'native-install', version }),
+        });
+        const answer = await authorization.json().catch(() => null) as { data?: { allowed?: boolean; packageUrl?: string | null } } | null;
+        if (!authorization.ok || !answer?.data?.allowed || !answer.data.packageUrl) {
+          return failure(new Error(`Official marketplace authorization failed (${authorization.status})`));
+        }
+        grantedPackageUrl = answer.data.packageUrl;
       }
       if (body.kind === 'theme' || body.kind === 'theme-shop') {
         let packageResponse: Response;
         if (entitlement) {
           packageResponse = await platformRequest(env, officialPackageRoute(catalogKind, item.slug, version), { method: 'GET', headers: deliveryRequestHeaders(entitlement) }, PLATFORM_PACKAGE_TIMEOUT_MS);
+        } else if (grantedPackageUrl) {
+          packageResponse = env.PLATFORM_API
+            ? await env.PLATFORM_API.fetch(new Request(grantedPackageUrl))
+            : await fetch(grantedPackageUrl);
         } else {
           const packageUrl = item.versions?.find((entry) => entry.version === version)?.packageUrl
             || item.versions?.[0]?.packageUrl;
