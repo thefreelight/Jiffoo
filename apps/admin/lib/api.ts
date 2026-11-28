@@ -174,7 +174,8 @@ export interface UserStatsData {
 }
 
 export interface InventoryStatsData {
-  metrics: {
+  /** Forecast figures: the self-hosted core reports them, Cloudflare Native has no forecasts. */
+  metrics?: {
     totalAlerts: number;
     stockoutRisks: number;
     overstockItems: number;
@@ -183,6 +184,15 @@ export interface InventoryStatsData {
     stockoutRisksTrend: number;
     overstockItemsTrend: number;
     avgAccuracyTrend: number;
+  };
+  /** What the catalog holds: units, what they are worth, and the products at or below the low-stock threshold. Cloudflare Native reports it. */
+  stock?: {
+    products: number;
+    units: number;
+    value: number;
+    lowStockProducts: number;
+    outOfStockProducts: number;
+    lowStockThreshold: number;
   };
 }
 

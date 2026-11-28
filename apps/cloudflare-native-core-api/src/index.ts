@@ -29,6 +29,7 @@ import { tryNativeInstall } from './install';
 import { importSnapshots } from './snapshot-import';
 import { tryNativeAdminDashboard } from './admin-dashboard';
 import { tryNativeAdminProducts } from './admin-products';
+import { tryNativeAdminInventory } from './admin-inventory';
 import { tryNativeAdminApiTokens } from './admin-api-tokens';
 import { nativeUpgradeVersion } from './upgrade-version';
 import { handleAppVersionLatest } from './app-version';
@@ -367,6 +368,8 @@ async function routeNativeRequest(request: Request, env: WorkerEnv, ctx: Executi
     if (nativeAdminDashboard) return nativeAdminDashboard;
     const nativeAdminProducts = await tryNativeAdminProducts(nativeRequest, env);
     if (nativeAdminProducts) return nativeAdminProducts;
+    const nativeAdminInventory = await tryNativeAdminInventory(nativeRequest, env);
+    if (nativeAdminInventory) return nativeAdminInventory;
     const nativeAdminApiTokens = await tryNativeAdminApiTokens(nativeRequest, env);
     if (nativeAdminApiTokens) return nativeAdminApiTokens;
     // Product search must precede the snapshot read path: without it,

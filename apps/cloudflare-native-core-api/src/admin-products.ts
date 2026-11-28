@@ -5,11 +5,20 @@ import { loadProductCopyOverrides } from './product-copy';
 
 type ProductEnv = NativeAuthEnv & { DB: D1Database };
 
+/** Below this many units a product counts as low on stock, here and in the inventory figures. */
+export const DEFAULT_LOW_STOCK_THRESHOLD = 5;
+
+/** The threshold asked for, or the default; anything that is not a positive number gets the default. */
+export function lowStockThresholdOf(value: string | null | undefined): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : DEFAULT_LOW_STOCK_THRESHOLD;
+}
+
 const READ_ONLY_MESSAGE = 'Native instances manage the product catalog through deployment pipelines (e.g. Odoo catalog sync). Product mutations from the admin console are not available.';
 
 const DESCRIPTION_MAX_LENGTH = 5000;
 
-interface SnapshotVariant {
+export interface SnapshotVariant {
   id?: string;
   name?: string | null;
   skuCode?: string | null;
@@ -19,7 +28,7 @@ interface SnapshotVariant {
   attributes?: Record<string, unknown> | null;
 }
 
-interface SnapshotProduct {
+export interface SnapshotProduct {
   id: string;
   name: string;
   slug?: string;
@@ -37,7 +46,7 @@ interface SnapshotProduct {
 // The native catalog is the deployed snapshot of /api/v1/products (kept fresh
 // by snapshot import / Odoo catalog sync), so admin reads project that payload
 // instead of querying tables that native instances do not maintain.
-async function loadCatalogItems(env: ProductEnv): Promise<SnapshotProduct[]> {
+export async function loadCatalogItems(env: ProductEnv): Promise<SnapshotProduct[]> {
   const row = await env.DB.prepare(
     "SELECT payload FROM core_api_snapshots WHERE request_path = '/api/v1/products' LIMIT 1",
   ).first<{ payload: string }>();
@@ -53,14 +62,14 @@ async function loadCatalogItems(env: ProductEnv): Promise<SnapshotProduct[]> {
   }
 }
 
-function toIsoTimestamp(value: string | undefined): string {
+export function toIsoTimestamp(value: string | undefined): string {
   if (!value) return new Date(0).toISOString();
   // Snapshot timestamps look like "2026-08-24 10:13:56" (UTC, space-separated).
   const normalized = value.includes('T') ? value : value.replace(' ', 'T');
   return /[zZ]|[+-]\d{2}:\d{2}$/.test(normalized) ? normalized : `${normalized}Z`;
 }
 
-function primaryVariant(item: SnapshotProduct): SnapshotVariant | null {
+export function primaryVariant(item: SnapshotProduct): SnapshotVariant | null {
   if (!item.variants || item.variants.length === 0) return null;
   return item.variants.find((variant) => variant.isActive) ?? item.variants[0];
 }
@@ -100,7 +109,7 @@ export async function tryNativeAdminProducts(request: Request, env: ProductEnv):
 
   const statsMatch = url.pathname.match(/^\/api\/v1\/admin\/products\/stats\/?$/);
   if (statsMatch) {
-    const threshold = Number(url.searchParams.get('lowStockThreshold') ?? 5) || 5;
+    const threshold = lowStockThresholdOf(url.searchParams.get('lowStockThreshold'));
     const active = items.filter((item) => item.isActive !== false);
     const stocks = items.map((item) => item.stock ?? 0);
     return Response.json({ success: true, data: { metrics: {
@@ -177,6 +186,7 @@ export async function tryNativeAdminProducts(request: Request, env: ProductEnv):
     return {
       id: item.id,
       name: item.name,
+      images: item.images ?? [],
       description: overrideDescription ?? odooDescription,
       odooDescription,
       descriptionOverridden: overrideDescription !== null,
