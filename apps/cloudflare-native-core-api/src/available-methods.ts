@@ -1,3 +1,6 @@
+import { nativePaymentModules } from './native-plugin-modules/payments';
+import { getNativePluginConfig } from './plugin-settings';
+
 interface AvailableMethodsEnv {
   DB: D1Database;
   STRIPE_SECRET_KEY?: SecretsStoreSecret | string;
@@ -102,7 +105,16 @@ export async function tryNativeAvailableMethods(
       ]);
       method = stripeBindingMethod(secretKey, webhookSecret);
     }
-    return Response.json({ success: true, data: method ? [method] : [] }, {
+    const methods: unknown[] = method ? [method] : [];
+    // Each payment module compiled into the worker adds its method while it is enabled and usable.
+    for (const module of nativePaymentModules()) {
+      if (!module.paymentMethod) continue;
+      const plugin = await getNativePluginConfig(env as never, module.id);
+      if (!plugin?.enabled) continue;
+      const entry = await module.paymentMethod(plugin.config);
+      if (entry) methods.push({ name: module.id, ...entry });
+    }
+    return Response.json({ success: true, data: methods }, {
       headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-payment-methods' },
     });
   }

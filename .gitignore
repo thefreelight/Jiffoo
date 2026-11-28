@@ -148,3 +148,8 @@ packages/shop-themes/*/diff_*.txt
 tmp/
 .env.bak
 apps/api/openapi.json
+
+# Native plugin modules a build compiles into the Cloudflare Native core
+# (docs/NATIVE-PLUGIN-MODULES.md): a module is the plugin's own implementation
+# and is never committed here.
+apps/cloudflare-native-core-api/src/native-modules/

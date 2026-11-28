@@ -102,9 +102,9 @@ function fakeEnv(refunds: RefundRow[] = []) {
       return row ? { id: row.id, status: row.status } : null;
     }
     if (sql.startsWith('SELECT total_amount, currency, user_id FROM native_order_metadata')) return { total_amount: order.total_amount, currency: order.currency, user_id: order.user_id };
-    if (sql.startsWith('SELECT id, payment_intent_id FROM native_payment_sessions WHERE order_id')) return { id: 'cs_1', payment_intent_id: 'pi_1' };
+    if (sql.startsWith('SELECT id, payment_intent_id, provider FROM native_payment_sessions WHERE order_id')) return { id: 'cs_1', payment_intent_id: 'pi_1', provider: 'stripe' };
     if (sql.startsWith('SELECT id FROM native_payment_sessions WHERE order_id')) return { id: 'cs_1' };
-    if (sql.startsWith('SELECT id, payment_intent_id FROM native_payment_sessions WHERE id')) return args[0] === 'cs_1' ? { id: 'cs_1', payment_intent_id: 'pi_1' } : null;
+    if (sql.startsWith('SELECT id, payment_intent_id, provider FROM native_payment_sessions WHERE id')) return args[0] === 'cs_1' ? { id: 'cs_1', payment_intent_id: 'pi_1', provider: 'stripe' } : null;
     if (sql.startsWith('SELECT COALESCE(SUM(amount), 0) AS amount FROM native_refunds')) return { amount: sum() };
     if (sql.startsWith('SELECT id, order_id, payment_session_id, amount, reason, provider_refund_id FROM native_refunds')) {
       return state.refunds.find((row) => row.id === args[0] && row.status === args[1]) ?? null;

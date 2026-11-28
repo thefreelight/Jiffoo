@@ -2,7 +2,8 @@ import { type NativeAuthEnv } from './auth';
 import { ADMIN_PERMISSIONS } from './native-rbac';
 import { requireAdminPermission } from './admin-access';
 import { attachShipments } from './shipments';
-import { getNativeStripeSecret } from './plugin-settings';
+import { getNativePluginConfig, getNativeStripeSecret } from './plugin-settings';
+import { NativePaymentError, nativePaymentModule, type NativePaymentModule } from './native-plugin-modules/payments';
 import { getCarrier, matchCarrierByName, trackingUrlFor } from './shipping-carriers';
 import { subscribeKuaidi100Tracking } from './shipping';
 
@@ -88,6 +89,99 @@ function refundAccepted(order: unknown): Response {
 
 /** Who completes a refund when the timer, not an administrator, finds the provider's answer. */
 const REFUND_RECONCILER = 'system:refund-reconciliation';
+/** Who completes a refund when the payment gateway's own webhook announces it. */
+const REFUND_WEBHOOK = 'system:refund-webhook';
+
+/** The payment session of a refund: which module took the money, and its number for the payment. */
+interface RefundPaymentSession { id: string; payment_intent_id: string | null; provider: string }
+
+/**
+ * What a payment module's refund delivery means for the refund this store is
+ * still waiting on. A delivery about a refund nobody asked for here — one
+ * issued on the gateway's own dashboard — is nothing to write down.
+ */
+export async function applyModuleRefundNotice(
+  env: AdminWriteEnv,
+  notice: { status: 'succeeded' | 'failed'; paymentId: string | null; refundReference: string | null; refundId: string | null },
+): Promise<'completed' | 'failed' | 'unknown'> {
+  const select = 'SELECT id, order_id, amount, reason FROM native_refunds WHERE ';
+  // By the reference this store gave the refund when it asked for it, else by the gateway's own refund id.
+  const row = notice.refundReference
+    ? await env.DB.prepare(`${select}id = ?1 AND status = 'PENDING'`).bind(notice.refundReference).first<Pick<RefundRow, 'id' | 'order_id' | 'amount' | 'reason'>>()
+    : notice.refundId
+      ? await env.DB.prepare(`${select}provider_refund_id = ?1 AND status = 'PENDING'`).bind(notice.refundId).first<Pick<RefundRow, 'id' | 'order_id' | 'amount' | 'reason'>>()
+      : null;
+  if (!row) return 'unknown';
+  if (notice.status === 'succeeded') {
+    await completeNativeRefund(env, { orderId: row.order_id, refundId: row.id, providerRefundId: notice.refundId ?? row.id, amount: row.amount, actorId: REFUND_WEBHOOK, reason: row.reason, items: null });
+    return 'completed';
+  }
+  // a refund the provider gave up on is not a refund: the reservation goes, and the administrator can ask again
+  await env.DB.prepare("DELETE FROM native_refunds WHERE id = ?1 AND status = 'PENDING'").bind(row.id).run();
+  return 'failed';
+}
+
+/**
+ * Asks a payment module to return the money. The module's answer decides on
+ * the spot — done, or given up — or it has taken the refund and confirms
+ * later, in which case the refund waits with the module's number on it for
+ * its webhook or the timer.
+ */
+async function refundThroughModule(
+  env: AdminWriteEnv,
+  input: {
+    module: NativePaymentModule; session: RefundPaymentSession; orderId: string; refundId: string;
+    amount: number; currency: string; reason: string | null; items: Array<{ orderItemId: string; quantity: number }> | null;
+    actorId: string; order: Record<string, unknown>;
+  },
+): Promise<Response> {
+  const giveUp = async (message: string) => {
+    await env.DB.prepare("DELETE FROM native_refunds WHERE id = ?1 AND status = 'PENDING'").bind(input.refundId).run();
+    return error(502, 'PAYMENT_REFUND_FAILED', message);
+  };
+  if (!input.module.payments.createRefund) return giveUp('This payment method cannot return money by itself');
+  const plugin = await getNativePluginConfig(env, input.module.id);
+  if (!plugin?.enabled) return giveUp(`${input.module.id} is not enabled on this store`);
+  try {
+    const refund = await input.module.payments.createRefund(plugin.config, {
+      paymentId: input.session.payment_intent_id ?? '', amountMinor: Math.round(input.amount * 100), currency: input.currency,
+      reason: input.reason, reference: input.refundId,
+    });
+    if (refund.outcome === 'failed') return giveUp('The payment provider rejected the refund');
+    if (refund.outcome === 'succeeded') {
+      await completeNativeRefund(env, {
+        orderId: input.orderId, refundId: input.refundId, providerRefundId: refund.providerRefundId ?? input.refundId,
+        amount: input.amount, actorId: input.actorId, reason: input.reason, items: input.items,
+      });
+      return result(JSON.parse((await loadNativeOrder(env, input.orderId))?.payload ?? JSON.stringify(input.order)));
+    }
+    // Taken, not confirmed: the webhook or the timer finishes it.
+    await env.DB.prepare("UPDATE native_refunds SET provider_refund_id = ?1 WHERE id = ?2 AND status = 'PENDING'")
+      .bind(refund.providerRefundId ?? input.refundId, input.refundId).run();
+    return refundAccepted(input.order);
+  } catch (cause) {
+    const message = cause instanceof NativePaymentError ? cause.message : 'The payment provider rejected the refund';
+    return giveUp(message);
+  }
+}
+
+/** Asks a payment module about a refund the store is still waiting on, and writes down what it says. */
+async function settleModuleRefund(env: AdminWriteEnv, module: NativePaymentModule, row: RefundRow): Promise<'completed' | 'failed' | 'pending'> {
+  if (!module.payments.refundOutcome) return 'pending';
+  const plugin = await getNativePluginConfig(env, module.id);
+  if (!plugin?.enabled) return 'pending';
+  const outcome = await module.payments.refundOutcome(plugin.config, { reference: row.id, providerRefundId: row.provider_refund_id });
+  if (outcome === 'succeeded') {
+    await completeNativeRefund(env, { orderId: row.order_id, refundId: row.id, providerRefundId: row.provider_refund_id ?? row.id, amount: row.amount, actorId: REFUND_RECONCILER, reason: row.reason, items: null });
+    return 'completed';
+  }
+  // a refund the provider gave up on is not a refund: the reservation goes, and the administrator can ask again
+  if (outcome === 'failed') {
+    await env.DB.prepare("DELETE FROM native_refunds WHERE id = ?1 AND status = 'PENDING'").bind(row.id).run();
+    return 'failed';
+  }
+  return 'pending';
+}
 
 interface RefundRow { id: string; order_id: string; payment_session_id: string; amount: number; reason: string | null; provider_refund_id: string | null }
 
@@ -150,7 +244,10 @@ async function settleNativeRefund(env: AdminWriteEnv, refundId: string): Promise
   const row = await env.DB.prepare('SELECT id, order_id, payment_session_id, amount, reason, provider_refund_id FROM native_refunds WHERE id = ?1 AND status = ?2')
     .bind(refundId, 'PENDING').first<RefundRow>();
   if (!row) return 'missing';
-  const session = await env.DB.prepare('SELECT id, payment_intent_id FROM native_payment_sessions WHERE id = ?1').bind(row.payment_session_id).first<{ id: string; payment_intent_id: string | null }>();
+  const session = await env.DB.prepare('SELECT id, payment_intent_id, provider FROM native_payment_sessions WHERE id = ?1').bind(row.payment_session_id).first<RefundPaymentSession>();
+  // The money goes back the way it came: a payment module is asked, Stripe is told.
+  const module = session ? nativePaymentModule(session.provider) : null;
+  if (module && session) return settleModuleRefund(env, module, row);
   const intent = session ? await stripePaymentIntent(env, session.id, session.payment_intent_id) : null;
   if (!intent) return 'pending';
   const provider = row.provider_refund_id ? await stripeRefundOf(env, row.provider_refund_id) : await stripeRefundForOrder(env, intent, row.order_id);
@@ -303,7 +400,7 @@ export async function tryNativeAdminWrites(request: Request, env: AdminWriteEnv)
     }
     if (native.payment_status !== 'PAID' && native.payment_status !== 'PARTIALLY_REFUNDED') return error(409, 'ORDER_NOT_PAID', 'Order is not paid, cannot refund');
     const metadata = await env.DB.prepare('SELECT total_amount, currency, user_id FROM native_order_metadata WHERE order_id = ?1').bind(orderId).first<{ total_amount: number; currency: string; user_id: string }>();
-    const payment = await env.DB.prepare("SELECT id, payment_intent_id FROM native_payment_sessions WHERE order_id = ?1 AND status = 'SUCCEEDED' ORDER BY updated_at DESC LIMIT 1").bind(orderId).first<{ id: string; payment_intent_id: string | null }>();
+    const payment = await env.DB.prepare("SELECT id, payment_intent_id, provider FROM native_payment_sessions WHERE order_id = ?1 AND status = 'SUCCEEDED' ORDER BY updated_at DESC LIMIT 1").bind(orderId).first<RefundPaymentSession>();
     if (!metadata || !payment) return error(409, 'PAYMENT_REFUND_FAILED', 'No successful payment found for this order');
     const totalRefunded = await env.DB.prepare("SELECT COALESCE(SUM(amount), 0) AS amount FROM native_refunds WHERE order_id = ?1 AND status IN ('PENDING', 'COMPLETED')").bind(orderId).first<{ amount: number }>();
     const remaining = metadata.total_amount - (totalRefunded?.amount ?? 0);
@@ -321,6 +418,13 @@ export async function tryNativeAdminWrites(request: Request, env: AdminWriteEnv)
       const duplicate = await env.DB.prepare('SELECT status FROM native_refunds WHERE idempotency_key = ?1').bind(key).first<{ status: string }>();
       if (duplicate) return result(JSON.parse(native.payload));
       throw new Error('Unable to reserve refund');
+    }
+    const module = nativePaymentModule(payment.provider);
+    if (module) {
+      return refundThroughModule(env, {
+        module, session: payment, orderId, refundId, amount, currency: metadata.currency, reason,
+        items: refundItems, actorId: admin.id, order,
+      });
     }
     const intent = await stripePaymentIntent(env, payment.id, payment.payment_intent_id);
     if (!intent) {
