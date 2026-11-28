@@ -57,6 +57,12 @@ Keep the list in the build step only; do not commit a non-empty list to this rep
 in the admin: `NATIVE_PLUGIN_PAGES` maps a slug to a page component, and `PluginWorkspace`
 renders it for that slug. The open-source build maps nothing.
 
+Put the page's own files under `apps/admin/components/` (for example
+`components/plugins/native-pages/<slug>/`). The admin's Tailwind reads class names from `app/`,
+`components/` and `lib/` only: a page anywhere else compiles, looks right in a development server
+for as long as its classes happen to be used elsewhere in the admin, and reaches a build without
+the classes only it uses. After listing a page, check the compiled CSS for one of its classes.
+
 ## What a deployed worker reports
 
 `GET /health` carries `pluginModules`: the slugs of the modules compiled into the worker.
